@@ -40,8 +40,8 @@ package com.normation.rudder.rest
 import better.files.File
 import com.normation.JsonSpecMatcher
 import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.rudder.campaigns.MainCampaignService
-import com.normation.rudder.campaigns.Scheduled
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
@@ -70,7 +70,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
   ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
   val restTest      = new RestTest(restTestSetUp.liftRules)
 
-  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}")
+  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}")
   testDir.createDirectoryIfNotExists(true)
 
   override def afterAll(): Unit = {
@@ -98,7 +98,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
 
   val c0json: String = {
     """{
-      |"campaignType":"dumb-campaign",
+      |"campaignType":"test-campaign",
       |"info":{
       |"id":"c0",
       |"name":"first campaign",
@@ -160,7 +160,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
               .getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
             (next.start.getMillis must be_>(System.currentTimeMillis())) and
-            (next.state must beEqualTo(Scheduled)) and
+            (next.state.value must beEqualTo(ScheduledType)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }
 
@@ -177,7 +177,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
          |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"tz":"${tz}","type":"weekly"}
          |},
          |"details":{"name":"campaign #0"},
-         |"campaignType":"dumb-campaign",
+         |"campaignType":"test-campaign",
          |"version":1
          |}""".stripMargin.replaceAll("""\n""", "")
     }
@@ -213,7 +213,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
          |"schedule":{"start":{"hour":1,"minute":23},"end":{"hour":3,"minute":21},"type":"daily"}
          |},
          |"details":{"name":"campaign #2"},
-         |"campaignType":"dumb-campaign",
+         |"campaignType":"test-campaign",
          |"version":1
          |}""".stripMargin.replaceAll("""\n""", "")
     }

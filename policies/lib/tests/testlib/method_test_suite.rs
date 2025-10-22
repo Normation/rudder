@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
-use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::given::Given;
+use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::method_to_test::MethodToTest;
 use crate::testlib::test_result::ExecutionResult;
 use log::debug;
 use rudder_commons::PolicyMode;
-use rudderc::backends::unix::cfengine::cf_agent;
-use rudderc::backends::unix::Unix;
 use rudderc::backends::Backend;
-use rudderc::ir::technique::{ItemKind, TechniqueId};
+use rudderc::backends::unix::Unix;
+use rudderc::backends::unix::cfengine::cf_agent;
 use rudderc::ir::Technique;
+use rudderc::ir::technique::{ItemKind, TechniqueId};
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -44,9 +44,9 @@ impl MethodTestSuite {
         }
     }
 
-    pub fn when(&self, nm: MethodToTest) -> MethodTestSuite {
+    pub fn when(&self, nm: &MethodToTest) -> MethodTestSuite {
         let mut v = self.when.clone();
-        v.push(nm);
+        v.push(nm.clone());
         MethodTestSuite {
             given: self.given.clone(),
             when: v,

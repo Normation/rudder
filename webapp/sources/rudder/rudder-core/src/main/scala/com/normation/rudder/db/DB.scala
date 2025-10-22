@@ -69,57 +69,9 @@ object DB {
 
   //////////
 
-  final case class Reports[T](
-      id:                 T,
-      executionDate:      DateTime,
-      nodeId:             String,
-      directiveId:        String,
-      ruleId:             String,
-      reportId:           String,
-      component:          String,
-      keyValue:           String,
-      executionTimestamp: DateTime,
-      eventType:          String,
-      policy:             String,
-      msg:                String
-  )
-
-  def insertReports(reports: List[com.normation.rudder.domain.reports.Reports]): ConnectionIO[Int] = {
-    val dbreports = reports.map { r =>
-      DB.Reports[Unit](
-        (),
-        r.executionDate,
-        r.nodeId.value,
-        r.directiveId.serialize,
-        r.ruleId.serialize,
-        r.reportId,
-        r.component,
-        r.keyValue,
-        r.executionTimestamp,
-        r.severity,
-        "policy",
-        r.message
-      )
-    }
-
-    Update[DB.Reports[Unit]]("""
-      insert into ruddersysevents
-        (executiondate, nodeid, directiveid, ruleid, reportid, component, keyvalue, executiontimestamp, eventtype, policy, msg)
-      values (?,?,?, ?,?,?, ?,?,?, ?,?)
-    """).updateMany(dbreports)
-  }
-  //////////
-
   final case class GitCommitJoin(
       gitCommit:      GitCommitId,
       modificationId: ModificationId
-  )
-
-  //////////
-
-  final case class RunProperties(
-      name:  String,
-      value: String
   )
 
   //////////
@@ -152,6 +104,11 @@ object DB {
   }
 
   def insertUncomputedAgentRun(runs: List[UncomputedAgentRun]): ConnectionIO[Int] = {
+    implicit val ReportWrite: Write[DB.UncomputedAgentRun] = {
+      type R = (String, DateTime, Option[String], Long, DateTime)
+      Write[R].contramap((r: DB.UncomputedAgentRun) => (r.nodeId, r.date, r.nodeConfigId, r.insertionId, r.insertionDate))
+    }
+
     Update[DB.UncomputedAgentRun]("""
       insert into reportsexecution
         (nodeid, date, nodeconfigid, insertionid, insertiondate)

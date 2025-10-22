@@ -8,6 +8,38 @@ use serde_inline_default::serde_inline_default;
 use serde_with::serde_as;
 use std::path::PathBuf;
 
+/// Parameters for the augeas module, passed by the agent
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct CfengineAugeasParameters {
+    pub script: String,
+    pub if_script: String,
+    pub path: PathBuf,
+    pub show_file_content: bool,
+    pub lens: String,
+    pub max_file_size: ByteSize,
+    pub report_file: PathBuf,
+}
+
+impl From<CfengineAugeasParameters> for AugeasParameters {
+    fn from(s: CfengineAugeasParameters) -> Self {
+        AugeasParameters {
+            script: s.script,
+            if_script: s.if_script,
+            context: None,
+            path: s.path,
+            show_file_content: false,
+            lens: if s.lens.is_empty() {
+                None
+            } else {
+                Some(s.lens)
+            },
+            max_file_size: s.max_file_size,
+            report_file: Some(s.report_file),
+        }
+    }
+}
+
 /// Parameters for the augeas module.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -17,6 +49,7 @@ pub struct AugeasParameters {
     /// Expressions to run
     pub script: String,
     // only_if
+    #[serde(default)]
     pub if_script: String,
     /// Prefix to add to all expressions.
     ///

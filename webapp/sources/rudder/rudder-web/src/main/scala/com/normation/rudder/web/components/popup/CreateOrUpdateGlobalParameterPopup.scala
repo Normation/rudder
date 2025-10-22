@@ -38,8 +38,9 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
-import com.normation.box.*
+import com.normation.errors.IOResult
 import com.normation.errors.PureResult
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -59,32 +60,34 @@ import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
+import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
-import org.joda.time.DateTime
 import scala.xml.*
+import zio.syntax.*
 
 class CreateOrUpdateGlobalParameterPopup(
     change:            GlobalParamChangeRequest,
-    workflowService:   WorkflowService,
-    onSuccessCallback: (Either[GlobalParameter, ChangeRequestId]) => JsCmd = { x => Noop },
+    onSuccessCallback: (Either[GlobalParameter, ChangeRequestId], WorkflowService, String) => JsCmd,
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
+  private val workflowLevelService = RudderConfig.workflowLevelService
+  private val userPropertyService  = RudderConfig.userPropertyService
+  private val uuidGen              = RudderConfig.stringUuidGenerator
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+  private val actor:       EventActor   = CurrentUser.actor
+  private val contextPath: String       = S.contextPath
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }
-  }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   /* Text variation for
    * - Global Parameter
@@ -96,7 +99,7 @@ class CreateOrUpdateGlobalParameterPopup(
     case GlobalParamModAction.Create => "Add a global property"
   }
 
-  private val workflowEnabled = workflowService.needExternalValidation()
+  private val workflowEnabled = workflowLevelService.getWorkflowService().needExternalValidation()
   private val titleWorkflow   = workflowEnabled match {
     case true  =>
       <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
@@ -108,17 +111,17 @@ class CreateOrUpdateGlobalParameterPopup(
     case false => NodeSeq.Empty
   }
 
-  private def globalParamDiffFromAction(newParameter: GlobalParameter): Box[ChangeRequestGlobalParameterDiff] = {
+  private def globalParamDiffFromAction(newParameter: GlobalParameter): IOResult[ChangeRequestGlobalParameterDiff] = {
     change.previousGlobalParam match {
       case None    =>
         if ((change.action == GlobalParamModAction.Update) || (change.action == GlobalParamModAction.Create))
-          Full(AddGlobalParameterDiff(newParameter))
+          AddGlobalParameterDiff(newParameter).succeed
         else
-          Failure(s"Action ${change.action.name} is not possible on a new global property")
+          Inconsistency(s"Action ${change.action.name} is not possible on a new global property").fail
       case Some(d) =>
         change.action match {
-          case GlobalParamModAction.Delete                               => Full(DeleteGlobalParameterDiff(d))
-          case GlobalParamModAction.Update | GlobalParamModAction.Create => Full(ModifyToGlobalParameterDiff(newParameter))
+          case GlobalParamModAction.Delete                               => DeleteGlobalParameterDiff(d).succeed
+          case GlobalParamModAction.Update | GlobalParamModAction.Create => ModifyToGlobalParameterDiff(newParameter).succeed
         }
     }
   }
@@ -129,7 +132,11 @@ class CreateOrUpdateGlobalParameterPopup(
       // in case of string, we need to force parse as string
       v <- if (jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
       _ <- if (jsonRequired && v.valueType() == ConfigValueType.STRING) {
-             Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
+             Left(
+               Inconsistency(
+                 "JSON check is enabled, but the value appears to be a String. Please select the String format instead."
+               )
+             )
            } else Right(())
     } yield {
       v
@@ -140,57 +147,64 @@ class CreateOrUpdateGlobalParameterPopup(
     if (formTracker.hasErrors) {
       onFailure
     } else {
-      val jsonCheck          = parameterFormat.get match {
+      val jsonCheck = parameterFormat.get match {
         case "json" => true
         case _      => false
       }
+
       val savedChangeRequest = {
         for {
-          value <- parseValue(parameterValue.get, jsonCheck).toBox
-          param  = GlobalParameter(
-                     parameterName.get,
-                     GitVersion.DEFAULT_REV,
-                     value,
-                     InheritMode.parseString(parameterInheritMode.get).toOption,
-                     parameterDescription.get,
-                     None,
-                     Visibility.default
-                   )
-          diff  <- globalParamDiffFromAction(param)
-          cr     = ChangeRequestService.createChangeRequestFromGlobalParameter(
-                     changeRequestName.get,
-                     paramReasons.map(_.get).getOrElse(""),
-                     param,
-                     change.previousGlobalParam,
-                     diff,
-                     CurrentUser.actor,
-                     paramReasons.map(_.get)
-                   )
-          id    <- workflowService.startWorkflow(cr)(
-                     ChangeContext(
-                       ModificationId(uuidGen.newUuid),
-                       qc.actor,
-                       new DateTime(),
-                       paramReasons.map(_.get),
-                       None,
-                       qc.nodePerms
-                     )
-                   )
+          value           <- parseValue(parameterValue.get, jsonCheck).toIO
+          param            = GlobalParameter(
+                               parameterName.get,
+                               GitVersion.DEFAULT_REV,
+                               value,
+                               InheritMode.parseString(parameterInheritMode.get).toOption,
+                               parameterDescription.get,
+                               None,
+                               Visibility.default
+                             )
+          diff            <- globalParamDiffFromAction(param)
+          cr               = ChangeRequestService.createChangeRequestFromGlobalParameter(
+                               changeRequestName.get,
+                               paramReasons.map(_.get).getOrElse(""),
+                               param,
+                               change.previousGlobalParam,
+                               diff,
+                               CurrentUser.actor,
+                               paramReasons.map(_.get)
+                             )
+          workflowService <- workflowLevelService.getForGlobalParam(actor, change)
+          id              <- workflowLevelService
+                               .getWorkflowService()
+                               .startWorkflow(cr)(using
+                                 ChangeContext(
+                                   ModificationId(uuidGen.newUuid),
+                                   qc.actor,
+                                   Instant.now(),
+                                   paramReasons.map(_.get),
+                                   None,
+                                   qc.nodePerms
+                                 )
+                               )
+
         } yield {
           if (workflowEnabled) {
-            closePopup() & onSuccessCallback(Right(id))
+            closePopup() & onSuccessCallback(Right(id), workflowService, contextPath)
           } else {
-            closePopup() & onSuccessCallback(Left(param))
+            closePopup() & onSuccessCallback(Left(param), workflowService, contextPath)
           }
         }
       }
-      savedChangeRequest match {
-        case Full(res) =>
-          res
-        case eb: EmptyBox =>
-          val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
-          logger.error(msg)
-          formTracker.addFormError(error(msg))
+
+      savedChangeRequest
+        .chainError(s"An error occurred while attempting to ${change.action.name} the parameter")
+        .either
+        .runNow match {
+        case Right(jsCmd) => jsCmd
+        case Left(err)    =>
+          logger.error(err.fullMsg)
+          formTracker.addFormError(error(err.fullMsg))
           onFailure
       }
     }
@@ -228,14 +242,14 @@ class CreateOrUpdateGlobalParameterPopup(
   ////////////////////////// fields for form ////////////////////////
 
   private val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     = (change.previousGlobalParam match {
       case Some(entry) => super.inputField % ("disabled" -> "true")
       case None        => super.inputField
     }) % ("onkeydown" -> "return processKey(event , 'createParameterSaveButton')") % ("tabindex" -> "1")
     override def validations    = {
-      valMinLen(1, "The name must not be empty") _ :: Nil
+      valMinLen(1, "The name must not be empty") :: Nil
     }
   }
 
@@ -262,7 +276,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case _        => NodeSeq.Empty
       }
     ) {
-      override def setFilter = notNull _ :: trim _ :: Nil
+      override def setFilter = notNull :: trim :: Nil
       override def className = "checkbox-group"
     }
   }
@@ -270,7 +284,7 @@ class CreateOrUpdateGlobalParameterPopup(
   // The value may be empty
   private val parameterValue = {
     new WBTextAreaField("Value", change.previousGlobalParam.map(p => p.valueAsString).getOrElse("")) {
-      override def setFilter      = trim _ :: Nil
+      override def setFilter      = trim :: Nil
       override def inputField     = (change.action match {
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
@@ -282,7 +296,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private val parameterDescription = {
     new WBTextAreaField("Description", change.previousGlobalParam.map(_.description).getOrElse("")) {
-      override def setFilter      = notNull _ :: trim _ :: Nil
+      override def setFilter      = notNull :: trim :: Nil
       override def inputField     = (change.action match {
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
@@ -295,7 +309,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private val parameterInheritMode = {
     new WBTextField("Inherit Mode", change.previousGlobalParam.flatMap(_.inheritMode.map(_.value)).getOrElse("")) {
       override val maxLen         = 3
-      override def setFilter      = trim _ :: Nil
+      override def setFilter      = trim :: Nil
       override def inputField     = ((change.action match {
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
@@ -318,12 +332,12 @@ class CreateOrUpdateGlobalParameterPopup(
   private val defaultRequestName =
     s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name).getOrElse("")
   private val changeRequestName  = new WBTextField("Change request title", defaultRequestName) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "5")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   val parameterOverridable = true
@@ -339,13 +353,13 @@ class CreateOrUpdateGlobalParameterPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter  = notNull _ :: trim _ :: Nil
+      override def setFilter  = notNull :: trim :: Nil
       override def inputField = super.inputField %
         ("style" -> "height:5em;") % ("tabindex" -> "6") % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
       override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -410,7 +424,7 @@ class CreateOrUpdateGlobalParameterPopup(
       "#cancel" #> (SHtml.ajaxButton("Cancel", () => closePopup()) % ("tabindex" -> "7")                         % ("class"    -> "btn btn-default")) &
       "#save" #> (SHtml.ajaxSubmit(
         buttonName,
-        onSubmit _
+        onSubmit
       )                                                            % ("id"       -> "createParameterSaveButton") % ("tabindex" -> "8") % ("class" -> s"btn ${classForButton}")) andThen
       ".notifications *" #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())

@@ -41,10 +41,6 @@ import com.normation.cfclerk.domain.LoadTechniqueError.Consistancy
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
 import com.normation.errors.*
-import com.normation.errors.AccumulateErrors
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
-import com.normation.errors.PureResult
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.*
@@ -309,5 +305,4 @@ class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
       resources <- resourceFileService.getResources(t)
     } yield t.copy(resources = resources)
   }
-
 }

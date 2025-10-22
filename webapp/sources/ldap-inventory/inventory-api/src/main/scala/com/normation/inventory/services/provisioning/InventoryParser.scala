@@ -40,10 +40,8 @@ package com.normation.inventory.services.provisioning
 import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryError
-import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.utils.XmlSafe
 import java.io.InputStream
-import javax.xml.XMLConstants
-import javax.xml.parsers.SAXParserFactory
 import scala.xml.*
 import zio.*
 import zio.syntax.*
@@ -79,36 +77,6 @@ trait InventoryParser {
 
 }
 
-/*
- * Use a safe SAX parser
- */
-object XmlInventoryParser {
-
-  /*
-   * Create a safe sax parser using https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html#jaxp-documentbuilderfactory-saxparserfactory-and-dom4j
-   * guiding lines.
-   */
-  val saxParserFactory: SAXParserFactory = {
-    try {
-      val f = SAXParserFactory.newInstance()
-      f.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-      f.setXIncludeAware(false)
-      f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-      // this one is from Scala XML implementation of new SAX parseur, so keeping it to avoid surprises
-      f.setNamespaceAware(false)
-      f
-    } catch {
-      case ex: Throwable =>
-        InventoryProcessingLogger.logEffect.error(
-          s"Can't create a safe XML parser. Your JVM environment may not be supported. " +
-          s"Please contact application developers. Error is: ${ex.getMessage}"
-        )
-        // stop Rudder
-        throw new RuntimeException(ex)
-    }
-  }
-}
-
 /**
  * A version of the InventoryParser that take care of the parsing
  * of the input stream into an XML doc, and so implementation can
@@ -118,7 +86,7 @@ trait XmlInventoryParser extends InventoryParser {
 
   override def fromXml(inventoryName: String, is: InputStream): IOResult[Inventory] = {
     (ZIO.attempt {
-      XML.withSAXParser(XmlInventoryParser.saxParserFactory.newSAXParser()).load(is)
+      XmlSafe.load(is)
     } mapError { ex => InventoryError.Deserialisation("Cannot parse uploaded file as an XML Fusion Inventory file", ex) })
       .flatMap(doc => {
         if (doc.isEmpty) {

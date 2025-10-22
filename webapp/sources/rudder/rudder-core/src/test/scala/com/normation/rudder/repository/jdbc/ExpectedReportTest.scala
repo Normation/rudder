@@ -185,7 +185,7 @@ class ExpectedReportsTest extends DBCommon {
 
 //    val expected = DB.ExpectedReports[Long](100, 100, r1, serial, d1.directiveId
 //      , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
-//      , "[]", DateTime.now, None
+//      , "[]", DateTime.now(DateTimeZone.UTC), None
 //    )
 
 //    "the first time, just insert" in {
@@ -298,7 +298,7 @@ class ExpectedReportsTest extends DBCommon {
 //      val c1 = d1_exp.components(0)
 //      DB.ExpectedReports[Long](100, 100, r1, serial, d1.directiveId
 //      , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
-//      , """["d1_value"]""", DateTime.now, None
+//      , """["d1_value"]""", DateTime.now(DateTimeZone.UTC), None
 //      )
 //    }
 

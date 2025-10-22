@@ -2,6 +2,7 @@ module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
 import Accounts.DataTypes as Token exposing (..)
+import Accounts.DataTypes as TokenState exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
@@ -32,10 +33,11 @@ decodeAccount datePickerInfo =
         |> optional "kind" string "public"
         |> required "status" decodeEnabledStatus
         |> required "creationDate" string
-        |> optional "token" (string |> andThen toToken) Token.ClearText
+        |> required "tokenState" decodeTokenState
+        |> optional "token" (maybe decodeToken) Nothing
         |> optional "tokenGenerationDate" (maybe string) Nothing
         |> custom (decodeExpirationPolicy datePickerInfo)
-        |> optional "acl" (map Just (list <| decodeAcl)) Nothing
+        |> optional "acl" (map Just (list decodeAcls |> map List.concat)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
 
@@ -57,11 +59,26 @@ decodeEnabledStatus =
             )
 
 
-decodeAcl : Decoder AccessControl
-decodeAcl =
+-- this one is used to talk to the Rudder API
+-- we flatten the possible several actions into a list of unit ACL which is what is understood by UI
+-- It's why in the JSON, we have [actions] and in elm we have "verb"
+decodeAcls : Decoder (List AccessControl)
+decodeAcls =
+  let
+    path = field "path" string
+    actions = field "actions" (list string)
+    acls = map2 (\p -> \l -> List.map (\a -> AccessControl p a) l) path actions
+  in
+    acls
+
+-- this one is used to talk to the JS port
+decodePortAcl : Decoder AccessControl
+decodePortAcl =
     succeed AccessControl
         |> required "path" string
         |> required "verb" string
+
+
 
 
 decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy
@@ -100,9 +117,20 @@ parseToken str =
     _   -> Token.New str
 
 
-toToken : String -> Decoder Token
-toToken str =
-    succeed (parseToken str)
+decodeToken : Decoder Token
+decodeToken =
+  andThen (\s -> succeed (parseToken s)) string
+
+parseTokenState: String -> TokenState
+parseTokenState str =
+  case str of
+    "generatedv1" -> TokenState.GeneratedV1
+    "generatedv2" -> TokenState.GeneratedV2
+    _             -> TokenState.Undef
+
+decodeTokenState : Decoder TokenState
+decodeTokenState =
+  andThen (\s -> succeed (parseTokenState s)) string
 
 
 -- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string

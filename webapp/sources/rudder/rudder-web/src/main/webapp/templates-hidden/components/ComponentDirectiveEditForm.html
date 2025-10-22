@@ -1,18 +1,5 @@
 <xml:group>
 
-<component-itemdependencies>
-  <table id="itemDependenciesGrid">
-    <thead>
-      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
-    </thead>
-    <tbody>
-      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
-      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
-      <tr><td>Col1</td><td>Col2</td><td>Col3</td></tr>
-    </tbody>
-  </table>
-</component-itemdependencies>
-
 <component-body>
 
   <div id="container">
@@ -33,7 +20,7 @@
       <div class="header-title">
         <h1>
           <i class="title-icon fa fa-file-text"></i>
-          <span id="info-title">Directive <b id="directiveTitle"></b></span>
+          <span id="directiveTitle"></span>
         </h1>
         <lift:authz role="directive_edit">
           <div class="header-buttons">
@@ -195,78 +182,5 @@
   <div id="confirmUpdateActionDialog" class="modal fade" tabindex="-1"></div>
   <div id="createCloneDirectivePopup" class="modal fade" tabindex="-1"></div>
 </component-form>
-
-<component-informationTab>
-  <div class="page-title">Directive information</div>
-  <hr class="spacer" />
-  <div id="nameField">
-    Here comes the name field
-  </div>
-  <hr class="spacer" />
-  <div id="shortDescriptionField">
-    Here comes the shortDescription field
-  </div>
-  <hr class="spacer" />
-  <div id="longDescriptionField">
-    Here comes the longDescription field
-  </div>
-  <hr class="spacer" />
-
-  <div id="priority">
-    Here come the priority field
-  </div>
-  <hr class="spacer" />
-  <div class="directiveTechnicalInfo" id="showTechnical"></div>
-  <div id="technicalDetails" style="display:none">
-    <div class="directiveTechnicalInfo">
-      <b class="threeCol">Technique name: </b>
-      <span id="techniqueName">
-      Technique name
-    </span>
-    </div>
-    <hr class="spacer"/>
-
-    <div class="directiveTechnicalInfo">
-      <b class="threeCol">Technique description: </b>
-      <span id="techniqueDescription">
-      Technique description
-    </span>
-    </div>
-    <hr class="spacer"/>
-
-    <div class="directiveTechnicalInfo">
-      <b class="threeCol">Technique unicity: </b>
-      <span id="isSingle">
-      isSingle
-    </span>
-    </div>
-    <hr class="spacer"/>
-    <div class="directiveTechnicalInfo">
-      <b class="threeCol">Directive Rudder ID: </b>
-      <span id="rudderID">
-      Here comes the rudder ID
-    </span>
-    </div>
-    <hr class="spacer"/>
-  </div>
-  <br/>
-</component-informationTab>
-
-<component-ruleTargetTab>
-  <div>
-    <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
-      <div class="section-title" style="color: #999; border:0;'">Categories</div>
-      <div class="inner-portlet-content" id="categoryTreeParent">
-        <div data-lift="configuration.RuleManagement.viewCategories" ></div>
-      </div>
-    </div>
-    <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
-      <div class="section-title" style="color: #999; border:0;'" id="categoryDisplay">Rules</div>
-      <div class="inner-portlet-content">
-        <div data-lift="configuration.RuleManagement.viewRules" ></div>
-      </div>
-    </div>
-  </div>
-</component-ruletargettab>
 
 </xml:group>

@@ -38,8 +38,11 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.NamedZioLogger
+import com.normation.cfclerk.domain.RootTechniqueCategoryId
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.SubTechniqueCategoryId
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -71,6 +74,7 @@ import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.utils.XmlSafe
 import java.io.File
 import java.io.FileNotFoundException
 import net.liftweb.common.*
@@ -78,7 +82,6 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import scala.collection.mutable.Buffer
 import scala.xml.Source
-import scala.xml.XML
 import zio.*
 import zio.syntax.*
 
@@ -242,6 +245,17 @@ trait TechniqueArchiver {
       msg:         String
   ): IOResult[Unit]
 
+  /*
+   * Delete a category with all files and techniques it contains.
+   * WARNING: you should probably not do that.
+   */
+  def deleteCategoryRecursively(
+      categoryId: TechniqueCategoryId,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit]
+
   def saveTechnique(
       techniqueId:     TechniqueId,
       categories:      Seq[String],
@@ -258,6 +272,28 @@ trait TechniqueArchiver {
       committer:  EventActor,
       msg:        String
   ): IOResult[Unit]
+
+  /*
+   * Add or update a technique category with all its content, recursively.
+   * In intent, it's a:
+   * `git -a categoryPath; git -u categoryPath; git commit`
+   * If the category path doesn't exists, it's a no-op.
+   */
+  def updateTechniqueCategoryRecursively(
+      category:  TechniqueCategoryId,
+      modId:     ModificationId,
+      committer: EventActor,
+      msg:       String
+  ): IOResult[Unit]
+
+  /*
+   * Parse technique at given path.
+   * Useful to check if well-formed before saving it.
+   * The technique ID is given because it is expected that the path was
+   * already analysed for consistency.
+   */
+  def parseTechnique(techniqueId: TechniqueId, techniquePath: better.files.File): IOResult[Technique]
+
 }
 
 /*
@@ -291,7 +327,7 @@ object TechniqueFiles {
     // `rudder_reporting.cf` is only used when the generation is done by webapp, it does not exist with rudderc
     val cfengineReporting = "rudder_reporting.cf"
     val cfengineRudderc: Chunk[String] = Chunk("technique.cf")
-    val cfengineAll:     Chunk[String] = Chunk(cfengineReporting, "technique.cf")
+    val cfengineAll:     Chunk[String] = Chunk(cfengineReporting) ++ cfengineRudderc
 
     val dsc: Chunk[String] = Chunk("technique.ps1")
 
@@ -342,6 +378,24 @@ class TechniqueArchiverImpl(
     }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
   }
 
+  def deleteCategoryRecursively(
+      categoryId: TechniqueCategoryId,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit] = {
+    (for {
+      ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath <- categoryId match {
+                        case RootTechniqueCategoryId => Inconsistency("You can't delete root technique category").fail
+                        case s: SubTechniqueCategoryId => s.getPathFromRoot.tail.map(_.value).mkString("/").succeed
+                      }
+      _            <- IOResult.attempt(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}").call())
+      _            <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield ()).chainError(s"error when deleting and committing category '${categoryId.toString}").unit
+  }
+
   /*
    * Return the list of files to commit for the technique.
    * For resources, we need to have an hint about the state because we can't guess for deleted files.
@@ -378,7 +432,7 @@ class TechniqueArchiverImpl(
     val filesToDelete = (
       s"ncf/50_techniques/${technique.id.name.value}" +:       // added in 5.1 for migration to 6.0
         s"dsc/ncf/50_techniques/${technique.id.name.value}" +: // added in 6.1
-        (gitTechniquePath + "/technique.rd") +:                // deprecated in 7.2. Old rudder-lang input for rudderc, will be replace by yml file
+        (gitTechniquePath + "/technique.rd") +:                // deprecated in 7.2. Old rudder-lang input for rudderc, will be replaced by yml file
         resourcesStatus.collect { case ResourceFile(path, ResourceFileState.Deleted) => gitTechniquePath + "/" + path }
     )
 
@@ -415,15 +469,24 @@ class TechniqueArchiverImpl(
       known      = resourcesStatus.map(f => (f.path, f)).toMap
       updated    = res.fileStatus.map(f => (f.path, f)).toMap
       fileStates = Chunk.fromIterable((known ++ updated).values)
-      metadata  <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      metadata  <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech      <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files      = getFilesToCommit(tech, techniqueGitPath, fileStates)
       ident     <- personIdentservice.getPersonIdentOrDefault(committer.name)
-      added     <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
-      removed   <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
-      staged    <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
-      commit    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      _         <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
+      _         <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
+      _         <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
+      _         <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
+  }
+
+  override def parseTechnique(techniqueId: TechniqueId, techniquePath: better.files.File): IOResult[Technique] = {
+    // to have a future-proof version, we should deal with the different kinds of technique descriptor: yml, xml
+    // as it is done ArchiveApi checkParseTechniqueDescriptor
+    for {
+      metadata <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
+    } yield tech
   }
 
   def saveTechniqueCategory(
@@ -444,7 +507,7 @@ class TechniqueArchiverImpl(
         (for {
           // the file may not exist, which is not an error in that case
           existing <- IOResult.attempt {
-                        val elem = XML.load(Source.fromFile(categoryFile.toJava))
+                        val elem = XmlSafe.load(Source.fromFile(categoryFile.toJava))
                         Some(TechniqueCategoryMetadata.parseXML(elem, catId))
                       }.catchSome { case SystemError(_, _: FileNotFoundException) => None.succeed }
           _        <- if (existing.contains(metadata)) {
@@ -460,6 +523,26 @@ class TechniqueArchiverImpl(
                       }
         } yield ()).chainError(s"error when committing technique category '${catGitPath}'").unit
     }
+  }
+
+  override def updateTechniqueCategoryRecursively(
+      categoryId: TechniqueCategoryId,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit] = {
+    (for {
+      ident       <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath = categoryId match {
+                       case RootTechniqueCategoryId => ""
+                       case s: SubTechniqueCategoryId => s.getPathFromRoot.tail.map(_.value).mkString("/")
+                     }
+      filePattern  = s"${relativePath}/${categoryPath}"
+      _           <- IOResult.attempt(gitRepo.git.add.addFilepattern(filePattern).call())
+      _           <- IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(filePattern).call())
+      _           <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield ()).chainError(s"error when adding/updating and committing category '${categoryId.toString}").unit
   }
 }
 
@@ -684,19 +767,19 @@ class UpdatePiOnActiveTechniqueEvent(
                                      None.succeed
                                    } else {
                                      for {
-                                       technique  <-
+                                       technique <-
                                          techniqeRepository
                                            .get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))
                                            .notOptional(
                                              s"Can not find Technique '${activeTechnique.techniqueName.value}:${directive.techniqueVersion.debugString}'"
                                            )
-                                       archivedPi <- gitDirectiveArchiver.archiveDirective(
-                                                       directive,
-                                                       technique.id.name,
-                                                       parents,
-                                                       technique.rootSection,
-                                                       gitCommit
-                                                     )
+                                       _         <- gitDirectiveArchiver.archiveDirective(
+                                                      directive,
+                                                      technique.id.name,
+                                                      parents,
+                                                      technique.rootSection,
+                                                      gitCommit
+                                                    )
                                      } yield {
                                        None
                                      }

@@ -9,7 +9,10 @@ use std::{
 
 use super::filters;
 use crate::{
-    backends::windows::{POWERSHELL_BIN, POWERSHELL_OPTS},
+    backends::{
+        Windows,
+        windows::{POWERSHELL_BIN, POWERSHELL_OPTS},
+    },
     ir::Technique,
     test::TestCase,
 };
@@ -64,7 +67,7 @@ pub fn win_agent(
         .join(" ");
 
     let technique_test_directive = TechniqueTestDirectiveTemplate {
-        technique: &filters::dsc_case(&technique.id)?,
+        technique: &Windows::technique_name_plain(&technique.id.to_string()),
         technique_name: &technique.name,
         policy_mode: &filters::camel_case(case.policy_mode.to_string())?,
         params: &params,
@@ -119,7 +122,7 @@ pub fn win_agent(
         .lines()
         .map(|l| if l.contains("R: ") { &l[26..] } else { l })
         .collect();
-    // Ensure empty line at the end to allow pasring last report
+    // Ensure empty line at the end to allow parsing last report
     clean_reports.push("");
 
     let run_log = Report::parse(&clean_reports.join("\n"))?;

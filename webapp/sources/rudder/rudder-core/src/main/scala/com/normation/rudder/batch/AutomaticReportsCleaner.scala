@@ -156,7 +156,10 @@ object AutomaticReportsCleaning {
       nodes  <- ldap.searchOne(new DN("ou=Nodes,cn=rudder-configuration"), BuildFilter.HAS(runIntervalAttr), runIntervalAttr)
       ints   <- ZIO.foreach(nodes) { node =>                                   // don't fail on parsing error, just return 0
                   (try {
-                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval
+                    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval: @annotation.nowarn(
+                      "cat=deprecation"
+                    )
                   } catch {
                     case ex: Exception => 0
                   }).succeed
@@ -213,7 +216,7 @@ final case class Hourly(min: Int) extends CleanFrequency {
   def checker(date: DateTime): DateTime = date.withMinuteOfHour(min)
 
   def next: DateTime = {
-    val now = DateTime.now()
+    val now = DateTime.now(DateTimeZone.UTC)
     if (now.isBefore(checker(now)))
       checker(now)
     else
@@ -233,7 +236,7 @@ final case class Daily(hour: Int, min: Int) extends CleanFrequency {
   def checker(date: DateTime): DateTime = date.withMinuteOfHour(min).withHourOfDay(hour)
 
   def next: DateTime = {
-    val now = DateTime.now()
+    val now = DateTime.now(DateTimeZone.UTC)
     if (now.isBefore(checker(now)))
       checker(now)
     else
@@ -253,7 +256,7 @@ final case class Weekly(day: Int, hour: Int, min: Int) extends CleanFrequency {
   def checker(date: DateTime): DateTime = date.withMinuteOfHour(min).withHourOfDay(hour).withDayOfWeek(day)
 
   def next: DateTime = {
-    val now = DateTime.now()
+    val now = DateTime.now(DateTimeZone.UTC)
     if (now.isBefore(checker(now)))
       checker(now)
     else
@@ -328,7 +331,8 @@ class AutomaticReportsCleaning(
     logger.trace("***** starting Automatic Delete Reports batch *****")
     new LADatabaseCleaner(DeleteAction(dbManager, this), deletettl, complianceLevelttl)
   }
-  deleter ! CheckLaunch
+
+  deleter ! CheckLaunch: @unchecked
 
   // cleaning log info is special, it's not a cron but an "every NN minutes"
   val deleteLogReportPropertyName = "rudder.batch.reportsCleaner.deleteLogReport.TTL"
@@ -380,32 +384,32 @@ class AutomaticReportsCleaning(
   }
 
   (for {
-    ttl   <- deleteLogttl
-    dur    = ttl.toLong.minutes
-    batch <- if (ttl < 1) {
-               ScheduledJobLoggerPure.info(
+    ttl <- deleteLogttl
+    dur  = ttl.toLong.minutes
+    _   <- if (ttl < 1) {
+             ScheduledJobLoggerPure
+               .info(
                  s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative"
-               ) *>
-               ZIO.unit
-             } else {
-               ScheduledJobLoggerPure.debug(
-                 s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****"
-               ) *>
-               IOResult
-                 .attempt(dbManager.deleteLogReports(dur.asScala) match {
-                   case Full(n) => logger.debug(s"Deleted ${n} log reports from report table.")
-                   case eb: EmptyBox =>
-                     val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
-                     logger.warn(msg)
-                 })
-                 .catchAll(error =>
-                   ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
-                 )
-                 .delay(dur)
-                 .repeat(Schedule.spaced(dur).forever)
-                 .forkDaemon
+               )
+           } else {
+             ScheduledJobLoggerPure.debug(
+               s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****"
+             ) *>
+             IOResult
+               .attempt(dbManager.deleteLogReports(dur.asScala) match {
+                 case Full(n) => logger.debug(s"Deleted ${n} log reports from report table.")
+                 case eb: EmptyBox =>
+                   val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
+                   logger.warn(msg)
+               })
+               .catchAll(error =>
+                 ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
+               )
+               .delay(dur)
+               .repeat(Schedule.spaced(dur).forever)
+               .forkDaemon
 
-             }
+           }
   } yield ()).runNow
 
   ////////////////////////////////////////////////////////////////
@@ -479,7 +483,7 @@ class AutomaticReportsCleaning(
           currentState match {
             case IdleCleaner =>
               logger.trace("***** Check launch *****")
-              if (freq.check(DateTime.now)) {
+              if (freq.check(DateTime.now(DateTimeZone.UTC))) {
                 logger.trace("***** Automatic %s entering in active State *****".format(cleanaction.name.toLowerCase()))
                 currentState = ActiveCleaner
                 (this) ! CleanDatabase
@@ -507,7 +511,7 @@ class AutomaticReportsCleaning(
         currentState match {
 
           case ActiveCleaner =>
-            val now               = DateTime.now
+            val now               = DateTime.now(DateTimeZone.UTC)
             val reportsCommand    = DeleteCommand.Reports(now.minusDays(reportsttl))
             val complianceCommand = if (compliancettl > 0) {
               Some(DeleteCommand.ComplianceLevel(now.minusDays(compliancettl)))

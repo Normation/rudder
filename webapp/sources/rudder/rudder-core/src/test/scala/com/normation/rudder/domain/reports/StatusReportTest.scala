@@ -50,6 +50,7 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.Pending
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -223,7 +224,7 @@ class StatusReportTest extends Specification {
           NodeExpectedReports(
             NodeId("n1"),
             NodeConfigId("plop"),
-            DateTime.now(),
+            DateTime.now(DateTimeZone.UTC),
             None,
             modesConfig,
             Nil,
@@ -274,8 +275,7 @@ class StatusReportTest extends Specification {
        n2, r1, 0, d1, c0  , v0  , "", success   , pending msg
        n3, r1, 0, d1, c1  , v1  , "", error     , pending msg
        n4, r2, 0, d1, c0  , v0  , "", pending   , pending msg
-    """),
-      Nil
+    """)
     )
 
     "Filter out r2" in {
@@ -377,6 +377,7 @@ class StatusReportTest extends Specification {
                     DirectiveStatusReport(
                       d,
                       PolicyTypes.rudderBase,
+                      None,
                       List(
                         ValueStatusReport(
                           c,

@@ -72,7 +72,7 @@ class ClearCache extends DispatchSnippet with Loggable {
 
     // process the list of networks
     "#clearCacheButton" #> {
-      SHtml.ajaxSubmit("Clear caches", process _, ("class", "btn btn-primary"))
+      SHtml.ajaxSubmit("Clear caches", process, ("class", "btn btn-primary"))
     }
   }
 }

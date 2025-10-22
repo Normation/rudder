@@ -153,7 +153,7 @@ final class CheckFileDescriptorLimit(val nodeFactRepository: NodeFactRepository)
                       ).fail
                     }
       limit      <- IOResult.attempt(res.stdout.trim.toLong)
-      nodeCount  <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.size)
+      nodeCount  <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.size)
     } yield {
       val reasonableMaxLimit   = 64_000
       val approximatedMinLimit = 100 * nodeCount

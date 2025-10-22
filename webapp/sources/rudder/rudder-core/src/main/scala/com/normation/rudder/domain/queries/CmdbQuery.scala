@@ -57,6 +57,7 @@ import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.util.regex.PatternSyntaxException
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import zio.json.*
@@ -408,7 +409,7 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
         new NodeInfoMatcher {
           val kv                   = NodePropertyMatcherUtils.splitInput(value, ":")
           val path                 = JsonSelect.compilePath(kv.value).toPureResult
-          val matcher              = NodePropertyMatcherUtils.matchJsonPath(kv.key, path) _
+          val matcher              = NodePropertyMatcherUtils.matchJsonPath(kv.key, path)
           override val debugString = s"Prop json select '${value}'"
           override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
         }
@@ -530,7 +531,7 @@ case object DateComparator extends LDAPCriterionType {
 
   private def parseDate(value: String): PureResult[DateTime] = {
     allFmts
-      .map(f => Either.catchOnly[Exception](f.parseDateTime(value)))
+      .map(f => Either.catchOnly[Exception](f.parseDateTime(value).withZone(DateTimeZone.UTC)))
       .reduceLeft(_ orElse _)
       .leftMap(error(value, _))
   }
@@ -698,9 +699,9 @@ case object AgentComparator extends LDAPCriterionType {
    * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
   private def filterAgent(agent: AgentType) = {
-    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
-    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
-    EQ(A_AGENTS_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
+    SUB(A_AGENT_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
+    SUB(A_AGENT_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
+    EQ(A_AGENT_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
     Nil
   }
 
@@ -932,6 +933,7 @@ final case class JsonCriterionLine(
 
 object JsonCriterionLine {
   implicit val encoderJsonCriterionLine: JsonEncoder[JsonCriterionLine] = DeriveJsonEncoder.gen
+  implicit val decoderJsonCriterionLine: JsonDecoder[JsonCriterionLine] = DeriveJsonDecoder.gen
 }
 
 sealed abstract class CriterionComposition { def value: String }
@@ -941,15 +943,17 @@ object CriterionComposition {
   case object And extends CriterionComposition { val value = "and" }
   case object Or  extends CriterionComposition { val value = "or"  }
 
-  def parse(s: String): Option[CriterionComposition] = {
+  def parse(s: String): PureResult[CriterionComposition] = {
     s.toLowerCase match {
-      case "and" => Some(And)
-      case "or"  => Some(Or)
-      case _     => None
+      case "and" => Right(And)
+      case "or"  => Right(Or)
+      case x     => Left(Inconsistency(s"The requested composition '${x}' is unknown"))
     }
   }
 
   implicit val encoderCriterionComposition: JsonEncoder[CriterionComposition] = JsonEncoder.string.contramap(_.value)
+  implicit val decoderCriterionComposition: JsonDecoder[CriterionComposition] =
+    JsonDecoder.string.mapOrFail(parse(_).left.map(_.fullMsg))
 }
 
 sealed trait QueryReturnType {
@@ -973,6 +977,7 @@ object QueryReturnType {
   }
 
   implicit val encoderQueryReturnType: JsonEncoder[QueryReturnType] = JsonEncoder.string.contramap(_.value)
+  implicit val decoderQueryReturnType: JsonDecoder[QueryReturnType] = JsonDecoder.string.mapOrFail(apply(_).left.map(_.fullMsg))
 }
 
 sealed trait ResultTransformation extends EnumEntry {
@@ -1001,8 +1006,23 @@ object ResultTransformation extends Enum[ResultTransformation] {
   }
 
   implicit val encoderResultTransformation: JsonEncoder[ResultTransformation] = JsonEncoder.string.contramap(_.value)
+  implicit val decoderResultTransformation: JsonDecoder[ResultTransformation] =
+    JsonDecoder.string.mapOrFail(parse(_).left.map(_.fullMsg))
 }
 
+/*
+ * Structure of the Query:
+ * var query = {
+ *   'select' : 'server' ,  //what we are looking for at the end (servers, software...)
+ *   'composition' : 'and' ,  // or 'or'
+ *   'where': [
+ *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,  //value is optionnal, other are mandatory
+ *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,
+ *     ...
+ *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' }
+ *   ]
+ * }
+ */
 final case class JsonQuery(
     select:      QueryReturnType,
     composition: CriterionComposition,
@@ -1012,6 +1032,7 @@ final case class JsonQuery(
 
 object JsonQuery {
   implicit val encoderJsonQuery: JsonEncoder[JsonQuery] = DeriveJsonEncoder.gen
+  implicit val decoderJsonQuery: JsonDecoder[JsonQuery] = DeriveJsonDecoder.gen
 }
 
 object Query {

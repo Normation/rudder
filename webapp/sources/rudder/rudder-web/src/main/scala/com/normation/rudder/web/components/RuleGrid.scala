@@ -45,6 +45,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -92,10 +93,10 @@ class RuleGrid(
 
   import RuleGrid.*
 
-  private val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
-  private val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
-  private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
-  private val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
+  private val getFullNodeGroupLib      = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullDirectiveLib      = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
+  private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied
+  private val getRootRuleCategory      = () => RudderConfig.roRuleCategoryRepository.getRootCategory()
 
   private val recentChanges          = RudderConfig.recentChangesService
   private val techniqueRepository    = RudderConfig.techniqueRepository
@@ -152,13 +153,17 @@ class RuleGrid(
   )
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false) }
+    case "rulesGrid" => {
+      implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
+      (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false)
+    }
   }
 
   /**
    * Display all the rules. All data are charged asynchronously.
    */
-  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]]): AnonFunc = {
+  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]])(implicit qc: QueryContext): AnonFunc = {
     AnonFunc(
       SHtml.ajaxCall(
         JsNull,
@@ -179,7 +184,7 @@ class RuleGrid(
             // we skip request only if the column is not displayed - we need it even to display text info
             futureChanges = if (showComplianceAndChangesColumn) ajaxChanges(changesFuture(rules)) else Noop
 
-            nodeFacts     <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+            nodeFacts     <- nodeFactRepo.getAll().toBox
             afterNodeInfos = System.currentTimeMillis
             _              = TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms")
 
@@ -235,10 +240,12 @@ class RuleGrid(
   /**
    * Display the selected set of rules.
    */
-  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, isPopup: Boolean): NodeSeq = {
+  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, isPopup: Boolean)(implicit
+      qc: QueryContext
+  ): NodeSeq = {
 
     (for {
-      nodeFacts    <- nodeFactRepo.getAll()(CurrentUser.queryContext)
+      nodeFacts    <- nodeFactRepo.getAll()
       groupLib     <- getFullNodeGroupLib()
       directiveLib <- getFullDirectiveLib()
       ruleCat      <- getRootRuleCategory()
@@ -338,7 +345,7 @@ class RuleGrid(
             var data = $$("#${htmlId_rulesGridId}").dataTable()._('tr', {"filter":"applied", "page":"current"});
             var rules = $$.map(data, function(e,i) { return e.id })
             var rulesIds = JSON.stringify({ "rules" : rules });
-            ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory _)};
+            ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory)};
         """) // JsRaw ok, no user inputs
       case None               => Noop
     }
@@ -469,7 +476,7 @@ class RuleGrid(
       globalMode:    GlobalPolicyMode
   ): List[Line] = {
 
-    val arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
+    val arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer).toMap
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database

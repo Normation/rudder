@@ -45,10 +45,10 @@
 </suppress>
 <suppress>
    <notes><![CDATA[
-   file name: spring-web-5.3.29.jar
+   file name: commons-fileupload2-core-2.0.0-M4.jar
    ]]></notes>
-   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-web@.*$</packageUrl>
-   <cve>CVE-2016-1000027</cve>
+   <packageUrl regex="true">^pkg:maven/org\.apache\.commons/commons\-fileupload2\-.*@.*$</packageUrl>
+   <cve>CVE-2025-48976</cve>
 </suppress>
 <!-- False positive in depdencency check https://github.com/jeremylong/DependencyCheck/issues/5943 -->
 <suppress>
@@ -56,12 +56,12 @@
    file name: jgit-6.7.0.202309050840-r.jar
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
-   <cve>CVE-2023-4759</cve>
+   <cve>CVE-2025-4949</cve>
 </suppress>
-<!-- False positive b/c the scanner believes we use icu4j 23.1.1 while it's graalvm version shadowing an icu4j -->
+<!-- False positive b/c the scanner believes we use icu4j 24.0.2 while it's graalvm version shadowing an icu4j -->
 <suppress>
    <notes><![CDATA[
-   file name: icu4j-23.1.1.jar
+   file name: icu4j-24.0.2.jar
    ]]></notes>
    <packageUrl regex="true">^pkg:maven/org\.graalvm\.shadowed/icu4j@.*$</packageUrl>
    <cve>CVE-2011-4599</cve>
@@ -83,6 +83,7 @@
    <cve>CVE-2017-15422</cve>
    <cve>CVE-2020-10531</cve>
    <cve>CVE-2020-21913</cve>
+   <cve>CVE-2025-5222</cve>
 </suppress>
 <suppress>
    <notes><![CDATA[

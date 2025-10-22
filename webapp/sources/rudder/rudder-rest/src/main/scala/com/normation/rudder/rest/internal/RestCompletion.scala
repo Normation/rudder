@@ -42,12 +42,14 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL.*
 
 class RestCompletion(
-    completion: RestCompletionService
+    completion:  RestCompletionService,
+    userService: UserService
 ) extends RestHelper with Loggable {
 
   serve {
@@ -55,7 +57,7 @@ class RestCompletion(
       implicit val prettify = false
       implicit val action: String = "completeTagsKey"
 
-      OldInternalApiAuthz.withReadConfig {
+      OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
         val fetchTags = if (kind == "directive") {
           completion.findDirectiveTagNames(token)
         } else {
@@ -77,7 +79,7 @@ class RestCompletion(
       implicit val prettify = false
       implicit val action: String = "completeTagsValue"
 
-      OldInternalApiAuthz.withReadConfig {
+      OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
 
         val fetchTags = if (kind == "directive") {
           completion.findDirectiveTagValues(token, None)
@@ -109,10 +111,10 @@ class RestCompletion(
       fetchTags match {
         case eb: EmptyBox =>
           val e = eb ?~! s"Error when looking for object containing ${token}"
-          toJsonError(None, e.messageChain)("quicksearch", prettify = false)
+          toJsonError(None, e.messageChain)(using "quicksearch", prettify = false)
 
         case Full(results) =>
-          toJsonResponse(None, results.map(("value", _)))("completeTags", prettify = false)
+          toJsonResponse(None, results.map(("value", _)))(using "completeTags", prettify = false)
       }
 
     }

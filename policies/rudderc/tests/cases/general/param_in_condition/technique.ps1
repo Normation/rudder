@@ -35,11 +35,14 @@ vars.param_in_condition.file
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Check if a file exists'
+            ComponentName = @'
+Check if a file exists
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '9e763779-9f33-44bc-ad73-1c5d5732301c'
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -50,7 +53,7 @@ vars.param_in_condition.file
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '9e763779-9f33-44bc-ad73-1c5d5732301c' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -59,29 +62,30 @@ vars.param_in_condition.file
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '9e763779-9f33-44bc-ad73-1c5d5732301c' -MethodCall $failedCall
     }
 
     $reportId=$reportIdBase + "e8362340-dc50-4231-9b7f-748b51e9fa07"
     try {
-        $componentKey = 'echo "May be executed or not"'
+        $componentKey = @'
+echo "May be executed or not"
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Execute only if...'
+            ComponentName = @'
+Execute only if...
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'e8362340-dc50-4231-9b7f-748b51e9fa07'
         }
         
-        $class = ([Rudder.Condition]::canonify(@'
-file_check_exists__tmp_
-'@ + ([Rudder.Datastate]::Render('{{{' + @'
+        $class = ('file_check_exists__tmp_' + ([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
 vars.param_in_condition.file
-'@ + '}}}')) + @'
-_kept
-'@))
+'@ + '}}}'))) + '_kept')
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 Command = @'
@@ -102,7 +106,7 @@ echo "May be executed or not"
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'e8362340-dc50-4231-9b7f-748b51e9fa07' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -111,7 +115,7 @@ echo "May be executed or not"
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'e8362340-dc50-4231-9b7f-748b51e9fa07' -MethodCall $failedCall
     }
 
     EndTechniqueCall -Name $techniqueName

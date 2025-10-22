@@ -36,42 +36,34 @@
 bundle agent file_check_hardlink(path, path_2)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_check_hardlink_${path}");
-      "args"               slist => { "${path}", "${path_2}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_check_hardlink_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("file_check_hardlink_${path}");
 
-
-
-      "file_1_devno"        string => filestat("${path}", "devno");
-      "file_1_ino"          string => filestat("${path}", "ino");
-      "file_2_devno"        string => filestat("${path_2}", "devno");
-      "file_2_ino"          string => filestat("${path_2}", "ino");
+      "file_1_devno"  string => filestat("${path}", "devno");
+      "file_1_ino"    string => filestat("${path}", "ino");
+      "file_2_devno"  string => filestat("${path_2}", "devno");
+      "file_2_ino"    string => filestat("${path_2}", "ino");
 
 
   classes:
-      "file_1_exists"           expression => fileexists("${path}");
-      "file_2_exists"           expression => fileexists("${path_2}");
-      "files_match_device"      expression => strcmp("${file_1_devno}", "${file_2_devno}");
-      "files_match_inode"       expression => strcmp("${file_1_ino}",   "${file_2_ino}");
-      "files_are_hardlinks"     expression => "file_1_exists.file_2_exists.files_match_device.files_match_inode";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "file_1_exists"       expression => fileexists("${path}");
+      "file_2_exists"       expression => fileexists("${path_2}");
+      "files_match_device"  expression => strcmp("${file_1_devno}", "${file_2_devno}");
+      "files_match_inode"   expression => strcmp("${file_1_ino}",   "${file_2_ino}");
+      "files_are_hardlinks" expression => and("file_1_exists", "file_2_exists", "files_match_device", "files_match_inode");
 
 
   methods:
-    files_are_hardlinks::
-      "files_are_hardlinks"
-        usebundle => _classes_success("${old_class_prefix}");
-      "files_are_hardlinks"
-        usebundle => _classes_success("${class_prefix}");
+    pass3.files_are_hardlinks::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-    !files_are_hardlinks::
-      "files_are_not_hardlinks"
-        usebundle => _classes_failure("${old_class_prefix}");
-      "files_are_not_hardlinks"
-        usebundle => _classes_failure("${class_prefix}");
+    pass3.!files_are_hardlinks::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
-    any::
-      "report"
-        usebundle => _log_v3("Check if ${path} and ${path_2} are the same", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Check if ${path} and ${path_2} are the same", "");
 }

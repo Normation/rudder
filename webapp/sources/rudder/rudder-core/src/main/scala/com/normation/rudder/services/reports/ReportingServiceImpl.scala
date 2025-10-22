@@ -43,9 +43,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.facts.nodes.QueryContext
 import zio.{System as _, *}
 
@@ -58,21 +56,6 @@ object ReportingServiceUtils {
   val withLogError: ZIO[Any, Throwable, Nothing] =
     effect.flatMapError(exception => log(exception.getMessage) *> ZIO.succeed(exception))
 
-  /*
-   * Build rule status reports from node reports, deciding which directives should be "skipped"
-   */
-  def buildRuleStatusReport(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
-    val toKeep     = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
-    // we don't keep overrides for a directive which is already in "toKeep" or that don't target that rule
-    val toKeepDir  = toKeep.map(_.directives.keySet).toSet.flatten
-    val overrides  = nodeReports.values
-      .flatMap(_.overrides.filterNot(r => r.policy.ruleId != ruleId || toKeepDir.contains(r.policy.directiveId)))
-      .toList
-      .distinct
-    // and we must make overrides unique - ie, we don't keep overridden that are overridden by directive themselve in the overridden list
-    val overrides2 = overrides.filterNot(o => overrides.exists(_.policy == o.overriddenBy))
-    RuleStatusReport(ruleId, toKeep, overrides2)
-  }
 }
 
 /*

@@ -5,7 +5,7 @@ set -ex
 test_shell()
 {
   mkdir -p .shellcheck
-  find . \( -path ./.git -prune -o -path "*/policies/lib/tests/*" -prune -o -path "*node_modules/*" -prune -o -path "*/10_ncf_internals/modules/*" -prune -o -path "*target/*" -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
+  find . \( -path ./.git -prune -o -path "*/policies/lib/tests/*" -prune -o -path "*node_modules/*" -prune -o -path "*.zip" -prune -o -path "*/10_ncf_internals/modules/*" -prune -o -path "*target/*" -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
     while IFS="" read -r file
     do
       # collect all warnings
@@ -24,7 +24,7 @@ test_shell()
 test_shell_error()
 {
   # Shellcheck
-  find . \( -path ./.git -prune -o -path "*/policies/lib/tests/*" -prune -o -path "*node_modules/*" -prune -o -path "*/10_ncf_internals/modules/*" -prune -o -path "*target/*" -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
+  find . \( -path ./.git -prune -o -path "*/policies/lib/tests/*" -prune -o -path "*node_modules/*" -prune -o -path "*.zip" -prune -o -path "*/10_ncf_internals/modules/*" -prune -o -path "*target/*" -prune \) -o -type f -exec grep -Eq '^#!(.*/|.*env +)(sh|bash|ksh)' {} \; -print |
     while IFS="" read -r file
     do
       # with recent shellcheck, "-S error" replaces this hack
@@ -43,6 +43,11 @@ test_python_error()
   find . ! -wholename '*language/repos/*' ! -wholename '*rudder-pkg/lib/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs ${PYLINT} -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
 }
 
+test_quick_methods()
+{
+  find policies/lib/tests/quick -type f -exec {} \;
+}
+
 #####
 
 if [ "$1" = "--shell" ]; then
@@ -50,6 +55,9 @@ if [ "$1" = "--shell" ]; then
   exit 0
 elif [ "$1" = "--python" ]; then
   test_python_error
+  exit 0
+elif [ "$1" = "--methods" ]; then
+  test_quick_methods
   exit 0
 else
   # quick tests to be launched during merge

@@ -32,26 +32,20 @@
 bundle agent directory_create(path)
 {
   vars:
-      "canonified_path" string => canonify("${path}");
-
-      "old_class_prefix"  string => canonify("directory_create_${path}");
-      "full_class_prefix" string => canonify("directory_create_${path}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-      "args"              slist => { "${path}" };
+      "class_prefix" string => canonify("directory_create_${path}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-    "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
-    "action"             usebundle => directory_present("${path}");
-    "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                         ifvarclass => "should_report";
-
-    "class copy"         usebundle  => _classes_copy("directory_present_${canonified_path}", "${old_class_prefix}"),
-                         ifvarclass => "directory_present_${canonified_path}_reached";
-    "new result classes" usebundle  => _classes_copy("directory_present_${canonified_path}","${class_prefix}"),
-                         ifvarclass => "directory_present_${canonified_path}_reached";
-    "report"             usebundle  => _log_v3("Create directory ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("directory_present");
+      "${report_data.method_id}" usebundle => directory_present("${path}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("directory_present");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Create directory ${path}", "");
 }
 

@@ -137,36 +137,56 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
-  overflow-wrap: anywhere;
+
+  &,
+  & > code{
+    overflow-wrap: anywhere;
+  }
 }
-pre.json-beautify.toggle, .content-wrapper pre.json-beautify.toggle{
-  height:auto;
-  max-height:none;
-  -moz-box-shadow: none;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
-pre.json-beautify:after,.content-wrapper pre.json-beautify:after{
-  position:absolute;
-  right:10px;
-  top : 10px;
-  color:#041922;
-  content: "\f054";
-  display: inline-block;
-  font: normal normal normal 14px/1 inherit;
-  font-family: "Font Awesome 5 Free";
-  font-size: inherit;
-  text-rendering: auto;
-  -webkit-font-smoothing: antialiased;
-  transition-duration:.2s;
-  font-weight: 900;
-}
-pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
-  transform:rotate(90deg);
+pre.json-beautify, .content-wrapper pre.json-beautify {
+
+  &.collapse {
+    &.show {
+      height:auto;
+      max-height:none;
+      -moz-box-shadow: none;
+      -webkit-box-shadow: none;
+      box-shadow: none;
+
+      &:after {
+        transform:rotate(90deg);
+      }
+    }
+    &:not(.show) {
+      display: block;
+    }
+  }
+
+  &.collapsing {
+    height: 100% !important;
+    transition: none;
+  }
+
+  &:after {
+    position:absolute;
+    right:10px;
+    top : 10px;
+    color:$rudder-txt-primary;
+    content: "\f054";
+    display: inline-block;
+    font: normal normal normal 14px/1 inherit;
+    font-family: "Font Awesome 5 Free";
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    transition-duration:.2s;
+    font-weight: 900;
+  }
 }
 /* override syntax highlighting background */
 pre.json-beautify code.elmsh {
   background: transparent !important;
+
 }
 
 /* - LABEL BOOTSTRAP */
@@ -792,13 +812,15 @@ pre.json-beautify code.elmsh {
 .content-wrapper .rudder-label.label-error + .tooltip b, .content-wrapper .label-text.label-error:after, .content-wrapper .label-text.label-error  + .tooltip b, .text-Error{
   color: #DA291C;
 }
-.content-wrapper .rudder-label.label-overridden:before,.content-wrapper .label-text.label-overridden:after{
+.content-wrapper .rudder-label.label-overriden:before,.content-wrapper .label-text.label-overriden:after,
+.content-wrapper .rudder-label.label-skipped:before,.content-wrapper .label-text.label-skipped:after{
   content: "Skipped";
 }
-.content-wrapper .rudder-label.label-overridden{
+.content-wrapper .rudder-label.label-overriden,.content-wrapper .rudder-label.label-skipped{
   background-color: #eda800;
 }
-.content-wrapper .rudder-label.label-overridden + .tooltip b, .content-wrapper .label-text.label-overridden:after, .content-wrapper .label-text.label-overridden  + .tooltip b, .text-overridden {
+.content-wrapper .rudder-label.label-overriden + .tooltip b, .content-wrapper .label-text.label-overriden:after, .content-wrapper .label-text.label-overriden  + .tooltip b, .text-overriden ,
+.content-wrapper .rudder-label.label-skipped + .tooltip b, .content-wrapper .label-text.label-skipped:after, .content-wrapper .label-text.label-skipped  + .tooltip b, .text-skipped {
   color: #eda800;
 }
 .content-wrapper .rudder-label.label-included:before,.content-wrapper .label-text.label-included:after{
@@ -2861,7 +2883,6 @@ $node-logo-size: 50px;
   &.windowsxp,
   &.windowsvista,
   &.windowsseven,
-  &.windows10,
   &.windows2000,
   &.windows2003,
   &.windows2008,
@@ -2874,6 +2895,8 @@ $node-logo-size: 50px;
   &.windows2016,
   &.windows2016r2,
   &.windows2019,
+  &.windows10,
+  &.windows11,
   &.windows2022,
   &.windows2025{
     background-image: url(../../images/os/windows-2012-logo.svg);

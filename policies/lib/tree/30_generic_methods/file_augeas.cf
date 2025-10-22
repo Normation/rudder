@@ -1,0 +1,69 @@
+#####################################################################################
+# Copyright 2025 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File augeas (beta)
+# @description Manage files using Augeas - in beta
+# @documentation Coming soon.
+# @parameter            path Path of the file
+# @parameter            script Commands to run on the file
+# @parameter            if_script Only run the script if this script succeeds
+# @parameter_constraint if_script "allow_empty_string" : true
+# @parameter            lens Lens to use (defaults to detecting the lens based on file path)
+# @parameter_constraint lens "allow_empty_string" : true
+# @parameter            show_content Allow reports to contain extracts of the file content (defaults to true)
+# @parameter_constraint show_content "allow_empty_string" : true
+# @parameter_constraint show_content "select" : [ "", "true", "false" ]
+#
+# @class_prefix file_augeas
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_augeas(path, script, if_script, lens, show_content) {
+  vars:
+      "module_file"  string => "/opt/rudder/bin/rudder-module-augeas";
+      "module_method" string => "rudder_actual_file_augeas";
+      "class_prefix" string => "file_augeas_${path}";
+
+  defaults:
+      "show_content" string => "true", if_match_regex => "";
+
+  classes:
+      "has_module"   expression => fileexists("${module_file}");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3.has_module::
+      "${report_data.method_id}" usebundle => call_method("${module_method}");
+      "${report_data.method_id}" usebundle => ${module_method}("${path}", "${script}", "${if_script}", "${lens}", "${show_content}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("${module_method}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "${${module_method}.report}", "");
+
+    pass3.!has_module::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Augeas module is not supported on this agent", "");
+
+}
+
+
+

@@ -619,9 +619,9 @@ update msg model =
             newMode = RuleForm {r | ui = newDetails }
             newModel = { model | mode = newMode }
           in
-            (newModel, Cmd.none)
+            (newModel, initTooltips "")
         _ ->
-            (model, Cmd.none)
+            (model, initTooltips "")
     GetRepairedReport ruleId idChange ->
       case Dict.get ruleId.value model.changes of
         Nothing -> (model, Cmd.none)
@@ -638,9 +638,9 @@ update msg model =
             newMode = RuleForm {r | ui = newDetails }
             newModel = { model | mode = newMode }
           in
-            (newModel, Cmd.none)
+            (newModel, initTooltips "")
         _ ->
-            (model, Cmd.none)
+            (model, initTooltips "")
 
     GoTo link -> (model, Nav.load link)
 

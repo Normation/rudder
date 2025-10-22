@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2017 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,89 +34,15 @@
 *
 *************************************************************************************
 */
+var g_osNames;
 
-/**
- * By convention, if the globalGauge value is <0, then we consider that the
- * compliance information should not be displayed because there is no user-defined rules.
- * In that case, we just display placehoder texts.
- */
-
-
-const getOrCreateLegendList = (chart, id) => {
-  const legendContainer = document.getElementById(id);
-  let listContainer = legendContainer.querySelector('ul');
-
-  if (!listContainer) {
-    listContainer = document.createElement('ul');
-    listContainer.classList.add("graph-legend");
-
-    legendContainer.appendChild(listContainer);
-  }
-
-  return listContainer;
-};
-
-const htmlLegendPlugin = {
-  id: 'htmlLegend',
-  afterUpdate(chart, args, options) {
-    const ul = getOrCreateLegendList(chart, options.containerID);
-
-    // Remove old legend items
-    while (ul.firstChild) {
-      ul.firstChild.remove();
-    }
-
-    // Reuse the built-in legendItems generator
-    const items = chart.options.plugins.legend.labels.generateLabels(chart);
-
-    items.forEach(item => {
-      const li = document.createElement('li');
-      li.classList.add("legend");
-
-      li.onclick = () => {
-        const {type} = chart.config;
-        if (type === 'pie' || type === 'doughnut') {
-          // Pie and doughnut charts only have a single dataset and visibility is per item
-          chart.toggleDataVisibility(item.index);
-        } else {
-          chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex));
-        }
-        chart.update();
-      };
-
-      // Color box
-      const boxSpan = document.createElement('span');
-      boxSpan.classList.add("legend-square")
-      boxSpan.style.background = item.fillStyle;
-      boxSpan.style.borderColor = item.strokeStyle;
-      boxSpan.style.borderWidth = item.lineWidth + 'px';
-
-      // Text
-      const textContainer = document.createElement('p');
-      textContainer.style.color = item.fontColor;
-      textContainer.style.margin = 0;
-      textContainer.style.padding = 0;
-      textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
-
-      const text = document.createTextNode(item.text);
-      textContainer.appendChild(text);
-
-      li.appendChild(boxSpan);
-      li.appendChild(textContainer);
-      ul.appendChild(li);
-    });
-  }
-};
-
-var g_osNames
-
-function homePage (
+const homePage = (
     globalCompliance
   , globalGauge
   , nodeCompliance
   , nodeCount
   , scoreDetails
-) {
+) => {
   var opts = {
     lines: 12, // The number of lines to draw
     angle: 0, // The length of each line
@@ -199,243 +125,86 @@ function homePage (
   initBsTooltips();
 }
 
-var inventoryColors =
-  [ "#13beb7"
-  , "#EF9600"
-  , "#da291c"
-  , "#6dd7ad"
-  , "#b1eda4"
-  , "#f2e27d"
-  , "#f6ffa4"
-  , "#8fe3a8"
-  , "#e78225"
-  , "#d4f7a2"
-  , "#48cbb2"
-  , "#eec459"
-  , "#e25c1a"
-  ];
+const onClickDoughnuts = (e, active, currentChart, id, data) => {
+  if (active[0] !== undefined){
+    // we have specific mapping of query filters for scores
+    data = (data.labelQueryFilters ?? currentChart.data.labels)[active[0].index]
+    const jsonHashSearch =
+      { query : {select:"nodeAndPolicyServer",composition:"And"}
+      , tab   : "#node_search"
+      };
+    const nodeListTab = "#node_list"
 
-var hoverColors =
-  [ "#15ccc5"
-  , "#ffaf27"
-  , "#ed1809"
-  , "#5de7b0"
-  , "#82f16c"
-  , "#fee856"
-  , "#eeff48"
-  , "#54ea7f"
-  , "#ff8311"
-  , "#c5fd74"
-  , "#5eecd2"
-  , "#ffbf19"
-  , "#ed4e00"
-  ];
-
-var complianceHoverColors =
-  { "#5bc0de" : "#2ebee9ff"
-  , "#B1BBCB" : "#9fb1cbff"
-  , "#13BEB7" : "#15ccc5ff"
-  , "#B1EDA4" : "#94f57fff"
-  , "#EF9600" : "#ffaf27ff"
-  , "#DA291C" : "#ed1809ff"
-  }
-
-function doughnutChart (id,data,colors,hoverColors) {
-
-  var context = $("#"+id)
-  var count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
-
-  var borderW = data.values.length > 1 ? 3 : 0;
-  var chartData = {
-    labels  :  data.labels,
-    datasets:
-      [ { data           : data.values
-        , borderWidth    : borderW
-        , backgroundColor: colors
-        , hoverBackgroundColor : hoverColors
-      } ]
-  };
-
-  var chartOptions = {
-      type: 'doughnut'
-    , data: chartData
-    , options: {
-        animation: {
-            // in ms
-            duration: 500
-        },
-        plugins: {
-          htmlLegend: {
-          // ID of the container to put the legend in
-            containerID: id+"-legend",
-
+    switch (id) {
+      case 'nodeOs':
+        if (g_osNames == undefined) return ;
+        const osName = g_osNames[data];
+        jsonHashSearch.query.where = [
+          { objectType: "node"
+          , attribute : "osName"
+          , comparator: "eq"
+          , value     : osName
           }
-        , legend: {
-            display: false,
+        ];
+        break;
+
+      case 'nodeAgents':
+        jsonHashSearch.query.where = [
+          { objectType: "node"
+          , attribute : "agentVersion"
+          , comparator: "regex"
+          , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
           }
-        , tooltip: {
-            callbacks: {
-              label : function(context) {
-                return " "  + context.label + ": " + context.formattedValue + " - "+ (context.parsed/count*100).toFixed(0) + "%";
-              }
-            }
+        ];
+        break;
+
+      case 'nodeMachine':
+        jsonHashSearch.query.where = [
+          { objectType: "machine"
+          , attribute : "machineType"
+          , comparator: "eq"
+          , value     : data
           }
-        }
+        ];
+        break;
 
+      case 'nodeCompliance':
+        const jsonHashFilter =
+          { score : data
+          , tab: nodeListTab
+          };
+        window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(jsonHashFilter);
+        return;
 
-      , events: ['click', 'mousemove']
-      , onClick: (e, active, currentChart) => {
-             if (active[0] !== undefined){
-              // we have specific mapping of query filters for scores
-              data = (data.labelQueryFilters ?? currentChart.data.labels)[active[0].index]
-              var query = {query:{select:"nodeAndPolicyServer",composition:"And"}};
-              switch (id) {
-                case 'nodeOs':
-                     if (g_osNames == undefined)
-                        return ;
-                     var osName = g_osNames[data];
-                     query.query.where = [{
-                         objectType: "node"
-                       , attribute : "osName"
-                       , comparator: "eq"
-                       , value     : osName
-                       }];
-
-                      break;
-                  case 'nodeAgents':
-                      query.query.where = [{
-                          objectType: "software"
-												 , attribute : "cn"
-												 , comparator: "regex"
-												 , value     : "rudder-agent|Rudder [aA]gent \\(DSC\\)"
-                      },{
-                          objectType: "software"
-                        , attribute : "softwareVersion"
-                        , comparator: "regex"
-                        , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
-                      }];
-                      break;
-                  case 'nodeMachine':
-                      query.query.where = [{
-                          objectType: "machine"
-                        , attribute : "machineType"
-                        , comparator: "eq"
-                        , value     : data
-                       }];
-                      break;
-                  case 'nodeCompliance':
-                     var filter = {score:data};
-                     window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(filter);
-                     return;
-
-                   default:
-                     if (id.startsWith("score-")) {
-                       var scoreId = id.substring(6)
-                       var filter = {scoreDetails:{[scoreId]:data}};
-                       window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(filter);
-                       return;
-                     } else
-                       return;
-              }
-               var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query);
-               window.location = url;
-            }
-         }
+      default:
+        if (id.startsWith("score-")) {
+          const scoreId = id.substring(6)
+          const jsonHashFilter =
+            { scoreDetails : {[scoreId]:data}
+            , tab: nodeListTab
+            };
+          window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(jsonHashFilter);
+          return;
+        } else return;
       }
-    , plugins: [htmlLegendPlugin],
+
+      window.location = contextPath + "/secure/nodeManager/nodes#" +  JSON.stringify(jsonHashSearch);;
     }
-  var chart = new Chart(context, chartOptions);
-  window[id] = chart;
 }
 
-
-// home page chart legend function
-
-// Hide data on click
- function hideChartData (event, index, name) {
-  // Get chart data
-  var chart = event.view[name];
-  var meta = chart.getDatasetMeta(0);
-  // Hide selected data
-  meta.data[index].hidden = !meta.data[index].hidden;
-  chart.update();
-};
-
-// When hovering legend display tooltip and highlight
-function openTooltip(event ,index, name){
-  // Get chart
-  var chart = event.view[name];
-
-  // Check if the element is already in the 'active' elements of the chart
-  if(chart.tooltip._active == undefined)
-     chart.tooltip._active = []
-  var activeElements = chart.tooltip._active;
-
-  // Get our element
-  var requestedElem = chart.getDatasetMeta(0).data[index];
-
-  // If already in active elements, skip
-  for(var i = 0; i < activeElements.length; i++) {
-      if(requestedElem._index == activeElements[i]._index)
-         return;
-  }
-  // Add element
-  activeElements.push(requestedElem);
-  chart.tooltip._active = activeElements;
-
-  // Highlight element
-  requestedElem.custom = requestedElem.custom || {};
-  requestedElem.custom.backgroundColor = Chart.helpers.getHoverColor(requestedElem._view.backgroundColor)
-
-  chart.tooltip.update(true);
-  chart.update(0);
-  chart.draw();
-}
-
-//When mouse out of legend remove tooltip and highlight
-function closeTooltip(e ,index, name){
-  // Get chart
-  var chart = e.view[name];
-
-  // Get active elements
-  var activeElements = chart.tooltip._active;
-  if(activeElements == undefined || activeElements.length == 0)
-    // No elements, nothing to do
-    return;
-
-  // our element
-  var requestedElem = chart.getDatasetMeta(0).data[index];
-
-  // Remove our element from active ones
-  for(var i = 0; i < activeElements.length; i++) {
-      if(requestedElem._index == activeElements[i]._index)  {
-         activeElements.splice(i, 1);
-         break;
-      }
-  }
-  chart.tooltip._active = activeElements;
-  chart.tooltip.update(true);
-
-  // Remove highlight by unsetting custom attributes
-  requestedElem.custom =  {};
-
-  chart.update(0);
-  chart.draw();
-}
-
-function homePageInventory (
+const homePageInventory = (
     nodeMachines
   , nodeOses
   , osNames
-) {
+) => {
   g_osNames = osNames
-  doughnutChart('nodeMachine',nodeMachines, inventoryColors, hoverColors);
-  doughnutChart('nodeOs', nodeOses, inventoryColors, hoverColors);
+  doughnutChart('nodeMachine',nodeMachines, inventoryColors, hoverColors, onClickDoughnuts);
+  doughnutChart('nodeOs', nodeOses, inventoryColors, hoverColors, onClickDoughnuts);
 }
 
-function homePageSoftware (
+const homePageSoftware = (
     nodeAgents
   , count
-) {
-  doughnutChart('nodeAgents', nodeAgents, inventoryColors, hoverColors);
+) => {
+  doughnutChart('nodeAgents', nodeAgents, inventoryColors, hoverColors, onClickDoughnuts);
 }

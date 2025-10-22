@@ -40,7 +40,6 @@ package com.normation.rudder.repository.jdbc
 import cats.implicits.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -51,9 +50,11 @@ import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.zio.*
+import doobie.*
 import doobie.implicits.*
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import zio.interop.catz.*
@@ -106,6 +107,33 @@ class ReportsTest extends DBCommon {
   val run2: DateTime = DateTime.now.minusMinutes(5 * 4)
   val run3: DateTime = DateTime.now.minusMinutes(5 * 3)
 
+  private def insertReports(reports: List[Reports]) = {
+
+    val sql = """
+      insert into ruddersysevents
+        (executiondate, nodeid, directiveid, ruleid, reportid, component, keyvalue, executiontimestamp, eventtype, policy, msg)
+      values (?,?,?, ?,?,?, ?,?,?, ?,?)
+    """
+    import com.normation.rudder.db.Doobie.*
+    Update[(DateTime, NodeId, DirectiveId, RuleId, String, String, String, DateTime, String, String, String)](sql).updateMany(
+      reports.map { r =>
+        (
+          r.executionDate,
+          r.nodeId,
+          r.directiveId,
+          r.ruleId,
+          r.reportId,
+          r.component,
+          r.keyValue,
+          r.executionTimestamp,
+          r.severity,
+          "policy",
+          r.message
+        )
+      }
+    )
+  }
+
   implicit def toAgentIds(ids: Set[(String, DateTime)]): Set[AgentRunId] = {
     ids.map(t => AgentRunId(NodeId(t._1), t._2))
   }
@@ -130,20 +158,21 @@ class ReportsTest extends DBCommon {
         )
     )
     "correctly init info" in {
-      transacRun(xa => DB.insertReports(reports.values.toList.flatten).transact(xa))
+      transacRun(xa => insertReports(reports.values.toList.flatten).transact(xa))
       transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size === 8
     }
 
     "find the last reports for node0" in {
       val result = repostsRepo.getExecutionReports(Set(AgentRunId(NodeId("n0"), run1))).open
-      result.values.flatten.toSeq must contain(exactly(reports("n0")(0)))
+      val actual: Seq[Reports] = result.values.toSeq.flatten
+      actual must contain(exactly(reports("n0")(0)))
     }
 
     "find reports for node 0,1,2" in {
       val runs = Set(("n0", run1), ("n1", run1), ("n2", run1))
       val result: Map[NodeId, Seq[Reports]] = repostsRepo.getExecutionReports(runs).open
       val actual: Seq[Reports]              = result.values.toSeq.flatten
-      actual must contain(exactly(reports("n0") ++ reports("n1").reverse.tail ++ reports("n2"): _*))
+      actual must contain(exactly(reports("n0") ++ reports("n1").reverse.tail ++ reports("n2")*))
     }
 
     "not find report for none existing agent run id" in {
@@ -194,7 +223,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      transacRun(xa => DB.insertReports(reports.values.toList.flatten).transact(xa))
+      transacRun(xa => insertReports(reports.values.toList.flatten).transact(xa))
     }
 
     /* TODO:
@@ -203,7 +232,7 @@ class ReportsTest extends DBCommon {
      * - test case where there is no StartRun/EndRun
      */
     "get reports" in {
-      val res      = repostsRepo.getReportsFromId(0, DateTime.now().plusDays(1)).open
+      val res      = repostsRepo.getReportsFromId(0, DateTime.now(DateTimeZone.UTC).plusDays(1)).open
       val expected = Seq(
         AgentRun(AgentRunId(NodeId("n0"), run1), None, 109),
         AgentRun(AgentRunId(NodeId("n1"), run1), Some(NodeConfigId("n1_run1")), 115),

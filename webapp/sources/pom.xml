@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>9.1.0~alpha1-SNAPSHOT</version>
+  <version>9.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -110,19 +110,7 @@ limitations under the License.
       <plugin>
         <groupId>io.github.evis</groupId>
         <artifactId>scalafix-maven-plugin_2.13</artifactId>
-        <version>0.1.8_0.11.0</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-rewrites_2.13</artifactId>
-            <version>0.1.5</version>
-          </dependency>
-          <dependency>
-            <groupId>ch.epfl.scala</groupId>
-            <artifactId>scala3-migrate-rules_2.13</artifactId>
-            <version>0.7.2</version>
-          </dependency>
-        </dependencies>
+        <version>0.1.10_0.14.2</version>
       </plugin>
       <plugin>
         <!-- Specify maven resources plugin version because to avoid this bug from plugin 3.2+ https://issues.apache.org/jira/browse/MRESOURCES-269
@@ -150,7 +138,7 @@ limitations under the License.
         <executions>
           <execution>
             <id>scala-compile-first</id>
-            <phase>process-resources</phase>
+            <phase>compile</phase>
             <goals>
               <goal>add-source</goal>
               <goal>compile</goal>
@@ -158,7 +146,7 @@ limitations under the License.
           </execution>
           <execution>
             <id>scala-test-compile</id>
-            <phase>process-test-resources</phase>
+            <phase>test-compile</phase>
             <goals>
               <goal>testCompile</goal>
             </goals>
@@ -166,54 +154,27 @@ limitations under the License.
         </executions>
         <configuration>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
+          <scalaVersion>${scala-version}</scalaVersion>
           <recompileMode>all</recompileMode>
-          <compilerPlugins>
-            <compilerPlugin>
-              <groupId>org.scalameta</groupId>
-              <artifactId>semanticdb-scalac_${scala-version}</artifactId>
-              <version>4.13.2</version>
-            </compilerPlugin>
-          </compilerPlugins>
           <args>
             <arg>-release:17</arg>
-            <arg>-dependencyfile</arg>
-            <arg>${basedir}/.scala_dependencies</arg>
-            <!-- standard warning, most of the one from https://tpolecat.github.io/2017/04/25/scalac-flags.html -->
-            <!-- corresponding scala line:
-              -language:existentials -language:higherKinds -language:implicitConversions
-              -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
-              -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
-            -->
-            <arg>-Xsource:3-cross</arg>
             <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
-            <arg>-explaintypes</arg>                 <!-- Explain type errors in more detail. -->
+            <arg>-explain-types</arg>                 <!-- Explain type errors in more detail. -->
             <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
             <arg>-unchecked</arg>                    <!-- Enable additional warnings where generated code depends on assumptions. -->
             <arg>-language:existentials</arg>        <!-- Existential types (besides wildcard types) can be written and inferred -->
             <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
             <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
-            <arg>-Xcheckinit</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
-            <!-- Xlint, minus non-local returns, nullary-units and missing interpolator (which brings false positive in Rudder).
-                 For -byname-implicit, it's because of Doobie, see: https://gitter.im/tpolecat/doobie?at=5f59e618765d633c54e74d52
-            -->
-            <arg>-Xfatal-warnings</arg>              <!-- Fail the compilation if there are any warnings. -->
-            <arg>-Xlint:_,-nonlocal-return,-nullary-unit,-missing-interpolator,-byname-implicit</arg>
-            <arg>-Ywarn-dead-code</arg>              <!-- Warn when dead code is identified. -->
-
-            <arg>-Ywarn-extra-implicit</arg>         <!-- Warn when more than one implicit parameter section is defined. -->
-            <arg>-Ywarn-numeric-widen</arg>          <!-- Warn when numerics are widened. -->
-            <arg>-Ywarn-unused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
-            <arg>-Ywarn-unused:locals</arg>          <!-- Warn if a local definition is unused. -->
-            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
-            <arg>-Ywarn-unused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
-            <arg>-Ywarn-unused:privates</arg>        <!-- Warn if a private member is unused. -->
-            <arg>-Ybackend-parallelism</arg><arg>8</arg>         <!-- Enable parallelization — change to desired number! -->
-            <arg>-Ycache-plugin-class-loader:last-modified</arg> <!-- Enables caching of classloaders for compiler plugins -->
-            <arg>-Ycache-macro-class-loader:last-modified</arg>  <!-- and macro definitions. This can lead to performance improvements. -->
-
-            <!-- these warnings is no an actual issue, our smart constructor usage is fine with a scala 3 compiler-->
-            <arg>-Wconf:msg=constructor modifiers are assumed by synthetic:s</arg>
-            <arg>-Wconf:msg=access modifiers for .* method are copied from the case class constructor under Scala 3:s</arg>
+            <arg>-Xmax-inlines</arg><arg>100</arg>
+            <!-- Ignore warning for BoxTrait existential type, no way to change that -->
+            <arg>-Wconf:msg=An existential type that came from a Scala-2 classfile for trait BoxTrait:s</arg>
+            <!--<arg>-Wsafe-init</arg> -->      <!--  Wrap field accessors to throw an exception on uninitialized access. Disabled because of technique repo and API -->
+            <arg>-Xfatal-warnings</arg>         <!-- Fail the compilation if there are any warnings. -->
+            <arg>-Wunused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
+            <arg>-Wunused:locals</arg>          <!-- Warn if a local definition is unused. -->
+            <arg>-Wunused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
+            <arg>-Wunused:privates</arg>        <!-- Warn if a private member is unused. -->
+            <arg>-Ysemanticdb</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
@@ -233,23 +194,9 @@ limitations under the License.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.zeroturnaround</groupId>
-        <artifactId>jrebel-maven-plugin</artifactId>
-        <version>1.1.10</version>
-        <executions>
-          <execution>
-            <id>generate-rebel-xml</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.10.1</version>
+        <version>3.13.0</version>
         <configuration>
           <release>17</release>
         </configuration>
@@ -265,7 +212,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.1</version>
+        <version>3.3.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -280,7 +227,7 @@ limitations under the License.
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>2.27.2</version>
+        <version>2.43.0</version>
         <configuration>
           <scala>
             <includes>
@@ -309,14 +256,14 @@ limitations under the License.
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>verify</phase> <!-- verify: default value -->
+            <phase>validate</phase>
           </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.12.4</version>
+        <version>3.5.1</version>
         <configuration>
           <argLine>-Dspecs2.commandline=console</argLine>
         </configuration>
@@ -328,7 +275,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.3.0</version> <!-- 3.4.x does not work -->
         <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
@@ -344,7 +291,7 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.3.2</version>
+        <version>3.4.0</version>
         <configuration>
           <archive>
             <addMavenDescriptor>false</addMavenDescriptor>
@@ -412,17 +359,18 @@ limitations under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Maven plugin version -->
-    <scala-maven-plugin-version>4.7.2</scala-maven-plugin-version>
+    <scala-maven-plugin-version>4.8.1</scala-maven-plugin-version>
 
     <!-- Libraries version that MUST be used in all children project -->
 
     <current-year>2025</current-year>
-    <rudder-major-version>9.1</rudder-major-version>
-    <rudder-version>9.1.0~alpha1-SNAPSHOT</rudder-version>
+    <rudder-major-version>9.0</rudder-major-version>
+    <rudder-version>9.0.1-SNAPSHOT</rudder-version>
 
     <servlet-version>5.0.0</servlet-version>
-    <scala-version>2.13.16</scala-version>
-    <scala-binary-version>2.13</scala-binary-version>
+    <scala-version>3.7.2</scala-version>
+    <scala2-version>2.13.16</scala2-version>
+    <scala-binary-version>3</scala-binary-version>
     <!-- lift force us to remain with 1.3.0 because of
          java.lang.NoSuchMethodError: 'scala.collection.mutable.Stack scala.xml.parsing.NoBindingFactoryAdapter.scopeStack()'net.liftweb.util.Html5Parser.$anonfun$parse$1(HtmlParser.scala:373)
           And scala-xml 2.1.0 has non-trivial change on parsing semantic, can't
@@ -430,45 +378,45 @@ limitations under the License.
          parser option - see https://github.com/scala/scala-xml/releases/tag/v2.1.0 -->
     <scala-xml-version>1.3.0</scala-xml-version>
     <lift-version>4.0.0-M1</lift-version>
-    <slf4j-version>2.0.16</slf4j-version>
-    <logback-version>1.5.17</logback-version>
+    <slf4j-version>2.0.17</slf4j-version>
+    <logback-version>1.5.18</logback-version>
     <janino-version>3.1.12</janino-version>
-    <jodatime-version>2.13.0</jodatime-version>
+    <jodatime-version>2.14.0</jodatime-version>
     <jodaconvert-version>3.0.1</jodaconvert-version>
-    <commons-io-version>2.18.0</commons-io-version>
+    <commons-io-version>2.19.0</commons-io-version>
     <commons-lang-version>3.17.0</commons-lang-version>
-    <commons-text-version>1.13.0</commons-text-version>
+    <commons-text-version>1.13.1</commons-text-version>
     <commons-codec-version>1.18.0</commons-codec-version>
-    <commons-fileupload>2.0.0-M2</commons-fileupload>
-    <commons-csv-version>1.12.0</commons-csv-version>
-    <jgit-version>7.0.0.202409031743-r</jgit-version>
-    <spring-version>6.1.17</spring-version>
-    <spring-security-version>6.3.7</spring-security-version>
+    <commons-fileupload>2.0.0-M4</commons-fileupload>
+    <commons-csv-version>1.14.0</commons-csv-version>
+    <jgit-version>7.2.1.202505142326-r</jgit-version>
+    <spring-version>6.1.21</spring-version>
+    <spring-security-version>6.3.9</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
-    <asm-version>9.7.1</asm-version>
+    <asm-version>9.8</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
     <bouncycastle-compat>jdk18on</bouncycastle-compat>
     <bouncycastle-version>1.80</bouncycastle-version>
     <better-files-version>3.9.2</better-files-version>
     <sourcecode-version>0.4.2</sourcecode-version>
     <quicklens-version>1.9.12</quicklens-version>
-    <hikaricp-version>6.2.1</hikaricp-version>
+    <hikaricp-version>6.3.0</hikaricp-version>
     <nuprocess-version>3.0.0</nuprocess-version>
-    <postgresql-version>42.7.5</postgresql-version>
+    <postgresql-version>42.7.7</postgresql-version>
     <json-path-version>2.9.0</json-path-version>
-    <json-smart-version>2.5.1</json-smart-version>
+    <json-smart-version>2.5.2</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
     <unboundid-version>7.0.2</unboundid-version>
     <fastparse-version>3.1.1</fastparse-version>
     <config-version>1.4.3</config-version>
-    <caffeine-version>3.1.8</caffeine-version>
+    <caffeine-version>3.2.0</caffeine-version>
     <jgrapht-version>1.5.2</jgrapht-version>
     <reflections-version>0.10.2</reflections-version>
-    <graalvm-version>24.1.2</graalvm-version>
+    <graalvm-version>24.2.1</graalvm-version>
     <chimney-version>1.7.3</chimney-version>
     <cron4s-version>0.8.2</cron4s-version>
     <ipaddress-version>5.5.1</ipaddress-version>
-    <snakeyaml-version>2.3</snakeyaml-version>
+    <snakeyaml-version>2.4</snakeyaml-version>
 
     <zio-http-version>2.0.0-RC11</zio-http-version> <!-- used in datasources -->
 
@@ -477,17 +425,20 @@ limitations under the License.
       We declare cats in "test" here, because it is not directly needed
       in any project before rudder.
     -->
-    <specs2-version>4.20.9</specs2-version>
+    <specs2-version>4.21.0</specs2-version>
     <junit-version>4.13.2</junit-version>
-    <cats-version>2.12.0</cats-version>
-    <ip4s-version>3.6.0</ip4s-version>
-    <doobie-version>1.0.0-RC5</doobie-version>
+    <cats-version>2.13.0</cats-version>
+    <ip4s-version>3.7.0</ip4s-version>
+    <doobie-version>1.0.0-RC9</doobie-version>
     <fs2-version>3.10.2</fs2-version>
-    <cats-effect-version>3.5.5</cats-effect-version>
-    <dev-zio-version>2.1.16</dev-zio-version>
-    <zio-cats-version>23.1.0.3</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
-    <zio-json-version>0.7.36</zio-json-version>
-    <enumeratum-version>1.7.5</enumeratum-version>
+    <cats-effect-version>3.6.1</cats-effect-version>
+    <dev-zio-version>2.1.19</dev-zio-version>
+    <zio-cats-version>23.1.0.5</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
+    <zio-json-version>0.7.43</zio-json-version>
+    <izumi-version>3.0.5</izumi-version>
+    <magnolia-version>1.3.18</magnolia-version>
+    <difflicious-version>0.4.3</difflicious-version>
+    <enumeratum-version>1.7.6</enumeratum-version>
 
     <!--
       Hack to make scalac jvm parameters like RAM configurable.
@@ -532,26 +483,31 @@ limitations under the License.
       <dependency>
         <groupId>org.scala-lang</groupId>
         <artifactId>scala-library</artifactId>
+        <version>${scala2-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala3-library_${scala-binary-version}</artifactId>
         <version>${scala-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang</groupId>
-        <artifactId>scala-compiler</artifactId>
-        <version>${scala-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scala-lang</groupId>
-        <artifactId>scala-reflect</artifactId>
-        <version>${scala-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.scala-lang</groupId>
-        <artifactId>scalap</artifactId>
+        <artifactId>scala-compiler_${scala-binary-version}</artifactId>
         <version>${scala-version}</version>
       </dependency>
       <dependency>
         <groupId>org.scala-lang.modules</groupId>
-        <artifactId>scala-xml_${scala-binary-version}</artifactId>
+        <artifactId>scala-parser-combinators_3</artifactId>
+        <version>2.3.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-reflect_${scala-binary-version}</artifactId>
+        <version>${scala-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang.modules</groupId>
+        <artifactId>scala-xml_2.13</artifactId>
         <version>${scala-xml-version}</version>
       </dependency>
       <dependency>
@@ -568,6 +524,12 @@ limitations under the License.
         <groupId>org.tpolecat</groupId>
         <artifactId>doobie-core_${scala-binary-version}</artifactId>
         <version>${doobie-version}</version>
+      </dependency>
+      <!-- this is needed for doobie/cats/zio compat in scala 3 -->
+      <dependency>
+        <groupId>org.typelevel</groupId>
+        <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
+        <version>${cats-effect-version}</version>
       </dependency>
       <dependency>
         <groupId>com.lihaoyi</groupId>
@@ -598,7 +560,7 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-common_${scala-binary-version}</artifactId>
+        <artifactId>lift-common_2.13</artifactId>
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
@@ -613,12 +575,12 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-json_${scala-binary-version}</artifactId>
+        <artifactId>lift-json_2.13</artifactId>
         <version>${lift-version}</version>
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-util_${scala-binary-version}</artifactId>
+        <artifactId>lift-util_2.13</artifactId>
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
@@ -629,14 +591,14 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-webkit_${scala-binary-version}</artifactId>
+        <artifactId>lift-webkit_2.13</artifactId>
         <version>${lift-version}</version>
         <exclusions>
           <exclusion>
             <groupId>commons-fileupload</groupId>
             <artifactId>commons-fileupload</artifactId>
-	  </exclusion>
-	  <exclusion>
+          </exclusion>
+          <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
           </exclusion>
@@ -915,6 +877,18 @@ limitations under the License.
       <artifactId>zio-json-yaml_${scala-binary-version}</artifactId>
       <version>${zio-json-version}</version>
     </dependency>
+    <!-- explicit version needed -->
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>izumi-reflect_${scala-binary-version}</artifactId>
+      <version>${izumi-version}</version>
+    </dependency>
+    <!-- use explicit version for magnolia, else conflict in difflicious -->
+    <dependency>
+      <groupId>com.softwaremill.magnolia1_3</groupId>
+      <artifactId>magnolia_${scala-binary-version}</artifactId>
+      <version>${magnolia-version}</version>
+    </dependency>
     <!-- explicit snakeyaml dependency to override default zio-json-version -->
     <dependency>
       <groupId>org.yaml</groupId>
@@ -924,6 +898,11 @@ limitations under the License.
     <dependency>
       <groupId>io.scalaland</groupId>
       <artifactId>chimney_${scala-binary-version}</artifactId>
+      <version>${chimney-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalaland</groupId>
+      <artifactId>chimney-cats_${scala-binary-version}</artifactId>
       <version>${chimney-version}</version>
     </dependency>
     <!-- zio/cats compat -->
@@ -974,8 +953,7 @@ limitations under the License.
       <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
       <scope>test</scope>
-    </dependency>
-    <!-- zio tests -->
+    </dependency>    <!-- zio tests -->
     <dependency>
       <groupId>dev.zio</groupId>
       <artifactId>zio-test_${scala-binary-version}</artifactId>
@@ -986,6 +964,12 @@ limitations under the License.
       <groupId>dev.zio</groupId>
       <artifactId>zio-test-junit_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jatcwang</groupId>
+      <artifactId>difflicious-core_3</artifactId>
+      <version>${difflicious-version}</version>
       <scope>test</scope>
     </dependency>
 

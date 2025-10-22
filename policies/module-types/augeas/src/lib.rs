@@ -7,7 +7,7 @@ pub mod dsl;
 mod parameters;
 mod report;
 
-use crate::parameters::AugeasParameters;
+use crate::parameters::{AugeasParameters, CfengineAugeasParameters};
 use anyhow::bail;
 use augeas::Augeas;
 use rudder_module_type::{
@@ -33,13 +33,16 @@ impl ModuleType0 for Augeas {
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // from_value does not allow zero-copy deserialization
-        let parameters: AugeasParameters =
+        let p: CfengineAugeasParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        parameters.validate()
+        let p: AugeasParameters = p.into();
+        p.validate()
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let p: CfengineAugeasParameters =
+            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let p: AugeasParameters = p.into();
         p.validate()?;
 
         self.handle_check_apply(p, mode, Some(parameters.backup_dir.as_path()))

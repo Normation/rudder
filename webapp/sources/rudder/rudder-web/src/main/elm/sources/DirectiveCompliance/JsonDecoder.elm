@@ -65,6 +65,7 @@ decodeRuleCompliance elem decoder =
     |> required "id"         (map RuleId string)
     |> required "name"       string
     |> required "compliance" float
+    |> required "policyMode"       string
     |> required "complianceDetails" decodeComplianceDetails
     |> required "components" (list (decodeComponentCompliance elem decoder ))
 

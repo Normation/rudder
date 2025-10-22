@@ -42,7 +42,6 @@ import com.normation.box.*
 import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.*
-import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
@@ -89,7 +88,7 @@ object PendingHistoryGrid extends Loggable {
 
   def jsVarNameForId() = "pendingNodeHistoryTable"
 
-  def initJs(entries: Seq[EventLog] = Seq())(implicit qr: QueryContext): JsCmd = {
+  def initJs(entries: Seq[EventLog] = Seq())(implicit qc: QueryContext): JsCmd = {
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -117,7 +116,8 @@ object PendingHistoryGrid extends Loggable {
             },
             "aaSorting": [[ 0, "desc" ]],
             "sPaginationType": "full_numbers",
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
+            "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+            "buttons" : [ csvButtonConfig("pending_nodes_history") ]
           });
           $('.dataTables_filter input').attr("placeholder", "Filter");
           """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries) // JsRaw ok, const
@@ -141,8 +141,8 @@ object PendingHistoryGrid extends Loggable {
       ("tr [jsuuid]" #> jsuuid &
       "tr [serveruuid]" #> details.nodeId.value &
       "tr [kind]" #> status.toLowerCase &
-      "tr [inventory]" #> DateFormaterService.serialize(event.creationDate) &
-      ".date *" #> DateFormaterService.getDisplayDate(event.creationDate) &
+      "tr [inventory]" #> DateFormaterService.serializeInstant(event.creationDate) &
+      ".date *" #> DateFormaterService.getDisplayDate(DateFormaterService.toDateTime(event.creationDate)) &
       ".name *" #> details.hostname &
       ".os *" #> details.fullOsName &
       ".state *" #> status.capitalize &
@@ -180,7 +180,7 @@ object PendingHistoryGrid extends Loggable {
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack(entries: Seq[EventLog])(implicit qr: QueryContext): JsCmd = {
+  def initJsCallBack(entries: Seq[EventLog])(implicit qc: QueryContext): JsCmd = {
     val eventWithDetails = entries.flatMap(event => logDetailsService.getDeleteNodeLogDetails(event.details).map((event, _)))
     // Group the events by node id, then drop the event details. Set default Map value to an empty Seq
     val deletedNodes     = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
@@ -209,12 +209,12 @@ object PendingHistoryGrid extends Loggable {
                   } );
                 })
           """
-        .format(SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes) _)._2.toJsCmd)
+        .format(SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes))._2.toJsCmd)
         .replaceAll("#table_var#", jsVarNameForId()) // JsRaw ok, escaped
     )
   }
 
-  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qr: QueryContext): JsCmd = {
+  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qc: QueryContext): JsCmd = {
 
     val arr = s.split("\\|")
     if (arr.length != 4) {
@@ -246,16 +246,22 @@ object PendingHistoryGrid extends Loggable {
     }
   }
 
+  import com.normation.rudder.domain.logger.ApplicationLoggerPure
+  val result: Either[String, Boolean] = Left("plop")
+  result.left
+    .map(e => ApplicationLoggerPure.Auth.logEffect.warn(s"Error while computing Argon2 hash: ${e}"))
+    .getOrElse(false)
+
   def displayIfDeleted(id: NodeId, lastInventoryDate: DateTime, deletedNodes: Map[NodeId, Seq[EventLog]]): NodeSeq = {
     // only take events that could have delete that inventory, as we set the default value to an empty sequence, there's no null here with the apply on the map
-    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(lastInventoryDate))
+    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(DateFormaterService.toInstant(lastInventoryDate)))
     // sort those events by date, to take the closer deletion date from the inventory date (head of the list)
     effectiveEvents.sortWith((ev1, ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
         <div style="padding: 10px 15px 0">
           <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"></i>
           <h3> {
-          s"This node was deleted on ${DateFormaterService.getDisplayDate(deleted.creationDate)} by ${deleted.principal.name}"
+          s"This node was deleted on ${DateFormaterService.getDisplayDate(DateFormaterService.toDateTime(deleted.creationDate))} by ${deleted.principal.name}"
         }</h3>
         </div>
       case None          => NodeSeq.Empty

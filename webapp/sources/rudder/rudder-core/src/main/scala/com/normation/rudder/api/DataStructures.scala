@@ -202,6 +202,21 @@ case class ApiVersion(
     deprecated: Boolean
 )
 
+object SupportedApiVersion {
+  /*
+   * API version are incremented at least one time for each Rudder version.
+   * We try to avoid the case where a breaking change would incur an API increment.
+   * We deprecate an API is not the last, and we delete deprecated version on a major
+   * release, for all but the last of previous major branch.
+   */
+  lazy val apiVersions: List[ApiVersion] = {
+    ApiVersion(21, deprecated = true) ::  // rudder 8.3 - zio-json, api accounts,new authorization model
+    ApiVersion(22, deprecated = false) :: // rudder 9.0 - campaigns, ....
+    Nil
+  }
+
+}
+
 /*
  * HTTP verbs
  */
@@ -379,9 +394,9 @@ object ApiAuthorizationKind extends Enum[ApiAuthorizationKind] {
 /**
  * Api authorisation kind.
  * We have 3 levels:
- * - no authorizations (for ex, an unknown user)
+ * - no authorisations (for ex, an unknown user)
  * - read-only / read-write: coarse grained authz with access to all GET (resp everything)
- * - ACL: fine grained authz.
+ * - ACL: fine-grained authz.
  */
 sealed trait ApiAuthorization { def kind: ApiAuthorizationKind }
 object ApiAuthorization       {

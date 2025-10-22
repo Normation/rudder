@@ -38,19 +38,19 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.InetAddressUtils.*
-import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.domain.VmType.*
 import com.normation.inventory.ldap.core.InventoryMappingResult.*
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.*
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.schema.LDAPObjectClass
+import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.{Version as _, *}
 import java.net.InetAddress
+import java.time.Instant
 import org.joda.time.DateTime
 import zio.*
 import zio.json.*
@@ -127,13 +127,13 @@ class InventoryMapper(
     e.setOpt(soft.description, A_DESCRIPTION, (x: String) => x)
     e.setOpt(soft.version, A_SOFT_VERSION, (x: Version) => x.value)
     e.setOpt(soft.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
-    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(DateFormaterService.toInstant(x)).toString)
     e.setOpt(soft.sourceName, A_SOURCE_NAME, (x: String) => x)
     e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, (x: Version) => x.value)
     soft.license.foreach { lic =>
       e.resetValuesTo(A_LICENSE_NAME, lic.name)
       e.setOpt(lic.description, A_LICENSE_DESC, (x: String) => x)
-      e.setOpt(lic.expirationDate, A_LICENSE_EXP, (x: DateTime) => x.toString())
+      e.setOpt(lic.expirationDate, A_LICENSE_EXP, (x: Instant) => DateFormaterService.serializeInstant(x))
       e.setOpt(lic.productId, A_LICENSE_PRODUCT_ID, (x: String) => x)
       e.setOpt(lic.productKey, A_LICENSE_PRODUCT_KEY, (x: String) => x)
       e.setOpt(lic.oem, A_LICENSE_OEM, (x: String) => x)
@@ -148,7 +148,7 @@ class InventoryMapper(
       name           = e(A_NAME)
       desc           = e(A_DESCRIPTION)
       version        = e(A_SOFT_VERSION).map(v => new Version(v))
-      releaseDate    = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
+      releaseDate    = e.getAsGTime(A_RELEASE_DATE).map(x => DateFormaterService.toDateTime(x.instant))
       editor         = e(A_EDITOR) map { x => new SoftwareEditor(x) }
       source_name    = e(A_SOURCE_NAME)
       source_version = e(A_SOURCE_VERSION).map(v => new Version(v))
@@ -161,7 +161,7 @@ class InventoryMapper(
                 productId = e(A_LICENSE_PRODUCT_ID),
                 productKey = e(A_LICENSE_PRODUCT_KEY),
                 oem = e(A_LICENSE_OEM),
-                expirationDate = e.getAsGTime(A_LICENSE_EXP) map { _.dateTime }
+                expirationDate = e.getAsGTime(A_LICENSE_EXP).map(_.instant)
               )
             }
     } yield {
@@ -180,7 +180,7 @@ class InventoryMapper(
     e.setOpt(elt.description, A_DESCRIPTION, (x: String) => x)
     e.resetValuesTo(A_QUANTITY, elt.quantity.toString)
     e.setOpt(elt.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
-    e.setOpt(elt.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    e.setOpt(elt.releaseDate, A_RELEASE_DATE, (x: Instant) => GeneralizedTime(x).toString)
     e.setOpt(elt.version, A_SOFT_VERSION, (x: Version) => x.value)
     e.setOpt(elt.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
     e.setOpt(elt.serialNumber, A_SERIAL_NUMBER, (x: String) => x)
@@ -193,7 +193,7 @@ class InventoryMapper(
       desc         = e(A_DESCRIPTION)
       quantity     = e.getAsInt(A_QUANTITY).getOrElse(1)
       version      = e(A_SOFT_VERSION).map(v => new Version(v))
-      releaseDate  = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
+      releaseDate  = e.getAsGTime(A_RELEASE_DATE) map { _.instant }
       editor       = e(A_EDITOR) map { x => new SoftwareEditor(x) }
       manufacturer = e(A_MANUFACTURER).map(m => new Manufacturer(m))
       serialNumber = e(A_SERIAL_NUMBER)
@@ -484,8 +484,8 @@ class InventoryMapper(
     val root = dit.MACHINES.MACHINE.model(machine.id)
     root.setOpt(machine.mbUuid, A_MB_UUID, (x: MotherBoardUuid) => x.value)
     root.addValues(A_OC, OC.objectClassNames(machineType2ObjectClass(machine.machineType).name)*)
-    root.setOpt(machine.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
-    root.setOpt(machine.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
+    root.setOpt(machine.inventoryDate, A_INVENTORY_DATE, (x: Instant) => GeneralizedTime(x).toString)
+    root.setOpt(machine.receiveDate, A_RECEIVE_DATE, (x: Instant) => GeneralizedTime(x).toString)
     root.setOpt(machine.name.orElse(Some(machine.id.value)), A_NAME, (x: String) => x)
     root.setOpt(machine.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
     root.setOpt(machine.systemSerialNumber, A_SERIAL_NUMBER, (x: String) => x)
@@ -565,8 +565,8 @@ class InventoryMapper(
       machineType        = machineTypeFromObjectClasses(tree.root.valuesFor(A_OC).toSet)
       name               = tree.root(A_NAME)
       mbUuid             = tree.root(A_MB_UUID) map { x => MotherBoardUuid(x) }
-      inventoryDate      = tree.root.getAsGTime(A_INVENTORY_DATE).map(_.dateTime)
-      receiveDate        = tree.root.getAsGTime(A_RECEIVE_DATE).map(_.dateTime)
+      inventoryDate      = tree.root.getAsGTime(A_INVENTORY_DATE).map(_.instant)
+      receiveDate        = tree.root.getAsGTime(A_RECEIVE_DATE).map(_.instant)
       manufacturer       = tree.root(A_MANUFACTURER).map(m => new Manufacturer(m))
       systemSerialNumber = tree.root(A_SERIAL_NUMBER)
       // now, get all subentries
@@ -623,7 +623,7 @@ class InventoryMapper(
     // mutable, yep
     def setSeqAddress(e: LDAPEntry, attr: String, list: Seq[InetAddress]): Unit = {
       if (list.isEmpty) {
-        e deleteAttribute attr
+        e.deleteAttribute(attr)
       } else {
         e.resetValuesTo(attr, list.map(_.getHostAddress)*)
       }
@@ -763,6 +763,7 @@ class InventoryMapper(
           case WindowsVista  => win.addValues(A_OS_NAME, A_OS_WIN_VISTA)
           case WindowsSeven  => win.addValues(A_OS_NAME, A_OS_WIN_SEVEN)
           case Windows10     => win.addValues(A_OS_NAME, A_OS_WIN_10)
+          case Windows11     => win.addValues(A_OS_NAME, A_OS_WIN_11)
           case Windows2000   => win.addValues(A_OS_NAME, A_OS_WIN_2000)
           case Windows2003   => win.addValues(A_OS_NAME, A_OS_WIN_2003)
           case Windows2008   => win.addValues(A_OS_NAME, A_OS_WIN_2008)
@@ -803,10 +804,10 @@ class InventoryMapper(
     root.setOpt(server.swap, A_OS_SWAP, (m: MemorySize) => m.size.toString)
     root.setOpt(server.archDescription, A_ARCH, (x: String) => x)
     root.setOpt(server.lastLoggedUser, A_LAST_LOGGED_USER, (x: String) => x)
-    root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, (x: DateTime) => GeneralizedTime(x).toString)
-    root.setOpt(server.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
-    root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
-    root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJson)*)
+    root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, (x: Instant) => GeneralizedTime(x).toString)
+    root.setOpt(server.inventoryDate, A_INVENTORY_DATE, (x: Instant) => GeneralizedTime(x).toString)
+    root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: Instant) => GeneralizedTime(x).toString)
+    root.resetValuesTo(A_AGENT_NAME, server.agents.map(x => x.toJson)*)
     root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString)*)
     root.resetValuesTo(A_EV, server.environmentVariables.map(_.toJson)*)
     root.resetValuesTo(A_LIST_OF_IP, server.serverIps.distinct*)
@@ -1000,7 +1001,7 @@ class InventoryMapper(
       rootUser       <- entry.required(A_ROOT_USER).toIO
       policyServerId <- entry.required(A_POLICY_SERVER_UUID).toIO
       agentNames     <- ZIO
-                          .foreach(entry.valuesFor(A_AGENTS_NAME).toList) {
+                          .foreach(entry.valuesFor(A_AGENT_NAME).toList) {
                             case agent =>
                               agent.fromJson[AgentInfo].toIO.chainError(s"Error when parsing agent security token '${agent}'")
                           }
@@ -1031,7 +1032,7 @@ class InventoryMapper(
       arch            = entry(A_ARCH)
 
       lastLoggedUser     = entry(A_LAST_LOGGED_USER)
-      lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map(_.dateTime)
+      lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map(_.instant)
       ev                <- ZIO.foldLeft(entry.valuesFor(A_EV))(List.empty[EnvironmentVariable]) {
                              case (l, json) =>
                                json.fromJson[EnvironmentVariable] match {
@@ -1074,8 +1075,8 @@ class InventoryMapper(
                                ) *>
                                Some(m1).succeed
                            }
-      inventoryDate      = entry.getAsGTime(A_INVENTORY_DATE).map(_.dateTime)
-      receiveDate        = entry.getAsGTime(A_RECEIVE_DATE).map(_.dateTime)
+      inventoryDate      = entry.getAsGTime(A_INVENTORY_DATE).map(_.instant)
+      receiveDate        = entry.getAsGTime(A_RECEIVE_DATE).map(_.instant)
       accounts           = entry.valuesFor(A_ACCOUNT).toSeq
       serverIps          = entry.valuesFor(A_LIST_OF_IP).toSeq
       timezone           = (entry(A_TIMEZONE_NAME), entry(A_TIMEZONE_OFFSET)) match {

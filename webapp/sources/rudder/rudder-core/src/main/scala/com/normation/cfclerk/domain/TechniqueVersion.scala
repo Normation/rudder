@@ -42,7 +42,7 @@ import com.normation.GitVersion.Revision
 import com.normation.utils.*
 
 final case class TechniqueVersion protected (version: Version, rev: Revision) extends Ordered[TechniqueVersion] {
-  def compare(v: TechniqueVersion): Int = (version compare v.version) match {
+  def compare(v: TechniqueVersion): Int = (version.compare(v.version)) match {
     case 0 =>
       // we can't compare two rev, so just use alpha-num order
       // A rev is always before none (which means "HEAD")
@@ -68,8 +68,6 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
     case r                      => version.toVersionString + "+" + r.value
   }
 
-  // to avoid compatibility error
-  @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
   override def toString: String = serialize
 }
 

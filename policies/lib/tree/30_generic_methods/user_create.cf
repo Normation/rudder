@@ -37,25 +37,26 @@
 bundle agent user_create(login, description, home, group, shell, locked)
 {
   vars:
-      "old_class_prefix"  string => canonify("user_create_${login}");
-      "args"               slist => { "${login}", "${description}", "${home}", "${group}", "${shell}", "${locked}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("user_create_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("user_create_${login}");
+      "policy"       string => ifelse(strcmp("true", "${locked}"), "locked", "present");
 
-      "policy"              string => ifelse(strcmp("true", "${locked}"), "locked", "present");
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   users:
-      "${login}"  policy        => "${policy}",
-                  description   => "${description}",
-                  home_dir      => "${home}",
-                  group_primary => "${group}",
-                  shell         => "${shell}",
-                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass3::
+      "${login}"
+               policy => "${policy}",
+          description => "${description}",
+             home_dir => "${home}",
+        group_primary => "${group}",
+                shell => "${shell}",
+              classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle => _log_v3("User ${login} create", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Creation of user ${login}", "");
 
 }

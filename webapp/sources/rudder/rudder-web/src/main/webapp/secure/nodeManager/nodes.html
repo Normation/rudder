@@ -9,7 +9,7 @@
         flex-basis : initial !important;
         flex: auto !important;
       }
-      #nodes tbody tr td .rudder-label.label-sm:not(.label-provider){
+      #nodes_tab .dataTable tbody tr td .rudder-label.label-sm:not(.label-provider){
         padding: 3px 24px !important;
         margin-right: 0;
         font-size: inherit;
@@ -41,26 +41,22 @@
           <div class="template-main">
             <div class="main-container">
               <div class="main-details">
-                <div class="main-container">
-                  <div class="main-details">
-                    <div class="tab-content">
-                      <div id="node_list" class="tab-pane active">
-                        <div class="table-container">
-                          <div data-lift="node.Nodes.table"></div>
+                <div class="tab-content">
+                  <div id="node_list" class="tab-pane active">
+                    <div class="table-container">
+                      <div data-lift="node.Nodes.table"></div>
+                    </div>
+                  </div>
+                  <div id="node_search" class="tab-pane">
+                      <div data-lift="node.SearchNodes.head"></div>
+                      <div id="query-search-content">
+                      <div class="inner-portlet-content">
+                        <div id="SearchNodes">
+                          <div data-lift="node.SearchNodes.showQuery"></div>
                         </div>
-                      </div>
-                      <div id="node_search" class="tab-pane">
-                          <div data-lift="node.SearchNodes.head"></div>
-                          <div id="query-search-content">
-                          <div class="inner-portlet-content">
-                            <div id="SearchNodes">
-                              <div data-lift="node.SearchNodes.showQuery"></div>
-                            </div>
-                            <lift:authz role="group_write">
-                              <div data-lift="node.SearchNodes.createGroup"></div>
-                            </lift:authz>
-                          </div>
-                        </div>
+                        <lift:authz role="group_write">
+                          <div data-lift="node.SearchNodes.createGroup"></div>
+                        </lift:authz>
                       </div>
                     </div>
                   </div>

@@ -2,11 +2,11 @@ module Accounts.View exposing (..)
 
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
-import Accounts.DataTypes as Token exposing (..)
+import Accounts.DataTypes as TokenState exposing (..)
 import Accounts.ViewModals exposing (..)
 import Accounts.ViewUtils exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, disabled, href, placeholder, selected, type_, value)
+import Html.Attributes exposing (class, disabled, href, placeholder, selected, type_, value)
 import Html.Events exposing (onClick, onInput)
 import List
 
@@ -15,7 +15,7 @@ view : Model -> Html Msg
 view model =
     let
         hasClearTextTokens =
-            List.any (\a -> a.token == Token.ClearText) model.accounts
+            List.any (\a -> a.tokenState == TokenState.GeneratedV1) model.accounts
     in
     div [ class "rudder-template" ]
         [ div [ class "one-col" ]
@@ -41,7 +41,7 @@ view model =
                                 [ if hasClearTextTokens then
                                     div [ class "alert alert-warning" ]
                                         [ i [ class "fa fa-exclamation-triangle" ] []
-                                        , text "You have API accounts with tokens generated on an pre-8.1 Rudder versions."
+                                        , text "You have API accounts with tokens generated on an pre-8.1 Rudder versions. "
                                         , text "They are now disabled, you should re-generate or replace them."
                                         ]
 

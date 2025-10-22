@@ -42,8 +42,10 @@ import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
 import com.normation.rudder.hooks.HookReturnCode.SystemError
 import com.normation.rudder.hooks.HookReturnCode.Warning
+import com.normation.zio.ZioRuntime
 import java.nio.file.attribute.PosixFilePermissions
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -60,8 +62,10 @@ import zio.{System as _, *}
 @RunWith(classOf[JUnitRunner])
 class HooksTest() extends Specification with AfterAll {
 
-  val tmp: File = File(s"/tmp/rudder-test-hook/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
+  val tmp: File = File(s"/tmp/rudder-test-hook/${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime())}")
   tmp.createDirectoryIfNotExists(true)
+
+  def cmd(s: String): String = (tmp / s).pathAsString
 
   List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh", "timeout.sh", "timeout_ok.sh").foreach { i =>
     val f = File(tmp, i)
@@ -71,12 +75,30 @@ class HooksTest() extends Specification with AfterAll {
 
   def runHooks(hooks: List[String], params: List[HookEnvPair]): HookReturnCode = {
     RunHooks.syncRun(
+      "test.hooks",
       Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))),
       HookEnvPairs(params),
       HookEnvPairs(Nil),
       1.second,
       500.millis,
       5.seconds
+    )
+  }
+
+  def runHookHistory(hooks: List[String], params: List[HookEnvPair]): List[HookReturnCode] = {
+    ZioRuntime.runNow(
+      RunHooks
+        .asyncRunHistory(
+          "test.hooks",
+          Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))),
+          HookEnvPairs(params),
+          HookEnvPairs(Nil),
+          HookExecutionHistory.Keep,
+          1.second,
+          500.millis,
+          5.seconds
+        )
+        .map(_._2.map(_._2))
     )
   }
 
@@ -94,27 +116,37 @@ class HooksTest() extends Specification with AfterAll {
 
   "A successful hook should be a success" >> {
     val res = runHooks(List("success.sh"), Nil)
-    res must beEqualTo(Ok("", ""))
+    res must beEqualTo(Ok(cmd("success.sh"), "", ""))
   }
 
   "A success, then a warning should keep the warning" >> {
     val res = runHooks(List("success.sh", "warning50.sh"), Nil)
-    res must beEqualTo(Warning(50, "", "", s"Exit code=50 for hook: '${tmp.pathAsString}/warning50.sh'."))
+    res must beEqualTo(Warning(cmd("warning50.sh"), 50, "", "", s"Exit code=50 for hook: '${tmp.pathAsString}/warning50.sh'."))
   }
 
   "A warning shouldn't stop execution" >> {
     val res = runHooks(List("warning50.sh", "success.sh"), Nil)
-    res must beEqualTo(Ok("", ""))
+    res must beEqualTo(Ok(cmd("success.sh"), "", ""))
+  }
+
+  "We can store several result history" >> {
+    val res = runHookHistory(List("warning50.sh", "success.sh"), Nil)
+    res must beEqualTo(
+      List(
+        Ok(cmd("success.sh"), "", ""),
+        Warning(cmd("warning50.sh"), 50, "", "", s"Exit code=50 for hook: '${tmp.pathAsString}/warning50.sh'.")
+      )
+    )
   }
 
   "An error should stop the execution" >> {
     val res = runHooks(List("error10.sh", "warning50.sh"), Nil)
-    res must beEqualTo(ScriptError(10, "", "", s"Exit code=10 for hook: '${tmp.pathAsString}/error10.sh'."))
+    res must beEqualTo(ScriptError(cmd("error10.sh"), 10, "", "", s"Exit code=10 for hook: '${tmp.pathAsString}/error10.sh'."))
   }
 
   "A hook should be able to read env variables as parameter" >> {
     val res = runHooks(List("echoCODE.sh"), HookEnvPair("CODE", "0") :: Nil)
-    res must beEqualTo(Ok("", ""))
+    res must beEqualTo(Ok(cmd("echoCODE.sh"), "", ""))
   }
 
   "A hook should be killed after time-out duration is reached and message contains what script failed" >> {
@@ -126,6 +158,7 @@ class HooksTest() extends Specification with AfterAll {
     val name    = "timeout_ok.sh"
     val timeout = RunHooks.effectfulGetHookTimeout(File(tmp.pathAsString, name).toJava)
     val res     = RunHooks.syncRun(
+      "test.hooks",
       Hooks(tmp.pathAsString, List((name, timeout))),
       HookEnvPairs(HookEnvPair("CODE", "0") :: Nil),
       HookEnvPairs(Nil),
@@ -134,7 +167,7 @@ class HooksTest() extends Specification with AfterAll {
       500.millis
     )
     timeout must beEqualTo(HookTimeout(Some(6.seconds), Some(10.seconds)))
-    res must beEqualTo(Ok("", ""))
+    res must beEqualTo(Ok(cmd("timeout_ok.sh"), "", ""))
   }
 
 // This one is more for testing performance. I don't want to make it a test, because in

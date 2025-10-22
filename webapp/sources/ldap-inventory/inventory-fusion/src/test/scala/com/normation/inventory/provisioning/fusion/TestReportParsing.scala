@@ -279,9 +279,9 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Rudder tag in inventory" should {
 
-    "ok-ish when not present (have an error log)" in {
+    "error not present (have an error log)" in {
       val res = parseRunEither("fusion-inventories/rudder-tag/minimal-no-rudder.ocs")
-      res must beRight
+      res must beLeft
     }
 
     "can't be two" in {
@@ -292,9 +292,9 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Agent in Inventory" should {
 
-    "be empty when there is no agent" in {
-      val agents = parseRun("fusion-inventories/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
-      agents must beEmpty
+    "be error when there is no agent" in {
+      val agents = parseRunEither("fusion-inventories/rudder-tag/minimal-zero-agent.ocs")
+      agents must beLeft
     }
 
     "have one agent when using community" in {
@@ -303,9 +303,9 @@ class TestInventoryParsing extends Specification with Loggable {
       agents.node.agents.map(_.agentType).toList === (CfeCommunity :: Nil)
     }
 
-    "be empty when there is two agents, using two different policy servers" in {
+    "keep the first when there is tow agents, using two different policy servers" in {
       val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
-      agents must beEmpty
+      agents === List(CfeCommunity)
     }
 
     "have dsc agent agent when using rudder-agent based on dsc" in {
@@ -351,11 +351,24 @@ class TestInventoryParsing extends Specification with Loggable {
             source = Some("security-backport"),
             Some("Local privilege escalation in pkexec due to incorrect handling of argument vector (CVE-2021-4034)"),
             Some(SoftwareUpdateSeverity.Low),
-            JsonSerializers.parseSoftwareUpdateDateTime("2022-01-26T00:00:00Z").toOption,
+            JsonSerializers.parseSoftwareUpdateInstant("2022-01-26T00:00:00Z").toOption,
             Some(List("RHSA-2020-4566", "CVE-2021-4034"))
           )
         )
       )
+    }
+
+    "Correctly parse the version from AGENT_VERSION when available" in {
+      val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-with-agent-version.ocs")
+
+      inventory.node.agents.head.version === Some(AgentVersion("8.3.1"))
+
+    }
+    "Correctly revert to agent package version if AGENT_VERSION is missing" in {
+      val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-without-agent-version.ocs")
+
+      inventory.node.agents.head.version === Some(AgentVersion("8.3.1-ubuntu22.04"))
+
     }
 
   }
@@ -394,6 +407,19 @@ class TestInventoryParsing extends Specification with Loggable {
         case Some(ssn) => ssn === Some("be7c0c4f-5f27-6648-9adb-6cce2129061d")
         case None      => ko("Missing <SSN> from <BIOS> section in fusion-inventories/alma.ocs")
       }
+    }
+  }
+
+  "Parsing date" should {
+    "Be ok for logged user when format has only minutes" in {
+      FusionInventoryParser.parseLoggedUserDate("Thu Sep 22 12:27") must beRight
+    }
+    "Be ok for logged user when format has seconds" in {
+      FusionInventoryParser.parseLoggedUserDate("Wed Jun 11 08:12:05") must beRight
+    }
+
+    "Be ok for bios usual format" in {
+      FusionInventoryParser.parseBiosDate("05/17/25") must beRight
     }
   }
 
@@ -486,8 +512,8 @@ class TestInventoryParsing extends Specification with Loggable {
     }
 
     "lead to an error if missing (no software for agent)" in {
-      val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents.ocs").node.agents
-      agents must beEmpty
+      val agents = parseRunEither("fusion-inventories/rudder-tag/minimal-two-agents.ocs")
+      agents must beLeft
     }
 
   }

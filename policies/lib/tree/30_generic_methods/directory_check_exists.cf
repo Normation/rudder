@@ -34,24 +34,24 @@
 bundle agent directory_check_exists(path)
 {
   vars:
-      "old_class_prefix" string => canonify("directory_check_exists_${path}");
-      "args"               slist => { "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("directory_check_exists_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("directory_check_exists_${path}");
 
   classes:
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
       "directory_exists" expression => isdir("${path}");
 
   methods:
-    directory_exists::
-      "directory_exists"        usebundle => _classes_success("${old_class_prefix}");
-      "directory_exists"        usebundle => _classes_success("${class_prefix}");       
+    pass3.directory_exists::
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
 
-    !directory_exists::
-      "directory_doesnt_exists" usebundle => _classes_failure("${old_class_prefix}");
-      "directory_doesnt_exists" usebundle => _classes_failure("${class_prefix}");
+    pass3.!directory_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
-    any::
-      "report"                  usebundle => _log_v3("Check if directory ${path} exists", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("path", "Check if directory ${path} exists", "");
 }

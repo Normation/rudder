@@ -1,10 +1,9 @@
 // GENERAL SETTINGS
 #settingsTabContent{
-  margin: -15px;
   display: flex;
   height: 100%;
 }
-#companyAccountTab.show{
+#welcomeSetupTab.show{
   display: flex;
   width: 100%;
   & > div{
@@ -341,26 +340,6 @@ ul.wizard-timeline{
   }
 }
 
-/* === NEW THEME === */
-.text-success{
-  color: #13beb7 !important;
-}
-.content-wrapper .rudder-template .btn-success,
-.content-wrapper .rudder-template .btn-success[disabled]:hover {
-  background-color: #13beb7;
-  border-color: #13beb7;
-  transition-duration: .2s;
-}
-.content-wrapper .rudder-template .btn-success:hover {
-  background-color: #10aca6;
-}
-.content-wrapper .rudder-template .btn-default,
-.content-wrapper .rudder-template .btn-default[disabled]:hover {
-  background-color: #ABB2C7;
-  border-color: #9DA4B9;
-  color: #fff !important;
-  transition-duration: .2s;
-}
 .content-wrapper .rudder-template .btn > i{
   margin-left: 6px;
 }

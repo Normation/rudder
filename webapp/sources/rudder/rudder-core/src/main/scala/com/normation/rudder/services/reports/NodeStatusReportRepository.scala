@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
@@ -48,10 +49,11 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
-import com.softwaremill.quicklens.ModifyPimp
+import com.softwaremill.quicklens.*
 import doobie.*
 import doobie.implicits.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.{System as _, *}
 import zio.interop.catz.*
 
@@ -104,6 +106,9 @@ trait NodeStatusReportStorage {
 
 object NodeStatusReportRepositoryImpl {
 
+  /*
+   * Create a repo from a datastore, initially loading data from it.
+   */
   def makeAndInit(storage: NodeStatusReportStorage): IOResult[NodeStatusReportRepositoryImpl] = {
     for {
       reports <- storage.getAll()
@@ -156,26 +161,41 @@ class NodeStatusReportRepositoryImpl(
                          // if we are asked to keep compliance, start by checking we do have one
                          case RunAnalysisKind.KeepLastCompliance =>
                            m.get(id) match {
-                             case Some(e) =>
-                               e.runInfo.kind match { // here we need to check for all expiring status from `def outDatedCompliance`
+                             case Some(cached) =>
+                               cached.runInfo.kind match { // here we need to check for all expiring status from `def outDatedCompliance`
                                  case RunAnalysisKind.ComputeCompliance | RunAnalysisKind.Pending =>
                                    // For ComputeCompliance: it's the standard case of keeping existing compliance.
-                                   // Of the saved node is pending, it means that we are in a case where the node never saved
+                                   // If the saved node is pending, it means that we are in a case where the node never saved
                                    // anything else than pending since it was first processed, so the node never had a computed
                                    // compliance (it was a new report, directly in pending). Let it blue.
                                    // In both case: keep existing compliance, change run info to avoid loop.
-                                   Some((id, e.modify(_.runInfo).setTo(report.runInfo)))
+
+                                   // we need to copy new report information BUT NOT the one regarding "last run",
+                                   // which were lost if we reach that point
+                                   val runInfo = report.runInfo.copyLastRunInfo(cached.runInfo)
+                                   Some((id, cached.modify(_.runInfo).setTo(runInfo)))
+
+                                 // comparison for KeepLastCompliance: we need to check if configId/things not linked to
+                                 // last run changed, perhaps during a reboot, and update them if it's the case
+                                 case RunAnalysisKind.KeepLastCompliance                          =>
+                                   if (cached.runInfo.equalsWithoutLastRun(report.runInfo)) None
+                                   else {
+                                     // keep last run from cache, but update other runInfo data
+                                     val newRunInfo = report.runInfo.copyLastRunInfo(cached.runInfo)
+                                     Some((id, cached.modify(_.runInfo).setTo(newRunInfo)))
+                                   }
 
                                  case _ => // in any other case, change nothing but check if there's an actual change
-                                   if (e == report) None else Some((id, e))
+                                   if (cached == report) None else Some((id, cached))
                                }
-                             case None    => // ok, just a new report
+                             case None         => // ok, just a new report
                                Some((id, report))
                            }
                          // in other case, just update what is in cache if it's actually different
                          case _                                  =>
                            m.get(id) match {
-                             case Some(e) => if (e == report) None else Some((id, report))
+                             case Some(e) =>
+                               if (e == report) None else Some((id, report))
                              case None    => Some((id, report))
                            }
                        }
@@ -221,7 +241,7 @@ class InMemoryNodeStatusReportStorage(storage: Ref[Map[NodeId, NodeStatusReport]
 /*
  * A JDBC implementation using the `NodeLastCompliance` table as backend
  */
-class JdbcNodeStatusReportStorage(doobie: Doobie) extends NodeStatusReportStorage {
+class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends NodeStatusReportStorage {
   import doobie.*
 
   override def getAll(): IOResult[Map[NodeId, NodeStatusReport]] = {
@@ -234,19 +254,27 @@ class JdbcNodeStatusReportStorage(doobie: Doobie) extends NodeStatusReportStorag
   }
 
   override def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
-    val t = DateTime.now()
-    val rows: Vector[(NodeId, DateTime, JNodeStatusReport)] = reports.map {
-      case (a, b) => (a, t, JNodeStatusReport.from(b))
-    }.toVector
+    val t = DateTime.now(DateTimeZone.UTC)
+
+    def toRows(rs: Iterable[(NodeId, NodeStatusReport)]): Vector[(NodeId, DateTime, JNodeStatusReport)] = {
+      rs.map { case (a, b) => (a, t, JNodeStatusReport.from(b)) }.toVector
+    }
 
     val query = Update[(NodeId, DateTime, JNodeStatusReport)](
       """INSERT INTO NodeLastCompliance (nodeId, computationDateTime, details) VALUES (?,?,?)
         |  ON CONFLICT (nodeId) DO UPDATE
         |  SET computationDateTime = excluded.computationDateTime, details = excluded.details ;""".stripMargin
-    ).updateMany(rows)
+    )
 
-    ComplianceLoggerPure.debug(s"Saving compliance state for ${reports.size} nodes in base") *>
-    transactIOResult(s"error when saving compliance for nodes")(xa => query.transact(xa)).unit
+    // batch update, don't fail on first error
+    ZIO
+      .validate(reports.sliding(jdbcBatchSize).to(Iterable)) { rs =>
+        val rows = toRows(rs)
+        ComplianceLoggerPure.debug(s"Saving compliance state for ${rs.size} nodes in base") *>
+        transactIOResult(s"error when saving compliance for nodes")(xa => query.updateMany(rows).transact(xa))
+      }
+      .mapError(errs => Accumulated(NonEmptyList(errs.head, errs.tail)))
+      .unit
   }
 
   override def delete(nodes: Iterable[NodeId]): IOResult[Unit] = {

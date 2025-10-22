@@ -46,10 +46,8 @@ import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.CriterionComposition.And
 import com.normation.rudder.domain.queries.CriterionComposition.Or
-import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
@@ -106,6 +104,8 @@ class SearchNodeComponent(
 
   private val nodeFactRepo = RudderConfig.nodeFactRepository
 
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
   // The portlet for the server detail
   private def searchNodes: NodeSeq = ChooseTemplate(
     List("templates-hidden", "server", "server_details"),
@@ -146,7 +146,7 @@ class SearchNodeComponent(
    */
   def getQuery(): Option[Query] = query
 
-  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false)(CurrentUser.queryContext) } }
+  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false) } }
 
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
@@ -194,7 +194,7 @@ class SearchNodeComponent(
       ajaxCriteriaRefresh(isGroupsPage, preventSave = true)
     }
 
-    def processForm(isGroupPage: Boolean): JsCmd = {
+    def processForm(isGroupPage: Boolean)(implicit qc: QueryContext): JsCmd = {
       // filter on non validate values
       errors.clear()
       lines.zipWithIndex.foreach {
@@ -212,7 +212,7 @@ class SearchNodeComponent(
           nodeIds   <- queryProcessor.process(newQuery)
           nodeInfos <-
             nodeFactRepo
-              .getAll()(CurrentUser.queryContext)
+              .getAll()
               .map(_.collect { case (id, f) if nodeIds.contains(id) => f }.toSeq)
               .toBox
         } yield {

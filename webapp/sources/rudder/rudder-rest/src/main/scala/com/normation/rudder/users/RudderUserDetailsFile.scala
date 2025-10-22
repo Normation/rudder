@@ -49,13 +49,12 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.users.*
+import com.normation.rudder.users.UserFileProcessing.ParsedUser
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
 import java.io.InputStream
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.security.SecureRandom
-import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
@@ -81,38 +80,39 @@ sealed abstract class PasswordEncoderType(override val entryName: String) extend
 }
 
 object PasswordEncoderType extends Enum[PasswordEncoderType] {
-  final case object MD5    extends PasswordEncoderType("MD5")
-  final case object SHA1   extends PasswordEncoderType("SHA-1")
-  final case object SHA256 extends PasswordEncoderType("SHA-256")
-  final case object SHA512 extends PasswordEncoderType("SHA-512")
-  final case object BCRYPT extends PasswordEncoderType("BCRYPT")
+  case object BCRYPT   extends PasswordEncoderType("BCRYPT")   {
+    val defaultCost = 12
+
+    // 16 bytes = 128 bits
+    val saltSize = 16
+  }
+  case object ARGON2ID extends PasswordEncoderType("ARGON2ID") {
+    // Defaults for user-controlled settings
+    // 19 MiB, from OWASP recommendations
+    val minimumMemory      = Argon2Memory(19 * 1024)
+    // 128 MiB
+    val defaultMemory      = Argon2Memory(128 * 1024)
+    val defaultIterations  = Argon2Iterations(3)
+    val defaultParallelism = Argon2Parallelism(1)
+  }
 
   // Default value, same as in RudderPasswordEncoder
-  val DEFAULT: PasswordEncoderType = BCRYPT
+  val DEFAULT: PasswordEncoderType = ARGON2ID
 
   override def values: IndexedSeq[PasswordEncoderType] = findValues
-
-  override def extraNamesToValuesMap: Map[String, PasswordEncoderType] = Map(
-    "sha"    -> SHA1,
-    "sha1"   -> SHA1,
-    "sha256" -> SHA256,
-    "sha512" -> SHA512
-  )
-
 }
 
-class PasswordEncoderDispatcher(bcryptCost: Int) {
+class PasswordEncoderDispatcher(bcryptCost: Int, argon2Params: Argon2EncoderParams) {
   def dispatch(encoderType: PasswordEncoderType): PasswordEncoder = {
     encoderType match {
-      case PasswordEncoderType.MD5    => RudderPasswordEncoder.MD5
-      case PasswordEncoderType.SHA1   => RudderPasswordEncoder.SHA1
-      case PasswordEncoderType.SHA256 => RudderPasswordEncoder.SHA256
-      case PasswordEncoderType.SHA512 => RudderPasswordEncoder.SHA512
-      case PasswordEncoderType.BCRYPT => RudderPasswordEncoder.BCRYPT(bcryptCost)
+      case PasswordEncoderType.BCRYPT   => RudderPasswordEncoder.bcryptEncoder(bcryptCost)
+      case PasswordEncoderType.ARGON2ID =>
+        RudderPasswordEncoder.argon2Encoder(argon2Params)
     }
   }
 
 }
+
 /////////////////////////////////////////
 // The PasswordEncoder is inspired by the modern Spring Security way, using DelegatingPasswordEncoder.
 // The RudderPasswordEncoder is basically a DelegatingPasswordEncoder but using our password storage formats
@@ -125,65 +125,13 @@ object RudderPasswordEncoder {
 
   import org.bouncycastle.crypto.generators.OpenBSDBCrypt
 
-  val random = new SecureRandom()
+  private val secureRandom = new SecureRandom()
 
-  // see https://stackoverflow.com/a/44227131
-  // produce a random hexa string of 32 chars
-  def randomHexa32: String = {
-    // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
-    // In that case, just complete the string
-    def randInternal: String = {
-      val token = new Array[Byte](16)
-      random.nextBytes(token)
-      new java.math.BigInteger(1, token).toString(16)
-    }
-    var s = randInternal
-    while (s.size < 32) { // we can be very unlucky and keep drawing 000s
-      s = s + randInternal.substring(0, 32 - s.size)
-    }
-    s
-  }
-
-  sealed trait SecurityLevel
-  object SecurityLevel {
-    // Allow simple non-salted hashes
-    case object Legacy extends SecurityLevel
-    // Only allow dedicated password hashes
-    case object Modern extends SecurityLevel
-
-    def fromPasswordEncoderType(encoderType: PasswordEncoderType): SecurityLevel = {
-      encoderType match {
-        case PasswordEncoderType.BCRYPT                                                                                   => Modern
-        case PasswordEncoderType.MD5 | PasswordEncoderType.SHA1 | PasswordEncoderType.SHA256 | PasswordEncoderType.SHA512 =>
-          Legacy
-      }
-    }
-  }
-
-  class DigestEncoder(digestName: String) extends PasswordEncoder {
-    override def encode(rawPassword: CharSequence):                           String  = {
-      val digest = MessageDigest.getInstance(digestName)
-      new String(Hex.encode(digest.digest(rawPassword.toString.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
-    }
-    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
-      if (null == rawPassword) {
-        false
-      } else {
-        encode(rawPassword) == encodedPassword
-      }
-    }
-  }
-
-  // One pass, non-salted hashes. Unsuitable for password storage.
-  val MD5               = new DigestEncoder("MD5")
-  val SHA1              = new DigestEncoder("SHA-1")
-  val SHA256            = new DigestEncoder("SHA-256")
-  val SHA512            = new DigestEncoder("SHA-512")
   // Proper password hash functions
-  def BCRYPT(cost: Int) = new PasswordEncoder() {
+  class bcryptEncoder(cost: Int)                          extends PasswordEncoder {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
-      random.nextBytes(salt)
+      secureRandom.nextBytes(salt)
 
       // The version of bcrypt used is "2b". See https://en.wikipedia.org/wiki/Bcrypt#Versioning_history
       // It prevents the length (unsigned char) of a long password to overflow and wrap at 256. (Cf https://marc.info/?l=openbsd-misc&m=139320023202696)
@@ -199,29 +147,37 @@ object RudderPasswordEncoder {
       }
     }
   }
-  // Default algorithm to use for hashing passwords
-  val DEFAULT           = BCRYPT
+  class argon2Encoder(encoderParams: Argon2EncoderParams) extends PasswordEncoder {
+    override def encode(rawPassword: CharSequence):                           String  = {
+      val salt: Array[Byte] = new Array(encoderParams.saltSize.toInt)
+      secureRandom.nextBytes(salt)
 
-  def getFromEncoded(encodedPassword: String, securityLevel: SecurityLevel): Either[String, PasswordEncoderType] = {
-    // Two cases: modern = /etc/shadow-like or legacy = plain hashes
+      val hashParams = Argon2HashParams(
+        encoderParams,
+        salt = Chunk.fromArray(salt)
+      )
+      Argon2Hash.generate(hashParams, rawPassword.toString.getBytes)
+    }
+    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+      Argon2Hash.checkPassword(rawPassword.toString.getBytes, encodedPassword) match {
+        case Left(e)                  =>
+          ApplicationLoggerPure.Auth.logEffect.warn(s"Error while checking Argon2 hash: $e")
+          false
+        case Right(isPasswordCorrect) => isPasswordCorrect
+      }
+    }
+  }
 
+  def getFromEncoded(encodedPassword: String): Either[String, PasswordEncoderType] = {
     // https://github.com/bcgit/bc-java/blob/5b1360854d85fd27b75720015be68f9e172db013/core/src/main/java/org/bouncycastle/crypto/generators/OpenBSDBCrypt.java#L41C1-L48C1
     // Allow types: 2, 2x, 2y, 2a, 2b
-    val bcryptRegex = "^\\$2[abxy]?\\$.+".r
-
-    val hexaRegex = "^[a-fA-F0-9]+$"
+    val bcryptRegex    = "^\\$2[abxy]?\\$.+".r
+    val argon2idPrefix = "$argon2id"
 
     if (encodedPassword.matches(bcryptRegex.regex)) {
       Right(PasswordEncoderType.BCRYPT)
-    } else if (securityLevel == SecurityLevel.Legacy && encodedPassword.matches(hexaRegex)) {
-      // Guess based on hexadecimal string length
-      encodedPassword.length match {
-        case 32  => Right(PasswordEncoderType.MD5)
-        case 40  => Right(PasswordEncoderType.SHA1)
-        case 64  => Right(PasswordEncoderType.SHA256)
-        case 128 => Right(PasswordEncoderType.SHA512)
-        case l   => Left(s"Could not recognize a known hash format from hexadecimal encoded string of length ${l}")
-      }
+    } else if (encodedPassword.startsWith(argon2idPrefix)) {
+      Right(PasswordEncoderType.ARGON2ID)
     } else {
       Left("Could not recognize a known hash format from encoded password")
     }
@@ -229,7 +185,6 @@ object RudderPasswordEncoder {
 }
 
 case class RudderPasswordEncoder(
-    securityLevel:             RudderPasswordEncoder.SecurityLevel,
     passwordEncoderDispatcher: PasswordEncoderDispatcher
 ) extends PasswordEncoder {
 
@@ -248,14 +203,14 @@ case class RudderPasswordEncoder(
 
   private def subPasswordEncoder(encodedPassword: String): PasswordEncoder = {
     RudderPasswordEncoder
-      .getFromEncoded(encodedPassword, securityLevel)
+      .getFromEncoded(encodedPassword)
       .map(encoderType => passwordEncoderDispatcher.dispatch(encoderType))
       .getOrElse(passwordEncoderDispatcher.dispatch(PasswordEncoderType.DEFAULT))
   }
 }
 
 /**
- * An user list is a parsed list of users with their authorisations
+ * An user list is a parsed list of users with their resolved authorisations
  */
 final case class UserDetailFileConfiguration(
     encoder:         RudderPasswordEncoder,
@@ -263,17 +218,57 @@ final case class UserDetailFileConfiguration(
     customRoles:     List[Role],
     users:           Map[String, (RudderAccount.User, Seq[Role], NodeSecurityContext)]
 )
+object UserDetailFileConfiguration {
+  def default(implicit passwordEncoder: RudderPasswordEncoder): UserDetailFileConfiguration = UserDetailFileConfiguration(
+    passwordEncoder,
+    isCaseSensitive = true,
+    customRoles = Nil,
+    users = Map()
+  )
+}
 
-final case class ValidatedUserList(
-    encoder:         RudderPasswordEncoder,
-    isCaseSensitive: Boolean,
-    customRoles:     List[Role],
-    users:           Map[String, RudderUserDetail]
+/**
+ * List of managed users in Rudder, and configuration on the management of the users.
+ */
+sealed abstract class UserList(
+    val encoder:         RudderPasswordEncoder,
+    val isCaseSensitive: Boolean,
+    val users:           Map[String, RudderUserDetail]
 )
+
+/**
+ * One-sized list for a known managed user, when there is an implementation for only a single user (e.g. super-admin)
+ */
+final case class SingleUserList(override val encoder: RudderPasswordEncoder, user: Option[RudderUserDetail])
+    extends UserList(encoder, isCaseSensitive = true, users = user.map(u => (u.getUsername, u)).toMap)
+
+/**
+ * The main user list coming from a file, exposing the resolved configuration of the file, including parsed users
+ * @param parsedUsers Raw user attributes parsed from the file
+ */
+final class ValidatedUserList(
+    val parsedUsers:   Map[String, ParsedUser],
+    fileConfiguration: UserDetailFileConfiguration
+)(implicit roleApiMapping: RoleApiMapping)
+    extends UserList(
+      fileConfiguration.encoder,
+      fileConfiguration.isCaseSensitive,
+      ValidatedUserList.userDetailsFromConfig(fileConfiguration)
+    ) {
+
+  def customRoles: List[Role] = fileConfiguration.customRoles
+}
 
 object ValidatedUserList {
 
   private val logger = ApplicationLoggerPure.Auth
+
+  def default(implicit passwordEncoder: RudderPasswordEncoder, roleApiMapping: RoleApiMapping): ValidatedUserList = {
+    new ValidatedUserList(
+      Map.empty,
+      UserDetailFileConfiguration.default
+    )
+  }
 
   /**
    * Filter the list of users by checking if the username
@@ -286,7 +281,10 @@ object ValidatedUserList {
    *   - users with same username (according to the case sensitivity)
    *     will be removed from the returned list
    */
-  def filterByCaseSensitivity(userDetails: List[RudderUserDetail], isCaseSensitive: Boolean): Map[String, RudderUserDetail] = {
+  private def filterByCaseSensitivity(
+      userDetails:     List[RudderUserDetail],
+      isCaseSensitive: Boolean
+  ): Map[String, RudderUserDetail] = {
     userDetails.groupBy(_.getUsername.toLowerCase).flatMap {
       // User name is unique with or without case sensitivity, accept
       case (k, u :: Nil)                  => (u.getUsername, u) :: Nil
@@ -322,10 +320,9 @@ object ValidatedUserList {
    * that the user may be using, and that these custom roles are well behaving: basically,
    * the step on role check/update is done.
    */
-  def fromRudderAccountList(
-      roleApiMapping: RoleApiMapping,
-      accountConfig:  UserDetailFileConfiguration
-  ): ValidatedUserList = {
+  private def userDetailsFromConfig(
+      accountConfig: UserDetailFileConfiguration
+  )(implicit roleApiMapping: RoleApiMapping): Map[String, RudderUserDetail] = {
 
     val userDetails   = accountConfig.users.map {
       case (_, (user, roles, nodeSecurityContext)) =>
@@ -337,14 +334,14 @@ object ValidatedUserList {
           .groupBy(_.path.parts.head)
           .flatMap {
             case (_, seq) =>
-              seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
+              seq.sortBy(_.path)(using AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
         // init status to deleted, it will be set correctly latter on
         RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
-    ValidatedUserList(accountConfig.encoder, accountConfig.isCaseSensitive, accountConfig.customRoles, filteredUsers)
+    filteredUsers
   }
 }
 
@@ -354,7 +351,7 @@ object ValidatedUserList {
 final case class RudderAuthorizationFileReloadCallback(name: String, exec: ValidatedUserList => IOResult[Unit])
 
 trait UserDetailListProvider {
-  def authConfig: ValidatedUserList
+  def authConfig: UserList
 
   /*
    * Utility method to retrieve user by name.
@@ -366,7 +363,7 @@ trait UserDetailListProvider {
       .get(username)
       .orElse(
         conf.users.collectFirst {
-          case (u, userDetail) if !conf.isCaseSensitive && u.toLowerCase() == username.toLowerCase() => userDetail
+          case (u, userDetail) if !conf.isCaseSensitive && u.equalsIgnoreCase(username) => userDetail
         }
       )
       .toRight(Unexpected(s"User with username '${username}' was not found"))
@@ -374,13 +371,8 @@ trait UserDetailListProvider {
   }
 }
 
-trait UserFileSecurityLevelMigration {
+trait UserFileHashTypeMigration {
   def file: UserFile
-
-  /**
-    * Migrates the provided file to the modern security level, but allow legacy hashes to subsist
-    */
-  def allowLegacy(file: File): IOResult[Unit]
 
   /**
     * Migrate the provided file to the modern security level by enforcing that legacy unsafe hashes are no longer supported
@@ -392,27 +384,18 @@ final class FileUserDetailListProvider(
     roleApiMapping:            RoleApiMapping,
     override val file:         UserFile,
     passwordEncoderDispatcher: PasswordEncoderDispatcher
-) extends UserDetailListProvider with UserFileSecurityLevelMigration {
-  import RudderPasswordEncoder.SecurityLevel.*
+) extends UserDetailListProvider with UserFileHashTypeMigration {
 
   private val logger = ApplicationLoggerPure.Auth
+  implicit private val roleMapping: RoleApiMapping = roleApiMapping
 
   /**
    * Initialize user details list when class is instantiated with an empty list.
    * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
-   * Password encoder type by default is Bcrypt
    */
   private val cache = {
-    Ref
-      .make(
-        ValidatedUserList(
-          RudderPasswordEncoder(Modern, passwordEncoderDispatcher),
-          isCaseSensitive = false,
-          customRoles = Nil,
-          users = Map()
-        )
-      )
-      .runNow
+    implicit val rudderPasswordEncoder: RudderPasswordEncoder = RudderPasswordEncoder(passwordEncoderDispatcher)
+    Ref.make(ValidatedUserList.default).runNow
   }
 
   /**
@@ -423,7 +406,7 @@ final class FileUserDetailListProvider(
   /**
    * Reload the list of users. Only update the cache if there is no errors.
    */
-  def reloadPure(): IOResult[Unit] = {
+  def reloadPure(): IOResult[ValidatedUserList] = {
     for {
       config <- UserFileProcessing.parseUsers(roleApiMapping, passwordEncoderDispatcher, file, reload = true)
       _      <- cache.set(config)
@@ -432,11 +415,13 @@ final class FileUserDetailListProvider(
                   cb.exec(config)
                     .catchAll(err => logger.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}"))
                 }
-    } yield ()
+    } yield {
+      config
+    }
   }
 
   def reload(): Unit = {
-    reloadPure()
+    reloadPure().unit
       .catchAll(err => logger.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}"))
       .runNow
   }
@@ -447,12 +432,11 @@ final class FileUserDetailListProvider(
 
   override def authConfig: ValidatedUserList = cache.get.runNow
 
-  override def allowLegacy(file:   File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = true)
-  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = false)
+  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "argon2id")
 
-  // directly changes the file content !!
-  private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
-    // replace "hash" value and "unsafe-hashes" value
+  // directly changes the file content!
+  private def migrateAuthentication(sourceTargetFile: File, hash: String): IOResult[Unit] = {
+    // replace "hash" value and remove "unsafe-hashes" value
     for {
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(sourceTargetFile.toJava, preserveWS = true))
       userXML    <- IOResult.attempt(parsedFile.document().children)
@@ -467,8 +451,8 @@ final class FileUserDetailListProvider(
                      .append(
                        new scala.xml.UnprefixedAttribute("hash", hash, scala.xml.Null)
                      ) // will override existing hash attribute
-                     .append(
-                       new scala.xml.UnprefixedAttribute("unsafe-hashes", unsafeHashes.toString, scala.xml.Null)
+                     .remove(
+                       "unsafe-hashes"
                      )
                  })
                }
@@ -484,18 +468,22 @@ final class FileUserDetailListProvider(
 
 object UserFileProcessing {
 
-  val JVM_AUTH_FILE_KEY      = "rudder.authFile"
-  val DEFAULT_AUTH_FILE_NAME = "demo-rudder-users.xml"
+  private val JVM_AUTH_FILE_KEY = "rudder.authFile"
+  val DEFAULT_AUTH_FILE_NAME    = "demo-rudder-users.xml"
 
   private val logger = ApplicationLoggerPure.Auth
 
   // utility classes for a parsed custom role/user/everything before sanity check is done on them
   final case class ParsedRole(name: String, permissions: List[String])
-  final case class ParsedUser(name: String, password: String, permissions: List[String], tenants: Option[List[String]])
+  final case class ParsedUser(
+      name:        String,
+      password:    UserPassword,
+      permissions: List[String],
+      tenants:     Option[List[String]]
+  )
   final case class ParsedUserFile(
       encoder:         PasswordEncoderType,
       isCaseSensitive: Boolean,
-      unsafeHashes:    Boolean,
       customRoles:     List[UncheckedCustomRole],
       users:           List[ParsedUser]
   )
@@ -528,7 +516,7 @@ object UserFileProcessing {
 
   def readUserFile(resource: UserFile): IOResult[Elem] = {
     IOResult.attempt {
-      scala.xml.XML.load(resource.inputStream())
+      XmlSafe.load(resource.inputStream())
     }.mapError {
       // map a SAXParseException to a technical butmore user-friendly but error message
       case s @ SystemError(_, e: SAXParseException) =>
@@ -576,21 +564,16 @@ object UserFileProcessing {
       debugFileName:             String,
       reload:                    Boolean
   ): IOResult[ValidatedUserList] = {
+    implicit val roleMapping: RoleApiMapping = roleApiMapping
     for {
-      parsed <- parseXmlNoResolve(xml, debugFileName)
-      known  <- if (reload) RudderRoles.builtInRoles.get else RudderRoles.getAllRoles
-      roles  <- resolveRoles(known, parsed.customRoles)
-      _      <- RudderRoles.register(roles, resetExisting = reload)
-      users  <- resolveUsers(parsed.users, debugFileName)
+      parsed     <- parseXmlNoResolve(xml, debugFileName)
+      parsedUsers = parsed.users.map(u => (u.name, u)).toMap
+      known      <- if (reload) RudderRoles.builtInRoles.get else RudderRoles.getAllRoles
+      roles      <- resolveRoles(known, parsed.customRoles)
+      _          <- RudderRoles.register(roles, resetExisting = reload)
+      users      <- resolveUsers(parsedUsers.values, debugFileName)
     } yield {
-      import RudderPasswordEncoder.SecurityLevel.*
-
-      // The rationale here is that if configured hash is bcrypt, it means before 8.2 non-bcrypt hash did not work
-      // so no need for legacy support.
-      // When unsafe-hashes is enabled we will still be using legacy, but RudderPasswordEncoder should still support modern.
-      val encoder = if (parsed.encoder == PasswordEncoderType.BCRYPT && !parsed.unsafeHashes) {
-        RudderPasswordEncoder(Modern, passwordEncoderDispatcher)
-      } else { RudderPasswordEncoder(Legacy, passwordEncoderDispatcher) }
+      val encoder = RudderPasswordEncoder(passwordEncoderDispatcher)
 
       val config = {
         UserDetailFileConfiguration(
@@ -600,7 +583,7 @@ object UserFileProcessing {
           users.map { case (u, rs, nsc) => (u.login, (u, rs, nsc)) }.toMap
         )
       }
-      ValidatedUserList.fromRudderAccountList(roleApiMapping, config)
+      new ValidatedUserList(parsedUsers, config)
     }
   }
 
@@ -616,24 +599,12 @@ object UserFileProcessing {
     }
   }
 
-  /**
-    * Attempt to read the unsafe-hashes="<boolean>" attribute. Return the unknown value as Left
-    */
-  def parseXmlUnsafeHashes(xml: Elem):                     Either[String, Option[Boolean]] = {
-    (xml(0) \ "@unsafe-hashes").text.toLowerCase match {
-      case ""      => Right(None)
-      case "true"  => Right(Some(true))
-      case "false" => Right(Some(false))
-      case str     => Left(str)
-
-    }
-  }
   /*
    * This method just parse XML file & validate its general structure, but it does not resolve roles
    * or rights.
    * This is done in a second pass.
    */
-  def parseXmlNoResolve(xml: Elem, debugFileName: String): IOResult[ParsedUserFile]        = {
+  private def parseXmlNoResolve(xml: Elem, debugFileName: String): IOResult[ParsedUserFile] = {
     // one unique name attribute, text content non empty
     def getRoleName(node: scala.xml.Node): PureResult[String] = {
       node.attribute("name").map(_.map(_.text.strip())) match {
@@ -690,18 +661,13 @@ object UserFileProcessing {
               .map(_.toList.map(_.text)),
             node.attribute("password").map(_.toList.map(_.text)),
             // accept both "role" and "roles"
-            userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions")),
+            (userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions"))).filterNot(_.isBlank()),
             getCommaSeparatedList("tenants", node)
           ) match {
             case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>
-              // password can be optional when an other authentication backend is used.
-              // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
-              // to avoid any cases where the empty string will be used if all other backend are in failure.
-              // Also forbid empty or all blank passwords.
-              // If the attribute is defined several times, use the first occurrence.
               val p = pwd match {
-                case Some(p :: _) if (p.strip().size > 0) => p
-                case _                                    => RudderPasswordEncoder.randomHexa32
+                case Some(UserPassword.checkHashedPassword(p) :: _) => p
+                case _                                              => UserPassword.randomHexa32
               }
               Some(ParsedUser(name, p, permissions, tenants)).succeed
 
@@ -732,26 +698,6 @@ object UserFileProcessing {
                         value.succeed
                     }
 
-      defaultUnsafeHashes = false
-      unsafeHashes       <- parseXmlUnsafeHashes(xml) match {
-                              case Left(nonBoolValue) =>
-                                // we need a warning when value is unknown :
-                                // - unless we are already using legacy
-                                // - unless the value is empty (or it does not exist) and we are already using modern
-                                // In all cases, fallback value is false : we want user to specify explicitly when some hashes are unsafe
-                                val legacy = RudderPasswordEncoder.SecurityLevel.fromPasswordEncoderType(
-                                  hash
-                                ) == RudderPasswordEncoder.SecurityLevel.Legacy
-                                ZIO
-                                  .unless(legacy || nonBoolValue.isEmpty) {
-                                    logger.warn(
-                                      s"Unsafe hashes: in file '${debugFileName}' parameter `unsafe-hashes` is not a boolean, set by default on `false`. If you still use non-bcrypt hash, you can set this parameter to `true`"
-                                    )
-                                  }
-                                  .as(defaultUnsafeHashes)
-                              case Right(value)       => value.getOrElse(defaultUnsafeHashes).succeed
-                            }
-
       isCaseSensitive <- (xml(0) \ "@case-sensitivity").text.toLowerCase match {
                            case "true"  => true.succeed
                            case "false" => false.succeed
@@ -770,14 +716,14 @@ object UserFileProcessing {
       roles <- customRoles
       users <- getUsers()
 
-    } yield ParsedUserFile(hash, isCaseSensitive, unsafeHashes, roles, users)
+    } yield ParsedUserFile(hash, isCaseSensitive, roles, users)
   }
 
   /*
    * Roles must be taken all together, because even if we forbid cycles, they may be not sorted and
    * we want to update the set of OK roles just one time.
    */
-  def resolveRoles(
+  private def resolveRoles(
       knownRoles: SortedMap[String, Role],
       roles:      List[UncheckedCustomRole]
   ): UIO[List[Role]] = {
@@ -805,10 +751,10 @@ object UserFileProcessing {
     } yield res.validRoles
   }
 
-  def resolveUsers(
-      users:         List[ParsedUser],
+  private def resolveUsers(
+      users:         Iterable[ParsedUser],
       debugFileName: String
-  ): UIO[List[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
+  ): UIO[Iterable[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
 
     val TODO_MODULE_TENANTS_ENABLED = true
 

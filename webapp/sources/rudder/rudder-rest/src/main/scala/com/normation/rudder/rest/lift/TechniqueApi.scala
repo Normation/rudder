@@ -38,39 +38,34 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
-import com.normation.box.*
-import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.domain.{BundleName as _, *}
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
-import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
+import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.*
 import scala.collection.SortedMap
 import zio.*
-import zio.json.ast.Json
-import zio.json.ast.Json.Str
+import zio.json.ast.*
 import zio.json.yaml.*
 import zio.syntax.*
 
@@ -90,32 +85,23 @@ object TechniqueApi {
 }
 
 class TechniqueApi(
-    restExtractorService: RestExtractorService,
-    service:              TechniqueAPIService14,
-    techniqueWriter:      TechniqueWriter,
-    techniqueReader:      EditorTechniqueReader,
-    techniqueRepository:  TechniqueRepository,
-    techniqueSerializer:  TechniqueSerializer,
-    uuidGen:              StringUuidGenerator,
-    userPropertyService:  UserPropertyService,
-    resourceFileService:  ResourceFileService,
-    configRepoPath:       String
+    service:             TechniqueAPIService14,
+    techniqueWriter:     TechniqueWriter,
+    techniqueReader:     EditorTechniqueReader,
+    techniqueRepository: TechniqueRepository,
+    techniqueSerializer: TechniqueSerializer,
+    uuidGen:             StringUuidGenerator,
+    userPropertyService: UserPropertyService,
+    resourceFileService: ResourceFileService,
+    configRepoPath:      String
 ) extends LiftApiModuleProvider[API] {
 
-  import TechniqueApi.*
   import zio.json.*
   import zio.json.yaml.*
 
   implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
 
   def schemas: ApiModuleProvider[API] = API
-
-  val dataName = "techniques"
-  def resp(function: Box[JValue], req: Req, errorMessage: String)(
-      action: String
-  )(implicit dataName: String, prettify: Boolean): LiftResponse = {
-    response(restExtractorService, dataName, None)(function, req, errorMessage)
-  }
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
@@ -143,8 +129,6 @@ class TechniqueApi(
 
   class GetResources[T <: TwoParam](newTechnique: Boolean, val schema: T) extends LiftApiModule {
 
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "resources"
     def process(
         version:       ApiVersion,
         path:          ApiPath,
@@ -154,17 +138,11 @@ class TechniqueApi(
         authzToken:    AuthzToken
     ): LiftResponse = {
 
-      import net.liftweb.json.JsonDSL.*
       import zio.syntax.*
 
-      implicit val prettify: Boolean = params.prettify
-
-      def serializeResourceWithState(resource: ResourceFile) = {
-        (("path" -> resource.path) ~ ("state" -> resource.state.value))
+      def serializeResourceWithState(resource: ResourceFile): Json.Obj = {
+        Json.Obj(("path", Json.Str(resource.path)), ("state", Json.Str(resource.state.value)))
       }
-
-      val action = if (newTechnique) { "newTechniqueResources" }
-      else { "techniqueResources" }
 
       val resources = {
         (if (newTechnique) {
@@ -183,16 +161,24 @@ class TechniqueApi(
            } yield {
              resources
            }
-         }).map(r => JArray(r.map(serializeResourceWithState)))
+         }).map(_.map(serializeResourceWithState))
       }
 
-      resp(resources.toBox, req, "Could not get resource state of technique")(action)
+      resources.toLiftResponseList(params, schema)
     }
   }
 
   object CopyResourcesWhenCloning extends LiftApiModule {
-    val schema: TwoParam = API.CopyResourcesWhenCloning
-    val restExtractor = restExtractorService
+    val schema: API.CopyResourcesWhenCloning.type = API.CopyResourcesWhenCloning
+
+    private def extractString(key: String)(req: Req): PureResult[Option[String]] = {
+      req.params.get(key) match {
+        case None              => Right(None)
+        case Some(head :: Nil) => Right(Some(head))
+        case Some(list)        =>
+          Left(Inconsistency(s"${list.size} values defined for '${key}' parameter, only one needs to be defined"))
+      }
+    }
 
     def process(
         version:    ApiVersion,
@@ -203,9 +189,8 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       (for {
-        techniqueId <-
-          restExtractorService.extractString("techniqueId")(req)(Full(_)).toIO.notOptional("technique id parameter is missing")
-        category    <- restExtractorService.extractString("category")(req)(Full(_)).toIO.notOptional("category parameter is missing")
+        techniqueId <- extractString("techniqueId")(req).toIO.notOptional("technique id parameter is missing")
+        category    <- extractString("category")(req).toIO.notOptional("category parameter is missing")
         _           <- resourceFileService.cloneResourcesFromTechnique(draftInfo._1, techniqueId, draftInfo._2, category)
       } yield {
         "ok"
@@ -213,10 +198,26 @@ class TechniqueApi(
     }
   }
 
-  object DeleteTechnique extends LiftApiModule        {
+  object DeleteTechnique extends LiftApiModule {
     val schema: TwoParam = API.DeleteTechnique
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "techniques"
+
+    private def extractBoolean(key: String)(req: Req): PureResult[Option[Boolean]] = {
+      req.params.get(key) match {
+        case None              => Right(None)
+        case Some(head :: Nil) =>
+          try {
+            Right(Some(head.toBoolean))
+          } catch {
+            case e: Throwable =>
+              Left(
+                Inconsistency(
+                  s"Parsing request parameter '${key}' as a boolean failed, current value is '${head}'. Error message is: '${e.getMessage}'."
+                )
+              )
+          }
+        case Some(list)        => Left(Inconsistency(s"${list.size} values defined for 'id' parameter, only one needs to be defined"))
+      }
+    }
 
     def process(
         version:       ApiVersion,
@@ -226,28 +227,34 @@ class TechniqueApi(
         params:        DefaultParams,
         authzToken:    AuthzToken
     ): LiftResponse = {
-      implicit val prettify: Boolean = params.prettify
 
       val modId = ModificationId(uuidGen.newUuid)
 
       val content = {
         for {
-          force <- restExtractorService.extractBoolean("force")(req)(identity) map (_.getOrElse(false))
-          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc).toBox
+          force <- extractBoolean("force")(req).map(_.getOrElse(false)).toIO
+          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc)
         } yield {
-          import net.liftweb.json.JsonDSL.*
-          (("id"       -> techniqueInfo._1)
-          ~ ("version" -> techniqueInfo._2))
+          // here, up to 8.3 we used to just return: `"data": { "techniques": { "id":...}}`
+          // in place of the normalized `"data": { "techniques": [ {"id":...}]}
+          // so we need to correct before API version 21
+          // see https://issues.rudder.io/issues/27644
+          val res     = Json.Obj(("id", Json.Str(techniqueInfo._1)), ("version" -> Json.Str(techniqueInfo._2)))
+          val content = {
+            if (version.value < 22) res
+            else Json.Arr(Chunk(res))
+          }
+          Json.Obj(("techniques", content))
         }
       }
 
-      resp(content, req, "delete technique")("deleteTechnique")
-
+      content.toLiftResponseOne(params, schema, _ => Some(techniqueInfo._1))
     }
   }
+
   object UpdateTechnique extends LiftApiModuleString2 {
     val schema: TwoParam = API.UpdateTechnique
-    val restExtractor = restExtractorService
+
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -268,7 +275,7 @@ class TechniqueApi(
               case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
-          methodMap        <- techniqueReader.getMethodsMetadata
+          _                <- techniqueReader.getMethodsMetadata
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
           json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
@@ -280,8 +287,7 @@ class TechniqueApi(
   }
 
   object GetTechniques extends LiftApiModule0 {
-    val schema:            API.GetTechniques.type = API.GetTechniques
-    implicit val dataName: String                 = "techniques"
+    val schema: API.GetTechniques.type = API.GetTechniques
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       service.getTechniquesWithData().toLiftResponseList(params, schema)
@@ -290,63 +296,52 @@ class TechniqueApi(
   }
 
   object GetMethods extends LiftApiModule0 {
-
     val schema: API.GetMethods.type = API.GetMethods
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify: Boolean = params.prettify
       val response = for {
         methods <- techniqueReader.getMethodsMetadata
         sorted   = methods.toList.sortBy(_._1.value)
       } yield {
-        JObject(sorted.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
+        // ported from pre-9.0, this is very strange and not normalized
+        Json.Obj(("methods", Json.Obj(sorted.map(m => (m._1.value, techniqueSerializer.serializeMethodMetadata(m._2)))*)))
       }
-      resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
-    }
 
+      response.toLiftResponseOne(params, schema, None)
+    }
   }
 
   object UpdateMethods extends LiftApiModule0 {
-
     val schema: API.UpdateMethods.type = API.UpdateMethods
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify: Boolean = params.prettify
       val response = for {
         _       <- techniqueReader.updateMethodsMetadataFile
         methods <- techniqueReader.getMethodsMetadata
       } yield {
-        JObject(methods.toList.map(m => JField(m._1.value, techniqueSerializer.serializeMethodMetadata(m._2))))
+        Json.Obj(methods.toList.map(m => (m._1.value, techniqueSerializer.serializeMethodMetadata(m._2)))*)
       }
-      resp(response.toBox, req, "Could not get generic methods metadata")("getMethods")
+      response.toLiftResponseOne(params, schema, None)
     }
-
   }
 
   object UpdateTechniques extends LiftApiModule0 {
-    import techniqueSerializer.*
-
     val schema: API.UpdateTechniques.type = API.UpdateTechniques
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "techniques"
+    import techniqueSerializer.*
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId    = ModificationId(uuidGen.newUuid)
       val response = for {
-        res                          <- techniqueReader.readTechniquesMetadataFile
-        (techniques, methods, errors) = res
-        _                            <- if (errors.isEmpty) ().succeed
-                                        else {
-                                          ApiLoggerPure.error(
-                                            s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
-                                          )
-                                        }
-        res                          <- techniqueWriter.writeTechniques(techniques, modId, authzToken.qc.actor)
-        json                         <- ZIO.foreach(res)(_.toJsonAST.toIO)
+        res                    <- techniqueReader.readTechniquesMetadataFile
+        (techniques, _, errors) = res
+        _                      <- if (errors.isEmpty) ().succeed
+                                  else {
+                                    ApiLoggerPure.error(
+                                      s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                                    )
+                                  }
+        res                    <- techniqueWriter.writeTechniques(techniques, modId, authzToken.qc.actor)
+        json                   <- ZIO.foreach(res)(_.toJsonAST.toIO)
       } yield {
         json
       }
@@ -359,57 +354,57 @@ class TechniqueApi(
   object GetAllTechniqueCategories extends LiftApiModule0 {
 
     val schema: API.GetAllTechniqueCategories.type = API.GetAllTechniqueCategories
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "techniqueCategories"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify: Boolean = params.prettify
       val response = {
         val categories = techniqueRepository.getAllCategories
-        def serializeTechniqueCategory(t: TechniqueCategory): JObject = {
-          val subs = t.subCategoryIds.flatMap(categories.get).map(serializeTechniqueCategory).toList
+        def serializeTechniqueCategory(t: TechniqueCategory): Json.Obj = {
+          val subs = Chunk.fromIterable(t.subCategoryIds.flatMap(categories.get).map(serializeTechniqueCategory))
           val name = t match {
             case t: RootTechniqueCategory => "/"
             case _ => t.name
           }
-          JObject(
-            JField("name", JString(name)),
-            JField("path", JString(t.id.getPathFromRoot.tail.map(_.value).mkString("/"))),
-            JField("id", JString(t.id.name.value)),
-            JField("subCategories", JArray(subs))
+          Json.Obj(
+            ("name", Json.Str(name)),
+            ("path", Json.Str(t.id.getPathFromRoot.tail.map(_.value).mkString("/"))),
+            ("id", Json.Str(t.id.name.value)),
+            ("subCategories", Json.Arr(subs))
           )
         }
-        serializeTechniqueCategory(techniqueRepository.getTechniqueLibrary)
+        Json.Obj(("techniqueCategories", serializeTechniqueCategory(techniqueRepository.getTechniqueLibrary)))
       }
 
-      resp(Full(response), req, "Could not get generic methods metadata")("getMethods")
-
+      response.succeed.toLiftResponseOne(params, schema, None)
     }
-
   }
 
   object CreateTechnique extends LiftApiModule0 {
 
     import techniqueSerializer.*
 
-    def moveRessources(technique: EditorTechnique, internalId: String): IO[SystemError, String] = {
-      val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
-      val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
+    private def moveRessources(technique: EditorTechnique, internalId: String): IOResult[Unit] = {
 
-      val workspaceDir = File(s"${configRepoPath}/${workspacePath}")
-      val finalDir     = File(s"${configRepoPath}/${finalPath}")
+      val base = File(configRepoPath)
 
-      IOResult.attempt("Error when moving resource file from workspace to final destination")(if (workspaceDir.exists) {
-        finalDir.createDirectoryIfNotExists(true)
-        workspaceDir.moveTo(finalDir)(File.CopyOptions.apply(true))
-        workspaceDir.parent.parent.delete()
-        "ok"
-      } else {
-        "ok"
-      })
+      for {
+        workspaceDir <-
+          FileUtils.checkSanitizedIsIn(base, base / "workspace" / internalId / technique.version.value / "resources")
+        finalDir     <- FileUtils.checkSanitizedIsIn(
+                          base,
+                          base / "techniques" / technique.category / technique.id.value / technique.version.value / "resources"
+                        )
+        _            <- ZIO
+                          .whenZIO(IOResult.attempt(workspaceDir.exists)) {
+                            IOResult.attempt("Error when moving resource file from workspace to final destination") {
+                              finalDir.createDirectoryIfNotExists(createParents = true)
+                              workspaceDir.moveTo(finalDir)(using File.CopyOptions.apply(true))
+                              workspaceDir.parent.parent.delete()
+                            }
+                          }
+      } yield ()
     }
 
-    // Comparison on technique name and ID are not case sensitive
+    // Comparison on technique name and ID are not case-sensitive
     private def isTechniqueNameExist(techniqueName: String) = {
       val techniques = techniqueRepository.getAll()
       techniques.values.map(_.name.toLowerCase).toList.contains(techniqueName.toLowerCase)
@@ -420,7 +415,6 @@ class TechniqueApi(
     }
 
     val schema: API.CreateTechnique.type = API.CreateTechnique
-    val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
@@ -430,34 +424,33 @@ class TechniqueApi(
       // end copy
       val response = {
         for {
-          technique     <-
+          technique   <-
             req.body match {
               case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
-          methodMap     <- techniqueReader.getMethodsMetadata
-          isNameTaken    = isTechniqueNameExist(technique.name)
-          isIdTaken      = isTechniqueIdExist(technique.id)
-          _             <- (isNameTaken, isIdTaken) match {
-                             case (true, true)   =>
-                               Inconsistency(
-                                 s"Technique name and ID must be unique. Name '${technique.name}' and ID '${technique.id.value}' already used, they are case insensitive"
-                               ).fail
-                             case (true, false)  =>
-                               Inconsistency(
-                                 s"Technique name must be unique. Name '${technique.name}' already used, it is case insensitive "
-                               ).fail
-                             case (false, true)  =>
-                               Inconsistency(
-                                 s"Technique ID must be unique. ID '${technique.id.value}' already used, it is case insensitive"
-                               ).fail
-                             case (false, false) => ().succeed
-                           }
+          isNameTaken  = isTechniqueNameExist(technique.name)
+          isIdTaken    = isTechniqueIdExist(technique.id)
+          _           <- (isNameTaken, isIdTaken) match {
+                           case (true, true)   =>
+                             Inconsistency(
+                               s"Technique name and ID must be unique. Name '${technique.name}' and ID '${technique.id.value}' already used, they are case insensitive"
+                             ).fail
+                           case (true, false)  =>
+                             Inconsistency(
+                               s"Technique name must be unique. Name '${technique.name}' already used, it is case insensitive "
+                             ).fail
+                           case (false, true)  =>
+                             Inconsistency(
+                               s"Technique ID must be unique. ID '${technique.id.value}' already used, it is case insensitive"
+                             ).fail
+                           case (false, false) => ().succeed
+                         }
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
-          resoucesMoved <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
-          json          <- service.getTechniqueJson(updatedTech)
+          _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json
         }
@@ -468,8 +461,6 @@ class TechniqueApi(
 
   object CheckTechnique extends LiftApiModule0 {
     val schema: API.CheckTechnique.type = API.CheckTechnique
-    val restExtractor = restExtractorService
-    implicit val dataName: String = "techniques"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       def charset: String = RestUtils.getCharset(req)
@@ -486,7 +477,7 @@ class TechniqueApi(
           technique <- {
             input match {
               case QueryFormat.Yaml =>
-                import YamlTechniqueSerializer.*
+                import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
                 content.fromYaml[EditorTechnique].toIO
               case QueryFormat.Json =>
                 import techniqueSerializer.*
@@ -496,8 +487,8 @@ class TechniqueApi(
           response  <- {
             output match {
               case QueryFormat.Yaml =>
-                import YamlTechniqueSerializer.*
-                technique.toYaml().map(yaml => Json(("output", Str(yaml)))).toIO
+                import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
+                technique.toYaml().map(yaml => Json(("output", Json.Str(yaml)))).toIO
               case QueryFormat.Json =>
                 import techniqueSerializer.*
                 technique.toJsonAST.toIO
@@ -635,9 +626,17 @@ class TechniqueAPIService14(
     techniqueRevisions:  TechniqueRevisionRepository,
     techniqueReader:     EditorTechniqueReader,
     techniqueSerializer: TechniqueSerializer,
-    restDataSerializer:  RestDataSerializer,
     techniqueCompiler:   TechniqueCompiler
 ) {
+
+  private def serializeTechnique(technique: Technique): Json = {
+    zio.json.ast.Json(
+      ("name"    -> Json.Str(technique.name)),
+      ("id"      -> Json.Str(technique.id.name.value)),
+      ("version" -> Json.Str(technique.id.version.serialize)),
+      ("source"  -> Json.Str("built-in"))
+    )
+  }
 
   def listTechniques: IOResult[Seq[JRActiveTechnique]] = {
     for {
@@ -711,17 +710,19 @@ class TechniqueAPIService14(
   }
 
   def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
-    import techniqueSerializer.*
     import zio.json.*
-    import TechniqueCompilationIO.codecTechniqueCompilationOutput
-    import com.normation.zio.*
-    val json = (for {
-      content <- techniqueCompiler.getCompilationOutput(editorTechnique).notOptional("error when reading compilation output")
-      json    <- content.toJsonAST.toIO
-    } yield {
-      ("output", json) :: Nil
-    }).catchAll(_ => Nil.succeed).runNow
-    editorTechnique.toJsonAST.map(_.merge(Json(("source", Str("editor")) :: json: _*))).toIO
+    import com.normation.rudder.ncf.TechniqueCompilationIO.codecTechniqueCompilationOutput
+
+    techniqueCompiler
+      .getCompilationOutput(editorTechnique)
+      .flatMap {
+        case None    => None.succeed
+        case Some(x) => x.toJsonAST.toIO.map(Some.apply)
+      }
+      .catchAll(err =>
+        (Some(Json.Str(s"Compilation error with technique ${editorTechnique.id.value}: ${err.fullMsg}")): Option[Json]).succeed
+      )
+      .flatMap(output => techniqueSerializer.serializeEditorTechnique(editorTechnique, output).toIO)
   }
 
   def getTechniqueWithData(
@@ -758,12 +759,12 @@ class TechniqueAPIService14(
                       format match {
                         case QueryFormat.Yaml =>
                           import YamlTechniqueSerializer.*
-                          editorTechnique.toYaml().map(s => Json(("content", Str(s)))).toIO
+                          editorTechnique.toYaml().map(s => Json(("content", Json.Str(s)))).toIO
                         case QueryFormat.Json =>
                           getTechniqueJson(editorTechnique)
                       }
                     case None                  =>
-                      restDataSerializer.serializeTechnique(technique).succeed
+                      serializeTechnique(technique).succeed
                   }
               }
     } yield {
@@ -792,7 +793,7 @@ class TechniqueAPIService14(
               case Some(editorTechnique) =>
                 getTechniqueJson(editorTechnique)
               case None                  =>
-                restDataSerializer.serializeTechnique(technique).succeed
+                serializeTechnique(technique).succeed
             }
         }
       }

@@ -38,17 +38,9 @@
 bundle agent file_key_value_present_option(path, key, value, separator, option)
 {
   vars:
-      "old_class_prefix" string => canonify("file_key_value_present_${path}");
-      "args"              slist => { "${path}", "${key}", "${value}","${separator}", "${option}" };
-
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_key_value_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "updated_full_class_prefix" string => canonify("file_key_value_present_option_${report_param}");
-      "updated_class_prefix"      string => string_head("${updated_full_class_prefix}", "1000");
-
-      "keys[${key}]" string => "${value}";
+      "class_prefix"       string => canonify("file_key_value_present_${path}");
+      "inner_class_prefix" string => "${report_data.method_id}_inner";
+      "keys[${key}]"       string => "${value}";
 
     pass1.strict_spacing::
       "report_message" string => "Ensure line in format key${separator}value in ${path}";
@@ -57,24 +49,25 @@ bundle agent file_key_value_present_option(path, key, value, separator, option)
       "report_message" string => "Ensure line in format key ${separator} value in ${path}";
 
   classes:
+      "pass3"          expression => "pass2";
+      "pass2"          expression => "pass1";
+      "pass1"          expression => "any";
       "strict_spacing" expression => strcmp("option", "strict");
 
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
   files:
+    pass3::
       "${path}"
         create        => "true",
         edit_line     => ncf_maintain_keys_values_option("file_key_value_present_option.keys", "${separator}", "${option}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+        classes       => classes_generic("${inner_class_prefix}"),
         # This comment is necessary, see https://www.rudder-project.org/redmine/issues/10153
         comment       => "Editing file ${path} to set ${key}${separator}${value}";
 
   methods:
-    pass2::
-      "sanitize"          usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize"          usebundle => _classes_sanitize("${old_class_prefix}");
-      "copy_class_prefix" usebundle => _classes_copy("${class_prefix}", "${updated_class_prefix}");
-      "report"            usebundle => _log_v3("Ensure line in format key${separator}value in ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Ensure line in format key${separator}value in ${path}", "");
 }

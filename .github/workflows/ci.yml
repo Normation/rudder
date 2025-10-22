@@ -1,0 +1,22 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: test
+    runs-on: windows-latest
+    env:
+      RUSTFLAGS: -D warnings
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@1.88.0
+
+    - name: Run tests
+      run: cd policies\module-types\template && cargo test --locked
+
+    permissions:
+      contents: read
+      pull-requests: write

@@ -42,12 +42,10 @@ import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.users.*
-import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -63,6 +61,7 @@ import jakarta.servlet.http.HttpServletResponse
 import java.util.Collection
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
@@ -112,8 +111,6 @@ import zio.syntax.*
 class AppConfigAuth extends ApplicationContextAware {
   import bootstrap.liftweb.RudderProperties.config
 
-  val logger = ApplicationLogger
-
   // we define the System ApiAcl as one that is all mighty and can manage everything
   val SYSTEM_API_ACL = ApiAuthorization.RW
 
@@ -153,7 +150,7 @@ class AppConfigAuth extends ApplicationContextAware {
           FeatureSwitch.parse(config.getString(s"rudder.auth.userRestToken")).getOrElse(defaultEnableRestToken)
         } catch { case _: ConfigException.Missing => defaultEnableRestToken }
       }
-      logger.info(
+      ApplicationLoggerPure.logEffect.info(
         s"User access to REST API via token is globally configured by default to be ${value.name} when the api-authorizations plugin is active"
       )
       value
@@ -189,7 +186,8 @@ class AppConfigAuth extends ApplicationContextAware {
               System.setProperty(fullKey, config.getString(fullKey))
           }
         } catch {
-          case _: ConfigException.Missing => logger.debug(s"Provider configuration missing : rudder.auth.${x.name}")
+          case _: ConfigException.Missing =>
+            ApplicationLoggerPure.logEffect.debug(s"Provider configuration missing : rudder.auth.${x.name}")
         }
         // config value is parsed as an Option : None means the config is missing
         val restTokenFeatureSwitch = {
@@ -204,17 +202,17 @@ class AppConfigAuth extends ApplicationContextAware {
                 val configValue = config.getString(configKey)
                 FeatureSwitch.parse(configValue) match {
                   case Left(value)  => // set to "disabled" for security reasons if the config value is not known
-                    logger.warn(
+                    ApplicationLoggerPure.logEffect.warn(
                       s"User access to REST API via token is configured to the be ${defaultValue.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
                     )
                     defaultValue
                   case Right(value) =>
                     if (value != defaultValue) {
-                      logger.info(
+                      ApplicationLoggerPure.logEffect.info(
                         s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration/default value"
                       )
                     } else {
-                      logger.debug(
+                      ApplicationLoggerPure.logEffect.debug(
                         s"User access to REST API via token for provider ${x.name} is ${restTokenGlobalFeatureSwitch.name} as the global one"
                       )
                     }
@@ -223,7 +221,7 @@ class AppConfigAuth extends ApplicationContextAware {
               } catch {
                 case _: ConfigException.Missing =>
                   if (defaultValue != restTokenGlobalFeatureSwitch) {
-                    logger.info(
+                    ApplicationLoggerPure.logEffect.info(
                       s"User access to REST API via token for provider ${x.name} is by default configured to be ${defaultValue.name}, overriding the global configuration"
                     )
                   }
@@ -275,7 +273,9 @@ class AppConfigAuth extends ApplicationContextAware {
       case _ => // nothing
     }
 
-    logger.info(s"Configured authentication provider(s): [${configuredAuthProviders.map(_.name).mkString(", ")}]")
+    ApplicationLoggerPure.logEffect.info(
+      s"Configured authentication provider(s): [${configuredAuthProviders.map(_.name).mkString(", ")}]"
+    )
 
     val ctx = new ClassPathXmlApplicationContext(applicationContext)
     ctx.addBeanFactoryPostProcessor(propertyConfigurer)
@@ -290,7 +290,7 @@ class AppConfigAuth extends ApplicationContextAware {
         RudderConfig.authenticationProviders.addSpringAuthenticationProvider(provider.name, bean)
       } catch {
         case ex: Exception =>
-          ApplicationLogger.error(
+          ApplicationLoggerPure.logEffect.error(
             s"Error when trying to configure the authentication backend '${provider.name}': ${ex.getMessage}",
             ex
           )
@@ -323,7 +323,10 @@ class AppConfigAuth extends ApplicationContextAware {
   }
 
   @Bean def passwordEncoderDispatcher: PasswordEncoderDispatcher = {
-    new PasswordEncoderDispatcher(RudderConfig.RUDDER_BCRYPT_COST)
+    new PasswordEncoderDispatcher(
+      RudderConfig.RUDDER_BCRYPT_COST,
+      RudderConfig.RUDDER_ARGON2_PARAMS
+    )
   }
 
   @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(rudderUserListProvider)
@@ -336,7 +339,7 @@ class AppConfigAuth extends ApplicationContextAware {
     // we need to register a callback to check and update users file and a callback to update password encoder when needed
     val checkUsersFileCallback = RudderAuthorizationFileReloadCallback(
       "check-users-file-callback",
-      (c: ValidatedUserList) => checkUsersFile.allChecks(c.encoder.securityLevel)
+      (c: ValidatedUserList) => checkUsersFile.prog
     )
     rudderUserListProvider.registerCallback(checkUsersFileCallback)
 
@@ -354,22 +357,19 @@ class AppConfigAuth extends ApplicationContextAware {
     // For that, we let the user either let undefined rudder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    import RudderPasswordEncoder.SecurityLevel.Modern
-
-    // Only support modern algorithms for root admin account
-    val encoder = RudderPasswordEncoder(Modern, passwordEncoderDispatcher)
-    val admins  = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+    implicit val encoder: RudderPasswordEncoder = RudderPasswordEncoder(passwordEncoderDispatcher)
+    val admin = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login    = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
 
       if (login.isEmpty || password.isEmpty) {
-        Map.empty[String, RudderUserDetail]
+        None
       } else {
-        Map(
-          login -> RudderUserDetail(
+        Some(
+          RudderUserDetail(
             RudderAccount.User(
               login,
-              password
+              UserPassword.unsafeHashed(password)
             ),
             UserStatus.Active,
             Set(Role.Administrator),
@@ -379,25 +379,23 @@ class AppConfigAuth extends ApplicationContextAware {
         )
       }
     } else {
-      Map.empty[String, RudderUserDetail]
+      None
     }
 
-    if (admins.isEmpty) {
-      logger.info(
+    if (admin.isEmpty) {
+      ApplicationLoggerPure.logEffect.info(
         "No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file"
       )
     }
 
     val authConfigProvider = new UserDetailListProvider {
-      // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
-      override def authConfig: ValidatedUserList =
-        ValidatedUserList(encoder, isCaseSensitive = true, customRoles = Nil, users = admins)
+      override def authConfig: UserList = SingleUserList(encoder, admin)
     }
     (for {
       rootAccountUserRepo <- InMemoryUserRepository.make()
       _                   <- rootAccountUserRepo.setExistingUsers(
                                "root-account",
-                               admins.keys.toList,
+                               admin.map(_.getUsername).toList,
                                EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
                              )
     } yield {
@@ -459,7 +457,7 @@ class RudderUrlAuthenticationFailureHandler(failureUrl: String) extends SimpleUr
 object LogFailedLogin {
 
   def warn(ex: AuthenticationException, request: HttpServletRequest): Unit = {
-    ApplicationLogger.warn(
+    ApplicationLoggerPure.Auth.logEffect.warn(
       s"Login authentication failed for user '${getUser(request)}' from IP '${getRemoteAddr(request)}': ${ex.getMessage}"
     )
   }
@@ -519,7 +517,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
       .get(username, isCaseSensitive = authConfigProvider.authConfig.isCaseSensitive)
       .catchSome {
         case err: Inconsistency =>
-          ApplicationLoggerPure
+          ApplicationLoggerPure.Auth
             .warn(
               s"User '${username}' was found in Rudder base, but with an error: ${err.fullMsg}. Please check/remove duplicate users, and consider reloading users."
             )
@@ -532,7 +530,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
               // when the user is not found, we return a default "no roles" user.
               // It will be the responsibility of other backend to provided the correct set of rights.
               RudderUserDetail(
-                RudderAccount.User(user.id, ""),
+                RudderAccount.User(user.id, UserPassword.unknown),
                 user.status,
                 Set(),
                 ApiAuthorization.None,
@@ -599,7 +597,7 @@ object AuthBackendProviderProperties {
         new AuthBackendProviderProperties(ProviderRoleExtension.None, restTokenFeatureSwitch)
       case (false, true)  =>
         // This is not a consistent configuration, we log a warning and persue with the most restrictive configuration
-        ApplicationLogger.warn(
+        ApplicationLoggerPure.logEffect.warn(
           s"Backend provider properties for '${name}' are not consistent: backend does not enables providing roles but roles overrides is set to true. " +
           s"Overriding roles will not be enabled."
         )
@@ -666,9 +664,9 @@ object AuthenticationMethods {
         if (cpr.exists) {
           Some(a)
         } else {
-          ApplicationLogger.error(
+          ApplicationLoggerPure.logEffect.error(
             s"The authentication provider '${a.name}' will not be loaded because the spring " +
-            s"ressource file '${a.configFile}' was not found. Perhaps are you missing a plugin?"
+            s"resource file '${a.configFile}' was not found. Perhaps are you missing a plugin?"
           )
           None
         }
@@ -703,7 +701,7 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   private var springProviders = Map[String, AuthenticationProvider]()
 
   // a map of properties registered for each backend
-  private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
+  private var backendProperties = Map[String, AuthBackendProviderProperties]()
 
   // add default providers into mutable variables
   initializeDefaultProviders()
@@ -720,7 +718,7 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   }
 
   def addProvider(p: AuthBackendsProvider): Unit = {
-    ApplicationLogger.info(s"Add backend providers '${p.name}'")
+    ApplicationLoggerPure.logEffect.info(s"Add backend providers '${p.name}'")
     backends = backends :+ p
     allowedToUseBackend = allowedToUseBackend ++ (p.authenticationBackends.map(name => (name, () => p.allowedToUseBackend(name))))
   }
@@ -761,11 +759,13 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
         if (allowedToUseBackend(m.name)() == true) {
           springProviders.get(m.name).map(p => RudderAuthenticationProvider(m.name, p))
         } else {
-          ApplicationLogger.debug(s"Authentication backend '${m.name}' is not currently enable. Perhaps a plugin is not enabled?")
+          ApplicationLoggerPure.logEffect.debug(
+            s"Authentication backend '${m.name}' is not currently enable. Perhaps a plugin is not enabled?"
+          )
           None
         }
       } else {
-        ApplicationLogger.debug(
+        ApplicationLoggerPure.logEffect.debug(
           s"Authentication backend '${m.name}' was not found in available backends. Perhaps a plugin is missing?"
         )
         None
@@ -804,7 +804,7 @@ class RestAuthenticationFilter(
       error:        RudderError
   ): Unit = {
     val msg = s"REST authentication failed from IP '${LogFailedLogin.getRemoteAddr(httpRequest)}'. Error was: ${error.fullMsg}"
-    ApplicationLogger.warn(msg)
+    ApplicationLoggerPure.Auth.logEffect.warn(msg)
     httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
   }
 
@@ -851,8 +851,8 @@ class RestAuthenticationFilter(
                   Some(ApiTokenHash.disabled()),
                   "API Account for un-authenticated API",
                   isEnabled = true,
-                  creationDate = new DateTime(0),
-                  tokenGenerationDate = DateTime.now(),
+                  creationDate = new DateTime(0, DateTimeZone.UTC),
+                  tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
                   tenants = NodeSecurityContext.None
                 )
 
@@ -914,13 +914,13 @@ class RestAuthenticationFilter(
                           )
                         case ApiAccountKind.PublicApi(authz, expirationDate) =>
                           expirationDate match {
-                            case Some(date) if (DateTime.now().isAfter(date)) =>
+                            case Some(date) if (DateTime.now(DateTimeZone.UTC).isAfter(date)) =>
                               failsAuthentication(
                                 httpRequest,
                                 httpResponse,
                                 Inconsistency(s"Account with ID ${principal.id.value} is disabled")
                               )
-                            case _                                            => // no expiration date or expiration date not reached
+                            case _                                                            => // no expiration date or expiration date not reached
                               val user = RudderUserDetail(
                                 RudderAccount.Api(principal),
                                 UserStatus.Active,

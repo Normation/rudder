@@ -40,8 +40,6 @@ package com.normation.rudder.inventory
 import better.files.File
 import com.normation.box.IOManaged
 import com.normation.errors.*
-import com.normation.errors.Chained
-import com.normation.errors.IOResult
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Inventory
@@ -62,11 +60,11 @@ import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import java.io.InputStream
 import java.nio.file.NoSuchFileException
 import java.security.PublicKey as JavaSecPubKey
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
 import scala.annotation.nowarn
@@ -345,12 +343,15 @@ class InventoryFailedHook(
   import scala.jdk.CollectionConverters.*
 
   def runHooks(file: File): UIO[Unit] = {
+    val name = "node-inventory-received-failed"
+
     (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
-      hooks     <- RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-failed", HOOKS_IGNORE_SUFFIXES)
+      hooks     <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       _         <- for {
                      timeHooks0 <- currentTimeMillis
                      res        <- RunHooks.asyncRun(
+                                     name,
                                      hooks,
                                      HookEnvPairs.build(
                                        ("RUDDER_INVENTORY_PATH", file.pathAsString)
@@ -359,9 +360,9 @@ class InventoryFailedHook(
                                      1.minutes // warn if a hook took more than a minute
                                    )
                      timeHooks1 <- currentTimeMillis
-                     _          <- PureHooksLogger.trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")
+                     _          <- PureHooksLogger.For(name).trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")
                    } yield ()
-    } yield ()).catchAll(err => PureHooksLogger.error(err.fullMsg))
+    } yield ()).catchAll(err => PureHooksLogger.For(name).error(err.fullMsg))
   }
 }
 
@@ -441,7 +442,7 @@ class InventoryMover(
    */
   def writeErrorLogFile(failedInventoryPath: File, result: InventoryProcessStatus): UIO[Unit] = {
     import com.normation.rudder.inventory.StatusLog.*
-    val date       = DateFormaterService.serialize(DateTime.now())
+    val date       = DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))
     val rejectPath = failedInventoryPath.pathAsString + s".reject-${date}.log"
 
     // this must never lead to a bubbling failure
@@ -458,16 +459,16 @@ class InventoryMover(
         // move to received dir
         safeMove(
           signature,
-          signature.moveTo(received / InventoryMover.normalizeReceivedName(signature))(File.CopyOptions(overwrite = true))
+          signature.moveTo(received / InventoryMover.normalizeReceivedName(signature))(using File.CopyOptions(overwrite = true))
         ) *>
         safeMove(
           inventory,
-          inventory.moveTo(received / InventoryMover.normalizeReceivedName(inventory))(File.CopyOptions(overwrite = true))
+          inventory.moveTo(received / InventoryMover.normalizeReceivedName(inventory))(using File.CopyOptions(overwrite = true))
         )
       case _: InventoryProcessStatus.SignatureInvalid | _: InventoryProcessStatus.SaveError =>
         val failedName = failed / inventory.name
-        safeMove(signature, signature.moveTo(failed / signature.name)(File.CopyOptions(overwrite = true))) *>
-        safeMove(inventory, inventory.moveTo(failedName)(File.CopyOptions(overwrite = true))) *>
+        safeMove(signature, signature.moveTo(failed / signature.name)(using File.CopyOptions(overwrite = true))) *>
+        safeMove(inventory, inventory.moveTo(failedName)(using File.CopyOptions(overwrite = true))) *>
         writeErrorLogFile(failedName, result) *>
         failedHook.runHooks(failed / inventory.name)
     }

@@ -53,7 +53,7 @@ bundle agent audit_from_command(command, compliant_codes)
       "${report_data.method_id}_${command}" usebundle  => push_dry_run_mode("false");
     pass3::
       "${report_data.method_id}_${command}" usebundle  => pop_dry_run_mode();
-      "${report_data.method_id}" usebundle  => log_rudder_v4("${command}", "Execute audit command", "${command}");
+      "${report_data.method_id}"            usebundle  => log_rudder_v4("${command}", "Execute audit command", "${command}");
 
   commands:
     pass2.!pass3::

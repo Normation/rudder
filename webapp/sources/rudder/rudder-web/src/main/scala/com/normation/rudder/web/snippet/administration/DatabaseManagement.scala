@@ -40,10 +40,10 @@ package com.normation.rudder.web.snippet.administration
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.MemorySize
 import com.normation.rudder.domain.reports.*
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*
@@ -86,9 +86,11 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
             </li>)
     }
         </ul> &
-    "#deleteReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class", "btn btn-default")) &
-    "#reportFromDate" #> SHtml.text(from, x => from = x))(xml) ++ Script(
-      OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue) // JsRaw ok, const
+    "#deleteReports" #> SHtml.ajaxSubmit("Clean reports", process, ("class", "btn btn-default")) &
+    "#reportFromDate" #> SHtml.text(from, x => from = x))(xml) ++ WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue) // JsRaw ok, const
+      )
     )
   }
 
@@ -119,7 +121,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     def displayInProgress(lastValue: Box[Option[DateTime]]): NodeSeq = {
       val date = displayDate(lastValue)
       if (inProgress) {
-        <span>Archiving is in progress, please wait (last known value: '{date}')</span>
+        <span>Archiving is in progress, please wait (last known value: "{date}")</span>
       } else {
         date
       }

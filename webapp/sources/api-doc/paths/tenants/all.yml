@@ -37,7 +37,7 @@ get:
                     items:
                       $ref: ../../components/schemas/tenant.yml
   tags:
-    - Multi-tenants
+    - 🧩 Multi-tenants
   x-codeSamples:
     - lang: curl
       source:
@@ -87,7 +87,7 @@ post:
                     items:
                       $ref: ../../components/schemas/tenant.yml
   tags:
-    - Tenants
+    - 🧩 Multi-tenants
   x-codeSamples:
     - lang: curl
       source:
@@ -130,7 +130,7 @@ delete:
                       type: string
                       description: The id of tenants really deleted
   tags:
-    - Tenants
+    - 🧩 Multi-tenants
   x-codeSamples:
     - lang: curl
       source:

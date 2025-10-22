@@ -30,29 +30,24 @@
 bundle agent group_present(name)
 {
   vars:
-      "old_class_prefix"  string => canonify("group_present_${name}");
-      "args"               slist => { "${name}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("group_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("group_present_${name}");
 
   classes:
+      "pass3"         expression => "pass2";
+      "pass2"         expression => "pass1";
+      "pass1"         expression => "any";
+    pass1.!pass2::
       "group_present" expression => groupexists("${name}");
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
 
   methods:
-    group_present.!pass2::
-      "success"     usebundle => _classes_success("${old_class_prefix}");
-      "success"     usebundle => _classes_success("${class_prefix}");
+    pass3.group_present::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-    pass2::
-      "report"
-        usebundle => _log_v3("Group ${name} present", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Group ${name} present", "");
 
   commands:
-    !group_present.!aix::
-      "/usr/sbin/groupadd ${name}" classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-    !group_present.aix::
-      "/usr/bin/mkgroup ${name}"   classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass1.!pass2.!group_present::
+      "/usr/sbin/groupadd ${name}" classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 }

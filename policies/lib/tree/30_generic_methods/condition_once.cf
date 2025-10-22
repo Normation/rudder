@@ -49,56 +49,50 @@
 bundle agent condition_once(condition)
 {
   vars:
-      "c_condition"       string => canonify("${condition}");
-      "old_class_prefix"  string => canonify("condition_once_${condition}");
-      "args"               slist => { "${condition}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("condition_once_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "c_condition"   string => canonify("${condition}");
+      "class_prefix"  string => canonify("condition_once_${condition}");
 
   classes:
-      "reserved"    expression => strcmp("${reserve[1]}", "ok");
-      "already_set" expression => strcmp("${reserve[1]}", "failed_set");
+      "reserved"         expression => strcmp("${reserve[1]}", "ok");
+      "already_set"      expression => strcmp("${reserve[1]}", "failed_set");
       "already_reserved" expression => strcmp("${reserve[1]}", "failed_reserved");
-      "set_ok"      expression => strcmp("${set[1]}", "ok");
+      "set_ok"           expression => strcmp("${set[1]}", "ok");
 
       "${c_condition}" expression => "set_ok",
                             scope => "namespace";
 
       "should_report" expression => "${report_data.should_report}";
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"         expression => "pass2";
+      "pass2"         expression => "pass1";
+      "pass1"         expression => "any";
 
   methods:
-      "reserve the flag" usebundle => reserve_flag("condition_once_${c_condition}"),
-                         useresult => "reserve";
+      "${report_data.method_id}" usebundle => reserve_flag("condition_once_${c_condition}"),
+                                 useresult => "reserve";
     reserved::
-      "set the flag"     usebundle => set_flag("condition_once_${c_condition}"),
-                         useresult => "set";
+      "${report_data.method_id}" usebundle => set_flag("condition_once_${c_condition}"),
+                                 useresult => "set";
 
     set_ok::
-      "success" usebundle => _classes_repaired("${old_class_prefix}");
-      "success" usebundle => _classes_repaired("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
 
     pass3.reserved.!set_ok::
-      "failure" usebundle => _classes_failure("${old_class_prefix}");
-      "failure" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
     pass3.(already_set|already_reserved)::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
     pass3.already_reserved::
-      "disable_reporting_${class_prefix}"
-                usebundle => disable_reporting;
-      "failure" usebundle => _classes_failure("temp_${old_class_prefix}_warn");
-      "failure" usebundle => _classes_failure("temp_${class_prefix}_warn");
-      "report"  usebundle => _log_v3("The '${c_condition}' condition was reserved but not set, this is unexpected", "${condition}", "temp_${old_class_prefix}_warn", "temp_${class_prefix}_warn", @{args});
-      "reenable_reporting_${class_prefix}"
-                usebundle => enable_reporting,
-                       if => "should_report";
+      "${report_data.method_id}" usebundle => disable_reporting;
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${c_condition}", "condition was reserved but not set, this is unexpected", "");
+      "${report_data.method_id}" usebundle => enable_reporting,
+                                        if => "should_report";
 
     pass3::
-      "report"  usebundle => _log_v3("Create the condition ${c_condition} once", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "Create the condition ${c_condition} once", "");
 }

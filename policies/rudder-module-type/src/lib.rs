@@ -10,7 +10,7 @@ use anyhow::{Error, Result};
 use gumdrop::Options;
 use serde::{Deserialize, Serialize};
 
-use crate::{cfengine::CfengineRunner, parameters::Parameters};
+use crate::parameters::Parameters;
 
 pub mod cfengine;
 pub mod os_release;
@@ -184,7 +184,7 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     } else if cli_cfg.yaml {
         let info = module_type.metadata();
         if let Some(m) = info.metadata {
-            println!("{}", m);
+            println!("{m}");
             exit(0)
         } else {
             println!("Missing metadata information");
@@ -204,11 +204,13 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     }
 
     #[cfg(target_family = "unix")]
-    CfengineRunner::new().run(module_type)?;
+    {
+        use crate::cfengine::CfengineRunner;
+        CfengineRunner::new().run(module_type)?;
+        Ok(())
+    }
     #[cfg(not(target_family = "unix"))]
     unimplemented!("Only Unix-like systems are supported");
-
-    Ok(())
 }
 
 #[derive(Debug, Options)]

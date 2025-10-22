@@ -52,6 +52,7 @@ import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
@@ -63,7 +64,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
 
   ////////// set up / clean-up and utilities //////////
 
-  lazy val root    = new File("/tmp/test-jgit-" + DateTime.now().toString())
+  lazy val root    = new File("/tmp/test-jgit-" + DateTime.now(DateTimeZone.UTC).toString())
   lazy val gitRoot = new File(root, "repo")
 
   override def afterAll(): Unit = {
@@ -155,7 +156,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "return both files under 'a' and 'b'" in {
-      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB: _*))
+      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB*))
     }
 
     "return all .txt" in {
@@ -163,7 +164,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "return all .txt and .pdf" in {
-      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf: _*))
+      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf*))
     }
 
     "return x/f.txt/f.txt" in {

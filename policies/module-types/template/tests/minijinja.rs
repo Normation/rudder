@@ -1,26 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use std::{env, fs, fs::read_to_string, path::Path};
+#[cfg(target_family = "unix")]
+use std::{
+    env,
+    fs::{self, read_to_string},
+    path::Path,
+};
 
+#[cfg(target_family = "unix")]
 use anyhow::anyhow;
+#[cfg(target_family = "unix")]
 use rudder_commons_test::module_type::unix;
+#[cfg(target_family = "unix")]
 use rudder_module_type::{Outcome, PolicyMode};
+#[cfg(target_family = "unix")]
 use tempfile::tempdir;
 
+#[cfg(target_family = "unix")]
 const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
 #[test]
-fn it_renders_mini_jinja_inlined() {
+#[cfg(target_family = "unix")]
+fn it_renders_minijinja_inlined() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
 
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Enforce,
         Ok(Outcome::repaired("".to_string())),
@@ -30,6 +41,7 @@ fn it_renders_mini_jinja_inlined() {
 }
 
 #[test]
+#[cfg(target_family = "unix")]
 fn it_fails_on_undefined_values() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -37,9 +49,9 @@ fn it_fails_on_undefined_values() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ doesnotexist }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ doesnotexist }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Enforce,
         Err(anyhow!("")),
@@ -48,16 +60,17 @@ fn it_fails_on_undefined_values() {
 }
 
 #[test]
-fn it_renders_mini_jinja_from_file() {
+#[cfg(target_family = "unix")]
+fn it_renders_minijinja_from_file() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
 
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_path": "./tests/template.j2", "data": {{ "name": "you" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_string": "", "datastate_path": "", "template_path": "./tests/template.j2", "data": {{ "name": "you" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Enforce,
         Ok(Outcome::repaired("".to_string())),
@@ -67,16 +80,17 @@ fn it_renders_mini_jinja_from_file() {
 }
 
 #[test]
-fn it_checks_mini_jinja() {
+#[cfg(target_family = "unix")]
+fn it_checks_minijinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
 
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Audit,
         Err(anyhow!("")),
@@ -85,7 +99,8 @@ fn it_checks_mini_jinja() {
 }
 
 #[test]
-fn it_checks_correct_mini_jinja() {
+#[cfg(target_family = "unix")]
+fn it_checks_correct_minijinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
     fs::write(&test_path, "Hello World!").unwrap();
@@ -93,9 +108,9 @@ fn it_checks_correct_mini_jinja() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "World" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ name }}}}!", "data": {{ "name": "World" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Audit,
         Ok(Outcome::success()),

@@ -1,0 +1,74 @@
+<lift:surround with="common-layout" at="content">
+
+  <head_merge>
+    <title>Rudder - Change logs</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-changelogs.css" media="screen">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/javascript/libs/jsondiffpatch/lib/formatters/styles/html.css" />
+  </head_merge>
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Change logs</span>
+          </h1>
+        </div>
+        <div id="filterLogs">
+          Get change logs between
+          <input type="text" class="pickStartInput form-control input-xs"/>
+          and
+          <input type="text" class="pickEndInput form-control input-xs"/>
+          <button id="filterLogsButton" type="button" class="btn btn-default btn-sm">Get changes</button>
+          <span id="limitEventDisplayer"></span>
+        </div>
+        <span id="changeLogsError"></span>
+      </div>
+      <div class="one-col-main">
+        <div class="template-main">
+          <div class="main-container">
+            <div class="main-details">
+              <div class="inner-portlet">
+                <div class="portlet-content">
+
+                  <table id="changeLogsGrid" class="display" cellspacing="0"></table>
+
+                  <div id="changeDetailPopup" class="d-none">
+                    <lift:ignore>
+                      This div gets the content of the changeDetailPopup injected within
+                    </lift:ignore>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script data-lift="with-nonce" id="rollbackBlock" type="text/template">
+    <div class='rollbackDisplay d-flex flex-row-reverse'>
+      <fieldset class='rollbackFieldSet pt-3'>
+        <legend>Rollback</legend>
+        <div id='{{rollbackId}}' class="d-flex w-auto align-items-center column-gap-2">
+          <span class='alignRollback'>Restore configuration policy to</span>
+
+          <div class="btn-group" role="group" aria-label="Rollback actions">
+            <input type="radio" class="btn-check radio-btn" name="action" id="before" value="before" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="before">Before</label>
+
+            <input type="radio" class="btn-check radio-btn" name="action" id="after" value="after" autocomplete="off" checked>
+            <label class="btn btn-outline-secondary" for="after">After</label>
+          </div>
+
+          <span class='alignRollback'>this change</span>
+          <button class="btn btn-default ms-2" id='{{restoreBtnId}}'>Restore</button>
+        </div>
+        <div id='{{confirmId}}'></div>
+      </fieldset>
+    </div>
+  </script>
+  <div class="lift:configuration.ChangeLogsViewer.display"></div>
+
+</lift:surround>

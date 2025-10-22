@@ -39,6 +39,7 @@ package com.normation.rudder.services.reports
 
 import ch.qos.logback.classic.Logger
 import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -50,16 +51,17 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.BlockExpectedReport
-import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTimer
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
+import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -86,7 +88,7 @@ class ExecutionBatchTest extends Specification {
 
   import ReportType.*
 
-  val executionTimestamp = new DateTime()
+  val executionTimestamp = new DateTime(DateTimeZone.UTC)
 
   val globalPolicyMode: GlobalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
   val mode:             NodeModeConfig   = NodeModeConfig(
@@ -106,7 +108,7 @@ class ExecutionBatchTest extends Specification {
       nbRules:         Int,
       nbDirectives:    Int,
       nbReportsPerDir: Int
-  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports) = {
+  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports, List[OverriddenPolicy]) = {
     val ruleIds      = (1 to nbRules).map("rule_id_" + _ + nodeId).toSeq
     val directiveIds = (1 to nbDirectives).map("directive_id_" + _ + nodeId).toSeq
     val dirPerRule   = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(DirectiveUid(dir + "@@" + rule)))))
@@ -174,7 +176,7 @@ class ExecutionBatchTest extends Specification {
 
     val mergeInfo = MergeInfo(NodeId(nodeId), Some(now), Some(nodeConfigId), now.plus(100))
 
-    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport)
+    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport, Nil)
 
   }
 
@@ -226,54 +228,8 @@ class ExecutionBatchTest extends Specification {
   }
 
   val getNodeStatusByRule: ((Map[NodeId, NodeExpectedReports], Seq[Reports])) => Map[NodeId, NodeStatusReport] =
-    (getNodeStatusReportsByRule _).tupled
+    (getNodeStatusReportsByRule).tupled
   val one:                 NodeId                                                                              = NodeId("one")
-
-  /*
-   * Test the general run information (do we have a run, is it an expected version, etc)
-   */
-  // TODO: CORRECT TESTS
-//  "A node, an expected version, and a run" should {
-//
-//    // general configuration option: node id, run period...
-//    val root = NodeId("root")
-//
-//    val insertionId = 102030
-//    val isCompleted = true
-//
-//    val nodeConfigIdInfos = Map(root -> ResolvedAgentRunInterval(Duration.parse("PT300S"),1))
-//    val mode = GlobalComplianceMode(FullCompliance, 5)
-//
-//    val now = DateTime.now()
-//
-//    // known configuration in Rudder database
-//    val startConfig0 = now.minusMinutes(60)
-//    val startConfig1 = now.minusMinutes(37)
-//    val startConfig2 = now.minusMinutes(16)
-//    val configId0    = NodeConfigId("-1000")
-//    val configId1    = NodeConfigId( "2000")
-//    val configId2    = NodeConfigId("-4000")
-//
-//    val config0 = NodeConfigIdInfo( configId0, startConfig0, Some(startConfig1) )
-//    val config1 = NodeConfigIdInfo( configId1, startConfig1, Some(startConfig2) )
-//    val config2 = NodeConfigIdInfo( configId2, startConfig2, None               )
-//
-//    val knownConfigs = Map(root -> Some(List(config0, config1, config2)))
-//
-//    "have no report in interval if the run is older than 10 minutes" in {
-//      val runs = Map(root -> Some(AgentRun(AgentRunId(root, now.minusMinutes(11)), Some(configId2), isCompleted, insertionId)))
-//      ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root -> NoReportInInterval(config2))
-//    }
-//
-//    "raise UnexpectedUnknowVersion when the run version is not know" in {
-//      val runTime = now.minusMinutes(3)
-//      val epoch = new DateTime(0)
-//      val runs = Map(root -> Some(AgentRun(AgentRunId(root, runTime), Some(NodeConfigId("123456")), isCompleted, insertionId)))
-//      ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root ->
-//        UnexpectedUnknowVersion(runTime, NodeConfigId("123456"), config2, startConfig2.plusMinutes(10))
-//      )
-//    }
-//  }
 
   sequential
 
@@ -428,7 +384,7 @@ class ExecutionBatchTest extends Specification {
         )
       }
 
-      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now())(nodeId)
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now(DateTimeZone.UTC))(nodeId)
 
       // here, the end date depend on run time, so we need to check by case
       res match {
@@ -461,7 +417,7 @@ class ExecutionBatchTest extends Specification {
         )
       }
 
-      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now())(nodeId)
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now(DateTimeZone.UTC))(nodeId)
 
       res match {
         case NoReportInInterval(exp, t) => exp must beEqualTo(generatedExpectedReports)
@@ -1374,7 +1330,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withGood = ExecutionBatch
       .getComplianceForRule(
@@ -1382,7 +1338,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
     val withBad  = ExecutionBatch
@@ -1391,7 +1348,8 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1552,7 +1510,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withLoop = ExecutionBatch
       .getComplianceForRule(
@@ -1560,7 +1518,8 @@ class ExecutionBatchTest extends Specification {
         reportsWithLoop,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1697,7 +1656,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withLoop = ExecutionBatch
       .getComplianceForRule(
@@ -1705,7 +1664,8 @@ class ExecutionBatchTest extends Specification {
         reportsWithLoop,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1914,7 +1874,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withGood = ExecutionBatch
       .getComplianceForRule(
@@ -1922,7 +1882,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1932,7 +1893,8 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2129,7 +2091,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withGood = ExecutionBatch
       .getComplianceForRule(
@@ -2137,7 +2099,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2147,7 +2110,8 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2304,7 +2268,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val statusReports = ExecutionBatch
       .getComplianceForRule(
@@ -2312,7 +2276,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2465,7 +2430,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val statusReports = ExecutionBatch
       .getComplianceForRule(
@@ -2473,7 +2438,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -3091,14 +3057,15 @@ class ExecutionBatchTest extends Specification {
     )
 
     val ruleExpectedReports = RuleExpectedReports(RuleId("cr"), d1 :: d2 :: Nil)
-    val mergeInfo           = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo           = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val result = ExecutionBatch.getComplianceForRule(
       mergeInfo,
       reports,
       mode,
       ruleExpectedReports,
-      new ComputeComplianceTimer()
+      new ComputeComplianceTimer(),
+      Nil
     )
 
     (result.size === 1) and
@@ -3648,20 +3615,20 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
     )
 
-    val nodeStatus = (getNodeStatusReportsByRule _).tupled(param)
+    val nodeStatus = (getNodeStatusReportsByRule).tupled(param)
 
     "have one detailed reports when we create it with one report" in {
       nodeStatus(one).reports.size === 1
@@ -3698,14 +3665,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3743,25 +3710,25 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3798,14 +3765,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3841,25 +3808,25 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3906,80 +3873,80 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4027,91 +3994,91 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "three",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4177,69 +4144,69 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value2",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value3",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value2",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "three",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4308,14 +4275,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           """some\"text""",
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4356,14 +4323,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "rule",
           "policy",
           "nodeId",
           "report_id12",
           "component",
           """/var/cfengine/inputs/\"test""",
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4403,14 +4370,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "rule",
           "policy",
           "nodeId",
           "report_id12",
           "component",
           """/var/cfengine/inputs/"test""",
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4493,19 +4460,19 @@ class ExecutionBatchTest extends Specification {
     val runData = nodeList.map(buildDataForMergeCompareByRule(_, 15, 12, 5))
 
     "init correctly" in {
-      val result = (ExecutionBatch.mergeCompareByRule _).tupled(initData)
+      val result = (ExecutionBatch.mergeCompareByRule).tupled(initData)
       result.size === nbRuleInit and
       result.toSeq.map(x => x.compliance).map(x => x.success).sum === 576
     }
 
     "run fast enough" in {
-      runData.map(x => (ExecutionBatch.mergeCompareByRule _).tupled(x))
+      runData.map(x => (ExecutionBatch.mergeCompareByRule).tupled(x))
 
       val t0 = System.currentTimeMillis
 
       for (i <- 1 to 10) {
         val t0_0 = System.currentTimeMillis
-        runData.map(x => (ExecutionBatch.mergeCompareByRule _).tupled(x))
+        runData.map(x => (ExecutionBatch.mergeCompareByRule).tupled(x))
         val t1_1 = System.currentTimeMillis
         logger.trace(s"${i}th call to mergeCompareByRule for ${nodeList.size} nodes took ${t1_1 - t0_0}ms")
       }
@@ -4515,7 +4482,7 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
-  "We can split directive by policy type" should {
+  "We can split directive by policy type" >> {
     val tag1  = PolicyTypeName("tag1")
     val tag2  = PolicyTypeName("tag2")
     val param = (
@@ -4546,47 +4513,47 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultErrorReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy1",
           "one",
           "report_id12",
           "component1",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy1",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component1",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4595,7 +4562,7 @@ class ExecutionBatchTest extends Specification {
     // we have only 1 node ("one")
     val nodeStatus = getNodeStatusByRule(param).head._2
 
-    "There two policy type in the report" in {
+    "There is two policy types in the report" in {
       nodeStatus.reports.size === 2
     }
     "have detailed rule report for policy1 of 50% and 100% for policy2 on tag1" in {
@@ -4603,13 +4570,168 @@ class ExecutionBatchTest extends Specification {
       nodeStatus.reports(tag1).directives("policy2").compliance === ComplianceLevel(success = 2)
     }
     "have detailed rule report for policy1 of 100% for policy2 on tag2 and policy is not on that tag" in {
-      nodeStatus.reports(tag2).directives.get("policy1") must beEmpty and
+      nodeStatus.reports(tag2).directives.get("policy1") must beNone and
       nodeStatus.reports(tag2).directives("policy2").compliance === ComplianceLevel(success = 2)
     }
 
     "have compliance of 75% for tag1 and 100% for tag2" in {
       nodeStatus.reports(tag1).compliance === ComplianceLevel(success = 3, error = 1) and
       nodeStatus.reports(tag2).compliance === ComplianceLevel(success = 2)
+    }
+  }
+
+  "A rule with two directives, one overridden in another rule, has the overridden rule" >> {
+    val overridingPolicyId =
+      PolicyId(RuleId(RuleUid("overridingRule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0)
+
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy1",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List(
+              new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
+              new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
+            )
+          ),
+          DirectiveExpectedReports(
+            directiveId = "policy2",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List(
+              new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
+              new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
+            )
+          )
+        )
+      ).map { // we want to say we have an overriding rule, `overridingRule`
+        case (k, v) =>
+          (
+            k,
+            v.modify(_.overrides)
+              .setTo(
+                List(
+                  OverriddenPolicy(
+                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                    overriddenBy = overridingPolicyId
+                  )
+                )
+              )
+          )
+      },
+      Seq[Reports](
+        new ResultErrorReport(
+          DateTime.now(DateTimeZone.UTC),
+          "rule",
+          "policy1",
+          "one",
+          "report_id12",
+          "component1",
+          "value",
+          DateTime.now(DateTimeZone.UTC),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(DateTimeZone.UTC),
+          "rule",
+          "policy1",
+          "one",
+          "report_id12",
+          "component2",
+          "value",
+          DateTime.now(DateTimeZone.UTC),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(DateTimeZone.UTC),
+          "rule",
+          "policy2",
+          "one",
+          "report_id12",
+          "component1",
+          "value",
+          DateTime.now(DateTimeZone.UTC),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(DateTimeZone.UTC),
+          "rule",
+          "policy2",
+          "one",
+          "report_id12",
+          "component2",
+          "value",
+          DateTime.now(DateTimeZone.UTC),
+          "message"
+        )
+      )
+    )
+
+    // we have only 1 node ("one")
+    val nodeStatus = getNodeStatusByRule(param).head._2
+
+    "have detailed rule report for policy1 empty and overridden and 100% for policy2" in {
+      val policy1 = nodeStatus.reports(PolicyTypeName.rudderBase).directives("policy1")
+
+      policy1.compliance === ComplianceLevel() // it's overridden
+      policy1.overridden === Some(overridingPolicyId.ruleId)
+
+      nodeStatus.reports(PolicyTypeName.rudderBase).directives("policy2").compliance === ComplianceLevel(success = 2)
+    }
+  }
+
+  /*
+   * Rule with all directive overridden ARE present in the NodeStatusReport.
+   */
+  "A rule with one directive overridden in another rule, has the overridden rule" >> {
+    val overridingPolicyId =
+      PolicyId(RuleId(RuleUid("overridingRule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0)
+
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy1",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List()
+          )
+        )
+      ).map { // we want to say we have an overriding rule, `overridingRule`
+        case (k, v) =>
+          (
+            k,
+            v.modify(_.overrides)
+              .setTo(
+                List(
+                  OverriddenPolicy(
+                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                    overriddenBy = overridingPolicyId
+                  )
+                )
+              )
+          )
+      },
+      Seq[Reports]()
+    )
+
+    // we have only 1 node ("one")
+    val nodeStatus = getNodeStatusByRule(param).head._2
+
+    "have rule report for policy1 empty and overridden" in {
+      val policy1 = nodeStatus.reports(PolicyTypeName.rudderBase).directives.get("policy1")
+
+      policy1 must beSome
+      policy1.get.compliance === ComplianceLevel() // it's overridden
+      policy1.get.overridden === Some(overridingPolicyId.ruleId)
     }
   }
 

@@ -43,6 +43,8 @@ pub enum CheckExpr<'a> {
     ValuesNotInclude(&'a str),
     ValuesEqual(Vec<&'a str>),
     ValuesEqualOrdered(Vec<&'a str>),
+    ValuesIn(Vec<&'a str>),
+    InIpRange(Vec<&'a str>),
 }
 
 /// A command of the extended Augeas language used in Rudder.
@@ -90,13 +92,15 @@ pub enum Expr<'src> {
     Quit,
     /// (Re)load the tree.
     Load,
+    /// Load a file in the Augeas tree.
+    LoadFile(AugPath<'src>),
 }
 
 #[derive(Parser)]
 #[grammar = "dsl/raugeas.pest"]
 pub struct RaugeasParser;
 
-fn parse_array(pair: Pairs<Rule>) -> Vec<&str> {
+fn parse_array(pair: Pairs<'_, Rule>) -> Vec<&str> {
     pair.map(|p| p.as_str()).collect()
 }
 
@@ -114,6 +118,7 @@ fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
         }
         Rule::values_equal => CheckExpr::ValuesEqual(parse_array(pair.into_inner())),
         Rule::values_equal_ordered => CheckExpr::ValuesEqualOrdered(parse_array(pair.into_inner())),
+        Rule::values_in => CheckExpr::ValuesIn(parse_array(pair.into_inner())),
         Rule::len => {
             let mut inner_rules = pair.into_inner();
             let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
@@ -164,6 +169,7 @@ fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
             let comparison = StrValidation { comparator, value };
             CheckExpr::Compare(Comparison::Str(comparison))
         }
+        Rule::in_ip_range => CheckExpr::InIpRange(parse_array(pair.into_inner())),
         _ => unreachable!("Unexpected check rule: {:?}", pair.as_rule()),
     })
 }
@@ -216,6 +222,7 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             Expr::DefineNode(name, path.into(), value)
         }
         Rule::load => Expr::Load,
+        Rule::load_file => Expr::LoadFile(pair.into_inner().next().unwrap().as_str().into()),
         Rule::insert => {
             let mut inner_rules = pair.into_inner();
             let label: &str = inner_rules.next().unwrap().as_str();
@@ -245,6 +252,10 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let path: &str = inner_rules.next().unwrap().as_str();
             let sub: &str = inner_rules.next().unwrap().as_str();
             Expr::ClearMultiple(path.into(), sub)
+        }
+        Rule::other_command => {
+            let command = pair.as_str();
+            Expr::GenericAugeas(command)
         }
         _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
     })

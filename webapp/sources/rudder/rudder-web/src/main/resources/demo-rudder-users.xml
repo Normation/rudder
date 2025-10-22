@@ -92,7 +92,7 @@
   systemctl restart rudder-jetty
 -->
 
-<authentication hash="bcrypt" case-sensitivity="true">
+<authentication hash="argon2id" case-sensitivity="true">
   <!--
     <user name="NAME" password="REPLACE_BY_HASH" permissions="ROLE" />
   -->

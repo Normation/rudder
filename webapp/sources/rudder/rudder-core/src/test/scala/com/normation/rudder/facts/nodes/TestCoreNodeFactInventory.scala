@@ -41,8 +41,7 @@ import better.files.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.*
-import com.normation.inventory.domain.Version as SVersion
+import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
@@ -56,13 +55,14 @@ import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.SearchScope
 import java.security.Security
+import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -184,7 +184,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
+  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}"
 
   override def beforeAll(): Unit = {}
 
@@ -260,8 +260,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     n.vms
   )
 
-  implicit val testChangeContext: ChangeContext =
-    ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None, QueryContext.testQC.nodePerms)
+  implicit val testChangeContext: ChangeContext = {
+    ChangeContext(
+      ModificationId("test-mod-id"),
+      EventActor("test"),
+      Instant.now(),
+      None,
+      None,
+      QueryContext.testQC.nodePerms
+    )
+  }
   implicit val qc:                QueryContext  = QueryContext.todoQC
 
   "basic change in node fact" should {
@@ -333,7 +341,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         node.bios.head === Bios(
           "bios1",
           None,
-          Some(new Version("6.00")),
+          Some(new SVersion("6.00")),
           Some(SoftwareEditor("Phoenix Technologies LTD"))
         )
       ) and
@@ -351,7 +359,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       ) and
       (node.software.size === 2) and
       (node.software must containTheSameElementsAs(
-        List(SoftwareFact("Software 0", Some(new Version("1.0.0"))), SoftwareFact("Software 4", None))
+        List(SoftwareFact("Software 0", Some(new SVersion("1.0.0"))), SoftwareFact("Software 4", None))
       )) and
       (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
 
@@ -379,7 +387,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       (node.fileSystems.size === 0) and
       (node.software.size === 2) and
       (node.software must containTheSameElementsAs(
-        List(SoftwareFact("Software 0", Some(new Version("1.0.0"))), SoftwareFact("Software 4", None))
+        List(SoftwareFact("Software 0", Some(new SVersion("1.0.0"))), SoftwareFact("Software 4", None))
       )) and
       (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
     }
@@ -397,7 +405,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         node.bios.head === Bios(
           "bios1",
           None,
-          Some(new Version("6.00")),
+          Some(new SVersion("6.00")),
           Some(SoftwareEditor("Phoenix Technologies LTD"))
         )
       ) and
@@ -430,7 +438,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
     "allow to filter all nodes with no access" in {
       val nodes = factRepo
-        .getAll()(qcNone, SelectNodeStatus.Accepted)
+        .getAll()(using qcNone, SelectNodeStatus.Accepted)
         .runNow
 
       nodes must beEmpty
@@ -438,7 +446,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
     "allow to get only nodes with one security tag" in {
       val nodes = factRepo
-        .getAll()(qcA, SelectNodeStatus.Accepted)
+        .getAll()(using qcA, SelectNodeStatus.Accepted)
         .runNow
 
       nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1"))
@@ -446,7 +454,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
     "have cumulative rights" in {
       val nodes = factRepo
-        .getAll()(qcAB, SelectNodeStatus.Accepted)
+        .getAll()(using qcAB, SelectNodeStatus.Accepted)
         .runNow
 
       nodes.keySet.map(_.value) must containTheSameElementsAs(List("node0", "node1", "node2"))
@@ -455,11 +463,11 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "when the plugin is enable, we can change security tag for node" in {
 
       val (nodesA, nodesB) = (for {
-        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(TenantId("zoneB")))))(
+        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(TenantId("zoneB")))))(using
                     ChangeContext.newForRudder()
                   ) // admin can change from zoneA to zoneB
-        nodesA <- factRepo.getAll()(qcA, SelectNodeStatus.Accepted)
-        nodesB <- factRepo.getAll()(qcB, SelectNodeStatus.Accepted)
+        nodesA <- factRepo.getAll()(using qcA, SelectNodeStatus.Accepted)
+        nodesB <- factRepo.getAll()(using qcB, SelectNodeStatus.Accepted)
       } yield (nodesA, nodesB)).runNow
 
       (nodesA.keySet.map(_.value) must containTheSameElementsAs(List("node1"))) and
@@ -471,7 +479,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val nonExistingTenantId = TenantId("zoneXXX")
 
       val res = (for {
-        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
+        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
       } yield ()).either.runNow
 
       res must beLike {
@@ -483,8 +491,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val res = (for {
         // node0 is now on zone B
-        n <- factRepo.get(nodeId)(qcB).notOptional(s"node0 must be there for tests")
-        _ <- factRepo.save(n)(ccA)
+        n <- factRepo.get(nodeId)(using qcB).notOptional(s"node0 must be there for tests")
+        _ <- factRepo.save(n)(using ccA)
       } yield ()).either.runNow
 
       res must beLike {
@@ -497,9 +505,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val nonExistingTenantId = TenantId("zoneXXX")
 
       val res = (for {
-        n      <- factRepo.get(nodeId)(qcB).notOptional(s"node0 must be there for tests")
+        n      <- factRepo.get(nodeId)(using qcB).notOptional(s"node0 must be there for tests")
         newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
-        e      <- factRepo.save(newNode)(ChangeContext.newForRudder())
+        e      <- factRepo.save(newNode)(using ChangeContext.newForRudder())
       } yield e).runNow
 
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
@@ -511,7 +519,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       tenantService.setTenantEnabled(false).runNow
 
       val res = (for {
-        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
+        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
       } yield e).runNow
 
       tenantService.setTenantEnabled(true).runNow
@@ -525,7 +533,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         // keep for restoration but remove all tenant
         initTs <- tenantService.tenantIds.getAndSet(Set())
         nodes  <- factRepo
-                    .getAll()(
+                    .getAll()(using
                       QueryContext.testQC
                         .modify(_.nodePerms)
                         .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
@@ -545,9 +553,10 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       def test(id: NodeId) = {
         val (n1, n2, e) = (for {
-          n1 <- factRepo.get(id)(QueryContext.testQC).notOptional("error: missing node2 for test")
-          n2 <- factRepo.slowGet(id)(QueryContext.testQC, attrs = SelectFacts.all).notOptional("error: missing node2 for test")
-          e  <- factRepo.save(n2)(ChangeContext.newForRudder(), SelectFacts.all)
+          n1 <- factRepo.get(id)(using QueryContext.testQC).notOptional("error: missing node2 for test")
+          n2 <-
+            factRepo.slowGet(id)(using QueryContext.testQC, attrs = SelectFacts.all).notOptional("error: missing node2 for test")
+          e  <- factRepo.save(n2)(using ChangeContext.newForRudder(), SelectFacts.all)
         } yield (n1, n2, e)).runNow
 
         (CoreNodeFact.same(n1, n2.toCore)) and
@@ -563,13 +572,13 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "we can save a whole inventory and changing everything in storage, included software and processes" >> {
       factStorage.clearCallStack
       val node = factRepo
-        .slowGet(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
+        .slowGet(node7id)(using QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
         .notOptional("node7 must be here")
         .runNow
 
       val updated = node
         .modify(_.software)
-        .using(_.appended(SoftwareFact("s2", Some(new Version("1.2")))))
+        .using(_.appended(SoftwareFact("s2", Some(new SVersion("1.2")))))
         .modify(_.environmentVariables)
         .using(_.appended(("envVAR", "envVALUE")))
         .modify(_.networks)
@@ -579,7 +588,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         .modify(_.processes)
         .using(_.appended(Process(4242, Some("process 4242 command line"))))
 
-      factRepo.save(updated)(testChangeContext, SelectFacts.all).runNow
+      factRepo.save(updated)(using testChangeContext, SelectFacts.all).runNow
 
       // check that ldap entries where modified
       (mockLdapFactStorage.testServer
@@ -606,13 +615,13 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "we can change only one inventory aspect without touching others even if they are not the same in our business object" >> {
       factStorage.clearCallStack
       val node = factRepo
-        .slowGet(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
+        .slowGet(node7id)(using QueryContext.testQC, SelectNodeStatus.Accepted, SelectFacts.all)
         .notOptional("node7 must be here")
         .runNow
 
       val updated = node
         .modify(_.software)
-        .using(_.appended(SoftwareFact("s3", Some(new Version("1.3")))))
+        .using(_.appended(SoftwareFact("s3", Some(new SVersion("1.3")))))
         .modify(_.environmentVariables)
         .using(_.appended(("bad", "bad")))
         .modify(_.networks)
@@ -620,7 +629,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         .modify(_.slots)
         .using(_.appended(Slot("slot1")))
 
-      factRepo.save(updated)(testChangeContext, SelectFacts.none.modify(_.networks).using(_.toRetrieve)).runNow
+      factRepo.save(updated)(using testChangeContext, SelectFacts.none.modify(_.networks).using(_.toRetrieve)).runNow
 
       // check that ONLY network ldap entry was modified
       (mockLdapFactStorage.testServer
@@ -649,7 +658,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "root status can not be modified" >> {
       val res = (for {
         r <- factRepo.get(Constants.ROOT_POLICY_SERVER_ID).notOptional("root must be here")
-        _ <- factRepo.save(r.modify(_.rudderSettings.status).setTo(PendingInventory))(testChangeContext)
+        _ <- factRepo.save(r.modify(_.rudderSettings.status).setTo(PendingInventory))(using testChangeContext)
       } yield ()).either.runNow
 
       res must beLeft
@@ -658,8 +667,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "Update of policy mode to default mode after it was set to audit/enforce should be default (#25866)" >> {
       val res = (for {
         node        <- factRepo.get(node7id).notOptional("node7 must be here")
-        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit)))(testChangeContext)
-        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(None))(testChangeContext)
+        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit)))(using testChangeContext)
+        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(None))(using testChangeContext)
         updatedNode <- factRepo.get(node7id).notOptional("node7 must be here")
       } yield updatedNode.rudderSettings.policyMode).either.runNow
 
@@ -675,7 +684,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     // node7 is "initializing" in ldap sample data
     val res = (for {
       node <- factRepo.get(node7id).notOptional("node7 must be here")
-      diff <- factRepo.save(node.modify(_.rudderSettings.state).setTo(NodeState.Enabled))(testChangeContext)
+      diff <- factRepo.save(node.modify(_.rudderSettings.state).setTo(NodeState.Enabled))(using testChangeContext)
     } yield diff).either.runNow
 
     (mockLdapFactStorage.testServer
@@ -696,14 +705,14 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val (n1, n2) = (for {
         n1   <- factRepo.getNumberOfManagedNodes()
         node <- factRepo
-                  .get(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted)
+                  .get(node7id)(using QueryContext.testQC, SelectNodeStatus.Accepted)
                   .notOptional("node7 must be here")
 
         updated = node
                     .modify(_.rudderSettings.state)
                     .setTo(NodeState.Ignored)
 
-        _  <- factRepo.save(updated)(testChangeContext)
+        _  <- factRepo.save(updated)(using testChangeContext)
         n2 <- factRepo.getNumberOfManagedNodes()
 
       } yield (n1, n2)).runNow
@@ -766,9 +775,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       node <- factRepo.slowGet(NodeId("node1")).notOptional("node1 must be here")
       props = node.properties.appended(newProp)
       // first time: change should be here -
-      d1   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+      d1   <- factRepo.save(node.modify(_.properties).setTo(props))(using testChangeContext)
       // second time: should be noop
-      d2   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+      d2   <- factRepo.save(node.modify(_.properties).setTo(props))(using testChangeContext)
     } yield (d1, d2)).either.runNow
 
     val afterInv = mockLdapFactStorage.testServer

@@ -57,6 +57,7 @@ trait ScoreService {
   def getAvailableScore(): IOResult[List[(String, String)]]
   def init():              IOResult[Unit]
   def deleteNodeScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit]
+  def removeScore(nodeId:     NodeId, scoreId:     String)(implicit qc: QueryContext): IOResult[Unit]
 }
 
 class ScoreServiceImpl(
@@ -72,7 +73,7 @@ class ScoreServiceImpl(
 
   def init(): IOResult[Unit] = {
     for {
-      nodeIds      <- nodeFactRepo.getAll()(QueryContext.systemQC).map(_.keySet)
+      nodeIds      <- nodeFactRepo.getAll()(using QueryContext.systemQC).map(_.keySet)
       globalScores <- globalScoreRepository.getAll()
       _            <- cache.set(globalScores.filter(n => nodeIds.contains(n._1)))
       scores       <- scoreRepository.getAll()
@@ -82,11 +83,15 @@ class ScoreServiceImpl(
 
   def clean(): IOResult[Unit] = {
     for {
-      available    <- availableScore.get.map(_.map(_._1))
-      globalScore  <- cache.get
-      existingScore = globalScore.values.toList.flatMap(_.details.map(_.scoreId)).distinct
-      idsToClean    = existingScore.diff(available)
-      _            <- ZIO.foreach(idsToClean)(cleanScore(_)(QueryContext.systemQC))
+      available     <- availableScore.get.map(_.map(_._1))
+      existingScore <- scoreCache.get.map(_.flatMap(_._2.map(_.scoreId)))
+      idsToClean     = existingScore.toList.distinct.diff(available)
+      _             <- ZIO.when(idsToClean.nonEmpty)(ScoreLoggerPure.info(s"Scores to clean ${idsToClean.mkString(", ")}"))
+      _             <- ZIO.foreach(idsToClean)(id => {
+                         cleanScore(id)(using QueryContext.systemQC).catchAll(err =>
+                           ScoreLoggerPure.error(s"Error when cleaning score ${id}: ${err.fullMsg} ")
+                         )
+                       })
     } yield {}
   }
 
@@ -150,16 +155,23 @@ class ScoreServiceImpl(
     for {
       _         <- cache.update(_.removed(nodeId))
       newScores <- scoreCache.updateAndGet(_.removed(nodeId))
-      _         <- scoreRepository.deleteScore(nodeId, None)
+      _         <- scoreRepository.deleteScore(Seq(nodeId), None)
       _         <- globalScoreRepository.delete(nodeId)
     } yield {}
 
   }
   def cleanScore(name: String)(implicit qc: QueryContext): IOResult[Unit] = {
     for {
-      _         <- cache.update(_.map { case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name))) })
+      _         <- ScoreLoggerPure.info(s"Cleaning score ${name}")
+      // Remove from score caches
+      newGlobal <- cache.updateAndGet(_.map {
+                     case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name)))
+                   })
       newScores <- scoreCache.updateAndGet(_.map { case (id, scores) => (id, scores.filterNot(_.scoreId == name)) })
-      _         <- update(newScores)
+      // Remove from databases
+      _         <- scoreRepository.deleteScore(newScores.keySet.toSeq, Some(name))
+      _         <- ZIO.foreach(newGlobal) { case (id, gscore) => globalScoreRepository.save(id, gscore) }
+
     } yield {}
   }
 
@@ -202,6 +214,18 @@ class ScoreServiceImpl(
   def getAvailableScore(): IOResult[List[(String, String)]] = {
     availableScore.get
   }
+
+  override def removeScore(nodeId: NodeId, scoreId: String)(implicit qc: QueryContext): IOResult[Unit] = {
+    for {
+      scores    <- cache.updateAndGet(
+                     _.updatedWith(nodeId)(_.map(gscore => gscore.copy(details = gscore.details.filterNot(_.scoreId == scoreId))))
+                   )
+      newScores <- scoreCache.updateAndGet(_.updatedWith(nodeId)(_.map(_.filterNot(_.scoreId == scoreId))))
+      _         <- ZIO.foreach(scores.get(nodeId))(globalScoreRepository.save(nodeId, _))
+
+      _ <- scoreRepository.deleteScore(Seq(nodeId), Some(scoreId))
+    } yield {}
+  }
 }
 
 class ScoreServiceManager(readScore: ScoreService) {
@@ -213,7 +237,7 @@ class ScoreServiceManager(readScore: ScoreService) {
     handlers.update(handler :: _) *>
     (for {
       s <- readScore
-             .getAll()(QueryContext.systemQC)
+             .getAll()(using QueryContext.systemQC)
              .map(_.exists(g => handler.initForScore(g._2)))
              .catchAll(err => ScoreLoggerPure.error(s"Error when getting available scores for initialization") *> false.succeed)
       _ <- handler.initEvents.flatMap(ZIO.foreach(_)(handleEvent(_))).unit
@@ -232,7 +256,7 @@ class ScoreServiceManager(readScore: ScoreService) {
       newScore = handled.flatMap(_.groupMapReduce(_._1)(_._2)(_ ++ _)).toMap
       _       <- ScoreLoggerPure.debug(s"${newScore.size} score for event")
       _       <- ScoreLoggerPure.ifTraceEnabled(ZIO.foreach(newScore.toList)(s => ScoreLoggerPure.trace(s"${s}")))
-      _       <- readScore.update(newScore)(QueryContext.systemQC)
+      _       <- readScore.update(newScore)(using QueryContext.systemQC)
     } yield {}).catchAll(err =>
       ScoreLoggerPure.error(s"An error occurred while treating score event of type '${scoreEvent.getClass}': ${err.fullMsg}")
     )

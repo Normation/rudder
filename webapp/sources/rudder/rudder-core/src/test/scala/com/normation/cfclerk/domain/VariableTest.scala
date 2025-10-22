@@ -40,6 +40,7 @@ package com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.HashAlgoConstraint.*
 import com.normation.cfclerk.xmlparsers.*
 import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGeneration
+import com.normation.utils.XmlSafe
 import java.io.FileNotFoundException
 import org.joda.time.format.*
 import org.junit.runner.RunWith
@@ -67,7 +68,7 @@ class VariableTest extends Specification {
   val refDescription  = "description"
   val refValue        = "value"
   val refVariableName = Some("variable_name")
-  val dateValue       = "2010-01-16T12:00:00.000+01:00"
+  val dateValue       = "2010-01-16T11:00:00.000Z"
   val listValue       = "value1;value2"
   val defaultValue    = "default_value"
 
@@ -95,7 +96,7 @@ class VariableTest extends Specification {
   val variables: mutable.Map[String, Variable] = {
     val doc = {
       try {
-        XML.load(ClassLoader.getSystemResourceAsStream("testVariable.xml"))
+        XmlSafe.load(ClassLoader.getSystemResourceAsStream("testVariable.xml"))
       } catch {
         case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with testVariable.xml ")
         case e: java.net.MalformedURLException => throw new FileNotFoundException("testVariable.xml file not found ")
@@ -133,7 +134,7 @@ class VariableTest extends Specification {
   "SYSTEM_VARIABLE tag" should {
     "lead to an exception" in {
       val sysvar = (for {
-        elt      <- (XML.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
+        elt      <- (XmlSafe.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
         specNode <- elt.nonEmptyChildren
         if (!specNode.isInstanceOf[Text])
       } yield {
@@ -276,8 +277,8 @@ class VariableTest extends Specification {
     saveHaveValue()
 
     val constrainedVariable = variables(itemName)
-    saveHaveValue()(constrainedVariable)
-    beASelect(constrainedVariable)
+    saveHaveValue()(using constrainedVariable)
+    beASelect(using constrainedVariable)
   }
 
   "Variable with default" should {
@@ -289,11 +290,11 @@ class VariableTest extends Specification {
   }
 
   "Date variable" should {
-    implicit val dateVariable = variables(varDate)
+    implicit val dateVariable: Variable = variables(varDate)
     beAnInput
     haveType("datetime")
 
-    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(
+    haveValue(ISODateTimeFormat.dateTime.withZoneUTC().print(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue)))(using
       dateVariable.copyWithSavedValue(dateValue).orThrow
     )
   }
@@ -580,7 +581,7 @@ class VariableTest extends Specification {
   }
 
   private def saveHaveValue(value: String = refValue)(implicit variable: Variable) = {
-    haveValue(value)(variable.copyWithSavedValue(value).orThrow)
+    haveValue(value)(using variable.copyWithSavedValue(value).orThrow)
   }
 
   private def haveNbValues(nbValues: Int)(implicit variable: Variable) = {

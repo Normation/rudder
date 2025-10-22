@@ -71,7 +71,7 @@ class NodePropertiesServiceImpl(
     for {
       params      <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
       groups      <- roNodeGroupRepository.getFullGroupLibrary()
-      nodes       <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.values)
+      nodes       <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.values)
       mergedGroups = {
         groups.allGroups.map {
           case (gid, group) =>

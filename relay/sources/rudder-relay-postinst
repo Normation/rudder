@@ -14,6 +14,10 @@ LOG_FILE="/var/log/rudder/install/rudder-relay-$(date +%Y%m%d%H%M%S).log"
 
 echo "$(date) - Starting rudder-relay post installation script" >> ${LOG_FILE}
 
+# Cleanup misplaced and useless backup files
+# created between 7.2 and <8.3
+rm -f /rudder-apache-*.conf
+
 # Create groups ans users before managing the services
 if ! getent group rudder > /dev/null; then
   groupadd --system rudder >> ${LOG_FILE}
@@ -118,6 +122,12 @@ rm -f /opt/rudder/etc/rudder-pkg/trustdb.gpg
 rm -rf /opt/rudder/etc/rudder-pkg/private-keys-v1.d
 chmod -x /opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 
+# initialize policy_server.pem if it doesn't exist
+if [ ! -f /var/rudder/lib/ssl/policy_server.pem ];
+then
+  cp /opt/rudder/etc/ssl/agent.cert /var/rudder/lib/ssl/policy_server.pem
+fi
+
 # Apply SELinux config before starting the services
 if [ "${SELINUX}" = "true" ]; then
   # Check "sestatus" presence, if not there there is not SELinux
@@ -156,6 +166,16 @@ if [ "${SELINUX}" = "true" ]; then
 fi
 
 systemctl start rudder-relayd.service rudder-package.timer >> ${LOG_FILE}
+
+# Initialize apache config if needed
+A2_CONF="/opt/rudder/etc/rudder-apache-relay-ssl.conf"
+TMP_DATA="/var/rudder/tmp/empty-classes.json"
+if [ ! -f "${A2_CONF}" ]; then
+  echo "Generating initial ${A2_CONF} file" >> ${LOG_FILE}
+  echo '{ "classes": {} }' > "${TMP_DATA}"
+  /opt/rudder/bin/rudder-module-template -t "${A2_CONF}.j2" -d "${TMP_DATA}" -o "${A2_CONF}"
+  rm -f "${TMP_DATA}"
+fi
 systemctl start "${APACHE}" >> ${LOG_FILE}
 
 echo "$(date) - Ending rudder-relay post installation script" >> ${LOG_FILE}

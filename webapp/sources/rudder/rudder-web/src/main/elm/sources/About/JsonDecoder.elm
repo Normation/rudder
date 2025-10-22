@@ -64,7 +64,6 @@ decodeNodesInfo =
 decodePluginInfo : Decoder PluginInfo
 decodePluginInfo =
   D.succeed PluginInfo
-    |> required "id" string
     |> required "name" string
     |> required "version" string
     |> required "abiVersion" string
@@ -76,5 +75,5 @@ decodeLicenseInfo =
     |> required "licensee" string
     |> required "startDate" string
     |> required "endDate" string
-    |> required "allowedNodesNumber" int
+    |> optional "allowedNodesNumber" (D.maybe int) Nothing
     |> required "supportedVersions" string

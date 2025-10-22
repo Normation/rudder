@@ -375,6 +375,8 @@ $(document).ready(function() {
   sidebarControl();
   // Init tooltips
   initBsTooltips();
+  // Init and check tab states
+  initAndCheckTabs();
 
   // Hide any open tooltips when the anywhere else in the body is clicked
   $('body').on('click', function (e) {
@@ -429,9 +431,9 @@ function parseSearchHash(queryCallback) {
 }
 
 function updateHashString(key, value) {
-  var hash = parseURLHash();
+  const hash = parseURLHash();
   hash[key] = value;
-  var baseUrl = window.location.href.split('#')[0];
+  const baseUrl = window.location.href.split('#')[0];
   window.location.replace(baseUrl + '#' + JSON.stringify(hash));
 }
 
@@ -624,7 +626,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
   $("#visibilityOutput").hide();
   $("#report").removeClass("border-success");
   $("#report").removeClass("border-fail");
-  $("pre").remove();
+  $panelContent.remove();
   $(".alert-danger").remove();
   $("#countDown").find("span").empty();
 
@@ -739,6 +741,16 @@ function changeTimezone(date, ianatz) {
   return new Date(date.getTime() - diff);
 }
 
+/**
+ * Get the date as a string in "yyyy-mm-dd" format, taking timezone into account
+ * see https://stackoverflow.com/a/29774197
+ */
+function getDateString(date = new Date()) {
+  const offset = date.getTimezoneOffset()
+  return new Date(date.getTime() - (offset*60*1000)).toISOString().split('T')[0]
+}
+
+
 function updateNodeIdAndReload(nodeId) {
   try {
     var json = JSON.parse(location.hash);
@@ -812,11 +824,12 @@ function navScroll(event, target, container){
   return false;
 }
 
-function buildScrollSpyNav(){
-    $("#navbar-scrollspy > ul").html("");
+function buildScrollSpyNav(navbarId, containerId){
+    const navbarUl = "#" + navbarId + " > ul";
+    $(navbarUl).html("");
     var linkText, tmp, link, listItem;
     var regex = /[^a-z0-9]/gmi
-    $(".page-title, .page-subtitle").each(function(){
+    $("#"+containerId).find(".page-title, .page-subtitle").each(function(){
       linkText = $(this).text();
       tmp      = linkText.replace(regex, "-");
       $(this).attr('id', tmp);
@@ -826,7 +839,7 @@ function buildScrollSpyNav(){
       var subClass = $(this).hasClass("page-subtitle") ? "subtitle" : ""
       link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, ".main-details[data-bs-spy='scroll']")});
       listItem.addClass("nav-item").append(link);
-      $("#navbar-scrollspy > ul").append(listItem);
+      $(navbarUl).append(listItem);
     });
 }
 
@@ -909,15 +922,67 @@ function hideBsModal(modalName){
   if(modal === null || modal === undefined) return false;
   modal.hide();
 }
-function initBsTabs(){
-  var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
+function initBsTabs(isJsonHash = false, adjustNodeTables = false){
+  const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
   triggerTabList.forEach(function (triggerEl) {
-    var tabTrigger = new bootstrap.Tab(triggerEl);
+    const tabTrigger = new bootstrap.Tab(triggerEl);
+
     triggerEl.addEventListener('click', function (event) {
-      event.preventDefault()
-      tabTrigger.show()
+      event.preventDefault();
+      tabTrigger.show();
+      const newHash = this.getAttribute("data-bs-target");
+
+      if (isJsonHash) {
+        updateHashString("tab",newHash);
+      }else{
+        history.replaceState(undefined, undefined, newHash);
+      }
+
+      if (adjustNodeTables) {
+        $("#nodes, #serverGrid").DataTable({"retrieve": true}).columns.adjust().draw();
+      }
+      return false;
     });
-});
+  });
+}
+
+function waitForElement(selector) {
+  return new Promise((resolve) => {
+    const observer = new MutationObserver((mutations, observer) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        observer.disconnect();
+        resolve(element);
+      }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  });
+}
+
+function initAndCheckTabs(){
+  const isNodePage = window.location.pathname.includes("nodeManager/nodes");
+
+  initBsTabs(isNodePage, isNodePage);
+  let hash = window.location.hash;
+
+  // If the anchor corresponds to a tab ID then this tab is opened automatically,
+  // else nothing happens
+  if (hash === "") return false;
+
+  // An exception is made for the for the Nodes page,
+  // which uses the anchor to store the search query AND the tab ID in a json object.
+  if (isNodePage) {
+    let tab = parseURLHash().tab;
+    if (tab === undefined) return false;
+    hash = tab;
+  }
+  const tabSelector = '[data-bs-target="' + hash + '"]';
+  waitForElement(tabSelector).then((tab) => {
+    bootstrap.Tab.getInstance(tab).show();
+  });
 }
 
 function copy(value) {

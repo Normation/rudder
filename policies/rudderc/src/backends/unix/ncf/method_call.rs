@@ -5,7 +5,7 @@
 //! "ncf/cfengine" model, different on Windows.
 //!
 //! It trusts its input (which should have already validated the method
-//! signature, type, and constraints).
+//! signature, type and constraints).
 
 use anyhow::{Context, Result, bail};
 use rudder_commons::{canonify, methods::method::Agent};
@@ -82,6 +82,11 @@ pub fn method_call(
         Some(&report_component),
         vec![expanded("c_name"), expanded("c_key"), expanded("report_id")],
     );
+    let define_noop = Promise::usebundle(
+        "_classes_noop",
+        Some(&report_component),
+        vec![quoted("${report_data.method_id}")],
+    );
 
     // Actual method call
     let method = Promise::usebundle(
@@ -91,10 +96,6 @@ pub fn method_call(
             .iter()
             .map(|p| expanded(p.as_str()))
             .collect(),
-    );
-    let na_condition = format!(
-        "canonify(\"${{class_prefix}}_{}_${{c_key}}\")",
-        info.bundle_name
     );
 
     let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override);
@@ -107,24 +108,20 @@ pub fn method_call(
             push_policy_mode,
             Some(method.if_condition(incall_condition.clone())),
             pop_policy_mode,
-            Some(Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
-            Some(Promise::usebundle("log_rudder", Some(&report_component), vec![
+            Some(define_noop.unless_condition(incall_condition.clone())),
+            Some(Promise::usebundle("log_rudder_v4", Some(&report_component), vec![
+                quoted("${c_key}"),
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
-                quoted(&report_parameter),
-                na_condition.clone(),
-                na_condition,
-                "@{args}".to_string()
+                quoted(""),
             ]).unless_condition(incall_condition))
         ].into_iter().flatten().collect(),
         (Condition::NotDefined, true) => vec![
             reporting_context,
-            Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]),
-            Promise::usebundle("log_rudder", Some(&report_component),  vec![
+            define_noop,
+            Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
+                quoted("${c_key}"),
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
-                quoted(&report_parameter),
-                na_condition.clone(),
-                na_condition,
-                "@{args}".to_string()
+                quoted("")
             ])
         ],
         (Condition::Defined, true) => vec![
@@ -135,18 +132,15 @@ pub fn method_call(
         ].into_iter().flatten().collect(),
         (_, false) => vec![
             reporting_context,
-            Promise::usebundle(
-                "log_na_rudder",
-                Some(&report_component),
-                vec![
-                    quoted(&format!(
-                        "'{}' method is not available on classic Rudder agent, skip",
-                        report_parameter,
-                    )),
-                    quoted(&report_parameter),
-                    "@{args}".to_string(),
-                ],
-            )
+            define_noop,
+            Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
+                quoted("${c_key}"),
+                quoted(&format!(
+                    "'{}' method is not available on classic Rudder agent, skip",
+                    m.name,
+                )),
+                quoted("")
+            ])
         ],
     };
 
@@ -161,34 +155,20 @@ pub fn method_call(
     };
 
     // Calling bundle
-    let bundle_name = format!("call_{}_{}", technique_id, c_id);
+    let bundle_name = format!("call_{technique_id}_{c_id}");
     let mut call_parameters = vec![
         quoted(&report_component),
         quoted(&report_parameter),
         quoted(id),
-        "@{args}".to_string(),
-        quoted("${class_prefix}"),
     ];
     let mut method_parameters = vec![
         "c_name".to_string(),
         "c_key".to_string(),
         "report_id".to_string(),
-        "args".to_string(),
-        "class_prefix".to_string(),
     ];
-    // If the item is a result of a foreach loop, we must assume that one of the branch could define
-    // a condition, and so, each branch should call the bundle using the method_call_condition
-    match condition {
-        Condition::Expression(_) => {
-            call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-            method_parameters.push("method_call_condition".to_string())
-        }
-        Condition::NotDefined | Condition::Defined => {
-            if m.resolved_foreach_state.is_some() {
-                call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-                method_parameters.push("method_call_condition".to_string())
-            }
-        }
+    if let Condition::Expression(_) = condition {
+        call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+        method_parameters.push("method_call_condition".to_string());
     }
 
     call_parameters.append(&mut parameters);
@@ -201,7 +181,12 @@ pub fn method_call(
     Ok((
         bundle_call,
         match m.resolved_foreach_state {
-            Some(ForeachResolvedState::Virtual) => None,
+            //Some(ForeachResolvedState::Virtual) => None,
+            Some(ForeachResolvedState::Virtual) => Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            ),
             Some(ForeachResolvedState::Main) => Some(
                 Bundle::agent(bundle_name)
                     .parameters(method_parameters)

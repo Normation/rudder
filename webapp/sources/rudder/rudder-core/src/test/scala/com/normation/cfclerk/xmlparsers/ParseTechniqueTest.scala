@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.inventory.domain.AgentType
+import com.normation.utils.XmlSafe
 import java.io.FileNotFoundException
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -86,7 +87,7 @@ class ParseTechniqueTest extends Specification {
   private def readFile(fileName: String): Elem = {
     val doc = {
       try {
-        XML.load(ClassLoader.getSystemResourceAsStream(fileName))
+        XmlSafe.load(ClassLoader.getSystemResourceAsStream(fileName))
       } catch {
         case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with " + fileName)
         case e: java.net.MalformedURLException => throw new FileNotFoundException("%s file not found".format(fileName))

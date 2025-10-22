@@ -20,13 +20,12 @@
 
 package com.normation.rudder.services.nodes.history.impl
 
-import FileHistoryLogRepository.*
 import com.normation.errors.*
 import com.normation.inventory.domain.InventoryError
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import java.io.File
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.DateTimeZone
 import scala.reflect.ClassTag
 import zio.*
 import zio.syntax.*
@@ -53,6 +52,19 @@ trait IdToFilenameConverter[ID] {
   def filenameToId(name: String): ID
 }
 
+trait VersionToFilenameConverter[V] {
+
+  /**
+   * Create the filename from the version
+   */
+  def versionToFilename(version: V): String
+
+  /**
+   * Get a validated version from a path name
+   */
+  def filenameToVersion(name: String): Option[V]
+}
+
 /**
  * An implementation of HistoryLogRepository that save datas in
  * FileSystem, using a layout like:
@@ -65,12 +77,15 @@ trait IdToFilenameConverter[ID] {
  *    ` (d)history_name2
  *
  * Any datas type may be used, as long as they can be read/write from
- * files
+ * files.
+ *
+ * Version is DateTime but can be abstracted over, if DefaultHLog is abstracted.
  */
 class FileHistoryLogRepository[ID: ClassTag, T](
-    val rootDir:   String,
-    val parser:    FileMarshalling[T],
-    val converter: IdToFilenameConverter[ID]
+    val rootDir:          String,
+    val parser:           FileMarshalling[T],
+    val converter:        IdToFilenameConverter[ID],
+    val versionConverter: VersionToFilenameConverter[DateTime]
 ) extends HistoryLogRepository[ID, DateTime, T, DefaultHLog[ID, T]] {
 
   type HLog = DefaultHLog[ID, T]
@@ -119,7 +134,7 @@ class FileHistoryLogRepository[ID: ClassTag, T](
    * Save an inventory and return the ID of the saved inventory, and
    * its version
    */
-  def save(id: ID, data: T, datetime: DateTime = DateTime.now): IOResult[HLog] = {
+  def save(id: ID, data: T, datetime: DateTime = DateTime.now(DateTimeZone.UTC)): IOResult[HLog] = {
     converter.idToFilename(id) match {
       case null | ""                                                         =>
         InventoryError.Inconsistency("History log name can not be null nor empty").fail
@@ -130,7 +145,7 @@ class FileHistoryLogRepository[ID: ClassTag, T](
 
         for {
           i     <- idDir(hlog.id)
-          file  <- ZIO.succeed(new File(i, vToS(hlog.version)))
+          file  <- ZIO.succeed(new File(i, versionConverter.versionToFilename(hlog.version)))
           datas <- parser.toFile(file, hlog.data)
         } yield hlog
     }
@@ -156,7 +171,7 @@ class FileHistoryLogRepository[ID: ClassTag, T](
   def get(id: ID, version: DateTime): IOResult[Option[HLog]] = {
     for {
       i    <- idDir(id)
-      file <- ZIO.succeed(new File(i, vToS(version)))
+      file <- ZIO.succeed(new File(i, versionConverter.versionToFilename(version)))
       data <- ZIO.whenZIO(IOResult.attempt(file.exists()))(parser.fromFile(file))
     } yield data.map(d => DefaultHLog(id, version, d))
   }
@@ -183,22 +198,16 @@ class FileHistoryLogRepository[ID: ClassTag, T](
       ok  <- exists(id)
       res <- if (ok) {
                ZIO
-                 .attempt(i.listFiles.toSeq.map(f => sToV(f.getName)).filter(_.isDefined).map(_.get).sortWith(_.compareTo(_) > 0))
+                 .attempt(
+                   i.listFiles.toSeq
+                     .map(f => versionConverter.filenameToVersion(f.getName))
+                     .filter(_.isDefined)
+                     .map(_.get)
+                     .sortWith(_.compareTo(_) > 0)
+                 )
                  .mapError(e => InventoryError.System(s"Error when listing file in '${i.getAbsolutePath}'"))
              } else ZIO.succeed(Seq())
     } yield res
   }
 
-}
-
-object FileHistoryLogRepository {
-  private val formatter = ISODateTimeFormat.dateTime()
-  private def vToS(version: DateTime) = formatter.print(version)
-  private def sToV(version: String): Option[DateTime] = {
-    try {
-      Some(formatter.parseDateTime(version))
-    } catch {
-      case e: IllegalArgumentException => None
-    }
-  }
 }

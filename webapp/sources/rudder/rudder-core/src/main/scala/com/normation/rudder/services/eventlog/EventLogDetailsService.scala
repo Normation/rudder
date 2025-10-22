@@ -72,13 +72,12 @@ import com.normation.rudder.git.GitPath
 import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.marshalling.*
-import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
+import com.normation.utils.DateFormaterService
 import com.typesafe.config.ConfigValue
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
-import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -365,7 +364,7 @@ class EventLogDetailsServiceImpl(
         if (crXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("Rule attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      rule            <- crUnserialiser.unserialise(crXml)
+      rule            <- crUnserialiser.unserialise(crXml).toBox
     } yield {
       rule
     }
@@ -384,7 +383,7 @@ class EventLogDetailsServiceImpl(
         if (directiveXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      unserialised    <- piUnserialiser.unserialise(directiveXml)
+      unserialised    <- piUnserialiser.unserialise(directiveXml).toBox
     } yield {
       unserialised
     }
@@ -426,7 +425,7 @@ class EventLogDetailsServiceImpl(
       techniqueVersion <-
         getFromTo[TechniqueVersion]((directive \ "techniqueVersion").headOption, v => TechniqueVersion.parse(v.text).toBox)
       parameters       <-
-        getFromTo[SectionVal]((directive \ "parameters").headOption, parameter => piUnserialiser.parseSectionVal(parameter))
+        getFromTo[SectionVal]((directive \ "parameters").headOption, parameter => piUnserialiser.parseSectionVal(parameter).toBox)
       shortDescription <- getFromToString((directive \ "shortDescription").headOption)
       longDescription  <- getFromToString((directive \ "longDescription").headOption)
       priority         <- getFromTo[Int]((directive \ "priority").headOption, x => tryo(x.text.toInt))
@@ -522,7 +521,7 @@ class EventLogDetailsServiceImpl(
         if (groupXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("nodeGroup attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      group           <- groupUnserialiser.unserialise(groupXml)
+      group           <- groupUnserialiser.unserialise(groupXml).toBox
     } yield {
       group
     }
@@ -561,7 +560,7 @@ class EventLogDetailsServiceImpl(
     } yield {
       InventoryLogDetails(
         nodeId = NodeId(nodeId),
-        inventoryVersion = ISODateTimeFormat.dateTimeParser.parseDateTime(version),
+        inventoryVersion = DateFormaterService.toInstant(ISODateTimeFormat.dateTimeParser.parseDateTime(version)),
         hostname = hostname,
         fullOsName = os,
         actorIp = actorIp
@@ -742,8 +741,8 @@ class EventLogDetailsServiceImpl(
     for {
       entry         <- getEntryContent(xml)
       changeRequest <- (entry \ "changeRequest").headOption ?~! s"Entry type is not a 'changeRequest': ${entry}"
-      kind          <-
-        (changeRequest \ "@changeType").headOption.map(_.text) ?~! s"diff is not a valid changeRequest diff: ${changeRequest}"
+      kind           =
+        (changeRequest \ "@changeType").headOption.map(_.text)
       crId          <- (changeRequest \ "id").headOption.map(id =>
                          ChangeRequestId(id.text.toInt)
                        ) ?~! s"change request does not have any Id: ${changeRequest}"
@@ -754,14 +753,18 @@ class EventLogDetailsServiceImpl(
                        ) ?~! s"change request does not have any description: ${changeRequest}"
       diffName      <- getFromToString((changeRequest \ "diffName").headOption)
       diffDesc      <- getFromToString((changeRequest \ "diffDescription").headOption)
-    } yield {
-      val changeRequest =
+      changeRequest  =
         ConfigurationChangeRequest(crId, modId, ChangeRequestInfo(name, description), Map(), Map(), Map(), Map())
-      kind match {
-        case "add"    => AddChangeRequestDiff(changeRequest)
-        case "delete" => DeleteChangeRequestDiff(changeRequest)
-        case "modify" => ModifyToChangeRequestDiff(changeRequest, diffName, diffDesc)
-      }
+      res           <-
+        kind match {
+          case Some("add")           => Full(AddChangeRequestDiff(changeRequest))
+          case Some("delete")        => Full(DeleteChangeRequestDiff(changeRequest))
+          // None for compat : previously the "modify" was not serialized in the event log xml
+          case Some("modify") | None => Full(ModifyToChangeRequestDiff(changeRequest, diffName, diffDesc))
+          case Some(_)               => Failure(s"diff is not a valid changeRequest diff: ${changeRequest}")
+        }
+    } yield {
+      res
     }
 
   }
@@ -824,7 +827,7 @@ class EventLogDetailsServiceImpl(
         if (globalParam.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure(s"Global Parameter attribute does not have changeType=${changeType} in ${entry}")
       }
-      globalParameter <- globalParameterUnserialisation.unserialise(globalParam)
+      globalParameter <- globalParameterUnserialisation.unserialise(globalParam).toBox
     } yield {
       globalParameter
     }
@@ -914,7 +917,7 @@ class EventLogDetailsServiceImpl(
                                ((s \ "acl").toList.traverse { x =>
                                  for {
                                    path    <- AclPath.parse((x \ "@path").head.text)
-                                   actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse _)
+                                   actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse)
                                  } yield {
                                    ApiAclElement(path, actions.toSet)
                                  }

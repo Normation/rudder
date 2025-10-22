@@ -597,10 +597,11 @@ showChildren model block ui techniqueUi parentId =
         ) (ui.mode == Closed && (not (List.isEmpty block.calls) ))
      |> appendChildConditional
         ( element "li"
-          |> addAttribute (id "no-methods")
+          |> addAttribute (class "no-methods")
+          |> addActionStopAndPrevent ("click", OpenMethods)
           |> appendChildList
              [ element "i"
-               |> addClass "fas fa-sign-in-alt"
+               |> addClass "fas fa-sign-in-alt me-1"
                |> addStyle ("transform", "rotate(90deg)")
              , element "span"
                |> appendText " Drag and drop generic methods here to fill this component"
@@ -611,15 +612,9 @@ showChildren model block ui techniqueUi parentId =
         ) (List.isEmpty block.calls)
      |> appendChildConditional
         ( element "li"
-          |> addAttribute (id "no-methods")
+          |> addClass"no-methods drop-zone"
           |> addStyle ("text-align", "center")
-          |> addClass (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then " drop-target" else  "")
-          |> appendChild
-             ( element "i"
-               |> addClass "fas fa-sign-in-alt"
-               |> addStyle ("transform", "rotate(90deg)")
-             )
-          |> addStyle ("padding", "3px 15px")
+          |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd (InBlock block))
           |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
         ) ( case (List.isEmpty block.calls , DragDrop.currentlyDraggedObject model.dnd) of
             ( True , _    ) -> False
@@ -640,17 +635,11 @@ showChildren model block ui techniqueUi parentId =
                   base =     [ showMethodCall model methodUi techniqueUi (Just block.id) c ]
                   dropElem = AfterElem (Just block.id) (Call parentId c)
                   dropTarget =  element "li"
-                                |> addAttribute (id "no-methods")
-                                |> addStyle ("padding", "3px 15px")
+                                |> addClass "no-methods drop-zone"
                                 |> addStyle ("text-align", "center")
-                                |> addClass (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then " drop-target" else  "")
+                                |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd dropElem)
                                 |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
                                 |> addAttribute (hidden currentDragChild)
-                                |> appendChild
-                                   ( element "i"
-                                     |> addClass "fas fa-sign-in-alt"
-                                     |> addStyle ("transform", "rotate(90deg)")
-                                   )
                 in
                    List.reverse (dropTarget :: base)
               Block _ b ->

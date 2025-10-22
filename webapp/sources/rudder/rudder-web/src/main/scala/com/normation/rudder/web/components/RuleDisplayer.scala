@@ -41,7 +41,9 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.*
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
 import net.liftweb.common.*
@@ -67,6 +69,7 @@ class RuleDisplayer(
     graphRecentChanges:  DisplayColumn
 ) extends DispatchSnippet with Loggable {
 
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
   private val ruleRepository       = RudderConfig.roRuleRepository
   private val roCategoryRepository = RudderConfig.roRuleCategoryRepository
 
@@ -87,20 +90,9 @@ class RuleDisplayer(
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => NodeSeq.Empty } }
 
-  // Update Rule displayer after a Rule has changed ( update / creation )
-  def onRuleChange(selectedCategoryUpdate: RuleCategoryId): JsCmd = {
-    refreshGrid & refreshTree & ruleCategoryTree.map(_.updateSelectedCategory(selectedCategoryUpdate)).getOrElse(Noop)
-  }
-
   // refresh the rule grid
-  private def refreshGrid = {
+  private def refreshGrid(implicit qc: QueryContext) = {
     SetHtml(gridId, viewRules)
-  }
-
-  // refresh the rule category Tree
-  private def refreshTree = {
-    root = getRootCategory()
-    ruleCategoryTree.map(tree => SetHtml("categoryTreeParent", viewCategories(tree))).getOrElse(Noop)
   }
 
   private val ruleCategoryTree = {
@@ -189,7 +181,7 @@ class RuleDisplayer(
     }
   }
 
-  def viewRules: NodeSeq = {
+  private def viewRules(implicit qc: QueryContext): NodeSeq = {
 
     val callbackLink = {
       if (directive.isDefined) {

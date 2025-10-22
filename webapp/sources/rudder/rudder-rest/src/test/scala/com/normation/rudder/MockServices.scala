@@ -51,7 +51,7 @@ import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
 import com.normation.rudder.api.*
-import com.normation.rudder.api.HttpAction
+import com.normation.rudder.api.ApiAccountKind.PublicApi
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
@@ -65,7 +65,6 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
@@ -78,12 +77,10 @@ import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.rest.ExtensibleAuthorizationApiMapping
 import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.rudder.rest.data.ApiAccountDetails
 import com.normation.rudder.rest.data.ApiAccountMapping
 import com.normation.rudder.rest.data.ClearTextSecret
-import com.normation.rudder.rest.data.NewRestApiAccount
-import com.normation.rudder.rest.data.UpdateApiAccount
 import com.normation.rudder.rest.lift.ApiAccountApiService
+import com.normation.rudder.rest.lift.ApiAccountApiServiceV1
 import com.normation.rudder.rest.lift.ComplianceAPIService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.NodeConfigData
@@ -99,6 +96,10 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.users.Argon2EncoderParams
+import com.normation.rudder.users.Argon2Iterations
+import com.normation.rudder.users.Argon2Memory
+import com.normation.rudder.users.Argon2Parallelism
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.PasswordEncoderDispatcher
@@ -110,7 +111,7 @@ import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.DateTimeCodecs
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.syntax.*
@@ -123,7 +124,6 @@ import scala.collection.immutable.SortedMap
 import zio.*
 import zio.System as _
 import zio.Tag as _
-import zio.ZIO
 import zio.json.ast.Json
 import zio.syntax.*
 
@@ -726,6 +726,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
         directiveId -> DirectiveStatusReport(
           directiveId,
           PolicyTypes.rudderBase,
+          None,
           List(
             ValueStatusReport(
               s"${directiveId.serialize}-component-${ruleId.serialize}-${nodeId.value}",
@@ -871,7 +872,8 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
   val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersConfigFile.contentAsString, StandardCharsets.UTF_8)
 
-  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+  val argon2Params              = Argon2EncoderParams(Argon2Memory(0), Argon2Iterations(0), Argon2Parallelism(0))
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, argon2Params)
 
   val userService: FileUserDetailListProvider = {
     val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)
@@ -997,7 +999,7 @@ object MockUserManagement {
     .getOrElse(throw new Exception(s"Cannot find ${resourceFile} in test resources"))
 }
 
-class MockApiAccountService() {
+class MockApiAccountService(userService: com.normation.rudder.users.UserService) {
   // Our API accounts
   val apiAccounts: Map[ApiAccountId, ApiAccount] = {
     val accountCreationDate: DateTime = DateTime.parse("2025-02-12T10:55:00Z")
@@ -1010,6 +1012,18 @@ class MockApiAccountService() {
         Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")),
         "system",
         isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
+      // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
+      ApiAccount(
+        ApiAccountId("old1"),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountName("old account"),
+        Some(ApiTokenHash.fromHashValue("some-clear-token")),
+        "old account",
+        isEnabled = false,     // done when reading account
         creationDate = accountCreationDate,
         tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
@@ -1044,10 +1058,41 @@ class MockApiAccountService() {
     ).map(a => (a.id, a)).toMap
   }
 
-  val service = new ApiAccountApiService with DateTimeCodecs {
+  val repository = new RoApiAccountRepository with WoApiAccountRepository {
+    private val accounts = Ref.Synchronized
+      .make(apiAccounts)
+      .runNow
+
+    override def getAllStandardAccounts: IOResult[Seq[ApiAccount]] = {
+      accounts.get.map(_.values.toList.filter(_.kind.isInstanceOf[PublicApi]))
+    }
+
+    override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
+      accounts.get.map(_.collectFirst { case (_, a) if a.token.contains(hashedToken) => a })
+    }
+
+    override def getById(id: ApiAccountId): IOResult[Option[ApiAccount]] = {
+      accounts.get.map(_.get(id))
+    }
+
+    override def getSystemAccount: ApiAccount = {
+      // don't use the account map so that if it get deleted by tests, we track that
+      getById(ApiAccountId("system-token")).notOptional(s"Missing system account").runNow
+    }
+
+    override def save(principal: ApiAccount, modId: ModificationId, actor: EventActor): IOResult[ApiAccount] = {
+      accounts.update(_ + ((principal.id, principal))).map(_ => principal)
+    }
+
+    override def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId] = {
+      accounts.update(_.removed(id)).map(_ => id)
+    }
+  }
+
+  val service: ApiAccountApiService = {
 
     // mapping from/to rest data
-    private val mapper = {
+    val mapper = {
       val knownIds     = Ref.make(List("144ce2af-57d6-4e92-bdc1-1fdf2d88c2b1", "e16114be-94ee-497f-8d17-7b258c8e5624")).runNow
       val knownTokens  = Ref.make(List("t1-ca5a50899d25cd3ff148350843a9d435", "t2-29d5c3cdca39bd7ba81e7e0f88084689")).runNow
       val creationDate = DateFormaterService.parseDate("2025-02-10T16:37:19Z").toIO
@@ -1063,68 +1108,14 @@ class MockApiAccountService() {
         case h :: t => (ClearTextSecret(h), t)
       }
 
-      def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] = ApiTokenHash.disabled().succeed
+      def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =
+        ApiTokenHash.fromSecret(secret.transformInto[ApiTokenSecret]).succeed
 
       new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
     }
 
-    private val accounts = Ref
-      .make(
-        // this part is done at repository level in real implementation
-        apiAccounts.filter(_._2.kind.isInstanceOf[ApiAccountKind.PublicApi])
-      )
-      .runNow
+    val uuidGen = new StringUuidGenerator { override def newUuid: String = "not used" }
+    new ApiAccountApiServiceV1(repository, repository, mapper, uuidGen, userService)
 
-    override def getAccounts(): IOResult[List[ApiAccountDetails.Public]] = {
-      accounts.get.map(_.values.toList.map(_.transformInto[ApiAccountDetails.Public]))
-    }
-
-    override def getAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
-      accounts.get.map(_.get(id).map(_.transformInto[ApiAccountDetails.Public]))
-    }
-
-    override def saveAccount(data: NewRestApiAccount): IOResult[ApiAccountDetails] = {
-      for {
-        pair  <- mapper.fromNewApiAccount(data)
-        (a, s) = pair
-        _     <- accounts.update(_ + (a.id -> a))
-      } yield {
-        s match {
-          case Some(secret) =>
-            mapper.toDetailsWithSecret(a, secret)
-          case None         =>
-            a.transformInto[ApiAccountDetails.Public]
-        }
-      }
-    }
-
-    override def updateAccount(id: ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public] = {
-      for {
-        a <- accounts
-               .modify(m => {
-                 m.get(id) match {
-                   case Some(x) =>
-                     val up = mapper.update(x, data)
-                     (Some(up), m.updated(id, up))
-                   case None    => (None, m)
-                 }
-               })
-               .notOptional(s"No account with '${id.value}' exists")
-      } yield a.transformInto[ApiAccountDetails.Public]
-    }
-
-    override def regenerateToken(id: ApiAccountId): IOResult[ApiAccountDetails.WithToken] = {
-      for {
-        a    <- accounts.get.map(_.get(id)).notOptional(s"No account with '${id.value}' exists")
-        pair <- mapper.updateToken(a)
-        _    <- accounts.update(_.updated(id, pair._1))
-      } yield mapper.toDetailsWithSecret.tupled(pair)
-    }
-
-    override def deleteAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
-      for {
-        opt <- accounts.modify(m => (m.get(id), m.removed(id)))
-      } yield opt.map(_.transformInto[ApiAccountDetails.Public])
-    }
   }
 }

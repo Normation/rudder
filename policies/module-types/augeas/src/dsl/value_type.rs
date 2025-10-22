@@ -74,7 +74,7 @@ impl Display for ValueType {
             Self::Float => "float",
             Self::Bool => "bool",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

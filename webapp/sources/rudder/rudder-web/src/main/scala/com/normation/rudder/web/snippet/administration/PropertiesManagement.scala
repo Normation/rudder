@@ -54,6 +54,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.web.components.ComplianceModeEditForm
+import com.normation.rudder.web.snippet.WithNonce
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import net.liftweb.common.*
@@ -74,7 +75,7 @@ import scala.xml.Text
  */
 class PropertiesManagement extends DispatchSnippet with Loggable {
 
-  private val configService: ReadConfigService with UpdateConfigService = RudderConfig.configService
+  private val configService: ReadConfigService & UpdateConfigService = RudderConfig.configService
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val uuidGen              = RudderConfig.stringUuidGenerator
 
@@ -182,7 +183,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         case Full(value) =>
           SHtml.ajaxCheckbox(
             value,
-            initJs _,
+            initJs,
             ("id", "enabled"),
             ("class", "twoCol")
           )
@@ -266,8 +267,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#changeMessageSubmit " #> {
-      SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
-    }) apply (xml ++ Script(initJs(enabled)))
+      SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
+    }) apply (xml ++ WithNonce.scriptWithNonce(Script(initJs(enabled))))
   }
 
   def cfserverNetworkConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
@@ -323,8 +324,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } &
 
     "#cfserverNetworkSubmit " #> {
-      SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success space-top"))
-    }) apply (xml ++ Script(check()))
+      SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success space-top"))
+    }) apply (xml ++ WithNonce.scriptWithNonce(Script(check())))
   }
 
   def relaySynchronizationMethodManagement: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
@@ -413,7 +414,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             (<ul id="relaySyncMethod">{
               RelaySynchronizationMethod.values.map(radioHtml)
             }
-              </ul>: NodeSeq) ++ Script(OnLoad(setRelaySyncMethodJs(value.value)))
+              </ul>: NodeSeq) ++ WithNonce.scriptWithNonce(Script(OnLoad(setRelaySyncMethodJs(value.value))))
           case eb: EmptyBox =>
             val fail = eb ?~ "there was an error while fetching value of property: 'Synchronize Policies using rsync' "
             <div class="error">{fail.msg}</div>
@@ -470,9 +471,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       } &
       "#relaySynchronizationSubmit " #> {
-        SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+        SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
       }
-    ) apply (xml ++ Script(check()))
+    ) apply (xml ++ WithNonce.scriptWithNonce(Script(check())))
   }
 
   val agentScheduleEditForm = new AgentScheduleEditForm(
@@ -580,8 +581,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     } &
     "#cfengineGlobalPropsSubmit " #> {
-      SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
-    }) apply (xml ++ Script(check()))
+      SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
+    }) apply (xml ++ WithNonce.scriptWithNonce(Script(check())))
   }
 
   def loggingConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
@@ -634,8 +635,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     } &
     "#loggingConfigurationSubmit " #> {
-      SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
-    }) apply (xml ++ Script(check()))
+      SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
+    }) apply (xml ++ WithNonce.scriptWithNonce(Script(check())))
   }
 
   def addDisabled(disabled: Boolean): NodeSeq => NodeSeq = {
@@ -706,10 +707,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         )
       } &
       "#generationHookCfpromiseSubmit " #> {
-        SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+        SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
       } &
       "#generationHookCfpromiseSubmit *+" #> {
-        Script(check())
+        WithNonce.scriptWithNonce(Script(check()))
       }) apply (xml)
     }
   }
@@ -740,7 +741,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     }
 
     def readProp(): TriggerProp = {
-      (try { Right(File(propPath).lineIterator(StandardCharsets.UTF_8).toVector) }
+      (try { Right(File(propPath).lineIterator(using StandardCharsets.UTF_8).toVector) }
       catch {
         case ex: Exception =>
           Left(s"Error when trying to read properties for hook in '${propPath}': ${ex.getClass.getSimpleName}: ${ex.getMessage}")
@@ -753,7 +754,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     def writeProp(maxNodes: Int, percent: Int): Result[Unit] = {
       try {
-        val lines    = File(propPath).lineIterator(StandardCharsets.UTF_8).toVector
+        val lines    = File(propPath).lineIterator(using StandardCharsets.UTF_8).toVector
         val replaced = lines.map {
           case l =>
             l match {
@@ -766,7 +767,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               case _                           => l
             }
         }
-        File(propPath).writeText(replaced.mkString("\n"))(better.files.File.OpenOptions.default, StandardCharsets.UTF_8)
+        File(propPath).writeText(replaced.mkString("\n"))(using better.files.File.OpenOptions.default, StandardCharsets.UTF_8)
         Right(())
       } catch {
         case ex: Exception =>
@@ -890,10 +891,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             )
           } &
           "#generationHookTriggerNodeUpdateSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+            SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
           } &
           "#generationHookTriggerNodeUpdateSubmit *+" #> {
-            Script(check())
+            WithNonce.scriptWithNonce(Script(check()))
           }) apply (xml)
       }
     }
@@ -933,10 +934,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
         } &
         "#sendMetricsSubmit " #> {
-          SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+          SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
         } &
         "#sendMetricsSubmit *+" #> {
-          Script(check())
+          WithNonce.scriptWithNonce(Script(check()))
         })
       case eb: EmptyBox =>
         ("#sendMetrics" #> {
@@ -985,7 +986,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           )
         } &
         "#displayGraphsSubmit " #> {
-          SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+          SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
         } &
         "#displayColumnsCheckbox" #> {
           SHtml.ajaxCheckbox(
@@ -995,7 +996,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           )
         } &
         "#displayGraphsSubmit *+" #> {
-          Script(check())
+          WithNonce.scriptWithNonce(Script(check()))
         })
       case (eb: EmptyBox, _)                       =>
         ("#displayGraphs" #> {
@@ -1013,7 +1014,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             {failColumns.messageChain}
           </div>
         })
-    }) apply (xml ++ Script(Run(s"""$$("#displayGraphsSubmit").attr("disabled",true);""")))
+    }) apply (xml ++ WithNonce.scriptWithNonce(Script(Run(s"""$$("#displayGraphsSubmit").attr("disabled",true);"""))))
   }
 
   def directiveScriptEngineConfiguration: NodeSeq => NodeSeq = { (xml: NodeSeq) =>
@@ -1059,10 +1060,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           )
         } &
         "#directiveScriptEngineSubmit " #> {
-          SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+          SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
         } &
         "#directiveScriptEngineSubmit *+" #> {
-          Script(check())
+          WithNonce.scriptWithNonce(Script(check()))
         })
 
       case eb: EmptyBox =>
@@ -1139,10 +1140,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         ("id", "nodeOnAcceptPolicyMode")
       ) &
       "#nodeOnAcceptDefaultsSubmit" #> {
-        SHtml.ajaxSubmit("Save changes", submit _, ("class", "btn btn-success"))
+        SHtml.ajaxSubmit("Save changes", submit, ("class", "btn btn-success"))
       } &
       "#nodeOnAcceptDefaultsSubmit *+" #> {
-        Script(check())
+        WithNonce.scriptWithNonce(Script(check()))
       }
 
     }) match {

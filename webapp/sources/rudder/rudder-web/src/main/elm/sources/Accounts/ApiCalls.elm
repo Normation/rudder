@@ -3,7 +3,6 @@ module Accounts.ApiCalls exposing (..)
 import Http exposing (..)
 import Url.Builder exposing (QueryParameter)
 import Http.Detailed as Detailed
-
 import Accounts.DataTypes exposing (..)
 import Accounts.JsonDecoder exposing (..)
 import Accounts.JsonEncoder exposing (..)
@@ -75,7 +74,7 @@ regenerateToken account model =
       request
         { method  = "POST"
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
-        , url     = getUrl model ["apiaccounts", account.id, "regenerate"] []
+        , url     = getUrl model ["apiaccounts", account.id, "token", "regenerate"] []
         , body    = emptyBody
         , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo)
         , timeout = Nothing

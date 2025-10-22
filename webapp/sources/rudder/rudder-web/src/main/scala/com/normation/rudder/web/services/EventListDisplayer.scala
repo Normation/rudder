@@ -42,7 +42,6 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.web.snippet.WithNonce
 import doobie.*
 import doobie.implicits.*
-import doobie.implicits.javasql.*
 import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
@@ -62,9 +61,7 @@ import scala.xml.*
  */
 class EventListDisplayer(repos: EventLogRepository) extends Loggable {
 
-  private val gridName = "eventLogsGrid"
-
-  def display(refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
+  def display(gridName: String, refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
     // common part between last events and interval
     def displayEvents(events: Box[Seq[EventLog]]): JsCmd = {
       events match {

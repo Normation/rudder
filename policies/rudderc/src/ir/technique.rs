@@ -473,10 +473,11 @@ impl DeserTechnique {
 pub struct ForeachContext {
     variable_name: String,
     data: HashMap<String, String>,
+    index: usize,
 }
 
 impl ForeachContext {
-    fn new(variable_name: Option<String>, data: HashMap<String, String>) -> Self {
+    fn new(variable_name: Option<String>, data: HashMap<String, String>, index: usize) -> Self {
         let v = if let Some(vn) = variable_name {
             vn
         } else {
@@ -485,6 +486,7 @@ impl ForeachContext {
         ForeachContext {
             variable_name: v,
             data,
+            index,
         }
     }
     fn expand(self, template: String) -> String {
@@ -525,7 +527,19 @@ impl DeserItem {
                 .iter()
                 .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
         });
-
+        let id = if context.is_empty() {
+            self.id.clone()
+        } else {
+            Id::from_str(&format!(
+                "{}-{}",
+                self.id,
+                context
+                    .iter()
+                    .map(|i| i.index.to_string())
+                    .collect::<Vec<String>>()
+                    .join("-")
+            ))?
+        };
         let params = self
             .params
             .clone()
@@ -543,6 +557,7 @@ impl DeserItem {
             description,
             documentation,
             params,
+            id,
             ..self.clone()
         })
     }
@@ -571,10 +586,14 @@ impl DeserItem {
         let branches: Result<Vec<DeserItem>> = if let Some(ref cases) = self.foreach {
             cases
                 .iter()
+                .enumerate()
                 .map(|b| {
                     let mut branch_context = parent_context.clone();
-                    branch_context
-                        .push(ForeachContext::new(self.foreach_name.clone(), b.to_owned()));
+                    branch_context.push(ForeachContext::new(
+                        self.foreach_name.clone(),
+                        b.1.to_owned(),
+                        b.0,
+                    ));
                     let branch_resolved_state = if is_first_item {
                         first_item_resolved_state.clone()
                     } else {
@@ -924,21 +943,25 @@ mod tests {
     fn it_should_render_loop_variables_using_context_1() {
         let d = DeserItem {
             name: "My ${item.key1} item is ${plouf.key1}".to_string(),
+            id: Id::from_str("10437ad9-db29-47c7-a44b-88e48020e65f").unwrap(),
             ..DeserItem::default()
         };
         let context = vec![
             ForeachContext::new(
                 None,
                 HashMap::from([("key1".to_string(), "templatized".to_string())]),
+                0,
             ),
             ForeachContext::new(
                 Some("plouf".to_string()),
                 HashMap::from([("key1".to_string(), "this one".to_string())]),
+                1,
             ),
         ];
         assert_eq!(
             DeserItem {
                 name: "My templatized item is this one".to_string(),
+                id: Id::from_str("10437ad9-db29-47c7-a44b-88e48020e65f-0-1").unwrap(),
                 ..d.clone()
             },
             d.replace_using_context(context).unwrap()
@@ -955,12 +978,14 @@ mod tests {
             name: "My ${item.key1} item is ${plouf.key1}".to_string(),
             documentation: Some("${item.${plouf.key2}} ${plouf.${plouf.key2}}".to_string()),
             items: vec![child],
+            id: Id::from_str("7c4ca751-a757-4103-88a0-e7ca0ea91e54").unwrap(),
             ..DeserItem::default()
         };
         let context = vec![
             ForeachContext::new(
                 None,
                 HashMap::from([("key1".to_string(), "templatized".to_string())]),
+                0,
             ),
             ForeachContext::new(
                 Some("plouf".to_string()),
@@ -968,12 +993,14 @@ mod tests {
                     ("key1".to_string(), "this one".to_string()),
                     ("key2".to_string(), "key1".to_string()),
                 ]),
+                1,
             ),
         ];
         assert_eq!(
             DeserItem {
                 name: "My templatized item is this one".to_string(),
                 documentation: Some("${item.key1} ${plouf.key1}".to_string()),
+                id: Id::from_str("7c4ca751-a757-4103-88a0-e7ca0ea91e54-0-1").unwrap(),
                 ..parent.clone()
             },
             parent.replace_using_context(context).unwrap()
@@ -1004,7 +1031,7 @@ mod tests {
         };
         let expected = vec![
             DeserItem {
-                id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1").unwrap(),
+                id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1-0").unwrap(),
                 method: Some("package_present".to_string()),
                 params: HashMap::from([
                     ("path".to_string(), "/1/file.txt".to_string()),
@@ -1015,7 +1042,7 @@ mod tests {
                 ..DeserItem::default()
             },
             DeserItem {
-                id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1").unwrap(),
+                id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1-1").unwrap(),
                 method: Some("package_present".to_string()),
                 params: HashMap::from([
                     ("path".to_string(), "/2/file.txt".to_string()),

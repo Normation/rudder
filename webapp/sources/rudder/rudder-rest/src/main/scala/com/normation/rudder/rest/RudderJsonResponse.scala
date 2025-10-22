@@ -45,7 +45,6 @@ import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import scala.collection.immutable
 import zio.json.*
-import zio.json.DeriveJsonEncoder
 
 /*
  * This class deals with everything serialisation related for API.
@@ -100,7 +99,9 @@ object RudderJsonResponse {
   final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(implicit encoder: JsonEncoder[A])
       extends LiftResponse {
     def toResponse: InMemoryResponse = {
-      val indent = if (prettify) Some(2) else None
+      // Indent is not the number of space per indentation, but the level of indentation for this elem starts...
+      // if we set 2, it will think it is at level 2 already, hence produce 4 four spaces
+      val indent = if (prettify) Some(0) else None
       val bytes  = encoder.encodeJson(json, indent).toString.getBytes("UTF-8")
       InMemoryResponse(
         bytes,
@@ -177,7 +178,7 @@ object RudderJsonResponse {
       prettify: Boolean,
       encoder:  JsonEncoder[A]
   ): LiftJsonResponse[
-    ? <: JsonRudderApiResponse[? <: immutable.Iterable[Any] with PartialFunction[Int with String, Any] with Equals]
+    ? <: JsonRudderApiResponse[? <: immutable.Iterable[Any] & PartialFunction[Int & String, Any] & Equals]
   ] = {
     schema.dataContainer match {
       case None      =>
@@ -252,10 +253,13 @@ object RudderJsonResponse {
           .fold(
             err => {
               ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
+
+              // here, we don't want to return stack trace, since it can be security vulnerability
+              internalError(None, schema, err.msg)
             },
             seq => successList(schema, seq.toList)
           )
+          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, schema, err.getMessage)))
           .runNow
       }
       def toLiftResponseList(params: DefaultParams, schema: EndpointSchema)(implicit encoder: JsonEncoder[A]): LiftResponse = {
@@ -287,10 +291,13 @@ object RudderJsonResponse {
           .fold(
             err => {
               ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(id.error, schema, err.fullMsg)
+
+              // here, we don't want to return stack trace, since it can be security vulnerability
+              internalError(id.error, schema, err.msg)
             },
             one => successOne(schema, one, id.success(one))
           )
+          .catchAllDefect(err => zio.ZIO.succeed(internalError(id.error, schema, err.getMessage)))
           .runNow
       }
       def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
@@ -314,13 +321,16 @@ object RudderJsonResponse {
           .fold(
             err => {
               ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, errorSchema, err.fullMsg)
+
+              // here, we don't want to return stack trace, since it can be security vulnerability
+              internalError(None, errorSchema, err.msg)
             },
             one => {
               val (schema, x, id) = map(one)
               successOne(schema, x, id)
             }
           )
+          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, errorSchema, err.getMessage)))
           .runNow
       }
 
@@ -349,12 +359,12 @@ object RudderJsonResponse {
       def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
           ev: A <:< Either[ResponseError, B]
       ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(JsonEncoder[B], ev)
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(using JsonEncoder[B], ev)
       }
       def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
           ev: A <:< Either[ResponseError, B]
       ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(JsonEncoder[B], ev)
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(using JsonEncoder[B], ev)
       }
 
       def toLiftResponseZeroEither(
@@ -381,12 +391,12 @@ object RudderJsonResponse {
       def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(ev)
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(using ev)
       }
       def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(ev)
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(using ev)
       }
 
     }
@@ -417,10 +427,13 @@ object RudderJsonResponse {
           .fold(
             err => {
               ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
+
+              // here, we don't want to return stack trace, since it can be security vulnerability
+              internalError(None, schema, err.msg)
             },
             msg => successZero(schema, msg)
           )
+          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, schema, err.getMessage)))
           .runNow
       }
       def toLiftResponseZero(params: DefaultParams, schema: EndpointSchema): LiftResponse = {

@@ -54,8 +54,6 @@ import org.apache.commons.text.StringEscapeUtils
 final case class TechniqueName(value: String) extends AnyVal with Ordered[TechniqueName] {
   override def compare(that: TechniqueName): Int = this.value.compare(that.value)
 
-  // to avoid compat error
-  @deprecated(s"Please call `.value` in place of toString()", "7.0")
   override def toString: String = value
 }
 
@@ -66,7 +64,7 @@ final case class TechniqueName(value: String) extends AnyVal with Ordered[Techni
  */
 final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) extends Ordered[TechniqueId] {
   // intended for debug/log, not serialization
-  def debugString = serialize
+  def debugString:    String      = serialize
   // a technique
   def serialize:      String      = name.value + "/" + version.serialize
   def withDefaultRev: TechniqueId = TechniqueId(name, version.withDefaultRev)
@@ -77,8 +75,6 @@ final case class TechniqueId(name: TechniqueName, version: TechniqueVersion) ext
     else c
   }
 
-  // to avoid compat error
-  @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
   override def toString: String = serialize
 }
 

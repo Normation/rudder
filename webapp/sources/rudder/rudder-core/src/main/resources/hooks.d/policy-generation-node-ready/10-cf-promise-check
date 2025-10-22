@@ -7,7 +7,7 @@
 # - RUDDER_NODE_HOSTNAME         : the node fully qualified hostname
 # - RUDDER_NODE_POLICY_SERVER_ID : the node policy server id
 # - RUDDER_AGENT_TYPE            : agent type ("cfengine-community" or "dsc")
-# - RUDDER_POLICIES_DIRECTORY_NEW: new policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules.new)
+# - RUDDER_POLICIES_DIRECTORY_NEW: the full path of the base directory containing next policies for that node (during a generation) (/var/rudder/share/$RUDDER_NODE_ID/rules.new/$RUDDER_AGENT_TYPE)
 
 if [ -z "${RUDDER_POLICIES_DIRECTORY_NEW}" ]; then
   #bad rules.new directory
@@ -16,7 +16,7 @@ if [ -z "${RUDDER_POLICIES_DIRECTORY_NEW}" ]; then
 else
   case "${RUDDER_AGENT_TYPE}" in
     "cfengine-community")
-      exec /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
+      exec /opt/rudder/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
     ;;
 
     "dsc")

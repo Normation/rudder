@@ -43,16 +43,23 @@ const paths = {
             'node_modules/*/js/*.min.js*',
             'node_modules/*/dist/**/*.min.js*',
             'node_modules/*/*.min.js*',
+            'node_modules/chart.js/dist/chart.umd.js',
             'node_modules/datatables.net-plugins/sorting/natural.js',
             'node_modules/showdown-xss-filter/showdown-xss-filter.js',
-            'node_modules/jsondiffpatch/dist/jsondiffpatch.umd.slim.js',
         ],
         'dest': 'webapp/javascript/libs',
+    },
+    'vendor_esm': { // map of ESM sources per library
+        "jsondiffpatch" : {
+            'src': [
+                'node_modules/jsondiffpatch/lib/**/*.js',
+                'node_modules/jsondiffpatch/lib/**/*.css',
+            ],
+        }
     },
     'vendor_css': {
         'src': [
             'node_modules/*/dist/**/*.min.css*',
-            'node_modules/jsondiffpatch/dist/formatters-styles/html.css',
         ],
         'dest': 'webapp/style/libs',
     },
@@ -153,6 +160,15 @@ function vendor_js(cb) {
     cb();
 };
 
+function vendor_esm(cb) {
+    Object.entries(paths.vendor_esm).forEach(([lib, entry]) =>
+        src(entry.src, { base: "node_modules" })
+            .pipe(rename(({ dirname }) => { dirname: lib + "/" + dirname }))
+            .pipe(dest(entry.dest ?? paths.vendor_js.dest))
+    );
+    cb();
+};
+
 function css(cb) {
     src(paths.css.src, { encoding: false })
         .pipe(dest(paths.css.dest));
@@ -177,14 +193,17 @@ function vendor_css(cb) {
 };
 
 function scss(cb) {
-    var rudderScss = src(paths.scss.src)
+    // with the pinned sass version we could ignore some deprecations :
+    // https://github.com/twbs/bootstrap/issues/40962#issuecomment-2470260308
+    const deprecations = ['legacy-js-api', 'mixed-decls', 'color-functions', 'global-builtin', 'import'];
+    const rudderScss = src(paths.scss.src)
       .pipe(sourcemaps.init())
-      .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
+      .pipe(sass({style: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
       .pipe(sourcemaps.write())
       .pipe(dest(paths.scss.dest));
-    var loginScss = src(paths.login_scss.src)
+    const loginScss = src(paths.login_scss.src)
       .pipe(sourcemaps.init())
-      .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
+      .pipe(sass({style: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
       .pipe(sourcemaps.write())
       .pipe(dest(paths.login_scss.dest));
     merge2(rudderScss, loginScss);
@@ -200,7 +219,8 @@ task('watch', series(clean, function() {
     watch(paths.css.src, { ignoreInitial: false }, css);
     watch(paths.scss.src, { ignoreInitial: false }, scss);
     watch(paths.vendor_js.src, { ignoreInitial: false }, vendor_js);
+    watch(paths.vendor_esm.src, { ignoreInitial: false }, vendor_esm);
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
 }));
 
-task('default', series(clean, parallel(svg, elm, css, scss, js, vendor_css, vendor_js)));
+task('default', series(clean, parallel(svg, elm, css, scss, js, vendor_css, vendor_js, vendor_esm)));

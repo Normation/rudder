@@ -117,7 +117,7 @@ pub mod book {
             .open(&summary_file)
             .with_context(|| format!("Failed to open summary file '{}'", summary_file.display()))?;
 
-        // Now let's extract the categories from method list
+        // Now let's extract the categories from the method list
         let mut methods: Vec<_> = methods.iter().collect();
         methods.sort_by(|x, y| x.0.cmp(y.0));
         let mut categories: Vec<&str> = methods
@@ -132,12 +132,25 @@ pub mod book {
             if let Some(r) = pretty_category.get_mut(0..1) {
                 r.make_ascii_uppercase();
             }
-            writeln!(summary, "# {pretty_category}")?;
+
+            writeln!(summary, "- [{pretty_category}](./{category}.md)")?;
             for (_, m) in methods.iter().filter(|(n, _)| n.starts_with(category)) {
                 let md_file = format!("{}.md", m.bundle_name);
                 let mut file = File::create(src_dir.join(&md_file))?;
                 file.write_all(markdown::method(m)?.as_bytes())?;
-                writeln!(summary, "- [{}]({})", m.bundle_name, &md_file)?;
+                writeln!(summary, "  - [{}]({})", m.bundle_name, &md_file)?;
+            }
+
+            // Category method index
+            let md_file = format!("{category}.md");
+            let mut file = File::create(src_dir.join(&md_file))?;
+            writeln!(file, "# {pretty_category}")?;
+            for (_, m) in methods.iter().filter(|(n, _)| n.starts_with(category)) {
+                writeln!(
+                    file,
+                    "- [{} ({})](./{}.md)",
+                    m.name, m.bundle_name, m.bundle_name
+                )?;
             }
         }
 

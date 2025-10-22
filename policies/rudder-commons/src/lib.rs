@@ -149,6 +149,10 @@ impl Display for ParameterFormat {
 
 impl ParameterFormat {
     pub fn validate(&self, s: &str) -> Result<()> {
+        if s.trim().is_empty() {
+            // Allow empty value for optional parameters
+            return Ok(());
+        }
         match self {
             ParameterFormat::Json => serde_json::from_str::<serde_json::Value>(s).map(|_| ())?,
             ParameterFormat::Yaml => serde_yaml::from_str::<serde_yaml::Value>(s).map(|_| ())?,
@@ -253,24 +257,24 @@ impl MethodConstraints {
                 bail!("value '{}' does match forbidden regex '{}'", value, r.value)
             }
         }
-        if let Some(s) = &self.select {
-            if !s.iter().any(|x| x.value == value) {
-                bail!(
-                    "value '{}' not included in allowed set {:?}",
-                    value,
-                    s.iter().map(|s| s.value.clone()).collect::<Vec<String>>()
-                )
-            }
+        if let Some(s) = &self.select
+            && !s.iter().any(|x| x.value == value)
+        {
+            bail!(
+                "value '{}' not included in allowed set {:?}",
+                value,
+                s.iter().map(|s| s.value.clone()).collect::<Vec<String>>()
+            )
         }
-        if let Some(f) = &self.valid_format {
-            if let Err(e) = f.validate(value) {
-                bail!(
-                    "value '{}' does match the expected format '{}': {:?}",
-                    value,
-                    f,
-                    e
-                )
-            }
+        if let Some(f) = &self.valid_format
+            && let Err(e) = f.validate(value)
+        {
+            bail!(
+                "value '{}' does match the expected format '{}': {:?}",
+                value,
+                f,
+                e
+            )
         }
         Ok(())
     }
@@ -362,8 +366,7 @@ impl PolicyMode {
             "audit" => Ok(Some(PolicyMode::Audit)),
             "none" => Ok(None),
             _ => Err(Error::custom(format!(
-                "Could not parse policy mode '{}'",
-                string
+                "Could not parse policy mode '{string}'"
             ))),
         })
     }
@@ -490,6 +493,8 @@ mod tests {
                 .is_valid(r#"{"a": 42, "b": 42, "c": 42,}"#)
                 .is_err()
         );
+        assert!(constraints.is_valid(r#""#).is_ok());
+        assert!(constraints.is_valid(r#"  "#).is_ok());
 
         let constraints = MethodConstraints {
             valid_format: Some(ParameterFormat::Yaml),

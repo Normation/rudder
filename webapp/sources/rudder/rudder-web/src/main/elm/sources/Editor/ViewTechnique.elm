@@ -19,7 +19,6 @@ import Editor.ViewTechniqueList exposing (..)
 import Maybe.Extra
 import Json.Decode
 import Regex
-import String.Extra
 
 
 --
@@ -176,6 +175,7 @@ showTechnique model technique origin ui editInfo =
     areErrorOnMethodParameters = List.isEmpty (Dict.keys statesByMethodIdParameter)
     areErrorOnMethodCondition = List.isEmpty (Dict.keys statesByMethodIdCondition)
     isMethodListEmpty = List.isEmpty (technique.elems)
+    areResourceUpdated = List.any (.state >> (/=) Untouched) technique.resources
     -- Check if enum type is chosen, then we should verify that the list on enum is not empty
     isEnumListIsEmpty =
       if (List.isEmpty technique.parameters) then
@@ -228,7 +228,7 @@ showTechnique model technique origin ui editInfo =
              |> List.map (\(required, values) -> required && List.any String.isEmpty values)
          )
 
-    isUnchanged = case origin of
+    isUnchanged = (not areResourceUpdated) && case origin of
                     Edit t -> t == technique
                     Creation _ -> False
                     Clone t _ _ -> t == technique
@@ -265,10 +265,11 @@ showTechnique model technique origin ui editInfo =
       |> addAttributeList [ id "methods", class "list-unstyled" ]
       |> appendChild
            ( element "li"
-             |> addAttribute (id "no-methods")
+             |> addAttribute (class "no-methods")
+             |> addAction ("click", OpenMethods)
              |> appendChildList
                 [ element "i"
-                  |> addClass "fas fa-sign-in-alt"
+                  |> addClass "fas fa-sign-in-alt me-1"
                   |> addStyle ("transform", "rotate(90deg)")
                 , element "span"
                   |> appendText " Drag and drop generic methods here from the list on the right to build target configuration for this technique."
@@ -278,17 +279,10 @@ showTechnique model technique origin ui editInfo =
            )
       |> appendChildConditional
            ( element "li"
-             |> addAttribute (id "no-methods")
+             |> addClass "no-methods drop-zone"
              |> addStyle ("text-align", "center")
-             |> addClass (if (DragDrop.isCurrentDropTarget model.dnd StartList) then " drop-target" else "")
-             |> appendChild
-                ( element "i"
-                  |> addClass "fas fa-sign-in-alt"
-                  |> addStyle ("transform", "rotate(90deg)")
-                )
-             |> addStyle ("padding", "3px 15px")
+             |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd StartList)
              |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
-
            ) ( case DragDrop.currentlyDraggedObject model.dnd of
                  Nothing -> False
                  Just _ -> not (List.isEmpty technique.elems)
@@ -303,16 +297,11 @@ showTechnique model technique origin ui editInfo =
                                                        Just _ -> False
                   dropElem = AfterElem Nothing call
                   dropTarget =  element "li"
-                                   |> addAttribute (id "no-methods")
-                                   |> addStyle ("padding", "3px 15px")
+                                   |> addClass "no-methods drop-zone"
                                    |> addStyle ("text-align", "center")
-                                   |> addClass (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then " drop-target" else  "")
+                                   |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd dropElem)
                                    |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
-                                   |> appendChild
-                                      ( element "i"
-                                        |> addClass "fas fa-sign-in-alt"
-                                        |> addStyle ("transform", "rotate(90deg)")
-                                      )
+
                   base = if currentDrag then [] else [dropTarget]
                   elem =
                       case call of
@@ -330,13 +319,44 @@ showTechnique model technique origin ui editInfo =
                   elem :: base
              ) technique.elems
            )
-    btnSave : Bool -> Bool -> Msg -> Html Msg
-    btnSave saving disable action =
+
+    checkList : List (Bool, String)
+    checkList =
+      [ (isUnchanged, "There are no modifications to save")
+      , (not (isValid technique ui), "Technique is invalid")
+      , (String.isEmpty technique.name, "Technique name cannot be empty")
+      , (isMethodListEmpty, "Technique must contain at least one method")
+      , (not areErrorOnMethodParameters, "There are errors on method parameters")
+      , (not areErrorOnMethodCondition, "There are errors on method conditions")
+      , (not areBlockOnError, "There are errors on blocks")
+      , (isEnumListIsEmpty, "Enum type parameters should contain at least one element")
+      , (isEnumWithEmptyName, "The display name of Enum type parameter values cannot be empty")
+      , (isEnumWithEmptyValue, "The value of Enum type parameter values cannot be empty")
+      ]
+
+    btnSave : Bool -> List (Bool, String) -> Msg -> Html Msg
+    btnSave saving disableChecks action =
       let
-        icon = if saving then i [ class "fa fa-spinner fa-pulse"] [] else i [ class "fa fa-download"] []
+        disable = disableChecks |> List.any (\(check, _) -> check == True)
+        btnTitle =
+          if disable then
+            String.append
+              ( disableChecks
+                |> List.filter (\(check, _) -> check == True )
+                |> List.map (\(_, txt) -> txt )
+                |> String.join ".\n"
+              ) "."
+          else
+            ""
+        icon = if saving then "fa-spinner fa-pulse" else if disable then "fa-ban" else "fa-download"
       in
-        button [class ("btn btn-success btn-save" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
-        [ icon ]
+        button
+        [ class ("btn btn-success btn-save" ++ (if saving then " saving" else ""))
+        , type_ "button"
+        , Html.Attributes.title btnTitle
+        , disabled (saving || disable)
+        , onClick action
+        ] [ i [ class ("fa " ++ icon)][] ]
   in
     div [ class "main-container" ] [
       div [ class "main-header" ] [
@@ -359,7 +379,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError || isEnumListIsEmpty || isEnumWithEmptyName || isEnumWithEmptyValue) StartSaving
+          , btnSave ui.saving checkList StartSaving
           ]
         ]
       ]

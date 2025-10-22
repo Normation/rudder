@@ -67,17 +67,17 @@
   <div class="main-header">
     <head_merge>
       <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-nodeproperties.js"></script>
-      <script>
+      <script data-lift="with-nonce">
         var CanWriteNode = false;
         var CanReadNode  = false;
       </script>
       <lift:authz role="node_write">
-        <script>
+        <script data-lift="with-nonce">
           CanWriteNode = true;
         </script>
       </lift:authz>
       <lift:authz role="node_read">
-        <script>
+        <script data-lift="with-nonce">
           CanReadNode = true;
         </script>
       </lift:authz>
@@ -102,9 +102,13 @@
         <li class="nav-item">
           <button class="nav-link" data-bs-toggle="tab" data-bs-target="#system_status" type="button" role="tab" aria-controls="system_status" aria-selected="false">System status</button>
         </li>
-        <li class="nav-item">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_logs" type="button" role="tab" aria-controls="node_logs" aria-selected="false">Technical logs</button>
-        </li>
+        <lift:authz role="node_read">
+          <lift:authz role="compliance_read">
+            <li class="nav-item">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_logs" type="button" role="tab" aria-controls="node_logs" aria-selected="false">Technical logs</button>
+            </li>
+          </lift:authz>
+        </lift:authz>
         <li class="nav-item">
           <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_parameters" type="button" role="tab" aria-controls="node_parameters" aria-selected="false">Settings</button>
         </li>
@@ -114,7 +118,7 @@
       <div class="template-main">
         <div class="main-container">
           <div class="main-details">
-            <div class="tab-content">
+            <div class="tab-content" id="NodeDetailsTabContent">
               <div id="node_summary" class="tab-pane">
                 <div class="d-flex">
                   <div id="nodeDetails"></div>
@@ -133,9 +137,13 @@
                 <div id="reportsDetails"></div>
               </div>
 
-              <div id="node_logs" class="tab-pane">
-                <div id="logsDetails"></div>
-              </div>
+              <lift:authz role="node_read">
+                <lift:authz role="compliance_read">
+                  <div id="node_logs" class="tab-pane">
+                    <div id="logsDetails"></div>
+                  </div>
+                </lift:authz>
+              </lift:authz>
 
               <div id="node_properties" class="tab-pane">
                 <div id="nodeProperties"></div>

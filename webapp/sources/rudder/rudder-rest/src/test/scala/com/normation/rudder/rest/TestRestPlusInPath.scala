@@ -77,10 +77,15 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
   override def beforeAll(): Unit = {
 
     val nodeCom = NodeFact.fromMinimal(
-      env.mockNodes.nodeFactRepo.get(NodeId("node1"))(QueryContext.testQC).runNow.get.modify(_.id.value).setTo("node@domain.com")
+      env.mockNodes.nodeFactRepo
+        .get(NodeId("node1"))(using QueryContext.testQC)
+        .runNow
+        .get
+        .modify(_.id.value)
+        .setTo("node@domain.com")
     )
     ZioRuntime.unsafeRun {
-      env.mockNodes.nodeFactRepo.save(nodeCom)(ChangeContext.newForRudder()) *>
+      env.mockNodes.nodeFactRepo.save(nodeCom)(using ChangeContext.newForRudder()) *>
       env.mockRules.ruleRepo.rulesMap.update(_ + (rule.id -> rule))
     }
   }
@@ -95,7 +100,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
     mockReq.method = "GET"
     mockReq.path = "/api/latest/rules/ff44fb97-b65e-43c4-b8c2-0df8d5e8549f+gitrevision" // should be kept
-    mockReq.body = ""
+    mockReq.body = "".getBytes
     mockReq.headers = Map()
     mockReq.contentType = "text/plain"
 
@@ -131,7 +136,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
     mockReq.method = "GET"
     mockReq.path = "/api/latest/nodes/node@domain.com" // should be kept
     mockReq.queryString = "include=minimal"
-    mockReq.body = ""
+    mockReq.body = "".getBytes
     mockReq.headers = Map()
     mockReq.contentType = "text/plain"
 

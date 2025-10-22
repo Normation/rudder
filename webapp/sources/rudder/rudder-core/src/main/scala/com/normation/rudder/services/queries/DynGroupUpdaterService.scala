@@ -84,6 +84,11 @@ trait DynGroupUpdaterService {
 
   def updateAll(modId: ModificationId)(implicit cc: ChangeContext): Box[Seq[DynGroupDiff]]
 
+  /*
+   * Compute dynamic group but limit to nodes given in argument. The limit can be because of
+   * a visibility limit given by changeContext or to be sure to not add nodes in the middle
+   * of several group update to ensure consistency.
+   */
   def computeDynGroup(group: NodeGroup)(implicit qc: QueryContext): Box[NodeGroup]
 }
 
@@ -104,7 +109,7 @@ class DynGroupUpdaterServiceImpl(
           val timePreCompute = System.currentTimeMillis
           for {
             newMembers      <-
-              queryProcessor.processOnlyId(
+              queryProcessor.process(
                 query
               ) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
             timeGroupCompute = (System.currentTimeMillis - timePreCompute)
@@ -124,7 +129,7 @@ class DynGroupUpdaterServiceImpl(
       dynGroups  = allGroups.filter(_.isDynamic)
       result    <- com.normation.utils.Control.traverse(dynGroups) { group =>
                      for {
-                       newGroup   <- computeDynGroup(group)(cc.toQuery)
+                       newGroup   <- computeDynGroup(group)(using cc.toQuery)
                        savedGroup <-
                          woNodeGroupRepository
                            .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
@@ -143,8 +148,8 @@ class DynGroupUpdaterServiceImpl(
   )(implicit cc: ChangeContext): Box[DynGroupDiff] = {
     val timePreUpdate = System.currentTimeMillis
     for {
-      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(cc.toQuery).toBox
-      newGroup       <- computeDynGroup(group)(cc.toQuery)
+      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(using cc.toQuery).toBox
+      newGroup       <- computeDynGroup(group)(using cc.toQuery)
       savedGroup     <- woNodeGroupRepository
                           .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
                           .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"

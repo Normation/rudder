@@ -39,13 +39,11 @@ package com.normation.rudder.services.queries
 
 import cats.implicits.*
 import com.normation.box.*
+import com.normation.errors.*
+import com.normation.rudder.apidata.implicits.queryDecoder
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.domain.queries.QueryReturnType.*
-import com.normation.rudder.services.queries.CmdbQueryParser.*
-import com.normation.utils.Control.traverse
 import net.liftweb.common.*
-import net.liftweb.json.*
-import net.liftweb.json.JsonParser.ParseException
+import zio.json.*
 
 /**
  * This trait is the general interface that
@@ -98,19 +96,25 @@ object CmdbQueryParser {
 }
 
 trait QueryLexer {
-  def lex(query: String): Box[StringQuery]
-  // We are awaiting for a Map(String,String) as json object,
-  // with keys: objectType, attribute, comparator, value
+  def lex(query: String): Box[StringQuery] = lexPure(query).toBox
+
+  def lexPure(query: String): PureResult[StringQuery]
 }
 
 trait StringQueryParser {
-  def parse(query: StringQuery): Box[Query]
+  def parse(query:     StringQuery): Box[Query]
+  def parsePure(query: StringQuery): PureResult[Query]
 }
 
 sealed trait CmdbQueryParser extends StringQueryParser with QueryLexer {
   def apply(query: String): Box[Query] = for {
     sq <- lex(query)
     q  <- parse(sq)
+  } yield q
+
+  def applyPure(query: String): PureResult[Query] = for {
+    sq <- query.fromJson[StringQuery].leftMap(errMsg => Inconsistency(errMsg))
+    q  <- parsePure(sq)
   } yield q
 }
 
@@ -129,27 +133,26 @@ trait DefaultStringQueryParser extends StringQueryParser {
   def criterionObjects: Map[String, ObjectCriterion]
 
   override def parse(query: StringQuery): Box[Query] = {
+    parsePure(query).toBox
+  }
 
+  override def parsePure(query: StringQuery): PureResult[Query] = {
     for {
       comp  <- query.composition match {
-                 case None    => Full(defaultComposition)
-                 case Some(s) =>
-                   CriterionComposition.parse(s) match {
-                     case Some(x) => Full(x)
-                     case None    => Failure(s"The requested composition '${query.composition}' is not know")
-                   }
+                 case None    => Right(defaultComposition)
+                 case Some(s) => CriterionComposition.parse(s)
                }
       trans <- query.transform match {
-                 case None    => Full(defaultTransformation)
-                 case Some(x) => ResultTransformation.parse(x).toBox
+                 case None    => Right(defaultTransformation)
+                 case Some(x) => ResultTransformation.parse(x)
                }
-      lines <- traverse(query.criteria)(parseLine)
+      lines <- query.criteria.accumulatePure(parseLine andThen (_.leftMap(errMsg => Inconsistency(errMsg))))
     } yield {
-      Query(query.returnType, comp, trans, lines.toList)
+      Query(query.returnType, comp, trans, lines)
     }
   }
 
-  def parseLine(line: StringCriterionLine): Box[CriterionLine] = {
+  def parseLine(line: StringCriterionLine): Either[String, CriterionLine] = {
 
     (for {
       objectType <-
@@ -179,7 +182,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
                           Left("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
                         else Right("")
                     }
-    } yield CriterionLine(objectType, criterion, comparator, value)).toBox
+    } yield CriterionLine(objectType, criterion, comparator, value))
 
   }
 
@@ -198,127 +201,8 @@ trait RawStringQueryParser extends DefaultStringQueryParser {
  */
 trait JsonQueryLexer extends QueryLexer {
 
-  override def lex(query: String): Box[StringQuery] = for {
-    json <- jsonLex(query)
-    q    <- jsonParse(json)
-  } yield q
-
-  def jsonLex(s: String): Box[JValue] = try {
-    Full(JsonParser.parse(s))
-  } catch {
-    case e: ParseException =>
-      Failure("Parsing failed when processing query: " + s, Full(e), Empty)
+  override def lexPure(query: String): PureResult[StringQuery] = {
+    query.fromJson[StringQuery].left.map(Inconsistency.apply)
   }
 
-  def failureMissing(s:   String): Failure = Failure("Missing expected '%s' query parameter".format(s))
-  def failureEmpty(param: String): Failure = Failure("Parameter '%s' must be non empty in query".format(OBJECT))
-  def failureBadFormat(obj: String, f: Any): Failure = Failure(
-    "Bad query format for '%s' parameter. Expecting a string, found '%s'".format(obj, f)
-  )
-
-  def parseTarget(json: JObject): Box[QueryReturnType] = {
-    json.values.get(TARGET) match {
-      case None                                    => failureMissing(TARGET)
-      case Some(NodeReturnType.value)              => Full(NodeReturnType)
-      case Some(NodeAndRootServerReturnType.value) => Full(NodeAndRootServerReturnType)
-      case Some(x)                                 => failureBadFormat(TARGET, x)
-    }
-  }
-
-  def parseComposition(json: JObject): Box[Option[String]] = {
-    json.values.get(COMPOSITION) match {
-      case None            => Full(None)
-      case Some(x: String) => Full(if (x.nonEmpty) Some(x) else None)
-      case Some(x)         => failureBadFormat(COMPOSITION, x)
-    }
-  }
-
-  def parseTransform(json: JObject): Box[Option[String]] = {
-    json.values.get(TRANSFORM) match {
-      case None            => Full(None)
-      case Some(x: String) => Full(if (x.nonEmpty) Some(x) else None)
-      case Some(x)         => failureBadFormat(TRANSFORM, x)
-    }
-  }
-
-  def parseCriterionLine(json: JObject): Box[List[StringCriterionLine]] = {
-    json.values.get(CRITERIA) match {
-      case None               => Full(List[StringCriterionLine]())
-      case Some(arr: List[?]) =>
-        // try to parse all lines. On the first parsing error (parseCrtierion returns Failure),
-        // stop and return a Failure
-        // if all parsing are OK, return a Full(list(criterionLine)
-        arr.foldLeft(Full(List[StringCriterionLine]()): Box[List[StringCriterionLine]]) { (opt, x) =>
-          opt.flatMap(l => parseCriterion(x).map(_ :: l))
-        } match {
-          case Full(l) => Full(l.reverse)
-          case eb: EmptyBox =>
-            val fail = eb ?~! "Parsing criteria yields an empty result, abort"
-            fail
-        }
-      case Some(x)            => failureBadFormat(COMPOSITION, x)
-    }
-  }
-  def jsonParse(json: JValue):           Box[StringQuery]               = {
-    /*
-     * Structure of the Query:
-     * var query = {
-     *   'select' : 'server' ,  //what we are looking for at the end (servers, software...)
-     *   'composition' : 'and' ,  // or 'or'
-     *   'where': [
-     *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,  //value is optionnal, other are mandatory
-     *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' } ,
-     *     ...
-     *     { 'objectType' : '....' , 'attribute': '....' , 'comparator': '.....' , 'value': '....' }
-     *   ]
-     * }
-     */
-
-    json match {
-      case q @ JObject(attrs) =>
-        // target returned object
-        for {
-          target      <- parseTarget(q)
-          composition <- parseComposition(q)
-          transform   <- parseTransform(q)
-          criteria    <- parseCriterionLine(q)
-        } yield {
-          StringQuery(target, composition, transform, criteria.toList)
-        }
-      case x                  => Failure("Failed to parse the query, bad structure. Expected a JSON object, found: '%s'".format(x))
-    }
-  }
-
-  def parseCriterion(json: Any): Box[StringCriterionLine] = {
-
-    json match {
-      case l: Map[?, ?] =>
-        l.head match {
-          case (_: String, _: String) =>
-            val line = l.asInstanceOf[Map[String, String]] // is map always homogenous ?
-            // First, parse the line. Then, try to bind name with object
-
-            def getMandatoryAttribute(attribute: String) = {
-              line.get(attribute) match {
-                case None                  => Failure("Missing expected '%s' query parameter in criterion '%s'".format(attribute, line))
-                case Some(x) if x.nonEmpty => Full(x)
-                case Some(x)               => Failure("Parameter '%s' must be non empty in criterion '%s'".format(attribute, line))
-              }
-            }
-
-            def getOptionalAttribute(attribute: String) = line.get(attribute).filter(_.nonEmpty)
-
-            for {
-              objectType <- getMandatoryAttribute(OBJECT)
-              attribute  <- getMandatoryAttribute(ATTRIBUTE)
-              comparator <- getMandatoryAttribute(COMPARATOR)
-              value       = getOptionalAttribute(VALUE)
-            } yield StringCriterionLine(objectType, attribute, comparator, value)
-
-          case _ => Failure("Bad query format for criterion line. Expecting an (string,string), found '%s'".format(l.head))
-        }
-      case x => Failure("Bad query format for criterion line. Expecting an object, found '%s'".format(x))
-    }
-
-  }
 }

@@ -253,7 +253,7 @@ fn update(
     let services_list = match services.inner {
         Ok(ref p) => p.clone(),
         Err(ref e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             vec![]
         }
     };
@@ -262,6 +262,10 @@ fn update(
     if (reboot_type == RebootType::ServicesOnly || reboot_type == RebootType::AsNeeded)
         && !services_list.is_empty()
     {
+        report.stdout(format!(
+            "Restarting services: {}",
+            &services_list.join(", ")
+        ));
         let restart_result = system.restart_services(&services_list);
         // Don't fail on service restart failure
         report.step(restart_result);

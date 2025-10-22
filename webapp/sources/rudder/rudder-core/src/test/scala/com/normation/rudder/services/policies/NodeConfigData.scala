@@ -86,10 +86,11 @@ import com.softwaremill.quicklens.*
 import java.io.File
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
+import java.time.Instant
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import scala.collection.MapView
+import org.joda.time.DateTimeZone
 import scala.collection.SortedMap
 import zio.Chunk
 import zio.syntax.*
@@ -263,8 +264,8 @@ object NodeConfigData {
     ),
     RudderAgent(CfeCommunity, rootAdmin, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
-    DateTime.now,
-    DateTime.now,
+    Instant.now(),
+    Instant.now(),
     None,
     Chunk(IpAddress("127.0.0.1"), IpAddress("192.168.0.100")),
     Some(NodeTimezone("UTC", "+00")),
@@ -293,8 +294,8 @@ object NodeConfigData {
     ),
     RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
-    DateTime.now,
-    DateTime.now,
+    Instant.now(),
+    Instant.now(),
     None,
     Chunk(IpAddress("192.168.0.10")),
     None,
@@ -359,8 +360,8 @@ object NodeConfigData {
     ),
     RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
-    DateTime.now,
-    DateTime.now,
+    Instant.now(),
+    Instant.now(),
     None,
     Chunk(IpAddress("192.168.0.5")),
     None,
@@ -470,8 +471,8 @@ object NodeConfigData {
       ),
       RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate("node certificate"), Chunk.empty),
       Chunk.empty,
-      DateTime.now,
-      DateTime.now,
+      Instant.now(),
+      Instant.now(),
       None,
       Chunk(),
       None,
@@ -784,8 +785,35 @@ class TestNodeConfiguration(
     reportsDbUser = "rudder",
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.getAbsolutePath,
-    serverVersion = "7.0.0", // denybadclocks is runtime properties
+    serverVersion = "7.0.0",                // denybadclocks is runtime properties
+    PolicyServerCertificateConfig("sha256//Pxjkq/Qlp02j8Q3ti3M1khEaUTL7Dxcz8sLOfGcg5rQ=" :: Nil, "", false, false),
+    getDenyBadClocks = () => Full(true),
+    getSyncMethod = () => Full(Classic),
+    getSyncPromises = () => Full(false),
+    getSyncSharedFiles = () => Full(false), // TTLs are runtime properties too
 
+    getModifiedFilesTtl = () => Full(30),
+    getCfengineOutputsTtl = () => Full(7),
+    getReportProtocolDefault = () => Full(AgentReportingHTTPS)
+  )
+
+  // another system variable to test other variable configs
+  val systemVariableServiceAltConfig = new SystemVariableServiceImpl(
+    systemVariableServiceSpec,
+    policyServerManagement,
+    instanceIdService,
+    toolsFolder = "tools_folder",
+    policyDistribCfenginePort = 5309,
+    policyDistribHttpsPort = 443,
+    sharedFilesFolder = "/var/rudder/configuration-repository/shared-files",
+    webdavUser = "rudder",
+    webdavPassword = "rudder",
+    reportsDbUri = "jdbc:postgresql://localhost:5432/rudder",
+    reportsDbUser = "rudder",
+    reportsDbPassword = "secret",
+    configurationRepository = configurationRepositoryRoot.getAbsolutePath,
+    serverVersion = "7.0.0",                // denybadclocks is runtime properties
+    PolicyServerCertificateConfig(Nil, "", false, false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),
@@ -804,10 +832,10 @@ class TestNodeConfiguration(
   val factCfe: CoreNodeFact = fact1.modify(_.id).setTo(nodeId)
   val cfeNode = factCfe.toNodeInfo
 
-  val allNodeFacts_rootOnly: MapView[NodeId, CoreNodeFact] = MapView(root.id -> factRoot)
-  val allNodesInfo_rootOnly: Map[NodeId, NodeInfo]         = allNodeFacts_rootOnly.mapValues(_.toNodeInfo).toMap
-  val allNodeFacts_cfeNode:  MapView[NodeId, CoreNodeFact] = MapView(root.id -> factRoot, cfeNode.id -> factCfe)
-  val allNodesInfo_cfeNode:  Map[NodeId, NodeInfo]         = allNodeFacts_cfeNode.mapValues(_.toNodeInfo).toMap
+  val allNodeFacts_rootOnly: Map[NodeId, CoreNodeFact] = Map(root.id -> factRoot)
+  val allNodesInfo_rootOnly: Map[NodeId, NodeInfo]     = allNodeFacts_rootOnly.view.mapValues(_.toNodeInfo).toMap
+  val allNodeFacts_cfeNode:  Map[NodeId, CoreNodeFact] = Map(root.id -> factRoot, cfeNode.id -> factCfe)
+  val allNodesInfo_cfeNode:  Map[NodeId, NodeInfo]     = allNodeFacts_cfeNode.view.mapValues(_.toNodeInfo).toMap
 
   // the group lib
   val emptyGroupLib: FullNodeGroupCategory = FullNodeGroupCategory(
@@ -897,7 +925,7 @@ class TestNodeConfiguration(
       ruleName,
       directiveName,
       technique,
-      DateTime.now,
+      DateTime.now(DateTimeZone.UTC),
       variableMap,
       variableMap,
       technique.trackerVariableSpec.toVariable(Seq(id.getReportId)),

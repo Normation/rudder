@@ -39,6 +39,7 @@ package com.normation.rudder.rest.data
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogType
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.utils.DateFormaterService
 import doobie.util.Write
@@ -52,6 +53,7 @@ import org.joda.time.DateTime
 import scala.xml.NodeSeq
 import zio.Chunk
 import zio.json.*
+import zio.json.ast.Json
 
 /**
   * Representation of an event log in the Rest API.
@@ -83,28 +85,17 @@ object RestEventLog {
     Transformer
       .define[EventLog, RestEventLog]
       .enableMethodAccessors // because source is a trait
-      .withFieldComputed(
-        _.actor,
-        _.principal
-      )
-      .withFieldComputed(
-        _.eventType,
-        e => translateEventType(e.eventType)
-      )
-      .withFieldComputed(
-        _.description,
-        eventLogDetail.displayDescription(_)
-      )
-      .withFieldComputed(
-        _.hasDetails,
-        _.details != <entry></entry>
-      )
+      .withFieldComputed(_.actor, _.principal)
+      .withFieldComputed(_.eventType, e => translateEventType(e.eventType))
+      .withFieldComputed(_.description, eventLogDetail.displayDescription)
+      .withFieldComputed(_.hasDetails, _.details != <entry></entry>)
+      .withFieldComputed(_.creationDate, e => DateFormaterService.toDateTime(e.creationDate))
       .buildTransformer
   }
 }
 
 /**
-  * Response data from the event log API : 
+  * Response data from the event log API :
   * - success has non-empty "data"
   * - error has "error" message
   */
@@ -200,13 +191,16 @@ object RestEventLogFilter {
 }
 
 final case class RestEventLogDetails(
-    id:          String,
-    content:     NodeSeq,
-    canRollback: Boolean
+    id:                 String,
+    content:            NodeSeq,
+    canRollback:        Boolean,
+    nodePropertiesDiff: Option[SimpleDiffJson[List[NodeProperty]]]
 )
 object RestEventLogDetails {
-  implicit val contentEncoder: JsonEncoder[NodeSeq]             = JsonEncoder[String].contramap(_.toString())
-  implicit val encoder:        JsonEncoder[RestEventLogDetails] = DeriveJsonEncoder.gen[RestEventLogDetails]
+  implicit val contentEncoder:        JsonEncoder[NodeSeq]             = JsonEncoder[String].contramap(_.toString())
+  implicit val nodePropertiesEncoder: JsonEncoder[List[NodeProperty]]  =
+    JsonEncoder[Json].contramap(props => Json.Obj(Chunk.from(props).sortBy(_.name).map(p => (p.name, p.jsonZio))))
+  implicit val encoder:               JsonEncoder[RestEventLogDetails] = DeriveJsonEncoder.gen[RestEventLogDetails]
 }
 
 final case class RestEventLogRollback(

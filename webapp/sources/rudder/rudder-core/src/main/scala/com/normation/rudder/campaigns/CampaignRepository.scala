@@ -41,21 +41,23 @@ import better.files.File
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
+import com.normation.rudder.facts.nodes.ChangeContext
 import zio.*
 import zio.syntax.*
 
 trait CampaignRepository {
   def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]]
   def get(id:            CampaignId): IOResult[Option[Campaign]]
-  def delete(id:         CampaignId): IOResult[CampaignId]
+  def delete(id:         CampaignId): IOResult[Unit]
   def save(c:            Campaign): IOResult[Campaign]
 }
 
 object CampaignRepositoryImpl {
   def make(
-      campaignSerializer:      CampaignSerializer,
-      path:                    File,
-      campaignEventRepository: CampaignEventRepository
+      path:               File,
+      campaignArchiver:   CampaignArchiver,
+      campaignSerializer: CampaignSerializer,
+      hooksRepository:    CampaignHooksRepository
   ): IOResult[CampaignRepositoryImpl] = {
     IOResult.attemptZIO {
       if (path.exists) {
@@ -66,7 +68,10 @@ object CampaignRepositoryImpl {
         path.createDirectoryIfNotExists(createParents = true).succeed
       }
     } *>
-    new CampaignRepositoryImpl(campaignSerializer, path, campaignEventRepository).succeed
+    // init archiver
+    campaignArchiver.init(using ChangeContext.newForRudder()) *>
+    // return campaign repo
+    new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository).succeed
   }
 }
 
@@ -74,10 +79,14 @@ object CampaignRepositoryImpl {
  * A default implementation for the campaign repository. Campaigns are stored in a json file
  * (by default for Rudder in /var/rudder/configuration-repository/campaigns)
  */
-class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File, campaignEventRepository: CampaignEventRepository)
-    extends CampaignRepository {
+class CampaignRepositoryImpl(
+    path:               File,
+    campaignArchiver:   CampaignArchiver,
+    campaignSerializer: CampaignSerializer,
+    hooksRepository:    CampaignHooksRepository
+) extends CampaignRepository {
 
-  def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
+  override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
     if (path.exists) {
       for {
         jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
@@ -101,7 +110,7 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
     }
   }
 
-  def get(id: CampaignId): IOResult[Option[Campaign]] = {
+  override def get(id: CampaignId): IOResult[Option[Campaign]] = {
     val file = path / (s"${id.value}.json")
     for {
       campaign <- ZIO.when(file.exists) {
@@ -112,10 +121,18 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
     }
   }
 
-  def save(c: Campaign): IOResult[Campaign] = {
+  /*
+   * When we save a campaign, we also init hook directories for that campaign.
+   */
+  override def save(c: Campaign): IOResult[Campaign] = {
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
+      _       <- hooksRepository
+                   .initHooks(c.info.id)
+                   .chainError(
+                     s"Error with hook directory initialization for campaign '${c.info.id}'"
+                   )
       file    <- IOResult.attempt(s"error when creating campaign file for campaign with id '${c.info.id.value}'") {
                    val file = path / (s"${c.info.id.value}.json")
                    file.createFileIfNotExists(true)
@@ -123,21 +140,20 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
                  }
       content <- campaignSerializer.serialize(c)
       _       <- IOResult.attempt(file.write(content))
+      _       <- campaignArchiver.saveCampaign(c.info.id)(using ChangeContext.newForRudder())
     } yield {
       c
     }
   }
 
-  def delete(id: CampaignId): IOResult[CampaignId] = {
+  override def delete(id: CampaignId): IOResult[Unit] = {
     for {
       campaign_deleted <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'") {
                             val file = path / (s"${id.value}.json")
                             file.delete()
                           }
-      events_deleted   <- campaignEventRepository.deleteEvent(campaignId = Some(id))
-    } yield {
-      id
-    }
+      _                <- campaignArchiver.deleteCampaign(id)(using ChangeContext.newForRudder())
+    } yield ()
   }
 
 }

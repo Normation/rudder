@@ -48,6 +48,7 @@ import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import zio.*
 import zio.json.*
@@ -78,17 +79,17 @@ trait ComponentCompliance extends HasCompliance {
   def status:        ReportType = ReportType.getWorseType(allReports)
 }
 
-trait BlockCompliance[Sub] extends ComponentCompliance {
-  def subs:           List[Sub & ComponentCompliance]
+trait BlockCompliance[Sub <: ComponentCompliance] extends ComponentCompliance {
+  def subs:           List[Sub]
   def reportingLogic: ReportingLogic
 
-  def findChildren(componentName: String): List[Sub & ComponentCompliance] = {
+  def findChildren(componentName: String): List[ComponentCompliance] = {
     subs.find(_.componentName == componentName).toList :::
-    subs.collect { case g: BlockCompliance[Sub] => g }.flatMap(_.findChildren(componentName))
+    subs.collect { case g: BlockCompliance[?] => g }.flatMap(_.findChildren(componentName))
   }
 
   def allReports: List[ReportType] = subs.flatMap {
-    case block: BlockCompliance[Sub] => block.allReports
+    case block: BlockCompliance[?] => block.allReports
     case s => s.allReports
   }
 
@@ -102,23 +103,21 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
   }
 
   def compliance: ComplianceLevel = {
-    import ReportingLogic.*
+    import com.normation.cfclerk.domain.ReportingLogic.*
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => ComplianceLevel.sum(subs.map(_.compliance))
-      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      // worst case bubble up, and its weight can be either 1 or the sum of subcomponent weight
       case worst: WorstReportWeightedReportingLogic =>
-        val worstReport    = ReportType.getWorseType(subs.flatMap(_.allReports))
+        val worstReport    = ReportType.getWorseType(allReports)
         val weightedReport = allReports.map(_ => worstReport)
-        println(subs)
-        println(weightedReport)
         val kept           = worst match {
           case WorstReportWeightedOne => worstReport :: Nil
           case WorstReportWeightedSum => weightedReport
         }
         ComplianceLevel.compute(kept)
       case FocusWorst =>
-        // Get reports of sub-components to find the worst by percent
+        // Get reports of subcomponents to find the worst by percent
         val allReports = subs.map {
           case b: BlockCompliance[?] =>
             // Convert block compliance to percent, take the worst
@@ -139,27 +138,78 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
   }
 }
 
-sealed trait StatusReport extends HasCompliance {
-  def compliance: ComplianceLevel
+trait ComponentComplianceByNode extends ComponentCompliance {
+  def componentName: String
+  def reportsByNode: Map[NodeId, Seq[ReportType]]
 }
+
+trait BlockComplianceByNode[Sub <: ComponentCompliance] extends ComponentComplianceByNode with BlockCompliance[Sub] {
+
+  def subs:          List[Sub & ComponentComplianceByNode]
+  def reportsByNode: Map[NodeId, Seq[ReportType]] = {
+    subs.flatMap(_.reportsByNode).groupMapReduce(_._1)(_._2)(_ ++ _)
+  }
+
+  override def compliance: ComplianceLevel = {
+    import com.normation.cfclerk.domain.ReportingLogic.*
+    reportingLogic match {
+      // simple weighted compliance, as usual
+      case WeightedReport => super.compliance
+      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      case worst: WorstReportWeightedReportingLogic =>
+        val worstReport = reportsByNode.toList.map {
+          case (_, reports) =>
+            val worst = ReportType.getWorseType(reports)
+            (worst, reports.map(_ => worst))
+        }
+        val kept        = worst match {
+          case WorstReportWeightedOne => worstReport.map(_._1)
+          case WorstReportWeightedSum => worstReport.flatMap(_._2)
+        }
+        ComplianceLevel.compute(kept)
+      case FocusWorst =>
+        // Get reports of sub-components to find the worst by percent
+        val worst = subs
+          .flatMap(_.reportsByNode.map(c => (c._1, ComplianceLevel.compute(c._2))))
+          .groupMapReduce(_._1)(_._2) {
+            case (c1, c2) => if (c1.computePercent().compliance <= c2.computePercent().compliance) c1 else c2
+          }
+          .values
+
+        // Find worst by percent: compute numeric compliance with default precision
+        ComplianceLevel.sum(worst)
+      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
+      case FocusReport(_) => super.compliance
+    }
+  }
+}
+
+sealed trait StatusReport extends HasCompliance
 
 /**
  * Define two aggregated view of compliance: by node (for
  * a given rule) and by rules (for a given node).
  */
 final class RuleStatusReport private (
-    val forRule:   RuleId,
-    val report:    AggregatedStatusReport,
-    val overrides: List[OverriddenPolicy]
+    val forRule: RuleId,
+    val report:  AggregatedStatusReport
 ) extends StatusReport {
-  lazy val compliance = report.compliance
-  lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
+  lazy val compliance: ComplianceLevel                     = report.compliance
+  lazy val byNodes:    Map[NodeId, AggregatedStatusReport] =
     report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
 }
 
 object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverriddenPolicy]): RuleStatusReport = {
-    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)), overrides)
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]): RuleStatusReport = {
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)))
+  }
+
+  /*
+   * Build rule status reports from node reports, deciding which directives should be "skipped"
+   */
+  def fromNodeStatusReports(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
+    val toKeep = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
+    RuleStatusReport(ruleId, toKeep)
   }
 }
 
@@ -208,6 +258,24 @@ final case class RunAnalysis(
     lastRunConfigId:     Option[NodeConfigId],
     lastRunExpiration:   Option[DateTime]
 ) {
+  // used to manage the KeepLastCompliance update
+  def copyLastRunInfo(other: RunAnalysis): RunAnalysis = {
+    this.copy(
+      lastRunDateTime = other.lastRunDateTime,
+      lastRunConfigId = other.lastRunConfigId,
+      lastRunExpiration = other.lastRunExpiration
+    )
+  }
+
+  // Used to compare KeepLastCompliance without taking care of lastRun difference
+  def equalsWithoutLastRun(other: RunAnalysis): Boolean = {
+    this.kind == other.kind &&
+    this.expectedConfigId == other.expectedConfigId &&
+    this.expectedConfigStart == other.expectedConfigStart &&
+    this.expirationDateTime == other.expirationDateTime &&
+    this.expiredSince == other.expiredSince
+  }
+
   def debugString: String = {
     def d(o: Option[DateTime]): String = {
       o.map(_.toString).getOrElse("N/A")
@@ -227,7 +295,6 @@ final case class NodeStatusReport(
     nodeId:     NodeId,
     runInfo:    RunAnalysis,
     statusInfo: RunComplianceInfo,
-    overrides:  List[OverriddenPolicy],
     reports:    Map[PolicyTypeName, AggregatedStatusReport]
 ) extends StatusReport {
   // for compat reason, node compliance is the sum of all aspects
@@ -249,7 +316,7 @@ final case class NodeStatusReport(
       case Some(r) => Map((t, r))
       case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
     }
-    NodeStatusReport(nodeId, runInfo, statusInfo, overrides, r)
+    NodeStatusReport(nodeId, runInfo, statusInfo, r)
   }
 }
 
@@ -286,7 +353,6 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.overrides,
       nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByRules(ruleIds)) }
     )
   }
@@ -297,7 +363,6 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.overrides,
       nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByDirectives(directiveIds)) }
     )
   }
@@ -342,6 +407,22 @@ final class AggregatedStatusReport private (
           )
       })
     )
+  }
+
+  /*
+   * equals/hashCode are needed because we compare objects with equality in
+   * NodeStatusReportRepositoryImpl.
+   * And because we're in scala, it's extremely surprising to have a broken equals anyway.
+   */
+  override def hashCode(): Int = {
+    reports.hashCode() + 47
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case other: AggregatedStatusReport => this.reports == other.reports
+      case _ => false
+    }
   }
 }
 
@@ -390,7 +471,7 @@ object RuleNodeStatusReport {
         val newDirectives = DirectiveStatusReport.merge(reports.toList.flatMap(_.directives.values))
 
         // the merge of two reports expire when the first one expire
-        val expire = new DateTime(reports.map(_.expirationDate.getMillis).min)
+        val expire = new DateTime(reports.map(_.expirationDate.getMillis).min, DateTimeZone.UTC)
         (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, id._5, newDirectives, expire))
     }
   }
@@ -403,9 +484,13 @@ object RuleNodeStatusReport {
 final case class DirectiveStatusReport(
     directiveId: DirectiveId, // only one component status report by component name
     policyTypes: PolicyTypes,
+    // if set, this means that that directive is skipped in current rule, and is overridden by
+    // a directive in rule with given ID.
+    overridden:  Option[RuleId],
     components:  List[ComponentStatusReport]
 ) extends StatusReport {
-  override lazy val compliance:                                    ComplianceLevel                                        = ComplianceLevel.sum(components.map(_.compliance))
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(components.map(_.compliance))
+
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
     components.flatMap(_.getValues(predicate)).map { case v => (directiveId, v.componentValue, v) }
   }
@@ -430,8 +515,10 @@ object DirectiveStatusReport {
             case c @ ::(_, _) => PolicyTypes.fromCons(c)
           }
         }
+        // in a merge, we keep the overridden only if all directive have an override
+        val overridden    = if (reports.forall(_.overridden.isDefined)) reports.headOption.flatMap(_.overridden) else None
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
-        (directiveId, DirectiveStatusReport(directiveId, tags, newComponents))
+        (directiveId, DirectiveStatusReport(directiveId, tags, overridden, newComponents))
     }
   }
 }
@@ -446,7 +533,6 @@ sealed trait ComponentStatusReport extends StatusReport with ComponentCompliance
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]
   def componentValues: List[ComponentValueStatusReport]
   def componentValues(v: String): List[ComponentValueStatusReport] = componentValues.filter(_.componentValue == v)
-  def status: ReportType
 }
 
 final case class BlockStatusReport(
@@ -468,15 +554,15 @@ final case class BlockStatusReport(
     }
   }
 }
+
 final case class ValueStatusReport(
     componentName:         String,
     expectedComponentName: String, // only one ComponentValueStatusReport by values.
     componentValues:       List[ComponentValueStatusReport]
 ) extends ComponentStatusReport {
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(componentValues.map(_.compliance))
 
   override def toString(): String = s"${componentName}:${componentValues.sortBy(_.componentValue).mkString("[", ",", "]")}"
-
-  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(componentValues.map(_.compliance))
 
   /*
    * Get all values matching the predicate
@@ -555,10 +641,9 @@ final case class ComponentValueStatusReport(
     reportId:               String,
     messages:               List[MessageStatusReport]
 ) extends StatusReport {
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.compute(messages.map(_.reportType))
 
   override def toString(): String = s"${componentValue}(<-> ${expectedComponentValue}):${messages.mkString("[", ";", "]")}"
-
-  override lazy val compliance: ComplianceLevel = ComplianceLevel.compute(messages.map(_.reportType))
 
   /*
    * It can be argued that a status for a value may make sense,
@@ -842,7 +927,25 @@ object JsonPostgresqlSerialization {
   import zio.json.*
 
   implicit lazy val codecNodeConfigId:      JsonCodec[NodeConfigId]      = JsonCodec.string.transform(NodeConfigId.apply, _.value)
-  implicit lazy val codecReportType:        JsonCodec[ReportType]        = DeriveJsonCodec.gen
+  // for compat with Scala 3 and just sane encoding, we want to serialize that based on entry name, see: https://issues.rudder.io/issues/27035
+  implicit lazy val codecReportType:        JsonCodec[ReportType]        = {
+    def parse(s: String) = ReportType.withNameInsensitiveEither(s).left.map(_.getMessage())
+    new JsonCodec[ReportType](
+      JsonEncoder.string.contramap(_.entryName),
+      JsonDecoder.string
+        .mapOrFail(parse)
+        .orElse(
+          JsonDecoder
+            .map[String, Map[String, String]]
+            .mapOrFail(m => {
+              m.headOption match {
+                case Some((k, _)) => parse(k)
+                case _            => Left(s"Error: can not parse report type even with compat semantic")
+              }
+            })
+        )
+    )
+  }
   implicit lazy val encoderReportingLogic:  JsonEncoder[ReportingLogic]  = JsonEncoder.string.contramap(_.value)
   implicit lazy val decoderReportingLogic:  JsonDecoder[ReportingLogic]  =
     JsonDecoder.string.mapOrFail(s => ReportingLogic.parse(s).left.map(_.fullMsg))
@@ -908,8 +1011,6 @@ object JsonPostgresqlSerialization {
       runInfo:    JRunAnalysis,
       @jsonField("si")
       statusInfo: RunComplianceInfo,
-      @jsonField("os")
-      overrides:  List[OverriddenPolicy],
       @jsonField("rs")
       reports:    Seq[(PolicyTypeName, JAggregatedStatusReport)] // a seq so that we can enforce sorting
   ) {
@@ -1018,6 +1119,8 @@ object JsonPostgresqlSerialization {
       directiveId: DirectiveId,
       @jsonField("pts")
       policyTypes: PolicyTypes,
+      @jsonField("o")
+      overridden:  Option[RuleId],
       @jsonField("csrs")
       components:  List[JComponentStatusReport]
   ) {

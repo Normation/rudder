@@ -40,7 +40,6 @@ package com.normation.rudder.rest
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
@@ -50,6 +49,7 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
@@ -58,7 +58,6 @@ import com.normation.inventory.domain.Version as IVersion
 import com.normation.plugins.*
 import com.normation.rudder.*
 import com.normation.rudder.api.{ApiAuthorization as ApiAuthz, *}
-import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
@@ -71,6 +70,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -83,6 +83,7 @@ import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -92,6 +93,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.metrics.FrequentNodeMetrics
 import com.normation.rudder.metrics.JvmInfo
@@ -100,10 +102,23 @@ import com.normation.rudder.metrics.PublicSystemInfo
 import com.normation.rudder.metrics.RelayInfo
 import com.normation.rudder.metrics.SystemInfo
 import com.normation.rudder.metrics.SystemInfoService
+import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.Constraints
+import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.MethodParameter
+import com.normation.rudder.ncf.ParameterId
+import com.normation.rudder.ncf.ParameterType
+import com.normation.rudder.ncf.ParameterType.BasicParameterTypeService
+import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -146,6 +161,7 @@ import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
+import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
@@ -167,11 +183,13 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
+import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -195,7 +213,9 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
+import scala.annotation.nowarn
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
@@ -218,21 +238,28 @@ import zio.test.*
  *   services and lift test framework)
  */
 
+/**
+ * A stub user service with full rights to API
+ */
+class TestUserService extends UserService {
+  val user:                    AuthenticatedUser         = new AuthenticatedUser {
+    override val account:   RudderAccount       = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
+    override val authz:     Rights              = Rights.AnyRights
+    override val apiAuthz:  ApiAuthz            = ApiAuthz.allAuthz
+    override val nodePerms: NodeSecurityContext = NodeSecurityContext.All
+
+    override def checkRights(auth: AuthorizationType): Boolean = true
+  }
+  override val getCurrentUser: Option[AuthenticatedUser] = Some(user)
+}
+
 /*
  * Mock everything needed to test rest API, ie almost a whole rudder.
+ * One can customize API version, but by default they match the one supported in Rudder.
  */
-class RestTestSetUp {
+class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiVersions) {
 
   implicit val userService: TestUserService = new TestUserService
-  class TestUserService extends UserService {
-    val user:           AuthenticatedUser = new AuthenticatedUser {
-      val account: RudderAccount = RudderAccount.User("test-user", "pass")
-      def checkRights(auth: AuthorizationType) = true
-      def getApiAuthz: ApiAuthz            = ApiAuthz.allAuthz
-      def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
-    }
-    val getCurrentUser: AuthenticatedUser = user
-  }
 
   // Instantiate Service needed to feed System API constructor
 
@@ -264,6 +291,7 @@ class RestTestSetUp {
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
 
   val quickSearchService = new FullQuickSearchService()( // no LDAP : only directives, etc. are searchable
+    using
     null,
     null,
     null,
@@ -302,7 +330,7 @@ class RestTestSetUp {
       id = Some(42),
       modificationId = None,
       principal = EventActor("test"),
-      creationDate = DateTime.parse("2024-12-04T15:30:10"),
+      creationDate = DateFormaterService.toInstant(DateTime.parse("2024-12-04T15:30:10Z")),
       details = <test/>,
       reason = None
     )
@@ -358,7 +386,7 @@ class RestTestSetUp {
 
   }
   val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val modificationService = new ModificationService(null, null, null, null) {
+  val modificationService = new ModificationService(null, null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
         commiter:         PersonIdent,
@@ -391,7 +419,7 @@ class RestTestSetUp {
     override def getMaxParallelism:            () => Box[String]           = ???
     override def getJsTimeout:                 () => Box[Int]              = ???
     override def getGenerationContinueOnError: () => Box[Boolean]          = ???
-    override def writeCertificatesPem(allNodeInfos: MapView[NodeId, CoreNodeFact]): Unit = ???
+    override def writeCertificatesPem(allNodeInfos: Map[NodeId, CoreNodeFact]): Unit = ???
     override def triggerNodeGroupUpdate(): Box[Unit] = ???
     override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
     override def HOOKS_D:                     String                                               = ???
@@ -402,7 +430,7 @@ class RestTestSetUp {
         rules:        Seq[Rule],
         groupLib:     FullNodeGroupCategory,
         directiveLib: FullActiveTechniqueCategory,
-        allNodeInfos: MapView[NodeId, Boolean]
+        allNodeInfos: Map[NodeId, Boolean]
     ): Set[RuleId] = ???
     override def findDependantRules():        Box[Seq[Rule]]                                       = ???
     override def buildRuleVals(
@@ -410,14 +438,14 @@ class RestTestSetUp {
         rules:        Seq[Rule],
         directiveLib: FullActiveTechniqueCategory,
         groupLib:     FullNodeGroupCategory,
-        allNodeInfos: MapView[NodeId, Boolean]
+        allNodeInfos: Map[NodeId, Boolean]
     ): Box[Seq[RuleVal]] = ???
     override def getNodeProperties:           IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
       ???
     }
     override def getNodeContexts(
         nodeIds:              Set[NodeId],
-        allNodeInfos:         MapView[NodeId, CoreNodeFact],
+        allNodeInfos:         Map[NodeId, CoreNodeFact],
         inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
         allGroups:            FullNodeGroupCategory,
         globalParameters:     List[GlobalParameter],
@@ -478,6 +506,8 @@ class RestTestSetUp {
         errorMessagePath: String
     ): Box[Unit] = ???
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
+
+    override def ruleValGeneratedHookService: RuleValGeneratedHookService = new RuleValGeneratedHookService()
   }
   val bootGuard:        Promise[Nothing, Unit]    = (for {
     p <- Promise.make[Nothing, Unit]
@@ -534,28 +564,10 @@ class RestTestSetUp {
     )
   )
   val userPropertyService = new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
-  val restExtractorService: RestExtractorService = RestExtractorService(
-    mockRules.ruleRepo,
-    mockDirectives.directiveRepo,
-    null, // roNodeGroupRepository
-
-    mockTechniques.techniqueRepo,
-    mockLdapQueryParsing.queryParser, // queryParser
-    userPropertyService,
-    workflowLevelService,
-    uuidGen,
-    null
-  )
 
   val zioJsonExtractor = new ZioJsonExtractor(mockLdapQueryParsing.queryParser)
 
-  val restDataSerializer: RestDataSerializerImpl = RestDataSerializerImpl(
-    mockTechniques.techniqueRepo,
-    null // diffService
-  )
-
   val sharedFilesApi = new SharedFilesAPI(
-    restExtractorService,
     userService,
     "unknown-shared-folder-path",
     mockGitRepo.configurationRepositoryRoot.pathAsString
@@ -652,7 +664,7 @@ class RestTestSetUp {
       * Here, we want to make these methods returning fake archives for testing the API logic.
       */
     val fakeArchives:                     Map[DateTime, GitArchiveId]           = Map[DateTime, GitArchiveId](
-      new DateTime(42) -> fakeGitArchiveId
+      new DateTime("1970-01-01T01:00:00.042Z", DateTimeZone.UTC) -> fakeGitArchiveId
     )
     override def getFullArchiveTags:      IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
     override def getGroupLibraryTags:     IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
@@ -709,7 +721,6 @@ class RestTestSetUp {
   val apiService13           = new SystemApiService13(
     fakeHealthcheckService,
     fakeHcNotifService,
-    restDataSerializer,
     null
   )
 
@@ -749,10 +760,11 @@ class RestTestSetUp {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
-      def manifest: ClassTag[String] = classTag[String]
-      lazy val id = withId
-      def name    = id
+      def manifest:               ClassTag[String]                 = classTag[String]
+      val id:                     String                           = withId
+      def name:                   String                           = id
       override val uniqueFieldId: Box[String]                      = Full(id)
+      @nowarn("any")
       protected var _x:           String                           = getDefaultValue
       def validate:               List[FieldError]                 = Nil
       def validations:            List[String => List[FieldError]] = Nil
@@ -761,8 +773,8 @@ class RestTestSetUp {
       def toClient: String = if (null == _x) "" else _x
       def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
       def getDefaultValue = ""
-      def get             = _x
-      def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
+      def get: String = _x
+      def set(x: String): String = { if (null == x) _x = "" else _x = x; _x }
       def toForm: Box[NodeSeq] = Full(SHtml.textarea("", s => parseClient(s)))
     }
   }
@@ -780,19 +792,9 @@ class RestTestSetUp {
       asyncDeploymentAgent,
       workflowLevelService,
       directiveEditorService,
-      restDataSerializer,
       mockTechniques.techniqueRepo
     )
   }
-
-  val techniqueAPIService14 = new TechniqueAPIService14(
-    mockDirectives.directiveRepo,
-    mockTechniques.techniqueRevisionRepo,
-    null,
-    null,
-    null,
-    null
-  )
 
   object TestSystemInfoService extends SystemInfoService {
     private val pub = PublicSystemInfo(
@@ -836,9 +838,8 @@ class RestTestSetUp {
     override def getAll():         IOResult[SystemInfo]        = SystemInfo(priv, pub).succeed
   }
 
-  val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, TestSystemInfoService)
-  val authzToken:       AuthzToken = AuthzToken(userService.getCurrentUser.queryContext)
-  val systemStatusPath: String     = "api" + systemApi.Status.schema.path
+  val systemApi = new SystemApi(apiService11, apiService13, TestSystemInfoService)
+  val systemStatusPath: String = "api" + systemApi.Status.schema.path
 
   val softDao = mockNodes.softwareDao
   val roReportsExecutionRepository: RoReportsExecutionRepository = new RoReportsExecutionRepository {
@@ -864,7 +865,7 @@ class RestTestSetUp {
         mockNodes.newNodeManager,
         mockNodes.removeNodeService,
         zioJsonExtractor,
-        mockCompliance.reportingService(Map.empty),
+        mockCompliance.reportingService(Map.empty[NodeId, NodeStatusReport].toMap),
         mockNodes.queryProcessor,
         null,
         () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
@@ -875,7 +876,7 @@ class RestTestSetUp {
       ChangeContext(
         ModificationId(uuidGen.newUuid),
         EventActor("test"),
-        DateTime.now(),
+        Instant.now(),
         None,
         None,
         QueryContext.testQC.nodePerms
@@ -893,7 +894,7 @@ class RestTestSetUp {
 
     override def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[Creation.CreationError, NodeId] = {
       mockNodes.nodeFactRepo
-        .updateInventory(inventory, None)(cc)
+        .updateInventory(inventory, None)(using cc)
         .mapBoth(
           err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
           _ => inventory.node.main.id
@@ -904,7 +905,7 @@ class RestTestSetUp {
       (for {
         n <- mockNodes.nodeFactRepo.get(id).notOptional(s"Can not merge node: missing")
         n2 = CoreNodeFact.updateNode(n, mergeNodeSetup(n.toNode, setup))
-        _ <- mockNodes.nodeFactRepo.save(n2)(testCC)
+        _ <- mockNodes.nodeFactRepo.save(n2)(using testCC)
       } yield {
         n.id
       }).mapError(err => CreationError.OnSaveInventory(err.fullMsg))
@@ -927,14 +928,96 @@ class RestTestSetUp {
     asyncDeploymentAgent,
     workflowLevelService,
     mockLdapQueryParsing.queryParser,
-    mockNodes.queryProcessor,
-    restDataSerializer
+    mockNodes.queryProcessor
   )
-  val ncfTechniqueWriter:  TechniqueWriter       = null
-  val ncfTechniqueReader:  EditorTechniqueReader = null
-  val techniqueRepository: TechniqueRepository   = null
-  val techniqueSerializer: TechniqueSerializer   = null
-  val resourceFileService: ResourceFileService   = null
+
+  val ncfTechniqueReader: EditorTechniqueReader = new EditorTechniqueReader {
+    private def gm(id: Int) = GenericMethod(
+      BundleName("gm" + id),
+      "gm" + id,
+      (0 until id).map(i => {
+        MethodParameter(
+          ParameterId("param" + i),
+          "param desc for " + i,
+          Nil,
+          ParameterType.StringParameter
+        )
+      }),
+      ParameterId("classParam" + id),
+      "classPrefix" + id,
+      Seq(AgentType.CfeCommunity, AgentType.Dsc),
+      "gm desc " + id,
+      Some("doc for gm" + id),
+      None,
+      None,
+      Nil
+    )
+
+    private def tech(id: Int) = EditorTechnique(
+      BundleName("tech" + id),
+      new com.normation.inventory.domain.Version("1.0"),
+      "tech" + id,
+      "catTech" + id,
+      (0 until id).map { i =>
+        MethodCall(
+          BundleName("methodCall" + i),
+          "methodCall" + i,
+          Map((0 until i).map(j => ((ParameterId("param" + j), "value" + j)))*),
+          "condMethodCall" + i,
+          "componentMethodCall" + i,
+          disabledReporting = false,
+          Some(PolicyMode.Enforce),
+          if (i == 0) None else Some((0 until i).map(j => Map((0 until j).map(k => (("k" + k, "value" + k)))*)).toList),
+          if (i == 0) None else Some("foreachName" + i)
+        )
+      },
+      "tech description " + id,
+      "tech documentation " + id,
+      (0 until id).map { i =>
+        TechniqueParameter(
+          ParameterId("techParam" + id),
+          "techParam" + id,
+          Some("tech param " + id),
+          Some("tech param doc " + id),
+          false,
+          Some(Constraints(Some(false), Some(true), Some(0), Some(42), None, None, None))
+        )
+      },
+      (0 until id).map(i => ResourceFile("resource" + i, ResourceFileState.Untouched)),
+      Map(("tag" + id, zio.json.ast.Json.Str("tag" + id))),
+      Some("internalId" + id)
+    )
+
+    val techniques: List[EditorTechnique]          = List(tech(0), tech(2))
+    val methods:    Map[BundleName, GenericMethod] = List(gm(0), gm(1), gm(2)).map(gm => (gm.id, gm)).toMap
+
+    override def readTechniquesMetadataFile
+        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] =
+      (techniques, methods, List(Inconsistency("for test"))).succeed
+    override def getMethodsMetadata:        IOResult[Map[BundleName, GenericMethod]] = methods.succeed
+    override def updateMethodsMetadataFile: IOResult[CmdResult]                      = CmdResult(0, "", "").succeed
+  }
+
+  val techniqueSerializer: TechniqueSerializer = new TechniqueSerializer(new BasicParameterTypeService)
+
+  val techniqueAPIService14 = new TechniqueAPIService14(
+    mockDirectives.directiveRepo,
+    mockTechniques.techniqueRevisionRepo,
+    ncfTechniqueReader,
+    techniqueSerializer,
+    mockTechniques.techniqueCompiler
+  )
+
+  val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
+    mockTechniques.techniqueArchiver,
+    fakeUpdatePTLibService,
+    mockTechniques.deleteEditorTechnique,
+    mockTechniques.techniqueCompiler,
+    mockTechniques.techniqueCompilationCache,
+    mockGitRepo.configurationRepositoryRoot.pathAsString
+  )
+
+  val resourceFileService: ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
   object archiveAPIModule {
@@ -942,7 +1025,10 @@ class RestTestSetUp {
       new FileArchiveNameService(),
       mockConfigRepo.configurationRepository,
       mockTechniques.techniqueRevisionRepo,
-      mockNodeGroups.groupsRepo
+      mockNodeGroups.groupsRepo,
+      mockRules.ruleRepo,
+      mockDirectives.directiveRepo,
+      mockTechniques.techniqueRepo
     )
 
     // archive name in a Ref to make it simple to change in tests
@@ -1010,7 +1096,7 @@ class RestTestSetUp {
             ZonedDateTime.parse("2025-01-10T20:53:20Z"),
             ZonedDateTime.parse("2025-01-10T20:53:20Z"),
             MaxNodes(Some(1_000_000)),
-            Map.empty
+            Map.empty[String, String].toMap
           )
         )
       ) ::
@@ -1046,18 +1132,17 @@ class RestTestSetUp {
     )
     .runNow
 
-  val mockApiAccounts = new MockApiAccountService()
+  val mockApiAccounts = new MockApiAccountService(userService)
   val apiAccountApi: ApiAccountApi = new ApiAccountApi(mockApiAccounts.service)
 
-  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
+  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(
     systemApi,
     parameterApi,
     new TechniqueApi(
-      restExtractorService,
       techniqueAPIService14,
       ncfTechniqueWriter,
       ncfTechniqueReader,
-      techniqueRepository,
+      mockTechniques.techniqueRepo,
       techniqueSerializer,
       uuidGen,
       userPropertyService,
@@ -1075,7 +1160,6 @@ class RestTestSetUp {
     new NodeApi(
       zioJsonExtractor,
       mockNodeGroups.propService,
-      restDataSerializer,
       nodeApiService,
       userPropertyService,
       new NodeApiInheritedProperties(mockNodes.propRepo),
@@ -1090,7 +1174,6 @@ class RestTestSetUp {
       groupService14
     ),
     new SettingsApi(
-      restExtractorService,
       settingsService.configService,
       asyncDeploymentAgent,
       uuidGen,
@@ -1100,7 +1183,6 @@ class RestTestSetUp {
     archiveAPIModule.api,
     campaignApiModule.api,
     new ComplianceApi(
-      restExtractorService,
       mockCompliance.complianceAPIService,
       mockDirectives.directiveRepo
     ),
@@ -1118,14 +1200,6 @@ class RestTestSetUp {
     new PluginInternalApi(pluginsSystemService)
   )
 
-  val apiVersions: List[ApiVersion] = {
-    ApiVersion(17, deprecated = true) ::
-    ApiVersion(18, deprecated = true) ::
-    ApiVersion(19, deprecated = true) ::
-    ApiVersion(20, deprecated = false) ::
-    ApiVersion(21, deprecated = false) ::
-    Nil
-  }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   // RestHelpers
@@ -1255,7 +1329,10 @@ class RestTest(liftRules: LiftRules) {
 
   private def mockJsonRequest(path: String, method: String, data: JValue) = {
     val mockReq = mockRequest(path, method)
-    mockReq.body = data
+    import net.liftweb.json.JsonAST
+
+    mockReq.body = JsonAST.prettyRender(data).getBytes()
+    mockReq.contentType = "application/json"
     mockReq
   }
 
@@ -1301,7 +1378,7 @@ class RestTest(liftRules: LiftRules) {
     mockReq.headers = Map(
       "Content-Type"   -> List(parts.getContentType),
       "Content-Length" -> List(parts.getContentLength.toString)
-    )
+    ).toMap
     mockReq.contentType = parts.getContentType
     mockReq.body = out.toByteArray
     mockReq

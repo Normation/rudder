@@ -43,6 +43,7 @@ import com.normation.utils.Version
 import com.normation.zio.*
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
@@ -74,7 +75,7 @@ class RudderPluginJsonTest extends Specification {
                              |      },
                              |      "version": "5.0-1.3",
                              |      "build-commit": "81edd3edf4f28c13821af8014da0520b72b9df94",
-                             |      "build-date": "2018-10-11T12:23:40+02:00",
+                             |      "build-date": "2018-10-11T10:23:40Z",
                              |      "type": "plugin"
                              |    },
                              |    "rudder-plugin-centreon": {
@@ -111,7 +112,7 @@ class RudderPluginJsonTest extends Specification {
                              |      },
                              |      "version": "5.0-1.1",
                              |      "build-commit": "5c4592d93912ef56de0c506295d22fb2a86146ac",
-                             |      "build-date": "2018-10-29T18:34:16+01:00",
+                             |      "build-date": "2018-10-29T17:34:16Z",
                              |      "type": "plugin"
                              |    }
                              |  }
@@ -128,7 +129,7 @@ class RudderPluginJsonTest extends Specification {
       ),
       List("/opt/rudder/share/plugins/branding/branding.jar"),
       "81edd3edf4f28c13821af8014da0520b72b9df94",
-      DateTime.parse("2018-10-11T12:23:40+02:00", ISODateTimeFormat.dateTimeNoMillis())
+      DateTime.parse("2018-10-11T10:23:40Z", ISODateTimeFormat.dateTimeNoMillis()).withZone(DateTimeZone.UTC)
     ),
     JsonPluginDef(
       "rudder-plugin-centreon",
@@ -162,7 +163,7 @@ class RudderPluginJsonTest extends Specification {
       ),
       List(),
       "5c4592d93912ef56de0c506295d22fb2a86146ac",
-      DateTime.parse("2018-10-29T18:34:16+01:00", ISODateTimeFormat.dateTimeNoMillis())
+      DateTime.parse("2018-10-29T18:34:16+01:00", ISODateTimeFormat.dateTimeNoMillis()).withZone(DateTimeZone.UTC)
     )
   )
 

@@ -3,6 +3,7 @@ module Accounts exposing (..)
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes as TenantMode exposing (..)
 import Accounts.DataTypes as Token exposing (..)
+import Accounts.DataTypes as TokenState exposing (..)
 import Accounts.DatePickerUtils exposing (..)
 import Accounts.Init exposing (..)
 import Accounts.JsonDecoder exposing (decodeErrorDetails)
@@ -10,17 +11,10 @@ import Accounts.JsonEncoder exposing (encodeAccountTenants, encodeTokenAcl)
 import Accounts.View exposing (view)
 import Accounts.ViewUtils exposing (..)
 import Browser
-import Dict
-import Dict.Extra
-import Http exposing (..)
 import Http.Detailed as Detailed
-import Json.Encode exposing (..)
-import List.Extra
 import Random
 import Result
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
-import Task
-import Time exposing (Month(..), Posix, Zone)
 import Time.Extra as Time exposing (Interval(..), add)
 import UUID
 import Maybe.Extra
@@ -89,7 +83,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" "rw" "" True "" Token.Hashed Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" "rw" "" True "" TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
 
                         EditAccount a ->
                             Just a

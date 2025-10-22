@@ -45,6 +45,7 @@ import java.io.PrintWriter
 import net.liftweb.common.*
 import net.liftweb.json.Serialization.writePretty
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.slf4j
 import org.slf4j.LoggerFactory
 
@@ -97,7 +98,9 @@ class NodeConfigurationLoggerImpl(
 
     if (logger.isDebugEnabled) {
       for {
-        logTime <- writeIn(new File(path, "lastWritenTime"))(printWriter => Full(printWriter.write(DateTime.now.toString())))
+        logTime <- writeIn(new File(path, "lastWritenTime"))(printWriter =>
+                     Full(printWriter.write(DateTime.now(DateTimeZone.UTC).toString()))
+                   )
         configs <- (traverse(nodeConfiguration) { config =>
                      val logFile = new File(path, config.nodeInfo.fqdn + "_" + config.nodeInfo.id.value)
 

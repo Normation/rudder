@@ -37,21 +37,26 @@
 bundle agent file_block_present_in_section(path, section_start, section_end, block)
 {
   vars:
-      "old_class_prefix" string => canonify("file_block_present_in_section_${path}");
-      "args"              slist => { "${path}", "${section_start}", "${section_end}", "${block}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_block_present_in_section_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"       string => canonify("file_block_present_in_section_${path}");
+      "inner_class_prefix" string => "${report_data.method_id}_inner";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   files:
+    pass3::
       "${path}"
         create        => "true",
         edit_line     => ncf_ensure_section_content_type("${section_start}", "${section_end}", "${block}", "preserve_block"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes       => classes_generic("${inner_class_prefix}");
 
   methods:
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert text block into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Insert text block into ${path}", "");
 }

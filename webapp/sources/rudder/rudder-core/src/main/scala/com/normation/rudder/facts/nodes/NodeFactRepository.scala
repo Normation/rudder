@@ -137,7 +137,7 @@ trait NodeFactRepository {
   )(implicit qc: QueryContext, status: SelectNodeStatus = SelectNodeStatus.Any): IOResult[Option[CoreNodeFact]]
 
   def getCompat(nodeId: NodeId, status: InventoryStatus)(implicit qc: QueryContext): IOResult[Option[CoreNodeFact]] = {
-    statusCompat(status, (qc, s) => get(nodeId)(qc, s))
+    statusCompat(status, (qc, s) => get(nodeId)(using qc, s))
   }
 
   /*
@@ -153,7 +153,7 @@ trait NodeFactRepository {
   def slowGetCompat(nodeId: NodeId, status: InventoryStatus, attrs: SelectFacts)(implicit
       qc: QueryContext
   ): IOResult[Option[NodeFact]] = {
-    statusCompat(status, (qc, s) => slowGet(nodeId)(qc, s, attrs))
+    statusCompat(status, (qc, s) => slowGet(nodeId)(using qc, s, attrs))
   }
 
   def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]]
@@ -172,7 +172,7 @@ trait NodeFactRepository {
   def getAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit
       qc: QueryContext
   ): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    statusCompat(status, (qc, s) => getAll()(qc, s))
+    statusCompat(status, (qc, s) => getAll()(using qc, s))
   }
 
   /*
@@ -188,7 +188,7 @@ trait NodeFactRepository {
   ): IOStream[NodeFact]
 
   def slowGetAllCompat(status: InventoryStatus, attrs: SelectFacts)(implicit qc: QueryContext): IOStream[NodeFact] = {
-    statusStreamCompat(status, (qc, s) => slowGetAll()(qc, s, attrs))
+    statusStreamCompat(status, (qc, s) => slowGetAll()(using qc, s, attrs))
   }
 
   ///// changes /////
@@ -208,7 +208,7 @@ trait NodeFactRepository {
    * A simpler version of save for CoreNodeFacts
    */
   def save(nodeFact: CoreNodeFact)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
-    save(NodeFact.fromMinimal(nodeFact))(cc, SelectFacts.none)
+    save(NodeFact.fromMinimal(nodeFact))(using cc, SelectFacts.none)
   }
 
   /*
@@ -329,7 +329,6 @@ object CoreNodeFactRepository {
     def checkAgentKey(node: NodeFact): IOResult[Unit] = {
       node.rudderAgent.securityToken match {
         case Certificate(value) => SecurityToken.checkCertificateForNode(node.id, Certificate(value))
-        case _                  => Unexpected(s"only certificate are supported for agent security token since Rudder 7.0").fail
       }
     }
 
@@ -344,9 +343,9 @@ object CoreNodeFactRepository {
       savePreChecks: Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
   ): IOResult[CoreNodeFactRepository] = for {
     _        <- InventoryDataLogger.debug("Getting pending node info for node fact repos")
-    pending  <- storage.getAllPending()(SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
+    pending  <- storage.getAllPending()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
-    accepted <- storage.getAllAccepted()(SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
+    accepted <- storage.getAllAccepted()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Creating node fact repos")
     repo     <- make(storage, softByName, tenants, pending, accepted, callbacks, savePreChecks)
   } yield {
@@ -500,7 +499,7 @@ class CoreNodeFactRepository(
       for {
         a    <- storage.getAccepted(nodeId)
         p    <- storage.getPending(nodeId)
-        c    <- get(nodeId)(cc.toQuery, SelectNodeStatus.Any)
+        c    <- get(nodeId)(using cc.toQuery, SelectNodeStatus.Any)
         diff <- (a, p, c) match {
                   case (None, None, _)    => delete(nodeId)
                   case (None, Some(x), _) =>
@@ -537,7 +536,7 @@ class CoreNodeFactRepository(
       nodeId: NodeId
   )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = {
     for {
-      optCNF <- get(nodeId)(qc, status)
+      optCNF <- get(nodeId)(using qc, status)
       res    <- optCNF match {
                   case None    => None.succeed
                   case Some(v) =>
@@ -546,12 +545,12 @@ class CoreNodeFactRepository(
                       Some(fact).succeed
                     } else {
                       (status match {
-                        case SelectNodeStatus.Pending  => storage.getPending(nodeId)(attrs)
-                        case SelectNodeStatus.Accepted => storage.getAccepted(nodeId)(attrs)
+                        case SelectNodeStatus.Pending  => storage.getPending(nodeId)(using attrs)
+                        case SelectNodeStatus.Accepted => storage.getAccepted(nodeId)(using attrs)
                         case SelectNodeStatus.Any      =>
-                          storage.getAccepted(nodeId)(attrs).flatMap {
+                          storage.getAccepted(nodeId)(using attrs).flatMap {
                             case Some(x) => Some(x).succeed
-                            case None    => storage.getPending(nodeId)(attrs)
+                            case None    => storage.getPending(nodeId)(using attrs)
                           }
                       }).flatMap {
                         case None    =>
@@ -566,7 +565,7 @@ class CoreNodeFactRepository(
                           ) *> // in that case still return core fact
                           Some(fact).succeed
                         case Some(b) =>
-                          Some(SelectFacts.mergeCore(v, b)(attrs)).succeed
+                          Some(SelectFacts.mergeCore(v, b)(using attrs)).succeed
                       }
                     }
                 }
@@ -595,14 +594,14 @@ class CoreNodeFactRepository(
   override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
     tenantService.nodeFilterStream(
       if (attrs == SelectFacts.none) {
-        ZStream.fromIterableZIO(getAll()(qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
+        ZStream.fromIterableZIO(getAll()(using qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
         status match {
           // here, the filtering could be forwarded to storage, but core node fact must check it in
           // all case, it's its responsibility
-          case SelectNodeStatus.Pending  => storage.getAllPending()(attrs)
-          case SelectNodeStatus.Accepted => storage.getAllAccepted()(attrs)
-          case SelectNodeStatus.Any      => storage.getAllPending()(attrs) ++ storage.getAllAccepted()(attrs)
+          case SelectNodeStatus.Pending  => storage.getAllPending()(using attrs)
+          case SelectNodeStatus.Accepted => storage.getAllAccepted()(using attrs)
+          case SelectNodeStatus.Any      => storage.getAllPending()(using attrs) ++ storage.getAllAccepted()(using attrs)
         }
       }
     )
@@ -664,7 +663,7 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _                   <- lock.withLock
-        core                <- get(node.fold(_.id, _._1))(cc.toQuery)
+        core                <- get(node.fold(_.id, _._1))(using cc.toQuery)
         pair                <- (node, core) match {
                                  // first case: we are saving a new node fact, tenant can be set
                                  // we keep attrs from request
@@ -693,7 +692,7 @@ class CoreNodeFactRepository(
                                  for {
                                    // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
                                    // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.
-                                   s <- storage.save(updated)(selected)
+                                   s <- storage.save(updated)(using selected)
                                    // then, we get the actual thing that was saved from the save event
                                    up = s match {
                                           case StorageChangeEventSave.Created(node, _)             =>
@@ -727,7 +726,7 @@ class CoreNodeFactRepository(
   override def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit
       cc: ChangeContext
   ): IOResult[NodeFactChangeEventCC] = {
-    internalSave(Right((nodeId, tag)))(cc, SelectFacts.none)
+    internalSave(Right((nodeId, tag)))(using cc, SelectFacts.none)
   }
 
   override def save(nodeFact: NodeFact)(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
@@ -807,8 +806,8 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _   <- lock.withLock
-        cnf <- get(nodeId)(cc.toQuery, SelectNodeStatus.Any)
-        s   <- storage.delete(nodeId)(SelectFacts.all)
+        cnf <- get(nodeId)(using cc.toQuery, SelectNodeStatus.Any)
+        s   <- storage.delete(nodeId)(using SelectFacts.all)
         e   <- cnf match {
                  case Some(n) =>
                    if (n.rudderSettings.status == PendingInventory) {

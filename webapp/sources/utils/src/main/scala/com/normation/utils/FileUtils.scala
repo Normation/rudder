@@ -65,11 +65,35 @@ object FileUtils {
 
   import FileError.*
 
-  def sanitizePath(baseFolder: File, child: String): IOResult[Either[OutsideBaseDir, File]] = {
-    sanitizePath(baseFolder, List(child))
+  /**
+   * Check that `file` is contained into `baseFolder` after normalization. Return the normalized File.
+   */
+  def checkSanitizedIsIn(baseFolder: File, file: File): IOResult[File] = {
+    // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
+    for {
+      baseExists  <- IOResult.attempt(baseFolder.exists())
+      realBasePath = if (baseExists) File(baseFolder.path.toRealPath()) else baseFolder
+      fileExists  <- IOResult.attempt(file.exists())
+      realFilePath = if (fileExists) File(file.path.toRealPath()) else file
+      // `false` means we allow access to the base directory itself
+      withinBase  <- IOResult.attempt(realBasePath.contains(realFilePath, strict = false))
+      _           <- ZIO.when(!withinBase)(OutsideBaseDir(file.nameOption, realFilePath).fail)
+    } yield {
+      realFilePath
+    }
   }
 
-  def sanitizePath(baseFolder: File, path: List[String]): IOResult[Either[OutsideBaseDir, File]] = {
+  /**
+   * Returned a normalized-path file and also check that it's in given `baseFolder` after path normalization
+   */
+  def sanitizePath(baseFolder: File, subpath: String): IOResult[File] = {
+    sanitizePath(baseFolder, List(subpath))
+  }
+
+  /**
+   * Returned a normalized-path file and also check that it's in given `baseFolder` after path normalization
+   */
+  def sanitizePath(baseFolder: File, path: List[String]): IOResult[File] = {
 
     @tailrec def recPath(file: File, children: List[String]): File = {
       // Actually canonifies the path
@@ -82,16 +106,6 @@ object FileUtils {
     }
 
     val filePath = recPath(baseFolder, path)
-    // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
-    for {
-      fileExists <- IOResult.attempt(filePath.exists())
-      realPath    = if (fileExists) File(filePath.toJava.toPath.toRealPath()) else filePath
-      withinBase <-
-        ZIO.whenZIO(IOResult.attempt(baseFolder.contains(realPath, strict = false))) { // `false` means we allow access to the base directory itself
-          realPath.succeed
-        }
-    } yield {
-      withinBase.toRight(OutsideBaseDir(filePath.nameOption, realPath))
-    }
+    checkSanitizedIsIn(baseFolder, filePath)
   }
 }

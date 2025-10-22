@@ -1,0 +1,26 @@
+= node-post-acceptance
+
+== When/What ?
+
+This directory contains hooks executed before and after a campaign event starts to run.
+This hooks are specific for each campaign, so contrary to other hook layout, for campaign
+you have:
+- /opt/rudder/etc/hooks.d/campaigns/
+    - 781b2837-25d0-4c72-8384-04a22e59d83b // uuid of the campaign
+       - pre-hooks
+           [scripts for pre hooks]
+       - post-hooks
+           [scripts for post hooks]
+
+Hooks return code that stop processing will lead to a "failure" campaign event.
+
+== Parameters
+
+Hooks parameters are passed by environment variable:
+
+- CAMPAIGN_ID: the campaign id (ie the name of the json file in /var/rudder/configuration-repository/campaigns)
+- CAMPAIGN_NAME: human readable name of the campaign
+- CAMPAIGN_TYPE: campaign type, ie `system-update`, `software-update`, etc
+- CAMPAIGN_EVENT_ID: id of current event triggering that hook
+- CAMPAIGN_EVENT_NAME: human readable name of the event
+- CAMPAIGN_NEXT_STATE: only defined for post-hooks. [failure,finished]. Did we come here because pre-hooks failed?

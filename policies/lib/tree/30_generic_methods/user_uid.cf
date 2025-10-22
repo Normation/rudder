@@ -30,43 +30,51 @@
 bundle agent user_uid(login, uid)
 {
   vars:
-      "old_class_prefix"  string => canonify("user_uid_${login}");
-      "current_uid"          int => getuid(${login});
-      "args"               slist => { "${login}", "${uid}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("user_uid_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => "user_uid_${login}";
+      "current_uid"      int => getuid(${login});
+
+      "result_classes_prefix"  slist => {"${class_prefix}", "${report_data.method_id}"};
       
   classes:
-      "user_exists"     expression => userexists("${login}");
-      "user_diff_uid"          not => strcmp("${current_uid}", "${uid}");
-      "user_free_uid"          not => userexists("${uid}");
-      "args_defined"        expression => "user_exists.((user_diff_uid.user_free_uid)|!user_diff_uid)";
-      "user_uid_kept"   expression => "!user_free_uid.!user_diff_uid";
+      "user_exists"   expression => userexists("${login}");
+      "user_diff_uid"        not => strcmp("${current_uid}", "${uid}");
+      "user_free_uid"        not => userexists("${uid}");
+
+      
+      # we need to run user promise if user exist and uid is ok or uid is not ok and free
+      "user_exists_uid_ok" expression => "user_exists.user_free_uid";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   users:
-      "${login}"  policy        => "present",
-                  uid           => "${uid}",
-                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                  ifvarclass    => "args_defined";
+      "${login}"
+         policy => "present",
+            uid => "${uid}",
+        classes => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+             if => "user_exists_uid_ok.user_diff_uid";
 
   methods:
-    !args_defined::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
 
-      "report_error"
-        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} uid to ${uid}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "!user_exists";
+    pass3.!user_exists_uid_ok.user_diff_uid::
+      "${report_data.method_id}" usebundle => _classes_failure("${result_classes_prefix}");
 
-      "report_error"
-        usebundle => _log_v3("Uid ${uid} already in use. Setting user ${login} uid to ${uid}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "!user_free_uid.user_diff_uid";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Can't set user ${login} uid to ${uid}", ""),
+                                        if => "!user_exists.user_free_uid";
 
-    args_defined::
-      "report_success"
-        usebundle => _log_v3("User ${login} uid set to ${uid}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Uid ${uid} already in use. Can't set user ${login} uid to ${uid}", ""),
+                                        if => "user_exists.!user_free_uid";
+
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Uid ${uid} already in use and user does not exists. Can't set user ${login} uid to ${uid}", ""),
+                                        if => "!user_exists.!user_free_uid";
+
+    pass3.!user_diff_uid::
+      "${report_data.method_id}" usebundle => _classes_success("${result_classes_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} uid already set to ${uid}", "");
+
+    pass3.user_exists_uid_ok.user_diff_uid::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} uid set to ${uid}", "");
 
 }
 

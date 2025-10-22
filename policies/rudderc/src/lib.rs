@@ -125,7 +125,7 @@ pub fn run(args: MainArgs) -> Result<()> {
         Command::Init => action::init(&cwd, None),
         Command::New { name } => {
             create_dir_all(&name)
-                .with_context(|| format!("Failed to create technique directory {}", name))?;
+                .with_context(|| format!("Failed to create technique directory {name}"))?;
             action::init(&cwd.join(&name), Some(name))
         }
         Command::Clean => action::clean(target.as_path()),
@@ -298,11 +298,11 @@ pub mod action {
         };
 
         // Open in browser
-        if let Some(f) = file_to_open {
-            if open {
-                ok_output("Opening", f.display());
-                let _ = Command::new("xdg-open").args([f]).output();
-            }
+        if let Some(f) = file_to_open
+            && open
+        {
+            ok_output("Opening", f.display());
+            let _ = Command::new("xdg-open").args([f]).output();
         }
 
         Ok(())
@@ -536,7 +536,7 @@ pub mod action {
             .map(|c| c.as_str().unwrap())
             .unwrap_or("ncf_techniques");
         create_dir_all(&dir).context(format!("Creating output directory {}", dir.display()))?;
-        let actual_output = dir.join(format!("{}-{}.zip", id, version));
+        let actual_output = dir.join(format!("{id}-{version}.zip"));
 
         let file = File::create(&actual_output).context(format!(
             "Creating export output file {}",
@@ -548,7 +548,7 @@ pub mod action {
         let zip_dir = format!("archive/techniques/{category}/{id}/{version}");
 
         // Technique
-        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE), options.clone())?;
+        zip.start_file(format!("{zip_dir}/{TECHNIQUE}"), options.clone())?;
         let mut buffer = Vec::new();
         let mut f = File::open(&technique_src).context(format!(
             "Opening technique source {}",

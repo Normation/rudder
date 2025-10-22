@@ -279,7 +279,7 @@ final case class NodeConfiguration(
 
 /**
  * Unique identifier for the policy.
- * These is a general container that can be used to generate the different ID
+ * This is a general container that can be used to generate the different ID
  * used in rudder: the policyId as used in reports, the unique identifier
  * used to differentiate multi-version technique, etc.
  */
@@ -298,14 +298,14 @@ final case class PolicyId(ruleId: RuleId, directiveId: DirectiveId, techniqueVer
 
 /**
  * Until we have a unique identifier, we need to use another key to identify our components/Variable so that blocks
- * can identified  correctly when building expected reports. Since in this case several blocks can have the same
+ * can be identified  correctly when building expected reports. Since in this case several blocks can have the same
  * component name.
- * This will allow too prevent missing expected reports, because we were building a map with toMap, that only keep
+ * This will allow to prevent missing expected reports, because we were building a map with toMap, that only keep
  * one elem for a specific key. A component Id for now is composed of component name and a list of Parents
  * Section (and maybe blocks) that has lead to it.
  *
  * - since 7.1, with a reportId. The report id is optional since we don't have all techniques ported to
- *   use it: as of 7.1, only ncf techniques (from editor) got it, so we needed a transitionnal period.
+ *   use it: as of 7.1, only ncf techniques (from editor) got it, so we needed a transitional period.
  *
  */
 case class ComponentId(value: String, parents: List[String], reportId: Option[String])

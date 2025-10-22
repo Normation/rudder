@@ -13,7 +13,7 @@ use tokio::{
     signal::unix::{signal, SignalKind},
     sync::RwLock,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{
@@ -105,7 +105,11 @@ pub fn init_logger() -> Result<LogHandle, Error> {
     Ok(reload_handle)
 }
 
-pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
+pub fn start(
+    cli_cfg: CliConfiguration,
+    reload_handle: LogHandle,
+    force_ports: Option<(u16, u16)>,
+) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.config)?;
     reload_handle.reload(log_cfg.to_string())?;
@@ -120,13 +124,18 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
     // ---- Setup data structures ----
 
-    let cfg = Configuration::new(cli_cfg.config.clone())?;
+    let mut cfg = Configuration::new(cli_cfg.config.clone())?;
+    if let Some((api, https)) = force_ports {
+        warn!("Overriding listen port to {api}");
+        cfg.general.listen = format!("127.0.0.1:{api}");
+        warn!("Overriding https port to {https}");
+        cfg.general.https_port = https;
+    }
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
     // ---- Start server ----
 
     // Optimize for big servers: use multi-threaded scheduler
-
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     if let Some(threads) = job_config.cfg.general.core_threads {
         builder.worker_threads(threads);
@@ -261,27 +270,29 @@ impl JobConfig {
 
         // HTTP clients
         //
-        let model = cfg.peer_authentication();
+        let model = cfg.peer_authentication()?;
 
         debug!("Creating HTTP client for upstream");
-        let upstream_client = match model {
+        let builder = HttpClient::builder(cfg.general.https_idle_timeout);
+        let upstream_client = match &model {
             PeerAuthentication::CertPinning => {
                 let cert = fs::read(&cfg.output.upstream.server_certificate_file)?;
-                HttpClient::builder(cfg.general.https_idle_timeout).pinned(vec![cert])
+                builder.pinned(vec![cert])
             }
-            PeerAuthentication::SystemRootCerts => {
-                HttpClient::builder(cfg.general.https_idle_timeout).system()
-            }
-            PeerAuthentication::DangerousNone => {
-                HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
-            }
+            PeerAuthentication::CertValidation(ca_opt) => match ca_opt {
+                None => builder.system(),
+                Some(ca) => builder.custom_ca(ca),
+            },
+            PeerAuthentication::DangerousNone => builder.no_verify(),
         }?;
 
         let mut downstream_clients = HashMap::new();
 
         for (id, certs) in nodes.my_sub_relays_certs() {
             debug!("Creating HTTP client for '{}'", id);
-            let client = match model {
+            let builder = HttpClient::builder(cfg.general.https_idle_timeout);
+
+            let client = match &model {
                 PeerAuthentication::CertPinning => {
                     let certs = match certs {
                         Some(stack) => stack
@@ -291,14 +302,13 @@ impl JobConfig {
                             .collect(),
                         None => vec![],
                     };
-                    HttpClient::builder(cfg.general.https_idle_timeout).pinned(certs)
+                    builder.pinned(certs)
                 }
-                PeerAuthentication::SystemRootCerts => {
-                    HttpClient::builder(cfg.general.https_idle_timeout).system()
-                }
-                PeerAuthentication::DangerousNone => {
-                    HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
-                }
+                PeerAuthentication::CertValidation(ca_opt) => match ca_opt {
+                    None => builder.system(),
+                    Some(ca) => builder.custom_ca(ca),
+                },
+                PeerAuthentication::DangerousNone => builder.no_verify(),
             }?;
             downstream_clients.insert(id, client);
         }
@@ -352,7 +362,7 @@ impl JobConfig {
         // To enable this replacement, we store the clients in a `RwLock`. Write locking will be
         // possible as when using the clients to make requests, we don't lock for the request
         // duration but only for the time necessary to clone the client (=very short).
-        if self.cfg.peer_authentication() == PeerAuthentication::CertPinning {
+        if self.cfg.peer_authentication()? == PeerAuthentication::CertPinning {
             // upstream client
             let cert = fs::read(&self.cfg.output.upstream.server_certificate_file)?;
             let certs = vec![cert];

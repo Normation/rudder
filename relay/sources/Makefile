@@ -31,6 +31,14 @@ target/man/rudder-relayd.1.gz:
 	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
 	gzip -f target/man/rudder-relayd.1
 
+# Don't use sequoia on SLES as we build on an SP
+# having a different libnettle version from supported servers.
+ifeq (, $(shell which zypper))
+    CARGO_FEATURES_GPG="sequoia"
+else
+    CARGO_FEATURES_GPG=""
+endif
+
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
 build: man
 	# Build rust binaries
@@ -43,7 +51,7 @@ build: man
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	### rudder-package
 	$(CACHE) get rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
-	cd rudder-package && COMPLETION_OUT_DIR=../../../target make build
+	cd rudder-package && COMPLETION_OUT_DIR=../../../target make CARGO_FEATURES="${CARGO_FEATURES_GPG}" build
 	# Modify completion to make it callable by our global completion function
 	sed -i "s@_rudder() {@_rudderpkg() {@" ../../target/rudder.bash
 	sed -i '/^if/,$$d' ../../target/rudder.bash 
@@ -104,6 +112,9 @@ install: build
 	# Install rudder-package
 	install -m 755 ../../target/release/rudder-package $(DESTDIR)/opt/rudder/bin/rudder-package
 	install -m 644 ../../target/rudder.bash $(DESTDIR)/etc/bash_completion.d/rudder-package.sh
+	install -m 644 rudder-package/tools/rudder_plugins_key.asc $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.asc
+	# Keyring file created with:
+	# gpg --no-default-keyring --homedir=. --keyring=./rudder_plugins_key.gpg --import tools/rudder_plugins_key.asc
 	install -m 644 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 644 rudder-package/tools/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
@@ -114,7 +125,7 @@ install: build
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/rudder.conf
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/opt/rudder/share/apache.conf
 	install -m 644 apache/rudder-apache-relay-common.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-common.conf
-	install -m 644 apache/rudder-apache-relay-ssl.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-ssl.conf
+	install -m 644 apache/rudder-apache-relay-ssl.conf.j2 $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-ssl.conf.j2
 	install -m 644 apache/rudder-apache-relay-nossl.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-nossl.conf
 
 	# Others

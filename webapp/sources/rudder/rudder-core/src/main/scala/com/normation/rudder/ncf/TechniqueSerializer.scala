@@ -43,18 +43,15 @@ import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JString
-import net.liftweb.json.JValue
+import zio.*
+import zio.json.*
+import zio.json.ast.*
 
 /*
  * Provides json serializer/deserializer for techniques
  */
 
 class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
-
-  import zio.json.*
 
   implicit val encoderParameterId:      JsonEncoder[ParameterId]      = JsonEncoder[String].contramap(_.value)
   implicit val encoderFieldParameterId: JsonFieldEncoder[ParameterId] = JsonFieldEncoder[String].contramap(_.value)
@@ -98,55 +95,68 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     technique.toJson
   }
 
-  def serializeMethodMetadata(method: GenericMethod): JValue = {
+  /*
+   * The compilation output parameter is either just an error string or a CompilationOutput serialized to json.
+   */
+  def serializeEditorTechnique(editorTechnique: EditorTechnique, compilationOutput: Option[Json]): Either[String, Json] = {
+    val output = compilationOutput match {
+      case Some(o) => ("output", o) :: Nil
+      case None    => Nil
+    }
 
-    import net.liftweb.json.JsonDSL.*
-    def serializeMethodParameter(param: MethodParameter): JValue = {
+    editorTechnique.toJsonAST.map(_.merge(Json(("source", Json.Str("editor")) :: output*)))
+  }
 
-      def serializeMethodConstraint(constraint: ncf.Constraint.Constraint): JField = {
+  def serializeMethodMetadata(method: GenericMethod): Json = {
+
+    def serializeMethodParameter(param: MethodParameter): Json = {
+
+      def serializeMethodConstraint(constraint: ncf.Constraint.Constraint): (String, Json) = {
         constraint match {
-          case ncf.Constraint.AllowEmpty(allow)      => JField("allow_empty_string", allow)
-          case ncf.Constraint.AllowWhiteSpace(allow) => JField("allow_whitespace_string", allow)
-          case ncf.Constraint.MaxLength(max)         => JField("max_length", max)
-          case ncf.Constraint.MinLength(min)         => JField("min_length", min)
-          case ncf.Constraint.MatchRegex(re)         => JField("regex", re)
-          case ncf.Constraint.NotMatchRegex(re)      => JField("not_regex", re)
-          case ncf.Constraint.FromList(list)         => JField("select", list)
+          case ncf.Constraint.AllowEmpty(allow)      => ("allow_empty_string", Json.Bool(allow))
+          case ncf.Constraint.AllowWhiteSpace(allow) => ("allow_whitespace_string", Json.Bool(allow))
+          case ncf.Constraint.MaxLength(max)         => ("max_length", Json.Num(max))
+          case ncf.Constraint.MinLength(min)         => ("min_length", Json.Num(min))
+          case ncf.Constraint.MatchRegex(re)         => ("regex", Json.Str(re))
+          case ncf.Constraint.NotMatchRegex(re)      => ("not_regex", Json.Str(re))
+          case ncf.Constraint.FromList(list)         => ("select", Json.Arr(list.map(Json.Str(_))*))
         }
       }
 
-      val constraints = JObject(param.constraint.map(serializeMethodConstraint))
-      val paramType   = JString(parameterTypeService.value(param.parameterType).getOrElse("Unknown"))
-      (("name"         -> param.id.value)
-      ~ ("description" -> param.description)
-      ~ ("constraints" -> constraints)
-      ~ ("type"        -> paramType))
+      val constraints = Json.Obj(param.constraint.map(serializeMethodConstraint)*)
+      val paramType   = Json.Str(parameterTypeService.value(param.parameterType).getOrElse("Unknown"))
+      Json.Obj(
+        ("name"        -> Json.Str(param.id.value)),
+        ("description" -> Json.Str(param.description)),
+        ("constraints" -> constraints),
+        ("type"        -> paramType)
+      )
     }
 
     def serializeAgentSupport(agent: AgentType) = {
       agent match {
-        case AgentType.Dsc          => JString("dsc")
-        case AgentType.CfeCommunity => JString("cfengine-community")
+        case AgentType.Dsc          => Json.Str("dsc")
+        case AgentType.CfeCommunity => Json.Str("cfengine-community")
       }
     }
 
     val parameters   = method.parameters.map(serializeMethodParameter)
     val agentSupport = method.agentSupport.map(serializeAgentSupport)
-    (("id"             -> method.id.value)
-    ~ ("name"          -> method.name)
-    ~ ("description"   -> method.description)
-    ~ ("condition"     -> (("prefix" -> method.classPrefix)
-    ~ ("parameter"     -> method.classParameter.value)))
-    ~ ("agents"        -> agentSupport)
-    ~ ("parameters"    -> parameters)
-    ~ ("documentation" -> method.documentation)
-    ~ ("deprecated"    -> (method.deprecated match {
-      case None       => None
-      case Some(info) =>
-        Some(
-          (("info"        -> info)
-          ~ ("replacedBy" -> method.renameTo))
-        )
-    })))
+    val fields       = Chunk(
+      ("id"            -> Json.Str(method.id.value)),
+      ("name"          -> Json.Str(method.name)),
+      ("description"   -> Json.Str(method.description)),
+      ("condition"     -> Json
+        .Obj(("prefix" -> Json.Str(method.classPrefix)), ("parameter" -> Json.Str(method.classParameter.value)))),
+      ("agents"        -> Json.Arr(agentSupport*)),
+      ("parameters"    -> Json.Arr(parameters*)),
+      ("documentation" -> method.documentation.fold[Json](Json.Null)(Json.Str(_))),
+      ("deprecated"    -> (method.deprecated match {
+        case None       => Json.Null
+        case Some(info) =>
+          Json.Obj(("info" -> Json.Str(info)), ("replacedBy" -> method.renameTo.fold[Json](Json.Null)(Json.Str(_))))
+      }))
+    )
+    Json.Obj(fields.filterNot(_._2 == Json.Null))
   }
 }

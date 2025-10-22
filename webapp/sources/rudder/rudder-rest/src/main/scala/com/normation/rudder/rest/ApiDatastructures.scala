@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import cats.data.*
 import cats.implicits.*
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 
@@ -230,6 +231,9 @@ trait EndpointSchema {
   // Nil means special `any_righs`, ie special admin role, is needed, so
   // that removing the last right effectively remove all permissions
   def authz: List[AuthorizationType]
+
+  // specific mapping of ACL that has access to some part of this endpoint
+  def otherAcls: Map[AuthorizationType, List[ApiAclElement]] = Map.empty
 }
 
 trait EndpointSchema0 extends EndpointSchema {
@@ -270,6 +274,7 @@ trait StartsAtVersion18 extends EndpointSchema { val versions: ApiV.From = ApiV.
 trait StartsAtVersion19 extends EndpointSchema { val versions: ApiV.From = ApiV.From(19) } // Rudder 8.1
 trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.From(20) } // Rudder 8.2
 trait StartsAtVersion21 extends EndpointSchema { val versions: ApiV.From = ApiV.From(21) } // Rudder 8.3
+trait StartsAtVersion22 extends EndpointSchema { val versions: ApiV.From = ApiV.From(22) } // Rudder 9.0
 
 // utility extension trait to define the kind of API
 trait PublicApi   extends EndpointSchema { val kind: ApiKind.Public.type = ApiKind.Public     }
@@ -364,13 +369,20 @@ trait TwoParam  extends EndpointSchema  {
 
 // Generic errors that may happen when processing requests
 sealed trait ApiError extends Exception {
-  def msg:     String
-  def apiName: String
+  def msg:      String
+  def apiName:  String
+  def restCode: RestError
 }
 object ApiError {
-  final case class Authz(msg: String, apiName: String)      extends ApiError
-  final case class BadRequest(msg: String, apiName: String) extends ApiError
-  final case class BadParam(msg: String, apiName: String)   extends ApiError
+  final case class Authz(msg: String, apiName: String)      extends ApiError {
+    val restCode: RestError = ForbiddenError
+  }
+  final case class BadRequest(msg: String, apiName: String) extends ApiError {
+    val restCode: RestError = InternalError
+  }
+  final case class BadParam(msg: String, apiName: String)   extends ApiError {
+    val restCode: RestError = InternalError
+  }
 }
 
 // information needed from a request to be able to process it
@@ -658,7 +670,7 @@ trait BuildHandler[REQ, RESP, T, P] {
               Some(() => {
                 // here we are allowed to do time-consuming side effects
                 // we do handle that request ! Now for actual handling;
-                // in all case an response, even if an error (so Some(() => Full(...)))
+                // in all case a response, even if an error (so Some(() => Full(...)))
                 logger.debug(s"Processing request: ${logReq(req)}")
                 logger.debug(logBody(req))
                 logger.debug(
@@ -679,7 +691,7 @@ trait BuildHandler[REQ, RESP, T, P] {
                                          .toUpperCase()} ${info.path.value}': ${error.msg}")
                                      error
                                    }
-                  // extract modul parameters from request
+                  // extract module parameters from request
                   params        <- api.getParam(req).leftMap { error =>
                                      logger.error(s"Error when extracting request parameters from '${info.action.name
                                          .toUpperCase()} ${info.path.value}': ${error.msg}")
@@ -701,12 +713,12 @@ trait BuildHandler[REQ, RESP, T, P] {
                     s"Handler for '${info.action.name.toUpperCase()} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms"
                   )
                   exec
-                }).fold(error => toResponse(error), identity) // align left (i.e error) and righ type
+                }).fold(error => toResponse(error), identity) // align left (i.e error) and right type
 
                 response
               })
           }
-        }).fold(error => Some(() => toResponse(error)), identity) // align left (i.e error) and righ type
+        }).fold(error => Some(() => toResponse(error)), identity) // align left (i.e error) and right type
     }
   }
 }

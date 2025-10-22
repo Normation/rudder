@@ -39,23 +39,21 @@
 bundle agent condition_from_variable_existence(condition, variable_name)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_variable_existence_${condition}");
-      "args"               slist => { "${condition}", "${variable_name}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("condition_from_variable_existence_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"           string => canonify("condition_from_variable_existence_${condition}");
 
   classes:
-
       "${condition}_true"  expression => isvariable("${variable_name}"),
-            scope => "namespace";
+                                scope => "namespace";
 
-      "${condition}_false"  not => isvariable("${variable_name}"),
-            scope => "namespace";
+      "${condition}_false"        not => isvariable("${variable_name}"),
+                                scope => "namespace";
 
   methods:
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-      "report"  usebundle => _log_v3("Create the condition ${condition}_{true,false} from the existence of variable ${variable_name}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "The condition ${condition}_true was defined as the variable ${variable_name} was defined", ""),
+                                        if => isvariable("${variable_name}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "The condition ${condition}_false was defined as the variable ${variable_name} was undefined", ""),
+                                    unless => isvariable("${variable_name}");
 }

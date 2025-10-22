@@ -267,7 +267,7 @@ object ParseVersion {
   }
 
   def parse(s: String): Either[String, Version] = {
-    fastparse.parse(s, version(_)) match {
+    fastparse.parse(s, { case given P[?] => version }) match {
       case Parsed.Success(value, index) => Right(value)
       case _: Parsed.Failure =>
         Left(

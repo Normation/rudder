@@ -38,9 +38,11 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
+import com.normation.errors.PureResult
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
@@ -52,6 +54,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
@@ -62,7 +65,10 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.rudder.web.model.*
-import net.liftweb.common.*
+import com.normation.zio.UnsafeRun
+import java.time.Instant
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
@@ -70,8 +76,8 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
-import org.joda.time.DateTime
 import scala.xml.*
+import zio.syntax.*
 
 /**
  * Validation pop-up for modification on group and directive.
@@ -104,8 +110,8 @@ object ModificationValidationPopup extends Loggable {
    * Expects "Directive" or "Group" as argument
    */
   private def titles(item: String, name: String, action: DGModAction) = action match {
-    case DGModAction.Enable            => s"Enable Directive '${name}'"
-    case DGModAction.Disable           => s"Disable Directive '${name}'"
+    case DGModAction.Enable            => s"Enable ${item} '${name}'"
+    case DGModAction.Disable           => s"Disable ${item} '${name}'"
     case DGModAction.Delete            => s"Delete ${item} '${name}'"
     case DGModAction.Update            => s"Update ${item} '${name}'"
     case DGModAction.CreateSolo        => s"Create a ${item}"
@@ -214,10 +220,16 @@ class ModificationValidationPopup(
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
-  // fonction to read state of things
-  private val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  // function to read state of things
+  private val getGroupLib = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" =>
+      _ => {
+        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+        popupContent()
+      }
+  }
 
   private val disabled = item match {
     case Left(item)  => !item.newDirective.isEnabled
@@ -239,15 +251,15 @@ class ModificationValidationPopup(
   private val explanationNoWarning = ("#dialogDisableWarning" #> NodeSeq.Empty).apply(explanation)
   private val groupLib             = getGroupLib()
 
-  private val rules = {
+  private def rules: IOResult[Set[Rule]] = {
     action match {
       case DGModAction.CreateSolo =>
-        Full(Set[Rule]())
+        Set[Rule]().succeed
       case _                      =>
         item match {
           case Left(directiveChange) =>
             dependencyService
-              .directiveDependencies(directiveChange.newDirective.id.uid, groupLib.toBox)
+              .directiveDependencies(directiveChange.newDirective.id.uid, groupLib)
               .map(_.rules ++ directiveChange.baseRules)
 
           case Right(nodeGroupChange) =>
@@ -266,15 +278,15 @@ class ModificationValidationPopup(
     }
   }
 
-  val popupWarningMessages: Option[(NodeSeq, NodeSeq)] = {
+  def popupWarningMessages(implicit qc: QueryContext): Option[(NodeSeq, NodeSeq)] = {
 
-    rules match {
-      // Error while fetch dependent Rules => display message and error
-      case eb: EmptyBox =>
+    rules.either.runNow match {
+      // Error while fetching dependent Rules => display message and error
+      case Left(_)                                   =>
         val error = <div class="error">An error occurred while trying to find dependent item</div>
         Some((explanation, error))
-      // Nothing to display, but if workflow are disabled or the this is a new Item, display the explanation message
-      case Full(emptyRules) if emptyRules.size == 0 =>
+      // Nothing to display, but if workflows are disabled or if this is a new Item, display the explanation message
+      case Right(emptyRules) if emptyRules.size == 0 =>
         // if there is nothing to validate and no workflows,
         action match {
           case DGModAction.CreateSolo =>
@@ -292,14 +304,13 @@ class ModificationValidationPopup(
               None
             }
         }
-
-      case Full(rules) =>
+      case Right(rules)                              =>
         Some((explanation, showDependentRules(rules)))
     }
   }
 
   // _1 is explanation message, _2 is dependant rules
-  def popupContent(): NodeSeq = {
+  def popupContent()(implicit qc: QueryContext): NodeSeq = {
 
     def workflowMessage(directiveCreation: Boolean): NodeSeq = (
       <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
@@ -365,7 +376,7 @@ class ModificationValidationPopup(
     )(html)
   }
 
-  private def showDependentRules(rules: Set[Rule]): NodeSeq = {
+  private def showDependentRules(rules: Set[Rule])(implicit qc: QueryContext): NodeSeq = {
     action match {
       case DGModAction.CreateSolo => NodeSeq.Empty
       case _ if (rules.size <= 0) => NodeSeq.Empty
@@ -387,13 +398,13 @@ class ModificationValidationPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter   = notNull _ :: trim _ :: Nil
+      override def setFilter   = notNull :: trim :: Nil
       override def inputField  = super.inputField % ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
       override def validations = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -402,16 +413,16 @@ class ModificationValidationPopup(
   }
 
   private val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val changeRequestDescription = new WBTextAreaField("Description", "") {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "d-none")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
@@ -443,11 +454,11 @@ class ModificationValidationPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private def onSubmitStartWorkflow(): JsCmd = {
+  private def onSubmitStartWorkflow()(implicit qc: QueryContext): JsCmd = {
     onSubmit()
   }
 
@@ -455,31 +466,33 @@ class ModificationValidationPopup(
       techniqueName: TechniqueName,
       directive:     Directive,
       initialState:  Option[Directive]
-  ): Box[Option[ChangeRequestDirectiveDiff]] = {
+  ): PureResult[Option[ChangeRequestDirectiveDiff]] = {
 
     techniqueRepo.get(TechniqueId(techniqueName, directive.techniqueVersion)).map(_.rootSection) match {
       case None              =>
-        Failure(
-          s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion.debugString}"
+        Left(
+          Inconsistency(
+            s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion.debugString}"
+          )
         )
       case Some(rootSection) =>
         initialState match {
           case None    =>
             action match {
               case DGModAction.Update | DGModAction.CreateAndModRules | DGModAction.CreateSolo =>
-                Full(Some(AddDirectiveDiff(techniqueName, directive)))
+                Right(Some(AddDirectiveDiff(techniqueName, directive)))
               case _                                                                           =>
-                Failure(s"Action ${action} is not possible on a new directive")
+                Left(Inconsistency(s"Action ${action} is not possible on a new directive"))
             }
           case Some(d) =>
             action match {
-              case DGModAction.Delete => Full(Some(DeleteDirectiveDiff(techniqueName, directive)))
+              case DGModAction.Delete => Right(Some(DeleteDirectiveDiff(techniqueName, directive)))
               case DGModAction.Update | DGModAction.Disable | DGModAction.Enable | DGModAction.CreateSolo |
                   DGModAction.CreateAndModRules =>
                 if (d == directive) {
-                  Full(None)
+                  Right(None)
                 } else {
-                  Full(Some(ModifyToDirectiveDiff(techniqueName, directive, Some(rootSection))))
+                  Right(Some(ModifyToDirectiveDiff(techniqueName, directive, Some(rootSection))))
                 }
             }
         }
@@ -489,27 +502,28 @@ class ModificationValidationPopup(
   private def groupDiffFromAction(
       group:        NodeGroup,
       initialState: Option[NodeGroup]
-  ): Box[ChangeRequestNodeGroupDiff] = {
+  ): PureResult[ChangeRequestNodeGroupDiff] = {
     initialState match {
       case None    =>
         action match {
           case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules =>
-            Full(AddNodeGroupDiff(group))
+            Right(AddNodeGroupDiff(group))
           case _                                                                           =>
-            Failure(s"Action ${action} is not possible on a new group")
+            Left(Inconsistency(s"Action ${action} is not possible on a new group"))
         }
       case Some(d) =>
         action match {
-          case DGModAction.Delete                                                          => Full(DeleteNodeGroupDiff(group))
-          case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules => Full(ModifyToNodeGroupDiff(group))
-          case _                                                                           => Failure(s"Action ${action} is not possible on a existing directive")
+          case DGModAction.Delete => Right(DeleteNodeGroupDiff(group))
+          case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules | DGModAction.Enable |
+              DGModAction.Disable =>
+            Right(ModifyToNodeGroupDiff(group))
         }
     }
   }
 
-  private def saveChangeRequest(): JsCmd = {
+  private def saveChangeRequest(): JsCmd = scala.util.boundary {
     // we only have quick change request now
-    val boxcr = item match {
+    val purecr = item match {
       case Left(
             DirectiveChangeRequest(
               action,
@@ -562,27 +576,25 @@ class ModificationValidationPopup(
             .move(
               nodeGroup.id,
               parentCategoryId
-            )(
+            )(using
               ChangeContext(
                 ModificationId(uuidGen.newUuid),
                 CurrentUser.actor,
-                new DateTime(),
+                Instant.now(),
                 crReasons.map(_.get),
                 None,
                 CurrentUser.nodePerms
               )
             )
-            .toBox match {
-            case Full(_) => // ok, continue
-            case eb: EmptyBox =>
-              val e = eb ?~! "Error when moving the group (no change request was created)"
+            .chainError("Error when moving the group (no change request was created)")
+            .either
+            .runNow match {
+            case Right(_)  =>
+            case Left(err) =>
               // early return here
-              logger.error(e.messageChain)
-              e.chain.foreach { ex =>
-                parentFormTracker.addFormError(error(ex.messageChain))
-                logger.error(s"Exception when trying to update a change request:", ex)
-              }
-              return onFailureCallback(Text(e.messageChain))
+              logger.error(s"Exception when trying to update a change request:" + err.fullMsg)
+              parentFormTracker.addFormError(error(err.fullMsg))
+              scala.util.boundary.break(onFailureCallback(Text(err.fullMsg)))
           }
         }
 
@@ -601,34 +613,30 @@ class ModificationValidationPopup(
     }
 
     (for {
-      cr <- boxcr
-      id <- workflowService.startWorkflow(cr)(
-              ChangeContext(
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                new DateTime(),
-                crReasons.map(_.get),
-                None,
-                CurrentUser.nodePerms
+      cr <- purecr.toIO
+      id <- workflowService
+              .startWorkflow(cr)(using
+                ChangeContext(
+                  ModificationId(uuidGen.newUuid),
+                  CurrentUser.actor,
+                  Instant.now(),
+                  crReasons.map(_.get),
+                  None,
+                  CurrentUser.nodePerms
+                )
               )
-            )
     } yield {
       id
-    }) match {
-      case Full(id) =>
-        onSuccessCallback(id)
-      case eb: EmptyBox =>
-        val e = (eb ?~! "Error when trying to save your modification")
-        logger.error(e.messageChain)
-        e.chain.foreach { ex =>
-          parentFormTracker.addFormError(error(ex.messageChain))
-          logger.error(s"Exception when trying to update a change request:", ex)
-        }
-        onFailureCallback(Text(e.messageChain))
+    }).chainError("Error when trying to save your modification").either.runNow match {
+      case Right(id) => onSuccessCallback(id)
+      case Left(err) =>
+        logger.error(s"Exception when trying to update a change request:" + err.fullMsg)
+        parentFormTracker.addFormError(error(err.fullMsg))
+        onFailureCallback(Text(err.fullMsg))
     }
   }
 
-  def onSubmit(): JsCmd = {
+  def onSubmit()(implicit qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure
     } else {
@@ -669,8 +677,8 @@ class ModificationValidationPopup(
       why:               Option[String]
   ): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why).toBox match {
-      case Full(optChanges) =>
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why).either.runNow match {
+      case Right(optChanges) =>
         optChanges match {
           case Some(diff) if diff.needDeployment =>
             // There is a modification diff that required deployment, launch a deployment.
@@ -683,17 +691,14 @@ class ModificationValidationPopup(
           case DGModAction.CreateAndModRules => saveChangeRequest()
           case _                             => closePopup() & onCreateSuccessCallBack(Left(directive))
         }
-      case Empty            =>
-        parentFormTracker.addFormError(Text("There was an error on creating this directive"))
-        closePopup() & onCreateFailureCallBack()
 
-      case Failure(m, _, _) =>
-        parentFormTracker.addFormError(Text(m))
+      case Left(err) =>
+        parentFormTracker.addFormError(Text("An error occurred while creating this directive : " + err.msg))
         closePopup() & onCreateFailureCallBack()
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(implicit qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide() & JsRaw(
       """scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')"""

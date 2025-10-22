@@ -34,57 +34,35 @@
 bundle agent file_enforce_content(path, lines, enforce)
 {
   vars:
-      "canonified_path"    string => canonify("${path}");
-
-      "old_class_prefix" string => canonify("file_ensure_lines_present_${path}");
+      "class_prefix"   string => canonify("file_ensure_lines_present_${path}");
 
     # We need to detect if lines is an iterator or a scalar
     !pass1::
-      "length_list" int => length("lines");
+      "length_list"       int => length("lines");
 
       # we need to reset the value to 0, otherwise in the next call of this generic method, the previous
       # value will be reused if lines is a scalar
     pass2::
-      "length_list" int => "0";
-
-    pass1.!islist::
-      "args"              slist => { "${path}", "${lines}", "${enforce}" };
-
-    pass1.islist::
-      "args"              slist => { "${path}", "@{lines}", "${enforce}" };
-
-    pass1::
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_ensure_lines_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("file_lines_present_${report_param}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "length_list"       int => "0";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
     !pass2::
       "islist" expression => isgreaterthan("$(length_list)", "1");
-
+    any::
+      "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
-    pass2::
-      "disable_reporting_${class_prefix}"
-                            usebundle => disable_reporting;
-    !islist.pass2::
-      "action"              usebundle => file_content("${path}", "${lines}", "${enforce}");
-    islist.pass2::
-      "action"              usebundle => file_content("${path}", "@{lines}", "${enforce}");
-    pass2::
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                           ifvarclass => "should_report";
-
-      "class copy"          usebundle => _classes_copy("file_lines_present_${canonified_path}", "${old_class_prefix}"),
-                           ifvarclass => "file_lines_present_${canonified_path}_reached";
-      "new result classes"  usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                           ifvarclass => "${inner_class_prefix}_reached";
-      "report"              usebundle => _log_v3("Insert content into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_content");
+      "${report_data.method_id}" usebundle => file_content("${path}", "@{lines}", "${enforce}"),
+                                        if => "is_list";
+      "${report_data.method_id}" usebundle => file_content("${path}", "${lines}", "${enforce}"),
+                                        if => "!is_list";
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_content");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Insert content into ${path}", "");
 
 }

@@ -37,7 +37,9 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -48,6 +50,8 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
+import com.normation.zio.UnsafeRun
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
@@ -55,8 +59,8 @@ import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
-import org.joda.time.DateTime
 import scala.xml.*
+import zio.syntax.ToZio
 
 /**
  * Validation pop-up for modification on rules only.
@@ -104,7 +108,7 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup.*
 
   private val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
+  private val uuidGen             = RudderConfig.stringUuidGenerator
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 
@@ -118,7 +122,6 @@ class RuleModificationValidationPopup(
       case (false, Enable)  => ("Enable", "btn-primary")
       case (false, Disable) => ("Disable", "btn-primary")
       case (false, Create)  => ("Create", "btn-success")
-      case (false, _)       => ("Save", "btn-success")
       case (true, _)        => ("Open request", "wideButton btn-primary")
     }
 
@@ -178,14 +181,14 @@ class RuleModificationValidationPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter   = notNull _ :: trim _ :: Nil
+      override def setFilter   = notNull :: trim :: Nil
       override def inputField  = super.inputField % ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
       // override def subContainerClassName = containerClass
       override def validations = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -196,12 +199,12 @@ class RuleModificationValidationPopup(
   private val defaultRequestName = s"${changeRequest.action.name.capitalize} Rule ${changeRequest.newRule.name}"
 
   private val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   // The formtracker needs to check everything only if there is workflow
@@ -227,23 +230,22 @@ class RuleModificationValidationPopup(
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private def ruleDiffFromAction(): Box[ChangeRequestRuleDiff] = {
+  private def ruleDiffFromAction(): IOResult[ChangeRequestRuleDiff] = {
     import RuleModAction.*
 
     changeRequest.previousRule match {
       case None =>
         changeRequest.action match {
           case Update | Create =>
-            Full(AddRuleDiff(changeRequest.newRule))
+            AddRuleDiff(changeRequest.newRule).succeed
           case _               =>
-            Failure(s"Action ${changeRequest.action.name} is not possible on a new Rule")
+            Inconsistency(s"Action ${changeRequest.action.name} is not possible on a new Rule").fail
         }
 
       case Some(d) =>
         changeRequest.action match {
-          case Delete                             => Full(DeleteRuleDiff(changeRequest.newRule))
-          case Update | Disable | Enable | Create => Full(ModifyToRuleDiff(changeRequest.newRule))
-          case _                                  => Failure(s"Action ${changeRequest.action.name} is not possible on a existing Rule")
+          case Delete                             => DeleteRuleDiff(changeRequest.newRule).succeed
+          case Update | Disable | Enable | Create => ModifyToRuleDiff(changeRequest.newRule).succeed
         }
     }
   }
@@ -265,34 +267,34 @@ class RuleModificationValidationPopup(
                     CurrentUser.actor,
                     crReasons.map(_.get)
                   )
-          id   <- workflowService.startWorkflow(cr)(
-                    ChangeContext(
-                      ModificationId(uuidGen.newUuid),
-                      CurrentUser.actor,
-                      new DateTime(),
-                      crReasons.map(_.get),
-                      None,
-                      CurrentUser.nodePerms
+          id   <- workflowService
+                    .startWorkflow(cr)(using
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        CurrentUser.actor,
+                        Instant.now(),
+                        crReasons.map(_.get),
+                        None,
+                        CurrentUser.nodePerms
+                      )
                     )
-                  )
         } yield {
           id
         }
       }
-      savedChangeRequest match {
-        case Full(id) =>
-          if (validationNeeded)
+      savedChangeRequest
+        .chainError("Error when trying to save your modification")
+        .either
+        .runNow match {
+        case Right(id) =>
+          if (validationNeeded) {
             closePopup() & onSuccessCallBack(Right(id))
-          else
+          } else {
             closePopup() & onSuccessCallBack(Left(changeRequest.newRule))
-        case eb: EmptyBox =>
-          val e = (eb ?~! "Error when trying to save your modification")
-          parentFormTracker.map(_.addFormError(error(e.messageChain)))
-          logger.error(e.messageChain)
-          e.chain.foreach { ex =>
-            parentFormTracker.map(x => x.addFormError(error(ex.messageChain)))
-            logger.error(s"Exception when trying to update a change request:", ex)
           }
+        case Left(err) =>
+          parentFormTracker.map(_.addFormError(error(err.fullMsg)))
+          logger.error(err.fullMsg)
           onFailureCallback()
       }
     }

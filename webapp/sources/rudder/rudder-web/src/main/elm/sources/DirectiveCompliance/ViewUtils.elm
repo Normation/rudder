@@ -48,6 +48,11 @@ badgePolicyMode globalPolicyMode policyMode =
           This rule is applied on at least one node or directive that will <b style='color:#9bc832;'>enforce</b>
           one configuration, and at least one that will <b style='color:#3694d1;'>audit</b> them.
           """
+        "skipped"   ->
+          """
+          <div style='margin-bottom:5px;'>This rule is in <b style='color:#eda800;'>skipped</b> mode.</div>
+          This rule has all its directives skipped.
+          """
         _ -> "Unknown policy mode"
 
   in
@@ -170,7 +175,7 @@ byRuleCompliance model subFun complianceFilters =
       |> List.sortWith sortFunction
     )
     (\m i ->  i )
-    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode (Maybe.map .policyMode model.directiveCompliance|> Maybe.withDefault "default")), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> N.compare r1.name r2.name ))
+    [ ("Rule", \i  -> span [] [ (badgePolicyMode model.policyMode i.policyMode), text i.name , goToBtn (getRuleLink contextPath i.ruleId) ],  (\r1 r2 -> N.compare r1.name r2.name ))
     , ("Compliance", \i -> buildComplianceBar complianceFilters  i.complianceDetails,  (\(r1) (r2) -> Basics.compare r1.compliance r2.compliance ))
     ]
     (.ruleId >> .value)

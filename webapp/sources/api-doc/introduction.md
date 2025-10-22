@@ -1,4 +1,4 @@
-Download OpenAPI specification: [openapi.yml](openapi.yml)
+  Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 **Other documentation sources**:
 
@@ -189,6 +189,21 @@ period of time to allow migration from previous versions.
       <td class="code">8.2</td>
       <td><ul>
         <li>More standard format for node details fields</li>
+      </ul></td>
+    </tr>
+    <tr>
+      <td class="code">21</td>
+      <td class="code">8.3</td>
+      <td><ul>
+        <li>API account new format</li>
+        <li>Info API format evolution</li>
+      </ul></td>
+    </tr>
+    <tr>
+      <td class="code">22</td>
+      <td class="code">9.0</td>
+      <td><ul>
+        <li>Event campaign (format, history)</li>
       </ul></td>
     </tr>
   </tbody>

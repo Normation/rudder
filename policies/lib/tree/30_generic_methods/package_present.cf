@@ -39,7 +39,7 @@ bundle agent package_present(name, version, architecture, provider)
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
-      "pass1" expression => "any";      
+      "pass1" expression => "any";
 
   methods:
     pass3::

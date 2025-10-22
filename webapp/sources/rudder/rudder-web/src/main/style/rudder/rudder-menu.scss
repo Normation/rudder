@@ -41,7 +41,10 @@
 @import "../../node_modules/bootstrap/scss/variables";
 @import "../../node_modules/bootstrap/scss/mixins";
 
-$navbar-hover-color : #F4F4F4;
+$navbar-hover-color : $rudder-bg-light-gray;
+
+// VARIABLES
+$menu-width: 230px;
 
 .wrapper {
   min-height: 100%;
@@ -51,8 +54,8 @@ $navbar-hover-color : #F4F4F4;
 }
 .content-wrapper{
   transition: transform .3s ease-in-out,margin .3s ease-in-out;
-  background-color: #F8F9FC;
-  margin-left: 230px;
+  background-color: $rudder-bg-light-gray;
+  margin-left: $menu-width;
   min-height: 100%;
   z-index: 800;
 }
@@ -60,15 +63,13 @@ $navbar-hover-color : #F4F4F4;
   .content-wrapper{
     margin-left:0
   }
+  .sidebar-open .content-wrapper{
+    transform: translate($menu-width,0);
+  }
 }
 @media (min-width: 768px) {
   .sidebar-collapse .content-wrapper{
     margin-left:0
-  }
-}
-@media (max-width: 767px) {
-  .sidebar-open .content-wrapper{
-    transform: translate(230px,0)
   }
 }
 .fixed .main-header,
@@ -98,7 +99,7 @@ $navbar-hover-color : #F4F4F4;
 .main-header >.navbar {
   transition: margin-left .3s ease-in-out;
   margin-bottom: 0;
-  margin-left: 230px;
+  margin-left: $menu-width;
   border: none;
   height: 50px;
   border-radius: 0;
@@ -153,11 +154,11 @@ $navbar-hover-color : #F4F4F4;
   font-size: 20px;
   line-height: 50px;
   text-align: center;
-  width: 230px;
+  width: $menu-width;
   padding: 0 15px;
   font-weight: 300;
   overflow: hidden;
-  background-color: #041922;
+  background-color: $rudder-txt-primary;
   position: relative;
   z-index: 9999;
 }
@@ -245,10 +246,10 @@ header.main-header .logo-lg img{
   left: 0;
   padding-top: 50px;
   min-height: 100%;
-  width: 230px;
+  width: $menu-width;
   z-index: 810;
   transition: transform .3s ease-in-out,width .3s ease-in-out;
-  background-color: #041922;
+  background-color: $rudder-txt-primary;
 }
 @media (max-width: 767px) {
   .main-sidebar {
@@ -257,12 +258,12 @@ header.main-header .logo-lg img{
 }
 @media (max-width: 767px) {
   .main-sidebar {
-    transform: translate(-230px,0)
+    transform: translate(-$menu-width,0)
   }
 }
 @media (min-width: 768px) {
   .sidebar-collapse .main-sidebar {
-    transform: translate(-230px,0)
+    transform: translate(-$menu-width,0)
   }
 }
 @media (max-width: 767px) {
@@ -300,14 +301,14 @@ header.main-header .logo-lg img{
   padding: 10px 25px 10px 15px;
   font-size: 12px
 }
-.sidebar-menu li>a > .fa-angle-left {
+.sidebar-menu li>a > .fa-angle-right {
   width: auto;
   height: auto;
   padding: 0;
   margin-right: 10px;
   margin-top: 3px
 }
-.sidebar-menu li.active>a > .fa-angle-left {
+.sidebar-menu li.active>a > .fa-angle-right {
   transform: rotate(-90deg)
 }
 .sidebar-menu li.active>.treeview-menu {
@@ -328,24 +329,25 @@ header.main-header .logo-lg img{
 }
 .sidebar-menu .treeview-menu>li>a {
   padding: 5px 5px 5px 15px;
-  display: block;
-  font-size: 14px
+  display: flex;
+  align-items: baseline;
+  font-size: 14px;
 }
 .sidebar-menu .treeview-menu>li>a > .fa, .sidebar-menu .treeview-menu>li>a > .ion {
   width: 20px
 }
-.sidebar-menu .treeview-menu>li>a > .fa-angle-down,.sidebar-menu .treeview-menu>li>a > .fa-angle-left {
+.sidebar-menu .treeview-menu>li>a > .fa-angle-down,.sidebar-menu .treeview-menu>li>a > .fa-angle-right {
   width: auto
 }
 @media (min-width: 768px) {
   .sidebar-mini.sidebar-collapse .content-wrapper{
     margin-left:50px!important;
-    z-index: 840
+    z-index: 1040
   }
   .sidebar-mini.sidebar-collapse .main-sidebar {
     transform: translate(0,0);
     width: 50px!important;
-    z-index: 850
+    z-index: 1050
   }
   .sidebar-mini.sidebar-collapse .sidebar-menu>li {
     position: relative
@@ -741,7 +743,7 @@ header.main-header .logo-lg img{
 }
 .main-header .navbar .sidebar-toggle:hover {
   background-color: $navbar-hover-color;
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 @media (max-width: 767px) {
   .main-header .navbar .dropdown-menu li.divider {
@@ -769,11 +771,11 @@ header.main-header .logo-lg img{
 }
 .sidebar-menu>li.active>a, .sidebar-menu>li:hover>a {
   color: #fff;
-  background-color: #213640;
-  border-left-color: #13beb7
+  background-color: $rudder-txt-primary;
+  border-left-color: $rudder-success
 }
 .sidebar-menu>li.active>a>i, .sidebar-menu>li:hover>a>i {
-  color: #13beb7
+  color: $rudder-success
 }
 .sidebar-menu>li>.treeview-menu {
   margin: 0;
@@ -823,9 +825,9 @@ header.main-header .logo-lg img{
 }
 .treeview-menu>li>a .fa {
   visibility:hidden;
-  color: #13beb7;
+  color: $rudder-success;
   position:relative;
-  color: #13beb7;
+  color: $rudder-success;
   left:-2px;
 }
 .treeview-menu>li>a.active .fa {
@@ -845,16 +847,17 @@ header.main-header .logo-lg img{
   color:#556D77;
 }
 
-.sidebar-menu li.treeview.active>a > .fa-angle-left {
-  transform: rotate(90deg);
+.sidebar-menu li.treeview > a > .fa-angle-right {
+  transition-property : transform;
+  transition-duration : .2s;
 }
-.sidebar-menu li.treeview>a > .fa-angle-left {
-  transform: rotate(-90deg);
+.sidebar-menu li.treeview.active>a > .fa-angle-right {
+  transform: rotate(90deg);
 }
 
 .sidebar-menu>li.footer {
   color: #fff;
-  background: #041922;
+  background: $rudder-txt-primary;
   margin-top: auto;
   animation: squeeze .3s ease-in-out forwards;
 }
@@ -941,7 +944,7 @@ header.main-header .logo-lg img{
   text-decoration: none !important;
 }
 .navbar .navbar-nav li.notifications-menu> a:hover{
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 .navbar-nav li.dropdown {
   height: 50px;
@@ -951,7 +954,8 @@ header.main-header .logo-lg img{
   &:focus .rudder-badge,
   &:active .rudder-badge,
   &:visited .rudder-badge{
-    background-color:#fff;
+    background-color: #fff;
+    border-color: $rudder-border-color-default;
   }
 }
 
@@ -968,7 +972,7 @@ header.main-header .logo-lg img{
       cursor: pointer;
 
       &:hover{
-        color: #041922;
+        color: $rudder-txt-primary;
       }
     }
   }
@@ -1006,7 +1010,7 @@ header.main-header .logo-lg img{
   border-color: #fff;
 }
 .notifications-menu a:hover .rudder-badge::before {
-  border-right-color: #fff;
+  border-right-color: $rudder-border-color-default;
 }
 .notifications-menu .rudder-badge::before {
   content: "";
@@ -1023,7 +1027,7 @@ header.main-header .logo-lg img{
 
 .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa{
   width: 30px;
-  color: #041922;
+  color: $rudder-txt-primary;
   opacity: 0.4;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa.text-succes{
@@ -1047,7 +1051,7 @@ header.main-header .logo-lg img{
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover.text-success,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:focus.text-success,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:visited.text-success{
-  color: #13BEB7 !important;
+  color: $rudder-success !important;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a.text-danger,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover.text-danger,
@@ -1140,7 +1144,7 @@ header.main-header .logo-lg img{
 .navbar .navbar-nav li.notifications-menu.bg-ok a:active #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-ok a:focus  #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-ok.open     #generation-status{
-  color: #13BEB7;
+  color: $rudder-success;
 }
 .navbar .navbar-nav li.notifications-menu.bg-ok #generation-status > span:after{
   content: "\f00c";
@@ -1180,7 +1184,7 @@ header.main-header .logo-lg img{
 }
 /* ---- */
 #generation-status.label-success{
-  background-color: #13BEB7 !important;
+  background-color: $rudder-success !important;
 }
 .label-neutral{
   background-color: #ABACAC !important;

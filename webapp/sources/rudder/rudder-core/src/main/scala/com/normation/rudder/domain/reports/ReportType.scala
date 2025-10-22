@@ -37,12 +37,14 @@
 
 package com.normation.rudder.domain.reports
 import com.normation.rudder.domain.policies.PolicyMode
+import enumeratum.Enum
+import enumeratum.EnumEntry
 
 /**
  * Kind of reports that we can get as result of
  * a merge/compare with expected reports.
  */
-sealed trait ReportType {
+sealed trait ReportType extends EnumEntry {
 
   def severity: String
 
@@ -52,7 +54,7 @@ sealed trait ReportType {
   def level: Int
 }
 
-object ReportType {
+object ReportType extends Enum[ReportType] {
   // report type are declared sorted in level to ease maintenance
 
   case object EnforceNotApplicable extends ReportType { val level = 0; val severity = "NotApplicable"      }
@@ -91,6 +93,8 @@ object ReportType {
       case (_, _)                            => Unexpected
     }
   }
+
+  override def values: IndexedSeq[ReportType] = findValues
 }
 
 /**

@@ -59,6 +59,7 @@ import com.normation.rudder.services.nodes.history.impl.FullInventoryFileParser
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryDelete
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
+import com.normation.rudder.services.nodes.history.impl.JodaDateTimeConverter
 import com.normation.rudder.services.nodes.history.impl.NodeDeleteEvent
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.utils.DateFormaterService
@@ -67,8 +68,9 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
+import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -118,9 +120,9 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // doobie is only defined in DBCommon
   def doobie: Doobie
 
-  val dateFormat: DateTimeFormatter = ISODateTimeFormat.dateTime()
+  val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HHmmss.SSSZ")
 
-  val testDir: File = File(s"/tmp/test-rudder-migrate-historical-inventories-${dateFormat.print(DateTime.now())}")
+  val testDir: File = File(s"/tmp/test-rudder-migrate-historical-inventories-${dateFormat.print(DateTime.now(DateTimeZone.UTC))}")
 
   //////////// set-up auto test cleaning ////////////
   def cleanTmpFiles():     Unit = {
@@ -162,7 +164,8 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     new FullInventoryFileParser(
       new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper),
       inventoryMapper
-    )
+    ),
+    new JodaDateTimeConverter(dateFormat)
   )
 
   /*
@@ -239,7 +242,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     Vector(NodeId("1bd58a1f-3faa-4783-a7a2-52d84021663a"), NodeId("59512a56-53e9-41e1-b36f-ca22d3cdfcbc"))
 
   // lazy val needed to be able to not init datasource when tests are skipped
-  lazy val testFactLog: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete =
+  lazy val testFactLog: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] & InventoryHistoryDelete =
     if (doJdbcTest && doobie != null) new InventoryHistoryJdbcRepository(doobie) else fileFactLog
 
   // 0afa1d13-d125-4c91-9d71-24c47dc867e9 => deleted, far too old, not supported format
@@ -261,12 +264,12 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   lazy val migration = new MigrateNodeAcceptationInventories(repo, fileLog, testFactLog, 365.days)
 
   val referenceNow: DateTime =
-    dateFormat.parseDateTime("2023-06-01T04:15:35.000+02:00")
+    dateFormat.parseDateTime("2023-06-01T041535.000+0200")
 
   def migratedAndCanRead(id: String, date: String): MatchResult[Either[RudderError, Option[FactLog]]] = {
     val d      = dateFormat.parseDateTime(date)
     val nodeId = NodeId(id)
-    (testFactLog.get(nodeId, d).either.runNow must beRight)
+    (testFactLog.get(nodeId, d).either.runNow must beRight(beSome[FactLog]))
   }
 
   "A full migration" should {
@@ -281,10 +284,10 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     }
 
     "migrate existing nodes, whatever age or number of files - but keep the most recent" in {
-      migratedAndCanRead("0bd58a1f-3faa-4783-a7a2-52d84021663a", "2023-05-25T14:31:55.143+02:00") and
-      migratedAndCanRead("1bd58a1f-3faa-4783-a7a2-52d84021663a", "2021-05-25T14:31:55.143+02:00") and
-      migratedAndCanRead("4d3a43bc-8508-46a2-92d7-cfe7320309a5", "2023-04-18T23:26:09.417+02:00") and
-      migratedAndCanRead("59512a56-53e9-41e1-b36f-ca22d3cdfcbc", "2023-04-11T22:44:59.643+02:00")
+      migratedAndCanRead("0bd58a1f-3faa-4783-a7a2-52d84021663a", "2023-05-25T143155.143+0200") and
+      migratedAndCanRead("1bd58a1f-3faa-4783-a7a2-52d84021663a", "2021-05-25T143155.143+0200") and
+      migratedAndCanRead("4d3a43bc-8508-46a2-92d7-cfe7320309a5", "2023-04-18T232609.417+0200") and
+      migratedAndCanRead("59512a56-53e9-41e1-b36f-ca22d3cdfcbc", "2023-04-11T224459.643+0200")
     }
 
     "ignore deleted nodes too old, even with old file format, without error" in {
@@ -294,7 +297,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     }
 
     "migrate deleted node when its event date is less than MAX_KEEP_DELETED" in {
-      migratedAndCanRead("fb0096f3-a928-454d-9776-e8079d48cdd8", "2023-04-11T22:15:53.375+02:00")
+      migratedAndCanRead("fb0096f3-a928-454d-9776-e8079d48cdd8", "2023-04-11T221553.375+0200")
     }
 
     "historical directory is empty" in {
@@ -306,13 +309,13 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   "If a new log is provided latter on, for ex after a reboot, then node history is updated" >> {
     FileUtils.copyDirectory(File("src/test/resources/historical-inventories-update").toJava, (testDir / historical).toJava)
     migration.migrateAll(referenceNow).runNow
-    migratedAndCanRead("0bd58a1f-3faa-4783-a7a2-52d84021663a", "2023-05-30T12:00:00.000+02:00")
+    migratedAndCanRead("0bd58a1f-3faa-4783-a7a2-52d84021663a", "2023-05-30T120000.000+0200")
   }
 
   "check that deletion of old deleted works as expected" >> {
     // during migration, we set the deletion time at "now" to avoid having to query the whole evenl log base.
     // So to test cleaning, we must say before "now" (which is after the migration now)
-    val res = testFactLog.deleteFactIfDeleteEventBefore(DateTime.now()).runNow
+    val res = testFactLog.deleteFactIfDeleteEventBefore(DateTime.now(DateTimeZone.UTC)).runNow
     res must containTheSameElementsAs(deleteBefore)
   }
 

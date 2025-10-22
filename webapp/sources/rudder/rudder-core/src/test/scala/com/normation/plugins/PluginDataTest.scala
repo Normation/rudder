@@ -12,11 +12,29 @@ class PluginDataTest extends Specification {
   import PluginInstallStatus.*
 
   "PluginSystemStatus" should {
+    "be disabled when there is a reason" in {
+      PluginInstallStatus.from(
+        PluginType.Webapp,
+        installed = true,
+        enabled = true,
+        statusDisabledReason = StatusDisabledReason(Some("invalid license checked at runtime"))
+      ) === Disabled
+    }
     "map from a disabled webapp plugin" in {
-      PluginInstallStatus.from(PluginType.Webapp, installed = true, enabled = false) === Disabled
+      PluginInstallStatus.from(
+        PluginType.Webapp,
+        installed = true,
+        enabled = false,
+        statusDisabledReason = StatusDisabledReason(None)
+      ) === Disabled
     }
     "not map from an integration plugin to 'disabled'" in {
-      PluginInstallStatus.from(PluginType.Integration, installed = true, enabled = false) === Enabled
+      PluginInstallStatus.from(
+        PluginType.Integration,
+        installed = true,
+        enabled = false,
+        statusDisabledReason = StatusDisabledReason(None)
+      ) === Enabled
     }
   }
 

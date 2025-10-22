@@ -5,10 +5,10 @@ module UserManagement.ApiCalls exposing (..)
 ------------------------------
 -- API call to get the category tree
 
-import UserManagement.DataTypes exposing (AddUserForm, Model, Msg(..), UserAuth, UserInfoForm, Username)
-import Http exposing (emptyBody, expectJson, jsonBody, request, header)
+import Http exposing (emptyBody, expectJson, expectWhatever, header, jsonBody, request)
 import Json.Decode as Decode
-import UserManagement.JsonDecoder exposing (decodeApiAddUserResult, decodeApiCurrentUsersConf, decodeApiDeleteUserResult, decodeApiReloadResult, decodeApiStatusResult, decodeApiUpdateUserInfoResult, decodeApiUpdateUserResult, decodeGetRoleApiResult)
+import UserManagement.DataTypes exposing (AddUserForm, Model, Msg(..), UserAuth, UserInfoForm, Username)
+import UserManagement.JsonDecoder exposing (decodeApiAddUserResult, decodeApiCurrentUsersConf, decodeApiDeleteUserResult, decodeApiReloadResult, decodeApiStatusResult, decodeApiUpdateUserResult, decodeGetRoleApiResult)
 import UserManagement.JsonEncoder exposing (encodeAddUser, encodeUserAuth, encodeUserInfo)
 
 
@@ -23,7 +23,7 @@ getUsersConf model =
         req =
             request
                 { method = "GET"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model "/usermanagement/users"
                 , body = emptyBody
                 , expect = expectJson GetUserInfo decodeApiCurrentUsersConf
@@ -40,7 +40,7 @@ postReloadConf model =
         req =
             request
                 { method = "POST"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model "/usermanagement/users/reload"
                 , body = emptyBody
                 , expect = expectJson PostReloadUserInfo decodeApiReloadResult
@@ -57,7 +57,7 @@ addUser model userForm =
         req =
             request
                 { method = "POST"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model "/usermanagement"
                 , body = jsonBody (encodeAddUser userForm)
                 , expect = expectJson AddUser decodeApiAddUserResult
@@ -74,7 +74,7 @@ deleteUser username model =
         req =
             request
                 { method = "DELETE"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model ("/usermanagement/" ++ username)
                 , body = emptyBody
                 , expect = expectJson DeleteUser decodeApiDeleteUserResult
@@ -91,7 +91,7 @@ updateUser model toUpdate userForm =
         req =
             request
                 { method = "POST"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model ("/usermanagement/update/" ++ toUpdate)
                 , body = jsonBody (encodeUserAuth userForm)
                 , expect = expectJson UpdateUser decodeApiUpdateUserResult
@@ -108,10 +108,10 @@ updateUserInfo model toUpdate userForm =
         req =
             request
                 { method = "POST"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model ("/usermanagement/update/info/" ++ toUpdate)
                 , body = jsonBody (encodeUserInfo userForm)
-                , expect = expectJson UpdateUserInfo decodeApiUpdateUserInfoResult
+                , expect = expectWhatever UpdateUserInfo
                 , timeout = Nothing
                 , tracker = Nothing
                 }
@@ -125,7 +125,7 @@ activateUser model username =
         req =
             request
                 { method = "PUT"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model ("/usermanagement/status/activate/" ++ username)
                 , body = emptyBody
                 , expect = expectJson UpdateUserStatus (Decode.map (\_ -> username) decodeApiStatusResult)
@@ -142,7 +142,7 @@ disableUser model username =
         req =
             request
                 { method = "PUT"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model ("/usermanagement/status/disable/" ++ username)
                 , body = emptyBody
                 , expect = expectJson UpdateUserStatus (Decode.map (\_ -> username) decodeApiStatusResult)
@@ -159,7 +159,7 @@ getRoleConf model =
         req =
             request
                 { method = "GET"
-                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
                 , url = getUrl model "/usermanagement/roles"
                 , body = emptyBody
                 , expect = expectJson GetRoleConf decodeGetRoleApiResult

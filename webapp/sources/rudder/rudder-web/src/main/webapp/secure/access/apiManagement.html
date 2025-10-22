@@ -18,7 +18,7 @@
 
   <div data-lift="administration.ApiAccounts.body">
     <div id="accounts-app"></div>
-    <script>
+    <script data-lift="with-nonce">
       var app;
       $(document).ready(function () {
         const main = document.getElementById("accounts-app")
@@ -56,11 +56,11 @@
 
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-accounts.js"></script>
 
-  <script>
+  <script data-lift="with-nonce">
     var hasWriteRights = false;
   </script>
   <lift:authz role="administration_write">
-    <script>
+    <script data-lift="with-nonce">
       var hasWriteRights = true;
     </script>
   </lift:authz>

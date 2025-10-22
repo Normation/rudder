@@ -53,6 +53,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.S
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.util.StringHelpers.encJs
 import scala.xml.Elem
 
 /**
@@ -132,11 +133,16 @@ class LinkUtil(
   def baseChangeRequestLink(id: ChangeRequestId): String =
     s"/secure/configurationManager/changes/changeRequest/${id.value}"
 
-  def changeRequestLink(id: ChangeRequestId): String =
-    s"${S.contextPath}${baseChangeRequestLink(id)}"
+  def changeRequestLink(id: ChangeRequestId, contextPath: String = S.contextPath): String =
+    s"${contextPath}${baseChangeRequestLink(id)}"
 
-  def redirectToChangeRequestLink(id: ChangeRequestId): JsCmd =
-    RedirectTo(baseChangeRequestLink(id))
+  def redirectToChangeRequestLink(id: ChangeRequestId, contextPath: String = S.contextPath): JsCmd = {
+    RedirectToFullPath(changeRequestLink(id, contextPath))
+  }
+
+  case class RedirectToFullPath(where: String) extends JsCmd {
+    override def toJsCmd: String = s"window.location = ${encJs(where)} ;"
+  }
 
   def createRuleLink(id: RuleId): Elem = {
     roRuleRepository.get(id).either.runNow match {

@@ -52,25 +52,19 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.ApplicationStatus
-import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.repository.*
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RuleApi as API
+import com.normation.rudder.rest.{RuleApi as API, *}
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.StringUuidGenerator
+import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
 import scala.collection.MapView
 import zio.*
 import zio.syntax.*
@@ -325,7 +319,7 @@ class RuleApiService14(
       actor:  EventActor
   )(implicit qc: QueryContext) = {
     for {
-      workflow     <- workflowLevelService.getForRule(actor, change).toIO
+      workflow     <- workflowLevelService.getForRule(actor, change)
       cr            = ChangeRequestService.createChangeRequestFromRule(
                         params.changeRequestName.getOrElse(
                           s"${change.action.name} rule '${change.newRule.name}' (${change.newRule.id.serialize}) by API request"
@@ -338,10 +332,16 @@ class RuleApiService14(
                         params.reason
                       )
       id           <- workflow
-                        .startWorkflow(cr)(
-                          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
+                        .startWorkflow(cr)(using
+                          ChangeContext(
+                            ModificationId(uuidGen.newUuid),
+                            actor,
+                            Instant.now(),
+                            params.reason,
+                            None,
+                            qc.nodePerms
+                          )
                         )
-                        .toIO
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()
       nodesLib     <- nodeFactRepos.getAll()
@@ -364,7 +364,7 @@ class RuleApiService14(
   ): RuleApplicationStatus = {
     val directives               =
       rule.directiveIds.flatMap(directiveLib.allDirectives.get(_)).map { case (a, d) => (a.toActiveTechnique(), d) }
-    val arePolicyServers         = nodesLib.mapValues(_.rudderSettings.isPolicyServer)
+    val arePolicyServers         = nodesLib.mapValues(_.rudderSettings.isPolicyServer).toMap
     val nodesIds                 = groupLib.getNodeIds(rule.targets, arePolicyServers)
     // for performance reason, it's necessary to keep the .view.filterKeys, as it is 10 times
     // faster than traditional groupLib.getNodeIds(rule.targets, nodesLib).flatMap(nodesLib.get)
@@ -426,7 +426,7 @@ class RuleApiService14(
 
         case None =>
           // create from scratch - base rule is the same with default values
-          val category       = restRule.category.getOrElse("rootRuleCategory")
+          val category       = restRule.categoryId.getOrElse("rootRuleCategory")
           val baseRule       = Rule(ruleId, name, RuleCategoryId(category))
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
@@ -444,7 +444,6 @@ class RuleApiService14(
           for {
             workflow <- workflowLevelService
                           .getForRule(actor, change)
-                          .toIO
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the rule if a workflow should be
@@ -728,7 +727,7 @@ class RuleApiService14(
       actor:     EventActor
   ): IOResult[JRCategoriesRootEntrySimple] = {
     for {
-      name     <- restData.name.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
+      name     <- restData.name.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
       update    = RuleCategory(RuleCategoryId(restData.id.getOrElse(defaultId())), name, restData.description.getOrElse(""), Nil)
       parent    = restData.parent.getOrElse("rootRuleCategory")
       modId     = ModificationId(uuidGen.newUuid)

@@ -47,6 +47,7 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.CriterionComposition.*
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.services.queries.TestNodeFactAlgebra.*
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.tenants.DefaultTenantService
@@ -57,9 +58,10 @@ import net.liftweb.common.Failure
 import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio.*
+import zio.{test as _, *}
 import zio.syntax.*
-import zio.test.ZIOSpecDefault
+import zio.test.*
+import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner
 
 /*
@@ -104,7 +106,7 @@ class TestNodeFactQueryProcessor {
 //  val nodes = File(Resource.getUrl("node-facts").getPath).children.toList.flatMap { f =>
 //    if (f.extension != Some(".json")) None
 //    else {
-//      f.contentAsString(StandardCharsets.UTF_8).fromJson[NodeFact] match {
+//      f.contentAsString(using StandardCharsets.UTF_8).fromJson[NodeFact] match {
 //        case Left(err) => throw new IllegalArgumentException(s"Unable to read node from file '${f.pathAsString}': ${err}")
 //        case Right(n)  => Some(n)
 //      }
@@ -199,7 +201,7 @@ class TestNodeFactQueryProcessor {
       "q2",
       parser("""
       {  "select":"node", "composition":"and", "where":[
-        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
+        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" },
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }
       """).openOrThrowException("For tests"),
@@ -640,7 +642,7 @@ class TestNodeFactQueryProcessor {
       "q0",
       parser("""
       {  "select":"node", "composition":"or" , "where":[
-        , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
+          { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: Nil
@@ -732,7 +734,7 @@ class TestNodeFactQueryProcessor {
       "q5",
       parser("""
       {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
-        , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
+         { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: s(7) :: root :: Nil
@@ -827,7 +829,7 @@ class TestNodeFactQueryProcessor {
       "q0",
       parser("""
       {  "select":"node", "composition":"or" , "where":[
-        , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
+          { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: Nil
@@ -861,7 +863,7 @@ class TestNodeFactQueryProcessor {
       "q5",
       parser("""
       {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
-        , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
+          { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: s(7) :: root :: Nil
@@ -1508,9 +1510,6 @@ class TestNodeFactQueryProcessor {
 
 @RunWith(classOf[ZTestJUnitRunner])
 class TestNodeFactAlgebra extends ZIOSpecDefault {
-  import TestNodeFactAlgebra.*
-  import zio.test.*
-  import zio.test.Assertion.*
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     // testing the values of the boolean algebra

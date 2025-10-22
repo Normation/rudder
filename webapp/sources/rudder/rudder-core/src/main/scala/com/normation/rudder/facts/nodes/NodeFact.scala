@@ -44,8 +44,7 @@ import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.*
-import com.normation.inventory.domain.Version as SVersion
+import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -63,6 +62,7 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports.*
 import com.normation.rudder.tenants.TenantId
+import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
 import com.normation.zio.*
@@ -75,13 +75,12 @@ import io.scalaland.chimney.PartialTransformer
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
+import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.*
-import net.liftweb.json.JsonAST.JValue
-import org.joda.time.DateTime
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -96,7 +95,8 @@ import zio.json.internal.Write
  * - no resolved properties (for ex inherited ones)
  */
 final case class IpAddress(inet: String) {
-  def isLocalhostIPv4IPv6: Boolean = inet == "127.0.0.1" || inet == "0:0:0:0:0:0:0:1"
+  // fe80 is a local IPv6, see https://issues.rudder.io/issues/27112
+  def isLocalhostIPv4IPv6: Boolean = inet == "127.0.0.1" || inet == "0:0:0:0:0:0:0:1" || inet == "::1" || inet.startsWith("fe80:")
 }
 final case class ManagementTechnology(
     name:         String,
@@ -183,7 +183,7 @@ final case class SoftwareFact(
     systemCategory:     Option[String] = None,
     licenseName:        Option[String] = None,
     licenseDescription: Option[String] = None,
-    expirationDate:     Option[DateTime] = None,
+    expirationDate:     Option[Instant] = None,
     productId:          Option[String] = None,
     productKey:         Option[String] = None,
     oem:                Option[String] = None
@@ -205,7 +205,7 @@ object SoftwareFact {
   }
 
   def fromSoftware(s: Software): Option[SoftwareFact] = {
-    import NodeFact.*
+    import com.normation.rudder.facts.nodes.NodeFact.*
     s.toFact
   }
 }
@@ -300,7 +300,7 @@ object MinimalNodeFactInterface {
       node.os.os.name,
       node.os.fullName,
       ipAddresses(node),
-      node.creationDate,
+      DateFormaterService.toDateTime(node.creationDate),
       isSystem(node)
     )
   }
@@ -672,7 +672,7 @@ object NodeFact {
   }
 
   def newFromFullInventory(inventory: FullInventory, software: Option[Iterable[Software]]): NodeFact = {
-    val now  = DateTime.now()
+    val now  = Instant.now()
     val fact = NodeFact(
       inventory.node.main.id,
       None,
@@ -922,9 +922,9 @@ trait MinimalNodeFactInterface {
   def rudderSettings:    RudderSettings
   def rudderAgent:       RudderAgent
   def properties:        Chunk[NodeProperty]
-  def creationDate:      DateTime
-  def factProcessedDate: DateTime
-  def lastInventoryDate: Option[DateTime]
+  def creationDate:      Instant
+  def factProcessedDate: Instant
+  def lastInventoryDate: Option[Instant]
   def ipAddresses:       Chunk[IpAddress]
   def timezone:          Option[NodeTimezone]
   def archDescription:   Option[String]
@@ -1003,9 +1003,9 @@ final case class CoreNodeFact(
     rudderSettings:    RudderSettings,
     rudderAgent:       RudderAgent,
     properties:        Chunk[NodeProperty],
-    creationDate:      DateTime,
-    factProcessedDate: DateTime,
-    lastInventoryDate: Option[DateTime] = None,
+    creationDate:      Instant,
+    factProcessedDate: Instant,
+    lastInventoryDate: Option[Instant] = None,
     ipAddresses:       Chunk[IpAddress] = Chunk.empty,
     timezone:          Option[NodeTimezone] = None,
     archDescription:   Option[String] = None,
@@ -1386,7 +1386,7 @@ object SelectFacts {
   // given a core node fact, add attributes from an other fact based on what attrs says
   def mergeCore(cnf: CoreNodeFact, fact: NodeFact)(implicit attrs: SelectFacts): NodeFact = {
     // from a implementation point of view, it's the opposite of merge WRT SelectFacts
-    merge(NodeFact.fromMinimal(cnf), Some(fact))(attrs.invert)
+    merge(NodeFact.fromMinimal(cnf), Some(fact))(using attrs.invert)
   }
 
   // mask the given NodeFact to only expose attrs that are in "Retrieve"
@@ -1412,11 +1412,11 @@ final case class NodeFact(
 
     // inventory information part of minimal node info (node create api
     // the date on which the node was accepted/created by API
-    creationDate:      DateTime,
+    creationDate:      Instant,
     // the date on which the fact describing that node fact was processed
-    factProcessedDate: DateTime,
+    factProcessedDate: Instant,
     // the date on which information about that fact were generated on original system
-    lastInventoryDate: Option[DateTime] = None,
+    lastInventoryDate: Option[Instant] = None,
     ipAddresses:       Chunk[IpAddress] = Chunk.empty,
     timezone:          Option[NodeTimezone] = None,
 
@@ -1641,7 +1641,7 @@ object NodeFactChangeEvent {
 final case class ChangeContext(
     modId:     ModificationId,
     actor:     EventActor,
-    eventDate: DateTime,
+    eventDate: Instant,
     message:   Option[String],
     actorIp:   Option[String],
     nodePerms: NodeSecurityContext
@@ -1656,7 +1656,7 @@ object ChangeContext {
     ChangeContext(
       ModificationId(java.util.UUID.randomUUID.toString),
       eventlog.RudderEventActor,
-      DateTime.now(),
+      Instant.now(),
       msg,
       actorIp,
       NodeSecurityContext.All
@@ -1813,7 +1813,6 @@ object NodeFactSerialisation {
   // Method too large: com/normation/rudder/facts/nodes/NodeFactSerialisation$.<clinit> ()V
 
   import com.normation.inventory.domain.JsonSerializers.implicits.*
-  import com.normation.utils.DateFormaterService.json.*
 
   object SimpleCodec {
 

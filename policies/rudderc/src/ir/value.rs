@@ -17,7 +17,7 @@ use std::{cmp::Ordering, fmt::Debug, str::FromStr, sync::OnceLock};
 
 use anyhow::{Error, Result, bail};
 use nom::{
-    Finish, IResult,
+    Finish, IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_till, take_until, take_while},
     character::complete::char,
@@ -64,7 +64,7 @@ pub fn known_vars() -> &'static serde_yaml::Value {
 }
 
 fn nustache_render(s: &str) -> String {
-    format!("[Rudder.Datastate]::Render('{{{{{{' + {} + '}}}}}}')", s)
+    format!("[Rudder.Datastate]::Render('{{{{{{' + {s} + '}}}}}}')")
 }
 
 /// Rudder variable expression.
@@ -284,15 +284,15 @@ impl Expression {
                             key1_seq.iter().map(|v| v.as_str().unwrap()).collect();
 
                         // Allow specifying only the first level to access the object
-                        if let Some(Expression::Scalar(k2)) = s.get(1) {
-                            if !vals.contains(&k2.as_str()) {
-                                if let Some(prop) = did_you_mean(k2, vals) {
-                                    warn!(
-                                        "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
-                                    );
-                                } else {
-                                    warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
-                                }
+                        if let Some(Expression::Scalar(k2)) = s.get(1)
+                            && !vals.contains(&k2.as_str())
+                        {
+                            if let Some(prop) = did_you_mean(k2, vals) {
+                                warn!(
+                                    "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
+                                );
+                            } else {
+                                warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
                             }
                         }
                     }
@@ -439,10 +439,8 @@ impl Expression {
                 let a = *p.to_owned();
                 let key = a.fmt(target);
                 match target {
-                    Target::Unix => format!("${{rudder.parameters[{}]}}", key),
-                    Target::Windows => {
-                        nustache_render(&format!("{{{{rudder.parameters.{}}}}}", key))
-                    }
+                    Target::Unix => format!("${{rudder.parameters[{key}]}}"),
+                    Target::Windows => nustache_render(&format!("{{{{rudder.parameters.{key}}}}}")),
                 }
             }
             Self::Sys(e) => match target {
@@ -469,7 +467,7 @@ impl Expression {
                 Target::Unix => {
                     let a = *e.to_owned();
                     let key = a.fmt(target);
-                    format!("${{const.{}}}", key)
+                    format!("${{const.{key}}}")
                 }
                 Target::Windows => Expression::GenericVar(vec![
                     Expression::Scalar("const".to_string()),
@@ -481,7 +479,7 @@ impl Expression {
                 Target::Unix => {
                     let a = *e.to_owned();
                     let key = a.fmt(target);
-                    format!("${{ncf_const.{}}}", key)
+                    format!("${{ncf_const.{key}}}")
                 }
                 Target::Windows => Expression::GenericVar(vec![
                     Expression::Scalar("ncf_const".to_string()),
@@ -518,7 +516,8 @@ fn expression(s: &str, in_var: bool) -> IResult<&str, Expression> {
         generic_var,
         // default is simple string
         if in_var { string } else { out_string },
-    )))(s)?;
+    )))
+    .parse(s)?;
     Ok((
         s,
         match r.len() {
@@ -534,11 +533,12 @@ fn expression(s: &str, in_var: bool) -> IResult<&str, Expression> {
 fn out_string(s: &str) -> IResult<&str, Expression> {
     let var_start = "${";
 
-    let (s, start) = alt((tag(var_start), tag("")))(s)?;
+    let (s, start) = alt((tag(var_start), tag(""))).parse(s)?;
     let (s, end) = verify(
         alt((take_until(var_start), take_while(|_| true))),
         |s: &str| !s.is_empty(),
-    )(s)?;
+    )
+    .parse(s)?;
 
     Ok((s, Expression::Scalar(format!("{start}{end}"))))
 }
@@ -551,7 +551,8 @@ fn string(s: &str) -> IResult<&str, Expression> {
             |s: &str| !s.is_empty(),
         ),
         |out: &str| Expression::Scalar(out.to_string()),
-    )(s)
+    )
+    .parse(s)
 }
 
 // Reads a node property
@@ -560,7 +561,7 @@ fn generic_var(s: &str) -> IResult<&str, Expression> {
     // Property name, mandatory
     let (s, name) = expression(s, true)?;
     // Keys, optional
-    let (s, mut keys) = many0(key)(s)?;
+    let (s, mut keys) = many0(key).parse(s)?;
     let (s, _) = char('}')(s)?;
     let mut res = vec![name];
     res.append(&mut keys);
@@ -574,7 +575,8 @@ fn parameter(s: &str) -> IResult<&str, Expression> {
             map(key, |out| Expression::GlobalParameter(Box::new(out))),
             char('}'),
         ),
-    )(s)
+    )
+    .parse(s)
 }
 
 fn sys(s: &str) -> IResult<&str, Expression> {
@@ -582,7 +584,7 @@ fn sys(s: &str) -> IResult<&str, Expression> {
     // Property name, mandatory
     let (s, name) = expression(s, true)?;
     // Keys, optional
-    let (s, mut keys) = many0(key)(s)?;
+    let (s, mut keys) = many0(key).parse(s)?;
     let (s, _) = char('}')(s)?;
     let mut res = vec![name];
     res.append(&mut keys);
@@ -599,7 +601,8 @@ fn const_(s: &str) -> IResult<&str, Expression> {
             ),
             char('}'),
         ),
-    )(s)
+    )
+    .parse(s)
 }
 
 fn ncf_const(s: &str) -> IResult<&str, Expression> {
@@ -612,7 +615,8 @@ fn ncf_const(s: &str) -> IResult<&str, Expression> {
             ),
             char('}'),
         ),
-    )(s)
+    )
+    .parse(s)
 }
 
 // Reads a node property
@@ -620,7 +624,8 @@ fn node_properties(s: &str) -> IResult<&str, Expression> {
     preceded(
         tag("${node.properties"),
         terminated(map(many1(key), Expression::NodeProperty), char('}')),
-    )(s)
+    )
+    .parse(s)
 }
 
 // Reads a node inventory value
@@ -628,12 +633,13 @@ fn node_inventory(s: &str) -> IResult<&str, Expression> {
     preceded(
         tag("${node.inventory"),
         terminated(map(many1(key), Expression::NodeInventory), char('}')),
-    )(s)
+    )
+    .parse(s)
 }
 
 // Reads a key in square brackets
 fn key(s: &str) -> IResult<&str, Expression> {
-    preceded(char('['), terminated(|s| expression(s, true), char(']')))(s)
+    preceded(char('['), terminated(|s| expression(s, true), char(']'))).parse(s)
 }
 
 #[cfg(test)]

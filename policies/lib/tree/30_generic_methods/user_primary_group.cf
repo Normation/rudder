@@ -30,44 +30,41 @@
 bundle agent user_primary_group(login, primary_group)
 {
   vars:
-      "old_class_prefix"  string => canonify("user_primary_group_${login}");
-      "args"               slist => { "${login}", "${primary_group}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("user_primary_group_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("user_primary_group_${login}");
       
   classes:
-      "user_exists" expression => userexists("${login}");
+      "user_exists"  expression => userexists("${login}");
       "group_exists" expression => groupexists("${primary_group}");
 
-      "args_defined" expression => "user_exists.group_exists";
+      "user_and_group_exist" expression => "user_exists.group_exists";
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
 
   users:
-      "${login}"  policy        => "present",
-                  group_primary => "${primary_group}",
-                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                  ifvarclass    => "args_defined";
+      "${login}"
+               policy => "present",
+        group_primary => "${primary_group}",
+              classes => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+                   if => "user_and_group_exist";
 
   methods:
-    !args_defined::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
+    pass3.!user_and_group_exist::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
-      "report_error"
-        usebundle => _log_v3("Group ${primary_group} does not exist. Setting user ${login} primary_group to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "!group_exists.user_exists";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Group ${primary_group} does not exist. Can't set user ${login} primary_group to ${primary_group}", ""),
+                                        if => "user_exists";
       
-      "report_error"
-        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} primary_group to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "!user_exists.group_exists";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Can't set user ${login} primary_group to ${primary_group}", ""),
+                                        if => "group_exists";
 
-      "report_error"
-        usebundle => _log_v3("User ${login} and group ${primary_group} do not exist. Setting user ${login} primary_group to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "!user_exists.!group_exists";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} and group ${primary_group} do not exist. Can't set user ${login} primary_group to ${primary_group}", ""),
+                                        if => "!user_exists.!group_exists";
 
-    args_defined:: 
-      "report_success"
-        usebundle => _log_v3("User ${login} primary_group set to ${primary_group}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+    pass3.user_and_group_exist::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} primary_group set to ${primary_group}", "");
 }
 

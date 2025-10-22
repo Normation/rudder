@@ -1,0 +1,53 @@
+#####################################################################################
+# Copyright 2022 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Powershell execution
+# @description Execute a Powershell command, script or binary, and parse its output to define success, repair or error status
+# @documentation Execute either a command, a script or a binary - it supports piping. If the execution succeed, it parses the output as a string. It the output contains the successRegex, it defines a success, else if the output contains the repairRegex, it defines a repair, else it defines an error.
+# successRegex and repairRegex are both optional, but at least one must be defined otherwise the method will always return an error.
+#
+# Examples:
+#
+# To return success if process `explorer` is running, the `command` parameter needs to be
+#
+# ```
+# Get-Process | ForEach { ${const.dollar}_.ProcessName }
+# ```
+# as the output of the command is a toString() on the generated objects, so you need to extract the relevant data. And the `successRegex` needs to be `explorer`.
+#  
+# Note: the regular expression/string to compare to the output are case insensitive and not anchored.
+#  
+# Note: powershell scripts exiting with a non-zero exit code will always result in an error
+#  
+# Note: the $ need to be escaped, otherwise $_ is evaluated at runtime
+#
+# @parameter command Command or script to execute
+# @parameter successRegex String or regular expression to compare the output with to define success
+# @parameter repairedRegex String or regular expression to compare the output with to define repair
+#
+# @parameter_constraint successRegex "allow_empty_string" : true
+# @parameter_constraint repairedRegex "allow_empty_string" : true
+#
+# @class_prefix powershell_execution
+# @class_parameter command
+# @agent_support = ["dsc"]
+
+bundle agent powershell_execution(command, successRegex, repairedRegex)
+{
+}
+

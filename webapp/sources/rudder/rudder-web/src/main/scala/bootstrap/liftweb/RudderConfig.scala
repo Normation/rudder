@@ -76,6 +76,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -99,12 +100,11 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.jdbc.*
 import com.normation.rudder.repository.ldap.*
 import com.normation.rudder.repository.xml.*
-import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.rest.*
+import com.normation.rudder.rest.data.ApiAccountMapping
 import com.normation.rudder.rest.internal.*
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.score.*
 import com.normation.rudder.services.*
 import com.normation.rudder.services.eventlog.*
@@ -149,6 +149,7 @@ import net.liftweb.http.S
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+import org.joda.time.format.ISODateTimeFormat
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
@@ -542,6 +543,67 @@ object RudderParsedProperties {
     }
   }
 
+  val RUDDER_SERVER_CERTIFICATE_CONFIG: PolicyServerCertificateConfig = {
+    val certValidation = {
+      try {
+        config.getBoolean("rudder.server.certificate.validation")
+      } catch {
+        case _: ConfigException => false
+      }
+    }
+    val httpsOnly      = {
+      try {
+        config.getBoolean("rudder.server.certificate.httpsOnly")
+      } catch {
+        case _: ConfigException => false
+      }
+    }
+    val CAPath         = {
+      try {
+        config.getString("rudder.server.certificate.ca.path")
+      } catch {
+        case _: ConfigException => ""
+      }
+    }
+    val CApem          = {
+      if (CAPath.isEmpty) { "" }
+      else {
+        try {
+          better.files.File(CAPath).contentAsString()
+        } catch {
+          case ex: Exception => {
+            ApplicationLogger.error(
+              s"Could not open CA path ${CAPath}: ${ex.getMessage}"
+            )
+            ""
+          }
+        }
+      }
+    }
+
+    PolicyServerCertificateConfig(
+      try {
+        config
+          .getString("rudder.server.certificate.additionalKeyHash")
+          .split(";")
+          .collect { case s if (s.strip().nonEmpty) => s.strip() }
+          .toList
+      } catch {
+        case ex: ConfigException =>
+          println(ex.getMessage)
+          Nil
+      },
+      CApem,
+      if (certValidation & !httpsOnly) {
+        ApplicationLogger.error(
+          "Property 'rudder.server.certificate.validation' is set to true, but httpsOnly is false. This is unsupported, disabling."
+        )
+        false
+      } else { certValidation },
+      httpsOnly
+    )
+  }
+
   val POSTGRESQL_IS_LOCAL: Boolean = {
     try {
       config.getBoolean("rudder.postgresql.local")
@@ -730,16 +792,72 @@ object RudderParsedProperties {
   }
 
   val RUDDER_BCRYPT_COST: Int = {
+    val defaultValue = PasswordEncoderType.BCRYPT.defaultCost
     try {
       config.getInt("rudder.bcrypt.cost")
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to 12."
+          s"Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to $defaultValue."
         )
-        12
+        defaultValue
     }
   }
+
+  val RUDDER_ARGON2_MEMORY: Argon2Memory = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultMemory
+    val minimumValue = PasswordEncoderType.ARGON2ID.minimumMemory
+    try {
+      val value = config.getInt("rudder.argon2.memory")
+      // There is a high likelihood of units confusion.
+      if (value < minimumValue.toInt) {
+        ApplicationLogger.warn(
+          s"Property 'rudder.argon2.memory' has a value lower than $minimumValue KiB. This is likely a configuration mistake, using $defaultValue KiB instead"
+        )
+        defaultValue
+      } else {
+        Argon2Memory(value)
+      }
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          s"Property 'rudder.argon2.memory' is absent or empty in rudder.configFile. Default memory to $defaultValue bytes."
+        )
+        defaultValue
+    }
+  }
+
+  val RUDDER_ARGON2_ITERATIONS: Argon2Iterations = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultIterations
+    try {
+      Argon2Iterations(config.getInt("rudder.argon2.iterations"))
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          s"Property 'rudder.argon2.iterations' is absent or empty in rudder.configFile. Default iterations to $defaultValue."
+        )
+        defaultValue
+    }
+  }
+
+  val RUDDER_ARGON2_PARALLELISM: Argon2Parallelism = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultParallelism
+    try {
+      Argon2Parallelism(config.getInt("rudder.argon2.parallelism"))
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          s"Property 'rudder.argon2.parallelism' is absent or empty in rudder.configFile. Default parallelism to $defaultValue."
+        )
+        defaultValue
+    }
+  }
+
+  val RUDDER_ARGON2_PARAMS = Argon2EncoderParams(
+    RUDDER_ARGON2_MEMORY,
+    RUDDER_ARGON2_ITERATIONS,
+    RUDDER_ARGON2_PARALLELISM
+  )
 
   val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL: Int = {
     try {
@@ -1149,9 +1267,9 @@ object RudderParsedProperties {
     case Right(opt) => opt
   }
   val RUDDER_USERS_CLEAN_LAST_LOGIN_DISABLE: Duration         =
-    parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 90.days)
+    parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 180.days)
   val RUDDER_USERS_CLEAN_LAST_LOGIN_DELETE:  Duration         =
-    parseDuration("rudder.users.cleanup.account.deleteAfterLastLogin", 120.days)
+    parseDuration("rudder.users.cleanup.account.deleteAfterLastLogin", Duration.Infinity)
   val RUDDER_USERS_CLEAN_DELETED_PURGE:      Duration         = parseDuration("rudder.users.cleanup.purgeDeletedAfter", 30.days)
   val RUDDER_USERS_CLEAN_SESSIONS_PURGE:     Duration         = parseDuration("rudder.users.cleanup.sessions.purgeAfter", 30.days)
 
@@ -1164,6 +1282,7 @@ object RudderParsedProperties {
       }
     } catch {
       case ex: ConfigException       => // default
+        ApplicationLogger.info(s"Key '${propName}' is absent, defaulting to: ${default.render}")
         default
       case ex: NumberFormatException =>
         ApplicationLogger.error(
@@ -1195,6 +1314,7 @@ object RudderConfig extends Loggable {
   def RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = RudderParsedProperties.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
   def RUDDER_GIT_ROOT_CONFIG_REPO                  = RudderParsedProperties.RUDDER_GIT_ROOT_CONFIG_REPO
   def RUDDER_BCRYPT_COST                           = RudderParsedProperties.RUDDER_BCRYPT_COST
+  def RUDDER_ARGON2_PARAMS                         = RudderParsedProperties.RUDDER_ARGON2_PARAMS
   def RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = RudderParsedProperties.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
 
   //
@@ -1207,133 +1327,133 @@ object RudderConfig extends Loggable {
   // human understandable when the directory is not up
   val rci: RudderServiceApi = RudderConfigInit.init()
 
-  val ApiVersions:                         List[ApiVersion]                           = rci.apiVersions
-  val acceptedNodeQueryProcessor:          QueryProcessor                             = rci.acceptedNodeQueryProcessor
-  val acceptedNodesDit:                    InventoryDit                               = rci.acceptedNodesDit
-  val agentRegister:                       AgentRegister                              = rci.agentRegister
-  val aggregateReportScheduler:            FindNewReportsExecution                    = rci.aggregateReportScheduler
-  val apiAuthorizationLevelService:        DefaultApiAuthorizationLevel               = rci.apiAuthorizationLevelService
-  val apiDispatcher:                       RudderEndpointDispatcher                   = rci.apiDispatcher
-  val asyncComplianceService:              AsyncComplianceService                     = rci.asyncComplianceService
-  val asyncDeploymentAgent:                AsyncDeploymentActor                       = rci.asyncDeploymentAgent
-  val asyncWorkflowInfo:                   AsyncWorkflowInfo                          = rci.asyncWorkflowInfo
-  val authenticationProviders:             AuthBackendProvidersManager                = rci.authenticationProviders
-  val authorizationApiMapping:             ExtensibleAuthorizationApiMapping          = rci.authorizationApiMapping
-  val automaticReportLogger:               AutomaticReportLogger                      = rci.automaticReportLogger
-  val automaticReportsCleaning:            AutomaticReportsCleaning                   = rci.automaticReportsCleaning
-  val campaignEventRepo:                   CampaignEventRepositoryImpl                = rci.campaignEventRepo
-  val campaignSerializer:                  CampaignSerializer                         = rci.campaignSerializer
-  val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer                 = rci.categoryHierarchyDisplayer
-  val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation          = rci.changeRequestChangesSerialisation
-  val changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation        = rci.changeRequestChangesUnserialisation
-  val changeRequestEventLogService:        ChangeRequestEventLogService               = rci.changeRequestEventLogService
-  val checkTechniqueLibrary:               CheckTechniqueLibrary                      = rci.checkTechniqueLibrary
-  val clearCacheService:                   ClearCacheService                          = rci.clearCacheService
-  val cmdbQueryParser:                     CmdbQueryParser                            = rci.cmdbQueryParser
-  val commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService        = rci.commitAndDeployChangeRequest
-  val complianceService:                   ComplianceAPIService                       = rci.complianceService
-  val configService:                       ReadConfigService with UpdateConfigService = rci.configService
-  val configurationRepository:             ConfigurationRepository                    = rci.configurationRepository
-  val databaseManager:                     DatabaseManager                            = rci.databaseManager
-  val debugScript:                         DebugInfoService                           = rci.debugScript
-  val dependencyAndDeletionService:        DependencyAndDeletionService               = rci.dependencyAndDeletionService
-  val deploymentService:                   PromiseGeneration_Hooks                    = rci.deploymentService
-  val diffDisplayer:                       DiffDisplayer                              = rci.diffDisplayer
-  val diffService:                         DiffService                                = rci.diffService
-  val directiveEditorService:              DirectiveEditorService                     = rci.directiveEditorService
-  val ditQueryData:                        DitQueryData                               = rci.ditQueryData
-  val doobie:                              Doobie                                     = rci.doobie
-  val dynGroupService:                     DynGroupService                            = rci.dynGroupService
-  val eventListDisplayer:                  EventListDisplayer                         = rci.eventListDisplayer
-  val eventLogApi:                         EventLogAPI                                = rci.eventLogApi
-  val systemApiService:                    SystemApiService11                         = rci.systemApiService
-  val eventLogDeploymentService:           EventLogDeploymentService                  = rci.eventLogDeploymentService
-  val eventLogDetailsService:              EventLogDetailsService                     = rci.eventLogDetailsService
-  val eventLogRepository:                  EventLogRepository                         = rci.eventLogRepository
-  val findExpectedReportRepository:        FindExpectedReportRepository               = rci.findExpectedReportRepository
-  val gitModificationRepository:           GitModificationRepository                  = rci.gitModificationRepository
-  val gitRepo:                             GitRepositoryProvider                      = rci.gitRepo
-  val gitRevisionProvider:                 GitRevisionProvider                        = rci.gitRevisionProvider
-  val healthcheckNotificationService:      HealthcheckNotificationService             = rci.healthcheckNotificationService
-  val historizeNodeCountBatch:             IOResult[Unit]                             = rci.historizeNodeCountBatch
-  val interpolationCompiler:               InterpolatedValueCompilerImpl              = rci.interpolationCompiler
-  val inventoryEventLogService:            InventoryEventLogService                   = rci.inventoryEventLogService
-  val inventoryHistoryJdbcRepository:      InventoryHistoryJdbcRepository             = rci.inventoryHistoryJdbcRepository
-  val inventoryWatcher:                    InventoryFileWatcher                       = rci.inventoryWatcher
-  val itemArchiveManager:                  ItemArchiveManager                         = rci.itemArchiveManager
-  val jsTreeUtilService:                   JsTreeUtilService                          = rci.jsTreeUtilService
-  val jsonPluginDefinition:                ReadPluginPackageInfo                      = rci.jsonPluginDefinition
-  val jsonReportsAnalyzer:                 JSONReportsAnalyser                        = rci.jsonReportsAnalyzer
-  val linkUtil:                            LinkUtil                                   = rci.linkUtil
-  val logDisplayer:                        LogDisplayer                               = rci.logDisplayer
-  val mainCampaignService:                 MainCampaignService                        = rci.mainCampaignService
-  val ncfTechniqueReader:                  ncf.EditorTechniqueReader                  = rci.ncfTechniqueReader
-  val newNodeManager:                      NewNodeManager                             = rci.newNodeManager
-  val nodeDit:                             NodeDit                                    = rci.nodeDit
-  val nodeFactRepository:                  NodeFactRepository                         = rci.nodeFactRepository
-  val nodeGrid:                            NodeGrid                                   = rci.nodeGrid
-  val pendingNodeCheckGroup:               CheckPendingNodeInDynGroups                = rci.pendingNodeCheckGroup
-  val pendingNodesDit:                     InventoryDit                               = rci.pendingNodesDit
-  val personIdentService:                  PersonIdentService                         = rci.personIdentService
-  val pluginSettingsService:               PluginSettingsService                      = rci.pluginSettingsService
-  val policyGenerationBootGuard:           zio.Promise[Nothing, Unit]                 = rci.policyGenerationBootGuard
-  val policyServerManagementService:       PolicyServerManagementService              = rci.policyServerManagementService
-  val propertyEngineService:               PropertyEngineService                      = rci.propertyEngineService
-  val propertiesRepository:                PropertiesRepository                       = rci.propertiesRepository
-  val propertiesService:                   NodePropertiesService                      = rci.propertiesService
-  val purgeDeletedInventories:             PurgeDeletedInventories                    = rci.purgeDeletedInventories
-  val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares                 = rci.purgeUnreferencedSoftwares
-  val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                        = rci.readOnlySoftwareDAO
-  val recentChangesService:                NodeChangesService                         = rci.recentChangesService
-  val removeNodeService:                   RemoveNodeService                          = rci.removeNodeService
-  val reportDisplayer:                     ReportDisplayer                            = rci.reportDisplayer
-  val reportingService:                    ReportingService                           = rci.reportingService
-  val reportsRepository:                   ReportsRepository                          = rci.reportsRepository
-  val restCompletion:                      RestCompletion                             = rci.restCompletion
-  val restDataSerializer:                  RestDataSerializer                         = rci.restDataSerializer
-  val restExtractorService:                RestExtractorService                       = rci.restExtractorService
-  val restQuicksearch:                     RestQuicksearch                            = rci.restQuicksearch
-  val roleApiMapping:                      RoleApiMapping                             = rci.roleApiMapping
-  val roAgentRunsRepository:               RoReportsExecutionRepository               = rci.roAgentRunsRepository
-  val roApiAccountRepository:              RoApiAccountRepository                     = rci.roApiAccountRepository
-  val roDirectiveRepository:               RoDirectiveRepository                      = rci.roDirectiveRepository
-  val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection]   = rci.roLDAPConnectionProvider
-  val roLDAPParameterRepository:           RoLDAPParameterRepository                  = rci.roLDAPParameterRepository
-  val woLDAPParameterRepository:           WoLDAPParameterRepository                  = rci.woLDAPParameterRepository
-  val roNodeGroupRepository:               RoNodeGroupRepository                      = rci.roNodeGroupRepository
-  val roParameterService:                  RoParameterService                         = rci.roParameterService
-  val roRuleCategoryRepository:            RoRuleCategoryRepository                   = rci.roRuleCategoryRepository
-  val roRuleRepository:                    RoRuleRepository                           = rci.roRuleRepository
-  val rudderApi:                           LiftHandler                                = rci.rudderApi
-  val rudderDit:                           RudderDit                                  = rci.rudderDit
-  val rudderUserListProvider:              FileUserDetailListProvider                 = rci.rudderUserListProvider
-  val ruleApplicationStatus:               RuleApplicationStatusService               = rci.ruleApplicationStatus
-  val ruleCategoryService:                 RuleCategoryService                        = rci.ruleCategoryService
-  val rwLdap:                              LDAPConnectionProvider[RwLDAPConnection]   = rci.rwLdap
-  val secretEventLogService:               SecretEventLogService                      = rci.secretEventLogService
-  val sharedFileApi:                       SharedFilesAPI                             = rci.sharedFileApi
-  val snippetExtensionRegister:            SnippetExtensionRegister                   = rci.snippetExtensionRegister
-  val srvGrid:                             SrvGrid                                    = rci.srvGrid
-  val stringUuidGenerator:                 StringUuidGenerator                        = rci.stringUuidGenerator
-  val techniqueRepository:                 TechniqueRepository                        = rci.techniqueRepository
-  val tenantService:                       TenantService                              = rci.tenantService
-  val tokenGenerator:                      TokenGeneratorImpl                         = rci.tokenGenerator
-  val updateDynamicGroups:                 UpdateDynamicGroups                        = rci.updateDynamicGroups
-  val updateDynamicGroupsService:          DynGroupUpdaterService                     = rci.updateDynamicGroupsService
-  val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
-  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService      = rci.techniqueCompilationStatusService
-  val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
-  val instanceIdService:                   InstanceIdService                          = rci.instanceIdService
-  val userRepository:                      UserRepository                             = rci.userRepository
-  val userService:                         UserService                                = rci.userService
-  val woApiAccountRepository:              WoApiAccountRepository                     = rci.woApiAccountRepository
-  val woDirectiveRepository:               WoDirectiveRepository                      = rci.woDirectiveRepository
-  val woNodeGroupRepository:               WoNodeGroupRepository                      = rci.woNodeGroupRepository
-  val woRuleCategoryRepository:            WoRuleCategoryRepository                   = rci.woRuleCategoryRepository
-  val woRuleRepository:                    WoRuleRepository                           = rci.woRuleRepository
-  val workflowEventLogService:             WorkflowEventLogService                    = rci.workflowEventLogService
-  val workflowLevelService:                DefaultWorkflowLevel                       = rci.workflowLevelService
-  val systemInfoService:                   SystemInfoService                          = rci.systemInfoService
+  val ApiVersions:                         List[ApiVersion]                         = rci.apiVersions
+  val acceptedNodeQueryProcessor:          QueryProcessor                           = rci.acceptedNodeQueryProcessor
+  val acceptedNodesDit:                    InventoryDit                             = rci.acceptedNodesDit
+  val agentRegister:                       AgentRegister                            = rci.agentRegister
+  val aggregateReportScheduler:            FindNewReportsExecution                  = rci.aggregateReportScheduler
+  val apiAuthorizationLevelService:        DefaultApiAuthorizationLevel             = rci.apiAuthorizationLevelService
+  val apiDispatcher:                       RudderEndpointDispatcher                 = rci.apiDispatcher
+  val asyncComplianceService:              AsyncComplianceService                   = rci.asyncComplianceService
+  val asyncDeploymentAgent:                AsyncDeploymentActor                     = rci.asyncDeploymentAgent
+  val asyncWorkflowInfo:                   AsyncWorkflowInfo                        = rci.asyncWorkflowInfo
+  val authenticationProviders:             AuthBackendProvidersManager              = rci.authenticationProviders
+  val authorizationApiMapping:             ExtensibleAuthorizationApiMapping        = rci.authorizationApiMapping
+  val automaticReportLogger:               AutomaticReportLogger                    = rci.automaticReportLogger
+  val automaticReportsCleaning:            AutomaticReportsCleaning                 = rci.automaticReportsCleaning
+  val campaignEventRepo:                   CampaignEventRepositoryImpl              = rci.campaignEventRepo
+  val campaignRepo:                        CampaignRepository                       = rci.campaignRepo
+  val campaignSerializer:                  CampaignSerializer                       = rci.campaignSerializer
+  val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer               = rci.categoryHierarchyDisplayer
+  val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation        = rci.changeRequestChangesSerialisation
+  val changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation      = rci.changeRequestChangesUnserialisation
+  val changeRequestEventLogService:        ChangeRequestEventLogService             = rci.changeRequestEventLogService
+  val checkTechniqueLibrary:               CheckTechniqueLibrary                    = rci.checkTechniqueLibrary
+  val clearCacheService:                   ClearCacheService                        = rci.clearCacheService
+  val cmdbQueryParser:                     CmdbQueryParser                          = rci.cmdbQueryParser
+  val commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService      = rci.commitAndDeployChangeRequest
+  val complianceService:                   ComplianceAPIService                     = rci.complianceService
+  val configService:                       ReadConfigService & UpdateConfigService  = rci.configService
+  val configurationRepository:             ConfigurationRepository                  = rci.configurationRepository
+  val databaseManager:                     DatabaseManager                          = rci.databaseManager
+  val debugScript:                         DebugInfoService                         = rci.debugScript
+  val dependencyAndDeletionService:        DependencyAndDeletionService             = rci.dependencyAndDeletionService
+  val deploymentService:                   PromiseGeneration_Hooks                  = rci.deploymentService
+  val diffDisplayer:                       DiffDisplayer                            = rci.diffDisplayer
+  val diffService:                         DiffService                              = rci.diffService
+  val directiveEditorService:              DirectiveEditorService                   = rci.directiveEditorService
+  val ditQueryData:                        DitQueryData                             = rci.ditQueryData
+  val doobie:                              Doobie                                   = rci.doobie
+  val dynGroupService:                     DynGroupService                          = rci.dynGroupService
+  val eventListDisplayer:                  EventListDisplayer                       = rci.eventListDisplayer
+  val eventLogApi:                         EventLogAPI                              = rci.eventLogApi
+  val systemApiService:                    SystemApiService11                       = rci.systemApiService
+  val eventLogDeploymentService:           EventLogDeploymentService                = rci.eventLogDeploymentService
+  val eventLogDetailsService:              EventLogDetailsService                   = rci.eventLogDetailsService
+  val eventLogRepository:                  EventLogRepository                       = rci.eventLogRepository
+  val findExpectedReportRepository:        FindExpectedReportRepository             = rci.findExpectedReportRepository
+  val gitModificationRepository:           GitModificationRepository                = rci.gitModificationRepository
+  val gitRepo:                             GitRepositoryProvider                    = rci.gitRepo
+  val gitRevisionProvider:                 GitRevisionProvider                      = rci.gitRevisionProvider
+  val healthcheckNotificationService:      HealthcheckNotificationService           = rci.healthcheckNotificationService
+  val historizeNodeCountBatch:             IOResult[Unit]                           = rci.historizeNodeCountBatch
+  val instanceIdService:                   InstanceIdService                        = rci.instanceIdService
+  val interpolationCompiler:               InterpolatedValueCompilerImpl            = rci.interpolationCompiler
+  val inventoryEventLogService:            InventoryEventLogService                 = rci.inventoryEventLogService
+  val inventoryHistoryJdbcRepository:      InventoryHistoryJdbcRepository           = rci.inventoryHistoryJdbcRepository
+  val inventoryWatcher:                    InventoryFileWatcher                     = rci.inventoryWatcher
+  val itemArchiveManager:                  ItemArchiveManager                       = rci.itemArchiveManager
+  val jsTreeUtilService:                   JsTreeUtilService                        = rci.jsTreeUtilService
+  val jsonPluginDefinition:                ReadPluginPackageInfo                    = rci.jsonPluginDefinition
+  val jsonReportsAnalyzer:                 JSONReportsAnalyser                      = rci.jsonReportsAnalyzer
+  val linkUtil:                            LinkUtil                                 = rci.linkUtil
+  val logDisplayer:                        LogDisplayer                             = rci.logDisplayer
+  val mainCampaignService:                 MainCampaignService                      = rci.mainCampaignService
+  val ncfTechniqueReader:                  ncf.EditorTechniqueReader                = rci.ncfTechniqueReader
+  val newNodeManager:                      NewNodeManager                           = rci.newNodeManager
+  val nodeDit:                             NodeDit                                  = rci.nodeDit
+  val nodeFactRepository:                  NodeFactRepository                       = rci.nodeFactRepository
+  val nodeGrid:                            NodeGrid                                 = rci.nodeGrid
+  val pendingNodeCheckGroup:               CheckPendingNodeInDynGroups              = rci.pendingNodeCheckGroup
+  val pendingNodesDit:                     InventoryDit                             = rci.pendingNodesDit
+  val personIdentService:                  PersonIdentService                       = rci.personIdentService
+  val pluginSettingsService:               PluginSettingsService                    = rci.pluginSettingsService
+  val policyGenerationBootGuard:           zio.Promise[Nothing, Unit]               = rci.policyGenerationBootGuard
+  val policyServerManagementService:       PolicyServerManagementService            = rci.policyServerManagementService
+  val propertyEngineService:               PropertyEngineService                    = rci.propertyEngineService
+  val propertiesRepository:                PropertiesRepository                     = rci.propertiesRepository
+  val propertiesService:                   NodePropertiesService                    = rci.propertiesService
+  val purgeDeletedInventories:             PurgeDeletedInventories                  = rci.purgeDeletedInventories
+  val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares               = rci.purgeUnreferencedSoftwares
+  val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                      = rci.readOnlySoftwareDAO
+  val recentChangesService:                NodeChangesService                       = rci.recentChangesService
+  val removeNodeService:                   RemoveNodeService                        = rci.removeNodeService
+  val reportDisplayer:                     ReportDisplayer                          = rci.reportDisplayer
+  val reportingService:                    ReportingService                         = rci.reportingService
+  val reportsRepository:                   ReportsRepository                        = rci.reportsRepository
+  val restCompletion:                      RestCompletion                           = rci.restCompletion
+  val restQuicksearch:                     RestQuicksearch                          = rci.restQuicksearch
+  val roleApiMapping:                      RoleApiMapping                           = rci.roleApiMapping
+  val roAgentRunsRepository:               RoReportsExecutionRepository             = rci.roAgentRunsRepository
+  val roApiAccountRepository:              RoApiAccountRepository                   = rci.roApiAccountRepository
+  val roDirectiveRepository:               RoDirectiveRepository                    = rci.roDirectiveRepository
+  val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection] = rci.roLDAPConnectionProvider
+  val roLDAPParameterRepository:           RoLDAPParameterRepository                = rci.roLDAPParameterRepository
+  val woLDAPParameterRepository:           WoLDAPParameterRepository                = rci.woLDAPParameterRepository
+  val roNodeGroupRepository:               RoNodeGroupRepository                    = rci.roNodeGroupRepository
+  val roParameterService:                  RoParameterService                       = rci.roParameterService
+  val roRuleCategoryRepository:            RoRuleCategoryRepository                 = rci.roRuleCategoryRepository
+  val roRuleRepository:                    RoRuleRepository                         = rci.roRuleRepository
+  val rudderApi:                           LiftHandler                              = rci.rudderApi
+  val rudderDit:                           RudderDit                                = rci.rudderDit
+  val rudderUserListProvider:              FileUserDetailListProvider               = rci.rudderUserListProvider
+  val ruleApplicationStatus:               RuleApplicationStatusService             = rci.ruleApplicationStatus
+  val ruleCategoryService:                 RuleCategoryService                      = rci.ruleCategoryService
+  val rwLdap:                              LDAPConnectionProvider[RwLDAPConnection] = rci.rwLdap
+  val secretEventLogService:               SecretEventLogService                    = rci.secretEventLogService
+  val sharedFileApi:                       SharedFilesAPI                           = rci.sharedFileApi
+  val snippetExtensionRegister:            SnippetExtensionRegister                 = rci.snippetExtensionRegister
+  val srvGrid:                             SrvGrid                                  = rci.srvGrid
+  val stringUuidGenerator:                 StringUuidGenerator                      = rci.stringUuidGenerator
+  val techniqueRepository:                 TechniqueRepository                      = rci.techniqueRepository
+  val techniqueArchiver:                   TechniqueArchiver & GitItemRepository    = rci.techniqueArchiver
+  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService    = rci.techniqueCompilationStatusService
+  val tenantService:                       TenantService                            = rci.tenantService
+  val tokenGenerator:                      TokenGeneratorImpl                       = rci.tokenGenerator
+  val updateDynamicGroups:                 UpdateDynamicGroups                      = rci.updateDynamicGroups
+  val updateDynamicGroupsService:          DynGroupUpdaterService                   = rci.updateDynamicGroupsService
+  val updateTechniqueLibrary:              UpdateTechniqueLibrary                   = rci.updateTechniqueLibrary
+  val userPropertyService:                 UserPropertyService                      = rci.userPropertyService
+  val userRepository:                      UserRepository                           = rci.userRepository
+  val userService:                         UserService                              = rci.userService
+  val woApiAccountRepository:              WoApiAccountRepository                   = rci.woApiAccountRepository
+  val woDirectiveRepository:               WoDirectiveRepository                    = rci.woDirectiveRepository
+  val woNodeGroupRepository:               WoNodeGroupRepository                    = rci.woNodeGroupRepository
+  val woRuleCategoryRepository:            WoRuleCategoryRepository                 = rci.woRuleCategoryRepository
+  val woRuleRepository:                    WoRuleRepository                         = rci.woRuleRepository
+  val workflowEventLogService:             WorkflowEventLogService                  = rci.workflowEventLogService
+  val workflowLevelService:                DefaultWorkflowLevel                     = rci.workflowLevelService
+  val systemInfoService:                   SystemInfoService                        = rci.systemInfoService
 
   /**
    * A method to call to force initialisation of all object and services.
@@ -1386,6 +1506,7 @@ case class RudderServiceApi(
     roNodeGroupRepository:               RoNodeGroupRepository,
     woNodeGroupRepository:               WoNodeGroupRepository,
     techniqueRepository:                 TechniqueRepository,
+    techniqueArchiver:                   TechniqueArchiver & GitItemRepository,
     updateTechniqueLibrary:              UpdateTechniqueLibrary,
     roDirectiveRepository:               RoDirectiveRepository,
     woDirectiveRepository:               WoDirectiveRepository,
@@ -1446,7 +1567,7 @@ case class RudderServiceApi(
     systemApiService:                    SystemApiService11,
     stringUuidGenerator:                 StringUuidGenerator,
     inventoryWatcher:                    InventoryFileWatcher,
-    configService:                       ReadConfigService with UpdateConfigService,
+    configService:                       ReadConfigService & UpdateConfigService,
     historizeNodeCountBatch:             IOResult[Unit],
     policyGenerationBootGuard:           zio.Promise[Nothing, Unit],
     healthcheckNotificationService:      HealthcheckNotificationService,
@@ -1461,7 +1582,6 @@ case class RudderServiceApi(
     ncfTechniqueReader:                  EditorTechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
-    restExtractorService:                RestExtractorService,
     snippetExtensionRegister:            SnippetExtensionRegister,
     clearCacheService:                   ClearCacheService,
     linkUtil:                            LinkUtil,
@@ -1475,7 +1595,6 @@ case class RudderServiceApi(
     asyncWorkflowInfo:                   AsyncWorkflowInfo,
     commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService,
     doobie:                              Doobie,
-    restDataSerializer:                  RestDataSerializer,
     workflowEventLogService:             WorkflowEventLogService,
     changeRequestEventLogService:        ChangeRequestEventLogService,
     changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation,
@@ -1489,6 +1608,7 @@ case class RudderServiceApi(
     interpolationCompiler:               InterpolatedValueCompilerImpl,
     deploymentService:                   PromiseGeneration_Hooks,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
+    campaignRepo:                        CampaignRepository,
     mainCampaignService:                 MainCampaignService,
     campaignSerializer:                  CampaignSerializer,
     jsonReportsAnalyzer:                 JSONReportsAnalyser,
@@ -1508,6 +1628,7 @@ case class RudderServiceApi(
     propertiesRepository:                PropertiesRepository,
     propertiesService:                   NodePropertiesService,
     techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService,
+    ruleValGeneratedHookService:         RuleValGeneratedHookService,
     instanceIdService:                   InstanceIdService,
     systemInfoService:                   SystemInfoService
 )
@@ -1599,7 +1720,12 @@ object RudderConfigInit {
 
     lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
-    lazy val passwordEncoderDispatcher = new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST)
+    lazy val passwordEncoderDispatcher = {
+      new PasswordEncoderDispatcher(
+        bcryptCost = RUDDER_BCRYPT_COST,
+        argon2Params = RUDDER_ARGON2_PARAMS
+      )
+    }
 
     // rudder user list
     lazy val rudderUserListProvider: FileUserDetailListProvider = {
@@ -1651,7 +1777,7 @@ object RudderConfigInit {
         woLDAPParameterRepository,
         asyncDeploymentAgent,
         dependencyAndDeletionService,
-        configService.rudder_workflow_enabled _,
+        configService.rudder_workflow_enabled,
         xmlSerializer,
         xmlUnserializer,
         sectionSpecParser,
@@ -1665,27 +1791,12 @@ object RudderConfigInit {
     ///////////////////////////////////////// REST ///////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////
 
-    lazy val restExtractorService = {
-      RestExtractorService(
-        roRuleRepository,
-        roDirectiveRepository,
-        roNodeGroupRepository,
-        techniqueRepository,
-        queryParser,
-        userPropertyService,
-        workflowLevelService,
-        stringUuidGenerator,
-        typeParameterService
-      )
-    }
-
     lazy val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
-    implicit lazy val userService = new UserService {
-      def getCurrentUser: AuthenticatedUser = CurrentUser
-    }
+    // implementation of user lookup using the `onBeginServicing` from LiftRules to set the current user
+    implicit lazy val userService: UserService = CurrentUser
 
     lazy val userRepository:   UserRepository = new JdbcUserRepository(doobie)
     // batch for cleaning users
@@ -1719,12 +1830,11 @@ object RudderConfigInit {
 
     lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService)
 
-    lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
-    // REST API
-    lazy val restDataSerializer = RestDataSerializerImpl(techniqueRepository, diffService)
+    lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
 
+    // REST API - old
     lazy val restQuicksearch = new RestQuicksearch(
-      new FullQuickSearchService()(
+      new FullQuickSearchService()(using
         roLDAPConnectionProvider,
         nodeDit,
         acceptedNodesDit,
@@ -1736,35 +1846,7 @@ object RudderConfigInit {
       userService,
       linkUtil
     )
-    lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
-
-    lazy val ruleApiService13 = {
-      new RuleApiService14(
-        roRuleRepository,
-        woRuleRepository,
-        configurationRepository,
-        stringUuidGenerator,
-        asyncDeploymentAgent,
-        workflowLevelService,
-        roRuleCategoryRepository,
-        woRuleCategoryRepository,
-        roDirectiveRepository,
-        roNodeGroupRepository,
-        nodeFactRepository,
-        configService.rudder_global_policy_mode _,
-        ruleApplicationStatus
-      )
-    }
-
-    lazy val parameterApiService14 = {
-      new ParameterApiService14(
-        roLDAPParameterRepository,
-        stringUuidGenerator,
-        workflowLevelService
-      )
-    }
-
-    // System API
+    lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository), userService)
 
     lazy val clearCacheService = new ClearCacheServiceImpl(
       nodeConfigurationHashRepo,
@@ -1773,48 +1855,11 @@ object RudderConfigInit {
       stringUuidGenerator,
       clearableCache
     )
-
-    lazy val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
-
     lazy val systemInfoService: SystemInfoService = new SystemInfoServiceImpl(
       getNodeMetrics,
       nodeFactRepository,
       instanceIdService,
       policyServerManagementService
-    )
-
-    lazy val systemApiService11 = new SystemApiService11(
-      updateTechniqueLibrary,
-      debugScript,
-      clearCacheService,
-      asyncDeploymentAgent,
-      stringUuidGenerator,
-      updateDynamicGroups,
-      itemArchiveManager,
-      personIdentService,
-      gitConfigRepo
-    )
-
-    lazy val systemApiService13 = new SystemApiService13(
-      healthcheckService,
-      healthcheckNotificationService,
-      restDataSerializer,
-      deprecated.softwareService
-    )
-
-    lazy val ruleInternalApiService =
-      new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
-
-    lazy val groupInternalApiService = new GroupInternalApiService(roNodeGroupRepository)
-
-    lazy val complianceAPIService = new ComplianceAPIService(
-      roRuleRepository,
-      nodeFactRepository,
-      roNodeGroupRepository,
-      reportingService,
-      roDirectiveRepository,
-      globalComplianceModeService.getGlobalComplianceMode,
-      configService.rudder_global_policy_mode()
     )
 
     lazy val techniqueArchiver = new TechniqueArchiverImpl(
@@ -1826,6 +1871,7 @@ object RudderConfigInit {
       techniqueCompiler,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
+
     lazy val techniqueCompiler: TechniqueCompiler = new RuddercTechniqueCompiler(
       new RuddercServiceImpl(RUDDERC_CMD, 5.seconds),
       _.path,
@@ -1903,7 +1949,6 @@ object RudderConfigInit {
       r
     } else NoopFactStorage
 
-    // TODO WARNING POC: this can't work on a machine with lots of node
     lazy val ldapNodeFactStorage = new LdapNodeFactStorage(
       rwLdap,
       nodeDit,
@@ -2025,7 +2070,7 @@ object RudderConfigInit {
         maxParallel,
         // it's always rudder doing these checking queries
         new InventoryDigestServiceV1((id: NodeId) =>
-          nodeFactRepository.get(id)(QueryContext.systemQC, SelectNodeStatus.Accepted)
+          nodeFactRepository.get(id)(using QueryContext.systemQC, SelectNodeStatus.Accepted)
         ),
         checkLdapAlive
       )
@@ -2044,7 +2089,7 @@ object RudderConfigInit {
     }
 
     lazy val inventoryWatcher = {
-      val fileProcessor = new ProcessFile(inventoryProcessor, INVENTORY_DIR_INCOMING)
+      val fileProcessor = ProcessFile.start(inventoryProcessor, INVENTORY_DIR_INCOMING).runNow
 
       new InventoryFileWatcher(
         fileProcessor,
@@ -2066,221 +2111,272 @@ object RudderConfigInit {
       )
     }
 
-    lazy val archiveApi = {
-      val archiveBuilderService = {
-        new ZipArchiveBuilderService(
-          new FileArchiveNameService(),
-          configurationRepository,
-          gitParseTechniqueLibrary,
-          roLdapNodeGroupRepository
-        )
-      }
-      // fixe archive name to make it simple to test
-      val rootDirName           = "archive".succeed
-      new com.normation.rudder.rest.lift.ArchiveApi(
-        archiveBuilderService,
-        rootDirName,
-        new ZipArchiveReaderImpl(queryParser, techniqueParser),
-        new SaveArchiveServicebyRepo(
-          techniqueArchiver,
-          techniqueReader,
-          roDirectiveRepository,
-          woDirectiveRepository,
-          roNodeGroupRepository,
-          woNodeGroupRepository,
-          roRuleRepository,
-          woRuleRepository,
-          updateTechniqueLibrary,
-          asyncDeploymentAgent,
-          stringUuidGenerator
-        ),
-        new CheckArchiveServiceImpl(techniqueRepository)
-      )
-    }
-
-    /*
-     * API versions are incremented each time incompatible changes are made (like adding or deleting endpoints - modification
-     * of an existing endpoint, if done in a purely compatible way, don't change api version).
-     * It may happen that some rudder branches don't have a version bump, and other have several (in case of
-     * horrible breaking bugs). We avoid the case where a previous release need a version bump.
-     * For ex:
-     * - 5.0: 14
-     * - 5.1: 14 (no change)
-     * - 5.2[.0~.4]: 15
-     * - 5.2.5: 16
-     */
-    lazy val ApiVersions: List[ApiVersion] = {
-      ApiVersion(18, deprecated = true) ::  // rudder 8.0 - allowed network
-      ApiVersion(19, deprecated = true) ::  // rudder 8.1 - (score), tenants
-      ApiVersion(20, deprecated = true) ::  // rudder 8.2 - zio-json
-      ApiVersion(21, deprecated = false) :: // rudder 8.3 - zio-json, api accounts,new authorization model
-      Nil
-    }
-
     lazy val pluginsIndexFile     = root / "var" / "rudder" / "packages" / "index.json"
     lazy val jsonPluginDefinition = new ReadPluginPackageInfo(pluginsIndexFile)
 
     lazy val resourceFileService = new GitResourceFileService(gitConfigRepo)
-    lazy val apiDispatcher       = new RudderEndpointDispatcher(LiftApiProcessingLogger)
 
-    // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
-    lazy val apiModules = {
-      import com.normation.rudder.rest.lift.*
-      List(
-        new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
-        new GroupsApi(
-          propertiesService,
-          zioJsonExtractor,
-          stringUuidGenerator,
-          userPropertyService,
-          new GroupApiService14(
-            nodeFactRepository,
-            roNodeGroupRepository,
-            woNodeGroupRepository,
-            propertiesRepository,
-            propertiesService,
-            stringUuidGenerator,
-            asyncDeploymentAgent,
-            workflowLevelService,
-            queryParser,
-            queryProcessor,
-            restDataSerializer
-          )
-        ),
-        new DirectiveApi(
-          zioJsonExtractor,
-          stringUuidGenerator,
-          new DirectiveApiService14(
-            roDirectiveRepository,
-            configurationRepository,
-            woDirectiveRepository,
-            stringUuidGenerator,
-            asyncDeploymentAgent,
-            workflowLevelService,
-            directiveEditorService,
-            restDataSerializer,
-            techniqueRepositoryImpl
-          )
-        ),
-        new NodeApi(
-          zioJsonExtractor,
-          propertiesService,
-          restDataSerializer,
-          new NodeApiService(
-            rwLdap,
-            nodeFactRepository,
-            propertiesRepository,
-            roAgentRunsRepository,
-            ldapEntityMapper,
-            stringUuidGenerator,
-            nodeDit,
-            pendingNodesDit,
-            acceptedNodesDit,
-            newNodeManagerImpl,
-            removeNodeServiceImpl,
-            zioJsonExtractor,
-            reportingService,
-            queryProcessor,
-            inventoryQueryChecker,
-            () => configService.rudder_global_policy_mode().toBox,
-            RUDDER_RELAY_API,
-            scoreService
-          ),
-          userPropertyService,
-          new NodeApiInheritedProperties(propertiesRepository),
-          stringUuidGenerator,
-          DeleteMode.Erase // only supported mode for Rudder 8.0
-        ),
-        new ParameterApi(zioJsonExtractor, parameterApiService14),
-        new SettingsApi(
-          restExtractorService,
-          configService,
-          asyncDeploymentAgent,
-          stringUuidGenerator,
-          policyServerManagementService,
-          nodeFactRepository
-        ),
-        new TechniqueApi(
-          restExtractorService,
-          new TechniqueAPIService14(
-            roDirectiveRepository,
-            gitParseTechniqueLibrary,
-            ncfTechniqueReader,
-            techniqueSerializer,
-            restDataSerializer,
-            techniqueCompiler
-          ),
-          ncfTechniqueWriter,
-          ncfTechniqueReader,
-          techniqueRepository,
-          techniqueSerializer,
-          stringUuidGenerator,
-          userPropertyService,
-          resourceFileService,
-          RUDDER_GIT_ROOT_CONFIG_REPO
-        ),
-        new RuleApi(
-          zioJsonExtractor,
-          ruleApiService13,
-          stringUuidGenerator
-        ),
-        new SystemApi(
-          restExtractorService,
-          systemApiService11,
-          systemApiService13,
-          systemInfoService
-        ),
-        new UserManagementApiImpl(
-          userRepository,
-          rudderUserListProvider,
-          new UserManagementService(
-            userRepository,
-            rudderUserListProvider,
-            passwordEncoderDispatcher,
-            UserFileProcessing.getUserResourceFile()
-          ),
-          tenantService,
-          () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
-          () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
-        ),
-        new ApiAccountApi(
-          new ApiAccountApiServiceV1(
-            roApiAccountRepository,
-            woApiAccountRepository,
-            tokenGenerator,
-            stringUuidGenerator,
-            userService
-          )
-        ),
-        new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-        new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
-        new PluginInternalApi(pluginSystemService),
-        new RecentChangesAPI(recentChangesService, restExtractorService),
-        new RulesInternalApi(ruleInternalApiService, ruleApiService13),
-        new GroupsInternalApi(groupInternalApiService),
-        new CampaignApi(
-          campaignRepo,
-          campaignSerializer,
-          campaignEventRepo,
-          mainCampaignService,
-          stringUuidGenerator
-        ),
-        new HookApi(hookApiService),
-        archiveApi,
-        new ScoreApiImpl(restExtractorService, scoreService),
-        eventLogApi
-        // info api must be resolved latter, because else it misses plugin apis !
-      )
-    }
+    /* **********************
+     *         API
+     * **********************
+     */
+
+    /*
+     * Some API need to be exposed
+     */
+
+    // RudderConfig.complianceService used in NodeGroupForm
+    lazy val complianceAPIService = new ComplianceAPIService(
+      roRuleRepository,
+      nodeFactRepository,
+      roNodeGroupRepository,
+      reportingService,
+      roDirectiveRepository,
+      globalComplianceModeService.getGlobalComplianceMode,
+      configService.rudder_global_policy_mode()
+    )
+
+    // need to be exposed for Snapshot page
+    lazy val systemApiService11 = new SystemApiService11(
+      updateTechniqueLibrary,
+      debugScript,
+      clearCacheService,
+      asyncDeploymentAgent,
+      stringUuidGenerator,
+      updateDynamicGroups,
+      itemArchiveManager,
+      personIdentService,
+      gitConfigRepo
+    )
+
+    lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
 
     lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
 
+    // we need to init API internal services into the {} block to avoid bug https://issues.rudder.io/issues/26416
     lazy val rudderApi = {
       import com.normation.rudder.rest.lift.*
+      // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
+
+      lazy val ruleApiService13 = {
+        new RuleApiService14(
+          roRuleRepository,
+          woRuleRepository,
+          configurationRepository,
+          stringUuidGenerator,
+          asyncDeploymentAgent,
+          workflowLevelService,
+          roRuleCategoryRepository,
+          woRuleCategoryRepository,
+          roDirectiveRepository,
+          roNodeGroupRepository,
+          nodeFactRepository,
+          configService.rudder_global_policy_mode,
+          ruleApplicationStatus
+        )
+      }
+
+      lazy val parameterApiService14 = {
+        new ParameterApiService14(
+          roLDAPParameterRepository,
+          stringUuidGenerator,
+          workflowLevelService
+        )
+      }
+
+      lazy val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+
+      lazy val ruleInternalApiService =
+        new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
+
+      lazy val groupInternalApiService = new GroupInternalApiService(roNodeGroupRepository)
+
+      lazy val systemApiService13 = new SystemApiService13(
+        healthcheckService,
+        healthcheckNotificationService,
+        deprecated.softwareService
+      )
+
+      lazy val archiveApi = {
+        val archiveBuilderService = {
+          new ZipArchiveBuilderService(
+            new FileArchiveNameService(),
+            configurationRepository,
+            gitParseTechniqueLibrary,
+            roLdapNodeGroupRepository,
+            roRuleRepository,
+            roDirectiveRepository,
+            techniqueRepository
+          )
+        }
+        // fixe archive name to make it simple to test
+        val rootDirName           = "archive".succeed
+        new com.normation.rudder.rest.lift.ArchiveApi(
+          archiveBuilderService,
+          rootDirName,
+          new ZipArchiveReaderImpl(queryParser, techniqueParser),
+          new SaveArchiveServicebyRepo(
+            techniqueArchiver,
+            techniqueReader,
+            roDirectiveRepository,
+            woDirectiveRepository,
+            roNodeGroupRepository,
+            woNodeGroupRepository,
+            roRuleRepository,
+            woRuleRepository,
+            updateTechniqueLibrary,
+            asyncDeploymentAgent,
+            stringUuidGenerator
+          ),
+          new CheckArchiveServiceImpl(techniqueRepository)
+        )
+      }
+
+      lazy val apiModules = {
+        import com.normation.rudder.rest.lift.*
+        List(
+          new ComplianceApi(complianceAPIService, roDirectiveRepository),
+          new GroupsApi(
+            propertiesService,
+            zioJsonExtractor,
+            stringUuidGenerator,
+            userPropertyService,
+            new GroupApiService14(
+              nodeFactRepository,
+              roNodeGroupRepository,
+              woNodeGroupRepository,
+              propertiesRepository,
+              propertiesService,
+              stringUuidGenerator,
+              asyncDeploymentAgent,
+              workflowLevelService,
+              queryParser,
+              queryProcessor
+            )
+          ),
+          new DirectiveApi(
+            zioJsonExtractor,
+            stringUuidGenerator,
+            new DirectiveApiService14(
+              roDirectiveRepository,
+              configurationRepository,
+              woDirectiveRepository,
+              stringUuidGenerator,
+              asyncDeploymentAgent,
+              workflowLevelService,
+              directiveEditorService,
+              techniqueRepositoryImpl
+            )
+          ),
+          new NodeApi(
+            zioJsonExtractor,
+            propertiesService,
+            new NodeApiService(
+              rwLdap,
+              nodeFactRepository,
+              propertiesRepository,
+              roAgentRunsRepository,
+              ldapEntityMapper,
+              stringUuidGenerator,
+              nodeDit,
+              pendingNodesDit,
+              acceptedNodesDit,
+              newNodeManagerImpl,
+              removeNodeServiceImpl,
+              zioJsonExtractor,
+              reportingService,
+              queryProcessor,
+              inventoryQueryChecker,
+              () => configService.rudder_global_policy_mode().toBox,
+              RUDDER_RELAY_API,
+              scoreService
+            ),
+            userPropertyService,
+            new NodeApiInheritedProperties(propertiesRepository),
+            stringUuidGenerator,
+            DeleteMode.Erase // only supported mode for Rudder 8.0
+          ),
+          new ParameterApi(zioJsonExtractor, parameterApiService14),
+          new SettingsApi(
+            configService,
+            asyncDeploymentAgent,
+            stringUuidGenerator,
+            policyServerManagementService,
+            nodeFactRepository
+          ),
+          new TechniqueApi(
+            new TechniqueAPIService14(
+              roDirectiveRepository,
+              gitParseTechniqueLibrary,
+              ncfTechniqueReader,
+              techniqueSerializer,
+              techniqueCompiler
+            ),
+            ncfTechniqueWriter,
+            ncfTechniqueReader,
+            techniqueRepository,
+            techniqueSerializer,
+            stringUuidGenerator,
+            userPropertyService,
+            resourceFileService,
+            RUDDER_GIT_ROOT_CONFIG_REPO
+          ),
+          new RuleApi(
+            zioJsonExtractor,
+            ruleApiService13,
+            stringUuidGenerator
+          ),
+          new SystemApi(
+            systemApiService11,
+            systemApiService13,
+            systemInfoService
+          ),
+          new UserManagementApiImpl(
+            userRepository,
+            rudderUserListProvider,
+            new UserManagementService(
+              userRepository,
+              rudderUserListProvider,
+              passwordEncoderDispatcher,
+              UserFileProcessing.getUserResourceFile()
+            ),
+            tenantService,
+            () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
+            () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
+          ),
+          new ApiAccountApi(
+            new ApiAccountApiServiceV1(
+              roApiAccountRepository,
+              woApiAccountRepository,
+              ApiAccountMapping.build(stringUuidGenerator, tokenGenerator),
+              stringUuidGenerator,
+              userService
+            )
+          ),
+          new InventoryApi(inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
+          new PluginApi(pluginSettingsService, pluginSystemService, PluginsInfo.pluginJsonInfos.succeed),
+          new PluginInternalApi(pluginSystemService),
+          new RecentChangesAPI(recentChangesService),
+          new RulesInternalApi(ruleInternalApiService, ruleApiService13),
+          new GroupsInternalApi(groupInternalApiService),
+          new CampaignApi(
+            campaignRepo,
+            campaignSerializer,
+            campaignEventRepo,
+            mainCampaignService,
+            stringUuidGenerator
+          ),
+          new HookApi(hookApiService),
+          archiveApi,
+          new ScoreApiImpl(scoreService),
+          eventLogApi
+          // info api must be resolved latter, because else it misses plugin apis !
+        )
+      }
 
       val api = new LiftHandler(
         apiDispatcher,
-        ApiVersions,
+        SupportedApiVersion.apiVersions,
         new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled),
         None
       )
@@ -2290,7 +2386,7 @@ object RudderConfigInit {
 
     // Internal APIs
     lazy val sharedFileApi     =
-      new SharedFilesAPI(restExtractorService, userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
+      new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
     lazy val eventLogApi       = {
       new EventLogAPI(
         new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
@@ -2299,7 +2395,7 @@ object RudderConfigInit {
       )
     }
     lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
-    lazy val configService: ReadConfigService with UpdateConfigService = {
+    lazy val configService: ReadConfigService & UpdateConfigService = {
       new GenericConfigService(
         RudderProperties.config,
         new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator),
@@ -2514,9 +2610,9 @@ object RudderConfigInit {
     }
 
     lazy val userPropertyServiceImpl = new StatelessUserPropertyService(
-      configService.rudder_ui_changeMessage_enabled _,
-      configService.rudder_ui_changeMessage_mandatory _,
-      configService.rudder_ui_changeMessage_explanation _
+      configService.rudder_ui_changeMessage_enabled,
+      configService.rudder_ui_changeMessage_mandatory,
+      configService.rudder_ui_changeMessage_explanation
     )
     lazy val userPropertyService: UserPropertyService = userPropertyServiceImpl
 
@@ -2698,14 +2794,15 @@ object RudderConfigInit {
 
       new InventoryHistoryLogRepository(
         HISTORY_INVENTORIES_ROOTDIR,
-        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper)
+        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper),
+        new JodaDateTimeConverter(ISODateTimeFormat.dateTime().withZoneUTC())
       )
     }
 
     lazy val nodeGridImpl = new NodeGrid(nodeFactRepository, configService)
 
     lazy val modificationService      =
-      new ModificationService(logRepository, gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
+      new ModificationService(gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
     lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
@@ -2927,7 +3024,6 @@ object RudderConfigInit {
       roLDAPParameterRepository,
       woLDAPParameterRepository,
       gitConfigRepo,
-      gitRevisionProviderImpl,
       gitRuleArchiver,
       gitRuleCategoryArchiver,
       gitActiveTechniqueCategoryArchiver,
@@ -2980,6 +3076,7 @@ object RudderConfigInit {
       RUDDER_JDBC_PASSWORD,
       RUDDER_GIT_ROOT_CONFIG_REPO,
       rudderFullVersion,
+      RUDDER_SERVER_CERTIFICATE_CONFIG,
       () => configService.cfengine_server_denybadclocks().toBox,
       () => configService.relay_server_sync_method().toBox,
       () => configService.relay_server_syncpromises().toBox,
@@ -3038,8 +3135,8 @@ object RudderConfigInit {
       eventLogRepository
     )
     lazy val policyServerManagementService = psMngtService
-
-    lazy val deploymentService = {
+    lazy val ruleValGeneratedHookService   = new RuleValGeneratedHookService()
+    lazy val deploymentService             = {
       new PromiseGenerationServiceImpl(
         roLdapRuleRepository,
         woLdapRuleRepository,
@@ -3073,7 +3170,8 @@ object RudderConfigInit {
         UPDATED_NODE_IDS_COMPABILITY,
         GENERATION_FAILURE_MSG_PATH,
         allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodescerts.pem"),
-        POSTGRESQL_IS_LOCAL
+        POSTGRESQL_IS_LOCAL,
+        ruleValGeneratedHookService
       )
     }
 
@@ -3153,16 +3251,23 @@ object RudderConfigInit {
 
     // we need to expose impl at that level to call `.init()` in bootstrap checks
     lazy val nodeStatusReportRepository: NodeStatusReportRepositoryImpl = {
+      /*
+       * We added the table in Rudder 8.2, and so for migration, we need a bit of
+       * logic to check if we init compliance from table or from runs, see: LoadNodeComplianceCache.
+       * And so, we are for initing it to empty here.
+       * In Rudder 9.0, we will be able to remove the bootstrap check and just use
+       * `NodeStatusReportRepositoryImpl.make`.
+       */
       (for {
         x <- Ref.make(Map[NodeId, NodeStatusReport]())
-        s  = new JdbcNodeStatusReportStorage(doobie)
+        s  = new JdbcNodeStatusReportStorage(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
       } yield new NodeStatusReportRepositoryImpl(s, x)).runNow
     }
 
     lazy val computeNodeStatusReportService: ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook = {
       new ComputeNodeStatusReportServiceImpl(
-        nodeStatusReportRepository,
         nodeFactRepository,
+        nodeStatusReportRepository,
         findNewNodeStatusReports,
         new NodePropertyBasedComplianceExpirationService(
           propertiesRepository,
@@ -3174,23 +3279,18 @@ object RudderConfigInit {
       )
     }
 
-    // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
-    // and can construct the nodeconfigurationservice without the comlpince cache
+    // to avoid a StackOverflowError, we set the compliance cache once it's ready,
+    // and can construct the nodeConfigurationService without the compliance cache
     cachedNodeConfigurationService.addHook(computeNodeStatusReportService)
 
     lazy val reportingService: ReportingService = new ReportingServiceImpl2(nodeStatusReportRepository)
 
-    lazy val pgIn                     = new PostgresqlInClause(70)
-    lazy val findExpectedRepo         = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-    lazy val updateExpectedRepo       = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-    lazy val reportsRepositoryImpl    = new ReportsJdbcRepository(doobie)
-    lazy val reportsRepository        = reportsRepositoryImpl
-    lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(
-      doobie,
-      () => configService.rudder_save_db_compliance_details().toBox,
-      () => configService.rudder_save_db_compliance_levels().toBox
-    )
-    lazy val dataSourceProvider       = new RudderDatasourceProvider(
+    lazy val pgIn                  = new PostgresqlInClause(70)
+    lazy val findExpectedRepo      = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+    lazy val updateExpectedRepo    = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+    lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
+    lazy val reportsRepository     = reportsRepositoryImpl
+    lazy val dataSourceProvider    = new RudderDatasourceProvider(
       RUDDER_JDBC_DRIVER,
       RUDDER_JDBC_URL,
       RUDDER_JDBC_USERNAME,
@@ -3198,7 +3298,7 @@ object RudderConfigInit {
       RUDDER_JDBC_MAX_POOL_SIZE,
       JDBC_GET_CONNECTION_TIMEOUT.asScala
     )
-    lazy val doobie                   = {
+    lazy val doobie                = {
       // execute pre connection checks before anything else. Both here and in the other connection to ensure it's
       // executed before everything.
       earlyChecks.initialize()
@@ -3214,22 +3314,24 @@ object RudderConfigInit {
         new CreateTableNodeFacts(doobie),
         new CheckTableScore(doobie),
         new CheckTableUsers(doobie),
+        new CheckTableNodeLastCompliance(doobie),
         new MigrateEventLogEnforceSchema(doobie),
         new MigrateChangeValidationEnforceSchema(doobie),
         new CheckTableReportsExecutionTz(doobie),
-        new DeleteArchiveTables(doobie)
+        new DeleteArchiveTables(doobie),
+        new MigrateTableCampaignEvents(doobie)
       )
 
       earlyDbChecks.checks()
       doobie
     }
 
-    lazy val parseRules:                  ParseRules with RuleRevisionRepository         = new GitParseRules(
+    lazy val parseRules:                  ParseRules & RuleRevisionRepository         = new GitParseRules(
       ruleUnserialisation,
       gitConfigRepo,
       rulesDirectoryName
     )
-    lazy val parseActiveTechniqueLibrary: GitParseActiveTechniqueLibrary                 = new GitParseActiveTechniqueLibrary(
+    lazy val parseActiveTechniqueLibrary: GitParseActiveTechniqueLibrary              = new GitParseActiveTechniqueLibrary(
       activeTechniqueCategoryUnserialisation,
       activeTechniqueUnserialisation,
       directiveUnserialisation,
@@ -3237,35 +3339,35 @@ object RudderConfigInit {
       gitRevisionProvider,
       userLibraryDirectoryName
     )
-    lazy val importTechniqueLibrary:      ImportTechniqueLibrary                         = new ImportTechniqueLibraryImpl(
+    lazy val importTechniqueLibrary:      ImportTechniqueLibrary                      = new ImportTechniqueLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
       uptLibReadWriteMutex
     )
-    lazy val parseGroupLibrary:           ParseGroupLibrary with GroupRevisionRepository = new GitParseGroupLibrary(
+    lazy val parseGroupLibrary:           ParseGroupLibrary & GroupRevisionRepository = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation,
       nodeGroupUnserialisation,
       gitConfigRepo,
       groupLibraryDirectoryName
     )
-    lazy val parseGlobalParameter:        ParseGlobalParameters                          = new GitParseGlobalParameters(
+    lazy val parseGlobalParameter:        ParseGlobalParameters                       = new GitParseGlobalParameters(
       globalParameterUnserialisation,
       gitConfigRepo,
       parametersDirectoryName
     )
-    lazy val parseRuleCategories:         ParseRuleCategories                            = new GitParseRuleCategories(
+    lazy val parseRuleCategories:         ParseRuleCategories                         = new GitParseRuleCategories(
       ruleCategoryUnserialisation,
       gitConfigRepo,
       ruleCategoriesDirectoryName
     )
-    lazy val importGroupLibrary:          ImportGroupLibrary                             = new ImportGroupLibraryImpl(
+    lazy val importGroupLibrary:          ImportGroupLibrary                          = new ImportGroupLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
       groupLibReadWriteMutex
     )
-    lazy val importRuleCategoryLibrary:   ImportRuleCategoryLibrary                      = new ImportRuleCategoryLibraryImpl(
+    lazy val importRuleCategoryLibrary:   ImportRuleCategoryLibrary                   = new ImportRuleCategoryLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
@@ -3381,13 +3483,16 @@ object RudderConfigInit {
     lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
     lazy val campaignSerializer             = new CampaignSerializer()
     lazy val campaignEventRepo              = new CampaignEventRepositoryImpl(doobie, campaignSerializer)
-    lazy val campaignPath                   = root / "var" / "rudder" / "configuration-repository" / "campaigns"
+    lazy val campaignHooksRepository        = new FsCampaignHooksRepository(HOOKS_D)
+    lazy val campaignHooksService           = new FsCampaignHooksService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+    lazy val campaignArchiver               = new CampaignArchiverImpl(gitConfigRepo, "campaigns", personIdentService)
 
     lazy val campaignRepo = CampaignRepositoryImpl
-      .make(campaignSerializer, campaignPath, campaignEventRepo)
+      .make(campaignArchiver.campaignPath, campaignArchiver, campaignSerializer, campaignHooksRepository)
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
-    lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, stringUuidGenerator, 1, 1)
+    lazy val mainCampaignService =
+      MainCampaignService.make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1).runNow
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
     lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"
@@ -3438,6 +3543,12 @@ object RudderConfigInit {
 
       new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, stringUuidGenerator),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, stringUuidGenerator),
+      new MigrateDirectiveWithSelectInputBroken(
+        ncfTechniqueReader,
+        roDirectiveRepository,
+        woDirectiveRepository,
+        stringUuidGenerator
+      ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
@@ -3454,6 +3565,7 @@ object RudderConfigInit {
         gitConfigRepo.rootDirectory.pathAsString
       ),
       new FixedPathLoggerMigration(),
+      new DropNodeComplianceTables(doobie),
       new TriggerPolicyUpdate(
         asyncDeploymentAgent,
         stringUuidGenerator
@@ -3462,6 +3574,7 @@ object RudderConfigInit {
         woDirectiveRepository,
         stringUuidGenerator
       ),
+      new RemoveDefaultRootDescription(nodeFactRepository),
       new CreateSystemToken(
         systemTokenSecret,
         root / "var" / "rudder" / "run",
@@ -3598,8 +3711,7 @@ object RudderConfigInit {
         updatesEntryJdbcRepository,
         recentChangesService,
         computeNodeStatusReportService,
-        findNewNodeStatusReports,
-        complianceRepositoryImpl
+        findNewNodeStatusReports
       )
     }
 
@@ -3739,6 +3851,7 @@ object RudderConfigInit {
       roLdapNodeGroupRepository,
       woLdapNodeGroupRepository,
       techniqueRepositoryImpl,
+      techniqueArchiver,
       techniqueRepositoryImpl,
       roLdapDirectiveRepository,
       woLdapDirectiveRepository,
@@ -3814,13 +3927,12 @@ object RudderConfigInit {
       ncfTechniqueReader,
       recentChangesService,
       ruleCategoryService,
-      restExtractorService,
       snippetExtensionRegister,
       clearCacheService,
       linkUtil,
       userRepository,
       userService,
-      ApiVersions,
+      SupportedApiVersion.apiVersions,
       apiDispatcher,
       configurationRepository,
       roParameterService,
@@ -3828,7 +3940,6 @@ object RudderConfigInit {
       asyncWorkflowInfo,
       commitAndDeployChangeRequest,
       doobie,
-      restDataSerializer,
       workflowEventLogService,
       changeRequestEventLogService,
       changeRequestChangesUnserialisation,
@@ -3842,6 +3953,7 @@ object RudderConfigInit {
       interpolationCompiler,
       deploymentService,
       campaignEventRepo,
+      campaignRepo,
       mainCampaignService,
       campaignSerializer,
       jsonReportsAnalyzer,
@@ -3861,6 +3973,7 @@ object RudderConfigInit {
       propertiesRepository,
       propertiesService,
       techniqueCompilationCache,
+      ruleValGeneratedHookService,
       instanceIdService,
       systemInfoService
     )

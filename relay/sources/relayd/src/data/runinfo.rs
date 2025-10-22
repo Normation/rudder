@@ -14,7 +14,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
     combinator::{eof, map_res, opt},
-    IResult,
+    IResult, Parser,
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -43,11 +43,12 @@ fn parse_runinfo_v1(i: &str) -> IResult<&str, RunInfo> {
     let (i, timestamp) = map_res(take_until("@"), |d: &str| {
         // On Windows, filenames can't contain : so we replace them by underscores
         DateTime::parse_from_rfc3339(&d.replace('_', ":"))
-    })(i)?;
+    })
+    .parse(i)?;
     let (i, _) = tag("@")(i)?;
     let (i, node_id) = take_until(".")(i)?;
     let (i, _) = tag(".log")(i)?;
-    let (i, _) = opt(tag(".gz"))(i)?;
+    let (i, _) = opt(tag(".gz")).parse(i)?;
 
     if node_id.is_empty() {
         Err(nom::Err::Failure(nom::error::Error::new(
@@ -81,10 +82,11 @@ fn parse_runinfo_v2(i: &str) -> IResult<&str, RunInfo> {
     let (i, timestamp) = map_res(take_until("."), |d: &str| {
         // On Windows, filenames can't contain : so we replace them by underscores
         DateTime::parse_from_str(&d.replace('_', ":"), "%+")
-    })(i)?;
+    })
+    .parse(i)?;
     let (i, _) = tag(".log")(i)?;
-    let (i, _) = opt(tag(".gz"))(i)?;
-    let (i, _) = opt(tag(".zip"))(i)?;
+    let (i, _) = opt(tag(".gz")).parse(i)?;
+    let (i, _) = opt(tag(".zip")).parse(i)?;
     let (_, _) = eof(i)?;
 
     if node_id.is_empty() {
@@ -107,15 +109,14 @@ impl FromStr for RunInfo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match alt((parse_runinfo_v1, parse_runinfo_v2))(s) {
+        match alt((parse_runinfo_v1, parse_runinfo_v2)).parse(s) {
             Ok(raw_runinfo) => {
                 debug!("Parsed run info {:#?}", raw_runinfo.1);
                 Ok(raw_runinfo.1)
             }
-            Err(e) => Err(RudderError::InvalidRunInfo(format!(
-                "invalid runinfo '{}' with {:?}",
-                s, e
-            ))
+            Err(e) => Err(RudderError::InvalidRunInfo(
+                format!("invalid runinfo '{s}' with {e:?}",),
+            )
             .into()),
         }
     }
@@ -217,12 +218,12 @@ mod tests {
                              tmh in 0u32..13, tmm in 0u32..60,
                              ref id in r"[a-zA-Z0-1-]+") {
             let reference = RunInfo {
-                timestamp: DateTime::parse_from_str(&format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}{:02}:{:02}", y, m, d, h, min, s, pm, tmh, tmm), "%+").expect("invalid date"),
+                timestamp: DateTime::parse_from_str(&format!("{y:04}-{m:02}-{d:02}T{h:02}:{min:02}:{s:02}{pm}{tmh:02}:{tmm:02}"), "%+").expect("invalid date"),
                 node_id: id.clone(),
             };
 
             let runinfo = RunInfo::from_str(
-                &format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}{:02}:{:02}@{}.log", y, m, d, h, min, s, pm, tmh, tmm, id)).unwrap();
+                &format!("{y:04}-{m:02}-{d:02}T{h:02}:{min:02}:{s:02}{pm}{tmh:02}:{tmm:02}@{id}.log")).unwrap();
 
             prop_assert_eq!(runinfo, reference);
         }

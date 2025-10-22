@@ -40,7 +40,6 @@ package com.normation.rudder.inventory
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
-import com.normation.inventory.domain.Inventory
 import com.normation.inventory.services.provisioning.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -79,21 +78,23 @@ class PostCommitInventoryHooks[A](
     val node  = inventory.node.main
     val hooks = (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
-      hooks     <- nodeFactRepo.getStatus(node.id).flatMap { s =>
-                     s match {
-                       case PendingInventory  =>
-                         RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-pending", HOOKS_IGNORE_SUFFIXES)
-                       case AcceptedInventory =>
-                         RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-accepted", HOOKS_IGNORE_SUFFIXES)
-                       case s                 =>
-                         Inconsistency(
-                           s"node-inventory-received-* hooks are not supported for node '${node.hostname}' [${node.id.value}] with status '${s.name}'"
-                         ).fail
-                     }
+      nHooks    <- nodeFactRepo.getStatus(node.id).flatMap {
+                     case PendingInventory  =>
+                       val n = "node-inventory-received-pending"
+                       RunHooks.getHooksPure(HOOKS_D + "/" + n, HOOKS_IGNORE_SUFFIXES).map(h => (n, h))
+                     case AcceptedInventory =>
+                       val n = "node-inventory-received-accepted"
+                       RunHooks.getHooksPure(HOOKS_D + "/" + n, HOOKS_IGNORE_SUFFIXES).map(h => (n, h))
+                     case s                 =>
+                       Inconsistency(
+                         s"node-inventory-received-* hooks are not supported for node '${node.hostname}' [${node.id.value}] with status '${s.name}'"
+                       ).fail
                    }
+      (n, hooks) = nHooks
       _         <- for {
                      timeHooks0 <- currentTimeMillis
                      res        <- RunHooks.asyncRun(
+                                     n,
                                      hooks,
                                      HookEnvPairs.build(
                                        ("RUDDER_NODE_ID", node.id.value),
@@ -110,7 +111,7 @@ class PostCommitInventoryHooks[A](
                                      1.minutes // warn if a hook took more than a minute
                                    )
                      timeHooks1 <- currentTimeMillis
-                     _          <- PureHooksLogger.trace(s"Inventory received hooks ran in ${timeHooks1 - timeHooks0} ms")
+                     _          <- PureHooksLogger.For(n).trace(s"Inventory received hooks ran in ${timeHooks1 - timeHooks0} ms")
                    } yield ()
     } yield ()).catchAll(err => PureHooksLogger.error(err.fullMsg))
 
@@ -132,7 +133,8 @@ class FactRepositoryPostCommit[A](
   override def apply(inventory: Inventory, records: A): IOResult[A] = {
     (for {
       optInfo <- if (inventory.node.main.status == RemovedInventory) None.succeed
-                 else nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(QueryContext.systemQC)
+                 else
+                   nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(using QueryContext.systemQC)
       _       <- optInfo match {
                    case None =>
                      InventoryProcessingLogger.info(

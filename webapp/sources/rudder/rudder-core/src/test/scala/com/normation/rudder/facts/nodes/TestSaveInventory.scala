@@ -67,7 +67,6 @@ import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValueFactory
 import cron4s.Cron
@@ -76,6 +75,7 @@ import java.security.Security
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -176,7 +176,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(linuxCert)(QueryContext.testQC)
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
       } yield (res, inv)
     ).runNow
 
@@ -201,7 +201,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(linuxCert)(QueryContext.testQC)
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
       } yield (res, inv)
     ).runNow
 
@@ -216,7 +216,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   "hostname does not matter and can change with fallback logic" in {
     val (start, res, inv) = (
       for {
-        start <- factRepo.get(linuxCert)(QueryContext.testQC)
+        start <- factRepo.get(linuxCert)(using QueryContext.testQC)
 
         res <- inventoryProcessorInternal
                  .saveInventoryInternal(
@@ -227,7 +227,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(linuxCert)(QueryContext.testQC)
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
       } yield (start, res, inv)
     ).runNow
 
@@ -242,7 +242,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   "hostname does not matter and can change with override logic" in {
     val (start, res, inv) = (
       for {
-        start <- factRepo.get(linuxCert)(QueryContext.testQC)
+        start <- factRepo.get(linuxCert)(using QueryContext.testQC)
 
         res <- inventoryProcessorInternal
                  .saveInventoryInternal(
@@ -253,7 +253,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(linuxCert)(QueryContext.testQC)
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
       } yield (start, res, inv)
     ).runNow
 
@@ -277,7 +277,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(linuxCert)(QueryContext.testQC)
+        inv <- factRepo.get(linuxCert)(using QueryContext.testQC)
       } yield (res, inv)
     ).runNow
 
@@ -299,7 +299,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(windows)(QueryContext.testQC)
+        inv <- factRepo.get(windows)(using QueryContext.testQC)
       } yield (res, inv)
     ).runNow
 
@@ -313,7 +313,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   "when a node is in repository with a registered key, it is ok to add it again with a signature" in {
     val (start, res, inv) = (
       for {
-        start <- factRepo.get(windows)(QueryContext.testQC)
+        start <- factRepo.get(windows)(using QueryContext.testQC)
 
         res <- inventoryProcessorInternal
                  .saveInventoryInternal(
@@ -324,7 +324,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(windows)(QueryContext.testQC)
+        inv <- factRepo.get(windows)(using QueryContext.testQC)
       } yield (start, res, inv)
     ).runNow
 
@@ -340,7 +340,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
   "when a node is in repository with a registered key; signature must match existing certificate, not the one in inventory" in {
     val (start, res, inv) = (
       for {
-        start <- factRepo.get(windows)(QueryContext.testQC)
+        start <- factRepo.get(windows)(using QueryContext.testQC)
 
         res <- inventoryProcessorInternal
                  .saveInventoryInternal(
@@ -351,7 +351,7 @@ class TestSaveInventoryLdap extends TestSaveInventory {
                      exist
                    )
                  )
-        inv <- factRepo.get(windows)(QueryContext.testQC)
+        inv <- factRepo.get(windows)(using QueryContext.testQC)
       } yield (start, res, inv)
     ).runNow
 
@@ -430,7 +430,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath: String = s"/tmp/test-rudder-inventory/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
+  val basePath: String = s"/tmp/test-rudder-inventory/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}"
 
   val INVENTORY_ROOT_DIR:     String = basePath + "/inventories"
   val INVENTORY_DIR_INCOMING: String = INVENTORY_ROOT_DIR + "/incoming"
@@ -536,7 +536,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
       4,
       new InventoryDigestServiceV1(id => {
         // this is always Rudder system that is doing these queries, even in tests
-        factRepo.get(id)(QueryContext.systemQC)
+        factRepo.get(id)(using QueryContext.systemQC)
       }),
       () => ZIO.unit
     )

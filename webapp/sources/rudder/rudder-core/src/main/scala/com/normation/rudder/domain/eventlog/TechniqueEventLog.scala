@@ -45,7 +45,6 @@ import com.normation.cfclerk.services.VersionAdded
 import com.normation.cfclerk.services.VersionDeleted
 import com.normation.cfclerk.services.VersionUpdated
 import com.normation.eventlog.*
-import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.Constants
 import scala.xml.*
 

@@ -30,17 +30,20 @@
 bundle agent file_present(path)
 {
   vars:
-      "old_class_prefix" string => canonify("file_present_${path}");
-      "args"              slist => { "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("file_present_${path}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   files:
-    "${path}"
-      create        => "true",
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass3::
+      "${path}"
+        create  => "true",
+        classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-    "report" usebundle => _log_v3("Presence of file ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Presence of file ${path}", "");
 }

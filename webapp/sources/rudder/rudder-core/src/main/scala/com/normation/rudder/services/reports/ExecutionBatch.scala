@@ -51,6 +51,7 @@ import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.*
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.softwaremill.quicklens.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.util.regex.Pattern
@@ -441,8 +442,60 @@ object NodeStatusReportInternal {
           .map(r => s"${r.nodeId.value}:${r.ruleId.serialize}")
           .mkString("|")}"
     )
+
+    // overridden directives for existing rules could be done along the way in `buildRuleNodeStatusReport`
+    // but it complicates test and in any way we still need to deal with the case where a rule had all its
+    // directives overridden, and so it didn't appear anywhere yet. We must create it from scratch.
+    val ra                                          = runInfo.toRunAnalysis
+    val (reportWithOverridden, remainingOverridden) = reports.foldLeft((List.empty[RuleNodeStatusReport], overrides)) {
+      case ((all, os), next) =>
+        // check if some overridden directives belong to that rule
+        val overridden = os.collect {
+          case op if op.policy.ruleId == next.ruleId =>
+            (
+              op.policy.directiveId,
+              DirectiveStatusReport(
+                op.policy.directiveId,
+                PolicyTypes.rudderBase,
+                Some(op.overriddenBy.ruleId),
+                Nil
+              )
+            )
+        }.toMap
+
+        val nextOs         = os.filterNot(_.policy.ruleId == next.ruleId)
+        val withOverridden = next.modify(_.directives).using(_ ++ overridden)
+
+        (withOverridden :: all, nextOs)
+    }
+
+    // create rules with full overridden directives
+
+    val fullyOverridden = remainingOverridden.map { op =>
+      RuleNodeStatusReport(
+        nodeId,
+        op.policy.ruleId,
+        PolicyTypeName.rudderBase,
+        ra.lastRunDateTime,
+        ra.expectedConfigId,
+        Map(
+          op.policy.directiveId -> DirectiveStatusReport(
+            op.policy.directiveId,
+            PolicyTypes.rudderBase,
+            Some(op.overriddenBy.ruleId),
+            Nil
+          )
+        ),
+        ra.expirationDateTime.orElse(ra.lastRunExpiration).getOrElse(DateTime.now(DateTimeZone.UTC))
+      )
+    }
+
     // group map and aggregate
-    val aggregates = reports.groupBy(_.complianceTag).map { case (tag, reports) => (tag, AggregatedStatusReport(reports)) }
+    val aggregates = {
+      (reportWithOverridden ++ fullyOverridden).groupBy(_.complianceTag).map {
+        case (tag, reports) => (tag, AggregatedStatusReport(reports))
+      }
+    }
     NodeStatusReportInternal(nodeId, runInfo, statusInfo, overrides, aggregates)
   }
 }
@@ -487,7 +540,7 @@ object ExecutionBatch extends Loggable {
   /**
    * Then end of times, used to denote report which are not expiring
    */
-  final val END_OF_TIME = new DateTime(Long.MaxValue)
+  final val END_OF_TIME = new DateTime(Long.MaxValue, DateTimeZone.UTC)
 
   /**
    * Takes a string, that should contains a CFEngine var ( $(xxx) or ${xxx} )
@@ -644,9 +697,15 @@ object ExecutionBatch extends Loggable {
                   val expireTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
 
                   if (expireTime.isBefore(now)) {
-                    runType("no run (ever or too old)", NoReportInInterval(currentConfig, complianceComputationExpirationTime))
+                    runType(
+                      "no run (ever or too old/cleaned-up)",
+                      NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                    )
                   } else {
-                    runType(s"no run (ever or too old), Pending until ${expireTime}", Pending(currentConfig, None, expireTime))
+                    runType(
+                      s"no run (ever or too old/cleaned-up), Pending until ${expireTime}",
+                      Pending(currentConfig, None, expireTime)
+                    )
                   }
                 }
             }
@@ -884,32 +943,17 @@ object ExecutionBatch extends Loggable {
       agentExecutionReports: Seq[Reports]
   ): NodeStatusReport = {
 
-    // UnexpectedVersion are always called for only one node
-    // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by construct, different configId
-    def buildUnexpectedVersion(
-        runTime:            DateTime,
-        runVersion:         Option[NodeConfigIdInfo],
-        runExpiration:      DateTime,
-        expectedConfig:     NodeExpectedReports,
-        expectedExpiration: DateTime,
-        nodeStatusReports:  Seq[ResultReports]
-    ): Set[RuleNodeStatusReport] = {
-      // we have 2 separate status: the missing and the expected, so two different RuleNodeStatusReport that will never merge
-      // all expected missing
-      buildRuleNodeStatusReport(
-        MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration),
-        expectedConfig,
-        ReportType.Missing
-      ).toSet ++
-      buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
-    }
-
     // only interesting reports: for that node, with a status
     val nodeStatusReports = agentExecutionReports.collect { case r: ResultReports if (r.nodeId == nodeId) => r }
 
     ComplianceDebugLogger.node(nodeId).debug(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
 
-    val t1                    = System.currentTimeMillis
+    val t1        = System.currentTimeMillis
+    val overrides = runInfo match {
+      case x: ExpectedConfigAvailable => x.expectedConfig.overrides
+      case _ => Nil
+    }
+
     val ruleNodeStatusReports = runInfo match {
 
       case ReportsDisabledInInterval(expectedConfig, _) =>
@@ -921,7 +965,8 @@ object ExecutionBatch extends Loggable {
           // always be the same.
           MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), END_OF_TIME),
           expectedConfig,
-          ReportType.Disabled
+          ReportType.Disabled,
+          overrides
         )
 
       case ComputeCompliance(lastRunDateTime, expectedConfig, expirationTime) =>
@@ -934,7 +979,8 @@ object ExecutionBatch extends Loggable {
           MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime),
           nodeStatusReports,
           expectedConfig,
-          expectedConfig
+          expectedConfig,
+          overrides
         )
 
       case Pending(expectedConfig, optLastRun, expirationTime) =>
@@ -947,7 +993,8 @@ object ExecutionBatch extends Loggable {
             buildRuleNodeStatusReport(
               MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
               expectedConfig,
-              ReportType.Pending
+              ReportType.Pending,
+              overrides
             )
 
           case Some((runTime, runConfig)) =>
@@ -967,7 +1014,8 @@ object ExecutionBatch extends Loggable {
               MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime),
               nodeStatusReports,
               runConfig,
-              expectedConfig
+              expectedConfig,
+              overrides
             )
         }
 
@@ -980,7 +1028,8 @@ object ExecutionBatch extends Loggable {
           // at expiration, and store that the nodes were not answering
           MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
           expectedConfig,
-          ReportType.NoAnswer
+          ReportType.NoAnswer,
+          overrides
         )
 
       case KeepLastCompliance(expectedConfig, expirationTime, keepUntil, optLastRun) =>
@@ -994,7 +1043,8 @@ object ExecutionBatch extends Loggable {
           // at expiration, and store that the nodes were not answering
           MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
           expectedConfig,
-          ReportType.NoAnswer
+          ReportType.NoAnswer,
+          overrides
         )
 
       case UnexpectedVersion(runTime, Some(runConfig), runExpiration, expectedConfig, expectedExpiration, _) =>
@@ -1004,12 +1054,14 @@ object ExecutionBatch extends Loggable {
             s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runConfig.nodeConfigId.value}' but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
           )
         buildUnexpectedVersion(
+          nodeId,
           runTime,
           Some(runConfig.configInfo),
           runExpiration,
           expectedConfig,
           expectedExpiration,
-          nodeStatusReports
+          nodeStatusReports,
+          overrides
         )
 
       case UnexpectedNoVersion(
@@ -1025,7 +1077,16 @@ object ExecutionBatch extends Loggable {
           .warn(
             s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
           )
-        buildUnexpectedVersion(runTime, None, runExpiration, expectedConfig, expectedExpiration, nodeStatusReports)
+        buildUnexpectedVersion(
+          nodeId,
+          runTime,
+          None,
+          runExpiration,
+          expectedConfig,
+          expectedExpiration,
+          nodeStatusReports,
+          overrides
+        )
 
       case UnexpectedUnknownVersion(
             runTime,
@@ -1039,7 +1100,7 @@ object ExecutionBatch extends Loggable {
           .warn(
             s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}."
           )
-        buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
+        buildUnexpectedVersion(nodeId, runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports, overrides)
 
       case NoUserRulesDefined(runTime, expectedConfig, runId, _, _) => // same as unextected, different log
         val expectedExpiration = expectedConfig.beginDate.plus(expectedConfig.agentRun.interval.plus(GRACE_TIME_PENDING))
@@ -1048,7 +1109,7 @@ object ExecutionBatch extends Loggable {
           .warn(
             s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
           )
-        buildUnexpectedVersion(runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports)
+        buildUnexpectedVersion(nodeId, runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports, overrides)
 
       case NoExpectedReport(runTime, optConfigId) =>
         // these reports where not expected
@@ -1057,7 +1118,7 @@ object ExecutionBatch extends Loggable {
           .warn(
             s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")}). No expected configuration matches these reports."
           )
-        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports)
+        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports, overrides)
 
       case NoRunNoExpectedReport =>
         /*
@@ -1105,12 +1166,6 @@ object ExecutionBatch extends Loggable {
     val t3     = System.currentTimeMillis
     TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3 - t2}ms")
 
-    val overrides = runInfo match {
-      case x: ExpectedConfigAvailable => x.expectedConfig.overrides
-      case x: LastRunAvailable        => x.lastRunConfigInfo.map(_.overrides).getOrElse(Nil).toList
-      case _ => Nil
-    }
-
     NodeStatusReportInternal.buildWith(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet).toNodeStatusReport()
   }
 
@@ -1137,7 +1192,8 @@ object ExecutionBatch extends Loggable {
       reportsForThatNodeRule: Seq[ResultReports],
       modes:                  NodeModeConfig,
       ruleExpectedReports:    RuleExpectedReports,
-      timer:                  ComputeComplianceTimer
+      timer:                  ComputeComplianceTimer,
+      overrides:              List[OverriddenPolicy]
   ): List[RuleNodeStatusReport] = {
 
     // An effective expected component contains only the component path from the root component to a unique Value
@@ -1206,7 +1262,8 @@ object ExecutionBatch extends Loggable {
     // unexpected contains the one with unexpected key and all non matching serial/version
     val unexpected = (if (okKeys.size != reportKeys.size) {
                         buildUnexpectedDirectives(
-                          reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq
+                          reports.filter(k => !expectedKeys.contains(k._1)).values.flatten.toSeq,
+                          overrides
                         )
                       } else {
                         Seq[DirectiveStatusReport]()
@@ -1222,6 +1279,7 @@ object ExecutionBatch extends Loggable {
           DirectiveStatusReport(
             directiveId,
             policyTypes,
+            getOverridden(ruleId, directiveId, overrides),
             expectedComponentsForDirective.flatMap {
               case ((directiveId, _, components), (policyMode, missingReportStatus)) =>
                 val filteredReports = reports.get(directiveId).getOrElse(Seq())
@@ -1259,6 +1317,33 @@ object ExecutionBatch extends Loggable {
     buildRuleNodeStatusReportFromDirective(mergeInfo, ruleId, directiveStatusReports.values)
   }
 
+  // UnexpectedVersion are always called for only one node
+  // The status can't merge, as the merge group by nodeconfigid, and unexpected and missing have, by construct, different configId
+  private[reports] def buildUnexpectedVersion(
+      nodeId:             NodeId,
+      runTime:            DateTime,
+      runVersion:         Option[NodeConfigIdInfo],
+      runExpiration:      DateTime,
+      expectedConfig:     NodeExpectedReports,
+      expectedExpiration: DateTime,
+      nodeStatusReports:  Seq[ResultReports],
+      overrides:          List[OverriddenPolicy]
+  ): Set[RuleNodeStatusReport] = {
+    // we have 2 separate status: the missing and the expected, so two different RuleNodeStatusReport that will never merge
+    // all expected missing
+    buildRuleNodeStatusReport(
+      MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expectedExpiration),
+      expectedConfig,
+      ReportType.Missing,
+      overrides
+    ).toSet ++
+    buildUnexpectedReports(
+      MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration),
+      nodeStatusReports,
+      overrides
+    )
+  }
+
   /*
    * from MergeInfo, ruleId and directive reports, build a Map[ComplianceTag, RuleNodeStatusReport]
    */
@@ -1294,7 +1379,8 @@ object ExecutionBatch extends Loggable {
       // for the correct run, for the correct version
 
       executionReports:  Seq[ResultReports],
-      lastRunNodeConfig: NodeExpectedReports
+      lastRunNodeConfig: NodeExpectedReports,
+      overrides:         List[OverriddenPolicy]
   ): Map[(RuleId, PolicyTypeName), RuleNodeStatusReport] = {
 
     val timer = new ComputeComplianceTimer()
@@ -1311,7 +1397,8 @@ object ExecutionBatch extends Loggable {
         reportsForThatNodeRule,
         lastRunNodeConfig.modes,
         ruleExpectedReport,
-        timer
+        timer,
+        overrides
       )
 
       ruleCompliance.map { c =>
@@ -1378,12 +1465,13 @@ object ExecutionBatch extends Loggable {
 
       executionReports:  Seq[ResultReports],
       lastRunNodeConfig: NodeExpectedReports,
-      currentConfig:     NodeExpectedReports
+      currentConfig:     NodeExpectedReports,
+      overrides:         List[OverriddenPolicy]
   ): Set[RuleNodeStatusReport] = {
 
     val t0 = System.currentTimeMillis()
 
-    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig)
+    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig, overrides)
 
     val t10 = System.currentTimeMillis()
 
@@ -1391,7 +1479,7 @@ object ExecutionBatch extends Loggable {
 
     // note: isn't there something specific to do for unexpected reports ? Keep them all ?
 
-    val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending)
+    val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending, overrides)
     val t11               = System.currentTimeMillis
 
     TimingDebugLogger.trace(s"Compliance: mergeCompareByRule - compute buildRuleNodeStatusReport: ${t11 - t10}ms")
@@ -1437,7 +1525,11 @@ object ExecutionBatch extends Loggable {
     (computed ::: newStatus).toSet
   }
 
-  private def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
+  private def buildUnexpectedReports(
+      mergeInfo: MergeInfo,
+      reports:   Seq[Reports],
+      overrides: List[OverriddenPolicy]
+  ): Set[RuleNodeStatusReport] = {
     reports
       .groupBy(x => x.ruleId)
       .map {
@@ -1459,6 +1551,7 @@ object ExecutionBatch extends Loggable {
                     // since we don't know easily what directive lead to these unexpected reports,
                     // we assume "non system"
                     PolicyTypes.rudderBase,
+                    getOverridden(ruleId, directiveId, overrides),
                     reportsByDirectives.groupBy(_.component).toList.map {
                       case (component, reportsByComponents) =>
                         ValueStatusReport(
@@ -1490,12 +1583,13 @@ object ExecutionBatch extends Loggable {
   /**
    * Build unexpected reports for the given reports
    */
-  private def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
+  private def buildUnexpectedDirectives(reports: Seq[Reports], overrides: List[OverriddenPolicy]): Seq[DirectiveStatusReport] = {
     reports.map { r =>
       DirectiveStatusReport(
         r.directiveId,
         // since we don't know for unexpected reports the directive kind easely, assume "non system"
         PolicyTypes.rudderBase,
+        getOverridden(r.ruleId, r.directiveId, overrides),
         ValueStatusReport(
           r.component,
           r.component,
@@ -1538,12 +1632,25 @@ object ExecutionBatch extends Loggable {
 
   }
 
+  /*
+   * Check if current directive in current rule is overridden in another rule given overridden policies
+   */
+  private[reports] def getOverridden(
+      currentRuleId:      RuleId,
+      currentDirectiveId: DirectiveId,
+      overrides:          List[OverriddenPolicy]
+  ): Option[RuleId] = {
+    overrides.collectFirst {
+      case o if (o.policy.ruleId == currentRuleId && o.policy.directiveId == currentDirectiveId) => o.overriddenBy.ruleId
+    }
+  }
+
   // by construct, NodeExpectedReports are correctly grouped by Rule/Directive/Component
   private[reports] def buildRuleNodeStatusReport(
       mergeInfo:       MergeInfo,
       expectedReports: NodeExpectedReports,
       status:          ReportType,
-      message:         String = ""
+      overrides:       List[OverriddenPolicy]
   ): List[RuleNodeStatusReport] = {
     expectedReports.ruleExpectedReports.flatMap {
       case RuleExpectedReports(ruleId, directives) =>
@@ -1551,10 +1658,10 @@ object ExecutionBatch extends Loggable {
           DirectiveStatusReport(
             d.directiveId,
             d.policyTypes,
+            getOverridden(ruleId, d.directiveId, overrides),
             d.components.map(c => componentExpectedReportToStatusReport(status, c))
           )
         }
-
         buildRuleNodeStatusReportFromDirective(mergeInfo, ruleId, reports)
     }
   }
@@ -1662,7 +1769,7 @@ object ExecutionBatch extends Loggable {
           // we look in the free values for one matching the report. If found, we return (remaining freevalues, Some[paired value]
           // else (all free values, None).
           // never increment the cardinality for free value.
-          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (value, report) => false)
+          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (_, _) => false)
 
           logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
 

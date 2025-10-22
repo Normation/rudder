@@ -149,15 +149,15 @@ trait DefaultPluginDef extends RudderPluginDef {
         val parent = optParent.getOrElse(MenuUtils.administrationMenu)
 
         menu.map {
-          case m @ Menu(l, _*) if (l.name == parent) =>
+          case m: Menu if (m.loc.name == parent) =>
             // We need to avoid collision on name/loc
             if (m.kids.exists(_.loc.name == newMenu.loc.name)) {
               PluginLogger.error(s"There is already a menu with id (${newMenu.loc.name}, please contact Plugin team")
               m
             } else {
-              Menu(l, (m.kids :+ newMenu).sortBy(_.loc.name)*)
+              Menu(m.loc, (m.kids :+ newMenu).sortBy(_.loc.name)*)
             }
-          case m                                     => m
+          case m => m
         }
     }
   }

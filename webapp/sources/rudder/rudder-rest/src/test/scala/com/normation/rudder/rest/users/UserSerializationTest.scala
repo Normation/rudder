@@ -1,5 +1,7 @@
-package com.normation.rudder.users
+package com.normation.rudder.rest.users
 
+import com.normation.eventlog.EventActor
+import com.normation.rudder.users.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -43,6 +45,20 @@ class UserSerializationTest extends Specification {
       )
 
       JsonUser("user", None, None, Json.Obj(), UserStatus.Active, providersInfo, "", None, None) must beEqualTo(expected)
+    }
+  }
+
+  "EventActor" should {
+    "serialize as a case class" in {
+      UserSerialization.codecEventActor.encoder.encodeJson(EventActor("foo")).toString must beEqualTo("""{"name":"foo"}""")
+    }
+    "have isomorphic serialization" in {
+
+      val input = EventActor("foo")
+      def encode(input: EventActor) = UserSerialization.codecEventActor.encoder.encodeJson(input).toString
+      def decode(json:  String)     = UserSerialization.codecEventActor.decoder.decodeJson(json)
+
+      decode(encode(input)) must beRight(input)
     }
   }
 }

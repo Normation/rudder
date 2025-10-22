@@ -22,17 +22,22 @@
     }
 
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0"
     try {
-        $componentKey = 'vim'
+        $componentKey = @'
+vim
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Install a package'
+            ComponentName = @'
+Install a package
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-0'
         }
         
         $class = "false"
@@ -61,7 +66,7 @@ latest
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-0' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -70,20 +75,25 @@ latest
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-0' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1"
     try {
-        $componentKey = 'htop'
+        $componentKey = @'
+htop
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Install a package'
+            ComponentName = @'
+Install a package
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-1'
         }
         
         $methodParams = @{
@@ -108,7 +118,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-1' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -117,20 +127,25 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-1' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0"
     try {
-        $componentKey = 'bob'
+        $componentKey = @'
+bob
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0'
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -141,7 +156,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -150,20 +165,25 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1"
     try {
-        $componentKey = 'bob'
+        $componentKey = @'
+bob
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1'
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -174,7 +194,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -183,20 +203,25 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-0"
     try {
-        $componentKey = '/home/bob/.vimrc'
+        $componentKey = @'
+/home/bob/.vimrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.vimrc'
+            ComponentName = @'
+Deploy file ~/.vimrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '20676b22-2de2-4029-a4e2-e0be2453e78e-0-0'
         }
         
         $class = "bob"
@@ -226,7 +251,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-0-0' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -235,20 +260,25 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-0-0' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-1"
     try {
-        $componentKey = '/home/bob/.bashrc'
+        $componentKey = @'
+/home/bob/.bashrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.bashrc'
+            ComponentName = @'
+Deploy file ~/.bashrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '20676b22-2de2-4029-a4e2-e0be2453e78e-0-1'
         }
         
         $class = "bob"
@@ -278,7 +308,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-0-1' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -287,20 +317,25 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-0-1' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0"
     try {
-        $componentKey = 'alice'
+        $componentKey = @'
+alice
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0'
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -311,7 +346,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -320,20 +355,25 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1"
     try {
-        $componentKey = 'alice'
+        $componentKey = @'
+alice
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1'
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -344,7 +384,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -353,20 +393,25 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-0"
     try {
-        $componentKey = '/home/alice/.vimrc'
+        $componentKey = @'
+/home/alice/.vimrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.vimrc'
+            ComponentName = @'
+Deploy file ~/.vimrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '20676b22-2de2-4029-a4e2-e0be2453e78e-1-0'
         }
         
         $class = "alice"
@@ -396,7 +441,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-1-0' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -405,20 +450,25 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-1-0' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-1"
     try {
-        $componentKey = '/home/alice/.bashrc'
+        $componentKey = @'
+/home/alice/.bashrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.bashrc'
+            ComponentName = @'
+Deploy file ~/.bashrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '20676b22-2de2-4029-a4e2-e0be2453e78e-1-1'
         }
         
         $class = "alice"
@@ -448,7 +498,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-1-1' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -457,7 +507,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '20676b22-2de2-4029-a4e2-e0be2453e78e-1-1' -MethodCall $failedCall
     }
 
     EndTechniqueCall -Name $techniqueName

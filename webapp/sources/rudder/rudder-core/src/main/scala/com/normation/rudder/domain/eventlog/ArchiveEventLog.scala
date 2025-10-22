@@ -41,6 +41,7 @@ import com.normation.eventlog.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
+import com.normation.utils.DateFormaterService
 import scala.xml.*
 sealed trait ImportExportEventLog extends EventLog {
   final override val eventLogCategory: EventLogCategory = ImportExportItemsLogCategory
@@ -389,7 +390,7 @@ object Rollback extends EventLogFilter {
                 <id>{ev.id.get}</id>
                 <type>{ev.eventType.serialize}</type>
                 <author>{ev.principal.name}</author>
-                <date>{ev.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
+                <date>{DateFormaterService.serializeInstant(ev.creationDate)}</date>
               </rollbackedEvent>
             }
           }
@@ -399,7 +400,7 @@ object Rollback extends EventLogFilter {
                 <id>{targetEvent.id.get}</id>
                 <type>{targetEvent.eventType.serialize}</type>
                 <author>{targetEvent.principal.name}</author>
-                <date>{targetEvent.creationDate.toString("yyyy-MM-dd HH:mm")}</date>
+                <date>{DateFormaterService.serializeInstant(targetEvent.creationDate)}</date>
             </main>
           }
           events ++ main

@@ -9,14 +9,9 @@ module Editor.MethodConditions exposing (..)
 -- This is not an exact mapping of Rudder language OS conditions but a simplified version
 -- to handle most common cases.
 --
--- For example, Amazon Linux versions are not handled as they are not cleanly mapped to
--- sensible CFEngine classes.
---
 
 
-type OS = AIX     { version : Maybe  Int }
-        | Linux   ( Maybe LinuxOS )
-        | Solaris { major : Maybe  Int, minor : Maybe Int }
+type OS = Linux   ( Maybe LinuxOS )
         | Windows ( Maybe WindowsOS )
 
 type alias Condition =
@@ -46,7 +41,7 @@ type LinuxOS = DebianFamily
              | Rocky     { major : Maybe  Int, minor : Maybe Int }
              | Oracle    { major : Maybe  Int, minor : Maybe Int }
              | Fedora    { version : Maybe  Int }
-             | Amazon
+             | Amazon    { version : Maybe  Int }
              | SuseFamily
              | SLES      { version : Maybe  Int, sp : Maybe Int }
              | SLED      { version : Maybe  Int, sp : Maybe Int }
@@ -56,22 +51,16 @@ type LinuxOS = DebianFamily
 -- Treat all Windows versions as specific enum variants. Numbering is inconsistant
 -- and trying to use integers would be misleading to users.
 -- We don't have anything generic other server vs. non server, so we only have one enum
-type WindowsOS = Seven | Eight | EightDotOne | WinTen | Eleven | V2008 | V2008R2 | V2012 | V2012R2 | V2016 | V2019 | V2022
+type WindowsOS =WinTen | Eleven | V2016 | V2019 | V2022 | V2025
 showWindowsOS: WindowsOS -> String
 showWindowsOS os =
   case os of
-    Seven       -> "7"
-    Eight       -> "8"
-    EightDotOne -> "8.1"
     WinTen      -> "10"
     Eleven      -> "11"
-    V2008   -> "Server 2008"
-    V2008R2 -> "Server 2008 R2"
-    V2012   -> "Server 2012"
-    V2012R2 -> "Server 2012 R2"
     V2016   -> "Server 2016"
     V2019   -> "Server 2019"
     V2022   -> "Server 2022"
+    V2025   -> "Server 2025"
 
 osName: Maybe OS -> String
 osName maybeOs =
@@ -79,8 +68,6 @@ osName maybeOs =
     Nothing -> "All"
     Just os ->
       case os of
-        AIX _              -> "AIX"
-        Solaris _          -> "Solaris"
         Windows Nothing    -> "Windows family"
         Windows (Just win) -> "Windows " ++ (showWindowsOS win)
         Linux Nothing      -> "Linux"
@@ -96,7 +83,7 @@ osName maybeOs =
             Rocky _       -> "Rocky Linux"
             Oracle _      -> "Oracle Linux"
             Fedora _      -> "Fedora"
-            Amazon        -> "Amazon Linux"
+            Amazon _      -> "Amazon Linux"
             SuseFamily    -> "SUSE family"
             SLES _        -> "SLES"
             SLED _        -> "SLED"
@@ -127,18 +114,12 @@ versionSPCondition s v =
 conditionWin: WindowsOS -> String
 conditionWin os =
   case os of
-    Seven       -> "windows_7"
-    Eight       -> "windows_8"
-    EightDotOne -> "windows_8_1"
     WinTen      -> "windows_10"
     Eleven      -> "windows_11"
-    V2008   -> "windows_server_2008"
-    V2008R2 -> "windows_server_2008_R2"
-    V2012   -> "windows_server_2012"
-    V2012R2 -> "windows_server_2012_R2"
     V2016   -> "windows_server_2016"
     V2019   -> "windows_server_2019"
     V2022   -> "windows_server_2022"
+    V2025   -> "windows_server_2025"
 
 conditionLinux: LinuxOS -> String
 conditionLinux os =
@@ -147,15 +128,13 @@ conditionLinux os =
     Debian v      -> majorMinorVersionCondition "debian" v
     Ubuntu v      -> ubuntuCondition "ubuntu" v
     RedhatFamily  -> "redhat"
-    -- redhat_x_y are defined on Oracle Linux too,
-    -- but let's keep things simple here.
-    RHEL v        -> majorMinorVersionCondition "redhat" v
+    RHEL v        -> majorMinorVersionCondition "rhel" v
     Centos v      -> majorMinorVersionCondition "centos" v
     Alma v        -> majorMinorVersionCondition "almalinux" v
     Rocky v       -> majorMinorVersionCondition "rocky" v
     Oracle v      -> majorMinorVersionCondition "oracle" v
     Fedora v      -> Maybe.withDefault "fedora" (Maybe.map (String.fromInt >> (++) "fedora_") v.version)
-    Amazon        -> "amazon_linux"
+    Amazon v      -> Maybe.withDefault "amzn" (Maybe.map (String.fromInt >> (++) "amzn_") v.version)
     SuseFamily    -> "suse"
     SLES v        -> versionSPCondition "sles" v
     SLED v        -> versionSPCondition "sled" v
@@ -165,9 +144,7 @@ conditionLinux os =
 conditionOs : OS -> String
 conditionOs os =
   case os of
-    AIX v                -> Maybe.withDefault "aix" (Maybe.map (String.fromInt >> (++) "aix_") v.version)
     Linux Nothing        -> "linux"
-    Solaris v            -> majorMinorVersionCondition "solaris" v
     Windows Nothing      -> "windows"
     Windows (Just winOs) -> conditionWin winOs
     Linux (Just linuxOs) -> conditionLinux linuxOs
@@ -183,16 +160,9 @@ parseOs: String -> Maybe OS
 parseOs os =
   case String.split "_" os of
     [ "windows" ]                         -> Just (Windows Nothing)
-    [ "windows", "server", "2008" ]       -> Just (Windows (Just V2008))
-    [ "windows", "server", "2008", "R2" ] -> Just (Windows (Just V2008R2))
-    [ "windows", "server", "2012" ]       -> Just (Windows (Just V2012))
-    [ "windows", "server", "2012", "R2" ] -> Just (Windows (Just V2012R2))
     [ "windows", "server", "2016" ]       -> Just (Windows (Just V2016))
     [ "windows", "server", "2019" ]       -> Just (Windows (Just V2019))
     [ "windows", "server", "2022" ]       -> Just (Windows (Just V2022))
-    [ "windows", "7" ]      -> Just (Windows (Just Seven))
-    [ "windows", "8" ]      -> Just (Windows (Just Eight))
-    [ "windows", "8", "1" ] -> Just (Windows (Just EightDotOne))
     [ "windows", "10" ]     -> Just (Windows (Just WinTen))
     [ "windows", "11" ]     -> Just (Windows (Just Eleven))
     
@@ -200,13 +170,28 @@ parseOs os =
     [ "suse" ]         -> Just (Linux (Just (SuseFamily)))
     [ "redhat" ]       -> Just (Linux (Just (RedhatFamily)))
     [ "debian" ]       -> Just (Linux (Just (DebianFamily)))
-    [ "amazon_linux" ] -> Just (Linux (Just (Amazon)))
+
+    [ "amzn" ] -> Just (Linux (Just (Amazon  { version = Nothing })))
+    [ "amzn", major ] -> case String.toInt major of
+                             Nothing -> Nothing
+                             x       -> Just (Linux (Just (Amazon { version = x })))
 
     [ "fedora" ]        -> Just (Linux (Just (Fedora  { version = Nothing })))
     [ "fedora", major ] -> case String.toInt major of
                              Nothing -> Nothing
                              x       -> Just (Linux (Just (Fedora { version = x })))
 
+    [ "rhel" ]               -> Just (Linux (Just (RHEL { major = Nothing, minor = Nothing })))
+    [ "rhel", major ]        -> case String.toInt major of
+                                    Nothing -> Nothing
+                                    x       -> Just (Linux (Just (RHEL { major = x, minor = Nothing })))
+    [ "rhel", major, minor ] -> case (String.toInt major, String.toInt minor) of
+                                    (Nothing, Nothing) -> Nothing
+                                    (Just _, Nothing)  -> Nothing
+                                    (Nothing, Just _ ) -> Nothing
+                                    (x, y)             -> Just (Linux (Just (RHEL { major = x, minor = y })))
+
+    -- These two are kept for compatibility but should not be used as they are confusing.
     [ "redhat", major ]        -> case String.toInt major of
                                     Nothing -> Nothing
                                     x       -> Just (Linux (Just (RHEL { major = x, minor = Nothing })))
@@ -315,22 +300,6 @@ parseOs os =
                                        (Nothing, Just _ ) -> Nothing
                                        (x, y)             -> Just (Linux (Just (Slackware { major = x, minor = y })))
 
-    -- end linux distrib, other unixes --
-
-    [ "solaris" ]               -> Just (Solaris { major = Nothing, minor = Nothing })
-    [ "solaris", major ]        -> case String.toInt major of
-                                    Nothing -> Nothing
-                                    x       -> Just (Solaris { major = x, minor = Nothing })
-    [ "solaris", major, minor ] -> case (String.toInt major, String.toInt minor) of
-                                     (Nothing, Nothing) -> Nothing
-                                     (Just _, Nothing)  -> Nothing
-                                     (Nothing, Just _ ) -> Nothing
-                                     (x, y)             -> Just (Solaris { major = x, minor = y })
-
-    [ "aix" ]        -> Just (AIX  { version = Nothing })
-    [ "aix", major ] -> case String.toInt major of
-                          Nothing -> Nothing
-                          x       -> Just (AIX { version = x })
     _ -> Nothing
 
 
@@ -350,27 +319,19 @@ osList =
   , Just (Linux (Just (Rocky noVersion)))
   , Just (Linux (Just (Oracle noVersion)))
   , Just (Linux (Just (Fedora {version = Nothing})))
-  , Just (Linux (Just (Amazon)))
+  , Just (Linux (Just (Amazon  {version = Nothing})))
   , Just (Linux (Just (SuseFamily)))
   , Just (Linux (Just (SLES {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (OpenSuse noVersion)))
   , Just (Linux (Just (Slackware noVersion)))
   , Just (Windows Nothing)
-  , Just (Windows (Just V2008))
-  , Just (Windows (Just V2008R2))
-  , Just (Windows (Just V2012))
-  , Just (Windows (Just V2012R2))
   , Just (Windows (Just V2016))
   , Just (Windows (Just V2019))
   , Just (Windows (Just V2022))
-  , Just (Windows (Just Seven))
-  , Just (Windows (Just Eight))
-  , Just (Windows (Just EightDotOne))
+  , Just (Windows (Just V2025))
   , Just (Windows (Just WinTen))
   , Just (Windows (Just Eleven))
-  , Just ( AIX {version = Nothing} )
-  , Just ( Solaris noVersion)
   ]
 
 -- VERSION in the condition part --
@@ -379,18 +340,18 @@ hasVersion: Maybe OS -> Bool
 hasVersion os =
   case os of
     Just (Linux (Just (Fedora _))) -> True
+    Just (Linux (Just (Amazon _))) -> True
     Just (Linux (Just (SLES _))) -> True
     Just (Linux (Just (SLED _))) -> True
-    Just (AIX _) -> True
     _ -> False
 
 getVersion: Maybe OS -> Maybe Int
 getVersion os =
   case os of
     Just (Linux (Just (Fedora v))) -> v.version
+    Just (Linux (Just (Amazon v))) -> v.version
     Just (Linux (Just (SLES v))) -> v.version
     Just (Linux (Just (SLED v))) -> v.version
-    Just (AIX v) -> v.version
     _ -> Nothing
 
 updateVersion:  Maybe Int -> Maybe OS -> Maybe OS
@@ -399,7 +360,6 @@ updateVersion newVersion os =
     Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | version = newVersion})))
     Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | version = newVersion})))
     Just (Linux (Just (Fedora v))) -> Just (Linux (Just (Fedora {v | version = newVersion})))
-    Just (AIX v) -> Just (AIX {v | version = newVersion})
     _ -> os
 
 -- for OS with service packs
@@ -443,7 +403,6 @@ hasMajorMinorVersion os =
     Just (Linux (Just (Oracle _))) -> True
     Just (Linux (Just (OpenSuse _))) -> True
     Just (Linux (Just (Slackware _))) -> True
-    Just (Solaris _) -> True
     _ -> False
 
 
@@ -459,7 +418,6 @@ getMajorVersion os =
     Just (Linux (Just (Oracle v))) -> v.major
     Just (Linux (Just (OpenSuse v))) -> v.major
     Just (Linux (Just (Slackware v))) -> v.major
-    Just (Solaris v) -> v.major
     _ -> Nothing
 
 getUbuntuMinor:  Maybe OS -> String
@@ -480,7 +438,6 @@ getMinorVersion os =
     Just (Linux (Just (Oracle v))) -> v.minor
     Just (Linux (Just (OpenSuse v))) -> v.minor
     Just (Linux (Just (Slackware v))) -> v.minor
-    Just (Solaris v) -> v.minor
     _ -> Nothing
 
 updateMajorVersion: Maybe Int -> Maybe OS -> Maybe OS
@@ -490,12 +447,11 @@ updateMajorVersion newMajor os =
     Just (Linux (Just (Ubuntu v)))-> Just (Linux (Just (Ubuntu {v | major = newMajor})))
     Just (Linux (Just (RHEL v))) -> Just (Linux (Just (RHEL {v | major = newMajor})))
     Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
-    Just (Linux (Just (Alma v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
-    Just (Linux (Just (Rocky v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
-    Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Centos {v | major = newMajor})))
+    Just (Linux (Just (Alma v))) -> Just (Linux (Just (Alma {v | major = newMajor})))
+    Just (Linux (Just (Rocky v))) -> Just (Linux (Just (Rocky {v | major = newMajor})))
+    Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Oracle {v | major = newMajor})))
     Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | major = newMajor})))
     Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | major = newMajor})))
-    Just (Solaris v) -> Just ( Solaris { v | major = newMajor } )
     _ -> os
 
 updateUbuntuMinor: UbuntuMinor -> Maybe OS -> Maybe OS
@@ -514,12 +470,11 @@ updateMinorVersion newMinor os =
                                         _ -> Just (Linux (Just (Ubuntu {v | minor = All})))
     Just (Linux (Just (RHEL v))) -> Just (Linux (Just (RHEL {v | minor = newMinor})))
     Just (Linux (Just (Centos v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
-    Just (Linux (Just (Alma v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
-    Just (Linux (Just (Rocky v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
-    Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Centos {v | minor = newMinor})))
+    Just (Linux (Just (Alma v))) -> Just (Linux (Just (Alma {v | minor = newMinor})))
+    Just (Linux (Just (Rocky v))) -> Just (Linux (Just (Rocky {v | minor = newMinor})))
+    Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Oracle {v | minor = newMinor})))
     Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | minor = newMinor})))
     Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | minor = newMinor})))
-    Just (Solaris v) -> Just ( Solaris { v | minor = newMinor } )
     _ -> os
 
 
@@ -529,8 +484,6 @@ osClass maybeOs =
     Nothing -> "optGroup"
     Just os ->
       case os of
-        AIX _ -> "optGroup"
-        Solaris _ -> "optGroup"
         Windows Nothing -> "optGroup"
         Windows (Just _) -> "optChild"
         Linux Nothing -> "optGroup"

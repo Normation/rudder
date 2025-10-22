@@ -89,39 +89,33 @@
 bundle agent permissions_posix_acls_absent(path, recursive)
 {
   vars:
-      "old_class_prefix"    string => canonify("permissions_posix_acls_absent_${path}");
-      "args"                 slist => { "${path}", "${recursive}" };
-      "report_param"        string => join("_", args);
-      "full_class_prefix"   string => canonify("permissions_posix_acls_absent_${report_param}");
-      "class_prefix"        string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"                   string => canonify("permissions_posix_acls_absent_${path}");
+      "wc_path"                        string => "/usr/bin/wc";
+      "file_list"                      slist  => findfiles("${path}");
+      "file_list_length"               int    => length("file_list");
+      "max_range"                      string => execresult("/usr/bin/expr ${file_list_length} - 1", "useshell");
+    pass1.!max_range_is_null::
+      "indices"                        slist  => expandrange("[0-${max_range}]", 1);
+    pass1.max_range_is_null::
+      "indices"                        slist  => { "0" };
+    pass1::
+      "file[${indices}]"               string => nth("file_list", "${indices}");
+      "inner_class_prefix[${indices}]" string => canonify("${report_data.method_id}_${indices}");
+    pass2::
+      "repaired[${indices}]"           string => "repaired: ${file[${indices}]}",
+                                           if => "${inner_class_prefix[${indices}]}_repaired";
+      "error[${indices}]"              string => "error: ${file[${indices}]}",
+                                           if => "${inner_class_prefix[${indices}]}_error";
+      "success[${indices}]"            string => "success: ${file[${indices}]}",
+                                           if => "${inner_class_prefix[${indices}]}_kept";
 
-      "wc_path"            string => "/usr/bin/wc";
+      "repaired_list"                  slist  => getvalues("repaired");
+      "error_list"                     slist  => getvalues("error");
+      "success_list"                   slist  => getvalues("success");
 
-      "file_list"                               slist  => findfiles("${path}");
-      "file_list_length"                        int    => length("file_list");
-      "file_array[${file_list}]"                string => "${file_list}";
-      "canonified_file_array[${file_list}]"     string => canonify("${file_array[${file_list}]}");
-
-      "full_inner_class_prefix[${file_list}]"   string => canonify("permissions_posix_acls_absent_${canonified_file_array[${file_list}]}_${report_param}");
-      "inner_class_prefix[${file_list}]"        string => string_head("${full_inner_class_prefix[${file_list}]}", "1000");
-
-
-   pass2::
-      "repaired[${file_list}]" string => "repaired: ${file_list}",
-        ifvarclass => "${inner_class_prefix[${file_list}]}_repaired";
-      "error[${file_list}]"    string => "error: ${file_list}",
-        ifvarclass => "${inner_class_prefix[${file_list}]}_error";
-      "success[${file_list}]"  string => "success: ${file_list}",
-        ifvarclass => "${inner_class_prefix[${file_list}]}_kept";
-
-      "repaired_list" slist  => getvalues("repaired");
-      "error_list"    slist  => getvalues("error");
-      "success_list"  slist  => getvalues("success");
-
-      "report_list"   slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" },
-        policy => "ifdefined";
-      "report_string" string => join("$(const.endl)", report_list),
-        policy => "ifdefined";
+      "report_list"                    slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" };
+      "report_string"                  string => join("$(const.endl)", report_list),
+                                       policy => "ifdefined";
 
   defaults:
       "recursive" string => "false", if_match_regex => "";
@@ -131,67 +125,64 @@ bundle agent permissions_posix_acls_absent(path, recursive)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-      "getfacl_present" expression => isexecutable("${paths.getfacl}");
-      "setfacl_present" expression => isexecutable("${paths.setfacl}");
-      "acls_binary_present" expression => "getfacl_present.setfacl_present";
+      "getfacl_present"        expression => isexecutable("${paths.getfacl}");
+      "setfacl_present"        expression => isexecutable("${paths.setfacl}");
+      "acls_binary_present"    expression => "getfacl_present.setfacl_present";
+      "is_recursive"           expression => strcmp("true", "${recursive}");
+      "files_found"            expression => isgreaterthan("${file_list_length}", "0");
+      "path_exists_${indices}" expression => fileexists("${file[${indices}]}");
 
-      "is_recursive"  expression => strcmp("true", "${recursive}");
-
-      "should_report" expression => "${report_data.should_report}";
-      "files_found"   expression => isgreaterthan("${file_list_length}", "0");
-      "path_exists_${canonified_file_array[${file_list}]}"   expression => fileexists("${file_list}");
-
-      "acls_found_${canonified_file_array[${file_list}]}"    expression => returnszero("if [ ${const.dollar}(${paths.getfacl} -R --skip-base ${file_list} | ${wc_path} -c)  -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #${class_prefix}", "useshell"),
-        ifvarclass => "is_recursive.path_exists_${canonified_file_array[${file_list}]}";
-      "acls_found_${canonified_file_array[${file_list}]}"    expression => returnszero("if [ ${const.dollar}(${paths.getfacl} --skip-base ${file_list} | ${wc_path} -c)  -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #{${class_prefix}", "useshell"),
-        ifvarclass => "!is_recursive.path_exists_${canonified_file_array[${file_list}]}";
+      "acls_found_${indices}"  expression => returnszero("if [ ${const.dollar}(${paths.getfacl} -R --skip-base ${file[${indices}]} | ${wc_path} -c) -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #${report_data.method_id}", "useshell"),
+                                       if => "is_recursive.path_exists_${indices}";
+      "acls_found_${indices}"  expression => returnszero("if [ ${const.dollar}(${paths.getfacl} --skip-base ${file[${indices}]} | ${wc_path} -c) -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #{${report_data.method_id}", "useshell"),
+                                       if => "!is_recursive.path_exists_${indices}";
 
     acls_binary_present.!(global_dry_run|dry_run)::
       # Recursive clean up
-      "acls_cleanup_${canonified_file_array[${file_list}]}" expression => returnszero("${paths.setfacl} -R -b ${file_list} #${class_prefix}", "useshell"),
-        ifvarclass => "is_recursive.path_exists_${canonified_file_array[${file_list}]}.acls_found_${canonified_file_array[${file_list}]}";
+      "acls_cleanup_${indices}" expression => returnszero("${paths.setfacl} -R -b ${file[${indices}]} #${report_data.method_id}", "useshell"),
+                                        if => "is_recursive.path_exists_${indices}.acls_found_${indices}";
       # Non recursive clean up
-      "acls_cleanup_${canonified_file_array[${file_list}]}"  expression => returnszero("${paths.setfacl} -b ${file_list} #${class_prefix}", "useshell"),
-        ifvarclass => "!is_recursive.path_exists_${canonified_file_array[${file_list}]}.acls_found_${canonified_file_array[${file_list}]}";
+      "acls_cleanup_${indices}" expression => returnszero("${paths.setfacl} -b ${file[${indices}]} #${report_data.method_id}", "useshell"),
+                                        if => "!is_recursive.path_exists_${indices}.acls_found_${indices}";
 
 
   methods:
     acls_binary_present::
       # Nothing to do
-      "success_${file_list}" usebundle => _classes_success("${inner_class_prefix[${file_list}]}"),
-        ifvarclass => "!acls_found_${canonified_file_array[${file_list}]}.path_exists_${canonified_file_array[${file_list}]}";
+      "${report_data.method_id}" usebundle => _classes_success("${inner_class_prefix[${indices}]}"),
+                                        if => "!acls_found_${indices}.path_exists_${indices}";
 
       # Executed setfacl -b
-      "setfacl -b succeed" usebundle => _classes_repaired("${inner_class_prefix[${file_list}]}"),
-        ifvarclass => "acls_cleanup_${canonified_file_array[${file_list}]}";
+      "${report_data.method_id}" usebundle => _classes_repaired("${inner_class_prefix[${indices}]}"),
+                                        if => "acls_cleanup_${indices}";
 
       # It failed
-      "setfacl -b failed" usebundle => _classes_failure("${inner_class_prefix[${file_list}]}"),
-        ifvarclass => "!acls_cleanup_${canonified_file_array[${file_list}]}.acls_found_${canonified_file_array[${file_list}]}|!path_exists_${canonified_file_array[${file_list}]}";
+      "${report_data.method_id}" usebundle => _classes_failure("${inner_class_prefix[${indices}]}"),
+                                        if => and( "!acls_cleanup_${indices}",
+                                                   "acls_found_${indices}|!path_exists_${indices}");
 
       # Sanitize the classes
-      "sanitize single reports" usebundle => _classes_sanitize("${inner_class_prefix[${file_list}]}");
-
-      "merge reports"    usebundle => _classes_combine_two("${class_prefix}", "${inner_class_prefix[${file_list}]}", "${class_prefix}");
-      "sanitize reports" usebundle => _classes_sanitize("${class_prefix}");
-      "set old classes"  usebundle => _classes_copy("${class_prefix}", "${old_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix[${indices}]}");
+      "${report_data.method_id}" usebundle => _classes_combine_two("${class_prefix}", "${inner_class_prefix[${indices}]}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}"  usebundle => _classes_copy("${class_prefix}", "${report_data.method_id}");
 
     !files_found|!acls_binary_present::
-      "No_file_found" usebundle =>  _classes_failure("${class_prefix}");
-      "No_file_found" usebundle =>  _classes_failure("${old_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
      # Recursive report
-     pass3.should_report.is_recursive.files_found.acls_binary_present::
-        "report" usebundle => _log_v3("${report_string}${const.endl}Clean POSIX acls recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-     pass3.should_report.is_recursive.!files_found.acls_binary_present::
-        "report" usebundle => _log_v3("Could not find any file or directory matching ${path}, clean POSIX acl recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-     pass3.should_report.!acls_binary_present::
-        "report" usebundle => _log_v3("No binaries for setfacl/getfacl could be found in ${paths.setfacl} nor ${paths.getfacl}, clean POSIX acl recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+     pass3.is_recursive.files_found.acls_binary_present::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string}${const.endl}Clean POSIX acls recursively on ${path}", "");
+     pass3.is_recursive.!files_found.acls_binary_present::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Could not find any file or directory matching ${path}, clean POSIX acl recursively on ${path}", "");
+     pass3.!acls_binary_present::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "No binaries for setfacl/getfacl could be found in ${paths.setfacl} nor ${paths.getfacl}, clean POSIX acl recursively on ${path}", "");
 
      # Non-recursive report
-     pass3.should_report.files_found.!is_recursive.acls_binary_present::
-        "report" usebundle => _log_v3("${report_string}${const.endl}Clean POSIX acls on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-     pass3.!files_found.should_report.!is_recursive.acls_binary_present::
-        "report" usebundle => _log_v3("Could not find any file or directory matching ${path}, clean POSIX acl on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+     pass3.!is_recursive.acls_binary_present.files_found::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string}${const.endl}Clean POSIX acls on ${path}", "");
+     pass3.!is_recursive.acls_binary_present.!files_found::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Could not find any file or directory matching ${path}, clean POSIX acl on ${path}", "");
 
 }

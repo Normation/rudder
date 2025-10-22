@@ -56,19 +56,26 @@ const equalsCheck = (a, b) =>
     a.length === b.length &&
     a.every((v, i) => v === b[i]);
 
+// Renaming table ids to specific CSV file name, also later enforce snake_case if necessary
+const csvRenameFilename = (filename) => (({
+  "serverGrid": "nodes_search_result",
+  "acceptNodeGrid": "pending_nodes"
+})[filename] ?? filename)
+
 // Shared config for DataTables Button CSV
-const csvButtonConfig = (filename) => ({
+const csvButtonConfig = (filename, additionalCls) => ({
   extend: 'csv',
-  className: 'btn btn-primary btn-export',
-  filename: filename,
+  className: 'btn btn-primary btn-export ' + (additionalCls ?? ''),
+  filename: 'rudder_' + csvRenameFilename(filename) + '_' + getDateString(),
   text: 'Export',
   exportOptions: {
+    orthogonal: 'exportCsv',
     customizeData: function (data) {
       // export compliance percent
       const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")
       if (complianceColumnIdx >= 0) {
         data.body.forEach((row, idx) => {
-          data.body[idx][complianceColumnIdx] = computeCompliancePercentFromString(row[complianceColumnIdx]).toString() + "%"
+          data.body[idx][complianceColumnIdx] = computeCompliancePercent(row[complianceColumnIdx]).toString() + "%"
         })
       }
       return data
@@ -95,7 +102,7 @@ $.fn.dataTable.ext.search.push(
     function(settings, data, dataIndex ) {
         // param needs to be JSON only so we remove the hash tag # at index 0
 
-        var param = decodeURIComponent(window.location.hash.substring(1));
+        var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
         if (param !== "" && window.location.pathname === contextPath + "/secure/nodeManager/nodes") {
             var obj = JSON.parse(param);
             var score = obj.score
@@ -1172,21 +1179,23 @@ function propertyFunction(value, inherited) { return function (nTd, sData, oData
       provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right">inherited</span>')
       provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>"+ property.hierarchy + "</div>.")
     }
-    var pre = $("<pre onclick='$(this).toggleClass(\"toggle\")' class='json-beautify show-more'></pre>").text(text).prepend(provider);
-    $(nTd).prepend( pre );
+    const id = `property-${property.name}-${iRow}`;
+    const pre = $(`<pre class="collapse json-beautify show-more" id="${id}"></span>`).text(text).prepend(provider);
+    const el = $(`<a class="text-reset" data-bs-toggle="collapse" href="#${id}" role="button" aria-expanded="false" aria-controls="${id}"></a>`).prepend(pre);
+    $(nTd).prepend( el );
   }
 } }
 
 function callbackElement(oData, displayCompliance) {
   var elem = $("<a></a>");
   if("callback" in oData) {
-      elem.click(function(e) {
-        oData.callback(displayCompliance);
-        e.stopPropagation();
-      });
-      elem.attr("href","javascript://");
+    elem.click(function(e) {
+      oData.callback(displayCompliance);
+      e.stopPropagation();
+    });
   } else {
-      elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
+    let complianceTab = displayCompliance ? "#node_reports" : "";
+    elem.attr("href", contextPath + '/secure/nodeManager/node/' + oData.id + complianceTab);
   }
   return elem;
 }
@@ -1389,7 +1398,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var allColumnsKeys =  Object.keys(allColumns)
 
   var isResizing = false,
-    hasHandle = $(tableWrapper + ' #drag').length > 0,
+    hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
 
   $(function () {
@@ -1461,7 +1470,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var colTitle = columns.map(function(c) { return c.title})
   dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
 
-  var param = decodeURIComponent(window.location.hash.substring(1));
+  var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
   if (param !== "") {
     try {
       var obj = JSON.parse(param);
@@ -1736,7 +1745,7 @@ function handleNodesTableDisplayByGroupTab(show) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
+function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, regroup) {
   var columns = [ {
       "sWidth": "10%"
     , "mDataProp": "executionDate"
@@ -1821,8 +1830,10 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
         "sSearch": ""
     }
     , "aaSorting": [[ 0, "desc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
+      '>t<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig(`node_${nodeId}_technical_logs`) ],
+
   };
 
   if (regroup) {
@@ -1984,28 +1995,40 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 url: contextPath + "/secure/api/eventlog/" + data.id + "/details" ,
                 contentType: "application/json; charset=utf-8",
                 success: function (response, status, jqXHR) {
-                  var id = response["data"]["id"]
-                  var rollback = setupRollbackBlock(id)
-                  var parser = new DOMParser();
-                  var content = parser.parseFromString(response["data"]["content"], 'text/html');
-                  var html = $(content.body).contents();
+                  const id = response["data"]["id"]
+                  const rollback = setupRollbackBlock(id)
+                  const parser = new DOMParser();
+                  const content = parser.parseFromString(response["data"]["content"], 'text/html');
+                  const html = $(content.body).contents();
+
                   if(response["data"]["canRollback"]){
                     table.row(row).child($(rollback).append(html)).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
-                      var rollback ='#rollback'+id
-                      $(rollback).hide();
-                      var confirm = "#confirm" + id.toString();
-                      var radios = $('.radio-btn');
-                      var action = getRadioChecked(radios);
-                      var confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
-                      $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
-                      $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id) });
-                      $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                      const rollback = "#rollback" + id
+                      $(rollback).removeClass("d-flex").addClass("d-none");
+                      const confirm = "#confirm" + id.toString();
+                      const radios = $(".radio-btn");
+                      const action = getRadioChecked(radios, value => (value === "before" || value === "after") ? value : null);
+                      if (action !== null) {
+                        const confirmHtml = "<div class='d-flex text-start column-gap-2'><div class='py-2'><i class='fa fa-exclamation-triangle fs-2' aria-hidden='true'></i></div><div><div>Are you sure you want to restore configuration policy " + action + " this change? </div><div class='mt-2'><button class='btn btn-default rollback-action'>Cancel</button><button class='btn btn-danger rollback-action ms-2'>Confirm</button></div></div>";
+                        $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex flex-column");
+                        $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
+                        $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                      }
                     });
                   } else {
                     table.row(row).child(html).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
+                  }
+
+                  // There may be some node properties to display in diff, we use JsonDiffPatch (see doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md)
+                  // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
+                  const nodePropertiesDiff = response["data"]["nodePropertiesDiff"]
+                  if (nodePropertiesDiff) {
+                    document.getElementById(`nodepropertiesdiff-${data.id}`).innerHTML = jsondiffpatch.formatters.html.format(
+                      jsondiffpatch.diff(JSON.stringify(nodePropertiesDiff.from), JSON.stringify(nodePropertiesDiff.to))
+                    )
                   }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
@@ -2020,8 +2043,9 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           }
 
       }
-    , "dom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
+      '>t<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig("change_logs") ],
   };
 
   createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
@@ -2038,20 +2062,19 @@ function setupRollbackBlock(id) {
   return returnedHTML
 }
 
-function getRadioChecked(radios) {
+function getRadioChecked(radios, validate = s => s) {
  for (var i = 0, length = radios.length; i < length; i++) {
    if (radios[i].checked) {
-     return radios[i].value;
+     return validate(radios[i].value);
    }
  }
+ return null;
 }
 
-function confirmRollback(id) {
-  var radios = $('.radio-btn');
-  var action = getRadioChecked(radios);
+function confirmRollback(id, action) {
   $.ajax({
-    type: "GET",
-    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action ,
+    type: "POST",
+    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action,
     contentType: "application/json; charset=utf-8",
     beforeSend: function() {
       $('.rollback-action').prop("disabled", true)
@@ -2072,7 +2095,7 @@ function confirmRollback(id) {
 
 function cancelRollback(id) {
   $('#confirm'+id).empty().removeClass();
-  $('#rollback'+id).show();
+  $('#rollback'+id).removeClass("d-none").addClass("d-flex");
 }
 function computeCompliancePercentFromString(complianceString) {
   var complianceArray = complianceString.split(",").map(Number);

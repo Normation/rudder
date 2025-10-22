@@ -56,6 +56,7 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepos
 import com.normation.zio.*
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 
 /*
@@ -76,7 +77,7 @@ import zio.*
 class MigrateNodeAcceptationInventories(
     nodeFactRepo:      NodeFactRepository,
     fileLogRepository: InventoryHistoryLogRepository,
-    jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete,
+    jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] & InventoryHistoryDelete,
     MAX_KEEP_REFUSED:  Duration
 ) extends BootstrapChecks {
 
@@ -96,7 +97,7 @@ class MigrateNodeAcceptationInventories(
       FactLogData(NodeFact.newFromFullInventory(data, None), migrationActor, data.node.main.status),
       date
     ) *> ZIO.when(deleted) {
-      jdbcLogRepository.saveDeleteEvent(id, DateTime.now(), migrationActor)
+      jdbcLogRepository.saveDeleteEvent(id, DateTime.now(DateTimeZone.UTC), migrationActor)
     }
   }
 
@@ -131,7 +132,7 @@ class MigrateNodeAcceptationInventories(
             case None    => ZIO.unit
             case Some(l) =>
               for {
-                opt <- nodeFactRepo.get(nodeId)(QueryContext.systemQC)
+                opt <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC)
                 _   <- ZIO.when(opt.isDefined || l.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
                          saveInDB(nodeId, l.datetime, l.data, !opt.isDefined)
                        }
@@ -153,7 +154,7 @@ class MigrateNodeAcceptationInventories(
   override def checks(): Unit = {
     val prog = {
       for {
-        _ <- migrateAll(DateTime.now())
+        _ <- migrateAll(DateTime.now(DateTimeZone.UTC))
       } yield ()
     }
 

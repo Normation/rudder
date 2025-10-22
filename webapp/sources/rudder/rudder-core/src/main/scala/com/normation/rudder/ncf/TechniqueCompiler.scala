@@ -40,8 +40,6 @@ package com.normation.rudder.ncf
 import better.files.File
 import cats.implicits.*
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
@@ -83,7 +81,7 @@ trait TechniqueCompiler {
     val yamlFile = techniqueBaseDirectory / TechniqueFiles.yaml
     for {
       yaml <- IOResult.attempt(s"Error when reading technique metadata '${yamlFile}'") {
-                yamlFile.contentAsString(StandardCharsets.UTF_8)
+                yamlFile.contentAsString(using StandardCharsets.UTF_8)
               }
       t    <- yaml.fromYaml[EditorTechnique].toIO
       _    <- EditorTechnique.checkTechniqueIdConsistency(techniqueBaseDirectory, t)
@@ -143,7 +141,7 @@ trait TechniqueCompiler {
     (for {
       f       <- IOResult.attempt(Option.when(file.exists)(file))
       content <-
-        ZIO.foreach(f)(c => IOResult.attempt(c.contentAsString(StandardCharsets.UTF_8)))
+        ZIO.foreach(f)(c => IOResult.attempt(c.contentAsString(using StandardCharsets.UTF_8)))
       out     <- ZIO.foreach(content)(_.fromYaml[TechniqueCompilationOutput].toIO)
     } yield {
       out
@@ -323,7 +321,7 @@ class RuddercServiceImpl(
                           } else {
                             ResourceFile(dest.name, ResourceFileState.New)
                           }
-                          f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
+                          f.moveTo(techniqueDir / f.name)(using Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
                           s
                         }
                       } <*
@@ -416,7 +414,9 @@ class RuddercTechniqueCompiler(
                    }
       // clean-up generated files
       _         <- ZIO.foreach(TechniqueFiles.Generated.all) { name =>
-                     IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
+                     IOResult.attempt {
+                       (gitDir / getTechniqueRelativePath(technique) / name).delete(swallowIOExceptions = true)
+                     }
                    }
       res       <- compileTechniqueInternal(technique, config)
       _         <- ZIO.when(res.isError) {
@@ -462,7 +462,7 @@ class RuddercTechniqueCompiler(
       content <- IOResult.attempt(s"Error when writing compilation file for technique '${getTechniqueRelativePath(technique)}'") {
                    val config = getCompilationConfigFile(technique)
                    if (config.exists) { // this is optional
-                     val s = config.contentAsString(StandardCharsets.UTF_8)
+                     val s = config.contentAsString(using StandardCharsets.UTF_8)
                      if (s.strip().isEmpty) None else Some(s)
                    } else {
                      None

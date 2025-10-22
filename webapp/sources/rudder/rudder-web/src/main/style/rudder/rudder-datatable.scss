@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -401,6 +401,17 @@ table .innerDetails li{
   background-color: #fff;
   margin: 0 !important;
 }
+
+tr.parametersDescription {
+  background-color: #F8F9FC !important;
+  height: 30px;
+  border-top: 1px solid #d6deef !important;
+
+  .parametersDescriptionDetails {
+    padding:15px;
+  }
+}
+
 /* </TBODY></TR></TD> */
 
 /* <WRAPPER BOTTOM> */

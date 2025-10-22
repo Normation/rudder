@@ -82,7 +82,7 @@ class CheckInitXmlExport(
                     RudderEventActor,
                     Some("Initialising configuration-repository sub-system"),
                     includeSystem = false
-                  )(QueryContext.systemQC)
+                  )(using QueryContext.systemQC)
                 } else {
                   BootstrapLogger.trace("At least a full archive of configuration items done, no need for further initialisation") *>
                   ZIO.unit

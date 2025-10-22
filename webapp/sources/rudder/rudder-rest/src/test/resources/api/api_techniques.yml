@@ -23,6 +23,12 @@ response:
             ]
           },
           {
+            "name" : "test-migrate-select",
+            "versions" : [
+              "1.0"
+            ]
+          },
+          {
             "name":"technique_by_Rudder",
             "versions":[
               "1.0"
@@ -140,6 +146,31 @@ response:
           }
         ]
       }
+    }
+---
+description: Get an error in attemp of path traversal
+method: PUT
+url: /api/latest/techniques
+body: >-
+  { "id": "",
+    "version":"1.0",
+    "name": "PoC",
+    "category":"../../../../../../../../tmp/traversal_poc_dir",
+    "calls":[],
+    "description":"Path Traversal PoC",
+    "documentation": "PoC details",
+    "parameters":[],        
+    "resources":[],
+    "tags":{},
+    "internalId":"c0cd1803-2264-4989-9915-8b24fd02fad4"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "createTechnique",
+      "result" : "error",
+      "errorDetails" : "Unauthorized access to file resources (real path: /tmp/traversal_poc_dir/1.0/resources)"
     }
 ---
 description: Get directives for one technique
@@ -577,7 +608,7 @@ response:
     {
       "action":"listTechniqueDirectives",
       "result":"error",
-      "errorDetails":"Inconsistency: Version '3.0' of Technique 'genericVariableDefinition' does not exist"
+      "errorDetails":"Version '3.0' of Technique 'genericVariableDefinition' does not exist"
     }
 ---
 description: Try to get directive for a technique/bad version
@@ -589,5 +620,244 @@ response:
     {
       "action":"listTechniqueDirectives",
       "result":"error",
-      "errorDetails":"Inconsistency: Could not find list of directives based on 'packageManagement' technique, because we could not parse 'X.Y' as a valid technique version"
+      "errorDetails":"Could not find list of directives based on 'packageManagement' technique, because we could not parse 'X.Y' as a valid technique version"
     }
+---
+description: Get generic methods metadata
+method: GET
+url: /api/latest/methods
+response:
+  code: 200
+  content: >-
+    {
+      "action":"methods",
+      "result":"success",
+      "data":{
+        "methods" : {
+          "gm0" : {
+            "id" : "gm0",
+            "name" : "gm0",
+            "description" : "gm desc 0",
+            "condition" : {
+              "prefix" : "classPrefix0",
+              "parameter" : "classParam0"
+            },
+            "agents" : [
+              "cfengine-community",
+              "dsc"
+            ],
+            "parameters" : [],
+            "documentation" : "doc for gm0"
+          },
+          "gm1" : {
+            "id" : "gm1",
+            "name" : "gm1",
+            "description" : "gm desc 1",
+            "condition" : {
+              "prefix" : "classPrefix1",
+              "parameter" : "classParam1"
+            },
+            "agents" : [
+              "cfengine-community",
+              "dsc"
+            ],
+            "parameters" : [
+              {
+                "name" : "param0",
+                "description" : "param desc for 0",
+                "constraints" : {},
+                "type" : "string"
+              }
+            ],
+            "documentation" : "doc for gm1"
+          },
+          "gm2" : {
+            "id" : "gm2",
+            "name" : "gm2",
+            "description" : "gm desc 2",
+            "condition" : {
+              "prefix" : "classPrefix2",
+              "parameter" : "classParam2"
+            },
+            "agents" : [
+              "cfengine-community",
+              "dsc"
+            ],
+            "parameters" : [
+              {
+                "name" : "param0",
+                "description" : "param desc for 0",
+                "constraints" : {},
+                "type" : "string"
+              },
+              {
+                "name" : "param1",
+                "description" : "param desc for 1",
+                "constraints" : {},
+                "type" : "string"
+              }
+            ],
+            "documentation" : "doc for gm2"
+          }
+        }
+      }
+    }
+---
+description: Get all technique categories
+method: GET
+url: /api/latest/techniques/categories
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "techniqueCategories",
+      "result" : "success",
+      "data" : {
+        "techniqueCategories" : {
+          "name" : "/",
+          "path" : "",
+          "id" : "/",
+          "subCategories" : [
+            {
+              "name" : "System settings",
+              "path" : "systemSettings",
+              "id" : "systemSettings",
+              "subCategories" : [
+                {
+                  "name" : "Miscellaneous",
+                  "path" : "systemSettings/misc",
+                  "id" : "misc",
+                  "subCategories" : []
+                }
+              ]
+            },
+            {
+              "name" : "Application management",
+              "path" : "applications",
+              "id" : "applications",
+              "subCategories" : []
+            },
+            {
+              "name" : "Meta Techniques",
+              "path" : "ncf_techniques",
+              "id" : "ncf_techniques",
+              "subCategories" : []
+            },
+            {
+              "name" : "testing things",
+              "path" : "test_only",
+              "id" : "test_only",
+              "subCategories" : []
+            },
+            {
+              "name" : "Distributing files",
+              "path" : "fileDistribution",
+              "id" : "fileDistribution",
+              "subCategories" : []
+            },
+            {
+              "name" : "System Techniques",
+              "path" : "system",
+              "id" : "system",
+              "subCategories" : []
+            }
+          ]
+        }
+      }
+    }
+---
+description: Can create a technique
+method: PUT
+url: /api/latest/techniques
+body: >-
+  {
+    "internalId":"e3e8a24f-9a64-4351-9cbb-eb5289a970e6",
+    "id":"test_delete",
+    "version":"1.0",
+    "name":"test_delete",
+    "description":"",
+    "category":"ncf_techniques",
+    "parameters":[],
+    "calls":[
+      {
+        "id":"d8dd2f63-3077-47c1-8673-c8d9171fa2cc",
+        "component":"",
+        "method":"command_execution",
+        "condition":"",
+        "parameters":{"command":"/bin/true"},
+        "disabledReporting":false,
+        "type":"call",
+        "foreachName":null,
+        "foreach":null
+      }
+    ],
+    "resources":[],
+    "documentation":"",
+    "tags":{}
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createTechnique",
+      "result":"success",
+      "data": {
+        "techniques":[
+          {
+            "id":"test_delete",
+            "version":"1.0",
+            "name":"test_delete",
+            "category":"ncf_techniques",
+            "calls":[
+              {
+                "type":"call",
+                "method":"command_execution",
+                "id":"d8dd2f63-3077-47c1-8673-c8d9171fa2cc",
+                "parameters":{"command":"/bin/true"},
+                "condition":"",
+                "component":"",
+                "disabledReporting":false
+              }
+              ],
+            "description":"",
+            "documentation":"",
+            "parameters":[],
+            "resources":[],
+            "tags":{},
+            "internalId":"e3e8a24f-9a64-4351-9cbb-eb5289a970e6",
+            "source":"editor"
+          }
+        ]
+      }
+    }
+---
+description: Delete a technique (api version up to 21)
+method: DELETE
+url: /api/21/techniques/test_delete/1.0
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteTechnique",
+      "id" : "test_delete",
+      "result":"success",
+      "data":{
+        "techniques":{"id":"test_delete","version":"1.0" }
+       }
+    }
+---
+description: Delete a technique (api version from 22 - rudder 9.0)
+method: DELETE
+url: /api/latest/techniques/test_delete/1.0
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteTechnique",
+      "id" : "test_delete",
+      "result":"success",
+      "data":{
+        "techniques":[ {"id":"test_delete","version":"1.0" } ]
+      }
+    }
+ 

@@ -80,12 +80,12 @@ Build-commit: {}",
         } else {
             f.write_str("\n")?;
             for j in self.jar_files.iter() {
-                write!(f, "  {}", j)?;
+                write!(f, "  {j}")?;
             }
         }
         f.write_str("\nContents:\n")?;
         for (a, p) in self.content.iter() {
-            writeln!(f, "  {}: {}", a, p)?;
+            writeln!(f, "  {a}: {p}")?;
         }
         Ok(())
     }

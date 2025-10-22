@@ -41,6 +41,7 @@ import com.normation.utils.Utils.isEmpty
 import java.util.Locale
 import net.liftweb.common.*
 import org.apache.commons.io.FilenameUtils
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import scala.collection.mutable.Map as MutMap
@@ -119,7 +120,7 @@ class Translators {
    * @param m
    */
   def add[T](t: Translator[T])(implicit m: ClassTag[T]): Unit = {
-    get(m) match {
+    get(using m) match {
       case None           => reg += (m -> t)
       case Some(existing) => {
         t.to.iterator foreach { existing.to.add(_) }
@@ -161,7 +162,6 @@ object Translator {
 import com.normation.rudder.web.model.FilePerms
 import java.io.File
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormatter
 
 object StringTranslator
     extends Translator[String](
@@ -189,7 +189,7 @@ class DateTimeTranslator(
         try {
           datetimeFormatter match {
             case Some(dtf) => Full(dtf.parseDateTime(x))
-            case None      => Full(new DateTime(x))
+            case None      => Full(new DateTime(x, DateTimeZone.UTC))
           }
         } catch {
           case e: IllegalArgumentException =>

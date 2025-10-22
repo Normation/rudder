@@ -43,7 +43,6 @@ import com.normation.inventory.services.provisioning.*
 import java.time.*
 import java.time.format.DateTimeFormatter
 import scala.xml.NodeSeq
-import zio.*
 
 class PreInventoryParserCheckInventoryAge(maxBeforeNow: Duration, maxAfterNow: Duration) extends PreInventoryParser {
   override val name = "post_process_inventory:check_inventory_age"

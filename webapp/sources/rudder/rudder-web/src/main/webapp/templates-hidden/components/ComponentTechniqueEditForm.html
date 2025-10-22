@@ -36,11 +36,9 @@ All text that will be modified will be put in []
 </component-comment>
 
 <component-body>
-	<div>
-		<div id="editForm" ></div>
-		<div id="removeActionDialog" ></div>
-		<div id="disactivateActionDialog" ></div>
-	</div>
+    <div id="editForm" ></div>
+    <div id="removeActionDialog" ></div>
+    <div id="disactivateActionDialog" ></div>
 </component-body>
 
 <component-form>
@@ -89,54 +87,49 @@ All text that will be modified will be put in []
 </component-form>
 
 <component-popupremoveform>
-    <div>
-        <div id="deleteActionDialog" class="modal fade" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Delete a Technique</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div id="deleteActionDialog" class="modal fade" tabindex="-1" data-bs-backdrop="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete a Technique</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row space-bottom">
+                        <div class="col-xl-12">
+                            <h4 class="text-center">
+                                Are you sure that you want to completely delete this item ?
+                            </h4>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <div class="row space-bottom">
-                            <div class="col-xl-12">
-                                <h4 class="text-center">
-                                    Are you sure that you want to completely delete this item ?
-                                </h4>
-                            </div>
-                        </div>
-                        <div id="deleteItemDependencies" class="well col-xl-12 col-sm-12 col-md-12" >
-                            [Here comes the tree of Directives / Rules that will be removed]
-                        </div>
-                        <div class="alert alert-warning col-xl-12 col-md-12 col-sm-12 text-center space-bottom" role="alert">
-                            <span class="fa fa-exclamation-triangle" aria-hidden="true"></span>
-                            <span class="d-none">Warning:</span>
-                            Deleting this Technique will also delete its history and compliance reports,
-                            and the Directives and Rules above.
-                        </div>
-                        <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
-                        <div class="reasonsFieldset">
-                            <div id="reasonsField">
-                                Here comes the reasons field
-                            </div>
-                        </div>
-                        <hr class="spacer" />
-
+                    <div id="deleteItemDependencies" class="well col-xl-12 col-sm-12 col-md-12" >
+                        [Here comes the tree of Directives / Rules that will be removed]
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
-                        <button id="dialogDeleteButton" class="btn btn-danger">[Delete]</button>
-                    </div>  
+                    <div class="alert alert-warning col-xl-12 col-md-12 col-sm-12 text-center space-bottom" role="alert">
+                        <span class="fa fa-exclamation-triangle" aria-hidden="true"></span>
+                        <span class="d-none">Warning:</span>
+                        Deleting this Technique will also delete its history and compliance reports,
+                        and the Directives and Rules above.
+                    </div>
+                    <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Audit Log</h4>
+                    <div class="reasonsFieldset">
+                        <div id="reasonsField">
+                            Here comes the reasons field
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
+                    <button id="dialogDeleteButton" class="btn btn-danger">[Delete]</button>
                 </div>
             </div>
         </div>
     </div>
 </component-popupremoveform>
 
-<component-popupdisableform>    
-<div>
-    <div id="disableActionDialog" class="modal fade" tabindex="-1">
-        <div class="modal-dialog">
+<component-popupdisableform>
+    <div id="disableActionDialog" class="modal fade" tabindex="-1" data-bs-backdrop="false">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -177,7 +170,6 @@ All text that will be modified will be put in []
             </div>
         </div>
     </div>
-</div>
 </component-popupdisableform>
 
 </xml:group>

@@ -40,28 +40,19 @@
 bundle agent package_install_version_cmp(name, version_comparator, package_version, action)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_install_${name}");
-
-      "args"                     slist => { "${name}", "${version_comparator}", "${package_version}", "${action}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("package_install_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      # call is to package_install_version_cmp_update("${name}", "${version_comparator}", "${package_version}", "${action}", "true")
-      "full_inner_class_prefix"  string => canonify("package_install_${report_param}_true");
-      "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => canonify("package_install_${name}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                           usebundle => disable_reporting;
-      "install or update"  usebundle => package_install_version_cmp_update("${name}", "${version_comparator}", "${package_version}", "${action}", "true");
-      "reenable_reporting_${class_prefix}"
-                           usebundle => enable_reporting,
-                          ifvarclass => "should_report";
-      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"             usebundle => _log_v3("Install package ${name} version ${version_comparator} ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("package_install_version_cmp_update");
+      "${report_data.method_id}" usebundle => package_install_version_cmp_update("${name}", "${version_comparator}", "${package_version}", "${action}", "true");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("package_install_version_cmp_update");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Install package ${name} version ${version_comparator} ${package_version}", "");
 }

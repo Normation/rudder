@@ -32,21 +32,22 @@
 bundle agent file_line_present_in_ini_section(path, section, line)
 {
   vars:
-      "old_class_prefix"       string => canonify("file_line_present_in_ini_section_${path}");
-      "args"                    slist => { "${path}", "${section}", "${line}" };
-      "report_param"           string => join("_", args);
-      "full_class_prefix"      string => canonify("file_line_present_in_ini_section_${report_param}");
-      "class_prefix"           string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"           string => canonify("file_line_present_in_ini_section_${path}");
+      "inner_class_prefix"     string => "${report_data.method_id}_inner";
       "section_and_blank_line" string => "[${section}]
 ";
 
   classes:
+      "pass3"   expression => "pass2";
+      "pass2"   expression => "pass1";
+      "pass1"   expression => "any";
       # Check if the section exist: if not, a class will be raised to add it with a blank line.
-      "section_absent"  not => regline("^\[${section}\]$","${path}");
+      "section_absent" not => regline("^\[${section}\]$","${path}");
 
   files:
       # If the section is not present in the file, firstly it will be added
       # with a blank line in order to be caught for the lines to add after it.
+    pass3::
       "${path}"
         create        => "true",
         edit_line     => ncf_insert_block("${section_and_blank_line}"),
@@ -59,10 +60,12 @@ bundle agent file_line_present_in_ini_section(path, section, line)
         create        => "true",
         edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes       => classes_generic("${inner_class_prefix}");
 
   methods:
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert line(s) into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Insert line(s) into ${path}", "");
 }

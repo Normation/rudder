@@ -51,6 +51,7 @@ import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPo
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.services.AgentCompat
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
@@ -165,7 +166,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         new GiveReasonPopup(
           onSuccessCallback = { onSuccessReasonPopup },
           onFailureCallback = { onFailureReasonPopup },
-          refreshActiveTreeLibrary = { refreshActiveTreeLibrary _ },
+          refreshActiveTreeLibrary = { () => refreshActiveTreeLibrary() },
           sourceActiveTechniqueId = s,
           destCatId = d
         )
@@ -206,7 +207,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   def systemLibrary(): NodeSeq = {
     <div id={htmlId_techniqueLibraryTree} class="row">
       <ul>{jsTreeNodeOf_ptCategory(techniqueRepository.getTechniqueLibrary).toXml}</ul>
-      {Script(OnLoad(buildReferenceLibraryJsTree))}
+      {WithNonce.scriptWithNonce(Script(OnLoad(buildReferenceLibraryJsTree)))}
     </div>
   }
 
@@ -241,12 +242,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       }
 
       (xml: NodeSeq) ++ {
-        Script(
-          OnLoad(
-            buildUserLibraryJsTree &
-            // init bind callback to move
-            JsRaw(
-              """
+        WithNonce.scriptWithNonce(
+          Script(
+            OnLoad(
+              buildUserLibraryJsTree &
+              // init bind callback to move
+              JsRaw(
+                """
             // use global variables to store where the event come from to prevent infinite recursion
               var fromUser = false;
               var fromReference = false;
@@ -328,17 +330,18 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               }
             }
           """.format(
-                // %1$s
-                htmlId_activeTechniquesTree,
-                // %2$s
-                SHtml.ajaxCall(JsVar("arg"), bindTechnique _)._2.toJsCmd,
-                // %3$s
-                SHtml.ajaxCall(JsVar("arg"), moveTechnique _)._2.toJsCmd,
-                // %4$s
-                SHtml.ajaxCall(JsVar("arg"), moveCategory _)._2.toJsCmd,
-                htmlId_techniqueLibraryTree
-              )
-            ) // JsRaw ok, escaped
+                  // %1$s
+                  htmlId_activeTechniquesTree,
+                  // %2$s
+                  SHtml.ajaxCall(JsVar("arg"), bindTechnique)._2.toJsCmd,
+                  // %3$s
+                  SHtml.ajaxCall(JsVar("arg"), moveTechnique)._2.toJsCmd,
+                  // %4$s
+                  SHtml.ajaxCall(JsVar("arg"), moveCategory)._2.toJsCmd,
+                  htmlId_techniqueLibraryTree
+                )
+              ) // JsRaw ok, escaped
+            )
           )
         )
       }
@@ -817,7 +820,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       override def body: NodeSeq = {
         val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
         SHtml.a(
-          onClickUserCategory _,
+          () => onClickUserCategory(),
           <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
             category.name
           }</span>
@@ -887,8 +890,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       processAction & createNotification
     }
 
-    (Script(OnLoad(initJs)): NodeSeq) ++
-    SHtml.ajaxButton("Reload techniques", process _, ("class", "btn btn-primary"))
+    (WithNonce.scriptWithNonce(Script(OnLoad(initJs))): NodeSeq) ++
+    SHtml.ajaxButton("Reload techniques", () => process(), ("class", "btn btn-primary"))
   }
 
 }

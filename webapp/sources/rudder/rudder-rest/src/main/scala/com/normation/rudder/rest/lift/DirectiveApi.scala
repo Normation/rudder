@@ -49,8 +49,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -69,10 +67,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.DirectiveApi as API
+import com.normation.rudder.rest.{DirectiveApi as API, *}
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -84,10 +79,10 @@ import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 
@@ -272,7 +267,6 @@ class DirectiveApiService14(
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
     editorService:        DirectiveEditorService,
-    restDataSerializer:   RestDataSerializer,
     techniqueRepository:  TechniqueRepository
 ) {
 
@@ -375,9 +369,9 @@ class DirectiveApiService14(
     source match {
       case Some(cloneId) =>
         for {
-          name          <- restDirective.displayName.checkMandatory(
+          _             <- restDirective.displayName.checkMandatory(
                              _.size > 3,
-                             v => "'displayName' is mandatory and must be at least 3 char long"
+                             _ => "'displayName' is mandatory and must be at least 3 char long"
                            )
           ad            <- configRepository.getDirective(cloneId).notOptional(s"Can not find directive to clone: ${cloneId.debugString}")
           // technique version: by default, directive one. It techniqueVersion is given, use that. If techniqueRevision is specified, use it.
@@ -395,7 +389,7 @@ class DirectiveApiService14(
         for {
           name            <- restDirective.displayName.checkMandatory(
                                _.size > 3,
-                               v => "'displayName' is mandatory and must be at least 3 char long"
+                               _ => "'displayName' is mandatory and must be at least 3 char long"
                              )
           technique       <- getTechniqueWithVersion(restDirective.techniqueName, restDirective.techniqueVersion).chainError(
                                s"Technique is not correctly defined in request data."
@@ -426,7 +420,7 @@ class DirectiveApiService14(
       actor:     EventActor
   )(implicit cc: ChangeContext) = {
     for {
-      workflow <- workflowLevelService.getForDirective(actor, change).toIO
+      workflow <- workflowLevelService.getForDirective(actor, change)
       cr        = ChangeRequestService.createChangeRequestFromDirective(
                     params.changeRequestName.getOrElse(
                       s"${change.action.name} directive '${change.newDirective.name}' (${change.newDirective.id.uid.value}) from API"
@@ -442,7 +436,6 @@ class DirectiveApiService14(
                   )
       id       <- workflow
                     .startWorkflow(cr)
-                    .toIO
                     .chainError(s"Could not start workflow for change request creation on Directive '${change.newDirective.name}'")
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
@@ -456,7 +449,7 @@ class DirectiveApiService14(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       actor,
-      new DateTime(),
+      Instant.now(),
       params.reason,
       None,
       qc.nodePerms
@@ -489,7 +482,7 @@ class DirectiveApiService14(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       actor,
-      new DateTime(),
+      Instant.now(),
       params.reason,
       None,
       qc.nodePerms

@@ -59,7 +59,7 @@ protected object JsonPluginFile {
 
 /**
   * The external json format of a plugin in the index file.
-  * 
+  *
   * Optional fields are there to obtain empty lists when mapping none
   */
 final protected case class JsonPluginRaw(
@@ -114,7 +114,7 @@ class ReadPluginPackageInfo(val index: File) {
 
   def readIndex(): IOResult[String] = {
     IOResult.attempt {
-      index.contentAsString(StandardCharsets.UTF_8)
+      index.contentAsString(using StandardCharsets.UTF_8)
     }
   }
 

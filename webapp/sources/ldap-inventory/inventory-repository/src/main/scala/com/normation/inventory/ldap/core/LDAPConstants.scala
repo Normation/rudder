@@ -57,7 +57,8 @@ object LDAPConstants {
   val A_HOSTNAME           = "nodeHostname"
   val A_ROOT_USER          = "localAdministratorAccountName"
   val A_DEF                = "definition"
-  val A_AGENTS_NAME        = "agentName"
+  val A_AGENT_NAME         = "agentName" // does not exist for real, needed for the query criteria
+  val A_AGENT_VERSION      = "agentVersion"
   val A_DESCRIPTION        = "description"
   val A_REV_ID             = "revision"
   val A_MODEL              = "model"
@@ -191,6 +192,7 @@ object LDAPConstants {
   val A_OS_WIN_VISTA       = "WindowsVista"
   val A_OS_WIN_SEVEN       = "WindowsSeven"
   val A_OS_WIN_10          = "Windows10"
+  val A_OS_WIN_11          = "Windows11"
   val A_OS_WIN_2000        = "Windows2000"
   val A_OS_WIN_2003        = "Windows2003"
   val A_OS_WIN_2008        = "Windows2008"
@@ -398,7 +400,7 @@ object LDAPConstants {
     may = Set(
       A_NAME,
       A_DESCRIPTION,
-      A_AGENTS_NAME,
+      A_AGENT_NAME,
       A_CONTAINER_DN,
       A_SOFTWARE_DN,
       A_ACCOUNT,

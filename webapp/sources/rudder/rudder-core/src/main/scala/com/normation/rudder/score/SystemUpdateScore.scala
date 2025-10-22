@@ -133,7 +133,7 @@ class SystemUpdateScoreHandler(nodeFactRepository: NodeFactRepository) extends S
 
   override def initEvents: UIO[Chunk[ScoreEvent]] = {
     nodeFactRepository
-      .slowGetAll()(
+      .slowGetAll()(using
         QueryContext.systemQC,
         SelectNodeStatus.Accepted,
         SelectFacts.none

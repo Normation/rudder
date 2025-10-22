@@ -55,6 +55,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import zio.*
 import zio.syntax.*
@@ -222,7 +223,7 @@ class WoLDAPRuleRepository(
                            logPure.info(s"Rule with ID '${rule.id.serialize}' is already loaded: updating it.")
                          }
         crEntry        = mapper.rule2Entry(rule)
-        result        <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+        _             <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
         // we don't persist a diff in git here because it wouldn't make any sens, but perhaps we
         // at least need to store an new event log for that. Since it's a WIP API, not doing it right now.
         // That's also why there is a modId/actor/reason not used.
@@ -233,13 +234,13 @@ class WoLDAPRuleRepository(
   override def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
     ruleMutex.writeLock(
       for {
-        _       <- ZIO.when(ruleId.rev == GitVersion.DEFAULT_REV) {
-                     Inconsistency(
-                       s"Error: you can't unload a rule with default revision like here for rule with id '${ruleId.uid.serialize}'. Use delete for that."
-                     ).fail
-                   }
-        con     <- ldap
-        deleted <-
+        _   <- ZIO.when(ruleId.rev == GitVersion.DEFAULT_REV) {
+                 Inconsistency(
+                   s"Error: you can't unload a rule with default revision like here for rule with id '${ruleId.uid.serialize}'. Use delete for that."
+                 ).fail
+               }
+        con <- ldap
+        _   <-
           con
             .delete(rudderDit.RULES.configRuleDN(ruleId))
             .chainError(s"Error when unloading rule with ID '${ruleId.uid.serialize}' for revision '${ruleId.rev.value}'")
@@ -252,32 +253,32 @@ class WoLDAPRuleRepository(
 
   def create(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = {
     ruleMutex.writeLock(for {
-      _               <- ZIO.when(rule.id.rev != GitVersion.DEFAULT_REV) {
-                           Inconsistency(
-                             s"Error: you can't create a rule with a specific revision like here for rule with id '${rule.id.uid.serialize}' which has revision '${rule.id.rev.value}'"
-                           ).fail
-                         }
-      con             <- ldap
-      ruleExits       <- con.exists(rudderDit.RULES.configRuleDN(rule.id))
-      idDoesntExist   <- ZIO.when(ruleExits) {
-                           s"Cannot create a rule with ID '${rule.id.serialize}' : there is already a rule with the same id".fail
-                         }
-      nameExists      <- nodeRuleNameExists(con, rule.name, rule.id)
-      nameIsAvailable <- ZIO.when(nameExists) {
-                           "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail
-                         }
-      crEntry          = mapper.rule2Entry(rule)
-      result          <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
-      diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn, result).toIO
-      loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
-      autoArchive     <- ZIO.when(autoExportOnModify && !rule.isSystem) {
-                           for {
-                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                             archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
-                           } yield {
-                             archive
-                           }
-                         }
+      _          <- ZIO.when(rule.id.rev != GitVersion.DEFAULT_REV) {
+                      Inconsistency(
+                        s"Error: you can't create a rule with a specific revision like here for rule with id '${rule.id.uid.serialize}' which has revision '${rule.id.rev.value}'"
+                      ).fail
+                    }
+      con        <- ldap
+      ruleExits  <- con.exists(rudderDit.RULES.configRuleDN(rule.id))
+      _          <- ZIO.when(ruleExits) {
+                      s"Cannot create a rule with ID '${rule.id.serialize}' : there is already a rule with the same id".fail
+                    }
+      nameExists <- nodeRuleNameExists(con, rule.name, rule.id)
+      _          <- ZIO.when(nameExists) {
+                      "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail
+                    }
+      crEntry     = mapper.rule2Entry(rule)
+      result     <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+      diff       <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn, result).toIO
+      _          <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
+      _          <- ZIO.when(autoExportOnModify && !rule.isSystem) {
+                      for {
+                        commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                        archive  <- gitCrArchiver.archiveRule(rule, Some((modId, commiter, reason)))
+                      } yield {
+                        archive
+                      }
+                    }
     } yield {
       diff
     })
@@ -386,7 +387,7 @@ class WoLDAPRuleRepository(
 
     ///// actual code for swapRules /////
 
-    val id = RuleArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
+    val id = RuleArchiveId((DateTime.now(DateTimeZone.UTC)).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.ruleModel(id)
     // filter systemCr if they are not included, so that merge does not have to deal with that.
 

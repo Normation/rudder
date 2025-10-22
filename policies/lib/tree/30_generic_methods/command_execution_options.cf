@@ -1,0 +1,289 @@
+#####################################################################################
+# Copyright 2025 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Command execution options
+# @description command execution
+# @documentation
+# The `command_execution_options` method executes a command on the system with configurable execution
+# parameters such as timeout, user/group, environment, and shell options.
+# This function is a wrapper around
+# [Rudder command execution module](https://github.com/Normation/rudder/blob/master/policies/rudderc/docs/src/modules/commands.md),
+# providing simplified parameterization and safe defaults.
+#
+# ---
+#
+# ### Result status
+#
+# The method’s result depends on the execution mode:
+#
+# - **Enforce mode**
+#   - If the command exit code is contained in **`repaired_codes`**, the status is `repaired`.
+#   - If the exit code is contained in **`compliant_codes`**, the status is `success`.
+#   - Any other exit code produces an `error` report.
+#
+# - **Audit mode**
+#   - By default, the status is always `not_applicable`.
+#   - If **`run_in_audit_mode`** is set to `"true"`, the same logic as in enforce mode is applied (`repaired` / `success` / `error` depending on exit codes).
+#
+# ---
+#
+# ### Notes
+#
+# - When `in_shell=true`, the `command` is passed directly to the shell. Pipes, subshells, and compound commands are supported.
+# - When `in_shell=false`, you must use `args` (JSON array of strings). **No shell expansion happens**: variables like `$HOME`, wildcards (`*`), or redirections (`>`/`|`) are treated literally.
+# - **`args` and `in_shell` are mutually exclusive**: they cannot be used at the same time.
+# - `stdin_add_newline` ensures input ends with a newline, useful when using interactive inputs via `stdin`
+# - `env_vars` must be a JSON object where **keys and values are strings**.
+#
+# ### Examples
+#
+# #### Minimal usage (required `command`)
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "echo Hello"
+# ```
+#
+# #### With arguments (JSON array, no shell)
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "/usr/bin/echo"
+#   args: ["Hello", "World"]
+#   in_shell: "false"
+# ```
+#
+# #### Using a shell with pipes
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "cat /etc/os-release | grep NAME"
+#   in_shell: "true"
+# ```
+#
+# #### Running as specific user and group
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "id"
+#   uid:: "1001"
+#   gid:: "1001"
+# ```
+#
+# #### Setting environment variables (JSON object)
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "env"
+#   env_vars:: { "MY_VAR": "Hello World" }
+# ```
+#
+# @parameter            command Command to be executed
+# @parameter_constraint command "allow_empty_string" : false
+# @parameter            args Arguments to the command
+# @parameter_constraint args "allow_empty_string" : true
+# @parameter_constraint args "valid_format" : "json"
+# @parameter            run_in_audit_mode Specify if command must be run in audit mode, "true" or "false" (defaults to "false")
+# @parameter_constraint run_in_audit_mode "allow_empty_string" : true
+# @parameter_constraint run_in_audit_mode "select" : [ "", "true", "false" ]
+# @parameter            in_shell Specify whether the command should be executed within a shell, "true" or "false" (defaults to "false")
+# @parameter_constraint in_shell "allow_empty_string" : true
+# @parameter_constraint in_shell "select" : [ "", "true", "false" ]
+# @parameter            shell_path Define the path to the shell to be used, absolute path on the target node (applicable only in shell mode, defaults to "/bin/sh")
+# @parameter_constraint shell_path "allow_empty_string" : true
+# @parameter            chdir Set the working directory from which the command will be executed
+# @parameter_constraint chdir "allow_empty_string" : true
+# @parameter            timeout Define a timeout duration in seconds for the command execution (defaults to "30" seconds)
+# @parameter_constraint timeout "allow_empty_string" : true
+# @parameter            stdin Provide input to the standard input (stdin) of the executed command
+# @parameter_constraint stdin "allow_empty_string" : true
+# @parameter            stdin_add_newline Control whether a newline character is appended to the stdin input, "true" or "false" (defaults to "true")
+# @parameter_constraint stdin_add_newline "allow_empty_string" : true
+# @parameter_constraint stdin_add_newline "select" : [ "", "true", "false" ]
+# @parameter            compliant_codes Specify the compliant codes
+# @parameter_constraint compliant_codes "allow_empty_string" : true
+# @parameter            repaired_codes Specify the repaired codes
+# @parameter_constraint repaired_codes "allow_empty_string" : true
+# @parameter            output_to_file Define a file path to store the output generated by the command (absolute path on the target node)
+# @parameter_constraint output_to_file "allow_empty_string" : true
+# @parameter            strip_output Controls if the EOL is strip from the output, "true" or "false" (defaults to "false")
+# @parameter_constraint strip_output "allow_empty_string" : true
+# @parameter_constraint strip_output "select" : [ "", "true", "false" ]
+# @parameter            uid Specify the user ID (UID) under which the command will be executed
+# @parameter_constraint uid "allow_empty_string" : true
+# @parameter            gid Specify the group ID (GID) under which the command will be executed
+# @parameter_constraint gid "allow_empty_string" : true
+# @parameter            user Specify the user under which the command will be executed
+# @parameter_constraint user "allow_empty_string" : true
+# @parameter            group Specify the group under which the command will be executed
+# @parameter_constraint group "allow_empty_string" : true
+# @parameter            umask Set the umask value for the executed command
+# @parameter_constraint umask "allow_empty_string" : true
+# @parameter            env_vars The variables to pass to the environment of the executed command
+# @parameter_constraint env_vars "allow_empty_string" : true
+# @parameter_constraint env_vars "valid_format" : "json"
+# @parameter            show_content Controls output of the report, "true" or "false" (defaults to "true")
+# @parameter_constraint show_content "allow_empty_string" : true
+# @parameter_constraint show_content "select" : [ "", "true", "false" ]
+#
+# @class_prefix command_execution_options
+# @class_parameter command
+# @agent_support = ["cfengine-community"]
+
+promise agent ruddercommands {
+  path => "/opt/rudder/bin/rudder-module-commands";
+}
+
+bundle agent command_execution_options(command, args, run_in_audit_mode, in_shell, shell_path, chdir, timeout, stdin, stdin_add_newline, compliant_codes, repaired_codes, output_to_file, strip_output, uid, gid, user, group, umask, env_vars, show_content) {
+  vars:
+      "module_file"  string => "/opt/rudder/bin/rudder-module-commands";
+      "class_prefix" string => canonify("command_execution_options_${command}");
+
+  defaults:
+      "run_in_audit_mode" string => "false",   if_match_regex => "";
+      "in_shell"          string => "false",   if_match_regex => "";
+      "shell_path"        string => "/bin/sh", if_match_regex => "";
+      "stdin_add_newline" string => "true",    if_match_regex => "";
+      "strip_output"      string => "false",   if_match_regex => "";
+      "show_content"      string => "true",    if_match_regex => "";
+      "umask"             string => "0022",    if_match_regex => "";
+      "timeout"           string => "30",      if_match_regex => "";
+      "repaired_codes"    string => "0",       if_match_regex => "";
+
+  classes:
+      "has_module"   expression => fileexists("${module_file}");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3.has_module::
+      "${report_data.method_id}" usebundle => call_method("rudder_actual_command_execution_options");
+      "${report_data.method_id}" usebundle => rudder_actual_command_execution_options("${command}", "${args}", "${run_in_audit_mode}", "${in_shell}", "${shell_path}", "${chdir}", "${timeout}", "${stdin}", "${stdin_add_newline}", "${compliant_codes}", "${repaired_codes}", "${output_to_file}", "${strip_output}", "${uid}", "${gid}", "${user}", "${group}", "${umask}", "${env_vars}", "${show_content}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("rudder_actual_command_execution_options");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Execution of ${command}", "");
+
+    pass3.!has_module::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Commands module is not supported on this agent", "");
+}
+
+bundle agent command_module_serializer(r_command, r_args, r_shell_path, r_chdir, r_timeout, r_stdin, r_compliant_codes, r_repaired_codes, r_output_to_file, r_uid, r_gid, r_user, r_group, r_umask, r_env_vars) {
+  vars:
+    "command"         string => "${r_command}";
+    "args"            string => "${r_args}";
+    "shell_path"      string => "${r_shell_path}";
+    "chdir"           string => "${r_chdir}";
+    "timeout"         string => "${r_timeout}";
+    "stdin"           string => "${r_stdin}";
+    "compliant_codes" string => "${r_compliant_codes}";
+    "repaired_codes"  string => "${r_repaired_codes}";
+    "output_to_file"  string => "${r_output_to_file}";
+    "uid"             string => "${r_uid}";
+    "gid"             string => "${r_gid}";
+    "user"            string => "${r_user}";
+    "group"           string => "${r_group}";
+    "umask"           string => "${r_umask}";
+    "env_vars"        string => "${r_env_vars}";
+}
+
+bundle agent rudder_actual_command_execution_options(command, args, run_in_audit_mode, in_shell, shell_path, chdir, timeout, stdin, stdin_add_newline, compliant_codes, repaired_codes, output_to_file, strip_output, uid, gid, user, group, umask, env_vars, show_content) {
+  vars:
+    # The best serializer provided by cfengine is the 'bundlestate' function. As I could not find how to merge partial data containers,
+    # we need to define a "serializer" bundle used to serialize every string type args expected by the module.
+    pass1::
+      "string_data"            data => bundlestate("command_module_serializer");
+      "bool_data"              data => '---
+run_in_audit_mode: ${run_in_audit_mode}
+in_shell: ${in_shell}
+stdin_add_newline: ${stdin_add_newline}
+strip_output: ${strip_output}
+show_content: ${show_content}
+';
+      "data"            data => mergedata('string_data', 'bool_data');
+      "module_inputs" string => storejson("data");
+
+  classes:
+      "pass3"     expression => "pass2";
+      "pass2"     expression => "pass1";
+      "pass1"     expression => "any";
+      "is_noop"   expression => and( "audit_${report_data.method_id}_kept",
+                                     not(strcmp("true", "${run_in_audit_mode}"))
+                                   );
+
+  methods:
+    pass1.!pass2::
+      "serialize" usebundle => command_module_serializer("${command}",
+                                                         "${args}",
+                                                         "${shell_path}",
+                                                         "${chdir}",
+                                                         "${timeout}",
+                                                         "${stdin}",
+                                                         "${compliant_codes}",
+                                                         "${repaired_codes}",
+                                                         "${output_to_file}",
+                                                         "${uid}",
+                                                         "${gid}",
+                                                         "${user}",
+                                                         "${group}",
+                                                         "${umask}",
+                                                         "${env_vars}");
+    pass3.(global_dry_run|dry_run)::
+      # Due to limitation on the audit mode, the module can not return a repaired when the
+      # policy mode is set to audit and the flag run_in_audit_mode is set.
+      # When this happens, we have to assume a kept from the module is a repaired disguised
+      # in a kept status. When the flag is not set and we are in audit, a kept is in fact a
+      # noop in disguise.
+      "${report_data.method_id}" usebundle => _classes_noop("${report_data.method_id}"),
+                                        if => "is_noop";
+      "${report_data.method_id}" usebundle => _classes_copy("audit_${report_data.method_id}", "${report_data.method_id}"),
+                                    unless => "is_noop";
+  ruddercommands:
+    pass2.!pass3.!(global_dry_run|dry_run)::
+      "module_call"
+        rudder_module_protocol  => "0",
+        state_dir               => "/var/rudder/tmp/",
+        backup_dir              => "/var/rudder/modified-files/",
+        node_id                 => "${g.uuid}",
+        agent_frequency_minutes => "${g.agent_run_interval}",
+        classes                 => classes_generic("${report_data.method_id}"),
+        data                    => "${module_inputs}";
+    pass2.!pass3.(global_dry_run|dry_run)::
+      "module_call"
+        action_policy           => "warn",
+        rudder_module_protocol  => "0",
+        state_dir               => "/var/rudder/tmp/",
+        backup_dir              => "/var/rudder/modified-files/",
+        node_id                 => "${g.uuid}",
+        agent_frequency_minutes => "${g.agent_run_interval}",
+        classes                 => classes_generic("audit_${report_data.method_id}"),
+        data                    => "${module_inputs}";
+
+  reports:
+    pass3::
+      "${module_inputs}";
+}

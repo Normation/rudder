@@ -42,6 +42,7 @@ import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rest.ApiModuleProvider
@@ -60,6 +61,7 @@ import com.normation.rudder.rest.data.RestEventLogRollback
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
 import com.normation.rudder.rest.data.RestEventLogSuccess
+import com.normation.rudder.rest.data.SimpleDiffJson
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiModule
@@ -84,10 +86,10 @@ class EventLogAPI(
     eventLogDetail:     EventLogDetailsGenerator,
     translateEventType: EventLogType => String
 ) extends LiftApiModuleProvider[EventLogApi] {
-  import EventLogService.*
+  import com.normation.rudder.rest.internal.EventLogService.*
 
-  implicit val translateEventLogType: EventLogType => String   = translateEventType
-  implicit val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
+  implicit lazy val translateEventLogType: EventLogType => String   = translateEventType
+  implicit lazy val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
 
   override def schemas: ApiModuleProvider[EventLogApi] = EventLogApi
 
@@ -258,14 +260,16 @@ class EventLogService(
   def getEventLogDetails(id: Long)(implicit qc: QueryContext): IOResult[RestEventLogDetails] = {
 
     (for {
-      event      <- repo.getEventLogById(id)
-      crId       <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
-      htmlDetails = eventLogDetailGenerator.displayDetails(event, crId.flatten)
+      event             <- repo.getEventLogById(id)
+      crId              <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
+      htmlDetails        = eventLogDetailGenerator.displayDetails(event, crId.flatten)
+      nodePropertiesDiff = eventLogDetailGenerator.nodePropertiesDiff(event)
     } yield {
       RestEventLogDetails(
         id.toString,
         htmlDetails,
-        event.canRollBack
+        event.canRollBack,
+        nodePropertiesDiff.map(_.transformInto[SimpleDiffJson[List[NodeProperty]]])
       )
     }).catchSystemErrors
   }
@@ -290,8 +294,8 @@ object EventLogService {
   /**
    * Syntax to avoid exposing database query errors in the API response,
    * since we don't want to let the user know about SQL error.
-   * 
-   * There is no strong guarantee that this catches all system errors, 
+   *
+   * There is no strong guarantee that this catches all system errors,
    * especially since errors can be chained !
    */
   implicit private class IOResultSystemError[A](io: IOResult[A]) {

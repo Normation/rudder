@@ -117,9 +117,9 @@ trait DependencyAndDeletionService {
    */
   def directiveDependencies(
       id:           DirectiveUid,
-      groupLib:     Box[FullNodeGroupCategory],
+      groupLib:     IOResult[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
-  ): Box[DirectiveDependencies]
+  ): IOResult[DirectiveDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -172,7 +172,7 @@ trait DependencyAndDeletionService {
    * if that target was switching from disabled to enabled
    * (independently from the actual status of that target).
    */
-  def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = true): Box[TargetDependencies]
+  def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = true): IOResult[TargetDependencies]
 
   /**
    * Delete a given item and modify all objects that depends on it.
@@ -280,12 +280,12 @@ class DependencyAndDeletionServiceImpl(
    */
   override def directiveDependencies(
       id:           DirectiveUid,
-      boxGroupLib:  Box[FullNodeGroupCategory],
+      boxGroupLib:  IOResult[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
-  ): Box[DirectiveDependencies] = {
+  ): IOResult[DirectiveDependencies] = {
     for {
       configRules <- findDependencies.findRulesForDirective(id)
-      groupLib    <- boxGroupLib.toIO
+      groupLib    <- boxGroupLib
       filtered    <- onlyForState match {
                        case DontCare        => configRules.succeed
                        case OnlyEnableable  => filterRules(configRules, groupLib)
@@ -294,7 +294,7 @@ class DependencyAndDeletionServiceImpl(
     } yield {
       DirectiveDependencies(id, filtered.toSet)
     }
-  }.toBox
+  }
 
   /**
    * Delete a given item and all its dependencies.
@@ -434,7 +434,7 @@ class DependencyAndDeletionServiceImpl(
    * For now, we don't care about dependencies yielded by parameterized values,
    * and so we just look for rules with targetname=target
    */
-  override def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = false): Box[TargetDependencies] = {
+  override def targetDependencies(target: RuleTarget, onlyEnableable: Boolean = false): IOResult[TargetDependencies] = {
     /* utility method to call if only enableable is set to true, and which filter rule that:
      * - the rule own status is enable ;
      * - have a directive ;
@@ -480,7 +480,7 @@ class DependencyAndDeletionServiceImpl(
     } yield {
       TargetDependencies(target, filtered.toSet)
     }
-  }.toBox
+  }
 
   /**
    * Delete a given item and all its dependencies.

@@ -39,16 +39,14 @@ package com.normation.rudder.domain.workflows
 
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import org.joda.time.DateTime
 
 /*
@@ -146,7 +144,7 @@ final case class ConfigurationChangeRequest(
       (directives.values ++ rules.values ++ nodeGroups.values ++ globalParams.values).toSeq
     val change:  Seq[Change[?, ?, ? <: ChangeItem[?]]]  = changes.map(_.changes)
     val firsts:  Seq[ChangeItem[?]]                     = change.map(_.firstChange)
-    firsts.sortWith((a, b) => a.creationDate isAfter b.creationDate).headOption.map(_.actor.name).getOrElse("No One")
+    firsts.sortWith((a, b) => a.creationDate.isAfter(b.creationDate)).headOption.map(_.actor.name).getOrElse("No One")
   }
 }
 
@@ -171,13 +169,13 @@ sealed trait ChangeItem[DIFF] {
 // A change for the given type is either the value
 // of the item from the "current" environment or
 // a diff.
-// More preciselly, we have sequence of change related
+// More precisely, we have sequence of changes related
 // to an initial state (which can be empty).
 sealed trait Change[T, DIFF, T_CHANGE <: ChangeItem[DIFF]] {
   // A change for the given type is either the value
   // of the item from the "current" environment or
   // a diff.
-  // More preciselly, we have sequence of change related
+  // More precisely, we have sequence of changes related
   // to an initial state (which can be empty).
 
   // we have at least one such sequence
@@ -190,9 +188,9 @@ sealed trait Change[T, DIFF, T_CHANGE <: ChangeItem[DIFF]] {
   // get the composition of all change,
   // the actual change between initialState
   // and last change
-  // it's a box because we can have inconsistant
-  // states, like modify withou an initial state
-  def change: Box[T_CHANGE]
+  // We can have inconsistent states,
+  // like modify without an initial state
+  def change: PureResult[T_CHANGE]
 }
 
 /**
@@ -243,33 +241,34 @@ final case class DirectiveChange(
 ) extends Change[(TechniqueName, Directive, Option[SectionSpec]), ChangeRequestDirectiveDiff, DirectiveChangeItem] {
   @scala.annotation.tailrec
   private def recChange(
-      previousState: Box[DirectiveChangeItem],
+      previousState: PureResult[DirectiveChangeItem],
       nexts:         List[DirectiveChangeItem]
-  ): Box[DirectiveChangeItem] = {
+  ): PureResult[DirectiveChangeItem] = {
     previousState match {
-      case eb: EmptyBox => eb
-      case Full(x) =>
+      case Left(_)  => previousState
+      case Right(x) =>
         nexts match {
-          case Nil       => Full(x)
+          case Nil       => Right(x)
           case h :: tail =>
             (x.diff, h.diff) match {
               case (_, a: AddDirectiveDiff)      =>
-                Failure("Trying to add an already existing Direcive (in the context of that change)")
-              case (a: AddDirectiveDiff, _)      => recChange(Full(h), tail)
+                Left(Inconsistency("Trying to add an already existing Direcive (in the context of that change)"))
+              case (a: AddDirectiveDiff, _)      => recChange(Right(h), tail)
               case (d: DeleteDirectiveDiff, _)   =>
-                Failure("Trying to delete a non existing Directive (in the context of that change request)")
-              case (m: ModifyToDirectiveDiff, _) => recChange(Full(h), tail)
+                Left(Inconsistency("Trying to delete a nonexistent Directive (in the context of that change request)"))
+              case (m: ModifyToDirectiveDiff, _) => recChange(Right(h), tail)
             }
         }
     }
   }
 
-  val change: Box[DirectiveChangeItem] = {
+  val change: PureResult[DirectiveChangeItem] = {
     val allChanges = firstChange :: nextChanges.toList
     (initialState, firstChange.diff) match {
-      case (None, a: AddDirectiveDiff) => recChange(Full(firstChange), nextChanges.toList)
-      case (None, _)                   => Failure("Trying to modify or delete a non existing Directive (in the context of that change request)")
-      case (Some((tn, d, rs)), x)      => recChange(Full(firstChange.copy(diff = ModifyToDirectiveDiff(tn, d, rs))), allChanges)
+      case (None, a: AddDirectiveDiff) => recChange(Right(firstChange), nextChanges.toList)
+      case (None, _)                   =>
+        Left(Inconsistency("Trying to modify or delete a nonexistent Directive (in the context of that change request)"))
+      case (Some((tn, d, rs)), x)      => recChange(Right(firstChange.copy(diff = ModifyToDirectiveDiff(tn, d, rs))), allChanges)
     }
   }
 }
@@ -297,35 +296,36 @@ final case class NodeGroupChange(
 ) extends Change[NodeGroup, ChangeRequestNodeGroupDiff, NodeGroupChangeItem] {
   @scala.annotation.tailrec
   private def recChange(
-      previousState: Box[NodeGroupChangeItem],
+      previousState: PureResult[NodeGroupChangeItem],
       nexts:         List[NodeGroupChangeItem]
-  ): Box[NodeGroupChangeItem] = {
+  ): PureResult[NodeGroupChangeItem] = {
     previousState match {
-      case eb: EmptyBox => eb
-      case Full(x) =>
+      case Left(_)  => previousState
+      case Right(x) =>
         nexts match {
-          case Nil       => Full(x) // no other changes
+          case Nil       => Right(x) // no other changes
           case h :: tail =>
             (x.diff, h.diff) match {
               case (_, a: AddNodeGroupDiff)      =>
-                Failure("Trying to add an already existing NodeGroup (in the context of that change)")
-              case (a: AddNodeGroupDiff, _)      => recChange(Full(h), tail)
+                Left(Inconsistency("Trying to add an already existing NodeGroup (in the context of that change)"))
+              case (a: AddNodeGroupDiff, _)      => recChange(Right(h), tail)
               case (d: DeleteNodeGroupDiff, _)   =>
-                Failure("Trying to apply changes to a deleted NodeGroup (in the context of that change request)")
-              case (m: ModifyToNodeGroupDiff, _) => recChange(Full(h), tail)
+                Left(Inconsistency("Trying to apply changes to a deleted NodeGroup (in the context of that change request)"))
+              case (m: ModifyToNodeGroupDiff, _) => recChange(Right(h), tail)
             }
         }
     }
   }
 
   // compute the change from the initial state to the end of the change request
-  def change: Box[NodeGroupChangeItem] = {
+  def change: PureResult[NodeGroupChangeItem] = {
     val allChanges = firstChange :: nextChanges.toList
     (initialState, firstChange.diff) match {
-      case (None, a: AddNodeGroupDiff) => recChange(Full(firstChange), nextChanges.toList)
-      case (None, _)                   => Failure("Trying to modify or delete a non existing Node Group (in the context of that change request)")
+      case (None, a: AddNodeGroupDiff) => recChange(Right(firstChange), nextChanges.toList)
+      case (None, _)                   =>
+        Left(Inconsistency("Trying to modify or delete a nonexistent Node Group (in the context of that change request)"))
       case (Some(nodeGroupChange), x)  =>
-        recChange(Full(firstChange.copy(diff = ModifyToNodeGroupDiff(nodeGroupChange))), allChanges)
+        recChange(Right(firstChange.copy(diff = ModifyToNodeGroupDiff(nodeGroupChange))), allChanges)
     }
   }
 }
@@ -350,7 +350,7 @@ final case class RuleChange(
     val nextChanges:  Seq[RuleChangeItem]
 ) extends Change[Rule, ChangeRequestRuleDiff, RuleChangeItem] {
 
-  val change: Full[RuleChangeItem] = Full(firstChange)
+  val change: PureResult[RuleChangeItem] = Right(firstChange)
 }
 
 final case class RuleChanges(
@@ -372,7 +372,7 @@ final case class GlobalParameterChange(
     val nextChanges:  Seq[GlobalParameterChangeItem]
 ) extends Change[GlobalParameter, ChangeRequestGlobalParameterDiff, GlobalParameterChangeItem] {
 
-  val change: Full[GlobalParameterChangeItem] = Full(firstChange)
+  val change: PureResult[GlobalParameterChangeItem] = Right(firstChange)
 }
 
 final case class GlobalParameterChanges(

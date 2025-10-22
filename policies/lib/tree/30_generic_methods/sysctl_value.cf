@@ -78,67 +78,39 @@
 
 bundle agent sysctl_value(key, value, filename, option) {
   vars:
-      "old_class_prefix"      string => canonify("sysctl_value_${key}");
-
-      "args"                   slist => { "${key}", "${value}", "${filename}", "${option}" };
-      "report_param"          string => join("_", args);
-      "full_class_prefix"     string => canonify("sysctl_value_${report_param}");
-      "class_prefix"          string => string_head("${full_class_prefix}", "1000");
-
-
-      "sysctl_get_query"      string => "${paths.sysctl} -n ${key} # Get value (expect ${value}, option ${option})";
-      "sysctl_check_query"    string => "${paths.sysctl} -n ${key} # Check value (expect ${value}, option ${option})";
-      "canonified_key"        string => canonify("key");
-
-      "sysctl_file_path"      string => "/etc/sysctl.d/${filename}.conf";
-      "full_inner_class_prefix_key_value"
-                              string => canonify("file_ensure_key_value_${sysctl_file_path}_${key}_${value}_=_lax");
-      "inner_class_prefix_key_value"
-                              string => string_head("${full_inner_class_prefix_key_value}", "1000");
-
-      # we fetch on the getKey
-      "getKey"                string => canonify("get${key}");
-      "full_inner_class_prefix_variable_get"
-                              string => canonify("variable_string_from_command_sysctl_var_${getKey}_${sysctl_get_query}");
-      "inner_class_prefix_variable_get"
-                              string => string_head("${full_inner_class_prefix_variable_get}", "1000");
-
-      # we fetch on the checkKey
-      "checkKey"              string => canonify("check${key}");
-      "full_inner_class_prefix_variable_check"
-                              string => canonify("variable_string_from_command_sysctl_var_${checkKey}_${sysctl_check_query}");
-      "inner_class_prefix_variable_check"
-                              string => string_head("${full_inner_class_prefix_variable_check}", "1000");
-
-
+      "class_prefix"                      string => canonify("sysctl_value_${key}");
+      "sysctl_get_query"                  string => "${paths.sysctl} -n ${key} # Get value (expect ${value}, option ${option})";
+      "sysctl_check_query"                string => "${paths.sysctl} -n ${key} # Check value (expect ${value}, option ${option})";
+      "canonified_key"                    string => canonify("key");
+      "sysctl_file_path"                  string => "/etc/sysctl.d/${filename}.conf";
+      "getKey"                            string => canonify("get${key}");
+      "checkKey"                          string => canonify("check${key}");
       # reloading the configuration. In info we let it output its output
     info|debug::
-      "sysctl_reload"         string => "${paths.sysctl} --system  # Reload value ${key} (expect ${value}, option ${option})";
+      "sysctl_reload"                     string => "${paths.sysctl} --system  # Reload value ${key} (expect ${value}, option ${option})";
     !(info|debug)::
-      "sysctl_reload"         string => "${paths.sysctl} --system  > /dev/null # Reload value ${key} (expect ${value}, option ${option})";
+      "sysctl_reload"                     string => "${paths.sysctl} --system  > /dev/null # Reload value ${key} (expect ${value}, option ${option})";
     any::
-      "full_inner_class_prefix_sysctl_reload"
-                              string => canonify("command_execution_${sysctl_reload}");
-      "inner_class_prefix_sysctl_reload"
-                              string => string_head("${full_inner_class_prefix_sysctl_reload}", "1000");
+      # read
+      "inner_class_prefix_variable_get"   string => canonify("variable_get_${report_data.method_id}");
+      # check
+      "inner_class_prefix_variable_check" string => canonify("variable_check_${report_data.method_id}");
+      # edit
+      "inner_class_prefix_key_value"      string => canonify("value_${report_data.method_id}");
+      # reload
+      "inner_class_prefix_sysctl_reload"  string => canonify("sysctl_reload${report_data.method_id}");
 
   defaults:
-      "option"                string => "default", if_match_regex => "";
+      "option" string => "default", if_match_regex => "";
 
   classes:
-      # Sanity check : need sysctl.d folder, need redhat7 or more, debian 7 or more, sles12 or more, and 
+      # Sanity check : need sysctl.d folder, need redhat7 or more, debian 7 or more, sles12 or more
       "sysctl_d_exists"   expression => isdir("/etc/sysctl.d");
       "can_edit"          expression => "sysctl_d_exists.!(debian_3|debian_4|debian_5|debian_6|redhat_3|redhat_4|redhat_5|redhat_6|sles_9|sles_10|sles_11|ubuntu_12|ubuntu_10|aix|solaris)";
-
-      "should_report"     expression => "${report_data.should_report}";
-
       "check_smaller"     expression => strcmp(string_downcase("${option}"), "min");
       "check_larger"      expression => strcmp(string_downcase("${option}"), "max");
 
-
-      "check_equality"           not => "check_larger|check_smaller";
-
-    pass1::
+    pass1.!pass2::
       "correct_value"     expression => strcmp("${sysctl_var.${getKey}}", "${value}"),
                              comment => "${report_data.method_id}";
 
@@ -167,81 +139,58 @@ bundle agent sysctl_value(key, value, filename, option) {
                                   if => "${inner_class_prefix_sysctl_reload}_repaired.check_larger";
 
     any::
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"             expression => "pass2";
+      "pass2"             expression => "pass1";
+      "pass1"             expression => "any";
 
   methods:
-      "disable_reporting_${full_class_prefix}"
-                          usebundle => disable_reporting;
+    pass1.!pass2::
+      "${report_data.method_id}" usebundle => call_method("variable_string_from_command");
+      "${report_data.method_id}" usebundle => variable_string_from_command("sysctl_var", "${getKey}", "${sysctl_get_query}");
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix_variable_get}");
+      "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
 
-      "get_value_from_${canonified_key}"
-                          usebundle => variable_string_from_command("sysctl_var", "${getKey}", "${sysctl_get_query}");
-
-    pass2.can_edit::
+    pass1.!pass2.can_edit::
       # if get command returns an error, we need to set the value
       # of if value is not valid
-      "set_value_in_file" usebundle => file_ensure_key_value("${sysctl_file_path}", "${key}", "${value}", "="),
-                                 if => "!correct_value|${inner_class_prefix_variable_get}_error";
+      "${report_data.method_id}" usebundle => call_method("file_ensure_key_value");
+      "${report_data.method_id}" usebundle => file_ensure_key_value("${sysctl_file_path}", "${key}", "${value}", "="),
+                                        if => "!correct_value|${inner_class_prefix_variable_get}_error";
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix_variable_check}");
+      "${report_data.method_id}" usebundle => call_method_end("file_ensure_key_value");
 
 
       # reload the sysctl values
-      "reload_sysctl"     usebundle => command_execution("${sysctl_reload}"),
-                                 if => "!correct_value.!${inner_class_prefix_key_value}_error";
+      "${report_data.method_id}" usebundle => call_method("command_execution");
+      "${report_data.method_id}" usebundle => command_execution("${sysctl_reload}"),
+                                        if => "!correct_value.!${inner_class_prefix_key_value}_error";
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix_sysctl_reload}");
+      "${report_data.method_id}" usebundle => call_method_end("command_execution");
 
-      # verify the value if it needed to be set, and it didn't fail
-      "check_value_from_${canonified_key}"
-                          usebundle => variable_string_from_command("sysctl_var", "${checkKey}", "${sysctl_check_query}"),
-                                 if => "${inner_class_prefix_sysctl_reload}_repaired";
+      # verify the value if it needed to be set, and it did not fail
+      "${report_data.method_id}" usebundle => call_method("variable_string_from_command");
+      "${report_data.method_id}" usebundle => variable_string_from_command("sysctl_var", "${checkKey}", "${sysctl_check_query}"),
+                                        if => "${inner_class_prefix_sysctl_reload}_repaired";
+      "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
 
-      "reenable_reporting_${full_class_prefix}"
-                          usebundle => enable_reporting,
-                                 if => "should_report";
+    pass3.correct_value::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+    pass3.!correct_value.correct_value_post_modif::
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+    pass3.!correct_value::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
+                                        if => or( "!correct_value_post_modif",
+                                                  "${inner_class_prefix_variable_get}_error",
+                                                  "${inner_class_prefix_key_value}_error",
+                                                  "${inner_class_prefix_variable_check}_error",
+                                                  "${inner_class_prefix_sysctl_reload}_error",
+                                                  "!can_edit"
+                                                );
 
-   pass3::
-      #reports
-      "success"  usebundle => _classes_success("${old_class_prefix}"),
-                        if => "correct_value";
-
-      "success"  usebundle => _classes_success("${class_prefix}"),
-                        if => "correct_value";
-
-      "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
-                        if => "correct_value_post_modif";
-
-      "repaired" usebundle => _classes_repaired("${class_prefix}"),
-                        if => "correct_value_post_modif";
-
-
-      "error"    usebundle => _classes_failure("${old_class_prefix}"),
-                        if => and("!correct_value",
-                                   or("!correct_value_post_modif",
-                                      "${inner_class_prefix_variable_get}_error",
-                                      "${inner_class_prefix_key_value}_error",
-                                      "${inner_class_prefix_variable_check}_error",
-                                      "${inner_class_prefix_sysctl_reload}_error",
-                                      "!can_edit"
-                                     )
-                                );
-
-      "error"    usebundle => _classes_failure("${class_prefix}"),
-                        if => and("!correct_value",
-                                   or("!correct_value_post_modif",
-                                      "${inner_class_prefix_variable_get}_error",
-                                      "${inner_class_prefix_key_value}_error",
-                                      "${inner_class_prefix_variable_check}_error",
-                                      "${inner_class_prefix_sysctl_reload}_error",
-                                      "!can_edit"
-                                     )
-                                );
-
-  pass3.can_edit::
-      "report"   usebundle => _log_v3("Set sysctl value for key ${key}, using file ${filename} with option ${option}", "${key}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-  pass3.!sysctl_d_exists::
-      "report"   usebundle => _log_v3("Set sysctl value for key ${key} is not supported on this system as /etc/sysctl.d doesn't exist", "${key}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-  pass3.sysctl_d_exists.!can_edit::
-      "report"   usebundle => _log_v3("Set sysctl value for key ${key} is not supported on this platform (even though /etc/sysctl.d exists)", "${key}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass3.can_edit::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${key}", "Set sysctl value for key ${key}, using file ${filename} with option ${option}", "");
+    pass3.!sysctl_d_exists::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${key}", "Set sysctl value for key ${key} is not supported on this system as /etc/sysctl.d doesn't exist", "");
+    pass3.sysctl_d_exists.!can_edit::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${key}", "Set sysctl value for key ${key} is not supported on this platform (even though /etc/sysctl.d exists)", "");
 }

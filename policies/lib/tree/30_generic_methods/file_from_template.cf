@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File from template
+# @name File from CFEngine template
 # @description Build a file from a legacy CFEngine template
 # @deprecated This method uses CFEngine's templating which is deprecated and not portable across agents.
 # Please use [file_from_template_mustache](#_file_from_template_mustache) or [file_from_template_jinja2](#_file_from_template_jinja2) instead.
@@ -36,33 +36,34 @@
 bundle agent file_from_template(source_template, path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_template_${path}");
-      "args"               slist => { "${source_template}", "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_template_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"       string => canonify("file_from_template_${path}");
+      "inner_class_prefix" string => "${report_data.method_id}_inner";
 
   classes:
-
-    "template_exists" expression => fileexists("${source_template}");
+      "pass3"           expression => "pass2";
+      "pass2"           expression => "pass1";
+      "pass1"           expression => "any";
+      "template_exists" expression => fileexists("${source_template}");
 
   files:
-    "${path}"
-      create          => "true",
-      edit_template   => "${source_template}",
-      edit_defaults   => ncf_empty_select("true"),
-      ifvarclass      => "template_exists",
-      classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass3.template_exists::
+      "${path}"
+        create          => "true",
+        edit_template   => "${source_template}",
+        edit_defaults   => ncf_empty_select("true"),
+        ifvarclass      => "template_exists",
+        classes         => classes_generic("${inner_class_prefix}");
 
   methods:
-    !template_exists::
+    pass3.!template_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "The template source ${source_template} could not be found, build file ${path}", "");
 
-      "template_absent" usebundle => _classes_failure("${old_class_prefix}");
-      "template_absent" usebundle => _classes_failure("${class_prefix}");
-
-    any::
-      "sanitize"        usebundle => _classes_sanitize("${old_class_prefix}");
-      "sanitize"        usebundle => _classes_sanitize("${class_prefix}");
-      "report"          usebundle => _log_v3("Build file ${path} from template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.template_exists::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from template ${source_template}", "");
 
 }

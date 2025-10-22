@@ -36,9 +36,11 @@ import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.effectUioUnit
+import io.scalaland.chimney.cats.*
+import io.scalaland.chimney.partial.*
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.{Logger as _, *}
-import org.slf4j.Logger
+import org.slf4j.*
 
 /**
  * This is our based error for Rudder. Any method that can
@@ -215,12 +217,13 @@ object errors {
   }
 
   final case class Accumulated[E <: RudderError](all: NonEmptyList[E]) extends RudderError {
-    implicit val ord: Order[E]       = new Order[E]() {
+    implicit val ord:     Order[E]       = new Order[E]() {
       override def compare(x: E, y: E): Int = String.CASE_INSENSITIVE_ORDER.compare(x.fullMsg, y.fullMsg)
     }
-    def msg:          String         = all.map(_.fullMsg).toList.mkString(" ; ")
+    override def fullMsg: String         = all.map(_.fullMsg).toList.mkString(" ; ")
+    override def msg:     String         = all.map(_.msg).toList.mkString(" ; ")
     // only unique error
-    def deduplicate:  Accumulated[E] = {
+    def deduplicate:      Accumulated[E] = {
       Accumulated(all.distinct)
     }
   }
@@ -318,7 +321,7 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
       ZIO.partitionPar(in)(f).flatMap(toNEL).withParallelism(n)
@@ -344,11 +347,19 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParN[R, E <: RudderError, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
       in.accumulateParNELN(n)(f).mapError(Accumulated(_))
     }
+  }
+
+  /*
+   * Translate a ZIO[R, ::[E<:RudderError], A] to an accumulated.
+   * This happens often when using `ZIO.validate`
+   */
+  implicit class ToRudderAccumulateErrors[A](val in: ZIO[Any, ::[RudderError], A]) extends AnyVal {
+    def toAccumulated: IOResult[A] = in.mapError(l => Accumulated(NonEmptyList(l.head, l.tail)))
   }
 
   /*
@@ -365,6 +376,17 @@ object errors {
     }
   }
 
+  implicit class ChimneyErrorToPureResult[A](val in: io.scalaland.chimney.partial.Result[A]) extends AnyVal {
+
+    private def errorToString(e: Error): String = s"${e.path.asString}: ${e.message.asString}"
+
+    def toPureResult: PureResult[A] = {
+      in.asValidatedNel.leftMap(e => Accumulated(e.map(err => Inconsistency(errorToString(err))))).toEither
+    }
+
+    def toIO: IOResult[A] = ZIO.fromEither(toPureResult)
+  }
+
   /**
    *  Some box compatibility methods
    */
@@ -376,7 +398,7 @@ object errors {
 
   object BoxUtil {
 
-    def fold[E <: RudderError, A, F[_]: cats.Monad](error: RudderError => F[A], success: A => F[A])(box: Box[A]): F[A] = {
+    def fold[A, F[_]](error: RudderError => F[A], success: A => F[A])(box: Box[A]): F[A] = {
       def toFail(f: Failure): RudderError = {
         (f.chain, f.exception) match {
           case (Full(parent), _) => Chained(f.msg, toFail(parent))
@@ -397,19 +419,17 @@ object errors {
   }
 
   implicit class BoxToEither[E <: RudderError, A](val res: Box[A]) extends AnyVal {
-    import cats.instances.either.*
-    def toPureResult: PureResult[A] = BoxUtil.fold[E, A, PureResult](
+    def toPureResult: PureResult[A] = BoxUtil.fold[A, PureResult](
       err => Left(err),
       suc => Right(suc)
     )(res)
   }
 
   implicit class BoxToIO[E <: RudderError, A](res: => Box[A]) {
-    import _root_.zio.interop.catz.*
     def toIO: IOResult[A] = IOResult
       .attempt(res)
       .flatMap(x => {
-        BoxUtil.fold[E, A, IOResult](
+        BoxUtil.fold[A, IOResult](
           err => err.fail,
           suc => suc.succeed
         )(x)
@@ -544,7 +564,7 @@ object box {
   /**
    * A utility alias type / methods to create ZIO `Managed[RudderError, A]`
    */
-  type IOManaged[A] = ZIO[Any with Scope, RudderError, A]
+  type IOManaged[A] = ZIO[Any & Scope, RudderError, A]
   object IOManaged {
     def make[A](acquire: => A)(release: A => Unit): IOManaged[A] =
       ZIO.acquireRelease(IOResult.attempt(acquire))(a => effectUioUnit(release(a)))
@@ -557,10 +577,73 @@ object box {
 /*
  * A logger interface for logger with "fire and forget" semantic for effects
  */
-trait ZioLogger {
+opaque type RudderLogger = Logger
 
-  // the underlying logger
-  def logEffect: Logger
+object RudderLogger {
+
+  // create from an existing SLF4J logger
+  def apply(logger: Logger): RudderLogger = logger
+
+  // create from a name (relying on logback cache)
+  def apply(loggerName: String): RudderLogger = {
+    RudderLogger(LoggerFactory.getLogger(loggerName))
+  }
+
+  extension (logger: RudderLogger) {
+
+    def logEffect: Logger = logger
+
+    /*
+     * We don't want that errors happening during log be propagated to the app error channel,
+     * because it doesn't have anything to do with app logic and an user won't know what to
+     * do with them.
+     * Nonetheless, we want to log these errors, because we must have a trace somewhere
+     * that something went badly. Obviously, we won't use the logger for that.
+     */
+    def logAndForgetResult[T](log: Logger => T): UIO[Unit] = {
+      com.normation.errors.effectUioUnit(log(logger))
+    }
+
+    def trace(msg: => String): UIO[Unit] = ZIO.when(logger.isTraceEnabled())(logAndForgetResult(_.trace(msg))).unit
+    def debug(msg: => String): UIO[Unit] = ZIO.when(logger.isDebugEnabled())(logAndForgetResult(_.debug(msg))).unit
+    def info(msg:  => String): UIO[Unit] = ZIO.when(logger.isInfoEnabled())(logAndForgetResult(_.info(msg))).unit
+    def warn(msg:  => String): UIO[Unit] = ZIO.when(logger.isWarnEnabled())(logAndForgetResult(_.warn(msg))).unit
+    def error(msg: => String): UIO[Unit] = ZIO.when(logger.isErrorEnabled())(logAndForgetResult(_.error(msg))).unit
+
+    def trace(msg: => String, t: Throwable): UIO[Unit] =
+      ZIO.when(logger.isTraceEnabled())(logAndForgetResult(_.trace(msg, t))).unit
+    def debug(msg: => String, t: Throwable): UIO[Unit] =
+      ZIO.when(logger.isDebugEnabled())(logAndForgetResult(_.debug(msg, t))).unit
+    def info(msg: => String, t: Throwable):  UIO[Unit] =
+      ZIO.when(logger.isInfoEnabled())(logAndForgetResult(_.info(msg, t))).unit
+    def warn(msg: => String, t: Throwable):  UIO[Unit] =
+      ZIO.when(logger.isErrorEnabled())(logAndForgetResult(_.warn(msg, t))).unit
+    def error(msg: => String, t: Throwable): UIO[Unit] =
+      ZIO.when(logger.isWarnEnabled())(logAndForgetResult(_.error(msg, t))).unit
+
+    def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logger.isTraceEnabled())(action).unit
+    def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logger.isDebugEnabled())(action).unit
+    def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logger.isInfoEnabled())(action).unit
+    def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logger.isErrorEnabled())(action).unit
+    def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logger.isWarnEnabled())(action).unit
+
+  }
+}
+
+// a default implementation that accepts a name for the logger.
+// it will respect slf4j namespacing with ".".
+trait NamedZioLogger {
+  import org.slf4j.LoggerFactory
+
+  // ensure that children use def or lazy val - val leads to UninitializedFieldError.
+  def loggerName: String
+
+  protected def internalLogger: RudderLogger = RudderLogger(LoggerFactory.getLogger(loggerName))
+
+  // for compatibility with current Lift convention, use logger = this
+  def logPure: NamedZioLogger = this
+
+  def logEffect: Logger = internalLogger.logEffect
 
   /*
    * We don't want that errors happening during log be propagated to the app error channel,
@@ -569,48 +652,27 @@ trait ZioLogger {
    * Nonetheless, we want to log these errors, because we must have a trace somewhere
    * that something went badly. Obviously, we won't use the logger for that.
    */
-  final def logAndForgetResult[T](log: Logger => T): UIO[Unit] = {
-    com.normation.errors.effectUioUnit(log(logEffect))
-  }
+  def logAndForgetResult[T](log: Logger => T): UIO[Unit] = internalLogger.logAndForgetResult(log)
 
-  final def trace(msg: => String): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg))).unit
-  final def debug(msg: => String): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(logAndForgetResult(_.debug(msg))).unit
-  final def info(msg:  => String): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(logAndForgetResult(_.info(msg))).unit
-  final def error(msg: => String): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.error(msg))).unit
-  final def warn(msg:  => String): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(logAndForgetResult(_.warn(msg))).unit
+  def trace(msg: => String): UIO[Unit] = internalLogger.trace(msg)
+  def debug(msg: => String): UIO[Unit] = internalLogger.debug(msg)
+  def info(msg:  => String): UIO[Unit] = internalLogger.info(msg)
+  def warn(msg:  => String): UIO[Unit] = internalLogger.warn(msg)
+  def error(msg: => String): UIO[Unit] = internalLogger.error(msg)
 
-  final def trace(msg: => String, t: Throwable): UIO[Unit] =
-    ZIO.when(logEffect.isTraceEnabled())(logAndForgetResult(_.trace(msg, t))).unit
-  final def debug(msg: => String, t: Throwable): UIO[Unit] =
-    ZIO.when(logEffect.isDebugEnabled())(logAndForgetResult(_.debug(msg, t))).unit
-  final def info(msg: => String, t: Throwable):  UIO[Unit] =
-    ZIO.when(logEffect.isInfoEnabled())(logAndForgetResult(_.info(msg, t))).unit
-  final def warn(msg: => String, t: Throwable):  UIO[Unit] =
-    ZIO.when(logEffect.isErrorEnabled())(logAndForgetResult(_.warn(msg, t))).unit
-  final def error(msg: => String, t: Throwable): UIO[Unit] =
-    ZIO.when(logEffect.isWarnEnabled())(logAndForgetResult(_.error(msg, t))).unit
+  def trace(msg: => String, t: Throwable): UIO[Unit] = internalLogger.trace(msg, t)
+  def debug(msg: => String, t: Throwable): UIO[Unit] = internalLogger.debug(msg, t)
+  def info(msg:  => String, t: Throwable): UIO[Unit] = internalLogger.info(msg, t)
+  def warn(msg:  => String, t: Throwable): UIO[Unit] = internalLogger.warn(msg, t)
+  def error(msg: => String, t: Throwable): UIO[Unit] = internalLogger.error(msg, t)
 
-  final def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isTraceEnabled())(action).unit
-  final def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isDebugEnabled())(action).unit
-  final def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logEffect.isInfoEnabled())(action).unit
-  final def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logEffect.isErrorEnabled())(action).unit
-  final def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logEffect.isWarnEnabled())(action).unit
-}
-
-// a default implementation that accepts a name for the logger.
-// it will respect slf4j namespacing with ".".
-trait NamedZioLogger extends ZioLogger {
-  import org.slf4j.LoggerFactory
-
-  // ensure that children use def or lazy val - val leads to UninitializedFieldError.
-  def loggerName: String
-
-  final val logEffect: Logger = LoggerFactory.getLogger(loggerName)
-
-  // for compatibility with current Lift convention, use logger = this
-  def logPure: NamedZioLogger = this
+  def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = internalLogger.ifTraceEnabled(action)
+  def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = internalLogger.ifDebugEnabled(action)
+  def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = internalLogger.ifInfoEnabled(action)
+  def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = internalLogger.ifWarnEnabled(action)
+  def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = internalLogger.ifErrorEnabled(action)
 }
 
 object NamedZioLogger {
-  def apply(name: String): NamedZioLogger = new NamedZioLogger() { def loggerName = name }
+  def apply(name: String): NamedZioLogger = new NamedZioLogger() { def loggerName: String = name }
 }

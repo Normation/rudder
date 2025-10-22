@@ -1,18 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use rand::Rng;
 use std::{process::Command, thread, time};
 
+pub fn random_ports() -> (u16, u16) {
+    let mut rng = rand::rng();
+    let r = rng.random_range(2000..65000);
+    (r, r + 1)
+}
+
+#[allow(dead_code)]
 #[allow(clippy::result_unit_err)]
-pub fn start_api() -> Result<(), ()> {
+pub fn start_api(port: u16) -> Result<(), ()> {
     let mut retry = 10;
     while retry > 0 {
         thread::sleep(time::Duration::from_millis(200));
         retry -= 1;
 
-        let resp = reqwest::blocking::get("http://localhost:3030/rudder/relay-api/1/system/status");
+        let resp = reqwest::blocking::get(format!(
+            "http://localhost:{port}/rudder/relay-api/1/system/status"
+        ));
 
-        if resp.is_ok() {
+        if dbg!(resp).is_ok() {
             return Ok(());
         }
     }
@@ -20,10 +30,11 @@ pub fn start_api() -> Result<(), ()> {
 }
 
 #[allow(dead_code)]
-pub fn fake_server_start(id: String) {
-    thread::spawn(|| {
+pub fn fake_server_start(id: String, port: u16) {
+    thread::spawn(move || {
         Command::new("tests/server.py")
             .arg(id)
+            .arg(port.to_string())
             .spawn()
             .expect("failed to execute process")
     });
@@ -33,16 +44,22 @@ pub fn fake_server_start(id: String) {
         .danger_accept_invalid_certs(true)
         .build()
         .unwrap();
-    let response = client.get("https://localhost:4443/uuid").send().unwrap();
+    let response = client
+        .get(format!("https://localhost:{port}/uuid"))
+        .send()
+        .unwrap();
     assert_eq!(response.status(), hyper::StatusCode::OK);
 }
 
 #[allow(dead_code)]
-pub fn fake_server_stop() {
+pub fn fake_server_stop(port: u16) {
     let client = reqwest::blocking::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
         .unwrap();
-    let response = client.get("https://localhost:4443/stop").send().unwrap();
+    let response = client
+        .get(format!("https://localhost:{port}/stop"))
+        .send()
+        .unwrap();
     assert_eq!(response.status(), hyper::StatusCode::OK);
 }

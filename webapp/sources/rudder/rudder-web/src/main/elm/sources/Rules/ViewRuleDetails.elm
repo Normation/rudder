@@ -42,7 +42,7 @@ editionTemplate model details =
       case originRule of
         Just or ->
           let
-            txtDisabled = if rule.enabled then "Disable" else "Enable"
+            (txtDisabled, iconDisabled) = if rule.enabled then ("Disable", "fa fa-ban") else ("Enable", "fa fa-check-circle")
           in
             (
             [ button [ class "btn btn-default dropdown-toggle" , attribute "data-bs-toggle" "dropdown" ]
@@ -58,11 +58,10 @@ editionTemplate model details =
                 ]
               , li []
                 [ a [ class "dropdown-item", onClick (OpenDeactivationPopup rule)]
-                  [ i [ class "fa fa-ban"] []
+                  [ i [ class iconDisabled] []
                   , text txtDisabled
                   ]
                 ]
-              , li [class "divider"][]
               , li []
                 [ a [ class "dropdown-item action-danger", onClick (OpenDeletionPopup rule)]
                   [ i [ class "fa fa-times-circle"] []

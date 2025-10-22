@@ -2373,6 +2373,14 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 0.0,
+                    "policyMode" : "skipped",
+                    "complianceDetails" : {},
+                    "components" : []
                   }
                 ]
               }
@@ -2463,6 +2471,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2553,6 +2569,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2659,6 +2683,14 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 0.0,
+                    "policyMode" : "skipped",
+                    "complianceDetails" : {},
+                    "components" : []
                   }
                 ]
               }
@@ -2710,6 +2742,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2761,6 +2801,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2801,6 +2849,14 @@ response:
               "complianceDetails" : {
                 "successAlreadyOK" : 100.0
               },
+              "components" : []
+            },
+            {
+              "id" : "br6",
+              "name" : "R6",
+              "compliance" : 0.0,
+              "policyMode" : "skipped",
+              "complianceDetails" : {},
               "components" : []
             },
             {
@@ -3061,18 +3117,6 @@ response:
                 "policyMode" : "skipped",
                 "complianceDetails" : {},
                 "skippedDetails" : {
-                  "overridingRuleId" : "br4",
-                  "overridingRuleName" : "R4"
-                },
-                "components" : []
-              },
-              {
-                "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                "compliance" : 0.0,
-                "policyMode" : "skipped",
-                "complianceDetails" : {},
-                "skippedDetails" : {
                   "overridingRuleId" : "br5",
                   "overridingRuleName" : "R5"
                 },
@@ -3149,6 +3193,3014 @@ response:
                             "reports" : [
                               {
                                 "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get rules compliance
+method: GET
+url: /secure/api/compliance/rules
+response:
+  code: 200
+  content: >-
+    {
+    "action" : "getRulesCompliance",
+    "result" : "success",
+    "data" : {
+      "rules" : [
+        {
+          "id" : "br1",
+          "name" : "R1",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "audit",
+          "complianceDetails" : {
+            "successAlreadyOK" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn1",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn2",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn2",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "compliance" : 100.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn1",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "compliance" : 100.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "r1",
+          "name" : "R1",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "mixed",
+          "complianceDetails" : {
+            "successAlreadyOK" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "directive-techniqueWithBlocks",
+              "name" : "25. Testing blocks",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n1",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n2",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "n2",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive-techniqueWithBlocks",
+                  "name" : "25. Testing blocks",
+                  "compliance" : 100.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "n1",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive-techniqueWithBlocks",
+                  "name" : "25. Testing blocks",
+                  "compliance" : 100.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "br3",
+          "name" : "R3",
+          "compliance" : 0.0,
+          "mode" : "full-compliance",
+          "policyMode" : "audit",
+          "complianceDetails" : {
+            "error" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "directive2",
+              "name" : "directive2",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive2-component-br3-bn1",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn1",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive2-component-br3-bn2",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn2",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn2",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive2",
+                  "name" : "directive2",
+                  "compliance" : 0.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-br3-bn2",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn1",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive2",
+                  "name" : "directive2",
+                  "compliance" : 0.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-br3-bn1",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "r3",
+          "name" : "R3",
+          "compliance" : 0.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {
+            "error" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "directive2",
+              "name" : "directive2",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive2-component-r3-n1",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n1",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive2-component-r3-n2",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n2",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "n2",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive2",
+                  "name" : "directive2",
+                  "compliance" : 0.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-r3-n2",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "n1",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive2",
+                  "name" : "directive2",
+                  "compliance" : 0.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-r3-n1",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "br6",
+          "name" : "R6",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {
+            "successAlreadyOK" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "directive-copyGitFile",
+              "name" : "directive-copyGitFile",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive-copyGitFile-component-br6-bn4",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn4",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-copyGitFile-component-value-br6-bn4",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive-copyGitFile-component-br6-bn5",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn5",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-copyGitFile-component-value-br6-bn5",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "compliance" : 0.0,
+              "policyMode" : "skipped",
+              "complianceDetails" : {},
+              "skippedDetails" : {
+                "overridingRuleId" : "br5",
+                "overridingRuleName" : "R5"
+              },
+              "components" : []
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn4",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive-copyGitFile",
+                  "name" : "directive-copyGitFile",
+                  "compliance" : 100.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive-copyGitFile-component-br6-bn4",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-copyGitFile-component-value-br6-bn4",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn5",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "directive-copyGitFile",
+                  "name" : "directive-copyGitFile",
+                  "compliance" : 100.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive-copyGitFile-component-br6-bn5",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-copyGitFile-component-value-br6-bn5",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "r2",
+          "name" : "R2",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {
+            "successRepaired" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successRepaired" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successRepaired" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n1",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successRepaired" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                          "reports" : [
+                            {
+                              "status" : "successRepaired"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "n1",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successRepaired" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                  "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                  "compliance" : 100.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "successRepaired" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successRepaired" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                          "reports" : [
+                            {
+                              "status" : "successRepaired"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "br4",
+          "name" : "R4",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "mixed",
+          "complianceDetails" : {
+            "successAlreadyOK" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "compliance" : 100.0,
+              "policyMode" : "mixed",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn3",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn3",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn3",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn2",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn2",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn2",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn5",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn4",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn4",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn4",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "compliance" : 100.0,
+                  "policyMode" : "mixed",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn4",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn5",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "compliance" : 100.0,
+                  "policyMode" : "mixed",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn2",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "compliance" : 100.0,
+                  "policyMode" : "mixed",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn2",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn2",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn3",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "compliance" : 100.0,
+                  "policyMode" : "mixed",
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn3",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn3",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "br2",
+          "name" : "R2",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "audit",
+          "complianceDetails" : {
+            "successRepaired" : 100.0
+          },
+          "directives" : [
+            {
+              "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successRepaired" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successRepaired" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn1",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "successRepaired" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                          "reports" : [
+                            {
+                              "status" : "successRepaired"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn1",
+              "name" : "node1.localhost",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successRepaired" : 100.0
+              },
+              "directives" : [
+                {
+                  "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                  "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                  "compliance" : 100.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "successRepaired" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                      "compliance" : 100.0,
+                      "complianceDetails" : {
+                        "successRepaired" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                          "reports" : [
+                            {
+                              "status" : "successRepaired"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id" : "br5",
+          "name" : "R5",
+          "compliance" : 0.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {},
+          "directives" : [],
+          "nodes" : []
+        }
+      ]
+    }
+    }
+---
+description: Get directive Directive2 compliance
+method: GET
+url: /secure/api/compliance/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectiveComplianceId",
+      "result" : "success",
+      "data" : {
+        "directiveCompliance" : {
+          "id" : "directive2",
+          "name" : "directive2",
+          "compliance" : 0.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {
+            "error" : 100.0
+          },
+          "rules" : [
+            {
+              "id" : "br3",
+              "name" : "R3",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive2-component-br3-bn1",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn1",
+                      "name" : "node1.localhost",
+                      "policyMode" : "audit",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive2-component-br3-bn2",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn2",
+                      "name" : "node1.localhost",
+                      "policyMode" : "audit",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "r3",
+              "name" : "R3",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive2-component-r3-n1",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n1",
+                      "name" : "node1.localhost",
+                      "policyMode" : "enforce",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive2-component-r3-n2",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n2",
+                      "name" : "node1.localhost",
+                      "policyMode" : "enforce",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn2",
+              "name" : "node1.localhost",
+              "policyMode" : "audit",
+              "compliance" : 0.0,
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "br3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-br3-bn2",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn1",
+              "name" : "node1.localhost",
+              "policyMode" : "audit",
+              "compliance" : 0.0,
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "br3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-br3-bn1",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "n2",
+              "name" : "node1.localhost",
+              "policyMode" : "enforce",
+              "compliance" : 0.0,
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "r3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-r3-n2",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "n1",
+              "name" : "node1.localhost",
+              "policyMode" : "enforce",
+              "compliance" : 0.0,
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "r3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-r3-n1",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+---
+description: Get all directives compliance
+method: GET
+url: /secure/api/compliance/directives
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectivesCompliance",
+      "result" : "success",
+      "data" : {
+        "directivesCompliance" : [
+          {
+            "id" : "rudder-service-webapp-root",
+            "name" : "rudder-service-webapp-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "rudder-service-apache-root",
+            "name" : "rudder-service-apache-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "directive-copyGitFile",
+            "name" : "directive-copyGitFile",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br6",
+                "name" : "R6",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn4",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn4",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn5",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn5",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "bn4",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn5",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+            "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successRepaired" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "audit",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "bn1",
+                "name" : "node1.localhost",
+                "policyMode" : "audit",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br2",
+                    "name" : "R2",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r2",
+                    "name" : "R2",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "server-common-root",
+            "name" : "server-common-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+            "name" : "directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "test_import_export_archive_directive",
+            "name" : "test_import_export_archive_directive",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "rudder-service-postgresql-root",
+            "name" : "rudder-service-postgresql-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "audit",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn2",
+                        "name" : "node1.localhost",
+                        "policyMode" : "audit",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br6",
+                "name" : "R6",
+                "compliance" : 0.0,
+                "policyMode" : "skipped",
+                "complianceDetails" : {},
+                "components" : []
+              },
+              {
+                "id" : "br4",
+                "name" : "R4",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn3",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn3",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn3",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn2",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn2",
+                        "name" : "node1.localhost",
+                        "policyMode" : "audit",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn5",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn4",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn4",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "bn4",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br4",
+                    "name" : "R4",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn5",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br4",
+                    "name" : "R4",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn2",
+                "name" : "node1.localhost",
+                "policyMode" : "audit",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "br4",
+                    "name" : "R4",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn1",
+                "name" : "node1.localhost",
+                "policyMode" : "audit",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn3",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br4",
+                    "name" : "R4",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn3",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn3",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+         },
+         {
+           "id" : "directive-techniqueWithBlocks",
+           "name" : "25. Testing blocks",
+           "compliance" : 100.0,
+           "mode" : "full-compliance",
+           "policyMode" : "audit",
+           "complianceDetails" : {
+             "successAlreadyOK" : 100.0
+           },
+           "rules" : [    
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n2",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "n2",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "rudder-service-relayd-root",
+            "name" : "rudder-service-relayd-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "inventory-all",
+            "name" : "Inventory",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "gvd-directive1",
+            "name" : "99. Generic Variable Def #1",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "common-root",
+            "name" : "common-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "rudder-service-slapd-root",
+            "name" : "rudder-service-slapd-root",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+            "name" : "directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "gvd-directive2",
+            "name" : "00. Generic Variable Def #2",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "directive1",
+            "name" : "10. Clock Configuration",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : [],
+            "nodes" : []
+          },
+          {
+            "id" : "directive2",
+            "name" : "directive2",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-br3-bn1",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "audit",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive2-component-br3-bn2",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn2",
+                        "name" : "node1.localhost",
+                        "policyMode" : "audit",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn2",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-r3-n1",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive2-component-r3-n2",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n2",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n2",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "bn2",
+                "name" : "node1.localhost",
+                "policyMode" : "audit",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-br3-bn2",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn2",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn1",
+                "name" : "node1.localhost",
+                "policyMode" : "audit",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-br3-bn1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "n2",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n2",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n2",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
                               }
                             ]
                           }

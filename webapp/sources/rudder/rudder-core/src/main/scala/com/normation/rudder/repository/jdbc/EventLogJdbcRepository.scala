@@ -38,7 +38,6 @@
 package com.normation.rudder.repository.jdbc
 
 import cats.implicits.*
-import cats.syntax.list.catsSyntaxList
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.eventlog.*
@@ -49,9 +48,13 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie.*
+import doobie.free.connection
+import doobie.free.preparedstatement
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.util.fragments
+import doobie.util.log.LoggingInfo
+import doobie.util.log.Parameters.NonBatch
 import scala.xml.*
 import zio.interop.catz.*
 
@@ -130,7 +133,7 @@ class EventLogJdbcRepository(
     val limit       = optLimit.map(l => " limit " + l).getOrElse("")
     val eventFilter = eventTypeFilter match {
       case Nil => ""
-      case seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")"
+      case seq => " and eventType in (" + seq.map(_ => "?").mkString(",") + ")"
     }
 
     val q = s"""
@@ -150,8 +153,20 @@ class EventLogJdbcRepository(
     }
 
     transactIOResult(s"Error when retrieving event logs for change request '${changeRequest.value}'")(xa => {
+      import com.normation.rudder.db.Doobie.*
       (for {
-        entries <- HC.stream[(String, EventLogDetails)](q, param, 512).compile.toVector
+
+        // def stream[A: Read](sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int): Stream[ConnectionIO, A] =
+        // liftStream(chunkSize, IFC.prepareStatement(sql), prep, IFPS.executeQuery)
+        // IFC.prepareStatement(sql), prep, IFPS.executeQuery
+        entries <- HC.stream[(String, EventLogDetails)](
+                     connection.prepareStatement(q),
+                     param,
+                     preparedstatement.executeQuery,
+                     512,
+                     LoggingInfo(q, NonBatch(Nil), "get events")
+                   ).compile
+                     .toVector
       } yield {
         entries.map(toEventLog)
       }).transact(xa)

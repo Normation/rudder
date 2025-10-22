@@ -43,7 +43,7 @@ get:
                     items:
                       $ref: ../../components/schemas/api-account.yml
   tags:
-    - API accounts
+    - API account management
   x-codeSamples:
     - lang: curl
       source:

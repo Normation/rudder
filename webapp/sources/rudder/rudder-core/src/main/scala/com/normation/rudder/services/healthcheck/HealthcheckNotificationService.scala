@@ -37,7 +37,6 @@
 package com.normation.rudder.services.healthcheck
 import com.normation.zio.*
 import zio.*
-import zio.Ref
 
 class HealthcheckNotificationService(
     healthcheckService: HealthcheckService,

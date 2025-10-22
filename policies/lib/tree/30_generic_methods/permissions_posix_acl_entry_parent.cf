@@ -182,7 +182,7 @@ bundle agent permissions_posix_acl_entry_parent(path, recursive, user, group, ot
 
   commands:
     pass1::
-      "${sys.workdir}/modules/promises/getParent.py"
+      "${configuration.modules_dir}/promises/getParent.py"
         args => "\"${path}\"",
         module => "true";
 }

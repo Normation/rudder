@@ -3,7 +3,7 @@
 
 use anyhow::{Result, anyhow};
 use nom::{
-    IResult,
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
     combinator::{map, not, opt},
@@ -54,18 +54,19 @@ fn agent_log_level(i: &str) -> IResult<&str, AgentLogLevel> {
         map(tag("R: DEBUG"), |_| "log_warn"),
         // Untagged non-Rudder report, assume info
         non_rudder_report_begin,
-    ))(i)?;
+    ))
+    .parse(i)?;
     // Allow colon after any log level as wild reports are not very consistent
-    let (i, _) = opt(tag(":"))(i)?;
+    let (i, _) = opt(tag(":")).parse(i)?;
     // Remove spaces after detected log level if any
-    let (i, _) = many0(tag(" "))(i)?;
+    let (i, _) = many0(tag(" ")).parse(i)?;
     Ok((i, res))
 }
 
 fn non_rudder_report_begin(i: &str) -> IResult<&str, AgentLogLevel> {
     // A space is already hardcoded after each agent_log_level
     let (i, _) = tag("R:")(i)?;
-    let (i, _) = not(tag(" @@"))(i)?;
+    let (i, _) = not(tag(" @@")).parse(i)?;
     Ok((i, "log_info"))
 }
 
@@ -76,13 +77,13 @@ fn rudder_report_begin(i: &str) -> IResult<&str, &str> {
 }
 
 fn simpleline(i: &str) -> IResult<&str, &str> {
-    let (i, _) = not(alt((agent_log_level, map(tag("R: @@"), |_| ""))))(i)?;
+    let (i, _) = not(alt((agent_log_level, map(tag("R: @@"), |_| "")))).parse(i)?;
     // Compatible with all possible line endings: \n, \r or \r\n
     // * MIME line endings are \r\n
     // * Log lines can contain \r
     // * compatible with simple \n for easier testing
-    let (i, res) = take_till(|c| c == '\n' || c == '\r')(i)?;
-    let (i, _) = alt((tag("\r\n"), tag("\r"), tag("\n")))(i)?;
+    let (i, res) = take_till(|c| c == '\n' || c == '\r').parse(i)?;
+    let (i, _) = alt((tag("\r\n"), tag("\r"), tag("\n"))).parse(i)?;
     Ok((i, res))
 }
 
@@ -103,21 +104,21 @@ fn end_metadata(i: &str) -> IResult<&str, &str> {
 
 /// take_until("@@") but handles multiline (date prefix and CR/LF ending)
 fn simpleline_until_metadata(i: &str) -> IResult<&str, &str> {
-    let (i, _) = not(tag("@@"))(i)?;
+    let (i, _) = not(tag("@@")).parse(i)?;
     // Try to parse as single line metadata.
     // If it fails, parse as a simple line
-    let (i, res) = alt((end_metadata, simpleline))(i)?;
+    let (i, res) = alt((end_metadata, simpleline)).parse(i)?;
     Ok((i, res))
 }
 
 fn multilines(i: &str) -> IResult<&str, Vec<&str>> {
-    let (i, res) = many1(simpleline)(i)?;
+    let (i, res) = many1(simpleline).parse(i)?;
     Ok((i, res))
 }
 
 /// take_until separator but handles multiline (date prefix and CRLF ending)
 fn multilines_metadata(i: &str) -> IResult<&str, Vec<&str>> {
-    let (i, res) = many0(simpleline_until_metadata)(i)?;
+    let (i, res) = many0(simpleline_until_metadata).parse(i)?;
     Ok((i, res))
 }
 
@@ -134,7 +135,7 @@ fn log_entry(i: &str) -> IResult<&str, Log> {
 }
 
 fn log_entries(i: &str) -> IResult<&str, Vec<Log>> {
-    many0(log_entry)(i)
+    many0(log_entry).parse(i)
 }
 
 pub fn report(i: &str) -> IResult<&str, ParsedReport> {
@@ -208,11 +209,11 @@ fn until_next(i: &str) -> IResult<&str, ParsedReport> {
 }
 
 fn maybe_report(i: &str) -> IResult<&str, ParsedReport> {
-    alt((report, garbage, until_next))(i)
+    alt((report, garbage, until_next)).parse(i)
 }
 
 fn runlog(i: &str) -> IResult<&str, Vec<ParsedReport>> {
-    many1(maybe_report)(i)
+    many1(maybe_report).parse(i)
 }
 
 type ParsedReport = std::result::Result<Report, String>;
@@ -235,7 +236,7 @@ impl Report {
                 let (reports, failed): (Vec<_>, Vec<_>) =
                     run_log.into_iter().partition(Result::is_ok);
                 for invalid_report in failed.into_iter().map(Result::unwrap_err) {
-                    eprintln!("Invalid report: {}", invalid_report);
+                    eprintln!("Invalid report: {invalid_report}");
                 }
                 let reports: Vec<Report> = reports.into_iter().map(Result::unwrap).collect();
                 Ok(reports)

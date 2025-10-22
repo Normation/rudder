@@ -46,7 +46,6 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -60,7 +59,7 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import org.joda.time.DateTime
+import java.time.Instant
 import zio.*
 import zio.syntax.*
 
@@ -141,16 +140,16 @@ class DeleteEditorTechniqueImpl(
                                       .map(createCr(_, technique.rootSection))
                                       .reduceOption(mergeCrs)
                                       .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
-                              _  <- wf.startWorkflow(cr)(
+                              _  <- wf.startWorkflow(cr)(using
                                       ChangeContext(
                                         modId,
                                         committer.actor,
-                                        new DateTime(),
+                                        Instant.now(),
                                         Some(s"Deleting technique '${techniqueId.serialize}'"),
                                         None,
                                         committer.nodePerms
                                       )
-                                    ).toIO
+                                    )
                             } yield ()
                           } else {
                             Unexpected(

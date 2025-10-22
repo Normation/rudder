@@ -188,7 +188,8 @@ body > .ng-toast {
 }
 .rudder-template .method textarea.form-control{
   display: block;
-  overflow: hidden;
+  overflow: auto;
+  max-height: 200px;
 }
 
 .icon-output {
@@ -365,8 +366,15 @@ ul.tabs-list > li > .badge.empty{
   background-color: #F8F9FC;
   flex: 1;
 }
-#no-methods{
-  padding: 15px;
+
+.no-methods {
+  position: relative;
+  padding: 0 !important;
+  height: 0;
+  margin: 0 !important;
+}
+.no-methods:first-child:last-child{
+  padding: 15px !important;
   border: 2px dashed #d6deef;
   border-radius: 4px;
   color: #0519258c;
@@ -376,12 +384,49 @@ ul.tabs-list > li > .badge.empty{
   transition-duration: .5s;
   text-align:center;
   opacity: .6;
+  height: initial !important;
 }
 
-.drop-target{
+$drop-zone-height: 20px;
+$drop-zone-marker-height : 6px;
+.drop-target:not(.no-methods),
+.drop-zone{
+  position : relative;
+  margin-top: -$drop-zone-height !important;
+  height: $drop-zone-height;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: $drop-zone-marker-height;
+    background-color: #D6DEEF;
+    opacity: .4;
+    border-radius: 10px;
+  }
+  &.drop-target:before{
+    opacity:1 !important;
+    background-color: #1295C3;
+    box-shadow: 0 0px 12px #1295c236;
+  }
+}
+.drop-target.no-methods{
   border-color: #1295c2 !important;
   opacity:1 !important;
   box-shadow: 0 0px 12px #1295c236;
+}
+
+.card-method.showMethodCall[hidden]{
+  display: block !important;
+  opacity: .4;
+  filter: brightness(95%);
+
+  & > .method[hidden]{
+    display: flex !important;
+  }
 }
 
 /* FILEMANAGER */
@@ -790,7 +835,7 @@ button.btn.clipboard:hover {
 }
 .method-info:not(.closed) .tabs > .block-child{
   margin: -15px -15px -10px -15px;
-  padding: 15px 15px 10px 35px;
+  padding: 20px 15px 10px 35px;
   background-color: #F8F9FC;
 }
 
@@ -945,14 +990,9 @@ ul.list-unstyled > li{
 .card-method:not(.active) .block-child .methods {
   padding-left: 15px;
 }
-
-#methods li.card-method:nth-child(2) {
-  margin-top: 10px;
-}
 .method {
   border-radius: 4px;
   display: flex;
-  transition: all 1s ease;
   max-height:100000px
 }
 .method-elmt {
@@ -1006,15 +1046,19 @@ ul li.hide-method {
   padding-right: 70px;
 }
 #methods .method .method-info label {
-  margin-bottom: 0;
+  margin-bottom: 4px;
   word-break: keep-all;
+  display: inline-flex;
+  align-items: baseline;
 }
 .method .cursorMove {
   background-color: $rudder-bg-dark-gray;
-  padding: 0 10px;
   color: #04192299;
+  padding: 0 10px;
+  min-width: 38px;
   display: flex;
   align-items: center;
+  justify-content: center;
   cursor: grab;
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
@@ -1091,7 +1135,7 @@ ul li.hide-method {
 }
 .method .method-info .method-condition:not(.d-none),
 .method .method-info .method-condition.d-none ~ .method-name{
-  padding-top: 25px;
+  padding-top: 30px;
 }
 .method .method-info.closed .method-param{
   padding-left: 15px;
@@ -1511,28 +1555,38 @@ ul li.hide-method {
 .gm-labels .gm-label.rudder-label.btn {
   cursor: pointer;
 }
-.gm-labels .gm-label.rudder-label {
-  font-size:11px;
-  opacity:0.9;
-  display: inline-block;
-  padding: 0 10px;
-  height: 25px;
-  text-align: center;
-  vertical-align: middle;
-  line-height: 25px;
-  border-radius: 0 0 5px 5px;
-  z-index:10;
-  margin: 0 0 0 5px;
-  font-weight:500;
-  min-width: 0px;
-  cursor: default;
+.gm-labels {
+  .gm-label.rudder-label {
+    font-size:11px;
+    opacity:0.9;
+    display: inline-block;
+    padding: 0 10px;
+    height: 25px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 25px;
+    border-radius: 0 0 5px 5px;
+    z-index:10;
+    margin: 0 0 0 5px;
+    font-weight:500;
+    min-width: 0px;
+    cursor: default;
 
-  &.gm-foreach{
-    background-color: $rudder-primary !important;
-    opacity: 1;
-    & > .counter{
+    &.gm-foreach{
+      background-color: $rudder-primary !important;
+      opacity: 1;
+      & > .counter{
         background-color: color.scale($rudder-primary, $lightness: -20%);
+      }
     }
+  }
+
+  &.policy-mode-label .gm-label.rudder-label.dropdown-toggle{
+    display: inline-flex;
+    align-items: center;
+    line-height: initial;
+    text-align: initial;
+    vertical-align: initial;
   }
 }
 
@@ -1575,7 +1629,7 @@ ul li.hide-method {
 }
 .card-method {
   box-shadow: rgba(50, 50, 105, 0.15) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px;
-  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+  transition: box-shadow 0.3s cubic-bezier(.25,.8,.25,1);
   background-color: #fff;
   border-radius: 6px;
 }

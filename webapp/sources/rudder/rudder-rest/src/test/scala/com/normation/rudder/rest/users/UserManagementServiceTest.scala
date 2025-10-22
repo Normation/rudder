@@ -1,7 +1,8 @@
-package com.normation.rudder.users
+package com.normation.rudder.rest.users
 
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Role
+import com.normation.rudder.users.UserManagementService
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -14,7 +15,7 @@ class UserManagementServiceTest extends Specification {
       val allRoles = Role.allBuiltInRoles.values.toSet
       val parsed   = UserManagementService.parsePermissions(
         Set("node_write", "node_read", "read_only", "some_unknown_permission")
-      )(allRoles)
+      )(using allRoles)
 
       parsed must be equalTo (
         (

@@ -71,7 +71,7 @@ class TechniqueTree(
   val activeTechniqueRepository = RudderConfig.roDirectiveRepository
   val dependencyService         = RudderConfig.dependencyAndDeletionService
   val ruleRepository            = RudderConfig.roRuleRepository
-  val getGrouLib: () => errors.IOResult[FullNodeGroupCategory] = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  val getGrouLib: () => errors.IOResult[FullNodeGroupCategory] = RudderConfig.roNodeGroupRepository.getFullGroupLibrary
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
 

@@ -44,7 +44,6 @@ import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.db.DB
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
-import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
@@ -52,6 +51,7 @@ import com.normation.rudder.services.reports.ComputeNodeStatusReportService
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.PeriodFormat
 
 // message for the queue: what nodes were updated?
@@ -66,8 +66,7 @@ class ReportsExecutionService(
     statusUpdateRepository:         LastProcessedReportRepository,
     cachedChanges:                  CachedNodeChangesServiceImpl,
     computeNodeStatusReportService: ComputeNodeStatusReportService,
-    findNewNodeStatusReports:       FindNewNodeStatusReports,
-    complianceRepos:                ComplianceRepository
+    findNewNodeStatusReports:       FindNewNodeStatusReports
 ) {
 
   val logger = ReportLogger
@@ -79,7 +78,7 @@ class ReportsExecutionService(
   // * mark them as processed
   // * save compliance
   def findAndSaveExecutions(processId: Long): Box[Option[DB.StatusUpdate]] = {
-    val startTime = DateTime.now()
+    val startTime = DateTime.now(DateTimeZone.UTC)
     statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
       case Full(Some((lastReportId, lastReportDate))) =>
@@ -99,12 +98,13 @@ class ReportsExecutionService(
             logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
             fail
           case Full(maxReportId) =>
-            // ok, we'll manage reports from lastReportId to maxReportId - and this is only useful for changes
+            // the maxReportId isn't used for new reports since insert is done by relayd. It is only used
+            // for the hook for computing changes in intervall
 
             for {
               nodes        <- fetchRunsAndCompliance().toBox
               _             = hookForChanges(lastReportId, maxReportId)
-              executionTime = DateTime.now().getMillis() - startTime.getMillis
+              executionTime = DateTime.now(DateTimeZone.UTC).getMillis() - startTime.getMillis
               _             = logger.debug(
                                 s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
                                 s"Added or updated ${nodes.size} agent runs"
@@ -155,8 +155,10 @@ class ReportsExecutionService(
       _                   <- ReportLoggerPure.Cache.debug(
                                s"Invalidated and updated compliance for nodes: [${nodeWithCompliances.map(_._1.value).mkString(", ")}]"
                              )
-      _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
-      _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance))
+      _                   <- computeNodeStatusReportService.outDatedCompliance(
+                               new DateTime(startCompliance, DateTimeZone.UTC),
+                               nodeWithCompliances.keySet
+                             )
       _                   <-
         ReportLoggerPure.Cache.debug(
           s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}"

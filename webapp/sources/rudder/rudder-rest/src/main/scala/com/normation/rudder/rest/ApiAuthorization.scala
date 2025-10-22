@@ -39,6 +39,7 @@ package com.normation.rudder.rest
 
 import cats.data.*
 import cats.implicits.*
+import com.normation.rudder.ActionType
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
 import com.normation.rudder.api.ApiAccount
@@ -49,7 +50,6 @@ import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.AuthenticatedUser
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
@@ -72,9 +72,12 @@ trait ApiAuthorization[T] {
 
 /*
  * A simple class used by API and which hold authentication actor.
- * We only need the authz token/user name
+ * We need the fully authenticated user/account, to be able to check some rights.
+ * We also frequently check other attributes
  */
-final case class AuthzToken(qc: QueryContext)
+final case class AuthzToken(user: AuthenticatedUser) {
+  export user.*
+}
 
 /*
  * This service allows to know if the ACL module is set
@@ -104,8 +107,13 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
   def checkAuthz(endpoint: Endpoint, requestPath: ApiPath): Either[ApiError, AuthzToken] = {
     def checkRO(action: HttpAction): Option[String] = {
-      if (action == HttpAction.GET || action == HttpAction.HEAD) Some("ok")
-      else None
+      Some(action)
+        .filter(
+          _.in(HttpAction.GET, HttpAction.HEAD) ||
+          (endpoint.schema.authz.nonEmpty && endpoint.schema.authz
+            .forall(_.action == ActionType.VALUE.READ.name))
+        )
+        .as("ok")
     }
 
     def checkACL(acl: List[ApiAclElement], path: ApiPath, action: HttpAction): Option[String] = {
@@ -121,8 +129,17 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
       // we want to compare the exact path asked by the user to take care of cases where they only have
       // access to a limited subset of named resourced for the endpoint.
       path <- requestPath.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
-      ok   <- ((aclEnabled(), user.getApiAuthz, user.account) match {
-                /*
+
+      u  <- user.toRight {
+              logger.debug(s"Unauthenticated principal is attempting authorizations checks.")
+              ApiError.Authz(
+                s"Unauthenticated principal is not allowed to access ${endpoint.schema.action.name
+                    .toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}",
+                endpoint.schema.name
+              )
+            }
+      ok <- ((aclEnabled(), u.apiAuthz, u.account) match {
+              /*
                * We need to check the account type. It is ok for a user account to have that
                * kind of ACL rights, because it's the way we use to map actual user account role to internal API
                * access (for ex: a user with role "node r/w/e" can change node properties, which use "update setting"
@@ -134,52 +151,52 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                *   hole with updates)
                * - an user API account is disabled.
                */
-                // without plugin, api account linked to user are disabled
-                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _, _))) =>
-                  logger.warn(
-                    s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled."
-                  )
-                  None // token link to user account is a plugin only feature
+              // without plugin, api account linked to user are disabled
+              case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _, _))) =>
+                logger.warn(
+                  s"API account linked to a user account '${u.name}' is disabled because the API Authorization plugin is disabled."
+                )
+                None // token link to user account is a plugin only feature
 
-                // without plugin but ACL configured, standard api account are change to "no right" to avoid unwanted mod
-                // (making them "ro" could give the token MORE rights than with the plugin - ex: token only have "ro" on compliance)
-                case (
-                      false,
-                      ApiAuthz.ACL(acl),
-                      RudderAccount.Api(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _, _))
-                    ) =>
-                  logger.info(
-                    s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token."
-                  )
-                  None
+              // without plugin but ACL configured, standard api account are change to "no right" to avoid unwanted mod
+              // (making them "ro" could give the token MORE rights than with the plugin - ex: token only have "ro" on compliance)
+              case (
+                    false,
+                    ApiAuthz.ACL(acl),
+                    RudderAccount.Api(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _, _))
+                  ) =>
+                logger.info(
+                  s"API account '${u.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token."
+                )
+                None
 
-                // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
-                case (_, ApiAuthz.None, _)                                                                  =>
-                  logger.debug(s"Account '${user.actor.name}' does not have any authorizations.")
-                  None
+              // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
+              case (_, ApiAuthz.None, _)                                                                  =>
+                logger.debug(s"Account '${u.name}' does not have any authorizations.")
+                None
 
-                case (_, ApiAuthz.RO, _) =>
-                  logger.debug(s"Account '${user.actor.name}' has RO authorization.")
-                  checkRO(endpoint.schema.action)
+              case (_, ApiAuthz.RO, _) =>
+                logger.debug(s"Account '${u.name}' has RO authorization.")
+                checkRO(endpoint.schema.action)
 
-                case (_, ApiAuthz.RW, _) =>
-                  logger.debug(s"Account '${user.actor.name}' has full RW authorization.")
-                  Some("ok")
+              case (_, ApiAuthz.RW, _) =>
+                logger.debug(s"Account '${u.name}' has full RW authorization.")
+                Some("ok")
 
-                case (_, ApiAuthz.ACL(acl), _) =>
-                  logger.debug(s"Account '${user.actor.name}' has ACL authorizations.")
-                  checkACL(acl, path, endpoint.schema.action)
+              case (_, ApiAuthz.ACL(acl), _) =>
+                logger.debug(s"Account '${u.name}' has ACL authorizations.")
+                checkACL(acl, path, endpoint.schema.action)
 
-              }).map(_ => Right(AuthzToken(user.queryContext)))
-                .getOrElse(
-                  Left(
-                    ApiError.Authz(
-                      s"User '${user.actor.name}' is not allowed to access ${endpoint.schema.action.name
-                          .toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}",
-                      endpoint.schema.name
-                    )
+            }).map(_ => Right(AuthzToken(u)))
+              .getOrElse(
+                Left(
+                  ApiError.Authz(
+                    s"User '${u.name}' is not allowed to access ${endpoint.schema.action.name
+                        .toUpperCase()} ${endpoint.prefix.value + "/" + endpoint.schema.path.value}",
+                    endpoint.schema.name
                   )
                 )
+              )
     } yield {
       ok
     }
@@ -283,44 +300,52 @@ object AclCheck {
  */
 object OldInternalApiAuthz {
   import com.normation.rudder.AuthorizationType.*
-  def fail(implicit action: String): Failure = Failure(
-    s"User '${CurrentUser.actor.name}' is not authorized to access API '${action}"
+  private def fail(username: String)(implicit action: String): Failure = Failure(
+    s"User '${username}' is not authorized to access API '${action}"
   )
 
-  def withPerm(isAuthorized: Boolean, resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    if (isAuthorized) resp
-    else {
-      ApiLogger.warn(fail.messageChain)
-      RestUtils.toJsonError(None, fail.messageChain)
+  def withPerm(
+      user:     Option[AuthenticatedUser]
+  )(isAuthorized: AuthenticatedUser => Boolean, resp: => LiftResponse)(implicit
+      action:   String,
+      prettify: Boolean
+  ): LiftResponse = {
+    user match {
+      case Some(u) =>
+        if (isAuthorized(u)) {
+          resp
+        } else {
+          ApiLogger.warn(fail(u.name).messageChain)
+          RestUtils.toJsonError(None, fail(u.name).messageChain, ForbiddenError)
+        }
+      case None    =>
+        val failure = {
+          Failure(
+            s"Unauthenticated user is not authorized to access API '${action}"
+          )
+        }
+        ApiLogger.warn(failure.messageChain)
+        RestUtils.toJsonError(None, failure.messageChain, ForbiddenError)
     }
   }
 
-  // Still used in RestApiAccounts
-  def withWriteAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(CurrentUser.checkRights(Administration.Write) || CurrentUser.checkRights(Administration.Edit), resp)
-  }
-
   // this right is used for directive/rule tags completion, shared file/technique resource access, etc
-  def withReadConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(CurrentUser.checkRights(Configuration.Read), resp)
+  def withReadConfig(
+      user: Option[AuthenticatedUser]
+  )(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(user)(_.checkRights(Configuration.Read), resp)
   }
 
   // for quick search
-  def withReadUser(user: AuthenticatedUser)(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(user.checkRights(Configuration.Read) || user.checkRights(Node.Read), resp)
-  }
-
-  def withReadUser(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(CurrentUser.checkRights(Configuration.Read) || CurrentUser.checkRights(Node.Read), resp)
-  }
-
-  def withWriteConfig(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(CurrentUser.checkRights(Configuration.Write) || CurrentUser.checkRights(Configuration.Edit), resp)
+  def withReadUser(
+      user: Option[AuthenticatedUser]
+  )(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
+    withPerm(user)(u => u.checkRights(Configuration.Read) || u.checkRights(Node.Read), resp)
   }
 
   def withWriteConfig(
-      user: AuthenticatedUser
+      user: Option[AuthenticatedUser]
   )(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(user.checkRights(Configuration.Write) || user.checkRights(Configuration.Edit), resp)
+    withPerm(user)(u => u.checkRights(Configuration.Write) || u.checkRights(Configuration.Edit), resp)
   }
 }

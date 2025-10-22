@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
@@ -74,8 +75,6 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.hooks.CmdResult
-import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -97,6 +96,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
@@ -110,7 +110,7 @@ import zio.syntax.*
 @RunWith(classOf[JUnitRunner])
 class TestEditorTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
   sequential
-  lazy val basePath: String = "/tmp/test-technique-writer-" + DateTime.now.toString()
+  lazy val basePath: String = "/tmp/test-technique-writer-" + DateTime.now(DateTimeZone.UTC).toString()
 
   override def beforeAll(): Unit = {
     new JFile(basePath).mkdirs()
@@ -131,6 +131,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:   EventActor,
         msg:         String
     ): IOResult[Unit] = ZIO.unit
+
+    override def deleteCategoryRecursively(
+        categoryId: TechniqueCategoryId,
+        modId:      ModificationId,
+        committer:  EventActor,
+        msg:        String
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
     override def saveTechnique(
         techniqueId:     TechniqueId,
         categories:      Seq[String],
@@ -147,6 +157,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:  EventActor,
         msg:        String
     ): IOResult[Unit] = ZIO.unit
+
+    override def updateTechniqueCategoryRecursively(
+        category:  TechniqueCategoryId,
+        modId:     ModificationId,
+        committer: EventActor,
+        msg:       String
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
+    override def parseTechnique(techniqueId: TechniqueId, techniquePath: File): IOResult[Technique] = {
+      Unexpected("parseTechnique is not implemented").fail
+    }
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
@@ -298,19 +321,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getWorkflowService(): WorkflowService = ???
 
-    def getForRule(actor: EventActor, change: RuleChangeRequest): Box[WorkflowService] = ???
+    def getForRule(actor: EventActor, change: RuleChangeRequest): IOResult[WorkflowService] = ???
 
-    def getForDirective(actor: EventActor, change: DirectiveChangeRequest): Box[WorkflowService] = ???
+    def getForDirective(actor: EventActor, change: DirectiveChangeRequest): IOResult[WorkflowService] = ???
 
-    def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest): Box[WorkflowService] = ???
+    def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest): IOResult[WorkflowService] = ???
 
-    def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = ???
+    def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): IOResult[WorkflowService] = ???
 
-    def getByDirective(id: DirectiveUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
 
-    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
 
-    def getByRule(id: RuleUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByRule(id: RuleUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
   }
 
   def techRepo: TechniqueRepository = new TechniqueRepository {
@@ -336,9 +359,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
-  val parameterTypeService: PlugableParameterTypeService = new PlugableParameterTypeService
 
-  import ParameterType.*
+  import com.normation.rudder.ncf.ParameterType.*
   val defaultConstraint: List[Constraint.Constraint]    =
     Constraint.AllowEmpty(allow = false) :: Constraint.AllowWhiteSpace(allow = false) :: Constraint.MaxLength(16384) :: Nil
   val methods:           Map[BundleName, GenericMethod] = (GenericMethod(

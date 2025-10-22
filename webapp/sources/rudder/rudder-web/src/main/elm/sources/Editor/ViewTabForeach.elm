@@ -193,7 +193,7 @@ displayTabForeach uiInfo =
                     , element "b"
                       |> appendChild (element "code"
                         |> addClass "cursorPointer py-2 me-1"
-                        |> addAction ("click", Copy ("${" ++ iteratorName ++ "}.x"))
+                        |> addAction ("click", Copy ("${" ++ iteratorName ++ ".x}"))
                         |> appendChild (element "span" |> appendText "${")
                         |> appendChildConditional (element "span" |> appendText iteratorName) (Maybe.Extra.isJust foreachName)
                         |> appendChildConditional (element "i" |> appendText iteratorName) (Maybe.Extra.isNothing foreachName)
@@ -310,7 +310,7 @@ displayTabForeach uiInfo =
               foreachItems = case foreach of
                 Just items ->
                   items
-                    |> List.map (\f ->
+                    |> List.indexedMap (\index f ->
                       let
                         values = keys
                           |> List.map (\k ->
@@ -319,9 +319,9 @@ displayTabForeach uiInfo =
                                 Just v -> v
                                 Nothing -> ""
 
-                              updateForeachVal : String -> List (Dict String String) -> Dict String String -> Maybe (List (Dict String String))
-                              updateForeachVal newVal list currentForeach =
-                                Just (List.Extra.updateIf (\i -> i == currentForeach) (\i -> Dict.update k (always (Just newVal)) i) list)
+                              updateForeachVal : String -> List (Dict String String) -> Int -> Maybe (List (Dict String String))
+                              updateForeachVal newVal list ind =
+                                Just (List.Extra.updateAt ind (\i -> Dict.update k (always (Just newVal)) i) list)
                             in
                               element "td"
                               |> appendChild ( element "input"
@@ -330,7 +330,7 @@ displayTabForeach uiInfo =
                                   , value val
                                   , class "form-control input-sm"
                                   ]
-                                |> addInputHandler  (\s -> MethodCallModified (updateForeach (updateForeachVal s items f)) Nothing)
+                                |> addInputHandler  (\s -> MethodCallModified (updateForeach (updateForeachVal s items index)) Nothing)
                               )
                           )
                         actionBtns =

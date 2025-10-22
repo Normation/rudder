@@ -206,93 +206,6 @@ CREATE TABLE NodeLastCompliance (
 );
 
 
-/*
- *************************************************************************************
- * The following tables stores "node compliance", i.e all the interesting information
- * about what was the compliance of a node FOR A GIVEN RUN.
- * That table *only* store information for runs, and does not track (non exaustively):
- * - when the node expected configuration is updated - only a new run will check,
- * - node not sending runs - only the fact that we don't have data can be observed
- * - if a node is deleted
- *************************************************************************************
- */
-
--- Create the table for the node compliance
-CREATE TABLE nodeCompliance (
-  nodeId            text NOT NULL CHECK (nodeId <> '')
-, runTimestamp      timestamp with time zone NOT NULL
-
--- endOfList is the date until which the compliance information
--- are relevant. After that date/time, the node must have sent
--- a more recent run, this one is not valide anymore.
-, endOfLife         timestamp with time zone
-
--- all information about the run and what lead to that compliance:
--- the run config version, the awaited config version, etc
--- It's JSON (but in a string, cf explanation in nodeConfigurations table)
--- and has such, it must not be empty (at least '{}')
-
-, runAnalysis       text NOT NULL CHECK (runAnalysis <> '' )
-
--- node compliance summary (i.e, no details by rule etc), in percent
--- that JSON, again
-
-, summary           text NOT NULL CHECK (summary <> '' )
-
--- the actual compliance with all details
--- Again, JSON
-
-, details  text NOT NULL CHECK (details <> '' )
-
--- Primary key is given by a run timestamp and the node id. We could
--- have duplicate if node clock change, but it would need to have
--- exact same timestamp down to the millis, quite improbable.
-
-, PRIMARY KEY (nodeId, runTimestamp)
-);
-
-CREATE INDEX nodeCompliance_nodeId ON nodeCompliance (nodeId);
-CREATE INDEX nodeCompliance_runTimestamp ON nodeCompliance (runTimestamp);
-CREATE INDEX nodeCompliance_endOfLife ON nodeCompliance (endOfLife);
-
-ALTER TABLE nodecompliance set (autovacuum_vacuum_threshold = 0);
-ALTER TABLE nodecompliance set (autovacuum_vacuum_scale_factor = 0.1);
-
--- Create a table of only (nodeid, ruleid, directiveid) -> complianceLevel
--- for all runs. That table is amendable to postgresql-side processing,
--- in particular to allow aggregation of compliance by rule / node / directive,
--- but with a much more reasonable space until all our supported server versions
--- have at least PostgreSQL 9.4.
-CREATE TABLE nodecompliancelevels (
-  nodeId             text NOT NULL CHECK (nodeId <> '')
-, runTimestamp       timestamp with time zone NOT NULL
-, ruleId             text NOT NULL CHECK (ruleId <> '')
-, directiveId        text NOT NULL CHECK (directiveId <> '')
-, pending            int DEFAULT 0
-, success            int DEFAULT 0
-, repaired           int DEFAULT 0
-, error              int DEFAULT 0
-, unexpected         int DEFAULT 0
-, missing            int DEFAULT 0
-, noAnswer           int DEFAULT 0
-, notApplicable      int DEFAULT 0
-, reportsDisabled    int DEFAULT 0
-, compliant          int DEFAULT 0
-, auditNotApplicable int DEFAULT 0
-, nonCompliant       int DEFAULT 0
-, auditError         int DEFAULT 0
-, badPolicyMode      int DEFAULT 0
-, PRIMARY KEY (nodeId, runTimestamp, ruleId, directiveId)
-);
-
-CREATE INDEX nodecompliancelevels_nodeId ON nodecompliancelevels (nodeId);
-CREATE INDEX nodecompliancelevels_ruleId_idx ON nodecompliancelevels (ruleId);
-CREATE INDEX nodecompliancelevels_directiveId_idx ON nodecompliancelevels (directiveId);
-CREATE INDEX nodecompliancelevels_runTimestamp ON nodecompliancelevels (runTimestamp);
-
-ALTER TABLE nodecompliancelevels set (autovacuum_vacuum_scale_factor = 0.05);
-
-
 
 /*
  *************************************************************************************
@@ -401,19 +314,27 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
+CREATE TYPE campaignEventState AS enum ('scheduled', 'pre-hooks', 'running', 'post-hooks', 'finished', 'skipped', 'deleted', 'failure');
+
 CREATE TABLE CampaignEvents (
   campaignId   text
-, eventid      text PRIMARY KEY
+, eventId      text PRIMARY KEY
 , name         text
-, state        jsonb
+, state        campaignEventState NOT NULL
 , startDate    timestamp with time zone NOT NULL
 , endDate      timestamp with time zone NOT NULL
 , campaignType text
 );
 
 
-CREATE INDEX event_state_index ON CampaignEvents ((state->>'value'));
-
+CREATE TABLE CampaignEventsStateHistory (
+  eventId   text references CampaignEvents(eventId) ON DELETE CASCADE
+, state     campaignEventState
+, startDate timestamp with time zone NOT NULL
+, endDate   timestamp with time zone
+, data      jsonb
+, PRIMARY KEY (eventId, state)
+);
 
 /*
  *************************************************************************************
@@ -438,7 +359,7 @@ Create table GlobalScore (
 , details jsonb  NOT NULL
 );
 
-Create table scoreDetails (
+Create table ScoreDetails (
   nodeId  text NOT NULL
 , scoreId text NOT NULL
 , score   score NOT NULL

@@ -58,17 +58,19 @@ class SetupRedirect extends DispatchSnippet with Loggable {
   }
 
   def display(): JsCmd = {
+    // Variables that need to be outside of ZIO context
+    val hasAdminRights     = CurrentUser.checkRights(Administration.Write)
+    val isSetupTab         = CurrentReq.value.request.url.contains("administration/settings#welcomeSetupTab")
+    val redirectToSetupTab = RedirectTo("/secure/administration/settings#welcomeSetupTab")
+
     pluginSettingsService
       .checkIsSetup()
       .map {
-        // only redirect if the user also is admin and is not already on page
-        case false
-            if (
-              CurrentUser
-                .checkRights(Administration.Write) && !CurrentReq.value.request.url.contains("administration/setup")
-            ) =>
-          RedirectTo("/secure/administration/setup")
-        case _ => Noop
+        // only redirect if the user also is admin and is not already on the page for the setup
+        case false if (hasAdminRights && !isSetupTab) =>
+          redirectToSetupTab
+        case _                                        =>
+          Noop
       }
       .catchAll(_ => Noop.succeed)
       .runNow

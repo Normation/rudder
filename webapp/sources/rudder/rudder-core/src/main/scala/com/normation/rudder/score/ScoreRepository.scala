@@ -40,15 +40,16 @@ package com.normation.rudder.score
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie.*
 import com.normation.zio.*
 import doobie.Fragments
 import doobie.Meta
 import doobie.Read
 import doobie.Write
 import doobie.implicits.*
-import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
+import doobie.util.update.Update
 import zio.Ref
 import zio.interop.catz.*
 import zio.json.ast.Json
@@ -56,10 +57,11 @@ import zio.json.ast.Json
 trait ScoreRepository {
 
   def getAll(): IOResult[Map[NodeId, List[Score]]]
-  def getScore(nodeId:    NodeId, scoreId: Option[String]): IOResult[List[Score]]
-  def getOneScore(nodeId: NodeId, scoreId: String):         IOResult[Score]
-  def saveScore(nodeId:   NodeId, score:   Score):          IOResult[Unit]
-  def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit]
+  def getAllOneScore(scoreId: String): IOResult[Map[NodeId, Score]]
+  def getScore(nodeId:        NodeId, scoreId:      Option[String]): IOResult[List[Score]]
+  def getOneScore(nodeId:     NodeId, scoreId:      String):         IOResult[Score]
+  def saveScore(nodeId:       NodeId, score:        Score):          IOResult[Unit]
+  def deleteScore(nodeId:     Seq[NodeId], scoreId: Option[String]): IOResult[Unit]
 
 }
 
@@ -67,30 +69,40 @@ trait ScoreRepository {
  * A score repository that does nothing, for tests
  */
 class InMemoryScoreRepository extends ScoreRepository {
-  private[this] val cache:                                           Ref[Map[NodeId, List[Score]]]      = Ref.make(Map[NodeId, List[Score]]()).runNow
-  override def getAll():                                             IOResult[Map[NodeId, List[Score]]] = cache.get
-  override def getScore(nodeId: NodeId, scoreId: Option[String]):    IOResult[List[Score]]              = cache.get.map { c =>
+  private val cache:                                                      Ref[Map[NodeId, List[Score]]]      = Ref.make(Map[NodeId, List[Score]]()).runNow
+  override def getAll():                                                  IOResult[Map[NodeId, List[Score]]] = cache.get
+  override def getAllOneScore(scoreId: String):                           IOResult[Map[NodeId, Score]]       = {
+    for {
+      c <- cache.get
+    } yield {
+      c.flatMap { case (id, scores) => scores.find(_.scoreId == scoreId).map((id, _)) }
+    }
+  }
+  override def getScore(nodeId: NodeId, scoreId: Option[String]):         IOResult[List[Score]]              = cache.get.map { c =>
     val nodeScore = c.get(nodeId).getOrElse(Nil)
     scoreId match {
       case None     => nodeScore
       case Some(id) => nodeScore.filter(_.scoreId == id)
     }
   }
-  override def getOneScore(nodeId: NodeId, scoreId: String):         IOResult[Score]                    =
+  override def getOneScore(nodeId: NodeId, scoreId: String):              IOResult[Score]                    =
     getScore(nodeId, Some(scoreId)).flatMap(_.headOption.notOptional(""))
-  override def saveScore(nodeId: NodeId, score: Score):              IOResult[Unit]                     = cache.update(c => {
+  override def saveScore(nodeId: NodeId, score: Score):                   IOResult[Unit]                     = cache.update(c => {
     c.updatedWith(nodeId) {
       case None         => Some(score :: Nil)
       case Some(values) => Some(score :: values.filterNot(_.scoreId == score.scoreId))
     }
   })
-  override def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit]                     = cache.update(c => {
-    c.updatedWith(nodeId) {
-      case None         => None
-      case Some(values) =>
-        scoreId match {
-          case None          => None
-          case Some(scoreId) => Some(values.filterNot(_.scoreId == scoreId))
+  override def deleteScore(nodeId: Seq[NodeId], scoreId: Option[String]): IOResult[Unit]                     = cache.update(c => {
+    nodeId.foldLeft(c) {
+      case (acc, n) =>
+        acc.updatedWith(n) {
+          case None         => None
+          case Some(values) =>
+            scoreId match {
+              case None          => None
+              case Some(scoreId) => Some(values.filterNot(_.scoreId == scoreId))
+            }
         }
     }
   })
@@ -130,9 +142,17 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
   import doobie.*
   override def getAll(): IOResult[Map[NodeId, List[Score]]] = {
-    val q = sql"select nodeId, scoreId, score, message, details from scoreDetails "
+    val q = sql"select nodeId, scoreId, score, message, details from scoredetails "
     transactIOResult(s"error when getting scores for node")(xa => q.query[(NodeId, Score)].to[List].transact(xa))
       .map(_.groupMap(_._1)(_._2))
+  }
+
+  override def getAllOneScore(scoreId: String): IOResult[Map[NodeId, Score]] = {
+
+    val whereName = fr"scoreId = ${scoreId}"
+    val where     = Fragments.whereAnd(whereName)
+    val q         = sql"select nodeid, scoreId, score, message, details from scoredetails " ++ where
+    transactIOResult(s"error when getting one score for all nodes")(xa => q.query[(NodeId, Score)].toMap.transact(xa))
   }
 
   override def getScore(nodeId: NodeId, scoreId: Option[String]): IOResult[List[Score]] = {
@@ -140,22 +160,22 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
     val whereNode = Some(fr"nodeId = ${nodeId.value}")
     val whereName = scoreId.map(n => fr"scoreId = ${n}")
     val where     = Fragments.whereAndOpt(whereNode, whereName)
-    val q         = sql"select scoreId, score, message, details from scoreDetails " ++ where
-    transactIOResult(s"error when getting scores for node")(xa => q.query[Score].to[List].transact(xa))
+    val q         = sql"select scoreId, score, message, details from scoredetails " ++ where
+    transactIOResult(s"error when getting scores for node ${nodeId} ")(xa => q.query[Score].to[List].transact(xa))
   }
 
   override def getOneScore(nodeId: NodeId, scoreId: String): IOResult[Score] = {
     val whereNode = fr"nodeId = ${nodeId.value}"
     val whereName = fr"scoreId = ${scoreId}"
     val where     = Fragments.whereAnd(whereNode, whereName)
-    val q         = sql"select scoreId, score, message, details from scoreDetails " ++ where
+    val q         = sql"select scoreId, score, message, details from scoredetails " ++ where
     transactIOResult(s"error when getting scores for node")(xa => q.query[Score].unique.transact(xa))
   }
 
   override def saveScore(nodeId: NodeId, score: Score): IOResult[Unit] = {
 
     val query = {
-      sql"""insert into scoreDetails (nodeId, scoreId, score, message, details) values (${(nodeId, score)})
+      sql"""insert into scoredetails (nodeId, scoreId, score, message, details) values (${(nodeId, score)})
            |  ON CONFLICT (nodeId, scoreId) DO UPDATE
            |  SET score = ${score.value}, message = ${score.message}, details = ${score.details} ; """.stripMargin
     }
@@ -164,11 +184,27 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
   }
 
-  override def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit] = {
-    val whereNode = Some(fr"nodeId = ${nodeId.value}")
-    val whereName = scoreId.map(n => fr"scoreId = ${n}")
+  override def deleteScore(nodeId: Seq[NodeId], scoreId: Option[String]): IOResult[Unit] = {
+    val whereNode = Some(fr"nodeId = ?")
+    val whereName = scoreId.map(n => fr"scoreId = ?")
     val where     = Fragments.whereAndOpt(whereNode, whereName)
-    val q         = sql"delete from scoreDetails " ++ where
-    transactIOResult(s"error when deleting score for node ${nodeId.value}")(xa => q.update.run.transact(xa).unit)
+    val query     = (sql"delete from scoredetails " ++ where).internals.sql
+    // query is different wether we have a score id or not
+    scoreId match {
+      case Some(value) =>
+        // A score id is defined, query will be
+        // delete from scoreDetails where nodeid = ? and scoreId = ?
+        val q = Update[(NodeId, String)](query)
+        transactIOResult(s"error when deleting score '${value}' for nodes ${nodeId.map(_.value).mkString(",")}")(xa =>
+          q.updateMany(nodeId.map((_, value))).transact(xa).unit
+        )
+      case None        =>
+        // A score id is not defined, query will be
+        // delete from scoreDetails where nodeid = ?
+        val q = Update[(NodeId)](query)
+        transactIOResult(s"error when deleting all score for nodes ${nodeId.map(_.value).mkString(",")}")(xa =>
+          q.updateMany(nodeId).transact(xa).unit
+        )
+    }
   }
 }

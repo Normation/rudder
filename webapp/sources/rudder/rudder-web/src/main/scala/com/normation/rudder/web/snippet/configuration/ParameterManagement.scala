@@ -45,11 +45,12 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw
@@ -60,8 +61,7 @@ import scala.xml.*
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 
-  private val roParameterService   = RudderConfig.roParameterService
-  private val workflowLevelService = RudderConfig.workflowLevelService
+  private val roParameterService = RudderConfig.roParameterService
 
   private val gridName      = "globalParametersGrid"
   private val gridContainer = "ParamGrid"
@@ -70,7 +70,9 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   // the current GlobalParameterForm component
   private val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display()(CurrentUser.queryContext) } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "display" => { _ => display()(using CurrentUser.queryContext) }
+  }
 
   def display()(implicit qc: QueryContext): NodeSeq = {
     (for {
@@ -124,7 +126,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                                    ("class", "btn btn-success new-icon space-bottom space-top")
                                  )
                                } else NodeSeq.Empty)
-    ).apply(dataTableXml(gridName)) ++ Script(initJs())
+    ).apply(dataTableXml(gridName)) ++ WithNonce.scriptWithNonce(Script(initJs()))
   }
 
   private def dataTableXml(gridName: String) = {
@@ -237,41 +239,45 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       parameter: Option[GlobalParameter]
   )(implicit qc: QueryContext): JsCmd = {
     val change = GlobalParamChangeRequest(action, parameter)
-    workflowLevelService.getForGlobalParam(CurrentUser.actor, change) match {
-      case eb: EmptyBox =>
-        val msg = "An error occured when trying to find the validation workflow to use for that change."
-        logger.error(msg, eb)
-        JsRaw(s"alert('${msg}')") // JsRaw ok, const
 
-      case Full(workflowService) =>
-        parameterPopup.set(
-          Full(
-            new CreateOrUpdateGlobalParameterPopup(
-              change,
-              workflowService,
-              cr => workflowCallBack(action, workflowService.needExternalValidation())(cr)
-            )
-          )
+    parameterPopup.set(
+      Full(
+        new CreateOrUpdateGlobalParameterPopup(
+          change,
+          (cr, workflowService, contextPath) => workflowCallBack(action, change, workflowService, contextPath)(cr)
         )
-        val popupHtml = createPopup
-        SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
-        JsRaw(""" initBsModal("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup)) // JsRaw ok, const
-    }
+      )
+    )
+    val popupHtml = createPopup
+    SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
+    JsRaw(""" initBsModal("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup)) // JsRaw ok, const
+
   }
 
-  private def workflowCallBack(action: GlobalParamModAction, workflowEnabled: Boolean)(
-      returns: Either[GlobalParameter, ChangeRequestId]
+  private def workflowCallBack(
+      action:          GlobalParamModAction,
+      change:          GlobalParamChangeRequest,
+      workflowService: WorkflowService,
+      contextPath:     String
+  )(
+      returns:         Either[GlobalParameter, ChangeRequestId]
   )(implicit qc: QueryContext): JsCmd = {
-    if ((!workflowEnabled) & (action == GlobalParamModAction.Delete)) {
+
+    val jsCmd = returns match {
+      case Left(param)            => // ok, we've received a parameter, do as before
+        closePopup() & updateGrid() & successPopup
+      case Right(changeRequestId) => // oh, we have a change request, go to it
+        linkUtil.redirectToChangeRequestLink(changeRequestId, contextPath)
+    }
+
+    println(jsCmd)
+
+    if ((!workflowService.needExternalValidation()) & (action == GlobalParamModAction.Delete)) {
       closePopup() & onSuccessDeleteCallback()
     } else {
-      returns match {
-        case Left(param)            => // ok, we've received a parameter, do as before
-          closePopup() & updateGrid() & successPopup
-        case Right(changeRequestId) => // oh, we have a change request, go to it
-          linkUtil.redirectToChangeRequestLink(changeRequestId)
-      }
+      jsCmd
     }
+
   }
 
   /**

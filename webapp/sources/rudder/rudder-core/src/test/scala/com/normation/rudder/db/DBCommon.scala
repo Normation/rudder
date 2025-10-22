@@ -45,6 +45,7 @@ import java.util.Properties
 import javax.sql.DataSource
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
 import scala.io.Source
@@ -57,11 +58,7 @@ import zio.interop.catz.*
  */
 trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
-  val now = DateTime.now
-
-  logger.info(
-    """Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test"""
-  )
+  lazy val now = DateTime.now(DateTimeZone.UTC)
 
   lazy val doDatabaseConnection: Boolean = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true
@@ -107,7 +104,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    */
   def sqlClean: String = ""
 
-  override def beforeAll(): Unit = initDb()
+  override def beforeAll(): Unit = {
+    logger.info(
+      """Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test"""
+    )
+    initDb()
+  }
   override def afterAll():  Unit = cleanDb()
 
   def initDb(): Unit = {
@@ -147,7 +149,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   }
 
   // init DB and repositories
-  lazy val dataSource: DataSource with Closeable = {
+  lazy val dataSource: DataSource & Closeable = {
     val config = new RudderDatasourceProvider(
       properties.getProperty("jdbc.driverClassName"),
       properties.getProperty("jdbc.url"),
@@ -161,7 +163,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     config.datasource
   }
 
-  lazy val doobie = new DoobieIO(dataSource)
+  final lazy val doobie = new DoobieIO(dataSource)
   def transacRun[T](query: Transactor[Task] => Task[T]): T = {
     doobie.transactRunEither(xa => query(xa)) match {
       case Right(x) => x

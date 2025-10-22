@@ -58,15 +58,8 @@
 bundle agent file_report_content_head(path, limit)
 {
   vars:
-    !pass1::
-      # to avoid rewriting class prefix when setting default
-      "old_class_prefix"  string => canonify("file_report_content_head_${path}");
-      "args"               slist => { "${path}", "${limit}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_report_content_head_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-    pass1.file_exists::
+      "class_prefix"  string => canonify("file_report_content_head_${path}");
+    pass2.file_exists::
       "content" string => execresult("${ncf_paths.path[head]} -n${limit} \"${path}\"", "useshell");
 
   defaults:
@@ -74,18 +67,18 @@ bundle agent file_report_content_head(path, limit)
 
   classes:
       "file_exists" expression => fileexists("${path}");
-
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"       expression => "pass2";
+      "pass2"       expression => "pass1";
+      "pass1"       expression => "any";
 
   methods:
-    pass2.!file_exists::
-      "error"   usebundle => _classes_failure("${old_class_prefix}");
-      "error"   usebundle => _classes_failure("${class_prefix}");
-      "report"  usebundle => _log_v3("${path} does not exist", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!file_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${path} does not exist", "");
 
-    pass2.file_exists::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
-      "report"  usebundle => _log_v3("${limit} first lines of ${path}:${const.n}---${const.n}${content}---${const.n}file content report", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.file_exists::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${limit} first lines of ${path}:${const.n}---${const.n}${content}---${const.n}file content report", "");
 }

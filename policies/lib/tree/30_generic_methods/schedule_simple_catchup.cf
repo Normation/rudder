@@ -50,32 +50,30 @@ bundle agent schedule_simple_catchup(job_id, agent_periodicity,
 
 {
   vars:
-    any::
-      "old_class_prefix" string => canonify("schedule_simple_${job_id}");
-
-      "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
-                                      "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}", 
-                                      "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("schedule_simple_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-
+      "class_prefix" string => canonify("schedule_simple_${job_id}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
-    any::
-      "simple scheduler"   usebundle => schedule_simple("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
-                                         "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
-                                         "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "catchup");
-
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "new result classes" usebundle => _classes_copy("${old_class_prefix}", "${class_prefix}");
-
-      "report"             usebundle => _log_v3("Scheduling ${job_id} (with catchup schedule)", "${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("schedule_simple");
+      "${report_data.method_id}" usebundle => schedule_simple("${job_id}",
+                                                              "${agent_periodicity}",
+                                                              "${max_execution_delay_minutes}",
+                                                              "${max_execution_delay_hours}",
+                                                              "${start_on_minutes}",
+                                                              "${start_on_hours}",
+                                                              "${start_on_day_of_week}",
+                                                              "${periodicity_minutes}",
+                                                              "${periodicity_hours}",
+                                                              "${periodicity_days}",
+                                                              "catchup");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("schedule_simple");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${job_id}", "Scheduling ${job_id} (with catchup schedule)", "");
 }
 

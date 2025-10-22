@@ -44,7 +44,6 @@ import com.normation.plugins.PluginInstallStatus
 import com.normation.plugins.PluginService
 import com.normation.plugins.PluginsMetadata
 import com.normation.plugins.cli.RudderPackageService.PluginSettingsError
-import com.normation.plugins.settings.PluginSettings
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.ApiModuleProvider
@@ -59,10 +58,6 @@ import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.Chunk
-import zio.json.DeriveJsonDecoder
-import zio.json.DeriveJsonEncoder
-import zio.json.JsonDecoder
-import zio.json.JsonEncoder
 import zio.syntax.*
 
 class PluginInternalApi(
@@ -80,9 +75,6 @@ class PluginInternalApi(
       case API.ChangePluginsStatus => ChangePluginsStatus
     }
   }
-
-  implicit val encoder: JsonEncoder[PluginSettings] = DeriveJsonEncoder.gen[PluginSettings]
-  implicit val decoder: JsonDecoder[PluginSettings] = DeriveJsonDecoder.gen[PluginSettings]
 
   object UpdatePluginsIndex extends LiftApiModule0 {
     val schema:                                                                                                API.UpdatePluginsIndex.type = API.UpdatePluginsIndex

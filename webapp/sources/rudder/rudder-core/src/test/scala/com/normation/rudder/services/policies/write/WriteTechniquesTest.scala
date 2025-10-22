@@ -70,7 +70,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
-import com.softwaremill.quicklens.ModifyPimp
+import com.softwaremill.quicklens.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
@@ -80,6 +80,7 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.io.FileLinesContent
 import org.specs2.matcher.ContentMatchers
@@ -88,7 +89,6 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
-import scala.collection.MapView
 import zio.Chunk
 import zio.syntax.*
 
@@ -168,10 +168,11 @@ class TestSystemData {
 
   def getSystemVars(
       nodeInfo:     CoreNodeFact,
-      allNodeInfos: MapView[NodeId, CoreNodeFact],
-      allGroups:    FullNodeGroupCategory
+      allNodeInfos: Map[NodeId, CoreNodeFact],
+      allGroups:    FullNodeGroupCategory,
+      altConfig:    Boolean = false
   ): Map[String, Variable] = {
-    systemVariableService
+    (if (altConfig) systemVariableServiceAltConfig else systemVariableService)
       .getSystemVariables(
         nodeInfo,
         allNodeInfos,
@@ -202,7 +203,7 @@ class TestSystemData {
     rootNodeConfig.copy(
       nodeInfo = fr,
       policies = policies(fr, baseRootDrafts),
-      nodeContext = getSystemVars(fr, MapView(fr.id -> fr), groupLib),
+      nodeContext = getSystemVars(fr, Map(fr.id -> fr), groupLib),
       parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
   }
@@ -248,7 +249,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
    * put regex for line you don't want to be compared for difference
    */
   def ignoreSomeLinesMatcher(regex: List[String]): LinesPairComparisonMatcher[File, File] = {
-    LinesPairComparisonMatcher[File, File]()(RegexFileContent(regex), RegexFileContent(regex))
+    LinesPairComparisonMatcher[File, File]()(using RegexFileContent(regex), RegexFileContent(regex))
   }
 
   //////////// set-up auto test cleaning ////////////
@@ -278,7 +279,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
      * of the (temp) directory where we wrote them
      */
     path must haveSameFilesAs(EXPECTED_SHARE / expectedPath)
-      .withFilter(filterGeneratedFile _)
+      .withFilter(filterGeneratedFile)
       .withMatcher(
         ignoreSomeLinesMatcher(
           """.*rudder_node_config_id" string => .*"""
@@ -337,7 +338,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
     }
@@ -451,7 +452,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           Map(root.id -> getRootNodeConfig(emptyGroupLib).nodeInfo),
           Map(root.id -> NodeConfigId("root-cfg-id")),
           globalPolicyMode,
-          DateTime.now,
+          DateTime.now(DateTimeZone.UTC),
           parallelism
         )
         .openOrThrowException("Can not write template!")
@@ -477,7 +478,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           Map(root.id -> rnc.nodeInfo),
           Map(root.id -> NodeConfigId("root-cfg-id")),
           globalPolicyMode,
-          DateTime.now,
+          DateTime.now(DateTimeZone.UTC),
           parallelism
         )
         .openOrThrowException("Can not write template!")
@@ -498,7 +499,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     val cfeNC = cfeNodeConfig.copy(
       nodeInfo = factCfe,
       policies = p,
-      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib),
+      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib, altConfig = true),
       runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.policyTypes.isSystem), None, globalPolicyMode)
     )
 
@@ -512,7 +513,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -551,7 +552,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -604,7 +605,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-sys-bool-false-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -645,7 +646,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -705,7 +706,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
     def updateTemplate(rootPath: File): Unit = {
       val clockTemplate =
         new File(rootPath, "configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st")
-      better.files.File(clockTemplate.getAbsolutePath).append(APPENED_TEXT)(StandardCharsets.UTF_8)
+      better.files.File(clockTemplate.getAbsolutePath).append(APPENED_TEXT)(using StandardCharsets.UTF_8)
       // commit
       repo.git.commit().setAll(true).setMessage("Update template file").call()
     }
@@ -725,7 +726,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
     }

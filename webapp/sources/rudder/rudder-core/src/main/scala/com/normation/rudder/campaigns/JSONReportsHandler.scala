@@ -38,7 +38,6 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
@@ -74,27 +73,29 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
       t0         <- currentTimeMillis
       highestId  <- reportsRepository.getHighestId().toIO
       t1         <- currentTimeMillis
-      _          <- CampaignLogger.trace(s"Got highest id of database in ${t1 - t0} ms")
-      _          <- CampaignLogger.debug(s"looking for new json report to parse")
+      _          <- CampaignLogger.Reports.trace(s"Got highest id of database in ${t1 - t0} ms")
+      _          <- CampaignLogger.Reports.debug(s"looking for new json report to parse")
       optLowerId <- propRepo.getReportHandlerLastId
       t2         <- currentTimeMillis
-      _          <- CampaignLogger.trace(s"Got parsed id in ${t2 - t1} ms")
+      _          <- CampaignLogger.Reports.trace(s"Got parsed id in ${t2 - t1} ms")
       lowerId     = optLowerId.getOrElse(highestId)
-      _          <- CampaignLogger.debug(s"Last parsed id was ${lowerId}, max id in database is ${highestId}")
+      _          <- CampaignLogger.Reports.debug(s"Last parsed id was ${lowerId}, max id in database is ${highestId}")
       reports    <- reportsRepository.getReportsByKindBetween(lowerId, None, 1000, List(Reports.REPORT_JSON)).toIO
       t3         <- currentTimeMillis
-      _          <- CampaignLogger.trace(s"Got reports in ${t3 - t2} ms")
+      _          <- CampaignLogger.Reports.trace(s"Got reports in ${t3 - t2} ms")
       _          <- reports.maxByOption(_._1) match {
                       case None              =>
-                        CampaignLogger.debug(s"Found no json report, update parsed id to max id ${highestId}") *>
+                        CampaignLogger.Reports.debug(s"Found no json report, update parsed id to max id ${highestId}") *>
                         propRepo.updateReportHandlerLastId(highestId)
                       case Some(maxIdReport) =>
-                        CampaignLogger.debug(s"Found ${reports.size} json reports, update parsed id to max id ${maxIdReport._1 + 1}") *>
-                        ZIO.foreach(reports)(r => handle(r._2)).unit.catchAll(err => CampaignLogger.error(err.fullMsg)) *>
+                        CampaignLogger.Reports.debug(
+                          s"Found ${reports.size} json reports, update parsed id to max id ${maxIdReport._1 + 1}"
+                        ) *>
+                        ZIO.foreach(reports)(r => handle(r._2)).unit.catchAll(err => CampaignLogger.Reports.error(err.fullMsg)) *>
                         propRepo.updateReportHandlerLastId(maxIdReport._1 + 1)
                     }
       t4         <- currentTimeMillis
-      _          <- CampaignLogger.trace(s"treated reports in ${t4 - t3} ms")
+      _          <- CampaignLogger.Reports.trace(s"treated reports in ${t4 - t3} ms")
     } yield {
       ()
     }
@@ -104,16 +105,18 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
    * start the handler process. It will execute at provided intervals
    */
   def start(interval: Duration): UIO[Nothing] = {
-    CampaignLogger.info(s"Starting campaign report handler running every ${interval.render}") *>
+    CampaignLogger.Reports.info(s"Starting campaign report handler running every ${interval.render}") *>
     loop
       .catchAllCause(cause => {
         cause.failureOrCause match {
           case Left(err)             =>
-            CampaignLogger.error(s"An error occurred while handling campaign reports, error message: ${err.msg}") *>
-            CampaignLogger.debug(s"Campaign report handling error details: ${err.fullMsg}")
+            CampaignLogger.Reports.error(s"An error occurred while handling campaign reports, error message: ${err.msg}") *>
+            CampaignLogger.Reports.debug(s"Campaign report handling error details: ${err.fullMsg}")
           case Right(systemErrCause) =>
-            CampaignLogger.error(s"An error occurred within campaign reports handling system, restarting it, details in debug") *>
-            CampaignLogger.debug(s"Campaign report handling system error details: ${systemErrCause.toString}")
+            CampaignLogger.Reports.error(
+              s"An error occurred within campaign reports handling system, restarting it, details in debug"
+            ) *>
+            CampaignLogger.Reports.debug(s"Campaign report handling system error details: ${systemErrCause.toString}")
         }
       })
       .delay(interval)

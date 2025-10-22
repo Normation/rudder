@@ -425,7 +425,7 @@ body package_method pip(flags)
 # Explicitly match the name of the package, capitalization does count!
 #
 # ```console
-#     $ pip search django | egrep "^Django\s+-"
+#     $ pip search django | grep -E "^Django\s+-"
 #     Django - A high-level Python Web framework [..output trimmed..]
 # ```
 {

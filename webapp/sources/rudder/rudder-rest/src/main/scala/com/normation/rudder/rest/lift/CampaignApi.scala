@@ -4,16 +4,6 @@ import com.normation.errors.Unexpected
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.*
-import com.normation.rudder.campaigns.CampaignEventId
-import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignId
-import com.normation.rudder.campaigns.CampaignLogger
-import com.normation.rudder.campaigns.CampaignRepository
-import com.normation.rudder.campaigns.CampaignSerializer
-import com.normation.rudder.campaigns.CampaignSerializer.*
-import com.normation.rudder.campaigns.CampaignStatusValue
-import com.normation.rudder.campaigns.MainCampaignService
-import com.normation.rudder.campaigns.ScheduleTimeZone
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
@@ -27,6 +17,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.ZIO
 import zio.syntax.*
 
@@ -91,7 +82,7 @@ class CampaignApi(
       val res = {
         for {
           campaign   <- campaignRepository.get(CampaignId(resources))
-          serialized <- ZIO.foreach(campaign)(campaignSerializer.getJson _)
+          serialized <- ZIO.foreach(campaign)(campaignSerializer.getJson)
         } yield {
           serialized
         }
@@ -115,7 +106,7 @@ class CampaignApi(
     ): LiftResponse = {
       val res = {
         for {
-          campaign <- campaignRepository.delete(CampaignId(resources))
+          campaign <- mainCampaignService.deleteCampaign(CampaignId(resources))
         } yield {
           resources
         }
@@ -140,7 +131,7 @@ class CampaignApi(
       val res = {
         for {
           campaign <- campaignRepository.get(CampaignId(resources)).notOptional(s"Campaign with id ${resources} not found")
-          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now())
+          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now(DateTimeZone.UTC))
         } yield {
           newEvent
         }
@@ -185,7 +176,7 @@ class CampaignApi(
     ): LiftResponse = {
       val res = {
         for {
-          campaign <- campaignEventRepository.deleteEvent(id = Some(CampaignEventId(resources)))
+          campaign <- mainCampaignService.deleteCampaignEvent(CampaignEventId(resources))
         } yield {
           resources
         }
@@ -216,7 +207,7 @@ class CampaignApi(
         c           = if (campaign.info.schedule.tz.isDefined) campaign else campaign.setScheduleTimeZone(ScheduleTimeZone.now())
         withId      = if (campaign.info.id.value.isEmpty) c.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else c
         saved      <- mainCampaignService.saveCampaign(withId)
-        serialized <- campaignSerializer.getJson(saved)
+        serialized <- campaignSerializer.getJson(withId)
       } yield {
         serialized
       }).tapError(err => CampaignLogger.error(s"Error when saving campaign: " + err.fullMsg))
@@ -229,15 +220,15 @@ class CampaignApi(
     val schema: API.GetCampaignEvents.type = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
+      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventStateType.withNameInsensitiveOption(s))
+      val campaignType = req.params.getOrElse("campaignType", Nil).map(campaignSerializer.campaignType)
       val campaignId   = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
       val afterDate    = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
-      val order        = req.params.get("order").flatMap(_.headOption)
-      val asc          = req.params.get("asc").flatMap(_.headOption)
+      val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
+      val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
         .getWithCriteria(states, campaignType, campaignId, limit, offset, afterDate, beforeDate, order, asc)
         .toLiftResponseList(params, schema)
@@ -271,18 +262,17 @@ class CampaignApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
+      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventStateType.withNameInsensitiveOption(s))
+      val campaignType = req.params.getOrElse("campaignType", Nil).map(campaignSerializer.campaignType)
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
       val afterDate    = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
-      val order        = req.params.get("order").flatMap(_.headOption)
-      val asc          = req.params.get("asc").flatMap(_.headOption)
+      val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
+      val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
         .getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate, order, asc)
         .toLiftResponseList(params, schema)
-
     }
   }
 }

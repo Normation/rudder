@@ -102,10 +102,11 @@ object RudderPackagePlugin {
     * we can return needed plugin details
     */
   implicit def transformer(implicit
-      rudderFullVersion: String,
-      abiVersion:        AbiVersion,
-      pluginVersion:     PluginVersion,
-      transformLicense:  Transformer[LicenseInfo, PluginLicense]
+      rudderFullVersion:    String,
+      abiVersion:           AbiVersion,
+      pluginVersion:        PluginVersion,
+      statusDisabledReason: StatusDisabledReason,
+      transformLicense:     Transformer[LicenseInfo, PluginLicense]
   ): Transformer[RudderPackagePlugin, Plugin] = {
     val _ = transformLicense // variable is used below
     Transformer
@@ -117,7 +118,8 @@ object RudderPackagePlugin {
           PluginInstallStatus.from(
             if (p.webappPlugin) PluginType.Webapp else PluginType.Integration,
             installed = p.installed,
-            enabled = p.enabled
+            enabled = p.enabled,
+            statusDisabledReason = statusDisabledReason
           )
         }
       )
@@ -125,7 +127,7 @@ object RudderPackagePlugin {
       .withFieldConst(_.abiVersion, abiVersion.value)                       // field is computed upstream
       .withFieldConst(_.pluginVersion, pluginVersion.value)                 // field is computed upstream
       .withFieldComputed(_.pluginType, p => if (p.webappPlugin) PluginType.Webapp else PluginType.Integration)
-      .withFieldConst(_.statusMessage, None)
+      .withFieldConst(_.statusMessage, statusDisabledReason.value)
       .withFieldComputed(
         _.errors,
         PluginError.fromRudderPackagePlugin(_)
@@ -163,10 +165,10 @@ object RudderPackageService {
     def fromResult(cmdResult: CmdResult): PureResult[Option[PluginSettingsError]] = {
       val result = sanitizeCmdResult(cmdResult)
       result.code match {
-        case 0 => Right(None)
-        case 2 => Right(Some(PluginSettingsError.InvalidCredentials(result.stderr)))
-        case 3 => Right(Some(PluginSettingsError.Unauthorized(result.stderr)))
-        case _ => Left(Inconsistency(result.debugString()))
+        case 0 | 15 => Right(None) // 15: SIGTERM when services are restarted
+        case 2      => Right(Some(PluginSettingsError.InvalidCredentials(result.stderr)))
+        case 3      => Right(Some(PluginSettingsError.Unauthorized(result.stderr)))
+        case _      => Left(Inconsistency(result.debugString()))
       }
     }
   }

@@ -34,31 +34,33 @@
 bundle agent file_from_string_mustache(template, path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_string_mustache_${path}");
-      "args"               slist => { "${template}", "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_string_mustache_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-      "content"           string => "EMPTY_RUDDER_TEMPLATE";
-      "content"           string => string_mustache("${template}", datastate());
+      "class_prefix"       string => canonify("file_from_string_mustache_${path}");
+      "inner_class_prefix" string => "${report_data.method_id}_inner";
+      "content"            string => "EMPTY_RUDDER_TEMPLATE";
+      "content"            string => string_mustache("${template}", datastate());
 
   classes:
-    "content_not_updated" expression => strcmp("${content}", "EMPTY_RUDDER_TEMPLATE");
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "content_not_updated" expression => strcmp("${content}", "EMPTY_RUDDER_TEMPLATE");
 
   files:
-    "${path}"
-      create        => "true",
-      edit_line     => insert_lines("${content}"),
-      edit_defaults => ncf_empty_select("true"),
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-      ifvarclass    => "!content_not_updated";
+    pass3.!content_not_updated::
+      "${path}"
+        create        => "true",
+        edit_line     => insert_lines("${content}"),
+        edit_defaults => ncf_empty_select("true"),
+        classes       => classes_generic("${inner_class_prefix}");
 
   methods:
-    content_not_updated::
-      "error if the content is not properly updated"
-        usebundle => _classes_failure("${old_class_prefix}");
-      "error if the content is not properly updated"
-        usebundle => _classes_failure("${class_prefix}");
-    any::
-      "report" usebundle => _log_v3("Build file ${path} from string template", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.content_not_updated::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+    pass3.!content_not_updated::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from string template", "");
 }

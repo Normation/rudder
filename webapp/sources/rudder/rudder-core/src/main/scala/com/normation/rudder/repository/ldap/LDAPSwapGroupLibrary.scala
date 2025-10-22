@@ -52,6 +52,7 @@ import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import zio.*
@@ -210,7 +211,7 @@ class ImportGroupLibraryImpl(
         recSaveUserLib(rudderDit.GROUP.dn.getParent, userLib)
       }
 
-      val archiveId       = NodeGroupLibraryArchiveId(DateTime.now().toString(ISODateTimeFormat.dateTime))
+      val archiveId       = NodeGroupLibraryArchiveId(DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime))
       val targetArchiveDN = rudderDit.ARCHIVES.groupLibDN(archiveId)
 
       // the sequence of operation to actually perform the swap with rollback

@@ -2,9 +2,16 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 mod cli;
+pub mod minijinja_filters;
 use crate::cli::Cli;
 use clap::ValueEnum;
+use core::panic;
+use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
+use std::collections::HashMap;
+use std::io::Write;
+use std::process::{Command, Stdio};
+use tempfile::{NamedTempFile, TempPath};
 
 use std::{
     fs,
@@ -19,7 +26,7 @@ use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     backup::Backup, parameters::Parameters, rudder_debug, run_module,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 // Configuration
 
@@ -27,47 +34,117 @@ use serde_json::Value;
 #[serde(rename_all = "snake_case")]
 pub enum Engine {
     Mustache,
-    MiniJinja,
+    Minijinja,
+    Jinja2,
 }
 
 impl Default for Engine {
     fn default() -> Self {
-        Self::Mustache
+        Self::Minijinja
     }
 }
 
 impl Engine {
-    fn render(
-        self,
+    fn minijinja(
         template_path: Option<&Path>,
         template_src: Option<String>,
         data: Value,
     ) -> Result<String> {
-        Ok(match self {
-            Engine::Mustache => Self::mustache(template_path, template_src, data)?,
-            Engine::MiniJinja => Self::mini_jinja(template_path, template_src, data)?,
-        })
-    }
-
-    fn mini_jinja(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-    ) -> Result<String> {
-        let template = match (&template_path, template_src) {
-            (Some(p), _) => read_to_string(p)
-                .with_context(|| format!("Failed to read template {}", p.display()))?,
-            (_, Some(s)) => s,
+        let (template, template_name) = match (&template_path, template_src) {
+            (Some(p), _) => (
+                read_to_string(p)
+                    .with_context(|| format!("Failed to read template {}", p.display()))?,
+                p.file_name().unwrap().to_string_lossy().into_owned(),
+            ),
+            (_, Some(s)) => (s, "template".to_string()),
             _ => unreachable!(),
         };
-
         // We need to create the Environment even for one template
         let mut env = minijinja::Environment::new();
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
-        env.add_template("rudder", &template)?;
-        let tmpl = env.get_template("rudder").unwrap();
+        minijinja_contrib::add_to_environment(&mut env);
+        env.add_template(&template_name, &template)?;
+        env.add_filter("b64encode", minijinja_filters::b64encode);
+        env.add_filter("b64decode", minijinja_filters::b64decode);
+        env.add_filter("basename", minijinja_filters::basename);
+        env.add_filter("dirname", minijinja_filters::dirname);
+        env.add_filter("urldecode", minijinja_filters::urldecode);
+        env.add_filter("hash", minijinja_filters::hash);
+        env.add_filter("quote", minijinja_filters::quote);
+        env.add_filter("regex_escape", minijinja_filters::regex_escape);
+        env.add_filter("regex_replace", minijinja_filters::regex_replace);
+        let tmpl = env.get_template(&template_name).unwrap();
         Ok(tmpl.render(data)?)
+    }
+
+    fn jinja2(
+        template_path: Option<&Path>,
+        template_src: Option<String>,
+        data: Value,
+        temporary_dir: &Path,
+        python: &str,
+    ) -> Result<String> {
+        let named: TempPath;
+        let template_path = match (&template_path, template_src) {
+            (Some(p), _) => p.to_str().unwrap(),
+            (_, Some(s)) => {
+                let mut tmp_file = NamedTempFile::new().expect("Failed to create tempfile");
+                tmp_file
+                    .write_all(s.to_string().as_bytes())
+                    .expect("Failed to write template in tempfile");
+                named = tmp_file.into_temp_path();
+                named.to_str().unwrap()
+            }
+            _ => unreachable!(),
+        };
+
+        let templating_script_content = include_str!("../jinja2-templating.py");
+        let script_name = "jinja2-templating.py";
+
+        let mut path = PathBuf::from(temporary_dir);
+        path.push(script_name);
+        let templating_script_path = path.to_str().unwrap();
+
+        if !fs::exists(templating_script_path)? {
+            fs::write(templating_script_path, templating_script_content)?;
+            #[cfg(target_family = "unix")]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let perms = fs::Permissions::from_mode(0o755);
+                fs::set_permissions(templating_script_path, perms)?;
+            }
+            #[cfg(target_family = "windows")]
+            {
+                let mut perms = fs::metadata(templating_script_path)?.permissions();
+                perms.set_readonly(false);
+                fs::set_permissions(templating_script_path, perms)?;
+            }
+        }
+
+        let output = if cfg!(target_os = "linux") {
+            let mut child = Command::new(python)
+                .args([templating_script_path, template_path])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .unwrap_or_else(|_| panic!("Failed to execute {}", templating_script_path));
+
+            let stdin = child.stdin.as_mut().unwrap();
+            stdin
+                .write_all(data.to_string().as_bytes())
+                .expect("Failed to write to stdin");
+
+            let output_info = child.wait_with_output()?;
+            let output = String::from_utf8_lossy(&output_info.stdout).to_string();
+            if !output_info.status.success() {
+                bail!("Error {} failed with : {}", script_name, output);
+            }
+            output
+        } else {
+            bail!("Jinja2 templating engine is not supported on Windows")
+        };
+        Ok(output)
     }
 
     fn mustache(
@@ -95,17 +172,33 @@ pub struct TemplateParameters {
     /// Output file path
     path: PathBuf,
     /// Source template path
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
     template_path: Option<PathBuf>,
     /// Inlined source template
-    #[serde(skip_serializing_if = "Option::is_none")]
-    template_src: Option<String>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
+    template_string: Option<String>,
     /// Templating engine
     #[serde(default)]
     engine: Engine,
     /// Data to use for templating
-    #[serde(default)]
-    data: Value,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_data",
+        default
+    )]
+    data: Option<Value>,
+    /// Datastate file path
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
+    datastate_path: Option<PathBuf>,
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
@@ -115,9 +208,46 @@ fn default_as_true() -> bool {
     true
 }
 
+fn deserialize_data<'de, D>(deserializer: D) -> Result<Option<Value>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Null => Ok(None),
+        Value::String(s) if s.is_empty() => Ok(None),
+        Value::String(s) => serde_json::from_str(&s).map_err(serde::de::Error::custom),
+        _ => Ok(Some(value)),
+    }
+}
+
+fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<String> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
+}
+
+fn deserialize_option_pathbuf<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<PathBuf> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|p| {
+        if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
+            None
+        } else {
+            Some(p)
+        }
+    }))
+}
+
 // Module
 
-struct Template {}
+struct Template {
+    python_version: Option<Result<String>>,
+}
 
 impl ModuleType0 for Template {
     fn metadata(&self) -> ModuleTypeMetadata {
@@ -128,6 +258,10 @@ impl ModuleType0 for Template {
             .documentation(docs)
     }
 
+    fn init(&mut self) -> rudder_module_type::ProtocolResult {
+        ProtocolResult::Success
+    }
+
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // Parse as parameters type
         let parameters: TemplateParameters =
@@ -135,9 +269,13 @@ impl ModuleType0 for Template {
 
         match (
             parameters.template_path.is_some(),
-            parameters.template_src.is_some(),
+            parameters.template_string.is_some(),
         ) {
-            (true, true) => bail!("Only one of 'template_path' and 'template_src' can be provided"),
+            (true, true) => bail!(
+                "Only one of 'template_path' and 'template_src' can be provided '{}' and '{}'",
+                parameters.template_string.unwrap(),
+                parameters.template_path.unwrap().display()
+            ),
             (false, false) => {
                 bail!("Need one of 'template_path' and 'template_src'")
             }
@@ -153,10 +291,47 @@ impl ModuleType0 for Template {
         let output_file = &p.path;
         let output_file_d = output_file.display();
 
-        // Compute output
-        let output = p
-            .engine
-            .render(p.template_path.as_deref(), p.template_src, p.data)?;
+        let template_data = if let Some(v) = p.data {
+            v
+        } else if let Some(datastate_path) = p.datastate_path {
+            let data = read_to_string(&datastate_path).with_context(|| {
+                format!(
+                    "Failed to read datastate file: '{}'",
+                    datastate_path.to_string_lossy()
+                )
+            })?;
+            serde_json::from_str(&data)?
+        } else {
+            bail!("Could not get datastate file")
+        };
+
+        let output = match p.engine {
+            Engine::Mustache => {
+                Engine::mustache(p.template_path.as_deref(), p.template_string, template_data)?
+            }
+            Engine::Minijinja => {
+                Engine::minijinja(p.template_path.as_deref(), p.template_string, template_data)?
+            }
+            Engine::Jinja2 => {
+                // Only detect if necessary
+                if self.python_version.is_none() {
+                    self.python_version = Some(get_python_version());
+                }
+
+                let python_bin = match self.python_version {
+                    Some(Ok(ref v)) => v,
+                    Some(Err(ref e)) => bail!("Could not get python version: {}", e),
+                    None => unreachable!(),
+                };
+                Engine::jinja2(
+                    p.template_path.as_deref(),
+                    p.template_string,
+                    template_data,
+                    parameters.temporary_dir.as_path(),
+                    python_bin,
+                )?
+            }
+        };
 
         let already_present = output_file.exists();
 
@@ -185,16 +360,14 @@ impl ModuleType0 for Template {
 
             if reported_diff.len() > max_reported_diff {
                 format!(
-                    "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
-                    output_file_d
+                    "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
                 )
             } else {
                 reported_diff
             }
         } else {
             format!(
-                "Changes to {} could not be reported. The diff output is disabled.",
-                output_file_d
+                "Changes to {output_file_d} could not be reported. The diff output is disabled."
             )
         };
 
@@ -255,11 +428,82 @@ fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Erro
 }
 
 pub fn entry() -> Result<(), anyhow::Error> {
-    let promise_type = Template {};
+    let promise_type = Template {
+        python_version: None,
+    };
 
     if called_from_agent() {
         run_module(promise_type)
     } else {
         Cli::run()
+    }
+}
+
+fn get_python_version() -> Result<String> {
+    let args = ["-c", "import jinja2"];
+    let python_versions = HashMap::from([
+        ("python3", "- python3 -c import jinja2"),
+        ("python2", "- python2 -c import jinja2"),
+        ("python", "- python -c import jinja2"),
+    ]);
+    let mut used_cmd: Vec<&str> = vec![];
+    for (version, cmd) in python_versions {
+        let status = Command::new(version).args(args).status();
+        if status.is_ok() && status?.success() {
+            return Ok(version.to_string());
+        }
+        used_cmd.push(cmd);
+    }
+    bail!(
+        "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n{}",
+        used_cmd.join("\n")
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_data_from_json() {
+        #[derive(Deserialize)]
+        struct DataTest {
+            #[serde(deserialize_with = "deserialize_data", default)]
+            data: Option<Value>,
+        }
+
+        // Using raw data
+        let json = r#"
+{
+    "data": {
+        "name": "Bob",
+        "age": 30
+    }
+}
+"#;
+        let r: DataTest = serde_json::from_str(json).unwrap();
+        let data = r.data.unwrap();
+        assert_eq!(data["name"], "Bob");
+        assert_eq!(data["age"], 30);
+
+        // Using inline JSON
+        let json2 = r#"
+{
+    "data": "{\"name\": \"Bob\", \"age\": 30}"
+}
+"#;
+        let r2: DataTest = serde_json::from_str(json2).unwrap();
+        let data2 = r2.data.unwrap();
+        assert_eq!(data2["name"], "Bob");
+        assert_eq!(data2["age"], 30);
+
+        // With empty data
+        let json3 = r#"
+{
+    "data": ""
+}
+"#;
+        let r3: DataTest = serde_json::from_str(json3).unwrap();
+        assert_eq!(r3.data, None);
     }
 }

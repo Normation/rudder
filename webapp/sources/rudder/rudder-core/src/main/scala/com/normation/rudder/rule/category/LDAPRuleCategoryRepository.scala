@@ -46,9 +46,6 @@ import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.BuildFilter.*
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.LDAPEntry
-import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper

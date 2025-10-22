@@ -5,12 +5,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onCheck)
 import List
 import NaturalOrdering as N exposing (compare)
-
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
-import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
-import String exposing (isEmpty, slice)
-
+import Accounts.DatePickerUtils exposing (checkIfExpired, checkIfTokenV1, posixToString)
+import String exposing (slice)
 import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
 import Maybe.Extra
 
@@ -86,6 +84,9 @@ displayAccountsTable model =
         expirationDate = case a.expirationPolicy of
           ExpireAtDate d  -> posixToString model.ui.datePickerInfo d
           NeverExpire -> "Never"
+        tokenExists = case a.tokenGenerationDate of
+          Just d -> "✓"
+          Nothing -> "-"
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
@@ -94,19 +95,27 @@ displayAccountsTable model =
         , displayAccountDescription a
         , span [class "badge badge-grey"][ text (getAuthorisationType a.authorisationType) ]
         , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
+        , (if checkIfTokenV1 a then span[class "badge-disabled"][] else text "")
         ]
         , td []
         [ span [class "token-txt"][ text a.id ] ]
         , td [class "date"][ text (cleanDate a.creationDate) ]
         , td [class "date"][ text expirationDate ]
-        , td []
-          [ button
+        , td
+          [ class "date"
+          , style "text-align" "right"
+          , title ("Generated: " ++ (a.tokenGenerationDate |> Maybe.Extra.unpack (\_ -> "-") cleanDate))
+          ]
+          [
+            span [style "padding-right" "5px"] [text tokenExists]
+          , button
             [ class "btn btn-default reload-token"
-            , title ("Generated: " ++ (a.tokenGenerationDate |> Maybe.Extra.unpack (\_ -> "-") cleanDate))
             , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
             ]
             [ span [class "fa fa-repeat"][] ]
-          , button
+          ]
+        , td []
+          [ button
             [ class "btn btn-default"
             , onClick (ToggleEditPopup (EditAccount a))
             ]
@@ -136,10 +145,11 @@ displayAccountsTable model =
     table [class "dataTable"]
     [ thead []
       [ tr [class "head"]
-        [ th [class (thClass tableFilters Name    ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Name    )})][ text "Account name"    ]
-        , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"           ]
-        , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Creation date" ]
+        [ th [class (thClass tableFilters Name    ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Name    )})][ text "Account name"]
+        , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"]
+        , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Creation date"]
         , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expiration date" ]
+        , th [class (thClass tableFilters TknDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters TknDate )})][ text "Token"]
         , th [][ text "Actions" ]
         ]
       ]
@@ -206,8 +216,8 @@ htmlEscape s =
     |> String.replace "'" "&#x27;"
     |> String.replace "\\" "&#x2F;"
 
-exposeToken : Token -> String
-exposeToken t = 
+exposeToken : Maybe Token -> String
+exposeToken t =
   case t of
-    New s -> s
-    _ -> ""
+    Just (New s) -> s
+    _            -> ""

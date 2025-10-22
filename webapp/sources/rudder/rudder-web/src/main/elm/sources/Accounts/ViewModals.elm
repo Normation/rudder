@@ -6,11 +6,10 @@ import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (parseTenants)
 import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
-import Maybe.Extra
 
 buildModal : String -> Html Msg -> Html Msg -> Html Msg
 buildModal modalTitle modalBody modalBtn =
@@ -26,7 +25,7 @@ buildModal modalTitle modalBody modalBtn =
                 [ modalBody
                 ]
             , div [ class "modal-footer" ]
-                [ button [ type_ "button", class "btn btn-success", onClick (ToggleEditPopup NoModal) ] [ text "Close" ]
+                [ button [ type_ "button", class "btn btn-default", onClick (ToggleEditPopup NoModal) ] [ text "Close" ]
                 , modalBtn
                 ]
             ]
@@ -122,10 +121,10 @@ displayModal model =
                           else
                               text ""
 
-                      -- if the plugin is disable, only show a read-only view of tenants. Else, it's an option among all, none, a list
+                      -- if the plugin is disabled, only show a read-only view of tenants. Else, it's an option among all, none, a list. Tenants should not be set for full RW access, so we disable it in that case
                       displayTenantAccess =
                           if model.tenantsPluginEnabled then
-                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }) ]
+                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }), disabled (account.authorisationType == "rw") ]
                                   [ option [ value "*", selected (account.tenantMode == AllAccess) ] [ text "Access to all tenants" ]
                                   , option [ value "-", selected (account.tenantMode == NoAccess) ] [ text "Access to no tenant" ]
                                   , option [ value "list", selected (account.tenantMode == ByTenants) ]

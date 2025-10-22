@@ -48,18 +48,14 @@
 bundle agent permissions_type_recursion(path, mode, owner, group, type, recursion)
 {
   vars:
-      "old_class_prefix"        string => canonify("permissions_${path}");
-      "args"                     slist => { "${path}", "${mode}", "${owner}", "${group}", "${type}", "${recursion}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("permissions_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
+      "class_prefix"       string => canonify("permissions_${path}");
+      "inner_class_prefix" string => canonify("${report_data.method_id}_inner");
     pass3::
       #unset classes
-      "cancel_mode"             string => "", classes => if_ok_cancel("permission_type_mode_set");
-      "cancel_owner"            string => "", classes => if_ok_cancel("permission_type_owner_set");
-      "cancel_group"            string => "", classes => if_ok_cancel("permission_type_group_set");
-      
+      "cancel_mode"        string => "", classes => if_ok_cancel("permission_type_mode_set");
+      "cancel_owner"       string => "", classes => if_ok_cancel("permission_type_owner_set");
+      "cancel_group"       string => "", classes => if_ok_cancel("permission_type_group_set");
+
   classes:
       "is_type_all"         expression => strcmp("${type}", "all");
       "is_type_files"       expression => strcmp("${type}", "files");
@@ -75,7 +71,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       "permission_type_mode_set"   not => strcmp("", "${mode}"),
                                  scope => "namespace";
       "permission_type_owner_set"  not => strcmp("", "${owner}"),
-                                 scope => "namespace";     
+                                 scope => "namespace";
       "permission_type_group_set"  not => strcmp("", "${group}"),
                                  scope => "namespace";
 
@@ -83,24 +79,21 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-      
   files:
-
     # all must be !pass3, as the classes that drive the body are unset in pass3
     !pass3.is_type_all.is_target_directory.!is_depth_zero::
-
       "${path}"
         create       => "false",
         perms        => ncf_mog_with_option("${mode}", "${owner}", "${group}"),
         depth_search => recurse_with_base("${recursion}"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic("${inner_class_prefix}");
 
     !pass3.is_type_all.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
       "${path}"
         create       => "false",
         perms        => ncf_mog_with_option("${mode}", "${owner}", "${group}"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic("${inner_class_prefix}");
 
     !pass3.is_type_files.is_target_directory.!is_depth_zero::
 
@@ -109,7 +102,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         perms        => ncf_mog_with_option("${mode}", "${owner}", "${group}"),
         depth_search => recurse("${recursion}"),
         file_select  => plain,
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic("${inner_class_prefix}");
 
     !pass3.is_type_files.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
@@ -117,7 +110,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => ncf_mog_with_option("${mode}", "${owner}", "${group}"),
         file_select  => plain,
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic("${inner_class_prefix}");
 
     !pass3.is_type_directories.is_target_directory.!is_depth_zero::
 
@@ -126,7 +119,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         perms        => ncf_mog_with_option("${mode}", "${owner}", "${group}"),
         depth_search => recurse_with_base("${recursion}"),
         file_select  => dirs,
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic("${inner_class_prefix}");
 
     !pass3.is_type_directories.is_target_directory.is_depth_zero::
 
@@ -134,27 +127,19 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => ncf_mog_with_option("${mode}", "${owner}", "${group}"),
         file_select  => dirs,
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic("${inner_class_prefix}");
 
   methods:
 
-    is_type_directories.!is_target_directory::
-      "error report if target is a file and we manage directory"
-            usebundle => _classes_failure("${old_class_prefix}");
-      "error report if target is a file and we manage directory"
-            usebundle => _classes_failure("${class_prefix}");
-
-
-    !target_exists::
-      "error report if target doesn't exist"
-        usebundle => _classes_failure("${old_class_prefix}");
-      "error report if target doesn't exist"
-        usebundle => _classes_failure("${class_prefix}");
+    pass3.is_type_directories.!is_target_directory::
+      "${report_data.method_id}" usebundle => _classes_failure("${inner_class_prefix}");
+    pass3.!target_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${inner_class_prefix}");
 
     # need to sanitize classes as kept may be set when defining only the user or the group in recursive
     pass3::
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-
-      "report"             usebundle => _log_v3("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path} on type ${type} with ${recursion} recursion level", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path} on type ${type} with ${recursion} recursion level", "");
 }

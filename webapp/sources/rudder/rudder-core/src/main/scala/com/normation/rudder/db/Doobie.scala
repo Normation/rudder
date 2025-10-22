@@ -42,6 +42,7 @@ import cats.data.*
 import com.normation.NamedZioLogger
 import com.normation.box.*
 import com.normation.errors.*
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.json.implicits.*
@@ -49,9 +50,9 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import doobie.*
-import doobie.implicits.javasql.*
 import doobie.postgres.implicits.*
 import doobie.util.log.ExecFailure
 import doobie.util.log.LogEvent
@@ -62,6 +63,7 @@ import java.sql.SQLXML
 import javax.sql.DataSource
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.postgresql.util.PGobject
 import scala.xml.Elem
 import scala.xml.XML
@@ -120,7 +122,7 @@ object Doobie {
             val msg   = {
               s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
                  |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                 | arguments = [${a.mkString(", ")}]
+                 | arguments = [${a.allParams.flatten.mkString(", ")}]
         """.stripMargin
             }
             if (total > 100) { // more than that => debug level, not trace
@@ -133,7 +135,7 @@ object Doobie {
             DoobieLogger.debug(
               s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
                  |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                 | arguments = [${a.mkString(", ")}]
+                 | arguments = [${a.allParams.flatten.mkString(", ")}]
                  |   failure = ${t.getMessage}
         """.stripMargin
             )
@@ -141,7 +143,7 @@ object Doobie {
           case ExecFailure(s, a, l, e1, t) =>
             DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
                                   |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                                  | arguments = [${a.mkString(", ")}]
+                                  | arguments = [${a.allParams.flatten.mkString(", ")}]
                                   |   failure = ${t.getMessage}
         """.stripMargin)
         }
@@ -178,7 +180,7 @@ object Doobie {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   implicit val DateTimeMeta: Meta[DateTime] =
-    Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime()))(dt => new java.sql.Timestamp(dt.getMillis))
+    Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime(), DateTimeZone.UTC))(dt => new java.sql.Timestamp(dt.getMillis))
 
   implicit val ReadRuleId: Get[RuleId] = {
     Get[String].map(r => {
@@ -266,12 +268,10 @@ object Doobie {
    * It's Put/Get since it will be hold on a single column
    */
   implicit val jNodeStatusReportGet: Get[JNodeStatusReport] = {
-    import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
     Get.Advanced.other[PGobject](NonEmptyList.of("json")).temap[JNodeStatusReport](o => o.getValue.fromJson[JNodeStatusReport])
   }
 
   implicit val jNodeStatusReportPut: Put[JNodeStatusReport] = {
-    import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
     Put.Advanced.other[PGobject](NonEmptyList.of("json")).tcontramap[JNodeStatusReport] { j =>
       val o = new PGobject
       o.setType("json")
@@ -307,7 +307,7 @@ object Doobie {
     Meta.Advanced.many[Elem](
       NonEmptyList.of(SqlXml),
       NonEmptyList.of("xml"),
-      (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
+      (rs, n) => XmlSafe.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
       (ps, n, e) => {
         val sqlXml = ps.getConnection.createSQLXML
         val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream())
@@ -318,6 +318,10 @@ object Doobie {
       (_, _, _) => sys.error("update not supported, sorry")
     )
   }
+
+  implicit val eventActorCompositeRead:  Read[EventActor]  = Read[String].map(s => EventActor(s))
+  implicit val eventActorCompositeWrite: Write[EventActor] = Write[String].contramap(_.name)
+
 }
 
 // Same as doobie-circe , but for zio-json, did not find someone who already have done it, should be in a dependency

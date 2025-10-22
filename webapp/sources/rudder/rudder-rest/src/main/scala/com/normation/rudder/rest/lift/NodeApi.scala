@@ -43,7 +43,6 @@ import cats.data.ValidatedNel
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
-import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.UUID_ENTRY
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -54,7 +53,6 @@ import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
@@ -69,9 +67,11 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.NodePropertySpecificError
+import com.normation.rudder.domain.properties.ParentProperty
+import com.normation.rudder.domain.properties.PropertyHierarchy
+import com.normation.rudder.domain.properties.PropertyHierarchyError
+import com.normation.rudder.domain.properties.PropertyHierarchySpecificError
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
@@ -94,17 +94,12 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NodeApi as API
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
-import com.normation.rudder.rest.data.NodeSetup
-import com.normation.rudder.rest.data.NodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
-import com.normation.rudder.rest.data.Rest
 import com.normation.rudder.rest.data.Rest.NodeDetails
-import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.rest.data.Validation.NodeValidationError
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.score.GlobalScore
@@ -130,19 +125,18 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.net.ConnectException
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.Arrays
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
 import scala.collection.MapView
 import scalaj.http.Http
 import scalaj.http.HttpOptions
 import scalaj.http.HttpRequest
 import zio.{System as _, *}
-import zio.json.DeriveJsonEncoder
 import zio.json.JsonEncoder
 import zio.stream.ZSink
 import zio.syntax.*
@@ -156,7 +150,6 @@ import zio.syntax.*
 class NodeApi(
     zioJsonExtractor:      ZioJsonExtractor,
     nodePropertiesService: NodePropertiesService,
-    serializer:            RestDataSerializer,
     nodeApiService:        NodeApiService,
     userPropertyService:   UserPropertyService,
     inheritedProperties:   NodeApiInheritedProperties,
@@ -262,11 +255,7 @@ class NodeApi(
       implicit val qc: QueryContext = authzToken.qc
 
       implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        if (version.value < 20) {
-          JRNodeDetailsLevelV19Encoders.finalEncoder
-        } else {
-          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-        }
+        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
       }
 
       (for {
@@ -284,7 +273,6 @@ class NodeApi(
 
   object NodeInheritedProperties extends LiftApiModule {
     val schema: OneParam = API.NodeInheritedProperties
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -304,7 +292,6 @@ class NodeApi(
 
   object NodeDisplayInheritedProperties extends LiftApiModule {
     val schema: OneParam = API.NodeDisplayInheritedProperties
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -324,7 +311,6 @@ class NodeApi(
 
   object PendingNodeDetails extends LiftApiModule {
     val schema: OneParam = API.PendingNodeDetails
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -377,19 +363,29 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        authzToken.qc.actor,
-        new DateTime(),
-        params.reason,
-        Some(req.remoteAddr),
-        authzToken.qc.nodePerms
-      )
 
       (for {
         restNode <- restExtractor.extractUpdateNode(req).toIO
-        reason   <- extractReason(req).toIO
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
+        cc       <- extractReason(restNode).map(
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        authzToken.qc.actor,
+                        Instant.now(),
+                        _,
+                        Some(req.remoteAddr),
+                        authzToken.qc.nodePerms
+                      )
+                    )
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(using
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        authzToken.qc.actor,
+                        Instant.now(),
+                        restNode.reason,
+                        Some(req.remoteAddr),
+                        authzToken.qc.nodePerms
+                      )
+                    )
         // await all properties update to guarantee that properties are resolved after node modification
         _        <- nodePropertiesService.updateAll()
       } yield {
@@ -445,11 +441,7 @@ class NodeApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc:                     QueryContext                   = authzToken.qc
       implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        if (version.value < 20) {
-          JRNodeDetailsLevelV19Encoders.finalEncoder
-        } else {
-          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-        }
+        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
       }
       val state = AcceptedInventory
       (for {
@@ -475,11 +467,7 @@ class NodeApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc:                     QueryContext                   = authzToken.qc
       implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        if (version.value < 20) {
-          JRNodeDetailsLevelV19Encoders.finalEncoder
-        } else {
-          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-        }
+        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
       }
       val state = PendingInventory
       (for {
@@ -563,7 +551,7 @@ class NodeApi(
                        .extractIdsFromParams(req.params)
                        .map(_.getOrElse(Nil).map(NodeId(_)))
                        .toIO
-        nodes     <- nodeApiService.nodeFactRepository.getAll()(authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
+        nodes     <- nodeApiService.nodeFactRepository.getAll()(using authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
         nodeStatus = {
           Chunk
             .fromIterable(ids)
@@ -583,7 +571,6 @@ class NodeApi(
 
   object GetNodeGlobalScore extends LiftApiModule {
     val schema: API.NodeGlobalScore.type = API.NodeGlobalScore
-    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -593,9 +580,9 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      import ScoreSerializer.*
+      import com.normation.rudder.score.ScoreSerializer.*
       (for {
-        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(authzToken.qc)
+        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(using authzToken.qc)
       } yield {
         score
       }).toLiftResponseOne(params, schema, _ => Some(id))
@@ -604,7 +591,6 @@ class NodeApi(
 
   object GetNodeScoreDetails extends LiftApiModule {
     val schema: API.NodeScoreDetails.type = API.NodeScoreDetails
-    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -614,15 +600,14 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      import ScoreSerializer.*
+      import com.normation.rudder.score.ScoreSerializer.*
       import com.normation.rudder.rest.implicits.*
-      nodeApiService.getNodeDetailsScore(NodeId(id))(authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
+      nodeApiService.getNodeDetailsScore(NodeId(id))(using authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
   object GetNodeScoreDetail extends LiftApiModuleString2 {
     val schema: API.NodeScoreDetail.type = API.NodeScoreDetail
-    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -634,10 +619,10 @@ class NodeApi(
     ): LiftResponse = {
       // implicit val action = "getNodeGlobalScore"
       // implicit val prettify = params.prettify
-      import ScoreSerializer.*
+      import com.normation.rudder.score.ScoreSerializer.*
       val (nodeId, scoreId) = id
       (for {
-        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(authzToken.qc)
+        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(using authzToken.qc)
       } yield {
         allDetails.filter(_.scoreId == scoreId)
       }).toLiftResponseOne(params, schema, _ => Some(nodeId))
@@ -670,7 +655,6 @@ class NodeApi(
 
   object NodeDetailsSoftware extends LiftApiModule {
     val schema: OneParam = API.NodeDetailsSoftware
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -697,7 +681,6 @@ class NodeApi(
   }
   object NodeDetailsProperty extends LiftApiModule {
     val schema: OneParam = API.NodeDetailsProperty
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -723,16 +706,24 @@ class NodeApi(
     }
   }
 
-  // We need to derive the whole tree of datastructures again when using the older version of inventory JSON tree
-  object JRNodeDetailsLevelV19Encoders {
-    import com.normation.inventory.domain.JsonSerializers.older_implicits.*
-    import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
-    import com.normation.utils.DateFormaterService.json.*
-
-    implicit val finalEncoder: JsonEncoder[JRNodeDetailLevel] =
-      DeriveJsonEncoder.gen[JRNodeDetailLevel]
+  private def extractReason(restNode: JQUpdateNode): IOResult[Option[String]] = {
+    import com.normation.rudder.config.ReasonBehavior.*
+    (userPropertyService.reasonsFieldBehavior match {
+      case Disabled => ZIO.none
+      case mode     =>
+        val reason = restNode.reason
+        (mode: @unchecked) match {
+          case Mandatory =>
+            reason
+              .notOptional("Reason field is mandatory and should be at least 5 characters long")
+              .reject {
+                case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
+              }
+              .map(Some(_))
+          case Optional  => reason.succeed
+        }
+    }).chainError("There was an error while extracting reason message")
   }
-
 }
 
 class NodeApiInheritedProperties(
@@ -755,10 +746,12 @@ class NodeApiInheritedProperties(
         val error   = properties match {
           case f: FailedNodePropertyHierarchy =>
             f.error match {
-              case propsErrors: NodePropertySpecificError =>
+              case propsErrors: PropertyHierarchySpecificError =>
                 // these are individual errors by property that can be resolved and rendered individually
-                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
-              case _:           NodePropertyError         =>
+                Chunk.from(propsErrors.propertiesErrors.values.flatMap {
+                  case (_, v, p) => v.map(ErrorInheritedPropertyStatus.from(_, p))
+                })
+              case _:           PropertyHierarchyError         =>
                 // we don't know the errored props, it may be all of them and there may be a global status error
                 Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
             }
@@ -818,7 +811,7 @@ class NodeApiService(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(),
+      Instant.now(),
       None,
       Some(actorIp),
       qc.nodePerms
@@ -928,7 +921,7 @@ class NodeApiService(
         NodeState.Enabled,
         isSystem = false,
         isPolicyServer = false,
-        creationDate = DateTime.now,
+        creationDate = Instant.now(),
         nodeReportingConfiguration = ReportingConfiguration(None, None, None),
         properties = Nil,
         policyMode = None,
@@ -959,7 +952,7 @@ class NodeApiService(
   def getNodesPropertiesTree(
       nodeInfos:  MapView[NodeId, CoreNodeFact],
       properties: List[String]
-  )(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
+  )(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[PropertyHierarchy]]] = {
     for {
       properties <-
         ZIO.foreach(nodeInfos.values) { fact =>
@@ -969,7 +962,10 @@ class NodeApiService(
               err =>
                 (
                   fact.id,
-                  fact.properties.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
+                  fact.properties.collect {
+                    case p if properties.contains(p.name) =>
+                      NodePropertyHierarchy(fact.id, ParentProperty.Node(fact.fqdn, fact.id, p, None))
+                  }
                 ),
               optHierarchy => {
                 // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
@@ -1024,7 +1020,7 @@ class NodeApiService(
                             })(_ ++ _)
 
                             if (inheritedProp.isEmpty) {
-                              (Map.empty[NodeId, List[NodePropertyHierarchy]], propMap).succeed
+                              (Map.empty[NodeId, List[PropertyHierarchy]], propMap).succeed
                             } else {
                               for {
                                 inheritedProp <- getNodesPropertiesTree(nodes, inheritedProp.map(_.value))
@@ -1042,7 +1038,7 @@ class NodeApiService(
             implicit val globalPolicyMode:       GlobalPolicyMode               = globalMode
             implicit val agentRunWithNodeConfig: Option[AgentRunWithNodeConfig] = runs.get(n.id).flatten
             implicit val properties:             Chunk[NodeProperty]            = Chunk.fromIterable(nonInheritedProp.get(n.id).getOrElse(Nil))
-            implicit val inheritedProperties:    Chunk[NodePropertyHierarchy]   =
+            implicit val inheritedProperties:    Chunk[PropertyHierarchy]       =
               Chunk.fromIterable(inheritedProp.get(n.id).getOrElse(Nil))
             implicit val softwares:              Chunk[Software]                = Chunk.fromIterable(softs.get(n.id).getOrElse(Nil))
             implicit val nodeCompliance:         Option[JRNodeCompliance]       =
@@ -1119,7 +1115,7 @@ class NodeApiService(
   def pendingNodeDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
     implicit val status: InventoryStatus = PendingInventory
     for {
-      pendingNodes <- nodeFactRepository.getAll()(qc, SelectNodeStatus.Pending)
+      pendingNodes <- nodeFactRepository.getAll()(using qc, SelectNodeStatus.Pending)
       nodeFact     <- pendingNodes.get(nodeId).notOptional(s"Could not find pending Node ${nodeId.value}")
     } yield {
       Chunk(nodeFact.toNodeInfo.transformInto[JRNodeInfo])
@@ -1134,7 +1130,7 @@ class NodeApiService(
       implicit val status: InventoryStatus = RemovedInventory
       for {
         nodeFact <- nodeFactRepository
-                      .get(id)(cc.toQuery)
+                      .get(id)(using cc.toQuery)
                       .notOptional(s"Can not removed the node with id '${id.value}' because it was not found")
         _        <- removeNodeService.removeNode(nodeFact.id)
       } yield {
@@ -1168,8 +1164,8 @@ class NodeApiService(
     for {
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
-      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
-               ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
+      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(using
+               ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms)
              )
     } yield {
       res
@@ -1252,7 +1248,7 @@ class NodeApiService(
     for {
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None)
-                   case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query).toIO
+                   case AcceptedInventory => acceptedNodeQueryProcessor.process(query).toIO
                    case _                 =>
                      Inconsistency(
                        s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}"
@@ -1426,13 +1422,13 @@ class NodeApiService(
       in  <- IOResult.attempt(new PipedInputStream(pipeSize))
       out <- IOResult.attempt(new PipedOutputStream(in))
       _   <- NodeLoggerPure.trace("remote-run: reading stream from remote API")
-      _   <- copy(out, readTimeout).forkDaemon              // read from HTTP request
-      res <- IOResult.attempt(copyStreamTo(pipeSize, in) _) // give the writer function waiting for out
+      _   <- copy(out, readTimeout).forkDaemon            // read from HTTP request
+      res <- IOResult.attempt(copyStreamTo(pipeSize, in)) // give the writer function waiting for out
       // don't close out here, it was closed inside `copy`
     } yield res).catchAll { err =>
       NodeLoggerPure.error(errorMessageWithHint(err.fullMsg)) *>
       IOResult.attempt(
-        copyStreamTo(pipeSize, new ByteArrayInputStream(errorMessageWithHint(err.msg).getBytes(StandardCharsets.UTF_8))) _
+        copyStreamTo(pipeSize, new ByteArrayInputStream(errorMessageWithHint(err.msg).getBytes(StandardCharsets.UTF_8)))
       )
     }.runNow
   }
@@ -1479,8 +1475,9 @@ class NodeApiService(
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
-      info <- removeNodeService
-                .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms))
+      info <-
+        removeNodeService
+          .removeNodePure(id, mode)(using ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms))
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

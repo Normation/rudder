@@ -60,20 +60,25 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRRule
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
@@ -101,6 +106,7 @@ import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.StringUuidGenerator
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
 import io.scalaland.chimney.syntax.*
@@ -110,14 +116,13 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.NoSuchFileException
 import java.text.Normalizer
+import java.time.Instant
 import java.util.zip.ZipEntry
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
 import scala.util.matching.Regex
-import scala.xml.XML
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -144,24 +149,38 @@ object ArchiveScope       extends Enum[ArchiveScope] {
   }
 }
 
-sealed trait MergePolicy extends EnumEntry         { def value: String }
-object MergePolicy       extends Enum[MergePolicy] {
+// explicitly using the entryName because it's an external API needing special care and grep-ability.
+sealed abstract class MergePolicy(override val entryName: String) extends EnumEntry
+object MergePolicy                                                extends Enum[MergePolicy] {
   // Default merge policy is "override everything", ie what is in the archive replace whatever exists in Rudder
-  case object OverrideAll    extends MergePolicy { val value = "override-all"     }
+  case object OverrideAll     extends MergePolicy("override-all")
   // A merge policy that will keep current groups for rule with an ID common with one of the archive
-  case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
+  case object KeepRuleTargets extends MergePolicy("keep-rule-targets")
+
+  // A merge policy that will always delete source groups of rule, and if rule exists, copy destination rule target (keep them)
+  case object IgnoreSourceTargets extends MergePolicy("ignore-source-targets")
 
   val values: IndexedSeq[MergePolicy] = findValues
 
+  override val extraNamesToValuesMap: Map[String, MergePolicy] = Map("keep-rule-groups" -> KeepRuleTargets)
+
   def parse(s: String): Either[String, MergePolicy] = {
-    values.find(_.value == s.toLowerCase.strip()) match {
-      case None    =>
-        Left(
-          s"Error: can not parse '${s}' as a merge policy for archive import. Accepted values are: ${values.mkString(", ")}"
-        )
-      case Some(x) => Right(x)
-    }
+    MergePolicy
+      .withNameInsensitiveEither(s)
+      .left
+      .map(err => {
+        s"Error: can not parse '${s}' as a merge policy for archive import. Accepted values are: ${values
+            .mkString(", ")}. Error was: ${err.getMessage()}"
+      })
   }
+}
+
+// an object for the special ids for exporting all rules etc
+object SpecialExportAll {
+  val allRules:      RuleId      = RuleId(RuleUid("all"))
+  val allDirectives: DirectiveId = DirectiveId(DirectiveUid("all"))
+  val allGroups:     NodeGroupId = NodeGroupId(NodeGroupUid("all"))
+  val allTechniques: TechniqueId = TechniqueId(TechniqueName("all"), TechniqueVersion.V1_0)
 }
 
 class ArchiveApi(
@@ -182,13 +201,13 @@ class ArchiveApi(
   }
 
   /*
-   * This API does not returns a standard JSON response, it returns a ZIP archive.
+   * This API does not return a standard JSON response, it returns a ZIP archive.
    */
   object ExportSimple extends LiftApiModule0 {
     val schema:                                                                                                API.ExportSimple.type = API.ExportSimple
     /*
      * Request format:
-     *   ../archives/export/rules=rule_ids&directives=dir_ids&techniques=tech_ids&groups=group_ids&include=scope
+     *   ../archives/export?rules=rule_ids&directives=dir_ids&techniques=tech_ids&groups=group_ids&include=scope
      * Where:
      * - rule_ids = xxxx-xxxx-xxx-xxx[,other ids]
      * - dir_ids = xxxx-xxxx-xxx-xxx[,other ids]
@@ -208,7 +227,10 @@ class ArchiveApi(
         ZIO.foreach(splitArg(req, "directives"))(DirectiveId.parse(_).toIO)
       }
       def parseTechniqueIds(req: Req):      IOResult[List[TechniqueId]]  = {
-        ZIO.foreach(splitArg(req, "techniques"))(TechniqueId.parse(_).toIO)
+        ZIO.foreach(splitArg(req, "techniques"))(t => {
+          if (t == "all") SpecialExportAll.allTechniques.succeed
+          else TechniqueId.parse(t).toIO
+        })
       }
       def parseGroupIds(req: Req):          IOResult[List[NodeGroupId]]  = {
         ZIO.foreach(splitArg(req, "groups"))(NodeGroupId.parse(_).toIO)
@@ -271,7 +293,7 @@ class ArchiveApi(
     /*
      * We expect a binary file in multipart/form-data, not in application/x-www-form-urlencodedcontent
      * You can get that in curl with:
-     * curl -k -X POST -H "X-API-TOKEN: ..." https://.../api/latest/archives/import --form "merge=keep-rule-groups" --form="archive=@my-archive.zip"
+     * curl -k -X POST -H "X-API-TOKEN: ..." https://.../api/latest/archives/import --form "merge=keep-rule-targets" --form="archive=@my-archive.zip"
      */
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
@@ -284,27 +306,27 @@ class ArchiveApi(
         }
       }
 
-      def parseArchive(archive: FileParamHolder): IOResult[PolicyArchive] = {
-        val originalFilename = archive.fileName
-
+      def parseArchive(archive: FileParamHolder, name: String): IOResult[PolicyArchive] = {
         ZIO
           .acquireReleaseWith(IOResult.attempt(archive.fileStream))(is => effectUioUnit(is.close())) { is =>
-            ZipUtils.getZipEntries(originalFilename, is)
+            ZipUtils.getZipEntries(name, is)
           }
-          .flatMap(entries => zipArchiveReader.readPolicyItems(originalFilename, entries))
+          .flatMap(entries => zipArchiveReader.readPolicyItems(name, entries))
       }
 
       val prog = (req.uploadedFiles.find(_.name == FILE) match {
         case None      =>
           Unexpected(s"Missing uploaded file with parameter name '${FILE}'").fail
         case Some(zip) =>
+          val originalFilename = File(zip.fileName).name
+
           for {
-            _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${zip.fileName}', processing")
+            _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${originalFilename}', processing")
             merge   <- parseMergePolicy(req)
-            archive <- parseArchive(zip)
+            archive <- parseArchive(zip, originalFilename)
             _       <- checkArchiveService.check(archive)
-            _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
-            _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
+            _       <- saveArchiveService.save(archive, merge)(using authzToken.qc)
+            _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${originalFilename}' processed successfully")
           } yield JRArchiveImported(success = true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
 
@@ -361,13 +383,14 @@ object JGroupCategory {
 
 object ZipArchiveBuilderService {
   // names of directories under the root directory of the archive
-  val RULES_DIR      = "rules"
-  val GROUPS_DIR     = "groups"
-  val DIRECTIVES_DIR = "directives"
-  val TECHNIQUES_DIR = "techniques"
+  val RULES_DIR:      String = "rules"
+  val GROUPS_DIR:     String = "groups"
+  val DIRECTIVES_DIR: String = "directives"
+  val TECHNIQUES_DIR: String = "techniques"
 
   val GROUP_CAT_FILENAME = "category.json"
   val RULE_CATS          = "rule-categories.json"
+
 }
 
 /**
@@ -385,7 +408,10 @@ class ZipArchiveBuilderService(
     fileArchiveNameService: FileArchiveNameService,
     configRepo:             ConfigurationRepository,
     techniqueRevisionRepo:  TechniqueRevisionRepository,
-    groupRepo:              RoNodeGroupRepository
+    groupRepo:              RoNodeGroupRepository,
+    ruleRepo:               RoRuleRepository,
+    directiveRepo:          RoDirectiveRepository,
+    techniqueRepo:          TechniqueRepository
 ) {
 
   import ZipArchiveBuilderService.*
@@ -658,7 +684,9 @@ class ZipArchiveBuilderService(
     // we need the file name without extension
     val GROUP_CAT_WITHOUT_EXT = GROUP_CAT_FILENAME.split("\\.")(0)
 
-    recFilter(ids, groupLib) match {
+    val allIds: Seq[NodeGroupId] = if (ids.contains(SpecialExportAll.allGroups)) groupLib.allGroups.keySet.toSeq else ids
+
+    recFilter(allIds, groupLib) match {
       case None      => if (ids.isEmpty) Nil.succeed else missingGroups(ids)
       case Some(cat) =>
         val missing = cat.allGroups.keySet -- ids
@@ -673,7 +701,7 @@ class ZipArchiveBuilderService(
    * Prepare the archive.
    * `rootDirName` is supposed to be normalized, no change will be done with it.
    * Any missing object will lead to an error.
-   * For each element, an human readable name derived from the object name is used when possible.
+   * For each element, a human-readable name derived from the object name is used when possible.
    *
    * System elements are not archived
    */
@@ -685,6 +713,7 @@ class ZipArchiveBuilderService(
       ruleIds:      Seq[RuleId],
       scopes:       Set[ArchiveScope]
   ): IOResult[Chunk[Zippable]] = {
+
     // normalize to no slash at end
     val root                 = rootDirName.strip().replaceAll("""/$""", "")
     import ArchiveScope.*
@@ -707,28 +736,31 @@ class ZipArchiveBuilderService(
       _               <- usedNames.update(_ + ((RULES_DIR, Set.empty[String])))
       rulesDirZip      = Zippable(rulesDir, None)
       ruleCatsRef     <- Ref.make(Set[RuleCategoryId]())
-      rulesZip        <- ZIO
-                           .foreach(ruleIds) { ruleId =>
+      rules           <- if (ruleIds.contains(SpecialExportAll.allRules)) ruleRepo.getAll(includeSytem = false)
+                         else {
+                           ZIO.foreach(ruleIds) { ruleId =>
                              configRepo
                                .getRule(ruleId)
                                .notOptional(s"Rule with id ${ruleId.serialize} was not found in Rudder")
-                               .flatMap { rule =>
-                                 if (rule.isSystem) None.succeed
-                                 else {
-                                   for {
-                                     _    <- depDirectiveIds.update(x => x ++ rule.directiveIds)
-                                     _    <- depGroupIds.update(x => x ++ RuleTarget.getNodeGroupIds(rule.targets))
-                                     json  = JRRule.fromRule(rule, None, None, None).toJsonPretty
-                                     name <- findName(rule.name, ".json", usedNames, RULES_DIR)
-                                     path  = rulesDir + "/" + name
-                                     _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding rule zippable: ${path}")
-                                     _    <- ruleCatsRef.update(_ + rule.categoryId)
-                                   } yield {
-                                     Some(Zippable(path, Some(getJsonZippableContent(json))))
-                                   }
-                                 }
+                           }
+                         }
+      rulesZip        <- ZIO
+                           .foreach(rules) { rule =>
+                             if (rule.isSystem) None.succeed
+                             else {
+                               for {
+                                 _    <- depDirectiveIds.update(x => x ++ rule.directiveIds)
+                                 _    <- depGroupIds.update(x => x ++ RuleTarget.getNodeGroupIds(rule.targets))
+                                 json  = JRRule.fromRule(rule, None, None, None).toJsonPretty
+                                 name <- findName(rule.name, ".json", usedNames, RULES_DIR)
+                                 path  = rulesDir + "/" + name
+                                 _    <- ApplicationLoggerPure.Archive
+                                           .debug(s"Building archive '${rootDirName}': adding rule zippable: ${path}")
+                                 _    <- ruleCatsRef.update(_ + rule.categoryId)
+                               } yield {
+                                 Some(Zippable(path, Some(getJsonZippableContent(json))))
                                }
+                             }
                            }
                            .map(_.flatten)
       ruleCats        <- ruleCatsRef.get
@@ -736,10 +768,12 @@ class ZipArchiveBuilderService(
       groupsDir        = root + "/" + GROUPS_DIR
       _               <- usedNames.update(_ + ((GROUPS_DIR, Set.empty[String])))
       groupsDirZip     = Zippable(groupsDir, None)
-      depGroups       <- if (includeDepGroups) depGroupIds.get else Nil.succeed
+      allGroupIDs     <- if (groupIds.contains(SpecialExportAll.allGroups))
+                           groupRepo.getAll().map(_.collect { case g if !g.isSystem => g.id })
+                         else (if (includeDepGroups) depGroupIds.get else Nil.succeed).map(_ ++ groupIds)
       groupLib        <- groupRepo.getFullGroupLibrary()
       groupDir         = root + "/" + GROUPS_DIR
-      groupsZip       <- getGroupLibZippable(groupIds ++ depGroups, groupDir, usedNames, rootDirName, groupLib)
+      groupsZip       <- getGroupLibZippable(allGroupIDs, groupDir, usedNames, rootDirName, groupLib)
       // directives need access to technique, but we don't want to look up several time the same one
       techniques      <- Ref.Synchronized.make(Map.empty[TechniqueId, (Chunk[TechniqueCategoryName], Technique)])
 
@@ -747,36 +781,47 @@ class ZipArchiveBuilderService(
       _               <- usedNames.update(_ + ((DIRECTIVES_DIR, Set.empty[String])))
       directivesDirZip = Zippable(directivesDir, None)
       depDirectives   <- if (includeDepDirectives) depDirectiveIds.get else Nil.succeed
+      directives      <- if (directiveIds.contains(SpecialExportAll.allDirectives)) {
+                           directiveRepo
+                             .getFullDirectiveLibrary()
+                             .map(_.allDirectives.collect {
+                               case (_, (fat, d)) if !d.isSystem => ActiveDirective(fat.toActiveTechnique(), d)
+                             })
+                         } else {
+                           ZIO
+                             .foreach(directiveIds ++ depDirectives) { directiveId =>
+                               configRepo
+                                 .getDirective(directiveId)
+                                 .notOptional(s"Directive with id ${directiveId.serialize} was not found in Rudder")
+                             }
+                         }
       directivesZip   <- ZIO
-                           .foreach(directiveIds ++ depDirectives) { directiveId =>
-                             configRepo
-                               .getDirective(directiveId)
-                               .notOptional(s"Directive with id ${directiveId.serialize} was not found in Rudder")
-                               .flatMap(ad => {
-                                 if (ad.directive.isSystem) None.succeed
-                                 else {
-                                   for {
-                                     tech <- getTechnique(
-                                               TechniqueId(ad.activeTechnique.techniqueName, ad.directive.techniqueVersion),
-                                               techniques
-                                             )
-                                     json  = JRDirective.fromDirective(tech._2, ad.directive, None).toJsonPretty
-                                     name <- findName(ad.directive.name, ".json", usedNames, DIRECTIVES_DIR)
-                                     path  = directivesDir + "/" + name
-                                     _    <- ApplicationLoggerPure.Archive
-                                               .debug(s"Building archive '${rootDirName}': adding directive zippable: ${path}")
-                                   } yield Some(Zippable(path, Some(getJsonZippableContent(json))))
-                                 }
-                               })
+                           .foreach(directives) { ad =>
+                             if (ad.directive.isSystem) None.succeed
+                             else {
+                               for {
+                                 tech <- getTechnique(
+                                           TechniqueId(ad.activeTechnique.techniqueName, ad.directive.techniqueVersion),
+                                           techniques
+                                         )
+                                 json  = JRDirective.fromDirective(tech._2, ad.directive, None).toJsonPretty
+                                 name <- findName(ad.directive.name, ".json", usedNames, DIRECTIVES_DIR)
+                                 path  = directivesDir + "/" + name
+                                 _    <- ApplicationLoggerPure.Archive
+                                           .debug(s"Building archive '${rootDirName}': adding directive zippable: ${path}")
+                               } yield Some(Zippable(path, Some(getJsonZippableContent(json))))
+                             }
                            }
                            .map(_.flatten)
       // Techniques don't need name normalization, their name is already normalized
       techniquesDir    = root + "/" + TECHNIQUES_DIR
       techniquesDirZip = Zippable(techniquesDir, None)
-      depTechniques   <- if (includeDepTechniques) techniques.get.map(_.keys) else Nil.succeed
-      allTech         <- ZIO.foreach(techniqueIds ++ depTechniques)(techniqueId => getTechnique(techniqueId, techniques))
+      allTechIds      <- if (techniqueIds.contains(SpecialExportAll.allTechniques))
+                           techniqueRepo.getAll().collect { case (id, t) if (t.policyTypes == PolicyTypes.rudderBase) => id }.succeed
+                         else (if (includeDepTechniques) techniques.get.map(_.keys) else Nil.succeed).map(_ ++ techniqueIds)
+      allTech         <- ZIO.foreach(allTechIds)(techniqueId => getTechnique(techniqueId, techniques))
       // start by zipping categories after having dedup them
-      techCats         = allTech.collect { case (c, t) => (c, t.id.version) }
+      techCats         = allTech.collect { case (c, t) => (c, t.id.version) }.toSeq
       techCatsZip     <- getTechniqueCategoryZippable(techniquesDir, techCats)
       techniquesZip   <- ZIO.foreach(allTech.filter(_._2.policyTypes.isBase)) {
                            case (cats, technique) =>
@@ -795,7 +840,7 @@ class ZipArchiveBuilderService(
         groupsDirZip,
         directivesDirZip,
         techniquesDirZip
-      ) ++ rulesZip ++ techCatsZip ++ techniquesZip.flatten ++ directivesZip ++ groupsZip
+      ) ++ ruleCatsZip ++ rulesZip ++ techCatsZip ++ techniquesZip.flatten ++ directivesZip ++ groupsZip
     }
   }
 
@@ -1022,7 +1067,7 @@ class ZipArchiveReaderImpl(
 
         case TechniqueType.Metadata.name =>
           for {
-            xml  <- IOResult.attempt(XML.load(new ByteArrayInputStream(content)))
+            xml  <- IOResult.attempt(XmlSafe.load(new ByteArrayInputStream(content)))
             tech <- techniqueParser.parseXml(xml, id).toIO
             _    <- optTech.update {
                       case None    => Some(TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata))
@@ -1141,7 +1186,6 @@ class ZipArchiveReaderImpl(
   }
 
   def readPolicyItems(archiveName: String, zipEntries: Seq[(ZipEntry, Option[Array[Byte]])]): IOResult[PolicyArchive] = {
-
     // sort files in rules, directives, groups, techniques
     val sortedEntries = zipEntries.foldLeft(SortedEntries.empty) {
       case (arch, (e, optContent)) =>
@@ -1186,7 +1230,7 @@ class ZipArchiveReaderImpl(
     }
 
     // then, group by base path (cats/id/version) for technique ; then for each group, find from base path category
-    // if its a json or yml technique
+    // if it's a json or yml technique
     val techniqueUnzips = sortedEntries.techniques.groupBy {
       case (filename, _) =>
         techniques.find(base => filename.startsWith(base))
@@ -1208,6 +1252,8 @@ class ZipArchiveReaderImpl(
       _                 <- ApplicationLoggerPure.Archive.debug(
                              s"Processing archive '${archiveName}': techniques: '${techniqueUnzips.keys.mkString("', '")}'"
                            )
+      // check for ZipSlip path traversal
+      _                 <- ZIO.foreach(zipEntries) { case (e, _) => ZipUtils.checkForZipSlip(e) }
       withTechniques    <- parseTechniques(archiveName, PolicyArchiveUnzip.empty, techniqueUnzips)
       _                 <-
         ApplicationLoggerPure.Archive.debug(
@@ -1522,7 +1568,7 @@ class SaveArchiveServicebyRepo(
              )
            }
       // now we can check if we create a new group or update one
-      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(cc.toQuery)
+      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQuery)
       _ <- x match {
              case Some((_, parentId)) =>
                woGroupRepos.update(g.group, modId, actor, message) *>
@@ -1542,12 +1588,19 @@ class SaveArchiveServicebyRepo(
       x <- roRuleRepos.getOpt(r.id)
       _ <- x match {
              case Some(value) =>
-               // if merge policy is `keep-rule-groups`, update rule from archive with existing groups before saving
-               val ruleToSave = if (mergePolicy == MergePolicy.KeepRuleGroups) {
-                 r.copy(targets = value.targets)
-               } else r
+               // if merge policy asks for that, update rule from archive with existing groups before saving so
+               // that the rules use the actual groups meaning something in that instance.
+               val ruleToSave = {
+                 if (mergePolicy == MergePolicy.KeepRuleTargets || mergePolicy == MergePolicy.IgnoreSourceTargets) {
+                   r.copy(targets = value.targets)
+                 } else r
+               }
                woRuleRepos.update(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
-             case None        => woRuleRepos.create(r, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+             case None        =>
+               val ruleToSave = if (mergePolicy == MergePolicy.IgnoreSourceTargets) {
+                 r.copy(targets = Set())
+               } else r
+               woRuleRepos.create(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
            }
     } yield ()
   }
@@ -1561,7 +1614,7 @@ class SaveArchiveServicebyRepo(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(),
+      Instant.now(),
       Some(s"Importing archive '${archive.metadata.filename}'"),
       None,
       qc.nodePerms

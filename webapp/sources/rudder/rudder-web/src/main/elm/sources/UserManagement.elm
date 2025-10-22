@@ -7,7 +7,7 @@ import Http exposing (..)
 import String exposing (isEmpty)
 
 import UserManagement.ApiCalls exposing (activateUser, addUser, disableUser, getRoleConf, getUsersConf, postReloadConf, updateUser, updateUserInfo)
-import UserManagement.DataTypes exposing (AddUserForm, Model, Msg(..), PanelMode(..), StateInput(..), UserAuth, mergeUserNewInfo, userProviders)
+import UserManagement.DataTypes exposing (AddUserForm, Model, Msg(..), PanelMode(..), StateInput(..), UserAuth, mergeUserNewInfo, userProviders, userToUserInfoForm)
 import UserManagement.Init exposing (init, subscriptions)
 import UserManagement.View exposing (view)
 
@@ -134,7 +134,7 @@ update msg model =
 
         UpdateUserInfo result ->
              case result of
-                  Ok _ ->
+                  Ok () ->
                       (model, Cmd.batch [ getUsersConf model, successNotification (model.userForm.login ++ " information has been modified") ])
 
                   Err err ->
@@ -205,8 +205,8 @@ update msg model =
             let
                 userForm = model.userForm
                 userInfoForm = userForm.userInfoForm
-                newUserInfoFields = Dict.insert key value userInfoForm.otherInfo
-                newUserInfoForm = { userInfoForm | otherInfo = newUserInfoFields }
+                newUserInfoFields = Dict.insert key value userInfoForm.info
+                newUserInfoForm = { userInfoForm | info = newUserInfoFields }
                 newUserForm = { userForm | userInfoForm = newUserInfoForm }
             in
                 ({model | userForm = newUserForm}, Cmd.none)
@@ -216,11 +216,19 @@ update msg model =
                 newUserForm = { userForm | newUserInfoFields = userForm.newUserInfoFields ++ [("", "")] }
             in
                 ({model | userForm = newUserForm}, Cmd.none)
-        RemoveUserInfoField key ->
+        RemoveUserOtherInfoField key ->
             let
                 userForm = model.userForm
                 userInfoForm = userForm.userInfoForm
                 newUserInfoForm = { userInfoForm | otherInfo = Dict.remove key userInfoForm.otherInfo }
+                newUserForm = { userForm | userInfoForm = newUserInfoForm }
+            in
+                ({model | userForm = newUserForm}, Cmd.none)
+        RemoveUserInfoField key ->
+            let
+                userForm = model.userForm
+                userInfoForm = userForm.userInfoForm
+                newUserInfoForm = { userInfoForm | info = Dict.remove key userInfoForm.info }
                 newUserForm = { userForm | userInfoForm = newUserInfoForm }
             in
                 ({model | userForm = newUserForm}, Cmd.none)
@@ -237,14 +245,6 @@ update msg model =
                 userForm = model.userForm
                 userInfoForm = userForm.userInfoForm
                 newUserInfoForm = { userInfoForm | email = email }
-                newUserForm = { userForm | userInfoForm = newUserInfoForm, isValidInput = ValidInputs }
-            in
-                ({model | userForm = newUserForm}, Cmd.none)
-        UserInfoFields fields ->
-            let
-                userForm = model.userForm
-                userInfoForm = userForm.userInfoForm
-                newUserInfoForm = { userInfoForm | otherInfo = fields }
                 newUserForm = { userForm | userInfoForm = newUserInfoForm, isValidInput = ValidInputs }
             in
                 ({model | userForm = newUserForm}, Cmd.none)
@@ -339,12 +339,13 @@ resetFormPanel model panelMode =
                     if user.login == currentUserForm.login then
                         mergeUserNewInfo currentUserForm
                     else
-                        { name = user.name, email = user.email, otherInfo = user.otherInfo }
-                _ -> { name = "", email = "", otherInfo = Dict.empty }
+                        userToUserInfoForm user
+                _ -> { name = "", email = "", info = Dict.empty, otherInfo = Dict.empty }
         newUI = { panelMode = panelMode, openDeleteModal = False, tableFilters = model.ui.tableFilters}
         newUserInfoForm = 
             { name = newFields.name
             , email = newFields.email
+            , info = newFields.info
             , otherInfo = newFields.otherInfo
             }
         newUserForm = 

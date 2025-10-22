@@ -42,7 +42,6 @@ use crate::{
     plugin::{long_names, short_name},
     repo_index::RepoIndex,
     repository::Repository,
-    signature::SignatureVerifier,
     versions::RudderVersion,
     webapp::Webapp,
 };
@@ -86,7 +85,7 @@ pub fn run() -> Result<ExitCode> {
         Some((Path::new(DEFAULT_LOG_FOLDER), "rudder-pkg")),
     );
     if let Err(ref e) = log_r {
-        eprintln!("{:?}", e);
+        eprintln!("{e:?}");
         return Ok(ExitCode::FAILURE);
     }
 
@@ -118,8 +117,8 @@ pub fn run_inner(args: Args) -> Result<()> {
     debug!("Parsed configuration: {cfg:?}");
 
     // Now initialize all common data structures
-    let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH))?;
-    let repo = Repository::new(&cfg, verifier)?;
+    let keyring_path = PathBuf::from(SIGNATURE_KEYRING_PATH);
+    let repo = Repository::new(&cfg, signature::verifier(keyring_path)?)?;
     let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
     let mut db = Database::read(Path::new(PACKAGES_DATABASE_PATH))?;
@@ -129,10 +128,7 @@ pub fn run_inner(args: Args) -> Result<()> {
     let mut errors = false;
 
     create_dir_all(TMP_PLUGINS_FOLDER).with_context(|| {
-        format!(
-            "Failed to create temporary directory in '{}'",
-            TMP_PLUGINS_FOLDER
-        )
+        format!("Failed to create temporary directory in '{TMP_PLUGINS_FOLDER}'")
     })?;
 
     match args.command {

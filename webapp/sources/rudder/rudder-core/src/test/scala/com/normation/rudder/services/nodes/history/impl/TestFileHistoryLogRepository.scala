@@ -21,11 +21,12 @@
 package com.normation.rudder.services.nodes.history.impl
 
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.zio.ZioRuntime
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
+import org.joda.time.format.ISODateTimeFormat
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -51,12 +52,19 @@ object StringId extends IdToFilenameConverter[String] {
   override def filenameToId(name: String): String = name
 }
 
-import TestFileHistoryLogRepository.*
+import com.normation.rudder.services.nodes.history.impl.TestFileHistoryLogRepository.*
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {
 
-  val repos = new FileHistoryLogRepository(rootDir, StringMarshaller, StringId)
+  val repos = {
+    new FileHistoryLogRepository(
+      rootDir,
+      StringMarshaller,
+      StringId,
+      new JodaDateTimeConverter(ISODateTimeFormat.dateTime().withZoneUTC())
+    )
+  }
 
   implicit class RunThing[R, E, T](thing: ZIO[Any, E, T]) {
     def runNow: Either[E, T] = ZioRuntime.unsafeRun(thing.either)
@@ -76,7 +84,7 @@ class TestFileHistoryLogRepository {
     val data1 = "Some data 1\nwith multiple lines"
 
     // save first revision
-    val data1time1 = DateTime.now()
+    val data1time1 = DateTime.now(DateTimeZone.UTC)
     assertEquals(Right(DefaultHLog(id1, data1time1, data1)), repos.save(id1, data1, data1time1).runNow)
 
     // now we have exaclty one id, with one revision, equals to data1time1
@@ -84,7 +92,7 @@ class TestFileHistoryLogRepository {
     assertEquals(Right(List(data1time1)), repos.versions(id1).map(_.toList).runNow)
 
     // save second revision
-    val data1time2 = DateTime.now()
+    val data1time2 = DateTime.now(DateTimeZone.UTC)
     assertEquals(Right(DefaultHLog(id1, data1time2, data1)), repos.save(id1, data1, data1time2).runNow)
 
     // now we have exaclty one id1, with two revisions, and head is data1time2

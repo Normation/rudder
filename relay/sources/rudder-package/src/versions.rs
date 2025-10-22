@@ -49,9 +49,9 @@ impl Display for RudderVersionMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             RudderVersionMode::Final => write!(f, ""),
-            RudderVersionMode::Alpha { version } => write!(f, "~alpha{}", version),
-            RudderVersionMode::Beta { version } => write!(f, "~beta{}", version),
-            RudderVersionMode::Rc { version } => write!(f, "~rc{}", version),
+            RudderVersionMode::Alpha { version } => write!(f, "~alpha{version}"),
+            RudderVersionMode::Beta { version } => write!(f, "~beta{version}"),
+            RudderVersionMode::Rc { version } => write!(f, "~rc{version}"),
         }
     }
 }
@@ -131,7 +131,7 @@ impl RudderVersion {
 
     pub fn from_path(path: &str) -> Result<Self, Error> {
         let content = fs::read_to_string(path)
-            .with_context(|| format!("Failed to read the Rudder version file '{}'", path))?;
+            .with_context(|| format!("Failed to read the Rudder version file '{path}'"))?;
         let re = Regex::new(r"rudder_version=(?<raw_rudder_version>.*)")?;
         let caps = match re.captures(&content) {
             None => bail!(
@@ -199,13 +199,13 @@ impl Display for RudderVersion {
         let nightly = self
             .nightly
             .as_ref()
-            .map(|s| format!("~git{}", s))
+            .map(|s| format!("~git{s}"))
             .unwrap_or("".to_string());
         let s = format!(
             "{}.{}.{}{}{}",
             self.major, self.minor, self.patch, self.mode, nightly
         );
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -267,7 +267,7 @@ impl Display for PluginVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let nightly = if self.nightly { "-nightly" } else { "" };
         let s = format!("{}.{}{}", self.major, self.minor, nightly);
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -348,7 +348,7 @@ mod tests {
     fn test_plugin_version_greater_than(#[case] a: &str, #[case] b: &str) {
         let left = PluginVersion::from_str(a).unwrap();
         let right = PluginVersion::from_str(b).unwrap();
-        assert!(left > right, "{:?} is not less than {:?}", left, right);
+        assert!(left > right, "{left:?} is not less than {right:?}");
     }
 
     #[rstest]
@@ -360,7 +360,7 @@ mod tests {
     fn test_archive_version_greater_than(#[case] a: &str, #[case] b: &str) {
         let left = ArchiveVersion::from_str(a).unwrap();
         let right = ArchiveVersion::from_str(b).unwrap();
-        assert!(left > right, "{:?} is not less than {:?}", left, right);
+        assert!(left > right, "{left:?} is not less than {right:?}");
     }
 
     #[rstest]

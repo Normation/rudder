@@ -84,8 +84,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     You should not have to modify that.
   -->
-  
-  
+
+
   <if condition='property("run.mode").equalsIgnoreCase("production")'>
     <then>
       <appender name="STDOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -302,7 +302,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
   <logger name="org.eclipse.jetty" level="info" />
   <logger name="policy.generation.timing.buildNodeConfig" level="info" />
-  
+
   <!--
     Startup
     =======
@@ -391,7 +391,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </logger>
 
   <!--
-    Log information about user authentication and user-related access to Rudder 
+    Log information about user authentication and user-related access to Rudder
     (rights, session, user management in general).
   -->
   <!-- Uncomment to have precise log about user management and authentication -->
@@ -481,6 +481,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <logger name="hooks" level="info" additivity="false">
     <appender-ref ref="STDOUT" />
   </logger>
+
+  <!--
+    You can debug one kind of hooks independently of other by using the name of the hooks directory in
+    /opt/rudder/etc/hooks.d/. For example, to debug only hooks from "policy-generation-node-finished" phase, use:
+  -->
+  <!--  <logger name="hooks.policy-generation-node-finished" level="debug"/>-->
 
 
   <!--

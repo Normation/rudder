@@ -33,33 +33,19 @@
 bundle agent file_ensure_lines_absent(path, lines)
 {
   vars:
-      "old_class_prefix"        string => canonify("file_ensure_lines_absent_${path}");
-
-      "args"                     slist => { "${path}", "${lines}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("file_ensure_lines_absent_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("file_lines_absent_${report_param}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
-      "canonified_path"    string => canonify("${path}");
-
+      "class_prefix" string => canonify("file_ensure_lines_absent_${path}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                           usebundle => disable_reporting;
-      "action"             usebundle => file_lines_absent("${path}", "${lines}");
-      "reenable_reporting_${class_prefix}"
-                           usebundle => enable_reporting,
-                          ifvarclass => "should_report";
-      "class copy"         usebundle => _classes_copy("file_lines_absent_${canonified_path}", "${old_class_prefix}"),
-                          ifvarclass => "file_lines_absent_${canonified_path}_reached";
-      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                          ifvarclass => "${inner_class_prefix}_reached";
-      "report"             usebundle => _log_v3("Ensure line(s) absent from ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_lines_absent");
+      "${report_data.method_id}" usebundle => file_lines_absent("${path}", "${lines}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_lines_absent");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Ensure line(s) absent from ${path}", "");
 }

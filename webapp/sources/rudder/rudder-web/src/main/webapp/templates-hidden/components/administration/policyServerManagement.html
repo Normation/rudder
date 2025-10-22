@@ -22,7 +22,7 @@
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
 </head>
 
-  <div class="d-flex">
+  <div class="d-flex h-100">
 
     <div class="sidebar-left">
       <div class="sidebar-body" id="navbar-scrollspy">
@@ -633,8 +633,8 @@
     </div>
   </div>
 
-  <script>
-    buildScrollSpyNav();
+  <script data-lift="with-nonce">
+    buildScrollSpyNav("navbar-scrollspy", "generalSettingsTab");
   </script>
   </component-body>
 </xml:group>

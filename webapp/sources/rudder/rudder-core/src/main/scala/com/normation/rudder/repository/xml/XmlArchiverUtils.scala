@@ -83,7 +83,7 @@ trait XmlArchiverUtils {
       val file = fileName.toScala
       file.parent.createDirectoryIfNotExists(true).setPermissions(directoryPerms).setGroup(groupOwner)
       file
-        .writeText(xmlPrettyPrinter.format(elem))(Seq(WRITE, TRUNCATE_EXISTING, CREATE), Charset.forName(encoding))
+        .writeText(xmlPrettyPrinter.format(elem))(using Seq(WRITE, TRUNCATE_EXISTING, CREATE), Charset.forName(encoding))
         .setPermissions(filePerms)
         .setGroup(groupOwner)
       GitArchiveLogger.debug(logMessage)

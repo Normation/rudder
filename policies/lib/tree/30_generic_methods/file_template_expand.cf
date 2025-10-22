@@ -36,22 +36,27 @@
 bundle agent file_template_expand(tml_file, path, mode, owner, group)
 {
   vars:
-      "old_class_prefix" string => canonify("file_template_expand_${path}");
-      "args"              slist => { "${tml_file}", "${path}", "${mode}", "${owner}", "${group}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_template_expand_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"       string => canonify("file_template_expand_${path}");
+      "inner_class_prefix" string => "${report_data.method_id}_inner";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   files:
+    pass3::
       "${path}"
         create        => "true",
         edit_template => "${sys.workdir}/inputs/${tml_file}",
         edit_defaults => ncf_empty_select("true"),
         perms         => mog("${mode}","${owner}","${group}"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes       => classes_generic("${inner_class_prefix}");
 
   methods:
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Expand template ${tml_file} into ${path} with perms ${mode}, ${owner}, ${group}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Expand template ${tml_file} into ${path} with perms ${mode}, ${owner}, ${group}", "");
 }

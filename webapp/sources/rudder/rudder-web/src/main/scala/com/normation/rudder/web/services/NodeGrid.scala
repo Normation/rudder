@@ -46,7 +46,6 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.utils.Utils.isEmpty
 import net.liftweb.common.*
@@ -97,7 +96,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean = true,
       paginate:   Boolean = true
-  )(implicit qr: QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
     Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
@@ -115,7 +114,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean,
       paginate:   Boolean
-  )(implicit qr: QueryContext): JsCmd = {
+  )(implicit qc: QueryContext): JsCmd = {
     val jsTableId = StringEscapeUtils.escapeEcmaScript(tableId)
 
     JsRaw(s"""
@@ -150,11 +149,12 @@ final class NodeGrid(
             "aoColumns": [
               { "sWidth": "30%" },
               { "sWidth": "27%" },
-              { "sWidth": "20%" } ${aoColumns}
+              { "sWidth": "20%", "render": (data, type) => ( type !== "exportCsv" ? data : $$(data).find(".ip").map(function() {return this.innerHTML;}).get().join() )  } ${aoColumns}
             ],
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25 ,
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
+            "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+            "buttons" : [ csvButtonConfig("${tableId}") ]
           });
             """) &   // JsRaw ok, escaped
       initJsCallBack(jsTableId)
@@ -185,7 +185,7 @@ final class NodeGrid(
                 var node = $$(this).attr("nodeid");
                 var ajaxParam = JSON.stringify({"jsid":jsid , "id":$$(this).attr("nodeid") , "status":$$(this).attr("nodeStatus")});
                 ${jsVarNameForId(tableId)}.fnOpen( this, fnFormatDetails(jsid), 'details' );
-                ${SHtml.ajaxCall(JsVar("ajaxParam"), details _)._2.toJsCmd}
+                ${SHtml.ajaxCall(JsVar("ajaxParam"), details)._2.toJsCmd}
               }
             }
           } );
@@ -223,14 +223,14 @@ final class NodeGrid(
         (if (isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escapeHTML(server.hostname))
       } &
       ".fullos *" #> escapeHTML(server.osFullName) &
-      ".ips *" #> ((server.ips.flatMap(ip => <div class="ip">{escapeHTML(ip)}</div>)):         NodeSeq) & // TODO : enhance this
+      ".ips *" #> ((server.ips.flatMap(ip => <li class="ip">{escapeHTML(ip)}</li>)):           NodeSeq) &
       ".other" #> ((columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }): NodeSeq) &
       ".nodetr [jsuuid]" #> { server.id.value.replaceAll("-", "") } &
       ".nodetr [nodeid]" #> { server.id.value } &
       ".nodetr [nodestatus]" #> { server.status.name })(datatableXml)
     }
 
-    val lines: NodeSeq = servers.flatMap(serverLine _)
+    val lines: NodeSeq = servers.flatMap(serverLine)
 
     ("table [id]" #> tableId &
     "#header *+" #> headers &
@@ -240,7 +240,7 @@ final class NodeGrid(
     <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
       <td class="curspoint"><span class="hostname listopen"></span></td>
       <td class="fullos curspoint"></td>
-      <td class="ips curspoint"></td>
+      <td class="curspoint"><ul class="ips"></ul></td>
       <td class="other"></td>
     </tr>
   }
@@ -257,11 +257,12 @@ final class NodeGrid(
 
     (for {
       json       <- tryo(parse(jsonArg)).toIO.chainError("Error when trying to parse argument for node")
-      arg        <- tryo(json.extract[JsonArg]).toIO
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      arg        <- tryo(json.extract[JsonArg]: @annotation.nowarn("cat=deprecation")).toIO
       status     <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
       nodeId      = NodeId(arg.id)
       nodeFact   <- nodeFactRepo
-                      .slowGetCompat(nodeId, status, SelectFacts.noSoftware)(CurrentUser.queryContext)
+                      .slowGetCompat(nodeId, status, SelectFacts.noSoftware)
                       .notOptional(s"Error when trying to find information for node '${nodeId.value}'")
       globalMode <- configService
                       .rudder_global_policy_mode()

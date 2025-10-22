@@ -62,7 +62,9 @@ import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -71,7 +73,6 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
-import org.joda.time.DateTime
 import scala.xml.NodeSeq
 
 object ShowNodeDetailsFromNode {
@@ -112,12 +113,12 @@ class ShowNodeDetailsFromNode(
     () => Some(getGlobalSchedule())
   )
 
-  def nodeStateEditForm(nodeFact: CoreNodeFact)(implicit qr: QueryContext) = new NodeStateForm(
+  private def nodeStateEditForm(nodeFact: CoreNodeFact)(implicit qc: QueryContext) = new NodeStateForm(
     nodeFact,
     saveNodeState(nodeFact.id)
   )
 
-  def saveNodeState(nodeId: NodeId)(nodeState: NodeState)(implicit qr: QueryContext): Box[NodeState] = {
+  private def saveNodeState(nodeId: NodeId)(nodeState: NodeState)(implicit qc: QueryContext): Box[NodeState] = {
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
@@ -127,7 +128,7 @@ class ShowNodeDetailsFromNode(
                    .toBox // we can't change the state of a missing node
       newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
       result  <- nodeFactRepo
-                   .save(newNode)(ChangeContext(modId, qr.actor, DateTime.now(), None, None, qr.nodePerms))
+                   .save(newNode)(using ChangeContext(modId, qc.actor, Instant.now(), None, None, qc.nodePerms))
                    .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
@@ -161,10 +162,10 @@ class ShowNodeDetailsFromNode(
   def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval): Box[Unit] = {
     val newNodeFact = nodeFact.modify(_.rudderSettings.reportingConfiguration.agentRunInterval).setTo(Some(schedule))
     val modId       = ModificationId(uuidGen.newUuid)
-    val cc          = ChangeContext(modId, CurrentUser.actor, DateTime.now(), None, None, CurrentUser.nodePerms)
+    val cc          = ChangeContext(modId, CurrentUser.actor, Instant.now(), None, None, CurrentUser.nodePerms)
 
     (for {
-      _ <- nodeFactRepo.save(newNodeFact)(cc)
+      _ <- nodeFactRepo.save(newNodeFact)(using cc)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }).toBox
@@ -219,7 +220,7 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        nodeFactRepo.slowGet(node.id)(CurrentUser.queryContext, attrs = SelectFacts.noSoftware).toBox match {
+        nodeFactRepo.slowGet(node.id)(using CurrentUser.queryContext, attrs = SelectFacts.noSoftware).toBox match {
           case Full(Some(nf)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")
@@ -229,15 +230,17 @@ class ShowNodeDetailsFromNode(
             val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(nf, withinPopup, globalMode, globalScore) ++ Script(
-                  DisplayNode.jsInit(node.id, "") &
-                  JsRaw(s"""
+                bindNode(nf, withinPopup, globalMode, globalScore) ++ WithNonce.scriptWithNonce(
+                  Script(
+                    DisplayNode.jsInit(node.id, "") &
+                    JsRaw(s"""
                     var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
                     var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
                     activeTabBtn.classList.add('active');
                     var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
                     """) & // JsRaw ok, escaped
-                  buildJsTree(groupTreeId)
+                    buildJsTree(groupTreeId)
+                  )
                 )
               case e: EmptyBox =>
                 val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
@@ -266,7 +269,7 @@ class ShowNodeDetailsFromNode(
       withinPopup: Boolean,
       globalMode:  GlobalPolicyMode,
       globalScore: GlobalScore
-  )(implicit qr: QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val id   = JsNodeId(nodeFact.id)
     val sm   = nodeFact.toFullInventory
     val node = nodeFact.toCore
@@ -291,7 +294,6 @@ class ShowNodeDetailsFromNode(
       "reportsDetails",
       "reportsGrid",
       RudderConfig.reportingService.findUserNodeStatusReport(_).toBox,
-      addOverridden = true,
       onlySystem = false
     ) &
     "#systemStatus *" #> reportDisplayer.asyncDisplay(
@@ -300,11 +302,10 @@ class ShowNodeDetailsFromNode(
       "systemStatus",
       "systemStatusGrid",
       RudderConfig.reportingService.findSystemNodeStatusReport(_).toBox,
-      addOverridden = false,
       onlySystem = true
     ) &
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
-    "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &
+    "#logsDetails *" #> WithNonce.scriptWithNonce(Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid")))) &
     "#node_parameters -*" #> (if (node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty
                               else nodeStateEditForm(node).nodeStateConfiguration) &
     "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration(Some(node.id)) &

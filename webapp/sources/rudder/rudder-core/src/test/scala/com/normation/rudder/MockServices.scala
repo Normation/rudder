@@ -61,6 +61,7 @@ import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
+import com.normation.rudder.db.DB
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
@@ -75,11 +76,32 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.DeleteEditorTechnique
+import com.normation.rudder.ncf.EditorTechniqueCompilationResult
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.EditorTechniqueReaderImpl
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.GitResourceFileService
+import com.normation.rudder.ncf.ReadEditorTechniqueActiveStatus
+import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.rudder.ncf.ResourceFile
+import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.RuddercOptions
+import com.normation.rudder.ncf.RuddercResult
+import com.normation.rudder.ncf.RuddercService
+import com.normation.rudder.ncf.RuddercTechniqueCompiler
+import com.normation.rudder.ncf.TechniqueActiveStatus
+import com.normation.rudder.ncf.TechniqueCompilationStatusService
+import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
+import com.normation.rudder.ncf.TechniqueWriterImpl
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.properties.InMemoryPropertiesRepository
 import com.normation.rudder.properties.NodePropertiesServiceImpl
 import com.normation.rudder.properties.PropertiesRepository
@@ -88,6 +110,9 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.xml.GitParseGroupLibrary
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiverImpl
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
@@ -99,6 +124,7 @@ import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
 import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
@@ -107,12 +133,15 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+import java.time.Instant
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
@@ -178,7 +207,7 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  val abstractRoot: File = File("/tmp/test-rudder-mock-config-repo-" + DateTime.now.toString())
+  val abstractRoot: File = File("/tmp/test-rudder-mock-config-repo-" + DateTime.now(DateTimeZone.UTC).toString())
   abstractRoot.createDirectories()
   if (System.getProperty("tests.clean.tmp") != "false") {
     java.lang.Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
@@ -214,6 +243,12 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
       // nothing
       ZIO.unit
     }
+  }
+
+  val gitModificationRepository: GitModificationRepository = new GitModificationRepository {
+    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
+      DB.GitCommitJoin(commit, modId).succeed
   }
 }
 
@@ -294,8 +329,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     reportsDbUser = "rudder",
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.pathAsString,
-    serverVersion = "7.0.0", // denybadclocks is runtime properties
-
+    serverVersion = "7.0.0",                // denybadclocks is runtime properties
+    PolicyServerCertificateConfig(Nil, "", false, false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),
@@ -312,6 +347,122 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   val globalSystemVariables: Map[String, Variable] = systemVariableService
     .getGlobalSystemVariables(globalAgentRun)
     .openOrThrowException("I should get global system variable in test!")
+
+  // a false technique compiler that return a value depending of the name of the
+  // technique in parameter (known by the name of the parent path in technique.path)
+  // - if it contains "technique_with_error", then return 42 + error message
+  // - else returns 0
+  // ALSO: it saves the metadata of techniques before write in `gitMock.abstractRoot / ${technique_name}_metadata_save`
+  // for investigation like in TestMigrateJsonTechniquesToYaml
+  val rudderc: RuddercService = new RuddercService {
+    override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
+      // test implementation that just create the files with the technique name in them safe for
+      val techniqueId = techniqueDir.parent.name
+      if (techniqueId == "technique_with_error") {
+        RuddercResult.Fail(42, Chunk(ResourceFile("foo", ResourceFileState.Deleted)), "error", "", "error stderr").succeed
+      } else {
+        // replace content to be sure we get there
+        IOResult.attempt(s"Error when writing test metadata file for ${techniqueId} in mock rudderc service") {
+          // we need to keep metadata.xml, it's parsed in technique writer for technique registration
+          val metadata                = (techniqueDir / TechniqueFiles.Generated.metadata)
+          val testMetadataContentFile = mockGit.abstractRoot / s"${techniqueId}_metadata_save"
+          val metadataContent         = if (testMetadataContentFile.exists) {
+
+            testMetadataContentFile
+              .contentAsString()
+              .replace("<DESCRIPTION></DESCRIPTION>", "<DESCRIPTION>regenerated</DESCRIPTION>")
+          } else {
+            s"""<TECHNIQUE name="${techniqueId}"></TECHNIQUE>"""
+          }
+
+          metadata.write(metadataContent)
+          // we can replace other
+          (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengineRudderc).foreach { n =>
+            (techniqueDir / n).write("regenerated")
+          }
+          RuddercResult.Ok(Chunk.empty, "", "", "")
+        }
+      }
+    }
+  }
+
+  val techniqueCompiler = new RuddercTechniqueCompiler(
+    rudderc,
+    _.path,
+    mockGit.configurationRepositoryRoot.pathAsString
+  )
+
+  val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
+    null,
+    null,
+    mockGit.gitRepo,
+    null,
+    null,
+    "UTF-8",
+    "test",
+    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo)),
+    null,
+    "no-cmd",
+    "no-methods",
+    "no-methods"
+  ) {
+    import com.normation.rudder.ncf.BundleName as BN
+    override def getMethodsMetadata:        IOResult[Map[BN, GenericMethod]] = Map.empty.succeed
+    override def updateMethodsMetadataFile: IOResult[CmdResult]              = Inconsistency("this should not be called").fail
+  }
+
+  val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+    editorTechniqueReader,
+    techniqueCompiler
+  )
+
+  val xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
+
+  val techniqueArchiver: TechniqueArchiverImpl = new TechniqueArchiverImpl(
+    mockGit.gitRepo,
+    xmlPrettyPrinter,
+    mockGit.gitModificationRepository,
+    new PersonIdentService {
+      override def getPersonIdentOrDefault(username: String): IOResult[PersonIdent] = {
+        new PersonIdent("test-technique-archiver", "test@technique.archiver").succeed
+      }
+    },
+    techniqueParser,
+    techniqueCompiler,
+    System.getProperty("user.name")
+  )
+
+  val deleteEditorTechnique: DeleteEditorTechnique = new DeleteEditorTechnique {
+    override def deleteTechnique(
+        techniqueName:    String,
+        techniqueVersion: String,
+        deleteDirective:  Boolean,
+        modId:            ModificationId,
+        committer:        QueryContext
+    ): IOResult[Unit] = ZIO.unit
+  }
+
+  val techniqueActiveStatusService: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {
+    import com.normation.rudder.ncf.BundleName as BN
+    override def getActiveStatus(id: BN): IOResult[Option[TechniqueActiveStatus]] = None.succeed
+    override def getActiveStatuses(): IOResult[Map[BN, TechniqueActiveStatus]] = Map.empty.succeed
+  }
+
+  val techniqueCompilationCache: TechniqueCompilationStatusSyncService = new TechniqueCompilationStatusSyncService {
+    override def syncOne(result:                       EditorTechniqueCompilationResult):               IOResult[Unit] = ZIO.unit
+    override def syncTechniqueActiveStatus(bundleName: ncf.BundleName):                                 IOResult[Unit] = ZIO.unit
+    override def unsyncOne(id:                         (ncf.BundleName, Version)):                      IOResult[Unit] = ZIO.unit
+    override def getUpdateAndSync(results:             Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = ZIO.unit
+  }
+
+  val techniqueWriter = new TechniqueWriterImpl(
+    techniqueArchiver,
+    techniqueRepo,
+    deleteEditorTechnique,
+    techniqueCompiler,
+    techniqueCompilationCache,
+    mockGit.configurationRepositoryRoot.pathAsString
+  )
 }
 
 object TV {
@@ -329,8 +480,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
      * in class TestNodeConfiguration
      */
 
-    val commonTechnique:                                                      Technique                        = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
-    def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, VariableSpec#V] = {
+    val commonTechnique:                                                      Technique                  = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
+    def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, Variable] = {
       commonTechnique.getAllVariableSpecs.collect {
         case (c @ ComponentId("OWNER", _, _), s)              => (c, s.toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName)))
         case (c @ ComponentId("UUID", _, _), s)               => (c, s.toVariable(Seq(nodeId.value)))
@@ -340,7 +491,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         case (c @ ComponentId("ALLOWEDNETWORK", _, _), s)     => (c, s.toVariable(Seq("")))
       }
     }
-    val commonDirective:                                                      Directive                        = Directive(
+    val commonDirective:                                                      Directive                  = Directive(
       DirectiveId(DirectiveUid("common-root"), GitVersion.DEFAULT_REV),
       TV("1.0"),
       Map(
@@ -1473,7 +1624,7 @@ class MockRules() {
         val systems         = rules.valuesIterator.filter(_.isSystem)
         val newRulesUpdated = newRules.filterNot(_.isSystem) ++ systems
         newRulesUpdated.map(r => (r.id, r)).toMap.succeed
-      }.map(_ => RuleArchiveId(s"swap at ${DateTime.now().toString(ISODateTimeFormat.dateTime())}"))
+      }.map(_ => RuleArchiveId(s"swap at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime())}"))
     }
 
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ZIO.unit
@@ -1504,7 +1655,6 @@ class MockConfigRepo(
 }
 
 class MockGlobalParam() {
-  import com.normation.rudder.domain.properties.GenericProperty.*
 
   val mode: InheritMode = {
     import com.normation.rudder.domain.properties.InheritMode.*
@@ -1727,7 +1877,7 @@ object MockNodes {
         None,
         Some("Some explanation"),
         Some(SoftwareUpdateSeverity.Critical),
-        JsonSerializers.parseSoftwareUpdateDateTime(d0).toOption,
+        JsonSerializers.parseSoftwareUpdateInstant(d0).toOption,
         Some(List(id0, id1))
       ),
       SoftwareUpdate(
@@ -1808,6 +1958,14 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
   val rootHostname = "server.rudder.local"
   val rootAdmin    = "root"
 
+  // shallow exception for test
+  def parseInstant(s: String): Instant = {
+    DateFormaterService.parseInstant(s) match {
+      case Right(i)  => i
+      case Left(err) => throw new IllegalArgumentException(err.fullMsg)
+    }
+  }
+
   val rootNode: Node     = Node(
     rootId,
     "root",
@@ -1815,7 +1973,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = true,
     isPolicyServer = true,
-    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
@@ -1827,7 +1985,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Stretch", new Version("9.4"), None, new Version("4.5")),
     List("127.0.0.1", "192.168.0.100"),
-    DateTime.parse("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20+01:00"),
     UndefinedKey,
     Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
@@ -1852,7 +2010,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     ram = Some(MemorySize(100000)),
     swap = Some(MemorySize(1000000)),
     inventoryDate = None,
-    receiveDate = DateFormaterService.parseDate("2021-01-31T03:05:00+01:00").toOption,
+    receiveDate = DateFormaterService.parseInstant("2021-01-31T03:05:00+01:00").toOption,
     archDescription = Some("x86_64"),
     lastLoggedUser = None,
     lastLoggedUserTime = None,
@@ -1894,7 +2052,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = false,
     isPolicyServer = false,
-    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
@@ -1907,7 +2065,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Buster", new Version("10.6"), None, new Version("4.19")),
     List("192.168.0.10"),
-    DateTime.parse("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20+01:00"),
     UndefinedKey,
     Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
@@ -1988,7 +2146,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = true,
     isPolicyServer = true, // is relay server
-    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = None,
@@ -2013,7 +2171,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012")),
     List("192.168.0.5"),
-    DateTime.parse("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20+01:00"),
     UndefinedKey,
     Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set())),
     rootId,
@@ -2120,7 +2278,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
       state = NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = DateTime.now,
+      creationDate = Instant.now(),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = Nil,
       policyMode = None,
@@ -2136,7 +2294,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
         None,
         Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
         Nil,
-        DateTime.now,
+        Instant.now(),
         UndefinedKey,
         Seq(AgentInfo(CfeCommunity, None, Certificate("node certificate"), Set())),
         NodeId("root"),
@@ -2325,13 +2483,13 @@ class MockNodes() {
             case A_STATE              => Right((n: NodeFact) => List(n.rudderSettings.state.name))
             case A_OS_RAM             => Right((n: NodeFact) => n.ram.map(_.size.toString).toList)
             case A_OS_SWAP            => Right((n: NodeFact) => n.swap.map(_.size.toString).toList)
-            case A_AGENTS_NAME        => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
+            case A_AGENT_NAME         => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
             case A_ACCOUNT            => Right((n: NodeFact) => n.accounts.toList)
             case A_LIST_OF_IP         => Right((n: NodeFact) => n.ipAddresses.map(_.inet).toList)
             case A_ROOT_USER          => Right((n: NodeFact) => List(n.rudderAgent.user))
             case A_INVENTORY_DATE     =>
               Right((n: NodeFact) =>
-                List(n.lastInventoryDate.getOrElse(n.factProcessedDate).toString(ISODateTimeFormat.dateTimeNoMillis()))
+                List(DateFormaterService.serializeInstant(n.lastInventoryDate.getOrElse(n.factProcessedDate)))
               )
             case A_POLICY_SERVER_UUID => Right((n: NodeFact) => List(n.rudderSettings.policyServerId.value))
             case _                    => Left(Inconsistency(s"object '${objectName}' doesn't have attribute '${attribute}'"))
@@ -2391,8 +2549,6 @@ class MockNodes() {
         matching.map(_.id).toSeq
       }
     }.toBox
-
-    override def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 
   object newNodeManager extends NewNodeManager {
@@ -3147,16 +3303,16 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
 
 // It would be much simpler if the root classes were concrete, parameterized with a A type:
 // case class Campaign[A](info: CampaignInfo, details: A) // or even info inlined
-object DumbCampaignType extends CampaignType("dumb-campaign")
+object TestCampaignType extends CampaignType("test-campaign")
 
-final case class DumbCampaignDetails(name: String) extends CampaignDetails
+final case class TestCampaignDetails(name: String) extends CampaignDetails
 
 @jsonDiscriminator("campaignType")
-sealed trait DumbCampaignTrait extends Campaign
+sealed trait TestCampaignTrait extends Campaign
 
-@jsonHint(DumbCampaignType.value)
-final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) extends DumbCampaignTrait {
-  val campaignType: CampaignType = DumbCampaignType
+@jsonHint(TestCampaignType.value)
+final case class TestCampaign(info: CampaignInfo, details: TestCampaignDetails) extends TestCampaignTrait {
+  val campaignType: CampaignType = TestCampaignType
   val version = 1
   def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
   def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
@@ -3168,7 +3324,7 @@ class MockCampaign() {
   val campaignSerializer = new CampaignSerializer()
 
   // init item: one campaign, with a finished event, one running, one scheduled
-  val c0: DumbCampaign  = DumbCampaign(
+  val c0: TestCampaign  = TestCampaign(
     CampaignInfo(
       CampaignId("c0"),
       "first campaign",
@@ -3176,13 +3332,22 @@ class MockCampaign() {
       Enabled,
       WeeklySchedule(DayTime(Monday, 3, 42), DayTime(Monday, 4, 42), None)
     ),
-    DumbCampaignDetails("campaign #0")
+    TestCampaignDetails("campaign #0")
   )
-  val e0: CampaignEvent =
-    CampaignEvent(CampaignEventId("e0"), c0.info.id, "campaign #0", Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+  val e0: CampaignEvent = {
+    CampaignEvent(
+      CampaignEventId("e0"),
+      c0.info.id,
+      "campaign #0",
+      CampaignEventState.Finished,
+      new DateTime(0, DateTimeZone.UTC),
+      new DateTime(1, DateTimeZone.UTC),
+      TestCampaignType
+    )
+  }
 
   object repo extends CampaignRepository {
-    val items: Ref[Map[CampaignId, DumbCampaignTrait]] = Ref.make(Map[CampaignId, DumbCampaignTrait]((c0.info.id -> c0))).runNow
+    val items: Ref[Map[CampaignId, TestCampaignTrait]] = Ref.make(Map[CampaignId, TestCampaignTrait]((c0.info.id -> c0))).runNow
 
     override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
       for {
@@ -3192,109 +3357,140 @@ class MockCampaign() {
       }
     }
 
-    override def get(id: CampaignId): IOResult[Option[Campaign]] =
-      items.get.map(_.get(id))
-    override def save(c: Campaign):   IOResult[Campaign]         = {
+    override def get(id: CampaignId): IOResult[Option[Campaign]] = items.get.map(_.get(id))
+
+    override def save(c: Campaign): IOResult[Campaign] = {
       c match {
-        case x: DumbCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
+        case x: TestCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
         case _ => Inconsistency("Unknown campaign type").fail
       }
     }
 
-    def delete(id: CampaignId): IOResult[CampaignId] = {
-      items.update(_ - id) *> id.succeed
+    override def delete(id: CampaignId): IOResult[Unit] = {
+      items.update(_ - id)
     }
   }
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {
     import com.normation.rudder.campaigns.CampaignSerializer.*
     import zio.json.*
-    implicit val dumbCampaignDetailsDecoder: JsonDecoder[DumbCampaignDetails] = DeriveJsonDecoder.gen
-    implicit val dumbCampaignDecoder:        JsonDecoder[DumbCampaignTrait]   = DeriveJsonDecoder.gen
-    implicit val dumbCampaignDetailsEncoder: JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
-    implicit val dumbCampaignEncoder:        JsonEncoder[DumbCampaignTrait]   = DeriveJsonEncoder.gen
+    implicit val dumbCampaignDetailsDecoder: JsonDecoder[TestCampaignDetails] = DeriveJsonDecoder.gen
+    implicit val dumbCampaignDecoder:        JsonDecoder[TestCampaignTrait]   = DeriveJsonDecoder.gen
+    implicit val dumbCampaignDetailsEncoder: JsonEncoder[TestCampaignDetails] = DeriveJsonEncoder.gen
+    implicit val dumbCampaignEncoder:        JsonEncoder[TestCampaignTrait]   = DeriveJsonEncoder.gen
 
     def read(): PartialFunction[(String, CampaignParsingInfo), IOResult[Campaign]] = {
-      case (s, CampaignParsingInfo(DumbCampaignType, 1)) => s.fromJson[DumbCampaignTrait].toIO
+      case (s, CampaignParsingInfo(TestCampaignType, 1)) => s.fromJson[TestCampaignTrait].toIO
     }
 
-    def getRawJson(): PartialFunction[Campaign, IOResult[zio.json.ast.Json]] = { case c: DumbCampaignTrait => c.toJsonAST.toIO }
+    def getRawJson(): PartialFunction[Campaign, IOResult[zio.json.ast.Json]] = { case c: TestCampaignTrait => c.toJsonAST.toIO }
 
-    def campaignType(): PartialFunction[String, CampaignType] = { case DumbCampaignType.value => DumbCampaignType }
+    def campaignType(): PartialFunction[String, CampaignType] = { case TestCampaignType.value => TestCampaignType }
+  }
+
+  object campaignArchive extends CampaignArchiver {
+    override def saveCampaign(campaignId: CampaignId)(implicit cc: ChangeContext): IOResult[Unit] = ().succeed
+
+    override def deleteCampaign(campaignId: CampaignId)(implicit cc: ChangeContext): IOResult[Unit] = ().succeed
+
+    override def init(implicit changeContext: ChangeContext): IOResult[Unit] = ().succeed
+
+    override def campaignPath: File = File("/tmp")
   }
 
   object dumbCampaignEventRepository extends CampaignEventRepository {
-    val items: Ref[Map[CampaignEventId, CampaignEvent]] = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
+    val items: Ref[Map[CampaignEventId, (CampaignEvent, List[CampaignEventHistory])]] = {
+      val h = CampaignEventHistory(
+        e0.id,
+        e0.state,
+        DateFormaterService.toInstant(e0.start),
+        Some(DateFormaterService.toInstant(e0.end))
+      )
+      Ref.make(Map((e0.id -> (e0, h :: Nil)))).runNow
+    }
 
     def isActive(e: CampaignEvent): Boolean = {
-      e.state == Scheduled || e.state == Running
+      e.state == CampaignEventStateType.ScheduledType || e.state == CampaignEventStateType.RunningType
     }
 
-    def get(id: CampaignEventId):            IOResult[Option[CampaignEvent]] = {
-      items.get.map(_.get(id))
-    }
-    def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent]         = {
-      for {
-        _ <- items.update(map => map + ((c.id, c)))
-      } yield c
+    override def get(id: CampaignEventId): IOResult[Option[CampaignEvent]] = {
+      items.get.map(_.get(id).map(_._1))
     }
 
-    def getWithCriteria(
-        states:       List[String],
+    override def saveCampaignEvent(event: CampaignEvent): IOResult[Unit] = {
+      items.update { map =>
+        val history = map.get(event.id).map(_._2).getOrElse(Nil)
+        val h       = CampaignEventHistory(
+          event.id,
+          event.state,
+          DateFormaterService.toInstant(event.start),
+          Some(DateFormaterService.toInstant(event.end))
+        )
+        map + ((event.id, (event, h :: history)))
+      }
+    }
+
+    override def getWithCriteria(
+        states:       List[CampaignEventStateType],
         campaignType: List[CampaignType],
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
         offset:       Option[Int],
         afterDate:    Option[DateTime],
         beforeDate:   Option[DateTime],
-        order:        Option[String],
-        asc:          Option[String]
+        order:        Option[CampaignSortOrder],
+        asc:          Option[CampaignSortDirection]
     ): IOResult[List[CampaignEvent]] = {
 
-      val allEvents            = items.get.map(_.values.toList)
-      val campaignIdFiltered   = campaignId match {
+      val allEvents = items.get.map(_.values.toList)
+
+      val campaignIdFiltered = campaignId match {
         case None     => allEvents
-        case Some(id) => allEvents.map(_.filter(_.campaignId == id))
-      }
-      val campaignTypeFiltered = campaignType match {
-        case Nil => campaignIdFiltered
-        case l   => campaignIdFiltered.map(_.filter(c => l.contains(c.campaignType)))
-      }
-      val stateFiltered        = states match {
-        case Nil => campaignTypeFiltered
-        case s   => campaignTypeFiltered.map(_.filter(ev => states.contains(s)))
+        case Some(id) => allEvents.map(_.filter(_._1.campaignId == id))
       }
 
-      val afterDateFiltered  = afterDate match {
-        case None     => stateFiltered
-        case Some(id) => stateFiltered.map(_.filter(_.end.isAfter(id)))
+      val campaignTypeFiltered = campaignType match {
+        case Nil => campaignIdFiltered
+        case l   => campaignIdFiltered.map(_.filter(c => l.contains(c._1.campaignType)))
       }
+
+      val stateFiltered = states match {
+        case Nil => campaignTypeFiltered
+        case s   => campaignTypeFiltered.map(_.filter(ev => s.contains(ev._1.state)))
+      }
+
+      val afterDateFiltered = afterDate match {
+        case None     => stateFiltered
+        case Some(id) => stateFiltered.map(_.filter(_._1.end.isAfter(id)))
+      }
+
       val beforeDateFiltered = beforeDate match {
         case None     => afterDateFiltered
-        case Some(id) => afterDateFiltered.map(_.filter(_.start.isBefore(id)))
+        case Some(id) => afterDateFiltered.map(_.filter(_._1.start.isBefore(id)))
       }
 
       val ordered = order match {
-        case Some("endDate" | "end")                =>
+        case Some(CampaignSortOrder.EndDate)              =>
           beforeDateFiltered.map(
             _.sortWith((a, b) => {
               asc match {
-                case Some("asc") => a.end.isBefore(b.end)
-                case _           => a.end.isAfter(b.end)
+                case Some(CampaignSortDirection.Asc) => a._1.end.isBefore(b._1.end)
+                case _                               => a._1.end.isAfter(b._1.end)
               }
             })
           )
-        case Some("startDate" | "start") | None | _ =>
+        case Some(CampaignSortOrder.StartDate) | None | _ =>
           beforeDateFiltered.map(
             _.sortWith((a, b) => {
               asc match {
-                case Some("asc") => a.start.isBefore(b.start)
-                case _           => a.start.isAfter(b.start)
+                case Some(CampaignSortDirection.Asc) => a._1.start.isBefore(b._1.start)
+                case _                               => a._1.start.isAfter(b._1.start)
               }
             })
           )
       }
-      (offset, limit) match {
+
+      ((offset, limit) match {
         case (Some(offset), Some(limit)) =>
           ordered.map(_.drop(offset).take(limit))
         case (None, Some(limit))         =>
@@ -3303,14 +3499,14 @@ class MockCampaign() {
           ordered.map(_.drop(offset))
         case (None, None)                =>
           ordered
-      }
+      }).map(_.map(_._1))
     }
 
-    def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
+    override def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
 
-    def deleteEvent(
+    override def deleteEvent(
         id:           Option[CampaignEventId],
-        states:       List[String],
+        states:       List[CampaignEventStateType],
         campaignType: Option[CampaignType],
         campaignId:   Option[CampaignId],
         afterDate:    Option[DateTime],
@@ -3334,27 +3530,40 @@ class MockCampaign() {
 
       val stateFiltered: CampaignEvent => Boolean = states match {
         case Nil => campaignTypeFiltered
-        case s   => ev => campaignTypeFiltered(ev) && !states.contains(s)
+        case s   => ev => campaignTypeFiltered(ev) && !s.contains(ev.state)
       }
 
-      val afterDateFiltered:  CampaignEvent => Boolean = afterDate match {
+      val afterDateFiltered: CampaignEvent => Boolean = afterDate match {
         case None      => stateFiltered
         case Some(id_) => ev => stateFiltered(ev) && ev.end.isAfter(id_)
       }
+
       val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
         case None      => afterDateFiltered
         case Some(id_) => ev => afterDateFiltered(ev) && ev.start.isBefore(id_)
       }
+
       for {
-        i      <- items.get.map(_.values)
-        newList = i.filter(beforeDateFiltered)
-        _      <- items.set(newList.map(ce => (ce.id, ce)).toMap)
+        i      <- items.get
+        newList = i.collect { case (id, (e, h)) if (beforeDateFiltered(e)) => (id, (e, h)) }
+        _      <- items.set(newList.toMap)
       } yield {
         ()
       }
     }
   }
 
-  val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl(), 0, 0)
+  val mainCampaignService: MainCampaignService = {
+    MainCampaignService
+      .make(
+        dumbCampaignEventRepository,
+        repo,
+        NoopCampaignHooksService,
+        new StringUuidGeneratorImpl(),
+        0,
+        0
+      )
+      .runNow
+  }
 
 }

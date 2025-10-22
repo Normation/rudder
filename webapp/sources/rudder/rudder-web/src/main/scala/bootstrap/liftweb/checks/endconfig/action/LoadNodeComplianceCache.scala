@@ -101,7 +101,7 @@ class LoadNodeComplianceCache(
   // compute from last available runs, for example for migration
   def computeNewCompliance(): IOResult[Unit] = {
     for {
-      nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keys)
+      nodeIds <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.keys)
       _       <- ReportLoggerPure.Repository.debug(s"Initialize node status reports for ${nodeIds.size} nodes")
       _       <- computeNodeStatusReportService.invalidateWithAction(
                    nodeIds.toSeq.map(x => (x, ExpectedReportAction(InsertNodeInCache(x))))

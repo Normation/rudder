@@ -59,10 +59,11 @@ class CheckTableScore(
 
     val checkType = sql"SELECT 1 FROM pg_type WHERE typname = 'score'"
     val sqlType   = sql"""CREATE TYPE score AS enum ('A', 'B', 'C', 'D', 'E', 'F', 'X')"""
-    val sql1      = sql"""CREATE TABLE IF NOT EXISTS GlobalScore (
+
+    val sql1 = sql"""CREATE TABLE IF NOT EXISTS GlobalScore (
       nodeId  text primary key
     , score   score NOT NULL
-    , message text NOT NULL CHECK (message <> '')
+    , message text NOT NULL
     , details jsonb NOT NULL
     );"""
 
@@ -70,16 +71,40 @@ class CheckTableScore(
       nodeId  text
     , scoreId text
     , score   score NOT NULL
-    , message text NOT NULL CHECK (message <> '')
+    , message text NOT NULL
     , details jsonb NOT NULL
     , PRIMARY KEY (nodeId, scoreId)
     );"""
+
+    // if the tables exist, we need to remove the check for non-empty message, see: https://issues.rudder.io/issues/26976
+
+    val sql3 = sql"""
+      DO $$$$ BEGIN
+        IF EXISTS (select constraint_name from information_schema.table_constraints
+                   where table_name = 'globalscore' and constraint_name = 'globalscore_message_check'
+                  )
+        THEN ALTER TABLE globalscore DROP CONSTRAINT globalscore_message_check;
+        END IF;
+      END $$$$;"""
+
+    val sql4 = sql"""
+      DO $$$$ BEGIN
+        IF EXISTS (select constraint_name from information_schema.table_constraints
+                   where table_name = 'scoredetails' and constraint_name = 'scoredetails_message_check'
+                  )
+        THEN ALTER TABLE scoredetails DROP CONSTRAINT scoredetails_message_check;
+        END IF;
+      END $$$$;"""
 
     transactIOResult(s"Error with 'score' type creation")(xa =>
       checkType.query[Int].option.transact(xa).flatMap(i => if (i.isDefined) ().succeed else sqlType.update.run.transact(xa))
     ).unit *>
     transactIOResult(s"Error with 'GlobalScore' table creation")(xa => sql1.update.run.transact(xa)).unit *>
-    transactIOResult(s"Error with 'ScoreDetails' table creation")(xa => sql2.update.run.transact(xa)).unit
+    transactIOResult(s"Error with 'ScoreDetails' table creation")(xa => sql2.update.run.transact(xa)).unit *>
+    transactIOResult(s"Error with removing 'GlobalScore' message non empty constraint")(xa =>
+      sql3.update.run.transact(xa)
+    ).unit *>
+    transactIOResult(s"Error with removing 'ScoreDetails' message non empty constraint")(xa => sql4.update.run.transact(xa)).unit
   }
 
   override def checks(): Unit = {

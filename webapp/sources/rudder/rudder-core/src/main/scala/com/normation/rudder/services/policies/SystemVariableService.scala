@@ -71,14 +71,13 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import scala.collection.MapView
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval): Box[Map[String, Variable]]
 
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,
-      allNodeInfos:          MapView[NodeId, CoreNodeFact],
+      allNodeInfos:          Map[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -118,6 +117,14 @@ object SystemVariableService {
   }
 }
 
+/* Configuration node-server communication security */
+final case class PolicyServerCertificateConfig(
+    additionalKeyHash: List[String],
+    certCA:            String,
+    certValidation:    Boolean,
+    httpsOnly:         Boolean
+)
+
 class SystemVariableServiceImpl(
     systemVariableSpecService:     SystemVariableSpecService,
     policyServerManagementService: PolicyServerManagementService,
@@ -133,9 +140,9 @@ class SystemVariableServiceImpl(
     reportsDbUser:             String,
     reportsDbPassword:         String,
     configurationRepository:   String,
-    serverVersion:             String, // denybadclocks is runtime property
-
-    getDenyBadClocks: () => Box[Boolean], // relay synchronisation method
+    serverVersion:             String,             // denybadclocks is runtime property
+    policyServerCertificate:   PolicyServerCertificateConfig,
+    getDenyBadClocks:          () => Box[Boolean], // relay synchronisation method
 
     getSyncMethod:      () => Box[RelaySynchronizationMethod],
     getSyncPromises:    () => Box[Boolean],
@@ -227,7 +234,7 @@ class SystemVariableServiceImpl(
   // policy servers)
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,
-      allNodeInfos:          MapView[NodeId, CoreNodeFact],
+      allNodeInfos:          Map[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -348,17 +355,15 @@ class SystemVariableServiceImpl(
       val children = childrenByPolicyServer.getOrElse(nodeInfo.id, Nil).sortBy(_.id.value)
 
       // Sort these children by agent
-      val childerNodesList = children.map(node => (node.rudderAgent -> node))
+      val childrenNodesList = children.map(node => (node.rudderAgent -> node))
 
       // we need to split nodes based on the way they get their policies. If they use cf-serverd,
       // we need to set some system variable to managed authentication.
       // The distribution is chosen based on agent type.
-      val (nodesAgentWithCfserverDistrib, nodesAgentWithHttpDistrib) = childerNodesList.partition(x => {
-        x._1.agentType match {
-          case AgentType.CfeCommunity => true
-          case _                      => false
-        }
-      })
+      val nodesAgentWithCfserverDistrib = childrenNodesList.filter(_._1.agentType == AgentType.CfeCommunity)
+
+      // In Rudder 9.0, we allow Linux nodes to authenticate with HTTPS / certificate too.
+      val nodesAgentWithHttpDistrib = childrenNodesList
 
       // IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       // we want also to avoid nodes with bad cfkey (empty string) to avoid possible security vuln taking advantage of that.
@@ -388,13 +393,13 @@ class SystemVariableServiceImpl(
           nodes.flatMap(n => {
             n :: {
               childrenByPolicyServer.get(n.id) match {
-                case None           => Nil
-                case Some(children) =>
-                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to childs level, they will be treated by the upper level call
+                case None    => Nil
+                case Some(c) =>
+                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to children level, they will be treated by the upper level call
                   if (n.id == nodeInfo.id) {
                     Nil
                   } else {
-                    addWithSubChildren(children)
+                    addWithSubChildren(c)
                   }
               }
             }
@@ -432,8 +437,6 @@ class SystemVariableServiceImpl(
                   Some(x)
               }
               Some((node, cert, parsedCert))
-            case _ =>
-              None
           }
       }
       val varManagedNodesCertificate =
@@ -502,7 +505,17 @@ class SystemVariableServiceImpl(
     // base64(sha256(der encoded pub key))) version
     val varPolicyServerKeyHashB64Sha256 = systemVariableSpecService
       .get("POLICY_SERVER_KEY_HASH")
-      .toVariable(Seq("sha256//" + allNodeInfos(nodeInfo.rudderSettings.policyServerId).keyHashBase64Sha256))
+      // for additional key hash, we need to have only one string, with ";" separating each hash
+      .toVariable(
+        Seq(
+          "sha256//" + allNodeInfos(
+            nodeInfo.rudderSettings.policyServerId
+          ).keyHashBase64Sha256 ++ (policyServerCertificate.additionalKeyHash match {
+            case Nil => ""
+            case nel => nel.mkString(";", ";", "")
+          })
+        )
+      )
 
     /*
      * RUDDER_NODE_CONFIG_ID is a very special system variable:
@@ -660,7 +673,16 @@ class SystemVariableServiceImpl(
         varNodeGroupsClasses,
         varRudderInventoryVariables,
         varPolicyServerKeyHashCfengine,
-        varPolicyServerKeyHashB64Sha256
+        varPolicyServerKeyHashB64Sha256,
+        systemVariableSpecService
+          .get("POLICY_SERVER_CERT_CA")
+          .toVariable(Seq(policyServerCertificate.certCA)),
+        systemVariableSpecService
+          .get("POLICY_SERVER_CERT_VALIDATION")
+          .toVariable(Seq(policyServerCertificate.certValidation.toString)),
+        systemVariableSpecService
+          .get("POLICY_SERVER_HTTPS_ONLY")
+          .toVariable(Seq(policyServerCertificate.httpsOnly.toString))
       ) map (x => (x.spec.name, x))
     }
 

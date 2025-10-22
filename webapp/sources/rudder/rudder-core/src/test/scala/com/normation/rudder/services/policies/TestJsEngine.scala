@@ -58,7 +58,7 @@ import zio.syntax.*
 
 /*
  * This class test the JsEngine.
- * It must works identically on Java 7 and Java 8.
+ * It must work identically on Java 7 and Java 8.
  *
  */
 
@@ -152,7 +152,7 @@ class TestJsEngine extends Specification {
     }
   }
 
-  "When getting the sandboxed environement, one " should {
+  "When getting the sandboxed environment, one " should {
 
     "still be able to do dangerous things, because it's only the JsEngine which is sandboxed" in {
       runSandboxed() { box =>
@@ -252,6 +252,8 @@ class TestJsEngine extends Specification {
 
     val sha256Variable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.sha256('secret')"))
     val sha512Variable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}rudder.password.sha512('secret', '01234567')"))
+    val sha256Hash     = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.hash.sha256('secret')"))
+    val sha512HAsh     = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}rudder.hash.sha512('secret')"))
 
     "get the correct hashed value for Linux sha256" in {
       contextEnabled(engine => engine.eval(sha256Variable, JsRudderLibBinding.Crypt)) must beVariableValue(_.startsWith("$5$"))
@@ -259,6 +261,18 @@ class TestJsEngine extends Specification {
 
     "get the correct hashed value for Linux sha512" in {
       contextEnabled(engine => engine.eval(sha512Variable, JsRudderLibBinding.Crypt)) must beVariableValue(_.startsWith("$6$"))
+    }
+
+    "get the correct hashed value for sha256" in {
+      contextEnabled(engine => engine.eval(sha256Hash, JsRudderLibBinding.Crypt)) must beVariableValue(
+        _.startsWith("2bb80d537b1da3e38bd3")
+      )
+    }
+
+    "get the correct hashed value for sha512" in {
+      contextEnabled(engine => engine.eval(sha512HAsh, JsRudderLibBinding.Crypt)) must beVariableValue(
+        _.startsWith("bd2b1aaf7ef4f09be9f5")
+      )
     }
   }
 

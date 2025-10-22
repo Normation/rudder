@@ -49,7 +49,6 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.users.CurrentUser
 import net.liftweb.common.*
-import net.liftweb.common.Box
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmd

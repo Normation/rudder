@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest
 
+import cats.syntax.all.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
@@ -55,11 +56,17 @@ trait AuthorizationApiMapping {
 }
 
 class AuthorizationMappingListEndpoint(endpoints: List[EndpointSchema]) extends AuthorizationApiMapping {
-  val acls: Map[AuthorizationType, List[ApiAclElement]] =
+  private val acls: Map[AuthorizationType, List[ApiAclElement]] =
     endpoints.flatMap(e => e.authz.map(a => (a, AuthzForApi(e)))).groupMap(_._1)(_._2)
 
+  private val otherAcls: Map[AuthorizationType, List[ApiAclElement]] =
+    endpoints.foldMap(_.otherAcls)
+
+  // merge maps using List monoid to add acls for the same authz
+  private val allAcls: Map[AuthorizationType, List[ApiAclElement]] = acls |+| otherAcls
+
   override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = {
-    acls.get(authz).getOrElse(Nil)
+    allAcls.get(authz).getOrElse(Nil)
 
   }
 }

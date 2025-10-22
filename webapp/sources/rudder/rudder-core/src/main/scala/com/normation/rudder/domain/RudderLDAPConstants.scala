@@ -184,7 +184,7 @@ object RudderLDAPConstants extends Loggable {
   OC.createObjectClass(
     OC_POLICY_SERVER_NODE,
     sup = OC(OC_RUDDER_NODE),
-    must = Set(A_HOSTNAME, A_LIST_OF_IP, A_INVENTORY_DATE, A_ROOT_USER, A_AGENTS_NAME, A_NODE_POLICY_SERVER),
+    must = Set(A_HOSTNAME, A_LIST_OF_IP, A_INVENTORY_DATE, A_ROOT_USER, A_AGENT_NAME, A_NODE_POLICY_SERVER),
     may = Set(A_DESCRIPTION)
   )
 
@@ -292,7 +292,7 @@ object RudderLDAPConstants extends Loggable {
     }
 
     variables
-      .collect(toPartial(parsePolicyVariable _))
+      .collect(toPartial(parsePolicyVariable))
       .groupBy { case (x, i, y) => x }
       .map {
         case (k, seq) =>

@@ -1,0 +1,64 @@
+# @name unsupported_methods
+# @version 1.0
+
+bundle agent unsupported_methods {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532("Linux user group on Windows", "bob", "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532", "windows", "bob", "rudder"),
+                                    if => "pass3";
+
+    "index_${local_index}_1" usebundle => call_unsupported_methods_0a9dcb32_e310_488c_b3e8_cbcfc6ae284a("Powershell exec on Linux", "Write-Host \"hello world\"", "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a", "linux", "Write-Host \"hello world\"", "success", ".*"),
+                                    if => "pass3";
+
+}
+bundle agent call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532(c_name, c_key, report_id, method_call_condition, login, group_name) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => user_group("${login}", "${group_name}"),
+                                    if => "${method_call_condition}";
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
+                                unless => "${method_call_condition}";
+    "index_${local_index}_3" usebundle => log_rudder_v4("${c_key}", "Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
+                                unless => "${method_call_condition}";
+
+}
+bundle agent call_unsupported_methods_0a9dcb32_e310_488c_b3e8_cbcfc6ae284a(c_name, c_key, report_id, method_call_condition, command, successRegex, repairedRegex) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => _classes_noop("${report_data.method_id}");
+    "index_${local_index}_2" usebundle => log_rudder_v4("${c_key}", "'Powershell exec on Linux' method is not available on classic Rudder agent, skip", "");
+
+}

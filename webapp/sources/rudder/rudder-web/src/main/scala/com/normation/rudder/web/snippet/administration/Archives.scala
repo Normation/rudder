@@ -52,6 +52,7 @@ import com.normation.rudder.rest.lift.SystemApiService11
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
+import java.time.Instant
 import java.util.Base64
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -75,11 +76,12 @@ class Archives extends DispatchSnippet with Loggable {
   private val systemApiService: SystemApiService11 = RudderConfig.systemApiService
 
   private val noElements = NotArchivedElements(Seq(), Seq(), Seq())
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "allForm"              => allForm(CurrentUser.queryContext)
+    case "allForm"              => allForm
     case "rulesForm"            => rulesForm
-    case "groupLibraryForm"     => groupLibraryForm(CurrentUser.queryContext)
+    case "groupLibraryForm"     => groupLibraryForm
     case "directiveLibraryForm" => directiveLibraryForm
     case "parametersForm"       => parametersForm
   }
@@ -88,17 +90,19 @@ class Archives extends DispatchSnippet with Loggable {
   type ImportFuncParams = (GitCommitId, PersonIdent, Boolean)
   private def restoreWithImport(
       importFunction: ImportFuncParams => ChangeContext => IOResult[GitCommitId]
-  ): (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId] = (commit, commiter, includeSystem) => {
-    implicit val qc: QueryContext  = CurrentUser.queryContext
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      qc.actor,
-      new DateTime(),
-      Some("User requested backup restoration to commit %s".format(commit.value)),
-      None,
-      qc.nodePerms
-    )
-    importFunction((commit, commiter, false))(cc)
+  )(implicit qc: QueryContext): (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId] = {
+    (commit, commiter, includeSystem) =>
+      {
+        implicit val cc: ChangeContext = ChangeContext(
+          ModificationId(uuidGen.newUuid),
+          qc.actor,
+          Instant.now(),
+          Some("User requested backup restoration to commit %s".format(commit.value)),
+          None,
+          qc.nodePerms
+        )
+        importFunction((commit, commiter, false))(cc)
+      }
   }
 
   /**
@@ -118,8 +122,9 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getFullArchiveTags,
       restoreButtonId = "importAllButton",
       restoreButtonName = "Restore everything",
-      restoreFunction =
-        restoreWithImport((ps: ImportFuncParams) => (cc: ChangeContext) => (itemArchiver.importAll(ps._1, ps._2, ps._3)(cc))),
+      restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
+        (cc: ChangeContext) => (itemArchiver.importAll(ps._1, ps._2, ps._3)(using cc))
+      ),
       restoreErrorMessage = "Error when importing groups, parameters, directive library and rules.",
       restoreSuccessDebugMessage = "Restoring groups, parameters, directive library and rules on user request",
       downloadButtonId = "downloadAllButton",
@@ -140,8 +145,9 @@ class Archives extends DispatchSnippet with Loggable {
       archiveListFunction = () => itemArchiver.getRulesTags,
       restoreButtonId = "importRulesButton",
       restoreButtonName = "Restore rules",
-      restoreFunction =
-        restoreWithImport((ps: ImportFuncParams) => (cc: ChangeContext) => (itemArchiver.importRules(ps._1, ps._2, ps._3)(cc))),
+      restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
+        (cc: ChangeContext) => (itemArchiver.importRules(ps._1, ps._2, ps._3)(using cc))
+      ),
       restoreErrorMessage = "Error when importing rules.",
       restoreSuccessDebugMessage = "Restoring rules on user request",
       downloadButtonId = "downloadRulesButton",
@@ -163,7 +169,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreButtonId = "importDirectiveLibraryButton",
       restoreButtonName = "Restore directive library",
       restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
-        (cc: ChangeContext) => (itemArchiver.importTechniqueLibrary(ps._1, ps._2, ps._3)(cc))
+        (cc: ChangeContext) => (itemArchiver.importTechniqueLibrary(ps._1, ps._2, ps._3)(using cc))
       ),
       restoreErrorMessage = "Error when importing directive library.",
       restoreSuccessDebugMessage = "Restoring directive library on user request",
@@ -186,7 +192,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreButtonId = "importGroupLibraryButton",
       restoreButtonName = "Restore groups",
       restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
-        (cc: ChangeContext) => (itemArchiver.importGroupLibrary(ps._1, ps._2, ps._3)(cc))
+        (cc: ChangeContext) => (itemArchiver.importGroupLibrary(ps._1, ps._2, ps._3)(using cc))
       ),
       restoreErrorMessage = "Error when importing groups.",
       restoreSuccessDebugMessage = "Restoring groups on user request",
@@ -209,7 +215,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreButtonId = "importParametersButton",
       restoreButtonName = "Restore Parameters",
       restoreFunction = restoreWithImport((ps: ImportFuncParams) =>
-        (cc: ChangeContext) => (itemArchiver.importParameters(ps._1, ps._2, ps._3)(cc))
+        (cc: ChangeContext) => (itemArchiver.importParameters(ps._1, ps._2, ps._3)(using cc))
       ),
       restoreErrorMessage = "Error when importing global properties.",
       restoreSuccessDebugMessage = "Restoring global properties on user request",
@@ -381,7 +387,7 @@ class Archives extends DispatchSnippet with Loggable {
     ////////// Template filling //////////
 
     ("#" + archiveButtonId) #> {
-      SHtml.ajaxSubmit(archiveButtonName, archive _, ("id" -> archiveButtonId), ("class", "btn btn-primary btn-archive"))
+      SHtml.ajaxSubmit(archiveButtonName, archive, ("id" -> archiveButtonId), ("class", "btn btn-primary btn-archive"))
     } &
     ("#" + archiveDateSelectId) #> {
       // we have at least "Choose a backup to restore..." and "get archive from current Git HEAD"
@@ -401,7 +407,7 @@ class Archives extends DispatchSnippet with Loggable {
             restoreButtonName,
             SHtml.ajaxButton(
               "Confirm",
-              restore _,
+              () => restore(),
               ("form"            -> formName),
               ("class"           -> "btn btn-success"),
               ("type"            -> "submit"),
@@ -424,7 +430,7 @@ class Archives extends DispatchSnippet with Loggable {
       ): NodeSeq
     } &
     ("#" + downloadButtonId) #> {
-      (SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId), ("class", "btn btn-default")) ++
+      (SHtml.ajaxSubmit(downloadButtonName, download, ("id" -> downloadButtonId), ("class", "btn btn-default")) ++
       WithNonce.scriptWithNonce(
         Script(
           OnLoad(

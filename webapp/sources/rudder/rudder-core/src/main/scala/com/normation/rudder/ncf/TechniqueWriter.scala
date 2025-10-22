@@ -43,15 +43,14 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.utils.FileUtils
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
 import zio.*
@@ -123,9 +122,9 @@ class TechniqueWriterImpl(
   ): IOResult[EditorTechnique] = {
     for {
       updated              <-
-        compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already0done in library update
+        compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already done in library update
       (updatedTechnique, _) = updated
-      libUpdate            <-
+      _                    <-
         techLibUpdate
           .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
           .toIO
@@ -184,7 +183,7 @@ class TechniqueWriterImpl(
       _                <- compilationStatusService.syncOne(compilationResult)
       time_3           <- currentTimeMillis
       id               <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
-      // resources files are missing the the "resources/" prefix
+      // resources files are missing the "resources/" prefix
       resources         = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
       _                <- archiver.saveTechnique(
                             id,
@@ -214,15 +213,16 @@ object TechniqueWriterImpl {
     * Returns the relative path to the technique YAML file from the baseConfigRepo
     */
   private[ncf] def writeYaml(technique: EditorTechnique)(basePath: String): IOResult[String] = {
-    import YamlTechniqueSerializer.*
+    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
 
     val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
-    val path         = s"${basePath}/${metadataPath}"
+
     for {
+      path    <- FileUtils.sanitizePath(File(basePath), metadataPath)
       content <- technique.toYaml().toIO
       _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
-                   val file             = File(path).createFileIfNotExists(true)
+                   val file             = path.createFileIfNotExists(createParents = true)
                    file.write(content)
                  }
     } yield {

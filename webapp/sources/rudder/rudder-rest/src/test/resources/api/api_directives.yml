@@ -214,7 +214,7 @@ response:
     {
       "action":"directiveDetails",
       "result":"error",
-      "errorDetails":"Inconsistency: Directive with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
+      "errorDetails":"Directive with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
     }
 ---
 description: List directives
@@ -1222,7 +1222,7 @@ response:
     {
       "action":"directiveDetails",
       "result":"error",
-      "errorDetails":"Inconsistency: Directive with id '1bc636c0-61b0-410c-0000-66bcfc95804d' was not found"
+      "errorDetails":"Directive with id '1bc636c0-61b0-410c-0000-66bcfc95804d' was not found"
     }
 ---
 description: Get Directive tree
@@ -2094,6 +2094,11 @@ response:
                     ]
                   },
                   {
+                    "id" : "test-migrate-select",
+                    "name" : "test-migrate-select",
+                    "directives" : []
+                  },
+                  {
                     "id": "test_import_export_archive",
                     "name": "test import/export archive",
                     "directives": [
@@ -2108,8 +2113,7 @@ response:
                           "section":{
                             "name":"sections",
                             "sections":[]
-                          }
-                        },
+                          }                        },
                         "priority":5,
                         "enabled": true,
                         "system": false,

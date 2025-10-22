@@ -51,6 +51,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.utils.DateFormaterService
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -58,7 +59,6 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
-import org.joda.time.DateTime
 import scala.xml.*
 import zio.json.*
 
@@ -67,7 +67,7 @@ import zio.json.*
  * accept or refuse them.
  *
  */
-class AcceptNode extends Loggable {
+class AcceptNode extends DispatchSnippet with Loggable {
   import AcceptNodeJson.*
 
   val newNodeManager     = RudderConfig.newNodeManager
@@ -90,6 +90,12 @@ class AcceptNode extends Loggable {
     "refuse_new_server-template"
   )
 
+  override def dispatch: DispatchIt = {
+    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
+    { case "list" => listAll(_) }
+  }
+
   /*
    * List all server that have there isAccpeted tag to pending.
    * For all servers, provides an Accept / Refuse link.
@@ -105,12 +111,12 @@ class AcceptNode extends Loggable {
    * This is the main (and only) entry point of the snippet,
    * drawing the pending nodes table.
    */
-  def list(html: NodeSeq): NodeSeq = {
+  private def listAll(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
 
-    newNodeManager.listNewNodes()(CurrentUser.queryContext).toBox match {
+    newNodeManager.listNewNodes().toBox match {
       case Empty                => <div>Error, no server found</div>
       case f @ Failure(_, _, _) => <div>Error while retrieving pending nodes list</div>
-      case Full(seq)            => display(html, seq)(CurrentUser.queryContext)
+      case Full(seq)            => display(html, seq)
     }
   }
 
@@ -124,7 +130,7 @@ class AcceptNode extends Loggable {
         ChangeContext(
           modId,
           CurrentUser.actor,
-          DateTime.now(),
+          Instant.now(),
           None,
           S.request.map(_.remoteAddr).toOption,
           CurrentUser.nodePerms
@@ -162,11 +168,11 @@ class AcceptNode extends Loggable {
     val modId = ModificationId(uuidGen.newUuid)
     listNode.foreach { id =>
       newNodeManager
-        .refuse(id)(
+        .refuse(id)(using
           ChangeContext(
             modId,
             CurrentUser.actor,
-            DateTime.now(),
+            Instant.now(),
             None,
             S.request.map(_.remoteAddr).toOption,
             CurrentUser.nodePerms
@@ -239,7 +245,7 @@ class AcceptNode extends Loggable {
     }
 
     nodeFactRepository
-      .getAll()(CurrentUser.queryContext, SelectNodeStatus.Pending)
+      .getAll()(using CurrentUser.queryContext, SelectNodeStatus.Pending)
       .map(_.collect { case (id, n) if listNode.contains(id) => n })
       .toBox match {
       case Full(servers) =>

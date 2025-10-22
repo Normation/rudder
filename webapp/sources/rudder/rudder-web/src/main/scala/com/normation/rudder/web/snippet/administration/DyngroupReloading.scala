@@ -38,6 +38,7 @@
 package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -67,9 +68,12 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
     val initJs = SetHtml("dynGroupUpdateInterval", <span>{updateDynamicGroupsInterval}</span>)
     // process the list of networks
     "#dyngroupReloadingButton" #> {
-      (SHtml.ajaxSubmit("Reload dynamic groups", process _, ("class", "btn btn-primary dyngroupReloadingButton")) ++ Script(
-        OnLoad(initJs)
-      )): NodeSeq
+      (SHtml.ajaxSubmit("Reload dynamic groups", process, ("class", "btn btn-primary dyngroupReloadingButton")) ++ WithNonce
+        .scriptWithNonce(
+          Script(
+            OnLoad(initJs)
+          )
+        )): NodeSeq
     }
   }
 }

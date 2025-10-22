@@ -554,6 +554,18 @@ body copy_from ncf_remote_cp_method(from, server, method)
     copy_backup => "timestamp";
 }
 
+body copy_from ncf_remote_cp_purge(from, server, method)
+{
+    servers     => { "${server}" };
+    source      => "${from}";
+    type_check  => "true";
+    portnumber  => "${system_common.community_port}";
+    compare     => "${method}";
+    encrypt     => "true";
+    copy_backup => "timestamp";
+    purge       => "true";
+}
+
 # DEPRECATED
 #server may be a list
 body copy_from cp(from,server)
@@ -742,36 +754,58 @@ body file_select date_pattern(age, pattern)
     file_result => "leaf_name.mtime";
 }
 
-########################################################################
-# Custom promise type                                                  #
-########################################################################
+######################################################"
+# Custom promise types
 
-promise agent augeas
-{
+promise agent augeas {
   path => "/opt/rudder/bin/rudder-module-augeas";
 }
 
-bundle agent ncf_augeas(script, if_script, context, path, show_diff, lens)
-{
+bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_content) {
+  vars:
+      "c_path"      string => canonify("${path}");
+      "report_file" string => "/var/rudder/tmp/rudder-module-augeas-${c_path}.log";
+    pass2::
+      "report"      string => readfile("${report_file}", "0"),
+                        if => "has_report";
+
   classes:
+    pass2::
+      "has_report"   expression => fileexists("${report_file}");
+
+    any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-  pass2.!pass3::
-    augeas:
-      "${report_data.method_id}"
+  files:
+    pass3::
+      # Cleanup files
+      "${report_file}"
+        delete => tidy;
+
+  methods:
+    pass3.!has_report::
+      "error" usebundle => _classes_failure("${report_data.method_id}");
+
+  augeas:
+    pass2.!pass3::
+      "module_call"
         rudder_module_protocol  => "0",
-        state_dir               => "/var/rudder/system-update/",
+        state_dir               => "/var/rudder/tmp/",
+        backup_dir              => "/var/rudder/modified-files/",
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",
         classes                 => classes_generic("${report_data.method_id}"),
         data                    => parsejson('{
-          "script": "${script}",
-          "if_script": "${if_script}",
-          "context": "${context}",
           "path": "${path}",
-          "show_diff": ${show_diff},
-          "lens": "${lens}"
+          "script": "${script}",
+          "show_file_content": ${show_content},
+          "lens": "${lens}",
+          "if_script": "${if_script}",
+          "max_file_size": "10MB",
+          "report_file": "${report_file}"
         }');
+
 }
+

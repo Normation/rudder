@@ -55,6 +55,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
@@ -140,7 +141,7 @@ object HomePage {
     }
   }
 
-  object nodeFacts extends RequestVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(CurrentUser.queryContext))
+  object nodeFacts extends RequestVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(using CurrentUser.queryContext))
 }
 
 class HomePage extends StatefulSnippet {
@@ -151,6 +152,9 @@ class HomePage extends StatefulSnippet {
   private val reportingService = RudderConfig.reportingService
   private val roRuleRepo       = RudderConfig.roRuleRepository
   private val scoreService     = RudderConfig.rci.scoreService
+  private val directiveRepo    = RudderConfig.roDirectiveRepository
+
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
   override val dispatch: DispatchIt = {
     case "pendingNodes"       => pendingNodes
@@ -188,8 +192,9 @@ class HomePage extends StatefulSnippet {
     displayCount(() => countAllTechniques(), "techniques")
   }
 
-  def getAllCompliance(): NodeSeq = {
-
+  def getAllCompliance()(implicit qc: QueryContext): NodeSeq = {
+    // this needs to be outside of the zio for-comprehension context to see the right node facts
+    val nodes = HomePage.nodeFacts.get.filterNot(_._2.rudderSettings.state == NodeState.Ignored).keys.toSet
     (for {
       n2                <- currentTimeMillis
       userRules         <- roRuleRepo.getIds()
@@ -197,7 +202,7 @@ class HomePage extends StatefulSnippet {
       _                  = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       // reports contains the reports for user rules, used in the donut
       reports           <-
-        reportingService.findRuleNodeStatusReports(HomePage.nodeFacts.get.keys.toSet, userRules)(CurrentUser.queryContext)
+        reportingService.findRuleNodeStatusReports(nodes, userRules)
       n4                <- currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       // global compliance is a unique number, used in the top right hand size, based on
@@ -220,10 +225,10 @@ class HomePage extends StatefulSnippet {
       n5                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _                 <- TimingDebugLoggerPure.debug(s"Compute compliance: ${n5 - n2}ms")
-      scores            <- scoreService.getAll()(CurrentUser.queryContext)
+      unfilteredScores  <- scoreService.getAll()
       existingScore     <- scoreService.getAvailableScore()
     } yield {
-
+      val scores = unfilteredScores.filter(n => nodes.contains(n._1))
       // log global compliance info (useful for metrics on number of components and log data analysis)
       ComplianceLogger.info(
         s"[metrics] global compliance (number of components): ${global.map(g => g._1.total.toString + " " + g._1.toString).getOrElse("undefined")}"
@@ -391,7 +396,7 @@ class HomePage extends StatefulSnippet {
     val agents = getRudderAgentVersion(HomePage.nodeFacts.get)
     TimingDebugLogger.debug(s"Get software: ${System.currentTimeMillis - n4}ms")
 
-    val agentsValue = agents.toList.sortBy(_._2)(Ordering[Int]).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
+    val agentsValue = agents.toList.sortBy(_._2)(using Ordering[Int]).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
       case ((labels, values), (label, value)) => (label :: labels, value :: values)
     }
     val agentsData  = JsObj("labels" -> JsArray(agentsValue._1), "values" -> JsArray(agentsValue._2))
@@ -437,9 +442,14 @@ class HomePage extends StatefulSnippet {
   }.toBox
 
   private def countAllTechniques(): Box[Int] = {
-    ldap.flatMap { con =>
-      con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
-    }.map(x => x.size)
+    // for techniques, we can't easily rely on LDAP attribute, because we can have a mix of isSystem/policyType.
+    // So just use the repo.
+    directiveRepo
+      .getFullDirectiveLibrary()
+      .map(_.allActiveTechniques.collect {
+        // here, we only want to count one technique whatever the number of versions, but only the ones enabled and of type "base"
+        case (_, at) if at.policyTypes.isBase && at.isEnabled => Math.min(1, at.techniques.count(_._2.policyTypes.isBase))
+      }.sum)
   }.toBox
 
   private def countAllGroups(): Box[Int] = {

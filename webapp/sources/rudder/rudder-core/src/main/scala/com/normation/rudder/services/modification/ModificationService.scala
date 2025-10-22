@@ -43,14 +43,12 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
+import java.time.Instant
 import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 
 class ModificationService(
-    eventLogRepository:        EventLogRepository,
     gitModificationRepository: GitModificationRepository,
     itemArchiveManager:        ItemArchiveManager,
     uuidGen:                   StringUuidGenerator
@@ -83,11 +81,11 @@ class ModificationService(
                           target,
                           "after",
                           includeSystem = false
-                        )(
+                        )(using
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
-                            new DateTime(),
+                            Instant.now(),
                             None,
                             None,
                             QueryContext.systemQC.nodePerms
@@ -122,11 +120,11 @@ class ModificationService(
                           target,
                           "before",
                           includeSystem = false
-                        )(
+                        )(using
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
-                            new DateTime(),
+                            Instant.now(),
                             None,
                             None,
                             QueryContext.systemQC.nodePerms

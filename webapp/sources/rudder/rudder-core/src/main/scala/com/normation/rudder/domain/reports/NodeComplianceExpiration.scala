@@ -4,6 +4,7 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import scala.concurrent.duration.Duration
 import zio.json.*
+import zio.json.enumeratum.*
 
 /*
  * This file defines data structures to inform what we should display when a node compliance
@@ -12,7 +13,7 @@ import zio.json.*
 
 sealed abstract class NodeComplianceExpirationMode(override val entryName: String) extends EnumEntry
 
-object NodeComplianceExpirationMode extends Enum[NodeComplianceExpirationMode] {
+object NodeComplianceExpirationMode extends Enum[NodeComplianceExpirationMode] with EnumCodec[NodeComplianceExpirationMode] {
 
   /*
    * Historical expiration based on a 2 agent run duration + a grace period.
@@ -31,15 +32,6 @@ object NodeComplianceExpirationMode extends Enum[NodeComplianceExpirationMode] {
   case object KeepLast extends NodeComplianceExpirationMode("keep_last")
 
   override def values: IndexedSeq[NodeComplianceExpirationMode] = findValues
-
-  implicit val decoderNodeComplianceExpirationMode: JsonDecoder[NodeComplianceExpirationMode] = {
-    JsonDecoder.string.mapOrFail(s => {
-      NodeComplianceExpirationMode
-        .withNameInsensitiveEither(s)
-        .left
-        .map(_ => s"Can not parse '${s}' as node compliance expiration mode")
-    })
-  }
 }
 
 case class NodeComplianceExpiration(mode: NodeComplianceExpirationMode, duration: Option[Duration])

@@ -53,8 +53,7 @@ encodeNodesInfo nodesInfo =
 encodePluginInfo : PluginInfo -> Value
 encodePluginInfo pluginInfo =
     object
-        [ ( "id", string pluginInfo.id )
-        , ( "name", string pluginInfo.name )
+        [ ( "name", string pluginInfo.name )
         , ( "version", string pluginInfo.version )
         , ( "abiVersion", string pluginInfo.abiVersion )
         , ( "license", encodeLicenseInfo pluginInfo.license )
@@ -68,7 +67,7 @@ encodeLicenseInfo licenseInfo =
         [ ( "licensee", string li.licensee )
         , ( "startDate", string li.startDate )
         , ( "endDate", string li.endDate )
-        , ( "allowedNodesNumber", int li.allowedNodesNumber )
+        , ( "allowedNodesNumber", Maybe.map int li.allowedNodesNumber |> Maybe.withDefault null )
         , ( "supportedVersions", string li.supportedVersions )
         ]
 

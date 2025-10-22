@@ -27,9 +27,7 @@
 #
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter path        Destination file (absolute path on the target node)
-# @parameter hash_type   Hash algorithm used to check if file is updated (sha256, sha512). Only used on Windows, ignored on Unix. default is sha256
-# # keep md5 and sha1 to support old generic methods, also add a default so you don't have to enter a value on linux, md5/sha1 should go to default
-# @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
+# @parameter hash_type   Deprecated, now ignored.
 # @parameter_constraint hash_type "allow_empty_string" : true
 #
 #
@@ -41,33 +39,31 @@
 bundle agent file_from_shared_folder(source, path, hash_type)
 {
   vars:
-      "canonified_path"         string => canonify("${path}");
+      "class_prefix" string => "file_from_shared_folder_${canonified_path}";
 
-      "old_class_prefix"        string => "file_from_shared_folder_${canonified_path}";
-
-      "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${path}", "${hash_type}" };
-      "inner_args"               slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${path}" };
-      "report_param"            string => join("_", args);
-      "inner_report_param"      string => join("_", inner_args);
-      "full_class_prefix"       string => canonify("file_from_shared_folder_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("file_copy_from_remote_source_${inner_report_param}_inf");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "audit_arg"    string => "";
+    (global_dry_run|dry_run)::
+      "audit_arg"    string => "-a";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                               usebundle => disable_reporting;
-      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${path}", "inf");
-      "reenable_reporting_${class_prefix}"
-                               usebundle => enable_reporting,
-                              ifvarclass => "should_report";
-      "class copy"             usebundle => _classes_copy("file_copy_from_remote_source_${canonified_path}", "${old_class_prefix}");
-      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+    pass3.!rudder_https_only::
+      "${report_data.method_id}" usebundle => call_method("file_from_remote_source_recursion");
+      "${report_data.method_id}" usebundle => file_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${path}", "inf");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_from_remote_source_recursion");
+    pass3.rudder_https_only::
+      "${report_data.method_id}" usebundle => call_method("command_execution_result");
+      "${report_data.method_id}" usebundle => command_execution_result("${configuration.modules_dir}/promises/download-shared-file -s ${source} -f ${path} ${audit_arg}", "0", "2");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("command_execution_result");
 
-
-      "report"                 usebundle => _log_v3("Copying ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from ${source}", "");
 }

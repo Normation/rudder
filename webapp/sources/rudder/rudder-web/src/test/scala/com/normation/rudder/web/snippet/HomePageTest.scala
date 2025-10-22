@@ -37,16 +37,13 @@
 
 package com.normation.rudder.web.snippet
 
-import org.junit.runner.RunWith
-import org.specs2.mutable.*
-import org.specs2.runner.JUnitRunner
+import zio.test.*
+import zio.test.Assertion.*
 
-@RunWith(classOf[JUnitRunner])
-class HomePageTest extends Specification {
+object HomePageTest extends ZIOSpecDefault {
 
-  "Agent version mapping must matches" >> {
-
-    val mapping = Map(
+  val spec = suite("Agent version mapping must matches")(
+    List(
       "6.0.8-xenial0"                  -> "6.0.8",
       "6.0.4.release-1.EL.7"           -> "6.0.4",
       "6.1.10"                         -> "6.1.10",
@@ -72,12 +69,11 @@ class HomePageTest extends Specification {
       "3.1.15.release-1.AIX.5.3"             -> "3.1.15",
       "6.0.1~rc1~git201502100126-lenny0"     -> "6.0.1.rc1.git201502100126",
       "not-init"                             -> "not" // well, not very interesting, but we had that at some point in rudder
-    )
-
-    def matcherVersion(pair: (String, String)) = HomePageUtils.formatAgentVersion(pair._1) must beEqualTo(pair._2)
-
-    mapping must contain(matcherVersion(_)).foreach
-
-  }
-
+    ).map {
+      case (version, expectation) =>
+        test(s"$version should equal $expectation") {
+          assert(HomePageUtils.formatAgentVersion(version))(equalTo(expectation))
+        }
+    }
+  )
 }

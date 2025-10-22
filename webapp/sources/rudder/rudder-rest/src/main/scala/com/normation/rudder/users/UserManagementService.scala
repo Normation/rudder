@@ -38,9 +38,7 @@ package com.normation.rudder.users
 
 import better.files.Dsl.SymbolicOperations
 import better.files.File
-import com.normation.errors.IOResult
-import com.normation.errors.Unexpected
-import com.normation.errors.effectUioUnit
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
@@ -49,10 +47,12 @@ import com.normation.rudder.Role.Custom
 import com.normation.rudder.RudderRoles
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.users.*
+import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.rudder.users.UserManagementIO.getUserFilePath
+import com.normation.rudder.users.UserPassword.StorableUserPassword
+import com.normation.rudder.users.UserPassword.UnknownPassword
 import com.normation.zio.*
-import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.syntax.*
 import java.util.concurrent.TimeUnit
 import org.springframework.core.io.ClassPathResource as CPResource
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -232,32 +232,22 @@ class UserManagementService(
    * For now, when we add an user, we always add it in the XML file (and not only in database).
    * So we let the callback on file reload does what it needs.
    */
-  def add(newUser: User, isPreHashed: Boolean): IOResult[User] = {
+  def add(newUser: JsonUserFormData): IOResult[Unit] = {
     for {
       file       <- getUserResourceFile.map(getUserFilePath(_))
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
       userXML    <- IOResult.attempt(parsedFile.document().children)
       user       <- (userXML \\ "authentication").head match {
                       case e: Elem =>
-                        val newXml = {
-                          if (isPreHashed) {
-                            e.copy(child = e.child ++ newUser.toNode)
-                          } else {
-                            e.copy(child = {
-                              e.child ++ newUser
-                                .copy(password = {
-                                  getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(newUser.password)
-                                })
-                                .toNode
-                            })
-                          }
-                        }
-                        UserManagementIO.replaceXml(userXML, newXml, file) *> newUser.succeed
+                        implicit val encoder: PasswordEncoder = getPasswordEncoderFromHash(userXML)
+                        val u      = newUser.transformInto[User]
+                        val newXml = e.copy(child = e.child ++ u.toNode)
+                        UserManagementIO.replaceXml(userXML, newXml, file) *> u.succeed
                       case _ =>
                         Unexpected(s"Wrong formatting : ${file.path}").fail
                     }
       _          <- userService.reloadPure()
-    } yield user
+    } yield ()
   }
 
   /*
@@ -286,42 +276,43 @@ class UserManagementService(
    * - the providers list for the user and their ability to extend roles from user file
    * - the password definition and hashing
    */
-  def update(id: String, updateUser: UpdateUserFile, isPreHashed: Boolean)(
+  def update(id: String, updateUser: JsonUserFormData)(
       allRoles: Map[String, Role]
-  ): IOResult[Unit] = {
+  ): IOResult[ParsedUser] = {
     implicit val currentRoles: Set[Role] = allRoles.values.toSet
 
     // Unknown permissions are trusted and put in file
-    val (roles, authz, unknown) = UserManagementService.parsePermissions(updateUser.permissions.toSet)
+    val optNewPermissions: Option[Set[String]] = updateUser.permissions
+      .map(p => {
+        UserManagementService.parsePermissions(p.toSet) match {
+          case (roles, authz, unknown) => roles.map(_.name) ++ authz.map(_.id) ++ unknown
+        }
+      })
 
-    val newFileUserPermissions = roles.map(_.name) ++ authz.map(_.id) ++ unknown
     for {
       userInfo <- userRepository
                     .get(id)
                     .notOptional(s"User '${id}' does not exist therefore cannot be updated")
 
-      // the user to update in the file with the resolved permissions
-      fileUser  = updateUser.transformInto[User].copy(permissions = newFileUserPermissions)
-
       // we may have users that where added by other providers, and still want to add them in file
       // This block initializes the user in the file, for permissions and password to be updated below
-      _ <- ZIO.when(!(userService.authConfig.users.keySet.contains(id))) {
-             for {
-               // Apparently we need to do the whole thing to get the file and add it, before doing it again to update
-               file       <- getUserResourceFile.map(getUserFilePath(_))
-               parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
-               userXML    <- IOResult.attempt(parsedFile.document().children)
-               toUpdate    = (userXML \\ "authentication").head
+      _        <- ZIO.when(!(userService.authConfig.users.keySet.contains(id))) {
+                    for {
+                      // Apparently we need to do the whole thing to get the file and add it, before doing it again to update
+                      file       <- getUserResourceFile.map(getUserFilePath(_))
+                      parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
+                      userXML    <- IOResult.attempt(parsedFile.document().children)
+                      toUpdate    = (userXML \\ "authentication").head
 
-               _ <- (userXML \\ "authentication").head match {
-                      case e: Elem =>
-                        val newXml = e.copy(child = e.child ++ User.make(id, "", Set.empty, "").toNode)
-                        UserManagementIO.replaceXml(userXML, newXml, file)
-                      case _ =>
-                        Unexpected(s"Wrong formatting : ${file.path}").fail
-                    }
-             } yield ()
-           }
+                      _ <- (userXML \\ "authentication").head match {
+                             case e: Elem =>
+                               val newXml = e.copy(child = e.child ++ User.make(id, UserPassword.unknown, Set.empty, "").toNode)
+                               UserManagementIO.replaceXml(userXML, newXml, file)
+                             case _ =>
+                               Unexpected(s"Wrong formatting : ${file.path}").fail
+                           }
+                    } yield ()
+                  }
 
       file       <- getUserResourceFile.map(getUserFilePath(_))
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
@@ -331,27 +322,32 @@ class UserManagementService(
       newXml = new RuleTransformer(new RewriteRule {
                  override def transform(n: Node): NodeSeq = n match {
                    case user: Elem if (user \ "@name").text == id =>
+                     implicit val encoder: PasswordEncoder = getPasswordEncoderFromHash(userXML)
+                     val fileUser    = updateUser.transformInto[User]
                      // for each user's parameters, if a new user's parameter is empty we decide to keep the original one
-                     val newRoles    = {
-                       if (fileUser.permissions.isEmpty) ((user \ "@role") ++ (user \ "@permissions")).text.split(",").toSet
-                       else fileUser.permissions
-                     }
                      val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
-                     val newPassword = if (fileUser.password.isEmpty) {
-                       (user \ "@password").text
-                     } else {
-                       if (isPreHashed) fileUser.password
-                       else getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(fileUser.password)
+                     val newPassword = fileUser.password match {
+                       case _: UnknownPassword      => UserPassword.UnknownPassword((user \ "@password").text)
+                       case s: StorableUserPassword => s
                      }
-                     val tenants     = (user \ "@tenants").text
-                     User.make(newUsername, newPassword, newRoles, tenants).toNode
-
+                     // return the user to update in the file with the resolved permissions
+                     User
+                       .make(
+                         newUsername,
+                         newPassword,
+                         optNewPermissions.getOrElse(((user \ "@role") ++ (user \ "@permissions")).text.split(",").toSet),
+                         (user \ "@tenants").text
+                       )
+                       .toNode
                    case other => other
                  }
                }).transform(toUpdate).head
       _     <- UserManagementIO.replaceXml(userXML, newXml, file)
-      _     <- userService.reloadPure()
-    } yield ()
+      users <- userService.reloadPure()
+      res   <- users.parsedUsers.get(id).notOptional(s"User '${id}' was not found after update")
+    } yield {
+      res
+    }
   }
 
   /**
@@ -367,34 +363,9 @@ class UserManagementService(
     )
   }
 
-  def getAll: IOResult[UserFileInfo] = {
-    for {
-      file       <- getUserResourceFile.map(getUserFilePath(_))
-      parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
-      userXML    <- IOResult.attempt(parsedFile.document().children)
-      res        <- (userXML \\ "authentication").head match {
-                      case e: Elem =>
-                        val digest = (userXML \\ "authentication" \ "@hash").text.toUpperCase
-                        val users  = e
-                          .map(u => {
-                            val name         = (u \ "@name").text
-                            val password     = (u \ "@password").text
-                            val permissions  = ((u \ "@role") ++ (u \ "@permissions")).map(_.text).toSet
-                            val tenants      = (u \ "@tenants").text
-                            val user         =
-                              User.make(name, password, permissions, tenants)
-                            val hasValidHash = UserOrigin.verifyHash(digest, password)
-                            UserOrigin(user, hasValidHash)
-                          })
-                          .toList
-                        UserFileInfo(users, digest).succeed
-                      case _ =>
-                        Unexpected(s"Wrong formatting : ${file.path}").fail
-                    }
-    } yield res
-  }
-
-  private def getHashEncoderOrDefault(hash: String): PasswordEncoder = {
-    encoderDispatcher.dispatch(PasswordEncoderType.withNameInsensitiveOption(hash).getOrElse(PasswordEncoderType.DEFAULT))
+  private def getPasswordEncoderFromHash(rootFileXml: NodeSeq): PasswordEncoder = {
+    val parsedHash  = (rootFileXml \\ "authentication" \ "@hash").text
+    val encoderType = PasswordEncoderType.withNameInsensitiveOption(parsedHash).getOrElse(PasswordEncoderType.DEFAULT)
+    encoderDispatcher.dispatch(encoderType)
   }
 }

@@ -39,7 +39,8 @@ package com.normation.plugins.settings
 
 /**
   * Rudder plugins are managed by an external service,
-  * which can be setup using the following settings
+  * which can be setup using the following settings.
+  * (Strings are in non-empty strings)
   */
 case class PluginSettings(
     url:           Option[String],
@@ -49,17 +50,17 @@ case class PluginSettings(
     proxyUser:     Option[String],
     proxyPassword: Option[String]
 ) {
+  import PluginSettings.*
+
   def isDefined: Boolean = {
-    // Also, the special case : username="username" is empty
+    // Also, the special case : username="username" means that settings are not defined
     val hasDefaultUser = username.contains("username")
     !isEmpty && !hasDefaultUser
   }
 
-  // Strings are in fact non-empty strings
-  private def isEmpty = url.isEmpty &&
-    username.isEmpty &&
-    password.isEmpty &&
-    proxyUrl.isEmpty &&
-    proxyUser.isEmpty &&
-    proxyPassword.isEmpty
+  private def isEmpty = this == empty
+}
+
+object PluginSettings {
+  def empty = PluginSettings(None, None, None, None, None, None)
 }

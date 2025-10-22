@@ -14,7 +14,7 @@ use reqwest::{
 };
 use secrecy::ExposeSecret;
 use tempfile::tempdir;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::license::Licenses;
 use crate::{
@@ -34,8 +34,8 @@ pub enum RepositoryError {
 impl std::fmt::Display for RepositoryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidCredentials(err) => write!(f, "{}", err),
-            Self::Unauthorized(err) => write!(f, "{}", err),
+            Self::InvalidCredentials(err) => write!(f, "{err}"),
+            Self::Unauthorized(err) => write!(f, "{err}"),
         }
     }
 }
@@ -51,16 +51,15 @@ impl From<&RepositoryError> for ExitCode {
     }
 }
 
-#[derive(Clone)]
 pub struct Repository {
     inner: Client,
     creds: Option<Credentials>,
     pub server: Url,
-    verifier: SignatureVerifier,
+    verifier: Box<dyn SignatureVerifier>,
 }
 
 impl Repository {
-    pub fn new(config: &Configuration, verifier: SignatureVerifier) -> Result<Self> {
+    pub fn new(config: &Configuration, verifier: Box<dyn SignatureVerifier>) -> Result<Self> {
         let mut client = Client::builder()
             .use_native_tls()
             // Enforce HTTPS at client level
@@ -126,7 +125,7 @@ impl Repository {
         Ok(res.error_for_status()?)
     }
 
-    // Path is relative to the confiured server
+    // Path is relative to the configured server
     pub fn download_unsafe(&self, file: &str, dest: &Path) -> Result<()> {
         debug!(
             "Downloading file from {} to '{}'",
@@ -202,10 +201,10 @@ impl Repository {
             debug!("Updating licenses");
             let license_folder = Path::new(LICENSES_FOLDER);
             create_dir_all(license_folder).context("Creating the license folder")?;
-            let archive_name = format!("{}-license.tar.gz", user);
+            let archive_name = format!("{user}-license.tar.gz");
             let local_archive_path = &license_folder.join(&archive_name);
             if let Err(e) = self.download_unsafe(
-                &format!("licenses/{}/{}", user, archive_name),
+                &format!("licenses/{user}/{archive_name}"),
                 local_archive_path,
             ) {
                 bail!(
@@ -215,7 +214,7 @@ impl Repository {
             }
             Licenses::update_from_archive(local_archive_path, license_folder)?;
         } else {
-            debug!("Not updating licenses as no configured credentials were found")
+            warn!("Not updating licenses as no configured credentials were found")
         }
         Ok(())
     }
@@ -228,13 +227,13 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::Repository;
-    use crate::{config::Configuration, signature::SignatureVerifier};
+    use crate::config::Configuration;
+    use crate::signature::verifier;
 
     #[test]
     fn it_downloads_unverified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier =
-            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
+        let verifier = verifier(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download_unsafe("../rpm/rudder_rpm_key.pub", dst.path())
@@ -246,8 +245,7 @@ mod tests {
     #[test]
     fn it_downloads_verified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier =
-            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
+        let verifier = verifier(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download(

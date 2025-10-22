@@ -58,6 +58,7 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import net.liftweb.common.Box
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -277,7 +278,7 @@ class TechniqueAcceptationUpdater(
       }
     }
 
-    val acceptationDatetime = DateTime.now()
+    val acceptationDatetime = DateTime.now(DateTimeZone.UTC)
 
     (for {
       _               <- handleCategoriesUpdate(updatedCategories)

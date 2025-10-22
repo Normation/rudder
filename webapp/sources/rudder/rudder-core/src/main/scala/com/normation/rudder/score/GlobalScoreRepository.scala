@@ -58,8 +58,8 @@ trait GlobalScoreRepository {
  * a repository that doesn't do anything, for tests
  */
 class InMemoryGlobalScoreRepository extends GlobalScoreRepository {
-  private[this] val cache: Ref[Map[NodeId, GlobalScore]]      = Ref.make(Map[NodeId, GlobalScore]()).runNow
-  override def getAll():   IOResult[Map[NodeId, GlobalScore]] = cache.get
+  private val cache:     Ref[Map[NodeId, GlobalScore]]      = Ref.make(Map[NodeId, GlobalScore]()).runNow
+  override def getAll(): IOResult[Map[NodeId, GlobalScore]] = cache.get
   override def get(id:    NodeId): IOResult[Option[GlobalScore]] = cache.get.map(_.get(id))
   override def delete(id: NodeId): IOResult[Unit]                = cache.update(_.removed(id))
   override def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)] =
@@ -68,8 +68,8 @@ class InMemoryGlobalScoreRepository extends GlobalScoreRepository {
 
 object GlobalScoreRepositoryImpl {
 
-  import ScoreSerializer.*
   import com.normation.rudder.db.json.implicits.*
+  import com.normation.rudder.score.ScoreSerializer.*
   import doobie.*
 
   implicit val scoreMeta: Meta[ScoreValue] = {

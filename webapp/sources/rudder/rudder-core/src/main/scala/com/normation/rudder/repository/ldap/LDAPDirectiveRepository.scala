@@ -75,6 +75,7 @@ import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.immutable.SortedMap
 import zio.*
 import zio.json.*
@@ -1184,7 +1185,7 @@ class WoLDAPDirectiveRepository(
       newActiveTechnique = ActiveTechnique(
                              ActiveTechniqueId(techniqueName.value),
                              techniqueName,
-                             AcceptationDateTime(versions.map(x => x -> DateTime.now()).toMap),
+                             AcceptationDateTime(versions.map(x => x -> DateTime.now(DateTimeZone.UTC)).toMap),
                              policyTypes = policyTypes
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
@@ -1375,7 +1376,7 @@ class WoLDAPDirectiveRepository(
                     deleted      <- con.delete(activeTechnique.dn, recurse = false)
                     diff          = DeleteTechniqueDiff(oldTechnique)
                     loggedAction <- actionLogger.saveDeleteTechnique(modId, principal = actor, deleteDiff = diff, reason = reason)
-                    autoArchive  <- ZIO
+                    _            <- ZIO
                                       .when(autoExportOnModify && deleted.size > 0 && !oldTechnique.policyTypes.isSystem) {
                                         for {
                                           ptName   <- activeTechnique(A_TECHNIQUE_UUID) match {

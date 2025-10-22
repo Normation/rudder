@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Hooks parameter are passed by environment variable:
+#
+# - CAMPAIGN_ID: the campaign id (ie the name of the json file in /var/rudder/configuration-repository/campaigns)
+# - CAMPAIGN_NAME: human readable name of the campaign
+# - CAMPAIGN_TYPE: campaign type, ie `system-update`, `software-update`, etc
+# - CAMPAIGN_EVENT_ID: id of current event triggering that hook
+# - CAMPAIGN_EVENT_NAME: human readable name of the event
+# - CAMPAIGN_NEXT_STATE: only defined for post-hooks. [failure,finished]. Did we come here because pre-hooks failed?
+
+# Errors code on hooks are interpreted as follow:
+# - 0     : success, no log (apart if debug one)          , continue to next hook
+# - 1-31  : error  , error   log in /var/log/rudder/webapp/, stop processing
+# - 32-63 : warning, warning log in /var/log/rudder/webapp/, continue to next hook
+# - 64-255: reserved for future use case. Behavior may change without notice.
+
+exit 0

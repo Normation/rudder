@@ -133,6 +133,10 @@
     </PROCESSES>
 
     <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <ARCH>amd64</ARCH>
       <FILESIZE>70</FILESIZE>
       <FROM>deb</FROM>

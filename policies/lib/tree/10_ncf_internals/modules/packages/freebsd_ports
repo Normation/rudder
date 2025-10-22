@@ -25,7 +25,7 @@ list_installed() {
   # Name=sudo
   # Version=1.8.14p3
   # Architecture=none
-  pkg info -f -a | egrep '^(Name|Version|Architecture)' | sed -e 's/[ ]*:[ ]*/=/' -e 's/^Architecture=.*/Architecture=none/'
+  pkg info -f -a | grep -E '^(Name|Version|Architecture)' | sed -e 's/[ ]*:[ ]*/=/' -e 's/^Architecture=.*/Architecture=none/'
 }
 
 repo_install() {

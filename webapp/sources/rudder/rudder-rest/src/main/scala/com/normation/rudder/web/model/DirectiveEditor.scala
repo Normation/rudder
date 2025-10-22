@@ -41,7 +41,6 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.domain.policies.DirectiveUid
 import net.liftweb.common.*
-import net.liftweb.common.Box
 import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*

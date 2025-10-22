@@ -57,10 +57,10 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.zio.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
-import scala.collection.MapView
 import scala.collection.SortedMap
 
 /**
@@ -171,7 +171,7 @@ class RuleValServiceTest extends Specification {
     FullActiveTechnique(
       ActiveTechniqueId("activeTechId"),
       techniqueId.name,
-      acceptationDatetimes = SortedMap((techniqueId.version, new DateTime())),
+      acceptationDatetimes = SortedMap((techniqueId.version, new DateTime(DateTimeZone.UTC))),
       techniques = SortedMap((techniqueId.version, technique)),
       directives = List(directive),
       isEnabled = true,
@@ -194,7 +194,7 @@ class RuleValServiceTest extends Specification {
   // Ok, now I can test
   "The RuleValService, with one directive, one Meta-technique " should {
 
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, MapView())
+    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
 
     "return a Full(RuleVal)" in {
       ruleVal.isDefined == true
@@ -234,7 +234,7 @@ class RuleValServiceTest extends Specification {
   }
 
   "The cardinality computed " should {
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, MapView())
+    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
     val draft   = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDrafts.head
     // false PolicyVars for that draft
     val vars    = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)

@@ -38,10 +38,10 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.errors.*
+import com.normation.utils.XmlSafe
 import java.io.InputStream
 import org.xml.sax.SAXParseException
 import scala.xml.Elem
-import scala.xml.XML
 import zio.*
 import zio.syntax.*
 
@@ -54,7 +54,7 @@ object ParseXml {
   def apply(is: InputStream, filePath: Option[String] = None): IOResult[Elem] = {
     val name = filePath.getOrElse("[unknown]")
     for {
-      doc <- ZIO.attempt(XML.load(is)).catchAll {
+      doc <- ZIO.attempt(XmlSafe.load(is)).catchAll {
                case e: SAXParseException              =>
                  SystemError(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", e).fail
                case e: java.net.MalformedURLException =>

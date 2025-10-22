@@ -59,10 +59,9 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.*
-import com.normation.zio.*
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -124,7 +123,7 @@ class NodeGroupForm(
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
   private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
-  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)
+  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)(using CurrentUser.queryContext)
 
   private def setSearchNodeComponent: Unit = {
     searchNodeComponent.set(
@@ -142,15 +141,15 @@ class NodeGroupForm(
     )
   }
 
-  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[CoreNodeFact]] = {
+  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup])(implicit qc: QueryContext): Box[Seq[CoreNodeFact]] = {
 
     for {
-      nodes <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+      nodes <- nodeFactRepo.getAll().toBox
       setIds = target match {
                  case Right(nodeGroup_) => nodeGroup_.serverList
                  case Left(target)      =>
                    val allNodes = nodes.mapValues(_.rudderSettings.kind.isPolicyServer)
-                   RuleTarget.getNodeIds(Set(target), allNodes, Map())
+                   RuleTarget.getNodeIds(Set(target), allNodes.toMap, Map())
                }
     } yield {
       nodes.filterKeys(id => setIds.contains(id)).map(_._2).toSeq
@@ -188,7 +187,7 @@ class NodeGroupForm(
 
     (nodeGroup match {
       case Left(target)                     =>
-        showFormTarget(target)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
+        showFormTarget(target, allowCloning = false)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
       case Right(group) if (group.isSystem) =>
         showFormTarget(GroupTarget(group.id), Some(group))(html) ++ showRelatedRulesTree(
           GroupTarget(group.id)
@@ -207,7 +206,8 @@ class NodeGroupForm(
       dependencyService
         .targetDependencies(target)
         .map(_.rules.toSet.filter(!_.isSystem).map(_.id))
-        .getOrElse(Set.empty[RuleId])
+        .orElseSucceed(Set.empty[RuleId])
+        .runNow
     }
     val (includingGroup, excludingGroup) = {
       ZIO
@@ -242,7 +242,7 @@ class NodeGroupForm(
     )
   }
 
-  private[this] def showGroupCompliance(targetOrGroupIdStr: String): NodeSeq = {
+  private def showGroupCompliance(targetOrGroupIdStr: String): NodeSeq = {
     Script(
       OnLoad(
         JsRaw(s"""
@@ -289,7 +289,10 @@ class NodeGroupForm(
       case eb: EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
     })
     (
-      "#group-name" #> groupNameString
+      "#group-title [class]" #> (if (nodeGroup.isEnabled) "" else "item-disabled")
+      & "#group-name *" #> {
+        Text(groupNameString) ++ (if (nodeGroup.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>)
+      }
       & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group">
@@ -327,17 +330,45 @@ class NodeGroupForm(
       </button>
       & "group-clone" #> {
         if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
-          SHtml.ajaxButton(
-            <span>Clone <i class="fa fa-clone"></i></span>,
-            () => showCloneGroupPopup()
-          ) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default btn-icon")
+          <li>
+            {
+            SHtml.ajaxButton(
+              <span>
+              <i class="fa fa-clone"></i>
+              Clone
+            </span>,
+              () => showCloneGroupPopup()
+            ) % ("class" -> "dropdown-item")
+          }
+          </li>
+        } else NodeSeq.Empty
+      }
+      & "group-disable" #> {
+        if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+          val btnText   = if (nodeGroup.isEnabled) { "Disable" }
+          else { "Enable" }
+          val btnIcon   = if (nodeGroup.isEnabled) { "fa fa-ban" }
+          else { "fa fa-check-circle" }
+          val btnAction = if (nodeGroup.isEnabled) { DGModAction.Disable }
+          else { DGModAction.Enable }
+          <li>
+            {
+            SHtml.ajaxButton(
+              <span>
+                  <i class={btnIcon}></i>
+                  {btnText}
+                </span>,
+              () => onSubmitDisable(btnAction)
+            ) % ("id" -> "groupDisableButtonId") % ("class" -> "dropdown-item")
+          }
+          </li>
         } else NodeSeq.Empty
       }
       & "group-save" #> {
         if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) {
           <span class="save-tooltip-container">
                       {
-            SHtml.ajaxOnSubmit(onSubmit _)(
+            SHtml.ajaxOnSubmit(onSubmit)(
               <button class="btn btn-success btn-icon ui-button ui-corner-all ui-widget" id={saveButtonId}>
                             <span>Save <i class="fa fa-download"></i></span>
                           </button>
@@ -347,13 +378,19 @@ class NodeGroupForm(
                     </span>
         } else NodeSeq.Empty
       }
-      & "group-delete" #> SHtml.ajaxButton(
-        <span>Delete
-          <i class="fa fa-trash"></i>
-        </span>,
-        () => onSubmitDelete(),
-        ("class" -> " btn btn-danger btn-icon")
-      )
+      & "group-delete" #>
+      <li>
+          {
+        SHtml.ajaxButton(
+          <span>
+              <i class="fa fa-times-circle"></i>
+              Delete
+            </span>,
+          () => onSubmitDelete(),
+          ("class" -> "dropdown-item action-danger")
+        )
+      }
+        </li>
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)
       & "#group-shownodestable *" #> (searchNodeComponent.get match {
@@ -372,7 +409,7 @@ class NodeGroupForm(
     )
   }
 
-  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None): CssSel = {
+  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None, allowCloning: Boolean = true): CssSel = {
     ("group-pendingchangerequest" #> NodeSeq.Empty
     & "#group-name" #> <span>{groupNameString}<span class="group-system"></span></span>
     & "group-name" #> groupName.readOnlyValue
@@ -399,6 +436,7 @@ class NodeGroupForm(
                     </div>
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
+    & "#longDescriptionFieldMarkdownContainer i" #> NodeSeq.Empty
     & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(
       JsRaw(
         s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")"""
@@ -407,7 +445,7 @@ class NodeGroupForm(
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
-    & "group-clone" #> group.map(systemGroupCloneButton).getOrElse(NodeSeq.Empty)
+    & "group-clone" #> (if (allowCloning) systemGroupCloneButton() else NodeSeq.Empty)
     & "group-close" #>
     <button class="btn btn-default" onclick={
       s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
@@ -451,7 +489,7 @@ class NodeGroupForm(
     }
   }
 
-  private def systemGroupCloneButton(group: NodeGroup) = {
+  private def systemGroupCloneButton() = {
     if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
       SHtml.ajaxButton(
         <span>Clone
@@ -507,13 +545,13 @@ class NodeGroupForm(
 
   private val groupName = {
     new WBTextField("Group name", groupNameString) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
       override def subContainerClassName = ""
       override def inputField            = super.inputField % ("onkeydown" -> "return processKey(event , '%s')".format(saveButtonId))
       override def validations           =
-        valMinLen(1, "Name must not be empty") _ :: Nil
+        valMinLen(1, "Name must not be empty") :: Nil
     }
   }
 
@@ -523,7 +561,7 @@ class NodeGroupForm(
       _.description
     )
     new WBTextAreaField("Description", desc) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
       override def subContainerClassName = ""
@@ -559,7 +597,7 @@ class NodeGroupForm(
         case _         => NodeSeq.Empty // guarding against NoMatchE
       }
     ) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "switch"
       override def labelClassName        = ""
       override def subContainerClassName = ""
@@ -751,6 +789,52 @@ class NodeGroupForm(
     }
   }
 
+  private def onSubmitDisable(action: DGModAction): JsCmd = {
+    // submit can be done only for node group, not system one
+    nodeGroup match {
+      case Left(target) => Noop
+      case Right(ng)    =>
+        // properties can have been modifier since the page was displayed, but we don't know it.
+        // so we look back for them. We also check that other props weren't modified in parallel
+        val savedGroup = roNodeGroupRepository.getNodeGroup(ng.id).either.runNow match {
+          case Right(g)  => g._1
+          case Left(err) =>
+            formTracker.addFormError(Text("Error when saving group"))
+            logger.error(s"Error when looking for group with id '${ng.id.serialize}': ${err.fullMsg}")
+            ng
+        }
+        if (ng.copy(properties = savedGroup.properties, serverList = savedGroup.serverList) != savedGroup) {
+          formTracker.addFormError(Text("Error: group was updated while you were modifying it. Please reload the page. "))
+        }
+
+        val optContainer = {
+          val c = NodeGroupCategoryId(groupContainer.get)
+          if (c == parentCategoryId) None
+          else Some(c)
+        }
+
+        // submit can be done only for node group, not system one
+        val newGroup = savedGroup.copy(
+          name = groupName.get,
+          description = groupDescription.get, // , container = container
+
+          isDynamic = groupStatic.get match {
+            case "dynamic" => true;
+            case _         => false
+          },
+          query = query,
+          _isEnabled = action match {
+            case DGModAction.Enable if !savedGroup.isSystem  => true
+            case DGModAction.Disable if !savedGroup.isSystem => false
+            case _                                           => savedGroup._isEnabled
+          },
+          serverList = srvList.getOrElse(Set.empty[CoreNodeFact]).map(_.id).toSet
+        )
+
+        displayConfirmationPopup(action, newGroup, optContainer, None)
+    }
+  }
+
   private def onSubmitDelete(): JsCmd = {
     nodeGroup match {
       case Left(_)   => Noop
@@ -779,14 +863,18 @@ class NodeGroupForm(
 
     val optOriginal = nodeGroup.toOption
     val change      = NodeGroupChangeRequest(action, newGroup, newCategory, optOriginal)
+    val errMsg      = s"Error when getting the validation workflow for changes in group '${change.newGroup.name}'"
 
-    workflowLevelService.getForNodeGroup(CurrentUser.actor, change) match {
-      case eb: EmptyBox =>
-        val msg = s"Error when getting the validation workflow for changes in directive '${change.newGroup.name}'"
-        logger.warn(msg, eb)
-        JsRaw(s"alert('${msg}')")
+    workflowLevelService
+      .getForNodeGroup(CurrentUser.actor, change)
+      .chainError(errMsg)
+      .either
+      .runNow match {
+      case Left(err) =>
+        logger.warn(err.fullMsg)
+        JsRaw(s"alert(${errMsg})")
 
-      case Full(workflowService) =>
+      case Right(workflowService) =>
         val popup = {
 
           def successCallback(crId: ChangeRequestId) = {

@@ -97,9 +97,9 @@ class ReportLineTest extends Specification {
     }
 
     LogDisplayer.getReportsLineForNode(reports, dirName, ruleName).toJson.toJsCmd.strip() must beEqualTo(
-      """[{"executionDate": "2024-12-14 15:47:53+0100", "runDate": "2024-12-14 15:47:53+0100", "kind": "result", "status": "error", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
-        | {"executionDate": "2024-12-14 15:47:53+0100", "runDate": "2024-12-14 15:47:53+0100", "kind": "audit", "status": "compliant", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
-        | {"executionDate": "2024-12-14 15:47:53+0100", "runDate": "2024-12-14 15:47:53+0100", "kind": "result", "status": "success", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "bar", "message": "message"}
+      """[{"executionDate": "2024-12-14 14:47:53Z", "runDate": "2024-12-14 14:47:53Z", "kind": "result", "status": "error", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
+        | {"executionDate": "2024-12-14 14:47:53Z", "runDate": "2024-12-14 14:47:53Z", "kind": "audit", "status": "compliant", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
+        | {"executionDate": "2024-12-14 14:47:53Z", "runDate": "2024-12-14 14:47:53Z", "kind": "result", "status": "success", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "bar", "message": "message"}
         |]""".stripMargin.replaceAll("\n", "").strip()
     )
   }
@@ -129,8 +129,8 @@ object ReportLineTest {
       message
     )
 
-    def toRS: ResultSuccessReport  = (ResultSuccessReport.apply _).tupled.apply(toT)
-    def toRE: ResultErrorReport    = (ResultErrorReport.apply _).tupled.apply(toT)
-    def toAC: AuditCompliantReport = (AuditCompliantReport.apply _).tupled.apply(toT)
+    def toRS: ResultSuccessReport  = (ResultSuccessReport.apply).tupled.apply(toT)
+    def toRE: ResultErrorReport    = (ResultErrorReport.apply).tupled.apply(toT)
+    def toAC: AuditCompliantReport = (AuditCompliantReport.apply).tupled.apply(toT)
   }
 }

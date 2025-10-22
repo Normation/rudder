@@ -37,7 +37,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <parent>
     <groupId>com.normation.rudder</groupId>
     <artifactId>rudder-parent</artifactId>
-    <version>9.1.0~alpha1-SNAPSHOT</version>
+    <version>9.0.1-SNAPSHOT</version>
   </parent>
 
   <description>
@@ -86,12 +86,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_${scala-binary-version}</artifactId>
+      <artifactId>lift-json_2.13</artifactId>
       <version>${lift-version}</version>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-common_${scala-binary-version}</artifactId>
+      <artifactId>lift-common_2.13</artifactId>
       <version>${lift-version}</version>
     </dependency>
 

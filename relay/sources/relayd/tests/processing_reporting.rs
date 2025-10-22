@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{
-    collections::HashMap,
-    fs::{copy, create_dir_all, remove_dir_all},
-    path::Path,
-    thread, time,
-};
+mod common;
+
+use crate::common::random_ports;
 
 use diesel::{self, prelude::*, PgConnection};
-use filetime::{set_file_times, FileTime};
 use rudder_relayd::{
     configuration::cli::CliConfiguration,
     data::report::QueryableReport,
     init_logger,
     output::database::schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
     start,
+};
+use std::path::PathBuf;
+use std::time::Duration;
+use std::{
+    collections::HashMap,
+    fs::{copy, create_dir_all, remove_dir_all},
+    path::Path,
+    thread, time,
 };
 
 pub fn db_connection() -> PgConnection {
@@ -37,7 +41,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
         if let Some(rvalue) = expected.get(name) {
             if *rvalue != value {
-                println!("{} should equal {} but is {}", name, rvalue, value);
+                println!("{name} should equal {rvalue} but is {value}");
                 is_ok = false;
             }
             expected.remove(name);
@@ -46,7 +50,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
     for key in expected.keys() {
         is_ok = false;
-        println!("{} should be present but is not there", key);
+        println!("{key} should be present but is not there");
     }
 
     is_ok
@@ -75,6 +79,8 @@ pub fn start_number(db: &mut PgConnection, expected: usize) -> Result<(), ()> {
 
 #[test]
 fn it_reads_and_inserts_a_runlog() {
+    let (api_port, https_port) = random_ports();
+
     let mut db = db_connection();
     diesel::delete(ruddersysevents).execute(&mut db).unwrap();
     diesel::delete(reportsexecution).execute(&mut db).unwrap();
@@ -94,7 +100,7 @@ fn it_reads_and_inserts_a_runlog() {
     let file_unknown_failed = "target/tmp/reporting/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906d.log";
 
     copy(
-        "tests/files/runlogs/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_old,
     )
     .unwrap();
@@ -108,7 +114,12 @@ fn it_reads_and_inserts_a_runlog() {
     .unwrap();
 
     thread::spawn(move || {
-        start(cli_cfg, init_logger().unwrap()).unwrap();
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
     });
 
     assert!(start_number(&mut db, 1).is_ok());
@@ -122,7 +133,7 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(start_number(&mut db, 1).is_ok());
 
     copy(
-        "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        "tests/files/runlogs/2018-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_new,
     )
     .unwrap();
@@ -142,7 +153,7 @@ fn it_reads_and_inserts_a_runlog() {
 
     //thread::sleep(time::Duration::from_secs(500));
 
-    let body = reqwest::blocking::get("http://localhost:3030/metrics")
+    let body = reqwest::blocking::get(format!("http://localhost:{api_port}/metrics"))
         .unwrap()
         .text()
         .unwrap();
@@ -163,4 +174,48 @@ fn it_reads_and_inserts_a_runlog() {
     expected.insert("rudder_relayd_managed_nodes_total", "3");
     expected.insert("rudder_relayd_sub_nodes_total", "6");
     assert!(check_prometheus(&body, expected));
+}
+
+use filetime::{set_file_times, FileTime};
+use rudder_relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
+
+#[test]
+fn it_cleans_old_reports() {
+    let _ = remove_dir_all("target/tmp/reporting_old");
+    create_dir_all("target/tmp/reporting_old/incoming").unwrap();
+
+    let file_new = "target/tmp/reporting_old/incoming/2019-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
+    let file_very_old = "target/tmp/reporting_old/incoming/1970-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
+
+    copy(
+        "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        file_new,
+    )
+    .unwrap();
+    copy(
+        "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        file_very_old,
+    )
+    .unwrap();
+    // We need to file to be old, unix epoch is ok
+    set_file_times(file_very_old, FileTime::zero(), FileTime::zero()).unwrap();
+
+    thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+
+        rt.block_on(cleanup(
+            PathBuf::from("target/tmp/reporting_old/incoming"),
+            CleanupConfig {
+                frequency: Duration::from_secs(1),
+                retention: Duration::from_secs(60),
+            },
+        ))
+        .unwrap();
+    });
+
+    thread::sleep(Duration::from_millis(500));
+
+    // Old file has been cleaned up
+    assert!(Path::new(file_new).exists());
+    assert!(!Path::new(file_very_old).exists());
 }

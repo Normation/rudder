@@ -166,7 +166,7 @@ object NodeConfigurationHash {
       ("i"   -> JArray(
         List(
           hash.id.value,
-          hash.writtenDate.toString(ISODateTimeFormat.dateTime()),
+          hash.writtenDate.toString(ISODateTimeFormat.dateTime().withZoneUTC()),
           hash.nodeInfoHash,
           hash.parameterHash,
           hash.nodeContextHash
@@ -187,7 +187,7 @@ object NodeConfigurationHash {
 
   def extractNodeConfigCache(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
     def readDate(date: String): Either[(String, JValue), DateTime] = try {
-      Right(ISODateTimeFormat.dateTimeParser().parseDateTime(date))
+      Right(ISODateTimeFormat.dateTimeParser().withZoneUTC().parseDateTime(date))
     } catch {
       case NonFatal(ex) => Left((s"Error, written date can not be parsed as a date: ${date}", JString(date)))
     }
@@ -483,7 +483,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   // read the file, of return the empty string if file does not exist
   def readHashesAsJsonString(): IOResult[String] = {
     IOResult.attempt(hashesFile.exists).flatMap {
-      case true  => IOResult.attempt(hashesFile.contentAsString(StandardCharsets.UTF_8))
+      case true  => IOResult.attempt(hashesFile.contentAsString(using StandardCharsets.UTF_8))
       case false => "".succeed
     }
   }
@@ -516,7 +516,10 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
     import java.nio.file.StandardOpenOption.*
     IOResult.attempt(
-      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8)
+      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(using
+        Seq(WRITE, CREATE, TRUNCATE_EXISTING),
+        StandardCharsets.UTF_8
+      )
     )
   }
 

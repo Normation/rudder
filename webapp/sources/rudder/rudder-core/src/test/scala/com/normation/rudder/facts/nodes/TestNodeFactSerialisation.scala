@@ -21,7 +21,7 @@ import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.reports.ReportingConfiguration
-import org.joda.time.DateTime
+import com.normation.utils.DateFormaterService
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.Specification
@@ -103,8 +103,8 @@ class TestNodeFactSerialisation extends Specification with JsonSpecMatcher {
           Chunk.empty
         ),
         Chunk.empty,
-        DateTime.parse("2024-05-16T15:20:12Z"),
-        DateTime.parse("2024-05-16T15:20:12Z")
+        DateFormaterService.parseInstant("2024-05-16T15:20:12Z").getOrElse(throw new IllegalArgumentException("error")),
+        DateFormaterService.parseInstant("2024-05-16T15:20:12Z").getOrElse(throw new IllegalArgumentException("error"))
       )
 
       // we have to match machineType specifically because nodefact does not seem to be exactly equal

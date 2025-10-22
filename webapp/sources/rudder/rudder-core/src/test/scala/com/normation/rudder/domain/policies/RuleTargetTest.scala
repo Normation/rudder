@@ -14,12 +14,11 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.FullNodeGroupCategory
+import java.time.Instant
 import net.liftweb.common.*
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
-import scala.collection.MapView
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
@@ -38,7 +37,7 @@ class RuleTargetTest extends Specification with Loggable {
       NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = DateTime.now,
+      creationDate = Instant.now(),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = List(),
       policyMode = None,
@@ -56,7 +55,7 @@ class RuleTargetTest extends Specification with Loggable {
         None,
         Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
         Nil,
-        DateTime.now,
+        Instant.now(),
         UndefinedKey,
         Seq(),
         NodeId("root"),
@@ -68,7 +67,7 @@ class RuleTargetTest extends Specification with Loggable {
     )
   }.toMap
 
-  val nodeArePolicyServers: MapView[NodeId, Boolean] = nodes.map { case (id, n) => (id, n.isPolicyServer) }.view
+  val nodeArePolicyServers: Map[NodeId, Boolean] = nodes.map { case (id, n) => (id, n.isPolicyServer) }
 
   val g1: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("1")),

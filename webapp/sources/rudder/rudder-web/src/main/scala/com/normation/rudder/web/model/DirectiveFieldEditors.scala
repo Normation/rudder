@@ -58,6 +58,7 @@ import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.Period
@@ -424,7 +425,7 @@ class DateField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   }
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
-  def getDefaultValue: LocalDate = DateTime.now().toLocalDate // default datetime
+  def getDefaultValue: LocalDate = DateTime.now(DateTimeZone.UTC).toLocalDate // default datetime
 }
 
 class TimeField(format: DateTimeFormatter)(val id: String) extends DirectiveField {
@@ -474,7 +475,7 @@ class TimeField(format: DateTimeFormatter)(val id: String) extends DirectiveFiel
   }
 
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
-  def getDefaultValue: LocalTime = DateTime.now().toLocalTime // default datetime
+  def getDefaultValue: LocalTime = DateTime.now(DateTimeZone.UTC).toLocalTime // default datetime
 }
 
 class PeriodField(showSeconds: Boolean = true, showMinutes: Boolean = true, showHours: Boolean = true, showDays: Boolean = true)(

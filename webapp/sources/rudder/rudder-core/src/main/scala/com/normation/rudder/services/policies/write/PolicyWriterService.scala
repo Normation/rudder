@@ -87,7 +87,6 @@ import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import zio.*
-import zio.Duration
 import zio.syntax.*
 
 /**
@@ -148,7 +147,7 @@ object PolicyWriterServiceImpl {
     createParentsIfNotExist(dest, optPerms, optGroupOwner)
     // must use FileUtils on different fs, see: https://issues.rudder.io/issues/19218
     mvOptions match {
-      case Some(opts) => src.moveTo(dest)(opts)
+      case Some(opts) => src.moveTo(dest)(using opts)
       case None       => FileUtils.moveDirectory(src.toJava, dest.toJava)
     }
     // optGroupOwner.foreach(dest.setGroup(_))
@@ -279,14 +278,14 @@ class PolicyWriterServiceImpl(
     def createParentsAndWrite(text: String, isRootServer: Boolean): IO[SystemError, Unit]                                                = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
-      file.writeText(text)(Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
+      file.writeText(text)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
       optGroupOwner.foreach(file.setGroup)
     }
 
     def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean): IO[SystemError, Unit] = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
-      file.writeByteArray(content)(Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
+      file.writeByteArray(content)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
       optGroupOwner.foreach(file.setGroup)
     }
   }
@@ -376,9 +375,9 @@ class PolicyWriterServiceImpl(
       }
       val msg                 = errorCode match {
         // we need to limit sdtout/sdterr length
-        case HookReturnCode.ScriptError(code, stdout, stderr, msg) =>
+        case HookReturnCode.ScriptError(_, code, stdout, stderr, msg) =>
           s"${msg} [stdout:${limitOut(stdout)}][stderr:${limitOut(stderr)}]"
-        case x                                                     => x.msg
+        case x                                                        => x.msg
       }
     }
 
@@ -626,11 +625,11 @@ class PolicyWriterServiceImpl(
       parametersWrittenTime <- currentTimeMillis
       _                     <- timingLogger.debug(s"Parameters written in ${parametersWrittenTime - propertiesWrittenTime} ms")
 
-      _ <- IOResult.attempt(fillTemplates.clearCache())
+      _              <- IOResult.attempt(fillTemplates.clearCache())
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
-
-      nodePreMvHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
+      preMvHooksName  = "policy-generation-node-ready"
+      nodePreMvHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + preMvHooksName, HOOKS_IGNORE_SUFFIXES)
       preMvHooks     <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                           val nodeId       = agentNodeConfig.config.nodeInfo.id.value
                           val hostname     = agentNodeConfig.config.nodeInfo.fqdn
@@ -638,6 +637,7 @@ class PolicyWriterServiceImpl(
                           for {
                             timeHooks0 <- currentTimeMillis
                             res        <- RunHooks.asyncRun(
+                                            preMvHooksName,
                                             nodePreMvHooks,
                                             HookEnvPairs.build(
                                               ("RUDDER_GENERATION_DATETIME", generationTime.toString),
@@ -674,7 +674,8 @@ class PolicyWriterServiceImpl(
       movedPromisesTime2 <- currentTimeMillis
       _                  <- timingLogger.debug(s"Policies moved to their final position in ${movedPromisesTime2 - movedPromisesTime1} ms")
 
-      nodePostMvHooks  <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
+      postMvHooksName   = "policy-generation-node-finished"
+      nodePostMvHooks  <- RunHooks.getHooksPure(HOOKS_D + "/" + postMvHooksName, HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val nodeId       = agentNodeConfig.config.nodeInfo.id.value
                             val hostname     = agentNodeConfig.config.nodeInfo.fqdn
@@ -682,6 +683,7 @@ class PolicyWriterServiceImpl(
                             for {
                               timeHooks0 <- currentTimeMillis
                               res        <- RunHooks.asyncRun(
+                                              postMvHooksName,
                                               nodePostMvHooks,
                                               HookEnvPairs.build(
                                                 ("RUDDER_GENERATION_DATETIME", generationTime.toString),
@@ -1230,7 +1232,7 @@ class PolicyWriterServiceImpl(
         if (file.parent.path == destDir.path) file // same directory is ok
         else {
           destDir.createDirectoryIfNotExists(true)
-          file.moveTo(destDir / file.name)(atomically)
+          file.moveTo(destDir / file.name)(using atomically)
         }
         File(destDir, file.name).delete(false)
       }.catchAll(ex => ZIO.attempt(file.delete(true)) *> ex.fail)

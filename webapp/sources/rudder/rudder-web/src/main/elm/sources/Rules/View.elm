@@ -3,6 +3,7 @@ module Rules.View exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value, attribute)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onClickPreventDefault)
 import List
 import List.Extra
 import Maybe.Extra exposing (isNothing)
@@ -40,7 +41,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled++classFocus), href (model.contextPath ++ "/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClick (OpenRuleDetails item.id True)]
+        , a[class ("jstree-anchor"++classDisabled++classFocus), href (model.contextPath ++ "/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClickPreventDefault (OpenRuleDetails item.id True)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName"]
             [ badgePolicyMode model.policyMode item.policyMode
@@ -94,7 +95,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
-                , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClick (OpenCategoryDetails item.id True)]
+                , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClickPreventDefault (OpenCategoryDetails item.id True)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class ("treeGroupCategoryName " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
@@ -195,7 +196,7 @@ view model =
           ]
       DeactivationValidation rule crSettings ->
         let
-          txtDisable = if rule.enabled then "Disable" else "Enable"
+          (txtDisabled, iconDisabled) = if rule.enabled then ("Disable", "fa fa-ban") else ("Enable", "fa fa-check-circle")
           (auditForm, btnDisabled) = case crSettings of
             Just s  ->
               ( changeAuditForm s
@@ -212,11 +213,11 @@ view model =
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [
                 div [ class "modal-header" ] [
-                  h5[ class "modal-title" ] [ text (txtDisable ++" Rule")]
+                  h5[ class "modal-title" ] [ text (txtDisabled ++" Rule")]
                 , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
-                [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")]
+                [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisabled ++" rule '"++ rule.name ++"'?")]
                 , auditForm
                 ]
               , div [ class "modal-footer" ] [
@@ -224,8 +225,8 @@ view model =
                   [ text "Cancel "
                   ]
                 , button [ class "btn btn-primary", onClick (ClosePopup DisableRule), disabled btnDisabled ]
-                  [ text (txtDisable ++ " ")
-                  , i [ class "fa fa-ban" ] []
+                  [ text (txtDisabled ++ " ")
+                  , i [ class iconDisabled ] []
                   ]
                 ]
               ]

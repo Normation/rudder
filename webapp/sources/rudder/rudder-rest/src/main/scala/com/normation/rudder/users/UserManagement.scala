@@ -41,40 +41,26 @@ import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
 import com.normation.rudder.rest.ProviderRoleExtension
-import com.normation.rudder.users.RudderUserDetail
-import com.normation.rudder.users.UserStatus
+import com.normation.rudder.users.UserFileProcessing.ParsedUser
+import com.normation.rudder.users.UserPassword.*
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
-import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Logger
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
+import org.springframework.security.crypto.password.PasswordEncoder
 import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
 
-case class UserFileInfo(userOrigin: List[UserOrigin], digest: String)
-case class UserOrigin(user: User, hashValidHash: Boolean)
-object UserOrigin {
-  def verifyHash(hashType: String, hash: String) = {
-    // $2[aby]$[cost]$[22 character salt][31 character hash]
-    val bcryptReg = "^\\$2[aby]?\\$[\\d]+\\$[./A-Za-z0-9]{53}$".r
-    hashType.toLowerCase match {
-      case "sha" | "sha1"       => hash.matches("^[a-fA-F0-9]{40}$")
-      case "sha256" | "sha-256" => hash.matches("^[a-fA-F0-9]{64}$")
-      case "sha512" | "sha-512" => hash.matches("^[a-fA-F0-9]{128}$")
-      case "md5"                => hash.matches("^[a-fA-F0-9]{32}$")
-      case "bcrypt"             => hash.matches(bcryptReg.regex)
-      case _                    => false
-    }
-  }
+case class User(username: String, password: StorableUserPassword, permissions: Set[String], tenants: Option[String]) {
+  def toNode: Node = <user name={username} password={password.exposeValue()} permissions={permissions.mkString(",")} tenants={
+    tenants.orNull
+  }/>
 }
-
-case class User(username: String, password: String, permissions: Set[String], tenants: Option[String]) {
-  def toNode: Node = <user name={username} password={password} permissions={permissions.mkString(",")} tenants={tenants.orNull}/>
-}
-object User                                                                                            {
-  def make(username: String, password: String, permissions: Set[String], tenants: String): User = {
+object User                                                                                                          {
+  def make(username: String, password: StorableUserPassword, permissions: Set[String], tenants: String): User = {
     User(username, password, permissions, if (tenants.isEmpty) None else Some(tenants))
   }
 }
@@ -88,14 +74,9 @@ object UserManagementLogger extends Logger {
 
 final case class UpdateUserFile(
     username:    String,
-    password:    String,
-    permissions: Set[String]
+    password:    UserPassword,
+    permissions: Option[Set[String]]
 )
-
-object UpdateUserFile {
-  implicit val transformer: Transformer[UpdateUserFile, User] =
-    Transformer.define[UpdateUserFile, User].enableOptionDefaultsToNone.buildTransformer
-}
 
 final case class UpdateUserInfo(
     name:      Option[String],
@@ -194,10 +175,12 @@ final case class JsonProviderInfo(
 )
 
 object JsonProviderInfo {
-  def fromUser(u: RudderUserDetail, provider: String)(implicit allRoles: Set[Role]): JsonProviderInfo = {
+  def from(userRoles: Set[Role], authz: Rights, provider: String)(implicit
+      allRoles: Set[Role]
+  ): JsonProviderInfo = {
     val (_, customUserRights) = {
       UserManagementService
-        .computeRoleCoverage(allRoles, u.authz.authorizationTypes)
+        .computeRoleCoverage(allRoles, authz.authorizationTypes)
         .getOrElse(Set.empty)
         .partitionMap {
           case Custom(customRights) => Right(customRights.authorizationTypes)
@@ -206,14 +189,14 @@ object JsonProviderInfo {
     }
 
     // custom anonymous roles and permissions are already inside roleCoverage and customRights fields
-    val roles = u.roles.filter {
+    val roles = userRoles.filter {
       case _: Custom => false
       case _ => true
     }.map(_.name)
 
     JsonProviderInfo(
       provider,
-      u.authz.transformInto[JsonRights],
+      authz.transformInto[JsonRights],
       JsonRoles(roles),
       Rights(customUserRights.flatten).transformInto[JsonRights]
     )
@@ -396,8 +379,12 @@ final case class JsonAddedUserData(
     otherInfo:   Option[Json.Obj]
 )
 object JsonAddedUserData {
-  implicit val transformer: Transformer[JsonUserFormData, JsonAddedUserData] =
-    Transformer.derive[JsonUserFormData, JsonAddedUserData]
+  implicit val transformer: Transformer[JsonUserFormData, JsonAddedUserData] = {
+    Transformer
+      .define[JsonUserFormData, JsonAddedUserData]
+      .withFieldComputed(_.permissions, _.permissions.getOrElse(List.empty))
+      .buildTransformer
+  }
 }
 
 final case class JsonInternalUserData(
@@ -407,7 +394,15 @@ final case class JsonInternalUserData(
 )
 
 object JsonInternalUserData {
-  implicit val transformer: Transformer[User, JsonInternalUserData] = Transformer.derive[User, JsonInternalUserData]
+  // safe transformation by default does not copy the password to avoid exposing it
+  // to expose the password in the JSON, create an unsafe transformer or copy it
+  implicit val transformerParsedUser: Transformer[ParsedUser, JsonInternalUserData] = {
+    Transformer
+      .define[ParsedUser, JsonInternalUserData]
+      .withFieldRenamed(_.name, _.username)
+      .withFieldConst(_.password, "")
+      .buildTransformer
+  }
 }
 
 final case class JsonAddedUser(
@@ -420,9 +415,11 @@ object JsonAddedUser        {
 
 final case class JsonUpdatedUser(
     updatedUser: JsonInternalUserData
-)
+) {
+  def withPassword(password: String): JsonUpdatedUser = JsonUpdatedUser(updatedUser.copy(password = password))
+}
 object JsonUpdatedUser      {
-  implicit val transformer: Transformer[User, JsonUpdatedUser] = (u: User) =>
+  implicit val transformerParsedUser: Transformer[ParsedUser, JsonUpdatedUser] = (u: ParsedUser) =>
     JsonUpdatedUser(u.transformInto[JsonInternalUserData])
 }
 
@@ -453,7 +450,7 @@ final case class JsonStatus(
 final case class JsonUserFormData(
     username:    String,
     password:    String,
-    permissions: List[String],
+    permissions: Option[List[String]],
     isPreHashed: Boolean,
     name:        Option[String],
     email:       Option[String],
@@ -461,10 +458,33 @@ final case class JsonUserFormData(
 )
 
 object JsonUserFormData {
-  implicit val transformer:           Transformer[JsonUserFormData, User]           =
-    Transformer.define[JsonUserFormData, User].enableOptionDefaultsToNone.buildTransformer
-  implicit val transformerUpdateUser: Transformer[JsonUserFormData, UpdateUserFile] =
-    Transformer.derive[JsonUserFormData, UpdateUserFile]
+  given (using encoder: PasswordEncoder): UserPasswordEncoder[SecretUserPassword] = encoder.encode(_)
+
+  given transformer(using passwordEncoder: PasswordEncoder): Transformer[JsonUserFormData, User]           = {
+    Transformer
+      .define[JsonUserFormData, User]
+      .withFieldComputed(
+        _.password,
+        json => {
+          if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
+          else UserPassword.fromSecret(json.password).transformInto[HashedUserPassword]
+        }
+      )
+      .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
+      .withFieldConst(_.tenants, None)
+      .buildTransformer
+  }
+  given transformerUpdateUser:                               Transformer[JsonUserFormData, UpdateUserFile] = {
+    Transformer
+      .define[JsonUserFormData, UpdateUserFile]
+      .withFieldComputed(
+        _.password,
+        json => if (json.isPreHashed) UserPassword.unsafeHashed(json.password) else UserPassword.fromSecret(json.password)
+      )
+      .buildTransformer
+  }
+  given transformerUpdateUserInfo:                           Transformer[JsonUserFormData, UpdateUserInfo] =
+    Transformer.define[JsonUserFormData, UpdateUserInfo].enableOptionDefaultsToNone.buildTransformer
 }
 
 final case class JsonCoverage(
@@ -472,7 +492,7 @@ final case class JsonCoverage(
 )
 object JsonCoverage     {
   implicit val transformer: Transformer[(Set[Role], Set[Custom]), JsonCoverage] = (x: (Set[Role], Set[Custom])) =>
-    x.transformInto[JsonRoleCoverage].transformInto[JsonCoverage](coverage => JsonCoverage(coverage))
+    x.transformInto[JsonRoleCoverage].transformInto[JsonCoverage](using coverage => JsonCoverage(coverage))
 }
 
 final case class JsonRoleCoverage(

@@ -37,16 +37,13 @@
 
 package com.normation.rudder.rest
 
-import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.users.UserService
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.*
-import net.liftweb.http.Req
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.*
 import net.liftweb.json.JsonAST.RenderSettings
@@ -111,28 +108,6 @@ object RestUtils {
     }
   }
 
-  /**
-   * Get the rest user name, as follow:
-   * - if the user is authenticated, use the provided UserName
-   * - else, use the HTTP Header: X-REST-USERNAME
-   * - else, return none
-   */
-  def getUsername(req: Req)(implicit userService: UserService): Option[String] = {
-
-    userService.getCurrentUser.actor.name match {
-      case "unknown" =>
-        req.header(s"X-REST-USERNAME") match {
-          case eb: EmptyBox => None
-          case Full(name) => Some(name)
-        }
-      case userName  => Some(userName)
-    }
-  }
-
-  def getActor(req: Req)(implicit userService: UserService): EventActor = EventActor(
-    getUsername(req).getOrElse("UnknownRestUser")
-  )
-
   def getPrettify(req: Req): Box[Boolean] = {
     req.json match {
       case Full(json) =>
@@ -191,14 +166,16 @@ object RestUtils {
     effectiveResponse(id, message, RestOk, action, prettify)
   }
 
-  def toJsonError(id: Option[String], message: JValue)(implicit action: String = "rest", prettify: Boolean): LiftResponse = {
-    effectiveResponse(id, message, InternalError, action, prettify)
+  def toJsonError(id: Option[String], message: JValue, error: RestError = InternalError)(implicit
+      action:   String = "rest",
+      prettify: Boolean
+  ): LiftResponse = {
+    effectiveResponse(id, message, error, action, prettify)
   }
 
   def response(
-      restExtractor: RestExtractorService,
-      dataName:      String,
-      id:            Option[String]
+      dataName: String,
+      id:       Option[String]
   )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String, prettify: Boolean): LiftResponse = {
     function match {
       case Full(category: JValue) =>
@@ -207,7 +184,7 @@ object RestUtils {
         val err = eb ?~! errorMessage
         // we don't get DB error in message - add them in log
         err.rootExceptionCause.foreach(ex => ApiLogger.ResponseError.info("Api error cause by exception: " + ex.getMessage))
-        toJsonError(id, err.messageChain)
+        toJsonError(id, err.messageChain, InternalError)
     }
   }
 

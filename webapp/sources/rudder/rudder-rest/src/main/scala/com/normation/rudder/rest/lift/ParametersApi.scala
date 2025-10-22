@@ -39,7 +39,6 @@ package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
@@ -48,8 +47,6 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
-import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoParameterRepository
@@ -63,10 +60,9 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.Box
+import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
 import zio.syntax.*
 
 class ParameterApi(
@@ -170,9 +166,9 @@ class ParameterApiService14(
       change:    GlobalParamChangeRequest,
       params:    DefaultParams,
       actor:     EventActor
-  )(implicit qc: QueryContext): Box[JRGlobalParameter] = {
+  )(implicit qc: QueryContext): IOResult[JRGlobalParameter] = {
     implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
+      ChangeContext(ModificationId(uuidGen.newUuid), actor, Instant.now(), params.reason, None, qc.nodePerms)
     for {
       workflow <- workflowLevelService.getForGlobalParam(actor, change)
       cr        = ChangeRequestService.createChangeRequestFromGlobalParameter(
@@ -216,7 +212,7 @@ class ParameterApiService14(
     for {
       _   <- restParameter.id.notOptional(s"'id' is mandatory but was empty")
       cr   = GlobalParamChangeRequest(GlobalParamModAction.Create, None)
-      res <- createChangeRequest(diff, parameter, cr, params, actor).toIO
+      res <- createChangeRequest(diff, parameter, cr, params, actor)
     } yield res
   }
 
@@ -229,7 +225,7 @@ class ParameterApiService14(
       updatedParam = restParameter.updateParameter(param)
       diff         = ModifyToGlobalParameterDiff(updatedParam)
       change       = GlobalParamChangeRequest(GlobalParamModAction.Update, Some(param))
-      result      <- createChangeRequest(diff, updatedParam, change, params, actor).toIO
+      result      <- createChangeRequest(diff, updatedParam, change, params, actor)
     } yield {
       result
     }
@@ -244,7 +240,7 @@ class ParameterApiService14(
       case Some(parameter) =>
         val diff   = DeleteGlobalParameterDiff(parameter)
         val change = GlobalParamChangeRequest(GlobalParamModAction.Delete, Some(parameter))
-        createChangeRequest(diff, parameter, change, params, actor).toIO
+        createChangeRequest(diff, parameter, change, params, actor)
     }
   }
 

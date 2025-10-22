@@ -41,153 +41,147 @@
 bundle agent package_install_version_cmp_update(name, version_comparator, package_version, action, update_policy)
 {
   vars:
-      "canonified_name"         string => canonify("${name}");
-      "old_class_prefix"        string => "package_install_${canonified_name}";
-
-    # don't rewrite the class prefix based on defaults
-    !pass1::
-      "args"                     slist => { "${name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("package_install_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("package_install_${name}");
 
   defaults:
-      "action" string => "fix", if_match_regex => "add";
-      "action" string => "warn", if_match_regex => "verify|";
-      "update_policy" slist => {"add", "update"}, if_match_regex => "true";
-      "update_policy" string => "add",            if_match_regex => "false";
+      "action"        string => "fix",
+              if_match_regex => "add";
+      "action"        string => "warn",
+              if_match_regex => "verify";
+      "update_policy"  slist => {"add", "update"},
+              if_match_regex => "true";
+      "update_policy" string => "add",
+              if_match_regex => "false";
 
   classes:
-      "local_package" expression => regcmp("(http:|file:)?/.*", "${name}");
+      "pass3"                 expression => "pass2";
+      "pass2"                 expression => "pass1";
+      "pass1"                 expression => "any";
+      "local_package"         expression => regcmp("(http:|file:)?/.*", "${name}");
       "version_not_specified" expression => strcmp("latest", "${package_version}");
-      "immediate" expression => strcmp("immediate", "${action}");
-      "warn" expression => strcmp("warn", "${action}");
-
-      "update"    expression => strcmp("update", "${update_policy}");
-
-      "pass1" expression => "any";
-
+      "immediate"             expression => strcmp("immediate", "${action}");
+      "warn"                  expression => strcmp("warn", "${action}");
+      "update"                expression => strcmp("update", "${update_policy}");
   packages:
-
     ## Debian support ##
-    !version_not_specified.local_package.debian::
+    pass3.!version_not_specified.local_package.debian::
       "${name}"
-                        package_policy  => "${update_policy}",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => debian_local_install,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action          => policy("${action}");
+        package_policy  => "${update_policy}",
+        package_version => "${package_version}",
+        package_select  => "${version_comparator}",
+        package_method  => debian_local_install,
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action          => policy("${action}");
 
 
-    !version_not_specified.!local_package.debian::
+    pass3.!version_not_specified.!local_package.debian::
       "${name}"
-                        package_policy  => "${update_policy}",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => apt_get_version,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action          => policy("${action}");
+        package_policy  => "${update_policy}",
+        package_version => "${package_version}",
+        package_select  => "${version_comparator}",
+        package_method  => apt_get_version,
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action          => policy("${action}");
 
 
-    version_not_specified.local_package.debian::
+    pass3.version_not_specified.local_package.debian::
       "${name}"
-                        package_policy => "${update_policy}",
-                        package_method => debian_local_install,
-                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action         => policy("${action}");
+        package_policy => "${update_policy}",
+        package_method => debian_local_install,
+        classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action         => policy("${action}");
 
-    version_not_specified.!local_package.debian::
+    pass3.version_not_specified.!local_package.debian::
       "${name}"
-                        package_policy => "${update_policy}",
-                        package_method => apt_get,
-                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action         => policy("${action}");
+        package_policy => "${update_policy}",
+        package_method => apt_get,
+        classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action         => policy("${action}");
 
     ## RedHat support ##
-    !version_not_specified.local_package.redhat::
+    pass3.!version_not_specified.local_package.redhat::
       "${name}"
-                        package_policy  => "${update_policy}",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => redhat_local_install,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action          => policy("${action}");
+        package_policy  => "${update_policy}",
+        package_version => "${package_version}",
+        package_select  => "${version_comparator}",
+        package_method  => redhat_local_install,
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action          => policy("${action}");
 
-    !version_not_specified.!local_package.redhat::
+    pass3.!version_not_specified.!local_package.redhat::
       "${name}"
-                        package_policy  => "${update_policy}",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => yum_rpm,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action          => policy("${action}");
+        package_policy  => "${update_policy}",
+        package_version => "${package_version}",
+        package_select  => "${version_comparator}",
+        package_method  => yum_rpm,
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action          => policy("${action}");
 
 
-    version_not_specified.local_package.redhat::
+    pass3.version_not_specified.local_package.redhat::
       "${name}"
-                        package_policy => "${update_policy}",
-                        package_method => redhat_local_install,
-                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action         => policy("${action}");
+        package_policy => "${update_policy}",
+        package_method => redhat_local_install,
+        classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action         => policy("${action}");
 
 
-    version_not_specified.!local_package.redhat::
+    pass3.version_not_specified.!local_package.redhat::
       "${name}"
-                        package_policy => "${update_policy}",
-                        package_method => yum_rpm_no_version,
-                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action         => policy("${action}");
+        package_policy => "${update_policy}",
+        package_method => yum_rpm_no_version,
+        classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action         => policy("${action}");
 
     ## SUSE support ##
-    !version_not_specified.local_package.SuSE::
+    pass3.!version_not_specified.local_package.SuSE::
       "${name}"
-                        package_policy  => "${update_policy}",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => ncf_generic_version,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action          => policy("${action}");
+        package_policy  => "${update_policy}",
+        package_version => "${package_version}",
+        package_select  => "${version_comparator}",
+        package_method  => ncf_generic_version,
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action          => policy("${action}");
 
-    !version_not_specified.!local_package.SuSE::
+    pass3.!version_not_specified.!local_package.SuSE::
       "${name}"
-                        package_policy  => "${update_policy}",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => ncf_generic_version,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action          => policy("${action}");
+        package_policy  => "${update_policy}",
+        package_version => "${package_version}",
+        package_select  => "${version_comparator}",
+        package_method  => ncf_generic_version,
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action          => policy("${action}");
 
 
-    version_not_specified.local_package.SuSE::
+    pass3.version_not_specified.local_package.SuSE::
       "${name}"
-                        package_policy => "${update_policy}",
-                        package_method => ncf_generic,
-                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action         => policy("${action}");
+        package_policy => "${update_policy}",
+        package_method => ncf_generic,
+        classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action         => policy("${action}");
 
 
-    version_not_specified.!local_package.SuSE::
+    pass3.version_not_specified.!local_package.SuSE::
       "${name}"
-                        package_policy => "${update_policy}",
-                        package_method => ncf_generic,
-                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                        action         => policy("${action}");
+        package_policy => "${update_policy}",
+        package_method => ncf_generic,
+        classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        action         => policy("${action}");
 
   methods:
-    (debian|redhat|SuSE).immediate.!update::
-      "Reports" usebundle => _log_v3("Install package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-    (debian|redhat|SuSE).immediate.update::
-      "Reports" usebundle => _log_v3("Install or update package ${name} in version ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-    (debian|redhat|SuSE).!immediate.!version_not_specified::
-      "Reports" usebundle => _log_v3("Verify that package ${name} is installed in version ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-    (debian|redhat|SuSE).!immediate.version_not_specified.update::
-      "Reports" usebundle => _log_v3("Verify that package ${name} is installed and up-to-date", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
-    (debian|redhat|SuSE).!immediate.version_not_specified.!update::
-      "Reports" usebundle => _log_v3("Verify that package ${name} is installed", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.(debian|redhat|SuSE).immediate.!update::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Install package ${name}", "");
+    pass3.(debian|redhat|SuSE).immediate.update::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Install or update package ${name} in version ${package_version}", "");
+    pass3.(debian|redhat|SuSE).!immediate.!version_not_specified::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Verify that package ${name} is installed in version ${package_version}", "");
+    pass3.(debian|redhat|SuSE).!immediate.version_not_specified.update::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Verify that package ${name} is installed and up-to-date", "");
+    pass3.(debian|redhat|SuSE).!immediate.version_not_specified.!update::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Verify that package ${name} is installed", "");
 
-    !(debian|redhat|SuSE)::
-      "force failure class" usebundle => _classes_failure("${class_prefix}");
-      "force failure class" usebundle => _classes_failure("${old_class_prefix}");
-      "report failure"      usebundle => _log_v3("Install or update package ${name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!(debian|redhat|SuSE)::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Install or update package ${name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "");
 }

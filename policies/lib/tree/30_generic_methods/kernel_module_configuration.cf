@@ -65,40 +65,25 @@
 bundle agent kernel_module_configuration(name, configuration)
 {
   vars:
+      "class_prefix"            string => canonify("kernel_module_configuration_${name}");
       "modprobe_dir"            string => "/etc/modprobe.d";
       "canonified_module_name"  string => canonify("${name}");
-
-      "old_class_prefix"        string => canonify("kernel_module_configuration_${name}");
-      "args"                     slist => { "${name}", "${configuration}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("kernel_module_configuration_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
 
       "conf_file"               string => "${modprobe_dir}/managed_by_rudder.conf";
       "start_section"           string => "### ${name} start section";
       "end_section"             string => "### ${name} end section";
-      "inner_args"               slist => { "${conf_file}", "${start_section}", "${end_section}", "${configuration}" };
-      "report_inner_param"      string => join("_", inner_args);
-      "inner_class_prefix"      string => string_head(canonify("file_block_present_in_section_${report_inner_param}"), "1000");
-
 
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-      "should_report" expression => "${report_data.should_report}";
-
   methods:
-    pass1.!pass2::
-      "disable_reporting_${class_prefix}"    usebundle => disable_reporting;
-      "edit_modprobe_config_${class_prefix}" usebundle => file_block_present_in_section("${conf_file}", "${start_section}", "${end_section}", "${configuration}");
-      "reenable_reporting_${class_prefix}"   usebundle => enable_reporting,
-        ifvarclass => "should_report";
-
     pass3::
-      "result_classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-      "old_result_classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
-      "report"             usebundle => _log_v3("Check that the kernel module ${name} configuration is correct", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => call_method("file_block_present_in_section");
+      "${report_data.method_id}" usebundle => file_block_present_in_section("${conf_file}", "${start_section}", "${end_section}", "${configuration}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_block_present_in_section");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Check that the kernel module ${name} configuration is correct", "");
 }
-

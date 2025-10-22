@@ -63,9 +63,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.*
-import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
@@ -79,8 +77,15 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
+import com.normation.utils.DateFormaterService
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
-import org.joda.time.DateTime
+import io.scalaland.chimney.PartialTransformer
+import io.scalaland.chimney.partial
+import io.scalaland.chimney.partial.syntax.*
+import io.scalaland.chimney.syntax.*
+import java.time.Instant
+import scala.annotation.nowarn
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -109,7 +114,6 @@ class LDAPEntityMapper(
   def loggerName = "rudder-ldap-entity-mapper"
 
   //////////////////////////////    Node    //////////////////////////////
-
   def nodeToEntry(node: Node): LDAPEntry = {
     import NodeStateEncoder.*
     val entry = {
@@ -187,7 +191,7 @@ class LDAPEntityMapper(
           },
           e.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
           e.isA(OC_POLICY_SERVER_NODE),
-          date.dateTime,
+          date.instant,
           ReportingConfiguration(
             agentRunInterval,
             heartbeatConf,
@@ -254,7 +258,7 @@ class LDAPEntityMapper(
                     inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
                     isPolicyServer = false, // we don't know anymore if it was a policy server
 
-                    creationDate = new DateTime(0), // we don't know anymore the acceptation date
+                    creationDate = Instant.ofEpochMilli(0), // we don't know anymore the acceptation date
 
                     ReportingConfiguration(None, None, None), // we don't know anymore agent run frequency
 
@@ -272,7 +276,7 @@ class LDAPEntityMapper(
   def parseAgentInfo(nodeId: NodeId, inventoryEntry: LDAPEntry): IOResult[(List[AgentInfo], KeyStatus)] = {
     for {
       agentsName <- {
-        val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toList
+        val agents = inventoryEntry.valuesFor(A_AGENT_NAME).toList
         ZIO.foreach(agents) { case agent => agent.fromJson[AgentInfo].toIO }
       }
       keyStatus  <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toIO
@@ -338,7 +342,7 @@ class LDAPEntityMapper(
       }
 
       // fetch the inventory datetime of the object
-      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map (_.dateTime) getOrElse (DateTime.now)
+      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE).map(_.instant).getOrElse(Instant.now)
       NodeInfo(
         node.copy(properties = overrideProperties(node.id, node.properties, properties.toList.flatten)),
         inventoryEntry(A_HOSTNAME).getOrElse(""),
@@ -918,31 +922,16 @@ class LDAPEntityMapper(
 
   //////////////////////////////    API Accounts    //////////////////////////////
 
-  def serApiAcl(authz: List[ApiAclElement]): String                              = {
-    import net.liftweb.json.Serialization.*
-    import net.liftweb.json.*
-    implicit val formats: Formats = DefaultFormats
-    val toSerialize = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
-    write[JsonApiAcl](toSerialize)
+  def serApiAcl(authz: List[ApiAclElement]): String = {
+    JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name)))).toJson
   }
-  def unserApiAcl(s: String):                Either[String, List[ApiAclElement]] = {
-    import cats.implicits.*
-    import net.liftweb.json.*
-    implicit val formats = net.liftweb.json.DefaultFormats
-    for {
-      json <- parseOpt(s).toRight(s"The following string can not be parsed as a JSON object for API ACL: ${s}")
-      jacl <- (json.extractOpt[JsonApiAcl]).toRight(s"Can not extract API ACL object from json: ${s}")
-      acl  <- jacl.acl.traverse {
-                case JsonApiAuthz(path, actions) =>
-                  for {
-                    p <- AclPath.parse(path)
-                    a <- actions.traverse(HttpAction.parse)
-                  } yield {
-                    ApiAclElement(p, a.toSet)
-                  }
-              }
-    } yield {
-      acl
+
+  def unserApiAcl(s: String): Either[String, List[ApiAclElement]] = {
+    s.fromJson[JsonApiAcl] match {
+      case Right(acl) =>
+        acl.transformIntoPartial[List[ApiAclElement]].asEitherErrorPathMessageStrings.left.map(_.mkString(", "))
+      case Left(err)  =>
+        Left(s"Can not extract API ACL object from json: ${s}. Error was: ${err}")
     }
   }
 
@@ -960,9 +949,9 @@ class LDAPEntityMapper(
         tokenCreationDatetime <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_API_TOKEN_CREATION_DATETIME)
         isEnabled              = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description            = e(A_DESCRIPTION).getOrElse("")
-        // expiration date is optionnal
+        // expiration date is optional
         expirationDate         = e.getAsGTime(A_API_EXPIRATION_DATETIME)
-        // api authz kind/acl are not optionnal, but may be missing for Rudder < 4.3 migration
+        // api authz kind/acl are not optional, but may be missing for Rudder < 4.3 migration
         // in that case, use the defaultACL
         accountType            = e(A_API_KIND) match {
                                    case None    => ApiAccountType.PublicApi // this is the default
@@ -973,9 +962,7 @@ class LDAPEntityMapper(
                                      if (accountType == ApiAccountType.PublicApi) {
                                        logEffect.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
                                      }
-                                     Right(
-                                       ApiAuthorization.None
-                                     ) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                     Right(ApiAuthorization.None)
                                    case Some(s) =>
                                      ApiAuthorizationKind.parse(s) match {
                                        case Left(error) => Left(Err.UnexpectedObject(error))
@@ -1025,18 +1012,23 @@ class LDAPEntityMapper(
             warnOnIgnoreAuthz()
             ApiAccountKind.User
           case ApiAccountType.PublicApi =>
-            ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
+            ApiAccountKind.PublicApi(authz, expirationDate.map(x => DateFormaterService.toDateTime(x.instant)))
         }
 
+        // as of 8.3, we disable an API account with token version < 2
+        val isEnabledAndVersionOk = token match {
+          case Some(t) => if (t.version() >= 2) isEnabled else false
+          case None    => isEnabled
+        }
         ApiAccount(
           id,
           accountKind,
           name,
           token,
           description,
-          isEnabled,
-          creationDatetime.dateTime,
-          tokenCreationDatetime.dateTime,
+          isEnabledAndVersionOk,
+          DateFormaterService.toDateTime(creationDatetime.instant),
+          DateFormaterService.toDateTime(tokenCreationDatetime.instant),
           tenants
         )
       }
@@ -1161,8 +1153,59 @@ class LDAPEntityMapper(
 
 }
 
-// This need to be on top level, else lift json does absolutly nothing good.
+// This need to be on top level, else lift json does absolutely nothing good.
 // a stable case class for json serialisation
 // { "acl": [ {"path":"some/path", "actions":["get","put"]}, {"path":"other/path","actions":["get"]}}
-final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
 final case class JsonApiAuthz(path: String, actions: List[String])
+object JsonApiAuthz {
+  @nowarn("msg=type parameter Err.*") // we don't have any hand on that
+  implicit val codecJsonApiAuthz: JsonCodec[JsonApiAuthz] = DeriveJsonCodec.gen
+
+  /**
+   * Enforce that permissions are sorted by path first, then by verb (verb here)
+   */
+  def from(acl: ApiAclElement): JsonApiAuthz = {
+    JsonApiAuthz(acl.path.value, acl.actions.toList.map(_.name).sorted)
+  }
+
+  implicit val transformJsonApiAuthz: PartialTransformer[JsonApiAuthz, ApiAclElement] = {
+    PartialTransformer.apply[JsonApiAuthz, ApiAclElement] {
+      case JsonApiAuthz(path, actions) =>
+        (for {
+          p <- AclPath.parse(path)
+          a <- actions.traverse(HttpAction.parse)
+        } yield {
+          ApiAclElement(p, a.toSet)
+        }).asResult
+    }
+  }
+}
+
+final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
+object JsonApiAcl {
+  implicit val decoderJsonApiAcl: JsonDecoder[JsonApiAcl] = JsonDecoder.list[JsonApiAuthz].map(JsonApiAcl.apply)
+  implicit val encoderJsonApiAcl: JsonEncoder[JsonApiAcl] = JsonEncoder.list[JsonApiAuthz].contramap(_.acl)
+
+  /*
+   * When we get JsonApiAcl, we always group/sort by path when transforming into business elements
+   */
+  implicit val transformJsonApiAcl: PartialTransformer[JsonApiAcl, List[ApiAclElement]] = {
+    PartialTransformer.apply[JsonApiAcl, List[ApiAclElement]] {
+      case JsonApiAcl(acl) =>
+        partial.Result
+          .traverse(acl.iterator, (x: JsonApiAuthz) => x.transformIntoPartial[ApiAclElement], failFast = false)
+          .map(x => {
+            x.groupMapReduce(_.path)(identity)((a, b) => a.modify(_.actions).setTo(a.actions ++ b.actions))
+              .values
+              .toList
+              .sortBy(_.path)
+          })
+    }
+  }
+
+  /**
+   * Enforce that permissions are sorted by path first, then by verb (path here)
+   */
+  def from(acls: List[ApiAclElement]): JsonApiAcl = JsonApiAcl(acls.map(JsonApiAuthz.from).sortBy(_.path))
+
+}

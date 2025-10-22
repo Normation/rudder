@@ -1,0 +1,42 @@
+<TECHNIQUE name="unsupported_methods">
+  <DESCRIPTION>unsupported_methods</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>unsupported_methods</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Unsupported-Methods</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION id="64bed1d2-8ed1-423b-85f6-09f785aa5326" name="Windows" reporting="weighted" component="true" multivalued="true">
+      <SECTION name="Linux user group on Windows" id="82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532">bob</VALUE>
+        </REPORTKEYS>
+      </SECTION>
+    </SECTION>
+    <SECTION id="74d6b213-a239-48c8-8a02-c788118d51f1" name="Linux" reporting="weighted" component="true" multivalued="true">
+      <SECTION name="Powershell exec on Linux" id="0a9dcb32-e310-488c-b3e8-cbcfc6ae284a" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="0a9dcb32-e310-488c-b3e8-cbcfc6ae284a">Write-Host &quot;hello world&quot;</VALUE>
+        </REPORTKEYS>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

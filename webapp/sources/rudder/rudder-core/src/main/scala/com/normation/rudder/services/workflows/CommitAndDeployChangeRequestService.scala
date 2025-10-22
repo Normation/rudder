@@ -44,7 +44,7 @@ import com.normation.errors.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.logger.ChangeRequestLogger
+import com.normation.rudder.domain.logger.ChangeRequestLoggerPure
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
@@ -61,10 +61,13 @@ import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
+import com.normation.utils.XmlSafe
+import com.normation.zio.UnsafeRun
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.*
 import scala.xml.*
+import zio.syntax.ToZio
 
 /**
  * A service responsible to actually commit a change request,
@@ -79,7 +82,7 @@ trait CommitAndDeployChangeRequestService {
    * the changes it contains and the actual current
    * state of configuration.
    */
-  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest]
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest]
 
   /**
    * Check if a changeRequest can be merged as it is.
@@ -114,27 +117,30 @@ class CommitAndDeployChangeRequestServiceImpl(
     updateDynamicGroups:   DynGroupUpdaterService
 ) extends CommitAndDeployChangeRequestService {
 
-  val logger = ChangeRequestLogger
+  private val logger = ChangeRequestLoggerPure
 
-  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest] = {
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest] = {
     implicit val qc: QueryContext = cc.toQuery
 
-    workflowEnabled().toBox.foreach {
-      if (_) {
-        logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
-      }
-    }
     for {
-      (config, trigger) <- changeRequest match {
-                             case config: ConfigurationChangeRequest =>
-                               if (!isMergeableConfigurationChangeRequest(config)) {
-                                 ChangeRequestLogger.info(
-                                   s"Merging change request #${config.id.value} while configurations have diverged: ${config.info.name}: ${config.info.description}"
-                                 )
-                               }
-                               saveConfigurationChangeRequest(config).map(config -> _)
-                             case x => Failure("We don't know how to deploy change request like this one: " + x)
-                           }
+      _                <- workflowEnabled()
+                            .tap(workflowEnabled => {
+                              if (workflowEnabled) logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
+                              else ().succeed
+                            })
+      res              <- changeRequest match {
+                            case config: ConfigurationChangeRequest =>
+                              if (!isMergeableConfigurationChangeRequest(config)) {
+                                logger.info(
+                                  s"Merging change request #${config.id.value} while configurations have diverged: ${config.info.name}: ${config.info.description}"
+                                )
+                              }
+                              saveConfigurationChangeRequest(config).map(config -> _).toIO
+
+                            case x =>
+                              Inconsistency("We don't know how to deploy change request like this one: " + x).fail
+                          }
+      (config, trigger) = res
     } yield {
       if (trigger) {
         asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
@@ -161,42 +167,42 @@ class CommitAndDeployChangeRequestServiceImpl(
       // Logging function
       def failureMessage(elem:     T): String
       // Find Current value from initial value
-      def getCurrentValue(initial: T): Box[T]
+      def getCurrentValue(initial: T): IOResult[T]
       // Function that validates that the change request is still valid
       def compareMethod(initial:   T, current: T): Boolean
       // How to serialize the data into XML
-      def xmlSerialize(elem:       T): Box[Node]
+      def xmlSerialize(elem:       T): PureResult[Node]
       // How to unserialize XML into the datatype
-      def xmlUnserialize(xml:      Node): Box[T]
+      def xmlUnserialize(xml:      Node): PureResult[T]
       // Transform date from LDAP to XML then transform it back to data using the XML parser
-      def normalizeData(elem: T): Box[T] = {
+      def normalizeData(elem: T): PureResult[T] = {
         try {
           for {
             entry <- xmlSerialize(elem)
             is     = new ByteArrayInputStream(entry.toString.getBytes(StandardCharsets.UTF_8))
-            xml    = XML.load(is)
+            xml    = XmlSafe.load(is)
             elem  <- xmlUnserialize(xml)
           } yield {
             elem
           }
         } catch {
-          case e: Exception => Failure(s"could not verify xml cause is : ${e.getCause}")
+          case e: Exception => Left(Inconsistency(s"could not verify xml cause is : ${e.getCause}"))
         }
       }
 
       // Check if the change request is mergeable
-      def check(initialState: Option[T]): Box[String] = {
+      def check(initialState: Option[T]): IOResult[String] = {
         initialState match {
           case None          => // No initial state means creation of new elements, can't diverge
-            Full("OK")
+            "OK".succeed
           case Some(initial) =>
             for {
               current    <- getCurrentValue(initial)
-              normalized <- normalizeData(current)
+              normalized <- normalizeData(current).toIO
               check      <- if (compareMethod(initial, normalized)) {
-                              Full("OK")
+                              "OK".succeed
                             } else {
-                              Failure(s"${failureMessage(initial)} has diverged since change request creation")
+                              Inconsistency(s"${failureMessage(initial)} has diverged since change request creation").fail
                             }
             } yield {
               check
@@ -209,9 +215,9 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     case object CheckRule extends CheckChanges[Rule] {
       def failureMessage(rule:   Rule) = s"Rule ${rule.name} (id: ${rule.id.serialize})"
-      def getCurrentValue(rule:  Rule) = roRuleRepository.get(rule.id).toBox
+      def getCurrentValue(rule:  Rule) = roRuleRepository.get(rule.id)
       def compareMethod(initial: Rule, current: Rule) = CheckDivergenceForMerge.compareRules(initial, current)
-      def xmlSerialize(rule:     Rule): Box[Node] = Full(xmlSerializer.rule.serialise(rule))
+      def xmlSerialize(rule:     Rule) = Right(xmlSerializer.rule.serialise(rule))
       def xmlUnserialize(xml:    Node) = xmlUnserializer.rule.unserialise(xml)
     }
 
@@ -222,14 +228,14 @@ class CommitAndDeployChangeRequestServiceImpl(
       val directiveContext                      = {
         // Option is None, if this is a Directive creation, but serialisation won't be used in this case (see check method)
         changes.changes.initialState match {
-          case Some((techniqueName, _, rootSection)) => Full((techniqueName, rootSection))
-          case None                                  => Failure("could not find directive context from initial state")
+          case Some((techniqueName, _, rootSection)) => Right((techniqueName, rootSection))
+          case None                                  => Left(Inconsistency("could not find directive context from initial state"))
         }
       }
       def failureMessage(directive: Directive) = s"Directive ${directive.name} (id: ${directive.id.serialize})"
-      def getCurrentValue(directive: Directive) = roDirectiveRepo.getDirective(directive.id.uid).toBox.flatMap {
-        case None      => Empty
-        case Some(dir) => Full(dir)
+      def getCurrentValue(directive: Directive) = roDirectiveRepo.getDirective(directive.id.uid).flatMap {
+        case None            => Inconsistency("could not get current value of directive from roDirectiveRepo : directive is absent").fail
+        case Some(directive) => directive.succeed
       }
       def compareMethod(initial: Directive, current: Directive) = CheckDivergenceForMerge.compareDirectives(initial, current)
       def xmlSerialize(directive: Directive)    = {
@@ -243,61 +249,59 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     case object CheckGroup extends CheckChanges[NodeGroup] {
       def failureMessage(group:  NodeGroup) = s"Group ${group.name} (id: ${group.id.serialize})"
-      def getCurrentValue(group: NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
+      def getCurrentValue(group: NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1)
       def compareMethod(initial: NodeGroup, current: NodeGroup) = CheckDivergenceForMerge.compareGroups(initial, current)
-      def xmlSerialize(group:    NodeGroup): Box[Node] = Full(xmlSerializer.group.serialise(group))
+      def xmlSerialize(group:    NodeGroup): PureResult[Node] = Right(xmlSerializer.group.serialise(group))
       def xmlUnserialize(xml:    Node) = xmlUnserializer.group.unserialise(xml)
     }
 
     case object CheckGlobalParameter extends CheckChanges[GlobalParameter] {
       def failureMessage(param: GlobalParameter) = s"Parameter ${param.name}"
       def getCurrentValue(param: GlobalParameter)                           =
-        roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found").toBox
+        roParameterRepository.getGlobalParameter(param.name).notOptional(s"Parameter '${param.name}' was not found")
       def compareMethod(initial: GlobalParameter, current: GlobalParameter) =
         CheckDivergenceForMerge.compareGlobalParameter(initial, current)
-      def xmlSerialize(param: GlobalParameter): Box[Node] = Full(xmlSerializer.globalParam.serialise(param))
+      def xmlSerialize(param: GlobalParameter): PureResult[Node] = Right(xmlSerializer.globalParam.serialise(param))
       def xmlUnserialize(xml: Node) = xmlUnserializer.globalParam.unserialise(xml)
     }
 
     /*
      * check for all elem, stop on the first failing
      */
-    (for {
-      cond <- workflowEnabled()
-    } yield {
-      if (cond) {
-        (for {
-          directivesOk  <- traverse(changeRequest.directives.values.toSeq) { changes =>
-                             // Only check the directive for now
-                             CheckDirective(changes).check(changes.changes.initialState.map(_._2))
-                           }
-          groupsOk      <- traverse(changeRequest.nodeGroups.values.toSeq) { changes =>
-                             CheckGroup.check(changes.changes.initialState)
-                           }
-          rulesOk       <- traverse(changeRequest.rules.values.toSeq)(changes => CheckRule.check(changes.changes.initialState))
-          globalParamOk <- traverse(changeRequest.globalParams.values.toSeq) { changes =>
-                             CheckGlobalParameter.check(changes.changes.initialState)
-                           }
-        } yield {
-          directivesOk
-        }) match {
-          case Full(_) => true
-          case eb: EmptyBox =>
-            val e = eb ?~! "Can not merge change request"
-            logger.debug(e.messageChain)
-            e.rootExceptionCause.foreach(ex => logger.debug("Root exception was:", ex))
+
+    def isMergeable = {
+      (for {
+        directivesOk  <- changeRequest.directives.values.toSeq.accumulate { changes =>
+                           // Only check the directive for now
+                           CheckDirective(changes).check(changes.changes.initialState.map(_._2))
+                         }
+        groupsOk      <- changeRequest.nodeGroups.values.toSeq.accumulate(changes => CheckGroup.check(changes.changes.initialState))
+        rulesOk       <- changeRequest.rules.values.toSeq.accumulate(changes => CheckRule.check(changes.changes.initialState))
+        globalParamOk <- changeRequest.globalParams.values.toSeq.accumulate { changes =>
+                           CheckGlobalParameter.check(changes.changes.initialState)
+                         }
+      } yield {
+        directivesOk
+      }).chainError("Can not merge change request")
+        .tapError(err => logger.debug(err.fullMsg))
+        .chainError("An error occurred while checking whether change request is mergeable")
+        .fold(
+          err => {
+            logger.error(err.fullMsg)
             false
-        }
-      } else {
-        // If workflow are disabled, a change is always mergeable.
-        true
-      }
-    }).toBox match {
-      case Full(mergeable) => mergeable
-      case eb: EmptyBox =>
-        val fail = eb ?~ "An error occurred while checking the change request acceptance"
-        logger.error(fail.messageChain)
-        false
+          },
+          _ => true
+        )
+    }
+
+    (for {
+      cond        <- workflowEnabled()
+      isMergeable <- if (cond) isMergeable else true.succeed
+    } yield {
+      isMergeable
+    }).either.runNow match {
+      case Right(mergeable) => mergeable
+      case Left(_)          => false
     }
   }
 
@@ -319,7 +323,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }.toBox
 
       for {
-        change <- directiveChanges.changes.change
+        change <- directiveChanges.changes.change.toBox
         diff   <- change.diff match {
                     case DeleteDirectiveDiff(tn, d)       =>
                       dependencyService
@@ -339,7 +343,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def doNodeGroupChange(change: NodeGroupChanges)(implicit qc: QueryContext): Box[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change
+        change <- change.changes.change.toBox
         diff   <- change.diff match {
                     case DeleteNodeGroupDiff(n)   =>
                       dependencyService
@@ -349,7 +353,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                       Failure("You should not be able to create a group with a change request")
                     case ModifyToNodeGroupDiff(n) =>
                       // we first need to refresh the node list if it's a dynamic group
-                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(qc) else Full(n)
+                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(using qc) else Full(n)
 
                       // If we could get a nodeList, then we apply the change, else we bubble up the error
                       group.flatMap { resultingGroup =>
@@ -367,7 +371,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def doRuleChange(change: RuleChanges): Box[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change
+        change <- change.changes.change.toBox
         diff   <- (change.diff match {
                     case DeleteRuleDiff(r)   =>
                       woRuleRepository.delete(r.id, modId, change.actor, change.reason)
@@ -384,7 +388,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def doParamChange(change: GlobalParameterChanges): Box[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change
+        change <- change.changes.change.toBox
         diff   <- (change.diff match {
                     case DeleteGlobalParameterDiff(param)   =>
                       woParameterRepository
@@ -442,7 +446,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddGlobalParameterDiff)                               => false
             case _                                                            => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val sortedGroups = cr.nodeGroups.values.toSeq.sortWith {
@@ -457,7 +461,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddNodeGroupDiff)                         => false
             case _                                                => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val sortedDirectives = cr.directives.values.toSeq.sortWith {
@@ -472,7 +476,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddDirectiveDiff)                         => false
             case _                                                => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val sortedRules = cr.rules.values.toSeq.sortWith {
@@ -487,11 +491,11 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddRuleDiff)                    => false
             case _                                      => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val params     = bestEffort(sortedParam)(param => doParamChange(param))
-    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(cc.toQuery))
+    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(using cc.toQuery))
     val directives = bestEffort(sortedDirectives)(directiveChange => doDirectiveChange(directiveChange))
     val rules      = bestEffort(sortedRules)(rule => doRuleChange(rule))
     // TODO: we will want to keep tracks of all the modification done, and in
@@ -524,7 +528,7 @@ object CheckDivergenceForMerge {
   }
 
   def debugLog(message: String)(implicit changeRequestId: Int): Unit = {
-    ChangeRequestLogger.debug(s"CR #${changeRequestId}: ${message}")
+    ChangeRequestLoggerPure.debug(s"CR #${changeRequestId}: ${message}")
   }
   /*
    * Comparison methods between Rules/directives/groups/global Param

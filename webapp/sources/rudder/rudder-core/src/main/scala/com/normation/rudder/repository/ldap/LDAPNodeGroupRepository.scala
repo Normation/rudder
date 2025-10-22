@@ -70,7 +70,6 @@ import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
@@ -1198,13 +1197,13 @@ class WoLDAPNodeGroupRepository(
                          case Some(diff) =>
                            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = message)
                        }
-      res           <- getNodeGroup(nodeGroupId)(cc.toQuery)
+      res           <- getNodeGroup(nodeGroupId)(using cc.toQuery)
       (nodeGroup, _) = res
       autoArchive   <-
         ZIO
           .when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { // only persists if that was a real move (not a move in the same category)
             for {
-              get      <- getNodeGroup(nodeGroupId)(cc.toQuery)
+              get      <- getNodeGroup(nodeGroupId)(using cc.toQuery)
               (ng, cId) = get
               parents  <- getParents_NodeGroupCategory(cId)
               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)

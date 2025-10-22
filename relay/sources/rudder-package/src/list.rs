@@ -171,24 +171,22 @@ impl ListOutput {
             }
         }
 
-        if show_all {
-            if let Some(available) = latest {
-                for p in available {
-                    if !installed_plugins.contains(&&p.metadata.name) {
-                        let name = p.metadata.short_name().to_string();
-                        let e = ListEntry {
-                            name,
-                            version: None,
-                            latest_version: Some(p.metadata.version.to_string()),
-                            webapp_plugin: p.metadata.is_webapp(),
-                            requires_license: p.metadata.requires_license,
-                            installed: false,
-                            enabled: false,
-                            description: p.metadata.description.clone(),
-                            license: licenses.inner.get(&p.metadata.name).cloned(),
-                        };
-                        plugins.push(e);
-                    }
+        if show_all && let Some(available) = latest {
+            for p in available {
+                if !installed_plugins.contains(&&p.metadata.name) {
+                    let name = p.metadata.short_name().to_string();
+                    let e = ListEntry {
+                        name,
+                        version: None,
+                        latest_version: Some(p.metadata.version.to_string()),
+                        webapp_plugin: p.metadata.is_webapp(),
+                        requires_license: p.metadata.requires_license,
+                        installed: false,
+                        enabled: false,
+                        description: p.metadata.description.clone(),
+                        license: licenses.inner.get(&p.metadata.name).cloned(),
+                    };
+                    plugins.push(e);
                 }
             }
         }

@@ -1,6 +1,6 @@
 description: Get all API accounts
 method: GET
-url: /api/apiaccounts
+url: /api/latest/apiaccounts
 response:
   code: 200
   content: >-
@@ -10,13 +10,25 @@ response:
       "data" : {
         "accounts" : [
           {
+           "id" : "old1",
+           "name" : "old account",
+           "description" : "old account",
+           "status" : "disabled",
+           "creationDate" : "2025-02-12T10:55:00Z",
+           "expirationPolicy" : "never",
+           "tokenState" : "generatedv1",
+           "tokenGenerationDate" : "2025-02-12T10:55:00Z",
+           "tenants" : "*",
+           "authorizationType" : "rw"
+         },
+         {
             "id" : "user1",
             "name" : "user one",
             "description" : "number one user",
             "status" : "enabled",
             "creationDate" : "2025-02-12T10:55:00Z",
             "expirationPolicy" : "never",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
             "tenants" : "*",
             "authorizationType" : "rw"
@@ -29,14 +41,14 @@ response:
             "creationDate" : "2025-02-12T10:55:00Z",
             "expirationPolicy" : "datetime",
             "expirationDate" : "2025-08-12T00:00:00Z",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
             "tenants" : "zone1",
             "authorizationType" : "acl",
             "acl" : [
               {
                 "path" : "some/endpoint/*",
-                "verb" : "get"
+                "actions" : ["get"]
               }
             ]
           }
@@ -46,7 +58,7 @@ response:
 ---
 description: Get one API accounts
 method: GET
-url: /api/apiaccounts/user1
+url: /api/latest/apiaccounts/user1
 response:
   code: 200
   content: >-
@@ -63,7 +75,7 @@ response:
             "status" : "enabled",
             "creationDate" : "2025-02-12T10:55:00Z",
             "expirationPolicy" : "never",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
             "tenants" : "*",
             "authorizationType" : "rw"
@@ -74,7 +86,7 @@ response:
 ---
 description: Get one API accounts - bad ID
 method: GET
-url: /api/apiaccounts/user+1
+url: /api/latest/apiaccounts/user+1
 response:
   code: 500
   content: >-
@@ -82,10 +94,10 @@ response:
       "action":"getAccount",
       "id" : "user+1",
       "result" : "error",
-      "errorDetails" : "Inconsistency: 'user+1' is not a valid API account ID, only [a-zA-Z0-9_-]+ is allowed"
+      "errorDetails" : "'user+1' is not a valid API account ID, only [a-zA-Z0-9_-]+ is allowed"
     }
 ---
-description: Create a new API account (no ID provided, token generated, default exp)
+description: Create a new API account (no ID provided, token generated, default exp) and check merge of ACLs
 method: POST
 url: /secure/api/apiaccounts
 headers:
@@ -102,15 +114,19 @@ body: >-
       "acl":[
         {
           "path":"rules/tree",
-          "verb":"get"
+          "actions":["get" ]
+        },
+        {
+          "path":"rules/tree",
+          "actions":[ "POST" ]
         },
         {
           "path":"rules/categories/*",
-          "verb":"get"
+          "actions":["get"]
         },
         {
           "path":"compliance/*",
-          "verb":"get"
+          "actions":["get"]
         }
       ]
     }
@@ -131,7 +147,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-03-10T16:37:19Z",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "token":"t1-ca5a50899d25cd3ff148350843a9d435",
             "tenants":"*",
@@ -139,15 +155,15 @@ response:
             "acl":[
               {
                 "path":"compliance/*",
-                "verb":"get"
+                "actions":["get"]
               },
               {
                 "path":"rules/categories/*",
-                "verb":"get"
+                "actions":["get"]
               },
               {
                 "path":"rules/tree",
-                "verb":"get"
+                "actions":["get", "post"]
               }
             ]
           }
@@ -187,7 +203,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"missing",
+            "tokenState":"undef",
             "tenants":"-",
             "authorizationType":"none"
           }
@@ -195,9 +211,34 @@ response:
       }
     }
 ---
+description: Error when creating new API account with and existing ID
+method: POST
+url: /secure/api/apiaccounts
+headers:
+  - "Content-Type: application/json"
+body: >-
+    {
+      "id": "e16114be-94ee-497f-8d17-7b258c8e5624",
+      "name":"overriding account 2",
+      "description":"an account with that ID already exists",
+      "expirationDate":"2025-05-22T17:35:00Z",
+      "status": "disabled",
+      "generateToken":false,
+      "tenants":"-",
+      "authorizationType":"none"
+    }
+response:
+  code: 500
+  content: >-
+    {
+      "action":"createAccount",
+      "result" : "error",
+      "errorDetails" : "Error: an account with id e16114be-94ee-497f-8d17-7b258c8e5624 already exists"
+    }
+---
 description: Regenerate a token for a given api account
 method: POST
-url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624/regenerate
+url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624/token/regenerate
 headers:
   - "Content-Type: application/json"
 response:
@@ -217,7 +258,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generated",
+            "tokenState":"generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "token":"t2-29d5c3cdca39bd7ba81e7e0f88084689",
             "tenants":"-",
@@ -254,7 +295,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generated",
+            "tokenState":"generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "tenants":"-",
             "authorizationType":"none"
@@ -271,7 +312,6 @@ response:
   content: >-
     {
       "action":"deleteAccount",
-      "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
       "result":"success",
       "data":{
         "accounts":[
@@ -283,11 +323,27 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generated",
+            "tokenState":"generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "tenants":"-",
             "authorizationType":"none"
           }
+        ]
+      }
+    }
+---
+description: We can't delete system API account
+method: DELETE
+url: /secure/api/apiaccounts/system-token
+comment: here, we don't have anything in the array of deleted account since we can't delete system
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteAccount",
+      "result":"success",
+      "data":{
+        "accounts":[
         ]
       }
     }

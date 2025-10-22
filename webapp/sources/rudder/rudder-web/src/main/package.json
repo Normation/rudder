@@ -1,20 +1,20 @@
 {
   "dependencies": {
-    "bootstrap": "^5.3.3",
-    "chart.js": "^3.7.1",
+    "bootstrap": "^5.3.6",
+    "chart.js": "^4.5.0",
     "datatables.net": "^1.13.4",
+    "datatables.net-buttons": "^1.7.1",
     "datatables.net-fixedheader": "^3.3.2",
     "datatables.net-plugins": "^1.13.5",
     "datatables.net-rowgroup": "^1.3.1",
-    "datatables.net-buttons": "^1.7.1",
-    "diff": "^5.1.0",
-    "elm-review": "^2.12.0",
+    "diff": "^8.0.2",
+    "elm-review": "^2.13.2",
     "gaugeJS": "^1.3.7",
     "gulp-svgmin": "^4.1.0",
     "jquery": "^3.7.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-timepicker-addon": "^1.6.3",
-    "jsondiffpatch": "^0.5.0",
+    "jsondiffpatch": "^0.7.3",
     "jstree": "^3.3.15",
     "showdown": "^2.1.0",
     "showdown-xss-filter": "^0.2.0",
@@ -29,10 +29,13 @@
     "gulp-elm": "^0.8.2",
     "gulp-mode": "^1.1.0",
     "gulp-rename": "^2.0.0",
-    "gulp-sass": "^6.0.0",
-    "gulp-sourcemaps": "^2.6.5",
+    "gulp-sass": "^6.0.1",
+    "gulp-sourcemaps": "^3.0.0",
     "gulp-terser": "^2.1.0",
     "merge2": "^1.4.1",
-    "sass": "1.77.6"
+    "sass": "1.89.2"
+  },
+  "overrides": {
+    "postcss": "^8.4.38"
   }
 }

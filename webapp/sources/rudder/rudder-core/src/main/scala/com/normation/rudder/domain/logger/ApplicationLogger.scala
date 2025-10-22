@@ -222,6 +222,10 @@ object ChangeRequestLogger extends Logger {
   override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("changeRequest")
 }
 
+object ChangeRequestLoggerPure extends NamedZioLogger {
+  override def loggerName: String = "changeRequest"
+}
+
 /**
  * Logger used for historization of object names by `HistorizationService`
  */

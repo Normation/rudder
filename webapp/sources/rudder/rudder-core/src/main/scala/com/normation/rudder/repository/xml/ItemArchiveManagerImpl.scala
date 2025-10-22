@@ -53,9 +53,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitArchiverFullCommitUtils
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitRepositoryProvider
-import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.repository.*
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
@@ -78,7 +76,6 @@ class ItemArchiveManagerImpl(
     roParameterRepository:              RoParameterRepository,
     woParameterRepository:              WoParameterRepository,
     override val gitRepo:               GitRepositoryProvider,
-    revisionProvider:                   GitRevisionProvider,
     gitRuleArchiver:                    GitRuleArchiver,
     gitRuleCategoryArchiver:            GitRuleCategoryArchiver,
     gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver,
@@ -302,22 +299,22 @@ class ItemArchiveManagerImpl(
                              if (cat.isSystem == false || categories.size <= 1) =>
                            (categories, CategoryAndNodeGroup(cat, groups.filter(_.isSystem == false)))
                        }
-      cleanedRoot   <- IOResult.attempt(FileUtils.cleanDirectory(gitNodeGroupArchiver.getItemDirectory))
-      savedItems    <- ZIO.foreach(okCatWithGroup.toSeq) {
+      _             <- IOResult.attempt(FileUtils.cleanDirectory(gitNodeGroupArchiver.getItemDirectory))
+      _             <- ZIO.foreach(okCatWithGroup.toSeq) {
                          case (categories, CategoryAndNodeGroup(cat, groups)) =>
                            for {
                              // categories.tail is OK, as no category can have an empty path (id)
-                             savedCat    <-
+                             _ <-
                                gitNodeGroupArchiver.archiveNodeGroupCategory(cat, categories.reverse.tail, gitCommit = None)
-                             savedgroups <- ZIO.foreach(groups.toSeq.filterNot(_.isSystem)) { group =>
-                                              gitNodeGroupArchiver.archiveNodeGroup(group, categories.reverse, gitCommit = None)
-                                            }
+                             _ <- ZIO.foreach(groups.toSeq.filterNot(_.isSystem)) { group =>
+                                    gitNodeGroupArchiver.archiveNodeGroup(group, categories.reverse, gitCommit = None)
+                                  }
                            } yield {
                              "OK"
                            }
                        }
       commitId      <- gitNodeGroupArchiver.commitGroupLibrary(modId, commiter, reason)
-      eventLogged   <- eventLogger.saveEventLog(modId, new ExportGroupsArchive(actor, commitId, reason))
+      _             <- eventLogger.saveEventLog(modId, new ExportGroupsArchive(actor, commitId, reason))
     } yield {
       commitId
     }
@@ -331,11 +328,11 @@ class ItemArchiveManagerImpl(
       includeSystem: Boolean = false
   ): IOResult[GitArchiveId] = {
     for {
-      parameters  <- roParameterRepository.getAllGlobalParameters()
-      cleanedRoot <- IOResult.attempt(FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory))
-      saved       <- ZIO.foreach(parameters)(param => gitParameterArchiver.archiveParameter(param, None))
-      commitId    <- gitParameterArchiver.commitParameters(modId, commiter, reason)
-      eventLogged <- eventLogger.saveEventLog(modId, new ExportParametersArchive(actor, commitId, reason))
+      parameters <- roParameterRepository.getAllGlobalParameters()
+      _          <- IOResult.attempt(FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory))
+      _          <- ZIO.foreach(parameters)(param => gitParameterArchiver.archiveParameter(param, None))
+      commitId   <- gitParameterArchiver.commitParameters(modId, commiter, reason)
+      _          <- eventLogger.saveEventLog(modId, new ExportParametersArchive(actor, commitId, reason))
     } yield {
       commitId
     }
@@ -350,19 +347,19 @@ class ItemArchiveManagerImpl(
     import cc.*
     useSemaphoreOrFail(
       for {
-        _           <- GitArchiveLoggerPure.info("Importing full archive with id '%s'".format(archiveId.value))
-        rules       <- importRulesAndDeploy(archiveId, includeSystem, deploy = false)
-        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, deploy = false)
-        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, deploy = false)
-        parameters  <- importParametersAndDeploy(archiveId, includeSystem = false)
-        eventLogged <- eventLogger.saveEventLog(modId, new ImportFullArchive(actor, archiveId, message))
-        commit      <- restoreCommitAtHead(
-                         commiter,
-                         "User %s requested full archive restoration to commit %s".format(actor.name, archiveId.value),
-                         archiveId,
-                         FullArchive,
-                         modId
-                       )
+        _ <- GitArchiveLoggerPure.info("Importing full archive with id '%s'".format(archiveId.value))
+        _ <- importRulesAndDeploy(archiveId, includeSystem, deploy = false)
+        _ <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        _ <- importGroupLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        _ <- importParametersAndDeploy(archiveId, includeSystem = false)
+        _ <- eventLogger.saveEventLog(modId, new ImportFullArchive(actor, archiveId, message))
+        _ <- restoreCommitAtHead(
+               commiter,
+               "User %s requested full archive restoration to commit %s".format(actor.name, archiveId.value),
+               archiveId,
+               FullArchive,
+               modId
+             )
       } yield {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
         archiveId
@@ -379,9 +376,9 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        rulesArchiveId <- importRulesAndDeploy(archiveId, includeSystem)
-        eventLogged    <- eventLogger.saveEventLog(modId, new ImportRulesArchive(actor, archiveId, message))
-        commit         <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.ruleArchive, modId)
+        _ <- importRulesAndDeploy(archiveId, includeSystem)
+        _ <- eventLogger.saveEventLog(modId, new ImportRulesArchive(actor, archiveId, message))
+        _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.ruleArchive, modId)
       } yield {
         archiveId
       }
@@ -390,9 +387,9 @@ class ItemArchiveManagerImpl(
 
   private def importRuleCategories(archiveId: GitCommitId): IOResult[GitCommitId] = {
     for {
-      _        <- GitArchiveLoggerPure.info("Importing rule categories archive with id '%s'".format(archiveId.value))
-      parsed   <- parseRuleCategories.getArchive(archiveId)
-      imported <- importRuleCategoryLibrary.swapRuleCategory(parsed)
+      _      <- GitArchiveLoggerPure.info("Importing rule categories archive with id '%s'".format(archiveId.value))
+      parsed <- parseRuleCategories.getArchive(archiveId)
+      _      <- importRuleCategoryLibrary.swapRuleCategory(parsed)
     } yield {
       archiveId
     }
@@ -405,15 +402,15 @@ class ItemArchiveManagerImpl(
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
     import cc.*
     for {
-      _          <- GitArchiveLoggerPure.info("Importing rules archive with id '%s'".format(archiveId.value))
-      categories <- importRuleCategories(archiveId)
-      parsed     <- parseRules.getArchive(archiveId)
-      imported   <- woRuleRepository.swapRules(parsed)
+      _        <- GitArchiveLoggerPure.info("Importing rules archive with id '%s'".format(archiveId.value))
+      _        <- importRuleCategories(archiveId)
+      parsed   <- parseRules.getArchive(archiveId)
+      imported <- woRuleRepository.swapRules(parsed)
       // try to clean
-      _          <- woRuleRepository
-                      .deleteSavedRuleArchiveId(imported)
-                      .catchAll(err => GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}"))
-      _          <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) })
+      _        <- woRuleRepository
+                    .deleteSavedRuleArchiveId(imported)
+                    .catchAll(err => GitArchiveLoggerPure.warn(s"Error when trying to delete saved archive of old rule: ${err.fullMsg}"))
+      _        <- effectUioUnit(if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) })
     } yield {
       if (deploy) { asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor) }
       archiveId
@@ -429,9 +426,9 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        directivesArchiveId <- importTechniqueLibraryAndDeploy(archiveId, includeSystem)
-        eventLogged         <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor, archiveId, message))
-        commit              <- restoreCommitAtHead(commiter, commitMsg, archiveId, TechniqueLibraryArchive, modId)
+        _ <- importTechniqueLibraryAndDeploy(archiveId, includeSystem)
+        _ <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor, archiveId, message))
+        _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, TechniqueLibraryArchive, modId)
       } yield {
         archiveId
       }
@@ -462,9 +459,9 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        groupsArchiveId <- importGroupLibraryAndDeploy(archiveId, includeSystem)
-        eventLogged     <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor, archiveId, message))
-        commit          <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.groupArchive, modId)
+        _ <- importGroupLibraryAndDeploy(archiveId, includeSystem)
+        _ <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor, archiveId, message))
+        _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.groupArchive, modId)
       } yield {
         archiveId
       }
@@ -496,9 +493,9 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested Parameters archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
-        parametersArchiveId <- importParametersAndDeploy(archiveId, includeSystem)
-        eventLogged         <- eventLogger.saveEventLog(modId, new ImportParametersArchive(actor, archiveId, message))
-        commit              <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.parameterArchive, modId)
+        _ <- importParametersAndDeploy(archiveId, includeSystem)
+        _ <- eventLogger.saveEventLog(modId, new ImportParametersArchive(actor, archiveId, message))
+        _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.parameterArchive, modId)
       } yield {
         archiveId
       }
@@ -543,19 +540,19 @@ class ItemArchiveManagerImpl(
     import cc.*
     useSemaphoreOrFail(
       for {
-        _           <- GitArchiveLoggerPure.info(s"Importing full archive with id '${archiveId.value}'")
-        rules       <- importRulesAndDeploy(archiveId, includeSystem, deploy = false)
-        userLib     <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, deploy = false)
-        groupLIb    <- importGroupLibraryAndDeploy(archiveId, includeSystem, deploy = false)
-        parameters  <- importParametersAndDeploy(archiveId, includeSystem = false)
-        eventLogged <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackType, message))
-        commit      <- restoreCommitAtHead(
-                         commiter,
-                         "User %s requested a rollback to a previous configuration : %s".format(actor.name, archiveId.value),
-                         archiveId,
-                         FullArchive,
-                         modId
-                       )
+        _ <- GitArchiveLoggerPure.info(s"Importing full archive with id '${archiveId.value}'")
+        _ <- importRulesAndDeploy(archiveId, includeSystem, deploy = false)
+        _ <- importTechniqueLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        _ <- importGroupLibraryAndDeploy(archiveId, includeSystem, deploy = false)
+        _ <- importParametersAndDeploy(archiveId, includeSystem = false)
+        _ <- eventLogger.saveEventLog(modId, new Rollback(actor, rollbackedEvents, target, rollbackType, message))
+        _ <- restoreCommitAtHead(
+               commiter,
+               "User %s requested a rollback to a previous configuration : %s".format(actor.name, archiveId.value),
+               archiveId,
+               FullArchive,
+               modId
+             )
       } yield {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
         archiveId

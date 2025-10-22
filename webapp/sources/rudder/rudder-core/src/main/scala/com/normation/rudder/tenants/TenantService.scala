@@ -143,7 +143,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
 
   override def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc: QueryContext): UIO[Option[A]] = {
     opt match {
-      case Some(n) => getTenants().map(ids => if (qc.nodePerms.nsc.canSee(n)(ids)) Some(n) else None)
+      case Some(n) => getTenants().map(ids => if (qc.nodePerms.nsc.canSee(n)(using ids)) Some(n) else None)
       case None    => None.succeed
     }
 
@@ -158,7 +158,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       for {
         ts <- getTenants()
         ns <- nodes.get
-      } yield ns.view.filter { case (_, n) => qc.nodePerms.canSee(n)(ts) }
+      } yield ns.view.filter { case (_, n) => qc.nodePerms.canSee(n)(using ts) }
     }
   }
 
@@ -168,7 +168,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       ZStream
         .fromZIO(getTenants())
         .cross(s)
-        .collect { case (_tenantIds, n) if (qc.nodePerms.canSee(n)(_tenantIds)) => n }
+        .collect { case (_tenantIds, n) if (qc.nodePerms.canSee(n)(using _tenantIds)) => n }
     }
   }
 
@@ -180,7 +180,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       for {
         ts <- getTenants()
         ns <- nodes.get
-      } yield ns.get(nodeId).filter(qc.nodePerms.canSee(_)(ts))
+      } yield ns.get(nodeId).filter(qc.nodePerms.canSee(_)(using ts))
     }
   }
 
@@ -204,14 +204,14 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       existing match {
         // in the case of creation, we just have to check if the user has actual access on update node fact
         case None           =>
-          if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+          if (cc.nodePerms.canSee(updated.rudderSettings.security)(using availableTenants)) {
             action(updated)
           } else {
             error(updated)
           }
         case Some(existing) =>
-          (if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
-             if (cc.nodePerms.canSee(updated.rudderSettings.security)(availableTenants)) {
+          (if (cc.nodePerms.canSee(existing.rudderSettings.security)(using availableTenants)) {
+             if (cc.nodePerms.canSee(updated.rudderSettings.security)(using availableTenants)) {
                // here, if tenants are not enabled, we must keep the old ones in any case
                if (tenantsEnabled) {
                  // here, we also need to check if the tenant are changing, if the new tenant is in the list
@@ -248,7 +248,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       cc:               ChangeContext,
       availableTenants: Set[TenantId]
   ): Either[RudderError, CoreNodeFact] = {
-    if (cc.nodePerms.canSee(existing.rudderSettings.security)(availableTenants)) {
+    if (cc.nodePerms.canSee(existing.rudderSettings.security)(using availableTenants)) {
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case

@@ -63,24 +63,19 @@
 # 
 # @class_prefix audit_from_osquery
 # @class_parameter query
-# @agent_support = ["cfengine-community"]
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent audit_from_osquery(query, comparator, value)
 {
   vars:
-      "old_class_prefix"  string => canonify("audit_from_osquery_${query}");
-      "args"               slist => { "${query}", "${comparator}", "${value}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("audit_from_osquery_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "c_query"           string => canonify("${query}");
+      "class_prefix"  string => canonify("audit_from_osquery_${query}");
+      "c_query"       string => canonify("${query}");
 
     "variable_string_from_command_${c_query}_ok"::
       "audit_from_osquery_var.${c_query}" data => parsejson("${audit_from_osquery_tmp.${c_query}}");
-      "key"     slist => getindices("audit_from_osquery_var.${c_query}[0]");
-      "actual" string => "${audit_from_osquery_var.${c_query}[0][${key}]}";
-      "len"    int    => length("key");
+      "key"                              slist => getindices("audit_from_osquery_var.${c_query}[0]");
+      "actual"                          string => "${audit_from_osquery_var.${c_query}[0][${key}]}";
+      "len"                                int => length("key");
 
   defaults:
       "comparator" string => "=", if_match_regex => "";
@@ -90,7 +85,6 @@ bundle agent audit_from_osquery(query, comparator, value)
 
     pass2::
       "wrong_result"    not => strcmp("1", "${len}");
-
       "audit_ok" expression => strcmp("${value}", "${actual}"),
                          if => strcmp("${comparator}", "=");
       "audit_ok" not        => strcmp("${value}", "${actual}"),
@@ -99,29 +93,32 @@ bundle agent audit_from_osquery(query, comparator, value)
                          if => strcmp("${comparator}", "~");
 
     any::
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"    expression => "pass2";
+      "pass2"    expression => "pass1";
+      "pass1"    expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
+   pass1.!pass2::
       # store string output in temp variable
-      "query" usebundle => variable_string_from_command("audit_from_osquery_tmp", "${c_query}", "osqueryi --json \"${query}\" 2>/dev/null");
-      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
-                                           ifvarclass => "should_report";
+      "${report_data.method_id}" usebundle => call_method("variable_string_from_command");
+      "${report_data.method_id}" usebundle => variable_string_from_command("audit_from_osquery_tmp", "${c_query}", "osqueryi --json \"${query}\" 2>/dev/null");
+      # No class copying as the result depend of the variable value and not of the result of the underlying method
+      "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${query}", "${ncf_package.message}", "");
 
     pass3.(!audit_ok|wrong_result)::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
     pass3.audit_ok.!wrong_result::
-      "ok"    usebundle => _classes_success("${old_class_prefix}");
-      "ok"    usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
 
     pass3.!wrong_result::
-      "report" usebundle  => _log_v3("Checking '${query}' ${comparator} '${value}' (value was '${actual}')", "${query}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${query}", "Checking '${query}' ${comparator} '${value}' (value was '${actual}')", "");
 
     pass3.wrong_result::
-      "report" usebundle  => _log_v3("Checking '${query}' failed (), the query must return exactly one result (was ${len})", "${query}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("Checking '${query}' failed (), the query must return exactly one result (was ${len})", "Checking '${query}' ${comparator} '${value}' (value was '${actual}')", "");
+
 
 }

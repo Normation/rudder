@@ -6,4 +6,4 @@ include ../../../rust.makefile
 # rudder-package tools, for general relay build see ../Makefile
 
 check: lint
-	cargo test --locked
+	cargo test --locked --features sequoia

@@ -15,17 +15,16 @@ pub struct ExecutionResult {
 impl ExecutionResult {
     pub fn assert_legacy_result_conditions(
         &self,
-        method_call: MethodToTest,
+        method_call: &MethodToTest,
         expected_status: Vec<MethodStatus>,
     ) {
         let expected_conditions = method_call.legacy_result_conditions(expected_status);
         for c in expected_conditions.clone() {
             assert!(
                 self.conditions.contains(&c),
-                "Could not find the expected result condition '{}'",
-                c
+                "Could not find the expected result condition '{c}'"
             );
-            debug!("Found expected result condition '{}'", c);
+            debug!("Found expected result condition '{c}'");
         }
         let pattern = method_call.get_result_condition_prefix();
         let matching: Vec<String> = self
@@ -45,15 +44,14 @@ impl ExecutionResult {
     // the exact result condition difficult to compute, using patterns is easier
     pub fn assert_log_v4_result_conditions(
         &self,
-        method_call: MethodToTest,
+        method_call: &MethodToTest,
         expected_status: MethodStatus,
     ) {
         let expected_conditions = method_call.log_v4_result_conditions(expected_status);
         for expected_pattern in expected_conditions.clone() {
             assert!(
                 self.conditions.iter().any(|c| expected_pattern.is_match(c)),
-                "Could not find the expected result condition '{}'",
-                expected_pattern
+                "Could not find the expected result condition '{expected_pattern}'"
             );
             debug!(
                 "Found expected log v4 result condition '{}'",
@@ -72,5 +70,17 @@ impl ExecutionResult {
             "Found unexpected log v4 result conditions in the datastate:\n[\n  {}\n]",
             matching.join(",\n  ")
         )
+    }
+
+    pub fn assert_conditions_are_defined(&self, conditions: Vec<String>) {
+        conditions
+            .iter()
+            .for_each(|c| assert!(self.conditions.contains(c)))
+    }
+
+    pub fn assert_conditions_are_undefined(&self, conditions: Vec<String>) {
+        conditions
+            .iter()
+            .for_each(|c| assert!(!self.conditions.contains(c)))
     }
 }

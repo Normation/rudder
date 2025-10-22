@@ -40,7 +40,7 @@
 # which will likely be useful, as Jinja2 is very rich and allows a lot more
 # that what is explained here.
 #
-# This section presents some simple cases that cover what can be done with mustache templating,
+# This section presents some simple cases that cover what can be done with Jinja2 templating,
 # and the way the agent data is provided to the templating engine.
 #
 # The main specificity of jinja2 templating is the use of two root containers:
@@ -233,30 +233,19 @@
 
 bundle agent file_from_template_jinja2(source_template, path)
 {
-
   vars:
+      "class_prefix"  string => canonify("file_from_template_${path}");
 
-      "old_class_prefix"  string => canonify("file_from_template_${path}");
-
-      "args"              slist  => { "${source_template}", "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_template_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
-      "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
+      "jinja2_script"     string => "${configuration.modules_dir}/templates/jinja2-templating.py";
+      "datastate_tpl"     string => "${configuration.modules_dir}/templates/datastate.json.tpl";
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
       "destination_canon" string => canonify("${path}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
 
-
-      "full_inner_class_prefix" string => canonify("file_copy_from_local_source_${destination_tmp}_${path}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
       # and can be used to check for errors.
       "errors" string => execresult("${jinja2_script} --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
-                   if => "state_dumped_${destination_canon}_ok._have_python";
+                   if => "state_dumped_${report_data.method_id}_ok._have_python";
 
       # If no python is available, it is an error
       "errors" string => "There are no Python available on this system",
@@ -270,7 +259,6 @@ bundle agent file_from_template_jinja2(source_template, path)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-      "should_report"    expression => "${report_data.should_report}";
 
   files:
     _have_python::
@@ -280,40 +268,43 @@ bundle agent file_from_template_jinja2(source_template, path)
         create          => "true",
         edit_template   => "${datastate_tpl}",
         edit_defaults   => no_backup,
-        classes         => classes_generic("state_dumped_${destination_canon}");
+        classes         => classes_generic("state_dumped_${report_data.method_id}");
 
   methods:
-      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
       # Use a file copy to avoid any file size limitations of CFEngine variables.
     pass2.templating_ok::
-      "copy file_${class_prefix}"    usebundle => file_copy_from_local_source("${destination_tmp}", "${path}");
-
-      "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
-      "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method("file_from_local_source_recursion");
+      "${report_data.method_id}" usebundle => file_from_local_source_recursion("${destination_tmp}", "${path}", "0");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_from_local_source_recursion");
 
     pass3._have_python::
       # In non audit mode, we need to force enforce mode to remove the temp files.
-      "remove_dry_run_mode_${class_prefix}" usebundle => push_dry_run_mode("false");
-      "clean data file_${class_prefix}"     usebundle => file_absent("${datastate_file}");
-      "clean template file_${class_prefix}" usebundle => file_absent("${destination_tmp}");
-      "restore dry-run_${class_prefix}"     usebundle => pop_dry_run_mode();
+      "${report_data.method_id}" usebundle => push_dry_run_mode("false");
+      "${report_data.method_id}" usebundle => call_method("remove_datastate_file");
+      "${report_data.method_id}" usebundle => file_absent("${datastate_file}");
+      "${report_data.method_id}" usebundle => call_method_end("remove_datastate_file");
+
+      "${report_data.method_id}" usebundle => call_method("remove_destination_tmp");
+      "${report_data.method_id}" usebundle => file_absent("${destination_tmp}");
+      "${report_data.method_id}" usebundle => call_method_end("remove_destination_tmp");
+      "${report_data.method_id}" usebundle => pop_dry_run_mode();
 
     pass3::
-      "failure" usebundle  => _classes_failure("${old_class_prefix}"),
-                ifvarclass => "!${old_class_prefix}_reached|!_have_python";
-      "failure" usebundle  => _classes_failure("${class_prefix}"),
-                ifvarclass => "!${class_prefix}_reached|!_have_python";
+      "${report_data.method_id}" usebundle  => _classes_failure("${report_data.method_id}"),
+                                 if         => "!${report_data.method_id}_reached|!_have_python";
+      "${report_data.method_id}" usebundle  => _classes_failure("${class_prefix}"),
+                                 if         => "!${report_data.method_id}_reached|!_have_python";
 
-      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
-                                                  if => "should_report";
-      "report"              usebundle => _log_v3("Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                   if => "_have_python";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from jinja2 template ${source_template}", ""),
+                                        if => "_have_python";
 
-      "report"              usebundle => _log_v3("No Python available. Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                   if => "!_have_python";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "No Python available. Build file ${path} from jinja2 template ${source_template}", ""),
+                                        if => "!_have_python";
 
       # Report errors
-      "report" usebundle => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${path}", "${class_prefix}"),
-                      if => "state_dumped_${destination_canon}_ok.!templating_ok";
+      "${report_data.method_id}" usebundle => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${path}", "${class_prefix}"),
+                      if => "state_dumped_${report_data.method_id}_ok.!templating_ok";
 }
 

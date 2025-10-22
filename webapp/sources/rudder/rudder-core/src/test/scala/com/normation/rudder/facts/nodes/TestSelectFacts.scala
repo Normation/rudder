@@ -76,7 +76,7 @@ class TestSelectFacts extends Specification {
   val nodeFact1: NodeFact = NodeFact.fromCompat(node1, Right(FullInventory(nodeInventory1, Some(machine1))), softwares, None)
 
   "masking 1" >> {
-    (SelectFacts.mask(nodeFact1)(SelectFacts.all) === nodeFact1) and
+    (SelectFacts.mask(nodeFact1)(using SelectFacts.all) === nodeFact1) and
     (nodeFact1.software must not(beEmpty)) and
     (nodeFact1.environmentVariables must not(beEmpty)) and
     (nodeFact1.bios must not(beEmpty)) and
@@ -84,11 +84,11 @@ class TestSelectFacts extends Specification {
   }
 
   "masking 2" >> {
-    SelectFacts.mask(nodeFact1)(SelectFacts.noSoftware) === nodeFact1.modify(_.software).setTo(Chunk())
+    SelectFacts.mask(nodeFact1)(using SelectFacts.noSoftware) === nodeFact1.modify(_.software).setTo(Chunk())
   }
 
   "masking 3" >> {
-    SelectFacts.mask(nodeFact1)(SelectFacts.none) === nodeFact1
+    SelectFacts.mask(nodeFact1)(using SelectFacts.none) === nodeFact1
       .modify(_.swap)
       .setTo(None)
       .modify(_.accounts)
@@ -136,7 +136,7 @@ class TestSelectFacts extends Specification {
   }
 
   "masking 4" >> {
-    SelectFacts.mask(nodeFact1)(
+    SelectFacts.mask(nodeFact1)(using
       SelectFacts.none
         .modify(_.bios.mode)
         .setTo(SelectMode.Retrieve)

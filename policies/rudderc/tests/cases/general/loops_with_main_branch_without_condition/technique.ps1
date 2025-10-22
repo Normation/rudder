@@ -22,17 +22,22 @@
     }
 
 
-    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9"
+    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9-0"
     try {
-        $componentKey = '/home/bob/.vimrc'
+        $componentKey = @'
+/home/bob/.vimrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Do something'
+            ComponentName = @'
+Do something
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '845f731a-2800-41c8-967e-7d1ce89bd1b9-0'
         }
         
         $methodParams = @{
@@ -58,7 +63,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-0' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -67,20 +72,25 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-0' -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9"
+    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9-1"
     try {
-        $componentKey = '/home/bob/.bashrc'
+        $componentKey = @'
+/home/bob/.bashrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Do something'
+            ComponentName = @'
+Do something
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = '845f731a-2800-41c8-967e-7d1ce89bd1b9-1'
         }
         
         $class = "a_condition_evaluated_at_runtime"
@@ -110,7 +120,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-1' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -119,7 +129,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-1' -MethodCall $failedCall
     }
 
     EndTechniqueCall -Name $techniqueName

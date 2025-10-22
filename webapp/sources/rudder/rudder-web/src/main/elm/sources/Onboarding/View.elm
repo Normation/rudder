@@ -33,7 +33,7 @@ view model =
         titleSection =
           case s of
             Welcome          -> "Welcome"
-            Account _ _      -> "Account"
+            Account _ _      -> "License"
          {-   Metrics _ _      -> "Metrics" -}
             GettingStarted _ -> "Getting Started"
 
@@ -75,9 +75,9 @@ view model =
 
           Account s ac ->
             case s of
-              Completed -> ( completeClass , completeIcon , "Your account will be setup."  )
-              Warning   -> ( warningClass  , warningIcon  , "There is a problem with your account credentials."       )
-              _         -> ( defaultClass  , defaultIcon  , "No account has been linked yet to your Rudder installation." )
+              Completed -> ( completeClass , completeIcon , "Your license will be setup."  )
+              Warning   -> ( warningClass  , warningIcon  , "There is a problem with your license credentials."       )
+              _         -> ( defaultClass  , defaultIcon  , "No license has been linked yet to your Rudder installation." )
 
          {-  Metrics s m  ->
             let
@@ -115,17 +115,17 @@ view model =
                 , span[] [text ". Welcome!"]
                 ]
               , div[ class "wizard-btn-group"]
-                [ button[class "btn btn-default", type_ "button", onClick (SaveAction)] [text "I will configure my Rudder later"]
-                , button[class "btn btn-success", type_ "button", onClick (ChangeActiveSection (model.activeSection+1))] [text "Let's configure my account"]
+                [ button[class "btn btn-default", type_ "button", onClick (SaveAction)] [text "I will configure my license later"]
+                , button[class "btn btn-success", type_ "button", onClick (ChangeActiveSection (model.activeSection+1))] [text "Let's configure my license"]
                 ]
               ]
 
             Account state settings ->
-              [ h3 [] [text "Account"]
-              , div[] [text "Configure your Rudder account for automated plugin download and upgrade."]
+              [ h3 [] [text "License"]
+              , div[] [text "Configure your Rudder license to download plugins."]
               , form[ class "wizard-form", name "wizard-account"]
                 [ div [class "form-group"]
-                  [ label[] [text "Username"]
+                  [ label[] [text "License Id"]
                   , input[class "form-control sm-width", type_ "text"    , name "rudder-username", id "rudder-username", value (Maybe.withDefault "" settings.username), onInput (\str -> UpdateSection 1 (Account state { settings | username = if String.isEmpty str then Nothing else Just str } ))][]
                   ]
                 , div [class "form-group"]
@@ -200,15 +200,15 @@ view model =
         Nothing -> []
 
   in
-    div [class "d-flex"]
-    [ div [class "template-sidebar sidebar-left"]
+    div [class "d-flex h-100"]
+    [ div [class "template-sidebar sidebar-left h-100"]
       [ div [class "sidebar-body"]
         [ ul[class "wizard-timeline"]
             (model.sections
               |> List.map sidebarSection)
         ]
       ]
-    , div [class "template-main"]
+    , div [class "template-main h-100"]
       [ div [class "main-container"]
         [ div [class "main-details pt-5"]
           [ div [class "wizard-section"] activeSection ]

@@ -50,6 +50,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
@@ -82,7 +83,7 @@ import zio.json.*
 class SearchNodes extends StatefulSnippet with Loggable {
 
   private val queryParser         = RudderConfig.cmdbQueryParser
-  private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val linkUtil            = RudderConfig.linkUtil
 
   // the popup component to create the group
@@ -103,11 +104,11 @@ class SearchNodes extends StatefulSnippet with Loggable {
   var dispatch: DispatchIt = {
     case "showQuery"   =>
       searchNodeComponent.get match {
-        case Full(component) => { _ => queryForm(component)(CurrentUser.queryContext) }
+        case Full(component) => { _ => queryForm(component)(using CurrentUser.queryContext) }
         case _               => { _ => <div>loading...</div><div></div> }
       }
-    case "head"        => head(_)(CurrentUser.queryContext)
-    case "createGroup" => createGroup _
+    case "head"        => head(_)(using CurrentUser.queryContext)
+    case "createGroup" => createGroup
   }
 
   var activateSubmitButton = true
@@ -118,9 +119,11 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
     <head>
       {
-      Script(
-        JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd} }") & // JsRaw ok, escaped
-        OnLoad(JsRaw("forceParseHashtag()"))                                   // JsRaw ok, const
+      WithNonce.scriptWithNonce(
+        Script(
+          JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd} }") & // JsRaw ok, escaped
+          OnLoad(JsRaw("forceParseHashtag()"))                                   // JsRaw ok, const
+        )
       )
     }
     </head>
@@ -219,7 +222,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       ) & JsRaw("$('#SubmitSearch').click();") // JsRaw ok, const
     }
 
-    JsRaw(s"""parseSearchHash(function(x) { ${SHtml.ajaxCall(JsVar("x"), executeQuery _)._2.toJsCmd} })""") // JsRaw ok, escaped
+    JsRaw(s"""parseSearchHash(function(x) { ${SHtml.ajaxCall(JsVar("x"), executeQuery)._2.toJsCmd} })""") // JsRaw ok, escaped
   }
 
   /**

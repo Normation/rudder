@@ -45,16 +45,17 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypeName
-import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.RunAnalysisKind as R
+import com.normation.rudder.domain.reports.{RunAnalysisKind as R, *}
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import net.liftweb.common.*
@@ -64,6 +65,7 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 import zio.json.*
@@ -91,21 +93,18 @@ class ReportDisplayer(
    * addOverridden decides if we need to add overridden policies (policy tab), or not (system tab)
    */
   def asyncDisplay(
-      node:          CoreNodeFact,
-      tabId:         String,
-      containerId:   String,
-      tableId:       String,
-      getReports:    NodeId => Box[NodeStatusReport],
-      addOverridden: Boolean,
-      onlySystem:    Boolean
-  ): NodeSeq = {
+      node:        CoreNodeFact,
+      tabId:       String,
+      containerId: String,
+      tableId:     String,
+      getReports:  NodeId => Box[NodeStatusReport],
+      onlySystem:  Boolean
+  )(implicit qc: QueryContext): NodeSeq = {
     val i        = configService.agent_run_interval().option.runNow.getOrElse(10)
     val callback = {
-      SHtml.ajaxInvoke(() =>
-        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverridden, onlySystem, i))
-      )
+      SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, onlySystem, i)))
     }
-    Script(OnLoad(JsRaw(s"""
+    WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
       const triggerEl = document.querySelector("[aria-controls='${tabId}']");
       if(triggerEl.classList.contains('active')){
         ${callback.toJsCmd}
@@ -120,7 +119,7 @@ class ReportDisplayer(
           }
         })
       );
-    """))) // JsRaw ok, escaped
+    """)))) // JsRaw ok, escaped
   }
 
   def getRunDate(r: RunAnalysis): Option[DateTime] = {
@@ -134,14 +133,13 @@ class ReportDisplayer(
       node:               CoreNodeFact,
       tableId:            String,
       getReports:         NodeId => Box[NodeStatusReport],
-      addOverridden:      Boolean,
       defaultRunInterval: Int
-  ): AnonFunc = {
+  )(implicit qc: QueryContext): AnonFunc = {
     implicit val next: ProvideNextName = LiftProvideNextName
     def refreshData:   Box[JsCmd]      = {
       for {
         report <- getReports(node.id)
-        data   <- getComplianceData(node.id, report, addOverridden)
+        data   <- getComplianceData(node.id, report)
         runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
@@ -203,8 +201,9 @@ class ReportDisplayer(
                   // very unlikely that it will start to answer.
                   val runIntervalMinutes =
                     nodeSettings.reportingConfiguration.agentRunInterval.map(_.interval).getOrElse(defaultInterval)
-                  val minDate            = info.expectedConfigStart.getOrElse(DateTime.now()).minusMinutes(runIntervalMinutes * 2)
-                  val expiration         = info.expirationDateTime.getOrElse(DateTime.now()).plus(runIntervalMinutes * 2L)
+                  val minDate            =
+                    info.expectedConfigStart.getOrElse(DateTime.now(DateTimeZone.UTC)).minusMinutes(runIntervalMinutes * 2)
+                  val expiration         = info.expirationDateTime.getOrElse(DateTime.now(DateTimeZone.UTC)).plus(runIntervalMinutes * 2L)
 
                   if (date.isBefore(minDate)) { // most likely a disconnected node
                     s"The node was reporting on a previous configuration policy, and didn't send reports since a long time: please" +
@@ -389,10 +388,9 @@ class ReportDisplayer(
       tabId:              String,
       tableId:            String,
       containerId:        String,
-      addOverridden:      Boolean,
       onlySystem:         Boolean,
       defaultRunInterval: Int
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
                       <div><div class="col-md-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
@@ -417,9 +415,9 @@ class ReportDisplayer(
                        */
                       def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
                         if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
-                          <div id="triggerAgent">
+                          <div id="triggerAgent" class="mb-3">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
-                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverridden, defaultRunInterval).toJsCmd});"
+                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd});"
                           }>
               <span>Trigger agent</span>
               &nbsp;
@@ -433,11 +431,11 @@ class ReportDisplayer(
               <span style="color:#b1bbcb;"></span>
             </div>
             <div id="report" style="margin-top:10px;" class="collapse">
-              <pre></pre>
+              <pre class="p-2"></pre>
             </div>
           </div>
                         } else {
-                          <div id="triggerAgent">
+                          <div id="triggerAgent" class="mb-3">
             <button id="triggerBtn" class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
               <span>Trigger Agent</span>
               &nbsp;
@@ -544,7 +542,7 @@ class ReportDisplayer(
   }
 
   // Handle show/hide logic of buttons, and rewrite button/container ids to avoid conflicts between tabs
-  private[this] def displayRunLogs(nodeId: NodeId, runDate: Option[DateTime], tabId: String, tableId: String): NodeSeq = {
+  private def displayRunLogs(nodeId: NodeId, runDate: Option[DateTime], tabId: String, tableId: String): NodeSeq = {
     val btnId               = s"allLogButton-${tabId}"
     val logRunId            = s"logRun-${tabId}"
     val complianceLogGridId = s"complianceLogsGrid-${tabId}"
@@ -576,13 +574,12 @@ class ReportDisplayer(
   // this method cannot return an IOResult, as it uses S.
   // Only check for base compliance.
   private def getComplianceData(
-      nodeId:        NodeId,
-      reportStatus:  NodeStatusReport,
-      addOverridden: Boolean
-  ): Box[RuleComplianceLines] = {
+      nodeId:       NodeId,
+      reportStatus: NodeStatusReport
+  )(implicit qc: QueryContext): Box[RuleComplianceLines] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
-      allNodeInfos <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+      allNodeInfos <- nodeFactRepo.getAll().toBox
       rules        <- ruleRepository.getAll(true).toBox
       globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {
@@ -593,8 +590,7 @@ class ReportDisplayer(
         allNodeInfos.toMap,
         directiveLib,
         rules,
-        globalMode,
-        addOverridden
+        globalMode
       )
     }
   }

@@ -66,7 +66,7 @@ pub mod filters {
 
     use crate::ir::{technique, value::Expression};
 
-    fn uppercase_first_letter(s: &str) -> String {
+    pub fn uppercase_first_letter(s: &str) -> String {
         let mut c = s.chars();
         match c.next() {
             None => String::new(),
@@ -74,7 +74,10 @@ pub mod filters {
         }
     }
 
-    pub fn remove_trailing_slash<T: Display>(s: T) -> askama::Result<String> {
+    pub fn remove_trailing_slash<T: Display>(
+        s: T,
+        _: &dyn askama::Values,
+    ) -> askama::Result<String> {
         let s = s.to_string();
         Ok(s.strip_suffix('/').map(|s| s.to_string()).unwrap_or(s))
     }
@@ -82,6 +85,7 @@ pub mod filters {
     /// Format an expression to be evaluated by the agent
     pub fn value_fmt<T: Display>(
         s: T,
+        _: &dyn askama::Values,
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
@@ -93,13 +97,15 @@ pub mod filters {
             .force_long_name_for_technique_params(Target::Windows, t_id, t_params.to_owned())
             .map_err(|e: Error| askama::Error::Custom(e.into()))?;
         match simplified_expr {
-            Expression::Scalar(_) => Ok(format!("'{}'", simplified_expr.fmt(Target::Windows))),
+            Expression::Scalar(_) => {
+                Ok(format!("@'\n{}\n'@", simplified_expr.fmt(Target::Windows)))
+            }
             _ => Ok(simplified_expr.fmt(Target::Windows)),
         }
     }
 
     /// `my_method` -> `My-Method`
-    pub fn dsc_case<T: Display>(s: T) -> askama::Result<String> {
+    pub fn dsc_case<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(s.to_string()
             .split('_')
             .map(uppercase_first_letter)
@@ -124,12 +130,13 @@ pub mod filters {
         Ok(s.to_string().replace('\"', "`\""))
     }
 
-    pub fn technique_name<T: Display>(s: T) -> askama::Result<String> {
+    pub fn technique_name<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(super::Windows::technique_name(&s.to_string()))
     }
 
     pub fn canonify_condition_with_context<T: Display>(
         s: T,
+        _: &dyn askama::Values,
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
@@ -137,7 +144,6 @@ pub mod filters {
         if !s.contains("${") {
             Ok(format!("\"{s}\""))
         } else {
-            let canonify_stub = "([Rudder.Condition]::canonify(";
             let expr: Expression = s
                 .to_string()
                 .parse()
@@ -145,27 +151,20 @@ pub mod filters {
             let simplified_expr = expr
                 .force_long_name_for_technique_params(Target::Windows, t_id, t_params.to_owned())
                 .map_err(|e: Error| askama::Error::Custom(e.into()))?;
-            match simplified_expr {
-                Expression::Scalar(_) => Ok(format!(
-                    "{}@'\n{}\n'@))",
-                    canonify_stub,
-                    simplified_expr.fmt(Target::Windows)
-                )),
-                Expression::Empty => Ok("''".to_string()),
-                _ => Ok(format!(
-                    "{}{}))",
-                    canonify_stub,
-                    simplified_expr.fmt(Target::Windows)
-                )),
-            }
+            Ok(canonify_expression(simplified_expr))
         }
     }
-    pub fn canonify_condition<T: Display>(s: T) -> askama::Result<String> {
+
+    pub fn canonify_condition<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
+        canonify_condition_stub(s)
+    }
+
+    pub fn canonify_condition_stub<T: Display>(s: T) -> askama::Result<String> {
         let s = s.to_string();
         if !s.contains("${") {
             Ok(format!("\"{s}\""))
         } else {
-            let canonify_stub = "([Rudder.Condition]::canonify(";
+            let canonify_stub = "([Rudder.Condition]::Canonify(";
             let expr: Expression = s
                 .to_string()
                 .parse()
@@ -182,7 +181,31 @@ pub mod filters {
         }
     }
 
+    pub fn canonify_expression(e: Expression) -> String {
+        match e {
+            Expression::Sequence(s) => {
+                let sum = s
+                    .into_iter()
+                    .map(canonify_expression)
+                    .collect::<Vec<String>>()
+                    .join(" + ");
+                format!("({sum})")
+            }
+            Expression::Scalar(_) | Expression::Empty => format!("'{}'", e.fmt(Target::Windows)),
+            _ => format!("([Rudder.Condition]::Canonify({}))", e.fmt(Target::Windows)),
+        }
+    }
+
     pub fn parameter_fmt(
+        p: &&(String, String, Escaping),
+        _: &dyn askama::Values,
+        t_id: &&str,
+        t_params: &Vec<technique::Parameter>,
+    ) -> askama::Result<String> {
+        parameter_fmt_stub(p, t_id, t_params)
+    }
+
+    pub fn parameter_fmt_stub(
         p: &&(String, String, Escaping),
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
@@ -214,7 +237,10 @@ pub mod filters {
         })
     }
 
-    pub fn policy_mode_fmt(op: &Option<PolicyMode>) -> askama::Result<String> {
+    pub fn policy_mode_fmt(
+        op: &Option<PolicyMode>,
+        _: &dyn askama::Values,
+    ) -> askama::Result<String> {
         match op {
             None => Ok("$policyMode".to_string()),
             Some(p) => match p {
@@ -287,7 +313,7 @@ fn method_call(
             Some(condition.to_string())
         },
         args,
-        name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
+        name: Windows::technique_name_plain(&m.info.as_ref().unwrap().bundle_name),
         is_supported,
         policy_mode_override: if let Some(x) = policy_mode_context {
             if m.policy_mode_override.is_none() {
@@ -307,7 +333,14 @@ impl Windows {
     }
 
     pub fn technique_name(s: &str) -> String {
-        format!("Technique-{}", filters::dsc_case(s).unwrap())
+        format!("Technique-{}", Self::technique_name_plain(s))
+    }
+
+    pub fn technique_name_plain(s: &str) -> String {
+        s.split('_')
+            .map(filters::uppercase_first_letter)
+            .collect::<Vec<String>>()
+            .join("-")
     }
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {
@@ -362,29 +395,54 @@ mod tests {
     use pretty_assertions::assert_eq;
     use rudder_commons::Escaping;
 
-    use crate::backends::windows::filters::canonify_condition;
+    use crate::backends::windows::filters::{
+        canonify_condition_stub, canonify_expression, parameter_fmt_stub,
+    };
 
+    #[test]
+    fn it_canonifies_expressions() {
+        let e = Expression::Scalar("debian".to_string());
+        let r = "'debian'".to_string();
+        assert_eq!(canonify_expression(e), r);
+
+        let e = Expression::Empty;
+        let r = "''".to_string();
+        assert_eq!(canonify_expression(e), r);
+
+        let e = Expression::Sys(vec![Expression::Scalar("arch".to_string())]);
+        let r = r#"([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
+vars.sys.arch
+'@ + '}}}')))"#
+            .to_string();
+        assert_eq!(canonify_expression(e), r);
+
+        let e = Expression::from_str("(windows.!false).!(${sys.arch})").unwrap();
+        let r = r#"('(windows.!false).!(' + ([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
+vars.sys.arch
+'@ + '}}}'))) + ')')"#.to_string();
+        assert_eq!(canonify_expression(e), r);
+    }
     #[test]
     fn it_canonifies_conditions() {
         let c = "debian";
         let r = "\"debian\"";
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
 
         let c = "debian|ubuntu";
         let r = "\"debian|ubuntu\"";
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${var}";
-        let r = "([Rudder.Condition]::canonify([Rudder.Datastate]::Render('{{{' + @'\n\
+        let r = "([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'\n\
                 vars.var\n\
                 '@ + '}}}')))";
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${my_cond}.debian|${sys.${plouf}}";
-        let r = r#"([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{{' + @'
+        let r = r#"([Rudder.Condition]::Canonify(([Rudder.Datastate]::Render('{{{' + @'
 vars.my_cond
 '@ + '}}}')) + @'
 .debian|
@@ -393,13 +451,13 @@ vars.sys.
 '@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.plouf
 '@ + '}}}') + '}}}'))))"#;
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
     }
 
     use crate::backends::windows::filters::camel_case;
-    use crate::backends::windows::filters::parameter_fmt;
     use crate::ir::technique;
+    use crate::ir::value::Expression;
 
     #[test]
     fn it_camelcase_method_params() {
@@ -451,7 +509,7 @@ vars.plouf
             "@'
 a simple test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // Basic case with a GenericVar
@@ -468,7 +526,7 @@ vars.plouf.plouf
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // Basic case with a call to a short param name
@@ -485,7 +543,7 @@ vars.technique_id.param1
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // Complex case with a Generic looking like a technique param
@@ -502,7 +560,7 @@ vars.plouf.param1
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // With a Generic var looking like a technique param
@@ -519,7 +577,7 @@ vars.param1or2
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // With a sys variable
@@ -536,7 +594,7 @@ vars.sys.host
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // With a const variable
@@ -553,7 +611,7 @@ vars.const.n
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
     }
 }

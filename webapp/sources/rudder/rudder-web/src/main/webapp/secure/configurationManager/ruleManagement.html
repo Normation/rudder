@@ -8,21 +8,21 @@
   <div id="rules-app" ></div>
 
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-rules.js"></script>
-  <script>
+  <script data-lift="with-nonce">
     var hasWriteRights = false;
     var canReadChanqeRequest = false;
   </script>
   <lift:authz role="rule_write">
-    <script>
+    <script data-lift="with-nonce">
       hasWriteRights = true;
     </script>
   </lift:authz>
   <lift:authz role="validator_read">
-    <script>
+    <script data-lift="with-nonce">
       canReadChanqeRequest = true;
     </script>
   </lift:authz>
-  <script>
+  <script data-lift="with-nonce">
     $(document).ready(function(){
       var main = document.getElementById("rules-app")
       var initValues = {
@@ -75,14 +75,6 @@
           initBsTooltips();
         }, 800);
       });
-
-      // The timeout aims to wait that the tree is fully loaded to
-      // to prevent href to reload the page on click
-      setTimeout(function(){
-        $('.jstree-anchor').click(function (event) {
-          event.preventDefault();
-        });
-      }, 950);
     });
   </script>
 

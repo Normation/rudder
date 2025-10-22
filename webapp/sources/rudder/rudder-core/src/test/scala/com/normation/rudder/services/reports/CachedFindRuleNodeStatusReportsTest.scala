@@ -55,16 +55,16 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpiredCompliance
-import com.normation.rudder.services.reports.CacheComplianceQueueAction.SetNodeNoAnswer
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import zio.*
-import zio.Chunk
 import zio.syntax.*
 
 /*
@@ -88,7 +88,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   // (node, expired report, still ok report)
   def expected(id: String): NodeExpectedReports = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
 
-  val date0         = new DateTime(0)
+  val date0         = new DateTime(0, DateTimeZone.UTC)
   val dummyExpected = NodeExpectedReports(NodeId("dummy"), NodeConfigId("dummy"), date0, null, null, Nil, Nil)
 
   val nodes: List[((NodeId, CoreNodeFact), NodeStatusReport, NodeStatusReport)] = List(
@@ -191,7 +191,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       y   = new TestFindNewStatusReports()
       r2 <- Ref.make(Chunk[NodeStatusReportUpdateHook]())
     } yield {
-      (x, y, new ComputeNodeStatusReportServiceImpl(x, nodeFactRepo, y, new DummyComplianceExpirationService(policy), r2, 3))
+      (x, y, new ComputeNodeStatusReportServiceImpl(nodeFactRepo, x, y, new DummyComplianceExpirationService(policy), r2, 3))
     }).runNow
   }
 
@@ -232,7 +232,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // now node was ask, it will return all nodes, even expired, see: https://issues.rudder.io/issues/16612
     val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
     // check for outdated compliance
-    computer.outDatedCompliance(DateTime.now()).runNow
+    computer.outDatedCompliance(DateTime.now(DateTimeZone.UTC), Set.empty).runNow
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
@@ -304,7 +304,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // now node was ask, it will return only non expired reports (ie only NoReport and such here)
     val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
     // check for outdated compliance
-    computer.outDatedCompliance(DateTime.now()).runNow
+    computer.outDatedCompliance(DateTime.now(DateTimeZone.UTC), Set.empty).runNow
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
@@ -318,24 +318,23 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
 
     val (_, _, computer) = newServices(NodeComplianceExpiration.default)
 
-    val now = DateTime.now()
     val res = computer.groupQueueActionByType(
       Chunk(
-        SetNodeNoAnswer(NodeId("root"), now),
+        UpdateCompliance(NodeId("root"), null),
         ExpiredCompliance(NodeId("root")),
         ExpiredCompliance(NodeId("node1")),
         ExpectedReportAction(InsertNodeInCache(NodeId("node1"))),
-        SetNodeNoAnswer(NodeId("root"), now),
+        UpdateCompliance(NodeId("root"), null),
         ExpiredCompliance(NodeId("node2"))
       )
     )
 
     res must beEqualTo(
       Chunk(
-        Chunk(SetNodeNoAnswer(NodeId("root"), now)),
+        Chunk(UpdateCompliance(NodeId("root"), null)),
         Chunk(ExpiredCompliance(NodeId("root")), ExpiredCompliance(NodeId("node1"))),
         Chunk(ExpectedReportAction(InsertNodeInCache(NodeId("node1")))),
-        Chunk(SetNodeNoAnswer(NodeId("root"), now)),
+        Chunk(UpdateCompliance(NodeId("root"), null)),
         Chunk(ExpiredCompliance(NodeId("node2")))
       )
     )

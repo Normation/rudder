@@ -41,6 +41,7 @@ import com.normation.box.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
@@ -86,7 +87,8 @@ class RestQuicksearch(
   serve {
     case Get("secure" :: "api" :: "quicksearch" :: Nil, req) => {
       implicit val prettify = false
-      implicit val action: String = "completeTagsValue"
+      implicit val action: String       = "completeTagsValue"
+      implicit val qc:     QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
       OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
         val token = req.params.get("value") match {
@@ -96,7 +98,7 @@ class RestQuicksearch(
           case Some(values)       => values.mkString("")
         }
         val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
-        quicksearch.search(token, limit)(CurrentUser.queryContext).toBox match {
+        quicksearch.search(token, limit).toBox match {
           case eb: EmptyBox =>
             val e = eb ?~! s"Error when looking for object containing '${token}'"
             toJsonError(None, e.messageChain)
@@ -112,24 +114,29 @@ class RestQuicksearch(
     import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
 
     val user = userService.getCurrentUser
+    user match {
+      case None    =>
+        Set.empty
+      case Some(u) =>
+        val nodeOK       = u.checkRights(AuthorizationType.Node.Read)
+        val groupOK      = u.checkRights(AuthorizationType.Group.Read)
+        val ruleOK       = u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Rule.Read)
+        val directiveOK  = u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Directive.Read)
+        val techniqueOK  = u.checkRights(AuthorizationType.Technique.Read)
+        val parametersOK =
+          u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Parameter.Read)
 
-    val nodeOK       = user.checkRights(AuthorizationType.Node.Read)
-    val groupOK      = user.checkRights(AuthorizationType.Group.Read)
-    val ruleOK       = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Rule.Read)
-    val directiveOK  = user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Directive.Read)
-    val techniqueOK  = user.checkRights(AuthorizationType.Technique.Read)
-    val parametersOK =
-      user.checkRights(AuthorizationType.Configuration.Read) || user.checkRights(AuthorizationType.Parameter.Read)
+        results.filter {
+          _.id match {
+            case _: QRNodeId      => nodeOK
+            case _: QRGroupId     => groupOK
+            case _: QRRuleId      => ruleOK
+            case _: QRParameterId => parametersOK
+            case _: QRDirectiveId => directiveOK
+            case _: QRTechniqueId => techniqueOK
+          }
+        }
 
-    results.filter {
-      _.id match {
-        case _: QRNodeId      => nodeOK
-        case _: QRGroupId     => groupOK
-        case _: QRRuleId      => ruleOK
-        case _: QRParameterId => parametersOK
-        case _: QRDirectiveId => directiveOK
-        case _: QRTechniqueId => techniqueOK
-      }
     }
   }
 

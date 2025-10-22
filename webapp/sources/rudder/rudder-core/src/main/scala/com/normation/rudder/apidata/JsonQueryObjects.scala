@@ -44,8 +44,6 @@ import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
-import com.normation.errors.PureResult
-import com.normation.errors.Unexpected
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
@@ -266,21 +264,21 @@ object JsonQueryObjects {
   }
 
   final case class JQRule(
-      id:               Option[RuleId] = None,
-      displayName:      Option[String] = None,
-      category:         Option[String] = None,
-      shortDescription: Option[String] = None,
-      longDescription:  Option[String] = None,
-      directives:       Option[Set[DirectiveId]] = None,
-      targets:          Option[Set[JRRuleTarget]] = None,
-      enabled:          Option[Boolean] = None,
-      tags:             Option[Tags] = None, // for clone
+      id:                                  Option[RuleId] = None,
+      displayName:                         Option[String] = None,
+      @jsonAliases("category") categoryId: Option[String] = None,
+      shortDescription:                    Option[String] = None,
+      longDescription:                     Option[String] = None,
+      directives:                          Option[Set[DirectiveId]] = None,
+      targets:                             Option[Set[JRRuleTarget]] = None,
+      enabled:                             Option[Boolean] = None,
+      tags:                                Option[Tags] = None, // for clone
 
       source: Option[RuleId] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
-      category.isEmpty &&
+      categoryId.isEmpty &&
       shortDescription.isEmpty &&
       longDescription.isEmpty &&
       directives.isEmpty &&
@@ -291,7 +289,7 @@ object JsonQueryObjects {
     def updateRule(rule: Rule): Rule = {
       val updateRevision   = id.map(_.rev).getOrElse(rule.id.rev)
       val updateName       = displayName.getOrElse(rule.name)
-      val updateCategory   = category.map(RuleCategoryId.apply).getOrElse(rule.categoryId)
+      val updateCategory   = categoryId.map(RuleCategoryId.apply).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
       val updateDirectives = directives.getOrElse(rule.directiveIds)
@@ -346,8 +344,19 @@ object JsonQueryObjects {
       transform:   Option[String],
       where:       Option[List[StringCriterionLine]]
   ) {
-    def toQueryString: StringQuery =
-      StringQuery(select.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
+    def toQueryString: StringQuery = {
+      val c = composition.flatMap {
+        case x if (x.strip().isEmpty) => None
+        case x                        => Some(x)
+      }
+
+      def d = transform.flatMap {
+        case x if (x.strip().isEmpty) => None
+        case x                        => Some(x)
+      }
+
+      StringQuery(select.getOrElse(NodeReturnType), c, d, where.getOrElse(Nil))
+    }
   }
 
   final case class GroupPatch(
@@ -412,15 +421,15 @@ object JsonQueryObjects {
   }
 
   final case class JQGroup(
-      id:          Option[NodeGroupId] = None,
-      displayName: Option[String] = None,
-      description: Option[String] = None,
-      properties:  Option[List[GroupProperty]] = None,
-      query:       Option[StringQuery] = None,
-      dynamic:     Option[Boolean] = None,
-      enabled:     Option[Boolean] = None,
-      category:    Option[NodeGroupCategoryId] = None,
-      source:      Option[NodeGroupId] = None
+      id:                                  Option[NodeGroupId] = None,
+      displayName:                         Option[String] = None,
+      description:                         Option[String] = None,
+      properties:                          Option[List[GroupProperty]] = None,
+      query:                               Option[StringQuery] = None,
+      dynamic:                             Option[Boolean] = None,
+      enabled:                             Option[Boolean] = None,
+      @jsonAliases("category") categoryId: Option[NodeGroupCategoryId] = None,
+      source:                              Option[NodeGroupId] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
@@ -429,7 +438,7 @@ object JsonQueryObjects {
       query.isEmpty &&
       dynamic.isEmpty &&
       enabled.isEmpty &&
-      category.isEmpty
+      categoryId.isEmpty
 
     def updateGroup(group: NodeGroup, queryParser: CmdbQueryParser): PureResult[NodeGroup] = {
       for {
@@ -461,8 +470,25 @@ object JsonQueryObjects {
     }
   }
 
+  /*
+   * we want to directly decode:
+   * "agentKey": {
+   *   "value": "-----BEGIN CERTIFICATE-----...",
+   *    "status": "certified"
+   * }
+   * ie no duplicate { "value": { "value": ... see https://issues.rudder.io/issues/27369
+   */
+  final case class JQSecurityToken(sk: SecurityToken)
+  object JQSecurityToken {
+    implicit val decoderJQSecurityToken: JsonDecoder[JQSecurityToken] = JsonDecoder.string.mapOrFail { s =>
+      SecurityToken.parseValidate(s) match {
+        case Right(sk) => Right(JQSecurityToken(sk))
+        case Left(err) => Left(err.fullMsg)
+      }
+    }
+  }
   final case class JQAgentKey(
-      value:  Option[SecurityToken],
+      value:  Option[JQSecurityToken],
       status: Option[KeyStatus]
   ) {
     // if agentKeyValue is present, we set both it and key status.
@@ -470,9 +496,9 @@ object JsonQueryObjects {
     val toKeyInfo: (Option[SecurityToken], Option[KeyStatus]) = {
       (value, status) match {
         case (None, None)       => (None, None)
-        case (Some(k), None)    => (Some(k), Some(CertifiedKey))
+        case (Some(k), None)    => (Some(k.sk), Some(CertifiedKey))
         case (None, Some(s))    => (None, Some(s))
-        case (Some(k), Some(s)) => (Some(k), Some(s))
+        case (Some(k), Some(s)) => (Some(k.sk), Some(s))
       }
     }
   }
@@ -481,7 +507,8 @@ object JsonQueryObjects {
       policyMode:    Option[Option[PolicyMode]],
       state:         Option[NodeState],
       agentKey:      Option[JQAgentKey],
-      documentation: Option[String]
+      documentation: Option[String],
+      reason:        Option[String]
   ) {
     val keyInfo: (Option[SecurityToken], Option[KeyStatus]) = agentKey.map(_.toKeyInfo).getOrElse((None, None))
   }
@@ -642,7 +669,7 @@ object ZioJsonExtractor {
  * This last class provides utility methods to get JsonQuery objects from the request.
  * We want to get ride of RestExtractorService but for now, we keep it for the parameter parts.
  */
-class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
+class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
   import JsonQueryObjects.*
   import JsonResponseObjects.*
   import ZioJsonExtractor.parseJson
@@ -807,7 +834,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       JQRule(
         id,
         params.optGet("displayName"),
-        params.optGet("category"),
+        params.optGet("categoryId").orElse(params.optGet("category")),
         params.optGet("shortDescription"),
         params.optGet("longDescription"),
         directives,
@@ -885,7 +912,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         query,
         dynamic,
         enabled,
-        params.optGet("category").map(NodeGroupCategoryId.apply),
+        params.optGet("categoryId").orElse(params.optGet("category")).map(NodeGroupCategoryId.apply),
         source
       )
     }
@@ -1014,8 +1041,9 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       state      <- params.parseString("state", NodeState.parse(_))
       agentKey   <- params.parse("agentKey", JsonDecoder[JQAgentKey])
       doc         = params.optGet("documentation")
+      reason      = params.optGet("reason")
     } yield {
-      JQUpdateNode(properties, policyMode, state, agentKey, doc)
+      JQUpdateNode(properties, policyMode, state, agentKey, doc, reason)
     }
   }
 

@@ -59,6 +59,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: #fff;
 }
 #versionTable > thead > tr > th:last-child,
 #versionTable > tbody > tr > td:last-child{
@@ -175,12 +176,11 @@
 #grid_rules_grid_zone tr.head th {
     padding: 4px 6px;
 }
-.version-group{
-  float:left;
-  padding:0 0 0 15px;
-}
-.version-group select.form-select{
-  margin-right:5px;
+#version{
+  flex-wrap : wrap;
+  input[type=submit]{
+    width: 100px;
+  }
 }
 .btn.new-icon.no-icon:after{
   content: "";
@@ -342,16 +342,6 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
 
 .directiveTitle {
   font-weight:bold;
-}
-
-tr.parametersDescription {
-  background-color: #F8F9FC !important;
-  height: 30px;
-  border-top: 1px solid #d6deef !important;
-}
-
-.parametersDescriptionDetails {
-  padding:15px;
 }
 
 /* === OVERRIDE TEMPLATE === */

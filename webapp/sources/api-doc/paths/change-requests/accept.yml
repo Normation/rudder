@@ -46,9 +46,9 @@ post:
               data:
                 type: object
                 required:
-                  - rules
+                  - changeRequests
                 properties:
-                  rules:
+                  changeRequests:
                     type: array
                     items:
                       $ref: ../../components/schemas/change-request.yml

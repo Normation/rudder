@@ -38,16 +38,167 @@ package com.normation.rudder.users
  */
 
 import com.normation.eventlog.EventActor
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.Rights
+import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAuthorization
+import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.utils.DateFormaterService
 import enumeratum.*
+import io.scalaland.chimney.Transformer
+import java.security.SecureRandom
 import org.joda.time.DateTime
 import zio.json.*
-import zio.json.ast.*
+import zio.json.ast.Json
 
 /*
  * Base data structures about users and everything related to their authentication: user information, user session.
- * Authentication related things are defined in rudder-rest since they bridge with SpringSecurity UserDetails, etc.
+ * Final authentication structures are defined in rudder-rest since they bridge with SpringSecurity UserDetails, etc.
  */
+
+/**
+ * Rudder user details must know if the account is for a
+ * rudder user or an api account, and in the case of an
+ * api account, what sub-case of it.
+ */
+sealed trait RudderAccount
+
+object RudderAccount {
+  final case class User(login: String, password: UserPassword) extends RudderAccount
+
+  final case class Api(api: ApiAccount) extends RudderAccount
+}
+
+/**
+ * An authenticated user with the relevant authentication information within the API.
+ * That structure will be kept in session (or for API, in the request processing).
+ */
+trait AuthenticatedUser {
+  def account: RudderAccount
+
+  def name:  String = account match {
+    case RudderAccount.User(login, _) => login
+    case RudderAccount.Api(api)       => api.name.value
+  }
+  def login: String = name
+
+  def authz:       Rights
+  def apiAuthz:    ApiAuthorization
+  def nodePerms:   NodeSecurityContext
+  implicit def qc: QueryContext = {
+    QueryContext(EventActor(name), nodePerms)
+  }
+
+  def checkRights(auth: AuthorizationType): Boolean
+}
+
+sealed trait UserPassword {
+
+  /**
+   * Override the toString when needed for subtypes
+   */
+  override def toString: String = "[REDACTED UserPassword]"
+}
+
+object UserPassword {
+
+  /**
+   * Type class to declare that secret (clear-text) password can be encoded.
+   * This avoids breaking private visibility of the secret,
+   * by only making it possible to obtain a hashed password after encoding (see usage)
+   */
+  trait UserPasswordEncoder[T <: UserPassword] {
+    private[UserPassword] def encode(t: CharSequence): String
+  }
+
+  given (using encoder: UserPasswordEncoder[SecretUserPassword]): Transformer[SecretUserPassword, HashedUserPassword] =
+    s => HashedUserPassword(encoder.encode(s.secret))
+
+  private val secureRandom = new SecureRandom()
+
+  sealed trait StorableUserPassword extends UserPassword {
+    def exposeValue(): String
+  }
+
+  case class HashedUserPassword private[UserPassword] (private val value: String) extends StorableUserPassword {
+    // if we apply strict check on hash format, maybe we should the display first chars, to know at least the hash algo ?
+    override def toString: String = "[REDACTED HashedUserPassword]"
+
+    override def exposeValue(): String = value
+  }
+
+  /**
+   * When the password is raw user input that was not hashed
+   */
+  case class SecretUserPassword private[UserPassword] (private[UserPassword] val secret: String) extends UserPassword {
+    override def toString: String = "[REDACTED SecretUserPassword]"
+  }
+
+  /**
+   * For cases when user cannot have a password e.g. with remote authentication, it should never match
+   */
+  case class UnknownPassword(value: String) extends StorableUserPassword {
+    override def toString: String = "[REDACTED UnknownPassorwd]"
+
+    override def exposeValue(): String = value
+  }
+
+  case class RandomHexaPassword private[UserPassword] (randomValue: String) extends StorableUserPassword {
+    override def exposeValue(): String = randomValue
+  }
+
+  /**
+   * Create a hashed password from string, the string format is not checked for hash properties,
+   * it is only checked for emptiness (maybe later, it should be strictly checked
+   * with our RudderPasswordEncoder#getFromEncoded).
+   * The hash could then be used as a "hashed" password type.
+   */
+  def unsafeHashed(s: String): StorableUserPassword = {
+    if (s.strip().nonEmpty) {
+      HashedUserPassword(s)
+    } else {
+      UnknownPassword(s)
+    }
+  }
+
+  // password can be optional when an other authentication backend is used.
+  // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
+  // to avoid any cases where the empty string will be used if all other backend are in failure.
+  // Also forbid empty or all blank passwords.
+  // If the attribute is defined several times, use the first occurrence.
+  // see https://stackoverflow.com/a/44227131
+  // produce a random hexa string of 32 chars
+  def randomHexa32: RandomHexaPassword = {
+    // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
+    // In that case, just complete the string
+    def randInternal: String = {
+      val token = new Array[Byte](16)
+      secureRandom.nextBytes(token)
+      new java.math.BigInteger(1, token).toString(16)
+    }
+
+    var s = randInternal
+    while (s.length < 32) { // we can be very unlucky and keep drawing 000s
+      s = s + randInternal.substring(0, 32 - s.length)
+    }
+    RandomHexaPassword(s)
+  }
+
+  def fromSecret(s: String): SecretUserPassword = SecretUserPassword(s)
+
+  def unknown: UnknownPassword = UnknownPassword("") // this is allowed to be stored, not used as hash
+
+  /**
+   * Applying checks on the string, but this does not validate the format of the password
+   */
+  object checkHashedPassword {
+    def unapply(s: String): Option[HashedUserPassword] = unsafeHashed(s) match {
+      case h: HashedUserPassword => Some(h)
+      case _ => None
+    }
+  }
+}
 
 /**
  * Users in rudder database follow a lifecycle :
@@ -125,11 +276,20 @@ case class UserSession(
 }
 
 object UserSerialization {
-  implicit val codecUserStatus:    JsonCodec[UserStatus]    = new JsonCodec[UserStatus](
+  implicit val codecUserStatus: JsonCodec[UserStatus] = new JsonCodec[UserStatus](
     JsonEncoder.string.contramap(_.value),
     JsonDecoder.string.mapOrFail(s => UserStatus.parse(s))
   )
-  implicit val codecEventActor:    JsonCodec[EventActor]    = DeriveJsonCodec.gen[EventActor]
+
+  // in scala 2, zio-json was happily deriving a Codec for an AnyVal as for any case class.
+  // it's not the case in scala 3
+  // it's probably not the original intent of the author but for compatibility purpose,
+  // we need to maintain this serialization format.
+  private case class EventActorSerializable(name: String)
+  implicit val codecEventActor: JsonCodec[EventActor] = DeriveJsonCodec
+    .gen[EventActorSerializable]
+    .transform(serializable => EventActor(name = serializable.name), eventActor => EventActorSerializable(name = eventActor.name))
+
   implicit val codecDateTime:      JsonCodec[DateTime]      = new JsonCodec[DateTime](
     JsonEncoder.string.contramap(_.toString(DateFormaterService.rfcDateformatWithMillis)),
     JsonDecoder.string.mapOrFail { s =>

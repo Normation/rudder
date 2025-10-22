@@ -33,29 +33,22 @@
 bundle agent directory_absent(path, recursive)
 {
   vars:
-      "old_class_prefix" string => canonify("directory_absent_${path}");
-
-    # don't rewrite the class prefix based on defaults
-    !pass1::
-      "args"              slist => { "${path}", "${recursive}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("directory_absent_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("directory_absent_${path}");
 
   defaults:
-      "recursive"        string => "false", if_match_regex => "";
+      "recursive"    string => "false", if_match_regex => "";
 
   classes:
-      "is_recursive" expression => strcmp("true", "${recursive}");
+      "is_recursive"           expression => strcmp("true", "${recursive}");
 
     pass2::
       "directory_exists_after" expression => isdir("${path}");
       "path_exists_after"      expression => fileexists("${path}");
 
     any::
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"                  expression => "pass2";
+      "pass2"                  expression => "pass1";
+      "pass1"                  expression => "any";
 
   files:
 
@@ -64,34 +57,33 @@ bundle agent directory_absent(path, recursive)
         delete        => tidy,
         file_select   => all,
         depth_search  => recurse_with_base("inf"),
-        classes       => classes_generic_two("${old_class_prefix}_inside", "${class_prefix}_inside");
+        classes       => classes_generic_two("${report_data.method_id}_inside", "${class_prefix}_inside");
 
     pass1::
       "${path}/."
         delete        => tidy,
         file_select   => all,
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-        ifvarclass    => "!${class_prefix}_inside_error";
+        classes       => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+        if            => "!${report_data.method_id}_inside_error";
 
   methods:
 
     # If path was not empty, we need to trigger an error manually as the files promise will be kept
     # Because of https://tracker.mender.io/browse/CFE-1570
     pass3.directory_exists_after::
-      "fail_if_not_empty"   usebundle  => _classes_failure("${class_prefix}");
-      "clean_if_not_empty"  usebundle  => _classes_sanitize("${class_prefix}");
-
-      "fail_if_not_empty"   usebundle  => _classes_failure("${old_class_prefix}");
-      "clean_if_not_empty"  usebundle  => _classes_sanitize("${old_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
 
     pass3::
       # Use classes of the first promise when it failed
-      "copy_inside_error"   usebundle  => _classes_copy("${class_prefix}_inside", "${class_prefix}"),
-                            ifvarclass => "${class_prefix}_inside_error";
-      "copy_inside_error"   usebundle  => _classes_copy("${old_class_prefix}_inside", "${old_class_prefix}"),
-                            ifvarclass => "${old_class_prefix}_inside_error";
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}_inside", "${report_data.method_id}"),
+                                        if => "${report_data.method_id}_inside_error";
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}_inside", "${class_prefix}"),
+                                        if => "${report_data.method_id}_inside_error";
 
-      "report" usebundle => _log_v3("Remove directory ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Remove directory ${path}", "");
 
   reports:
     pass3.info.path_exists_after.!directory_exists_after::

@@ -30,40 +30,29 @@
 bundle agent file_absent(path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_absent_${path}");
-      "args"               slist => { "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_absent_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("file_absent_${path}");
 
   classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
       #need to ensure if it's a folder or a file
       "is_folder"  expression => isdir("${path}");
 
   files:
-    !is_folder::
+    pass3.!is_folder::
       "${path}"
-        delete        => tidy,
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        delete  => tidy,
+        classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-    !is_folder::
-      "success_if_nothing" usebundle => _classes_success("${old_class_prefix}"),
-                          ifvarclass => "!${old_class_prefix}_reached";
+    pass3.!is_folder::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Remove file ${path}", "");
 
-      "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
-                          ifvarclass => "!${class_prefix}_reached";
-
-      "report"             usebundle => _log_v3("Remove file ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-    is_folder::
-      "error"              usebundle => _classes_failure("${old_class_prefix}"),
-                          ifvarclass => "!${class_prefix}_reached";
-
-      "error"              usebundle => _classes_failure("${class_prefix}"),
-                          ifvarclass => "!${class_prefix}_reached";
-
-      "report"             usebundle => _log_v3("${path} is a directory, and cannot be removed as a file", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.is_folder::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${path} is a directory, and cannot be removed as a file", "");
 
 
 }

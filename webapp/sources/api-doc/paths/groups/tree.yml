@@ -4,6 +4,15 @@ get:
   summary: Get groups tree
   description: Get all available groups and their categories in a tree
   operationId: GetGroupTree
+  parameters:
+    - name: "includeSystem"
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+      example: true
+      description: Whether to include system categories and groups in results.
   responses:
     "200":
       description: Groups information
@@ -67,6 +76,9 @@ get:
                             - root
                           dynamic: true
                           enabled: true
+                          properties: []
+                          target: "group:hasPolicyServer-root"
+                          system: true
                     - id: 38dd2107-a73b-45fb-916d-e110312abb87
                       name: production groups
                       description: ""
@@ -87,6 +99,8 @@ get:
                           nodeIds: []
                           dynamic: false
                           enabled: true
+                          target: "group:79d83ff9-24d8-4be6-b1f7-cbb1c173f7a5"
+                          system: false
                   groups:
                     - id: af208515-c2f2-4577-bbf4-9fffebbe6629
                       displayName: Test Clients
@@ -106,6 +120,8 @@ get:
                       nodeIds: []
                       dynamic: true
                       enabled: true
+                      target: "group:af208515-c2f2-4577-bbf4-9fffebbe6629"
+                      system: false
                     - id: d7634b2d-7189-422b-9971-24c29b75da46
                       displayName: Test Clients
                       description: ""
@@ -124,6 +140,8 @@ get:
                       nodeIds: []
                       dynamic: true
                       enabled: true
+                      target: "group:d7634b2d-7189-422b-9971-24c29b75da46"
+                      system: false
 
   tags:
     - Groups

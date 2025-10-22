@@ -12,7 +12,7 @@ ERRORS=0
 FILES_TO_CHECK=`find "${NCF_TREE}/30_generic_methods/" -name "_*.cf"`
 for file in ${FILES_TO_CHECK}
 do
-  PROMISE_TYPES=`cat ${file} | egrep -v "^\s*#?\s*$" | egrep "^\s*[a-z]+:(\s+|#|$)" | sed -e "s/^\s*\(.*\):.*$/\1/" | sort | uniq`
+  PROMISE_TYPES=`cat ${file} | grep -Ev "^\s*#?\s*$" | grep -E "^\s*[a-z]+:(\s+|#|$)" | sed -e "s/^\s*\(.*\):.*$/\1/" | sort | uniq`
 
   for found_type in ${PROMISE_TYPES}
   do

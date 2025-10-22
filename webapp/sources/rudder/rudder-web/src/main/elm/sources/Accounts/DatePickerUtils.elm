@@ -2,19 +2,9 @@ module Accounts.DatePickerUtils exposing (..)
 
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Time exposing (Month(..), Posix, Zone)
-import Time.Extra as Time exposing (Interval(..), Parts, partsToPosix)
-import List.Extra exposing (getAt)
-import Date exposing (fromIsoString)
-
+import Time.Extra as Time exposing (Interval(..), Parts)
 import Accounts.DataTypes exposing (..)
-import String.Extra
-import Time.Iso8601
-import Time.DateTime exposing (DateTime)
-import Time.DateTime as DateTime
-import Time.Iso8601ErrorMsg
-import Time.Extra exposing (toOffset)
-import Time exposing (posixToMillis)
-import Time exposing (millisToPosix)
+import Accounts.DataTypes as TokenState exposing (..)
 
 
 isDateBeforeToday : Posix -> Posix -> Bool
@@ -121,3 +111,10 @@ checkIfExpired datePickerInfo account =
   case account.expirationPolicy of
     ExpireAtDate p -> isDateBeforeToday datePickerInfo.currentTime p
     NeverExpire -> False
+
+checkIfTokenV1 : Account -> Bool
+checkIfTokenV1 a =
+  case a.tokenState of
+    TokenState.GeneratedV1 -> True
+    TokenState.GeneratedV2 -> False
+    TokenState.Undef       -> False
