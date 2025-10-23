@@ -1,4 +1,4 @@
-FROM rust:bullseye
+FROM rust:trixie
 LABEL ci=ncf/ci/methods.Dockerfile
 
 # Accept all OSes
