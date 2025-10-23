@@ -5,7 +5,7 @@ ARG USER_ID=1000
 COPY ci/user.sh .
 RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y git wget gnupg2 make pipx ;\
-    su jenkins -c "pipx install avocado-framework pylint Jinja2 ; pipx ensurepath"
+    pipx install avocado-framework pylint Jinja2
 
 # Accept all OSes
 ENV UNSUPPORTED=y
