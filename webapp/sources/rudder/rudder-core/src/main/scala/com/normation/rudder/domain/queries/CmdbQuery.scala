@@ -564,7 +564,8 @@ case object DateComparator extends LDAPCriterionType {
     def eqDateTime = AND(GTEQ(attributeName, dateString), LTEQ(attributeName, dateString))
 
     // make distinction when it's not a date but a datetime
-    (parsedDate.isRight, comparator) match {
+    val isDateOnly = parsedDate.isRight
+    (isDateOnly, comparator) match {
       // for equals and not equals, check value for jocker
       case (true, Equals)     => eqDate
       case (false, Equals)    => eqDateTime
