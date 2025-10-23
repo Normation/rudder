@@ -549,7 +549,7 @@ case object DateComparator extends LDAPCriterionType {
    */
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
     val parsedDate = parseDate(value)
-    val date       = parsedDate
+    lazy val date  = parsedDate
       .orElse(parseDateTime(value))
       .getOrElse(
         throw new IllegalArgumentException(
