@@ -6,7 +6,7 @@ COPY ci/user.sh .
 RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y python3-jinja2 git wget gnupg2 make pipx ;\
     pipx install avocado-framework pylint ;\
-    pipx ensurepath --global
+    pipx ensurepath --global --force
 
 # Accept all OSes
 ENV UNSUPPORTED=y
