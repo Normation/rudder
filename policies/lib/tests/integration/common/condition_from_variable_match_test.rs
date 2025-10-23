@@ -64,9 +64,9 @@ fn it_should_be_in_error_if_the_variable_is_undefined() {
     end_test(workdir);
 }
 #[test]
-#[cfg_attr(feature = "windows", should_panic(expected = "bug fix"))]
+#[cfg_attr(feature = "test-windows", should_panic(expected = "bug fix"))]
 fn it_should_not_work_on_dict_variable() {
-    #[cfg(feature = "windows")]
+    #[cfg(feature = "test-windows")]
     todo!("bug fix");
     // It succeeds as the variable is detected but the matching will always fail on a dict variable
     let workdir = init_test();

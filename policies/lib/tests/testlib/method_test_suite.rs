@@ -207,6 +207,13 @@ impl MethodTestSuite {
         }
     }
     pub fn execute(self, library_path: PathBuf, workdir: PathBuf) -> ExecutionResult {
-        self.execute_windows(library_path, workdir)
+        #[cfg(feature = "test-windows")]
+        {
+            self.execute_windows(library_path, workdir)
+        }
+        #[cfg(not(feature = "test-windows"))]
+        {
+            self.execute_unix(library_path, workdir)
+        }
     }
 }

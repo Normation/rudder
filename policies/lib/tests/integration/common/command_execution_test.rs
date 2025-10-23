@@ -33,15 +33,15 @@ fn it_repairs_in_enforced_mode_if_the_command_succeeds() {
     let file_path = workdir.path().join("target.txt");
     let command;
 
-    #[cfg(feature = "unix")]
+    #[cfg(feature = "test-unix")]
     {
         command = format!("/bin/touch {}", file_path.display());
     }
 
-    #[cfg(any(feature = "windows", feature = "windows-on-unix"))]
+    #[cfg(feature = "test-windows")]
     {
         let script_path = workdir.path().join("touch.ps1");
-        fs::write(
+        std::fs::write(
             &script_path,
             format!("New-Item -Path '{}' -ItemType 'File'", file_path.display()),
         )
