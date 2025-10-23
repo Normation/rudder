@@ -230,7 +230,7 @@ body action files_action
 
 body action packages_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
@@ -238,7 +238,7 @@ body action packages_action
 
 body action guest_environments_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
@@ -246,7 +246,7 @@ body action guest_environments_action
 
 body action processes_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
@@ -254,7 +254,7 @@ body action processes_action
 
 body action services_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
@@ -262,7 +262,7 @@ body action services_action
 
 body action commands_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
@@ -270,7 +270,7 @@ body action commands_action
 
 body action storage_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
@@ -278,7 +278,15 @@ body action storage_action
 
 body action databases_action
 {
-  dry_run|global_dry_run::  
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action rudder_module
+{
+  dry_run|global_dry_run::
     action_policy => "warn";
   !(dry_run|global_dry_run)::
     action_policy => "fix";
