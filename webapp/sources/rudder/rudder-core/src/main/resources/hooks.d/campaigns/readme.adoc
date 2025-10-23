@@ -1,4 +1,4 @@
-= node-post-acceptance
+= Update campaigns server hooks
 
 == When/What ?
 
