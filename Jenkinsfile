@@ -64,7 +64,7 @@ pipeline {
                     }
                     steps {
                         dir("policies/lib") {
-                            sh script: 'pipx install avocado-framework pylint && pipx ensurepath &&avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
+                            sh script: 'pipx install avocado-framework pylint && pipx ensurepath && /root/.local/bin/avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
                         }
                     }
                     post {
