@@ -1,11 +1,11 @@
-FROM debian:11
+FROM debian:13
 LABEL ci=ncf/ci/python.Dockerfile
 
 ARG USER_ID=1000
 COPY ci/user.sh .
 RUN ./user.sh $USER_ID ;\
-    apt-get update && apt-get install -y git wget gnupg2 make python3-pip ;\
-    pip3 install avocado-framework pylint Jinja2
+    apt-get update && apt-get install -y python3-jinja2 git wget gnupg2 make pipx ;\
+    pipx install avocado-framework
 
 # Accept all OSes
 ENV UNSUPPORTED=y

@@ -80,7 +80,7 @@ pipeline {
                     }
                     steps {
                         dir("policies/lib") {
-                            sh script: 'avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
+                            sh script: '~/.local/bin/avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
                         }
                     }
                     post {

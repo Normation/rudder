@@ -1,4 +1,4 @@
-FROM rust:bookworm
+FROM rust:trixie
 LABEL ci=ci/methods.Dockerfile
 
 # Accept all OSes
