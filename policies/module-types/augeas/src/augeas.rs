@@ -285,14 +285,6 @@ impl Augeas {
             // - is if_script now returns false
         }
 
-        // Avoid writing if we are in audit mode.
-        let save_mode = match policy_mode {
-            PolicyMode::Enforce => SaveMode::Backup,
-            PolicyMode::Audit => SaveMode::Noop,
-        };
-        rudder_debug!("Setting save mode to: {:?}", save_mode);
-        aug.set_save_mode(save_mode)?;
-
         let modified = if let Some(old) = &current_content {
             let prefixed = PathBuf::from("/files/").join(path_relative);
             let new = aug.preview(&prefixed)?.unwrap();
@@ -304,7 +296,7 @@ impl Augeas {
                 if p.show_file_content {
                     rudder_info!("Diff:\n{:?}\n", diff);
                 }
-                report.push_str(format!("File modified:\n{}\n", diff).as_str());
+                report.push_str(format!("File diff:\n{}\n", diff).as_str());
             }
             different
         } else {
@@ -315,29 +307,41 @@ impl Augeas {
         // NOTE: Here we could reload the library in case of error somewhere to avoid
         // influencing the following calls. But for now no cases where it is necessary have been
         // identified.
-
-        // Make a backup if needed.
-        if let Some(b) = backup_dir {
-            if let Some(c) = &current_content {
+        // Avoid writing if we are in audit mode.
+        match policy_mode {
+            PolicyMode::Audit => {
+                aug.set_save_mode(SaveMode::Noop)?;
+            }
+            PolicyMode::Enforce => {
+                aug.set_save_mode(SaveMode::Backup)?;
+                // Make a rudder backup of the file
                 if modified {
-                    let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
-                    fs::write(b.join(backup_file), c)?;
+                    if let (Some(b), Some(c)) = (backup_dir, &current_content) {
+                        let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
+                        fs::write(b.join(backup_file), c)?;
+                    }
                 }
             }
         }
-
-        // FIXME audit mode should report non compliance
-
         aug.save()?;
+        // FIXME audit mode should report non compliance
 
         if let Some(r) = p.report_file {
             fs::write(r, &report)?;
         }
 
+        // Error cases
+        if modified && policy_mode == PolicyMode::Audit {
+            bail!(
+                "File {} does not match the expected content",
+                p.path.display()
+            );
+        }
         if is_err {
             // The full error is in the report.
             bail!("Script failed");
         }
+        //Kept cases
         Ok(if modified {
             Outcome::Repaired(format!("File {} modified", p.path.display()))
         } else {
