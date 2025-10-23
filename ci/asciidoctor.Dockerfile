@@ -1,4 +1,4 @@
-FROM debian:11
+FROM debian:13
 LABEL ci=rudder/ci/asciidoctor.Dockerfile
 
 ARG USER_ID=1000
