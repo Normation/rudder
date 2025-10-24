@@ -469,7 +469,7 @@ trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
   def serialise(a:    A):      String
   def order: Ordering[A]
 
-  def tryMatches(value: String, matches: A => MatchHolderZio[A]): IOResult[Boolean] = {
+  private def tryMatches(value: String, matches: A => MatchHolderZio[A]): IOResult[Boolean] = {
     parseNum(value) match {
       case Some(a) => matches(a).matches
       case None    =>
@@ -483,9 +483,9 @@ trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
 
     comparator match {
       case Equals    =>
-        tryMatches(value, a => MatchHolder[A](DebugInfo(Equals.id, Some(value)), extractor(n), _.exists(_ == a)))
+        tryMatches(value, a => MatchHolder[A](DebugInfo(Equals.id, Some(value)), extractor(n), _.exists(order.equiv(_, a))))
       case NotEquals =>
-        tryMatches(value, a => MatchHolder[A](DebugInfo(NotEquals.id, Some(value)), extractor(n), _.forall(_ != a)))
+        tryMatches(value, a => MatchHolder[A](DebugInfo(NotEquals.id, Some(value)), extractor(n), _.forall(!order.equiv(_, a))))
       case Regex     =>
         for {
           m <- MatcherUtils.getRegex(value)
@@ -664,18 +664,26 @@ final case class NodeCriterionMatcherMemory(extractor: CoreNodeFact => Chunk[Mem
   val order: Ordering[MemorySize] = Ordering.by(_.size)
 }
 
-final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])
+final case class NodeCriterionMatcherDate(private val extractorNode: CoreNodeFact => Chunk[DateTime])
     extends NodeCriterionOrderedValueMatcher[DateTime] {
-  val parseDate: String => Option[DateTime] = (s: String) =>
-    DateFormaterService.parseDateOnly(s).toOption.orElse(Try(DateTimeFormat.forPattern("dd/MM/YYYY").parseDateTime(s)).toOption)
+  import NodeCriterionMatcherDate.*
 
-  // we need to accept both ISO format and old dd/MM/YYYY format for compatibility
-  // also, we discard the time, only keep date
+  // we accept both ISO date format and old dd/MM/YYYY format for compatibility (see also `DateComparator`)
+  // and we accept an exact datetime in ISO8601 representation
 
-  override def extractor: CoreNodeFact => Chunk[DateTime] = (n: CoreNodeFact) => extractorNode(n).map(_.withTimeAtStartOfDay())
-  override def parseNum(value: String):   Option[DateTime] = parseDate(value).map(_.withTimeAtStartOfDay())
-  override def serialise(a:    DateTime): String           = DateFormaterService.serialize(a)
+  override def extractor:               CoreNodeFact => Chunk[DateTime] = (n: CoreNodeFact) =>
+    extractorNode(n).map(_.toLocalDate.toDateTimeAtStartOfDay()) ++ extractorNode(n)
+  override def parseNum(value: String): Option[DateTime]                =
+    parseDate(value).map(_.toLocalDate.toDateTimeAtStartOfDay()).orElse(parseDateTime(value))
+  override def serialise(a: DateTime): String = DateFormaterService.serialize(a)
   val order: Ordering[DateTime] = Ordering.by(_.getMillis)
+}
+private object NodeCriterionMatcherDate                {
+  private val compatPattern = DateTimeFormat.forPattern("dd/MM/YYYY")
+  val parseDate: String => Option[DateTime] = (s: String) =>
+    DateFormaterService.parseDateOnly(s).toOption.orElse(Try(compatPattern.parseDateTime(s)).toOption)
+
+  val parseDateTime: String => Option[DateTime] = (s: String) => DateFormaterService.parseDate(s).toOption
 }
 
 /*
