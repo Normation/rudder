@@ -116,13 +116,14 @@ class InfoApi(
         })
 
         // we want to keep endpoints in their zz order, because it's important information.
-        val jsonInfos     = list.groupBy(_.schema.name).map {
-          case (name, seq) =>
+        // the `schema` is treated to be unique, as it is an `object` that identifies an endpoint declaration
+        val jsonInfos     = list.groupBy(_.schema).map {
+          case (endpoint, seq) =>
             // we just want to gather version for each api
             (
-              name,
+              endpoint,
               EndpointInfo(
-                name,
+                endpoint.name,
                 seq.head.schema.action,
                 seq.map(_.version).toSet,
                 seq.head.schema.description,
@@ -130,7 +131,7 @@ class InfoApi(
               ).json
             )
         }
-        val jsonEndpoints = list.map(_.schema.name).distinct.map(n => jsonInfos(n)) // can't fail, same source 'list'
+        val jsonEndpoints = list.map(_.schema).distinct.map(n => jsonInfos(n)) // can't fail, same source 'list'
 
         Obj(
           "documentation"     -> Str("https://docs.rudder.io/api/"),
