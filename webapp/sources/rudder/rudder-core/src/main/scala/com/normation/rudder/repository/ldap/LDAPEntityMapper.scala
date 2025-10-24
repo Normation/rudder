@@ -721,9 +721,11 @@ class LDAPEntityMapper(
         target       <-
           RuleTarget
             .unser(targetString)
-            .toRight(
-              UnexpectedObject("Can not unserialize target, '%s' does not match any known target format".format(targetString))
-            )
+            .leftMap(err => {
+              UnexpectedObject(
+                s"Can not unserialize target, '${targetString}' does not match any known target format: ${err.fullMsg}"
+              )
+            })
         name         <- e.required(A_NAME)
         description   = e(A_DESCRIPTION).getOrElse("")
         isEnabled     = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
@@ -846,7 +848,10 @@ class LDAPEntityMapper(
     optValue match {
       case None        => Right(None)
       case Some(value) =>
-        RuleTarget.unser(value).toRight(UnexpectedObject(s"Bad parameter for a rule target: ${value}")).map(Some(_))
+        RuleTarget
+          .unser(value)
+          .leftMap(err => UnexpectedObject(s"Bad parameter for a rule target: ${value}, cause was: ${err.fullMsg}"))
+          .map(Some(_))
     }
   }
 

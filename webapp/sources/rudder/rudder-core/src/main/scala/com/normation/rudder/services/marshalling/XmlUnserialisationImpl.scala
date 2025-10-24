@@ -47,6 +47,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.errors.AccumulateErrors
+import com.normation.errors.Chained
 import com.normation.errors.Inconsistency
 import com.normation.errors.OptionToPureResult
 import com.normation.errors.PureResult
@@ -282,7 +283,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
       isEnabled        <- getAndParseChild(rule, "isEnabled", s => s.text.toBooleanOption)
       isSystem         <- getAndParseChild(rule, "isSystem", s => s.text.toBooleanOption)
       targets          <- (rule \ "targets" \ "target").accumulatePure { t =>
-                            RuleTarget.unser(t.text).notOptionalPure(s"Invalid attribute in 'target' entry: ${entry}")
+                            RuleTarget.unser(t.text).leftMap(err => Chained(s"Invalid attribute in 'target' entry: ${entry}", err))
                           }
       directiveIds      = (rule \ "directiveIds" \ "id").map { n =>
                             DirectiveId(DirectiveUid(n.text), ParseRev((n \ "@revision").text))

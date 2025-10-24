@@ -323,7 +323,7 @@ class EventLogDetailsServiceImpl(
     serial           <- getFromTo[Int]((rule \ "serial").headOption, x => tryo(x.text.toInt))
     targets          <- getFromTo[Set[RuleTarget]](
                           (rule \ "targets").headOption,
-                          (x: NodeSeq) => Full((x \ "target").toSet.flatMap((y: NodeSeq) => RuleTarget.unser(y.text)))
+                          (x: NodeSeq) => Full((x \ "target").toSet.flatMap((y: NodeSeq) => RuleTarget.unser(y.text).toOption))
                         )
     shortDescription <- getFromToString((rule \ "shortDescription").headOption)
     longDescription  <- getFromToString((rule \ "longDescription").headOption)
