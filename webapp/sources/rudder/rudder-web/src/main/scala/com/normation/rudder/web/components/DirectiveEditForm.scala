@@ -194,8 +194,7 @@ class DirectiveEditForm(
       ("#deprecation-warning [class+]" #> "d-none")
   }
 
-  def showDirectiveForm()(implicit qc: QueryContext): NodeSeq = {
-
+  def updateRuleDisplayer() = {
     val ruleDisplayer = {
       new RuleDisplayer(
         Some(directiveApp),
@@ -207,6 +206,20 @@ class DirectiveEditForm(
         DisplayColumn.FromConfig
       ).display
     }
+    SHtml.ajaxButton(
+      "Target rules",
+      () => SetHtml("directiveRulesTab", ruleDisplayer),
+      ("class", "nav-link"),
+      ("data-bs-toggle", "tab"),
+      ("data-bs-target", "#rulesTab"),
+      ("type", "button"),
+      ("role", "tab"),
+      ("aria-controls", "rulesTab"),
+      ("aria-selected", "false")
+    )
+  }
+
+  def showDirectiveForm()(implicit qc: QueryContext): NodeSeq = {
 
     val versionSelect   = if (isADirectiveCreation) {
       <div id="version" class="row wbBaseField form-group">
@@ -341,7 +354,7 @@ class DirectiveEditForm(
                           NodeSeq.Empty ++
                           parameterEditor.toFormNodeSeq
                         }) &
-      "#directiveRulesTab *" #> ruleDisplayer &
+      "#rulesNav *" #> updateRuleDisplayer() &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> displayNotifications() &
       "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
