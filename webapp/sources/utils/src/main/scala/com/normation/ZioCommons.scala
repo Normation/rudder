@@ -621,11 +621,17 @@ object RudderLogger {
     def error(msg: => String, t: Throwable): UIO[Unit] =
       ZIO.when(logger.isWarnEnabled())(logAndForgetResult(_.error(msg, t))).unit
 
-    def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logger.isTraceEnabled())(action).unit
-    def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logger.isDebugEnabled())(action).unit
-    def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logger.isInfoEnabled())(action).unit
-    def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(logger.isErrorEnabled())(action).unit
-    def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(logger.isWarnEnabled())(action).unit
+    def isTraceEnabled(): Boolean = logger.isTraceEnabled()
+    def isDebugEnabled(): Boolean = logger.isDebugEnabled()
+    def isInfoEnabled():  Boolean = logger.isInfoEnabled()
+    def isErrorEnabled(): Boolean = logger.isErrorEnabled()
+    def isWarnEnabled():  Boolean = logger.isWarnEnabled()
+
+    def ifTraceEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(isTraceEnabled())(action).unit
+    def ifDebugEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(isDebugEnabled())(action).unit
+    def ifInfoEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(isInfoEnabled())(action).unit
+    def ifWarnEnabled[T](action:  UIO[T]): UIO[Unit] = ZIO.when(isErrorEnabled())(action).unit
+    def ifErrorEnabled[T](action: UIO[T]): UIO[Unit] = ZIO.when(isWarnEnabled())(action).unit
 
   }
 }

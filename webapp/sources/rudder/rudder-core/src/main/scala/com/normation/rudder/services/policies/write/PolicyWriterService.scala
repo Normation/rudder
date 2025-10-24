@@ -467,15 +467,17 @@ class PolicyWriterServiceImpl(
     }
 
     // debug - but don't fails for debugging !
-    val logNodeConfigurations = ZIO.when(logNodeConfig.isDebugEnabled) {
-      IOResult
-        .attempt(logNodeConfig.log(interestingNodeConfigs))
-        .foldZIO(
-          err =>
-            PolicyGenerationLoggerPure.error(s"Error when trying to write node configurations for debugging: ${err.fullMsg}"),
-          ok => ZIO.unit
-        )
-    }
+    val logNodeConfigurations: UIO[Unit] = ZIO
+      .when(logNodeConfig.isDebugEnabled) {
+        logNodeConfig
+          .log(interestingNodeConfigs)
+          .foldZIO(
+            err =>
+              PolicyGenerationLoggerPure.error(s"Error when trying to write node configurations for debugging: ${err.fullMsg}"),
+            ok => ZIO.unit
+          )
+      }
+      .unit
 
     /*
      * Here come the general writing process
