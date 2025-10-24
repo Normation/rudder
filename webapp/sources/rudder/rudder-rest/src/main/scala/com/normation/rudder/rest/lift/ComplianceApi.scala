@@ -566,10 +566,7 @@ class ComplianceApi(
 
   private def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
     // attempt to parse a "target" first because format is more specific
-    RuleTarget.unserOne(str) match {
-      case None        => NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_))
-      case Some(value) => Right(value)
-    }
+    RuleTarget.unserOne(str).orElse(NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_)))
   }
 }
 

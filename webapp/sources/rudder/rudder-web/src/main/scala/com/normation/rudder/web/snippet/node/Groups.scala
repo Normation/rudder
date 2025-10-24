@@ -272,11 +272,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
     def displayDetailsTarget(targetName: String): JsCmd = {
       RuleTarget.unser(targetName) match {
-        case Some(t: NonGroupRuleTarget) =>
+        case Right(t: NonGroupRuleTarget) =>
           refreshTree(htmlTreeNodeId(targetName)) &
           showGroupSection(Left(t), NodeGroupCategoryId("SystemGroups")) &
           JsRaw("initBsTooltips()") // JsRaw ok, const
-        case _                           => displayGroupNotFound
+        case _                            => displayGroupNotFound
       }
     }
 
