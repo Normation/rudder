@@ -561,8 +561,8 @@ trait RudderJsonDecoders {
   // JRRuleTarget
   object JRRuleTargetDecoder {
     def parseString(s: String): Either[String, JRRuleTargetString] = RuleTarget.unserOne(s) match {
-      case None    => Left(s"'${s}' can not be decoded as a simple rule target")
-      case Some(x) => Right(JRRuleTargetString(x))
+      case Left(err) => Left(s"'${s}' can not be decoded as a simple rule target: ${err.fullMsg}")
+      case Right(x)  => Right(JRRuleTargetString(x))
     }
   }
   implicit lazy val simpleRuleTargetDecoder: JsonDecoder[JRRuleTargetString] =
@@ -585,8 +585,10 @@ trait RudderJsonDecoders {
     import zio.json.*
     s.fromJson[JRRuleTarget]
       .orElse(RuleTarget.unserOne(s) match {
-        case None    => Left(s"Error: the following string can't not be decoded as a rule target: '${s}''")
-        case Some(x) => Right(JRRuleTargetString(x))
+        case Left(err) =>
+          Left(s"Error: the following string can't not be decoded as a rule target: '${s}', cause was : ${err.fullMsg}")
+        case Right(x)  =>
+          Right(JRRuleTargetString(x))
       })
   }
 

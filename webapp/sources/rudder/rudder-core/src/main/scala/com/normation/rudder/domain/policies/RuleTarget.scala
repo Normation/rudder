@@ -37,18 +37,22 @@
 
 package com.normation.rudder.domain.policies
 
-import cats.implicits.*
+import cats.syntax.bifunctor.*
+import cats.syntax.traverse.*
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.utils.Control.traverse
+import io.scalaland.chimney.Iso
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.util.matching.Regex
 import zio.Chunk
 import zio.interop.catz.chunkStdInstances
+import zio.json.*
+import zio.json.internal.Write
 
 /**
  * A target is either
@@ -56,23 +60,25 @@ import zio.interop.catz.chunkStdInstances
  * - a list of Node
  * - a special (system) target ("all", "policy server", etc)
  * - a specific node
+ *
  */
-sealed abstract class RuleTarget {
+sealed trait RuleTarget {
   def target: String
-  def toJson: JValue = JString(target)
 }
 
-sealed trait SimpleTarget extends RuleTarget //simple as opposed to composed
+/**
+ * A "simple" target is a single target, a specifically targeted group/node or statically known targets.
+ * These targets can be parsed using a regex (which consist in a prefix)
+ */
+sealed trait SimpleTarget extends RuleTarget // simple as opposed to composed
+object SimpleTarget {
+  given JsonEncoder[SimpleTarget] = JsonEncoder[String].contramap(_.target)
+}
 
 object GroupTarget { def r: Regex = "group:(.+)".r }
 final case class GroupTarget(groupId: NodeGroupId) extends SimpleTarget {
   override def target: String = "group:" + groupId.serialize
 }
-
-//object NodeTarget { def r = "node:(.+)".r }
-//case class NodeTarget(nodeId:NodeId) extends RuleTarget {
-//  override def target = "node:"+nodeId.value
-//}
 
 sealed trait NonGroupRuleTarget extends SimpleTarget
 
@@ -99,11 +105,85 @@ case object AllPolicyServers extends NonGroupRuleTarget {
 }
 
 /**
+ * ADT representations for when the "target" is a JSON object
+ */
+sealed private trait TargetJson
+private object TargetJson {
+  case class IncludeExclude(include: TargetCompositionJson, exclude: TargetCompositionJson) extends TargetJson derives JsonCodec
+  sealed trait TargetCompositionJson                                                        extends TargetJson
+  case class OR(or: Set[RuleTarget])                                                        extends TargetCompositionJson derives JsonCodec
+  case class AND(and: Set[RuleTarget])                                                      extends TargetCompositionJson derives JsonCodec
+
+  /*
+   * ENCODERS
+   */
+  // within the JSON arrays in the objects : sort to define a consistent order for simple Rule targets
+  private given JsonEncoder[Set[RuleTarget]] = JsonEncoder[Chunk[String]].contramap(Chunk.from(_).map(_.target).sorted)
+
+  // The decoders and encoders, without disambiguator
+  given JsonEncoder[TargetJson] with {
+    override def unsafeEncode(a: TargetJson, indent: Option[Int], out: Write): Unit = a match {
+      case or:  OR             => JsonEncoder[OR].unsafeEncode(or, indent, out)
+      case and: AND            => JsonEncoder[AND].unsafeEncode(and, indent, out)
+      case ie:  IncludeExclude => JsonEncoder[IncludeExclude].unsafeEncode(ie, indent, out)
+    }
+  }
+  private given JsonEncoder[TargetCompositionJson] = JsonEncoder[TargetJson].narrow
+
+  /*
+   * DECODERS
+   */
+
+  private given JsonDecoder[RuleTarget]            = JsonDecoder[String].mapOrFail(RuleTarget.unserOne(_).leftMap(_.fullMsg))
+  private given JsonDecoder[TargetCompositionJson] = JsonDecoder[OR].widen <> JsonDecoder[AND].widen
+
+  // there was a default, kept for compatibility : '{}' maps to an empty OR (it must be put as last attempt)
+  private case class EmptyJsonObj() derives JsonDecoder
+  given JsonDecoder[TargetJson] = {
+    JsonDecoder[IncludeExclude].widen <>
+    JsonDecoder[TargetCompositionJson].widen <>
+    JsonDecoder[EmptyJsonObj].map(_ => OR(Set.empty)).widen
+  }
+
+  /*
+   * TRANSFORMERS
+   */
+
+  given Iso[TargetUnion, OR] = Iso
+    .define[TargetUnion, OR]
+    .withFieldRenamed(_.targets, _.or)
+    .buildIso
+
+  given Iso[TargetIntersection, AND] = Iso
+    .define[TargetIntersection, AND]
+    .withFieldRenamed(_.targets, _.and)
+    .buildIso
+
+  given Iso[TargetComposition, TargetCompositionJson] = Iso
+    .define[TargetComposition, TargetCompositionJson]
+    .withSealedSubtypeRenamed[TargetUnion, OR]
+    .withSealedSubtypeRenamed[TargetIntersection, AND]
+    .buildIso
+
+  given Iso[TargetExclusion, IncludeExclude] = Iso
+    .define[TargetExclusion, IncludeExclude]
+    .withFieldRenamed(_.includedTarget, _.include)
+    .withFieldRenamed(_.excludedTarget, _.exclude)
+    .buildIso
+
+  given Iso[CompositeRuleTarget, TargetJson] = Iso
+    .define[CompositeRuleTarget, TargetJson]
+    .withEnumCaseRenamed[TargetExclusion, IncludeExclude]
+    .withSealedSubtypeRenamed[TargetComposition, TargetCompositionJson]
+    .buildIso
+}
+
+/**
  * A composite target is a target composed of different target
- * This target is rendered as Json
+ * This target is rendered as JSON
  */
 sealed trait CompositeRuleTarget extends RuleTarget {
-  final override def target: String = compactRender(toJson)
+  final override def target: String = this.transformInto[TargetJson].toJson
 
   /**
    * Removing a target is the action of erasing that target in each place where
@@ -155,9 +235,6 @@ sealed trait TargetComposition extends CompositeRuleTarget {
  * Union of all Targets, Should take all Nodes from these targets
  */
 final case class TargetUnion(targets: Set[RuleTarget] = Set()) extends TargetComposition {
-  override val toJson: JValue = {
-    ("or" -> targets.map(_.toJson))
-  }
   def addTarget(target: RuleTarget): TargetComposition = TargetUnion(targets + target)
 }
 
@@ -165,9 +242,6 @@ final case class TargetUnion(targets: Set[RuleTarget] = Set()) extends TargetCom
  * Intersection of all Targets, Should take Nodes belongings to all targets
  */
 final case class TargetIntersection(targets: Set[RuleTarget] = Set()) extends TargetComposition {
-  override val toJson: JValue = {
-    ("and" -> targets.map(_.toJson))
-  }
   def addTarget(target: RuleTarget): TargetComposition = TargetIntersection(targets + target)
 }
 
@@ -181,16 +255,6 @@ final case class TargetExclusion(
     includedTarget: TargetComposition,
     excludedTarget: TargetComposition
 ) extends CompositeRuleTarget {
-
-  /**
-   * Json value of a composition:
-   * { "include" -> target composition, "kind" -> target composition }
-   */
-  override val toJson: JValue = {
-    ("include" -> includedTarget.toJson) ~
-    ("exclude" -> excludedTarget.toJson)
-  }
-
   override def toString: String = {
     target
   }
@@ -353,90 +417,32 @@ object RuleTarget extends Loggable {
     }.map(_.flatten).merge
   }
 
-  /**
-   * Unserialize RuleTarget from Json
-   */
-  def unserJson(json: JValue): Box[RuleTarget] = {
-
-    def unserComposition(json: JValue): Box[TargetComposition] = {
-      json match {
-        case JObject(Nil)                                   =>
-          Full(TargetUnion())
-        case JObject(JField("or", JArray(content)) :: Nil)  =>
-          for {
-            targets <- traverse(content)(unserJson)
-          } yield {
-            TargetUnion(targets.toSet)
-          }
-        case JObject(JField("and", JArray(content)) :: Nil) =>
-          for {
-            targets <- traverse(content)(unserJson)
-          } yield {
-            TargetIntersection(targets.toSet)
-          }
-        case _                                              =>
-          Failure(s"'${compactRender(json)}' is not a valid rule target")
-      }
-    }
-
-    json match {
-      case JString(s)      =>
-        unser(s)
-      // we want to be able to have field in both order, but I don't know how to do it in an other way
-      case JObject(fields) =>
-        // look for include and exclude. We accept to not have each one,
-        // and if several are given, just take one
-
-        val includedJson = fields.collect { case JField("include", inc) => inc }.headOption
-        val excludedJson = fields.collect { case JField("exclude", inc) => inc }.headOption
-
-        (includedJson, excludedJson) match {
-          case (None, None) => unserComposition(json)
-          case (x, y)       => // at least one of include/exclude was present, so we really want to do a composite
-            for {
-              includeTargets <- unserComposition(x.getOrElse(JObject(Nil)))
-              excludeTargets <- unserComposition(y.getOrElse(JObject(Nil)))
-            } yield {
-              TargetExclusion(includeTargets, excludeTargets)
-            }
-        }
-      case _               => // not a JObject ?
-        unserComposition(json)
-    }
-  }
-
-  def unserOne(s: String): Option[SimpleTarget] = {
+  // directly from string, no JSON decoding
+  def unserOne(s: String): PureResult[SimpleTarget] = {
     s match {
       case GroupTarget.r(g)                 =>
-        NodeGroupId.parse(g).toOption.map(GroupTarget(_))
+        NodeGroupId.parse(g).bimap(Inconsistency(_), GroupTarget(_))
       case PolicyServerTarget.r(s)          =>
-        Some(PolicyServerTarget(NodeId(s)))
+        Right(PolicyServerTarget(NodeId(s)))
       case AllTarget.r()                    =>
-        Some(AllTarget)
+        Right(AllTarget)
       case AllPolicyServers.r()             =>
-        Some(AllPolicyServers)
+        Right(AllPolicyServers)
       case AllTargetExceptPolicyServers.r() =>
-        Some(AllTargetExceptPolicyServers)
+        Right(AllTargetExceptPolicyServers)
       case _                                =>
-        None
+        Left(Inconsistency(s"Invalid target string: '${s}'"))
     }
   }
 
-  def unser(s: String): Option[RuleTarget] = {
-    unserOne(s).orElse(
-      try {
-        unserJson(parse(s))
-      } catch {
-        case e: Exception =>
-          // these two target were removed in 7.0, we don't want error log on them.
-          if (s != "special:all_servers_with_role" && s != "special:all_servers_with_role") {
-            logger.error(
-              s"Error when trying to read the following serialized Rule target as a composite target: '${s}'. Reported parsing error cause was: ${e.getMessage}"
-            )
-          }
-          None
-      }
-    )
+  def unser(s: String): PureResult[RuleTarget] = {
+    unserOne(s).orElse {
+      s.fromJson[TargetJson]
+        .bimap(
+          err => Inconsistency(s"'${s}' is not a valid rule target: ${err}"),
+          _.transformInto[CompositeRuleTarget]
+        )
+    }
   }
 
   /**
