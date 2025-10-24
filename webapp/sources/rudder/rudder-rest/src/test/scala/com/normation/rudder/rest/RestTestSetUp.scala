@@ -262,6 +262,7 @@ class TestUserService extends UserService {
  * One can customize API version, but by default they match the one supported in Rudder.
  */
 class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiVersions) {
+  import RestTestSetUp.*
 
   implicit val userService: TestUserService = new TestUserService
 
@@ -1066,32 +1067,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, uuidGen)
   }
 
-  sealed trait RestTestEndpoints extends EnumEntry with EndpointSchema with GeneralApi with SortIndex      {
-    override def dataContainer: Option[String] = None
-  }
-  object RestTestEndpoints       extends Enum[RestTestEndpoints] with ApiModuleProvider[RestTestEndpoints] {
-
-    object TestEndpoint extends RestTestEndpoints with StartsAtVersion19 with ZeroParam with SortIndex {
-      val z: Int = implicitly[Line].value
-      val description    = "Just an endpoint for tests"
-      val (action, path) = GET / "test-endpoint"
-      val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
-    }
-
-    object TestEndpointDuplicate extends RestTestEndpoints with StartsAtVersion19 with ZeroParam with SortIndex {
-      val z: Int = implicitly[Line].value
-      val description    = "Just an endpoint for tests : a duplicate which has the same name but another path"
-      val (action, path) = GET / "test-endpoint-duplicate"
-      val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
-
-      override val name: String = TestEndpoint.name
-    }
-
-    def endpoints: List[RestTestEndpoints] = values.toList.sortBy(_.z)
-
-    def values = findValues
-  }
-
   // name that one for version API
   val parameterApi         = new ParameterApi(zioJsonExtractor, parameterApiService14)
   // info is special and should be based on all api and version, but to avoid change at each tests/version, build
@@ -1256,6 +1231,33 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 }
 
 object RestTestSetUp {
+
+  sealed private trait RestTestEndpoints extends EnumEntry with EndpointSchema with GeneralApi with SortIndex      {
+    override def dataContainer: Option[String] = None
+  }
+  private object RestTestEndpoints       extends Enum[RestTestEndpoints] with ApiModuleProvider[RestTestEndpoints] {
+
+    object TestEndpoint extends RestTestEndpoints with StartsAtVersion19 with ZeroParam with SortIndex {
+      val z: Int = implicitly[Line].value
+      val description    = "Just an endpoint for tests"
+      val (action, path) = GET / "test-endpoint"
+      val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    }
+
+    object TestEndpointDuplicate extends RestTestEndpoints with StartsAtVersion19 with ZeroParam with SortIndex {
+      val z: Int = implicitly[Line].value
+      val description    = "Just an endpoint for tests : a duplicate which has the same name but another path"
+      val (action, path) = GET / "test-endpoint-duplicate"
+      val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+
+      override val name: String = TestEndpoint.name
+    }
+
+    def endpoints: List[RestTestEndpoints] = values.toList.sortBy(_.z)
+
+    def values: IndexedSeq[RestTestEndpoints] = findValues
+  }
+
   def newEnv: RestTestSetUp = {
     new RestTestSetUp()
   }
