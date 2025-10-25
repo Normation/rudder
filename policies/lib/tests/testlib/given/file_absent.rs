@@ -4,9 +4,9 @@
 use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::test_setup::TestSetupResult;
 use anyhow::{Error, bail};
-use log::debug;
 use std::fs;
 use std::io::ErrorKind;
+use tracing::debug;
 
 #[derive(Clone)]
 pub struct FileAbsentStruct {

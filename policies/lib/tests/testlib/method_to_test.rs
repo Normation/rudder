@@ -26,7 +26,7 @@ pub fn get_result_condition_suffixes(status: MethodStatus) -> Vec<String> {
             "not_kept",
             "not_ok",
             "not_repaired",
-            "failed",
+            //"failed", legacy
             "error",
             "reached",
         ],
@@ -105,9 +105,8 @@ impl MethodToTest {
             .into_iter()
             .map(|s| {
                 Regex::new(&format!(
-                    "^{}_{}_{}$",
+                    "^{}_{}$",
                     cfengine_canonify(&self.id.to_string()),
-                    r"\d+",
                     s
                 ))
                 .unwrap()

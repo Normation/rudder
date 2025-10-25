@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 use crate::testlib::method_to_test::{MethodStatus, MethodToTest};
-use log::debug;
 use rudder_commons::report::Report;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct ExecutionResult {
