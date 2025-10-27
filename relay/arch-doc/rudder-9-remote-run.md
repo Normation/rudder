@@ -36,7 +36,7 @@ sequenceDiagram
     cf_serverd ->> agent: cf-serverd handles request and runs agent<br/>rudder agent run -R -D <classes>
     agent -->>  cf_serverd: Return raw output
     cf_serverd -->> cf_runagent: Return raw output
-    cf_runagent -->> Relay relayd: Return formated output
+    cf_runagent -->> Relay relayd: Return formatted output
     Relay relayd -->> Root relayd: Return merged output
     Root relayd -->> Webapp: Return output
     Webapp -->> User/UI: Return output
