@@ -14,21 +14,32 @@ The remote-run is currently only implemented for the Linux agent, as it relies o
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Public API
-    participant Root relay
-    participant Relay
-    participant Linux node
+    box Root server
+    participant User/UI
+    participant Webapp
+    participant Root relayd
+    end
+    box Relay
+    participant Relay relayd
+    participant cf_runagent
+    end
+    box Linux node
+    participant cf_serverd
+    participant agent
+    end
 
-    User ->> Public API: Call /nodes/{nodeId}/applyPolicy
-    Public API ->> Root relay: Forward request to relay API
-    Root relay ->> Relay: Forward request if node not managed locally
-    Relay ->> Linux node: Trigger remote-run (sudo rudder remote run)
-    Linux node ->> Linux node: cf-serverd handles request and runs agent
-    Linux node -->> Relay: Return raw output
-    Relay -->> Root relay: Return merged output
-    Root relay -->> Public API: Return output
-    Public API -->> User: Return output
+    User/UI ->> Webapp: Call<br/>/nodes/{nodeId}/applyPolicy
+    Webapp ->> Root relayd: Forward request to relay API<br/>/remote-run/nodes/{nodeId}
+    Root relayd ->> Relay relayd: Forward request if node not managed locally<br/>/remote-run/nodes/{nodeId}
+    Relay relayd ->> cf_runagent: Trigger remote-run<br/>sudo rudder remote run
+    cf_runagent ->> cf_serverd: Connect to cf-serverd on node<br/>Send remote-run request
+    cf_serverd ->> agent: cf-serverd handles request and runs agent<br/>rudder agent run -R -D <classes>
+    agent -->>  cf_serverd: Return raw output
+    cf_serverd -->> cf_runagent: Return raw output
+    cf_runagent -->> Relay relayd: Return formated output
+    Relay relayd -->> Root relayd: Return merged output
+    Root relayd -->> Webapp: Return output
+    Webapp -->> User/UI: Return output
 ```
 
 ### On the Linux node
