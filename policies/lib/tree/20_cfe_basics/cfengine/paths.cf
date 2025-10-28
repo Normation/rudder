@@ -177,7 +177,7 @@ bundle common paths
       "path[tr]"       string => "/usr/bin/tr";
       "path[yum]"      string => "/usr/bin/yum";
 
-    archlinux::
+    archlinux|manjaro::
 
       "path[awk]"               string => "/usr/bin/awk";
       "path[bc]"                string => "/usr/bin/bc";
