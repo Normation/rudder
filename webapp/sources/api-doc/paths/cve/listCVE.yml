@@ -23,18 +23,18 @@ post:
               example: true
               description: Only send score of the cve, and not the whole detailed list
             minScore:
-              type: string
+              type: number
               format: A score between 0 and 10 as a float
               example: 7.5
               description: Only send CVE with a score higher than the value
             maxScore:
-              type: string
+              type: number
               format: A score between 0 and 10 as a float
               example: 8.5
               description: Only send CVE with a score lower than the value
             publishedDate:
               type: string
-              format: date
+              format: date-time
               description: Only send CVE with a publication date more recent than the value
   responses:
     "200":

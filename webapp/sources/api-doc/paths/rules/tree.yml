@@ -35,7 +35,6 @@ get:
                   ruleCategories:
                     type: object
                     description: Rule tree
-                    example:
                 example:
                   id: rootRuleCategory
                   name: Rules

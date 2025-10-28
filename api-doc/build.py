@@ -27,9 +27,9 @@ for template in templates:
         main = yaml.load(content_file.read(), Loader=yaml.FullLoader)
 
         ################################################################################
-        # Lint doc using redocly (on split files to allow correct file reports)
-        if subprocess.call(['npx', 'redocly', 'lint', template]):
-            print('Linter failed on %s' % (template))
+        # Lint doc using redocly (on split source files to allow correct error reports)
+        if subprocess.call(['npx', 'redocly', 'lint', '--config', 'redocly.yml', template]):
+            print('Linter failed on %s' % template)
             exit(1)
 
     version = main['info']['version']
@@ -51,7 +51,7 @@ for template in templates:
 
     target = '%s/%s/%s' % (target_dir, api, version)
 
-    print('Built %s' % (src_openapi_file))
+    print('Built %s' % src_openapi_file)
 
     ################################################################################
     # Build final OpenAPI spec files using redocly
@@ -67,10 +67,10 @@ for template in templates:
                 openapi_file,
             ]
         ):
-            print('Could not build %s' % (openapi_file))
+            print('Could not build %s' % openapi_file)
             exit(1)
 
-        print('Built %s' % (openapi_file))
+        print('Built %s' % openapi_file)
 
     # YAML output used for next steps
     openapi_file = '%s/openapi.yml' % target
@@ -90,14 +90,14 @@ for template in templates:
             '--disableGoogleFont',
         ]
     ):
-        print('Could not build %s' % (html_file))
+        print('Could not build %s' % html_file)
         exit(1)
 
     # Now let's change what we could not configure before...
 
     # Rudder 7 theme
     if subprocess.call(['sed', '-i', '/<style>/ r custom.css', html_file]):
-        print('Could not insert custom CSS rules into %s' % (html_file))
+        print('Could not insert custom CSS rules into %s' % html_file)
         exit(1)
 
     # Extract URL to redoc JS
@@ -133,11 +133,11 @@ for template in templates:
             redoc_js_file,
         ]
     ):
-        print('Could not insert redoc JS path into %s' % (redoc_js_file))
+        print('Could not insert redoc JS path into %s' % redoc_js_file)
         exit(1)
     # Replace link to lib by local version
     if subprocess.call(['sed', '-i', f's@{url}@{redoc_js}@', html_file]):
-        print('Could not insert redoc JS path into %s' % (html_file))
+        print('Could not insert redoc JS path into %s' % html_file)
         exit(1)
 
     ################################################################################
@@ -145,7 +145,7 @@ for template in templates:
     rapidoc_target = '%s/alt/index.html' % target
     os.mkdir('%s/alt/' % target)
     shutil.copyfile('%s/rapidoc.html' % source, rapidoc_target)
-    print('Built %s' % (rapidoc_target))
+    print('Built %s' % rapidoc_target)
 
     ################################################################################
     # Common assets

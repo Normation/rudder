@@ -1,4 +1,4 @@
-FROM node:18-bullseye
+FROM node:24-trixie
 LABEL ci=rudder/api-doc/Dockerfile
 ENV NODE_ENV=production
 

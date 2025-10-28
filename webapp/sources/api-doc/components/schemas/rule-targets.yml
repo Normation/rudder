@@ -4,7 +4,11 @@ type: array
 description:  Node and special groups targeted by that rule
 items:
   type: object
-  example: {"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root", "group:cd377524-808b-4b42-8724-6ef308efeac7"]}}
+  example:
+    "include":
+      "or": ["special:all"]
+    "exclude":
+      "or": ["policyServer:root", "group:cd377524-808b-4b42-8724-6ef308efeac7"]
   required:
     - include
     - exclude

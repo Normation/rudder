@@ -54,18 +54,18 @@ properties:
       description: IP of the node
   lastRunDate:
     type: string
-    format: date
+    format: date-time
     example: "2020-02-29T14:48:28Z"
     description: "Date and time of the latest run, if one is available (node time). Up to API v11, format was: \"YYYY-MM-dd HH:mm\""
   acceptanceDate:
     type: string
     example: "2020-02-29T10:11:32Z"
-    format: date
+    format: date-time
     description: "Date and time of the acceptance of the node into Rudder."
   lastInventoryDate:
     type: string
     example: "2020-02-29T10:11:32Z"
-    format: date
+    format: date-time
     description: "Date and time of the latest generated inventory, if one is available (node time). Up to API v11, format was: \"YYYY-MM-dd HH:mm\""
   machine:
     description: Information about the underlying machine
@@ -482,7 +482,7 @@ properties:
           example: apache
         started:
           type: string
-          format: date
+          format: date-time (without tz)
           example: 2020-02-29 00:24
           description: Started date and time of the process
         # FIXME precise units and meaning of process properties
@@ -598,7 +598,7 @@ properties:
           example: A library for getting files from web servers
         releaseDate:
           type: string
-          format: date
+          format: date-time
           description: Release date of the software
         license:
           type: object
@@ -620,7 +620,7 @@ properties:
               type: string
               description: License description
             expirationDate:
-              format: date
+              format: date-time
               type: string
               description: License expiration date
   softwareUpdate:

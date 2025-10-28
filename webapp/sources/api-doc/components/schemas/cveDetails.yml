@@ -11,12 +11,12 @@ properties:
     type: string
     description: Date the CVE was published 
     example: "2019-05-17 18:29:00+02"
-    format: date
+    format: date-time
   lastModifiedDate:
     type: string
     description: last Date the CVE was modified 
     example: "2019-07-03 01:15:00+02"
-    format: date
+    format: date-time
   description:
     type: string
     description: CVE Description 

@@ -21,7 +21,7 @@ properties:
           example: 12
         status:
           format: string
-          required:
+          enum:
             - maintained
             - deprecated
           example: maintained

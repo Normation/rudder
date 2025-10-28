@@ -50,5 +50,5 @@ properties:
               description: campaign standard errors
         date:
           type: string
-          format: date
+          format: date-time
           example: "2023-04-19T16:59:53Z"
