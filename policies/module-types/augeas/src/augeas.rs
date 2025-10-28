@@ -264,7 +264,10 @@ impl Augeas {
             // We have run the script once. Now let's check for idempotency by running it again.
             // TODO: find a way to do it on new files too. Currently preview does not work on new files.
             if already_exists {
-                let content_after1 = interpreter.preview(&p.path)?.unwrap();
+                let content_after1 = match interpreter.preview(&p.path)? {
+                    Some(v) => v,
+                    None => bail!("No file associated with path ({})", p.path.display()),
+                };
 
                 // TODO check result?
                 let _ = interpreter.run(
@@ -273,7 +276,10 @@ impl Augeas {
                     &p.script,
                 );
 
-                let content_after2 = interpreter.preview(&p.path)?.unwrap();
+                let content_after2 = match interpreter.preview(&p.path)? {
+                    Some(v) => v,
+                    None => bail!("No file associated with path ({})", p.path.display()),
+                };
 
                 if content_after1 != content_after2 {
                     let diff = diff(&content_after1, &content_after2);
@@ -287,7 +293,10 @@ impl Augeas {
 
         let modified = if let Some(old) = &current_content {
             let prefixed = PathBuf::from("/files/").join(path_relative);
-            let new = aug.preview(&prefixed)?.unwrap();
+            let new = match aug.preview(&prefixed)? {
+                Some(v) => v,
+                None => bail!("No file associated with path ({})", p.path.display()),
+            };
 
             let different = old != &new;
 
