@@ -47,7 +47,7 @@ import com.normation.errors.*
 import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
 import com.normation.zio.*
 import org.antlr.stringtemplate.StringTemplate
-import org.apache.commons.lang3.StringUtils
+import org.apache.commons.lang3.Strings
 import scala.collection.immutable.ArraySeq
 import zio.*
 import zio.syntax.*
@@ -260,7 +260,7 @@ object FillTemplateThreadUnsafe {
                       // this is done quite heavely on big instances, with string rather big, and the performance of
                       // StringUtils.replace ix x4 the one of String.replace (no regex), see:
                       // https://stackoverflow.com/questions/16228992/commons-lang-stringutils-replace-performance-vs-string-replace/19163566
-                      (policy, StringUtils.replace(templateName, from, to))
+                      (policy, Strings.CS.replace(templateName, from, to))
                   }
       t2       <- currentTimeNanos
       delta     = t2 - t1
