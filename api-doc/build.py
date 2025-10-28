@@ -4,6 +4,8 @@
 # openapi.yml file.
 # Then lint it and build html docs
 
+# We make special efforts to avoid any external calls (CDN, google fonts, etc.)
+
 import sys
 import yaml
 import os
@@ -28,7 +30,7 @@ for template in templates:
 
         ################################################################################
         # Lint doc using redocly (on split source files to allow correct error reports)
-        if subprocess.call(['npx', 'redocly', 'lint', '--config', 'redocly.yml', template]):
+        if subprocess.call(['npx', 'redocly', 'lint', template]):
             print('Linter failed on %s' % template)
             exit(1)
 
@@ -55,8 +57,8 @@ for template in templates:
 
     ################################################################################
     # Build final OpenAPI spec files using redocly
-    for format in ["yml", "json"]:
-        openapi_file = '%s/openapi.%s' % (target, format)
+    for doc_format in ['yml', 'json']:
+        openapi_file = '%s/openapi.%s' % (target, doc_format)
         if subprocess.call(
             [
                 'npx',
@@ -86,8 +88,7 @@ for template in templates:
             openapi_file,
             '--output',
             html_file,
-            # Don't help google track our users
-            '--disableGoogleFont',
+            '--disableGoogleFont'
         ]
     ):
         print('Could not build %s' % html_file)
@@ -124,7 +125,7 @@ for template in templates:
             % (url, redoc_js_file)
         )
         exit(1)
-    # Remove external image from minified JS
+    # Remove the link to an external image from minified JS
     if subprocess.call(
         [
             'sed',
@@ -133,9 +134,9 @@ for template in templates:
             redoc_js_file,
         ]
     ):
-        print('Could not insert redoc JS path into %s' % redoc_js_file)
+        print('Could not remove image from %s' % redoc_js_file)
         exit(1)
-    # Replace link to lib by local version
+    # Replace the link to cdn lib by local version
     if subprocess.call(['sed', '-i', f's@{url}@{redoc_js}@', html_file]):
         print('Could not insert redoc JS path into %s' % html_file)
         exit(1)

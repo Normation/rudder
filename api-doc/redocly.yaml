@@ -26,28 +26,29 @@ rules:
   no-unused-components: "error"
 
 openapi:
-  hideDownloadButton: true
-  # Hostname is meaningless as it won't match rudder server
+  hideDownloadButtons: true
+  # Hostname is meaningless as it won't match the user's Rudder server
   hideHostname: true
   # Expand success examples by default
   expandResponses: "200,201"
   # More readable in central column
   pathInMiddlePanel: true
-  # Nested objects in exemples should be allowed
+  # Nested objects in examples should be allowed
   generatedPayloadSamplesMaxDepth: 100
+  # https://redocly.com/docs/redoc/config#theme-settings
   theme:
-    # Rudder 7 theme
+    # Rudder 9 theme
     logo:
       gutter: "8px"
     colors:
       primary:
-        main: "#13BEB7"
+        main: "#340499"
       text:
-        primary: "#36474E"
+        primary: "#3E444C"
     sidebar:
-      backgroundColor: "#F8F9FC"
+      backgroundColor: "#ECECFF"
     typography:
       fontFamily: "Lato, sans-serif"
       headings:
-        fontFamily: "Lato, sans-serif"
+        fontFamily: "Raleway, Lato, sans-serif"
         fontWeight: "700"
