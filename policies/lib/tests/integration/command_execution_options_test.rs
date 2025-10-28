@@ -163,10 +163,7 @@ fn it_is_executed_using_correct_user() {
             "",
             "",
             "",
-            &get_current_username()
-                .unwrap()
-                .to_string_lossy()
-                .to_string(),
+            &get_current_username().unwrap().to_string_lossy(),
             "",
             "",
             "",
@@ -262,10 +259,7 @@ fn it_is_executed_using_correct_group() {
             "",
             "",
             "",
-            &get_current_groupname()
-                .unwrap()
-                .to_string_lossy()
-                .to_string(),
+            &get_current_groupname().unwrap().to_string_lossy(),
             "",
             "",
             "true",
