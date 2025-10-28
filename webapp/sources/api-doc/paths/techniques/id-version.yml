@@ -105,7 +105,7 @@ delete:
                         version:
                           type: string
                           description: Deleted technique version
-                          example: 1.0
+                          example: "1.0"
 
   tags:
     - Techniques

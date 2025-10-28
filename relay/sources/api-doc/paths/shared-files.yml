@@ -56,7 +56,6 @@ put:
       schema:
         type: string
         description: "TTL of the file, can be a number of seconds or a duration (in the `1d 2h 3m 4s`, `1d`, `1 day`, `3 hours`, etc.) form"
-        format: "duration"
   requestBody:
     description: "The file to share with its metadata"
     required: true

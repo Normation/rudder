@@ -50,7 +50,7 @@ get:
                       buildTime:
                         type: string
                         example: "2025-09-07T01:31:07Z"
-                        format: date
+                        format: date-time
                       instanceId:
                         type: string
                         example: "294e04bd-61cd-4b79-ac46-90c68cdb7983"
@@ -70,22 +70,18 @@ get:
                               format: uuid
                             hostname:
                               type: string
-                              example: "https://normation.com"
-                              format: url
-                            managedNode:
+                              example: "normation.com"
+                              format: hostname
+                            managedNodes:
                               type: number
                               example: 32
-                        example: >
-                          [{
-                              "uuid":"d209c14f-318d-4d7f-85b2-61f125dc1803", 
-                              "hostname":"normation.com", 
-                              "managedNode":1
-                          },
-                          {
-                              "uuid":"bbec3115-e487-445e-91ab-2abb2676babf", 
-                              "hostname":"normation.com", 
-                              "managedNode":2
-                          }]
+                        example:
+                          - "uuid": "d209c14f-318d-4d7f-85b2-61f125dc1803"
+                            "hostname": "relay1.example.com"
+                            "managedNodes": 1
+                          - "uuid": "bbec3115-e487-445e-91ab-2abb2676babf"
+                            "hostname": "relay2.example.com"
+                            "managedNodes": 2
                   system:
                     required:
                       - os
@@ -177,10 +173,10 @@ get:
                               type: string
                             startDate: 
                               type: string
-                              format: date
+                              format: date-time
                             endDate:  
                               type: string
-                              format: date
+                              format: date-time
                             allowedNodesNumber: 
                               type: number
                             supportedVersions:  

@@ -44,7 +44,6 @@ get:
                   groupCategories:
                     type: object
                     description: Group tree
-                    example:
                 example:
                   id: GroupRoot
                   name: Root of the group and group categories
