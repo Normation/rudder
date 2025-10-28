@@ -315,11 +315,9 @@ impl Augeas {
             PolicyMode::Enforce => {
                 aug.set_save_mode(SaveMode::Backup)?;
                 // Make a rudder backup of the file
-                if modified {
-                    if let (Some(b), Some(c)) = (backup_dir, &current_content) {
-                        let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
-                        fs::write(b.join(backup_file), c)?;
-                    }
+                if modified && let (Some(b), Some(c)) = (backup_dir, &current_content) {
+                    let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
+                    fs::write(b.join(backup_file), c)?;
                 }
             }
         }
