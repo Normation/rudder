@@ -8,7 +8,7 @@ get:
     - $ref: ../../components/parameters/setting-allowed-networks.yml
   responses:
     "200":
-      description: Allowed Networks
+      description: Allowed networks
       content:
         application/json:
           schema:
@@ -68,8 +68,8 @@ post:
           properties:
             value:
               description: New value of the allowed networks
+              # FIXME: array?
               type: object
-              example: "enforce"
   responses:
     "200":
       description: Allowed Networks

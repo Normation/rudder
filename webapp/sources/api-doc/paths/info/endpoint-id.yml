@@ -53,11 +53,9 @@ get:
                     items:
                       type: object
                       description: Supported path and version for that endpoint
-                      example: >-
-                        {
-                          "listAcceptedNodes": "List all accepted nodes with configurable details level",
-                          "GET": "[8,9,10,11,12,13] /nodes"
-                        }
+                      example:
+                        "listAcceptedNodes": "List all accepted nodes with configurable details level"
+                        "GET": "[8,9,10,11,12,13] /nodes"
                       properties:
                         httpVerb:
                           format: The HTTP verb for the endpoint for key and the supported version and API path for value

@@ -54,7 +54,7 @@ post:
                   - archiveRulesDateRestore
                   - archiveDirectivesDateRestore
                   - archiveParametersDateRestore
-                example: archirestoreFullLatestCommitveFull
+                example: restoreFullLatestArchive
               data:
                 type: object
                 properties:

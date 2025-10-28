@@ -5,4 +5,4 @@ in: query
 required: false
 schema:
   type: string
-  format: date
+  format: date-time

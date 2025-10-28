@@ -10,7 +10,7 @@ properties:
     type: string
     format: uuid
     description: id of the node
-    example: root
+    example: 1c0957c1-9101-464e-b4cf-8983a5293a07
   name:
     type: string
     description: Name of the node

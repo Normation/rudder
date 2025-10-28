@@ -2,8 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 type: string
 description:  Node and special groups targeted by that rule
-example: policyServer:root
-enum:
+examples:
   - special:all
   - special:all_exceptPolicyServers
   - special:all_policyServers

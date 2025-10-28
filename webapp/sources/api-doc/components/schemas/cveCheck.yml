@@ -12,7 +12,7 @@ properties:
     description: CVE score
     properties:
       value:
-        type: string
+        type: number
         example: 9.5
         format: A score between 0 and 10 as a float
       severity:

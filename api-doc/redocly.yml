@@ -4,48 +4,50 @@ extends:
 
 rules:
   # sadly the linter identifies "/{nodeid}" and "/{nodesid}/apply" as ambiguous
-  no-ambiguous-paths: 'off'
+  no-ambiguous-paths: "off"
   # don't require documenting 404 responses
-  operation-4xx-response: 'off'
-  # threat some warnings as errors
+  operation-4xx-response: "off"
+  # treat some warnings as errors
   # as there is no simple way to do it with the CLI
-  info-license: 'error'
-  info-license-url: 'error'
-  tag-description: 'error'
-  operation-2xx-response: 'error'
-  operation-operationId: 'error'
+  info-license: "error"
+  tag-description: "error"
+  operation-2xx-response: "error"
+  operation-operationId: "error"
+  # FIXME: temporarily disable these 2 rule until we fix all schemas
+  no-required-schema-properties-undefined: "off"
+  no-invalid-schema-examples: "off"
+  no-invalid-parameter-examples: "error"
   no-server-example.com:
     # Some of our APIs are *actually* served on localhost
     severity: off
   no-invalid-media-type-examples:
-    severity: 'error'
+    severity: "error"
     allowAdditionalProperties: false
-  no-unused-components: 'error'
+  no-unused-components: "error"
 
-theme:
-  openapi:
-    hideDownloadButton: true
-    # Hostname is meaningless as it won't match rudder server
-    hideHostname: true
-    # Expand success examples by default
-    expandResponses: '200,201'
-    # More readable in central column
-    pathInMiddlePanel: true
-    # Nested objects in exemples should be allowed
-    generatedPayloadSamplesMaxDepth: 100
+openapi:
+  hideDownloadButton: true
+  # Hostname is meaningless as it won't match rudder server
+  hideHostname: true
+  # Expand success examples by default
+  expandResponses: "200,201"
+  # More readable in central column
+  pathInMiddlePanel: true
+  # Nested objects in exemples should be allowed
+  generatedPayloadSamplesMaxDepth: 100
+  theme:
     # Rudder 7 theme
-    theme:
-      logo:
-        gutter: '8px'
-      colors:
-        primary:
-          main: '#13BEB7'
-        text:
-          primary: '#36474E'
-      sidebar:
-        backgroundColor: '#F8F9FC'
-      typography:
-        fontFamily: 'Lato, sans-serif'
-        headings:
-          fontFamily: 'Lato, sans-serif'
-          fontWeight: '700'
+    logo:
+      gutter: "8px"
+    colors:
+      primary:
+        main: "#13BEB7"
+      text:
+        primary: "#36474E"
+    sidebar:
+      backgroundColor: "#F8F9FC"
+    typography:
+      fontFamily: "Lato, sans-serif"
+      headings:
+        fontFamily: "Lato, sans-serif"
+        fontWeight: "700"

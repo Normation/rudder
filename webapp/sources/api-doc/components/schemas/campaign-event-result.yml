@@ -29,8 +29,8 @@ properties:
         nbPackages:
           type: integer
           description: Number of software updated
-          example: "42"
+          example: 42
         date:
           type: string
-          format: date
+          format: date-time
           example: "2023-04-19T16:59:53Z"
