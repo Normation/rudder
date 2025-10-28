@@ -202,6 +202,14 @@ bundle agent pop_dry_run_mode()
 #  - ... and all promise types that are not for the agent
 ###############################################################################
 
+# We don't use default bodies for custom promise type but declare it explicitly.
+body action rudder_module {
+  dry_run|global_dry_run::
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
 body file control
 {
    namespace => "bodydefault";
@@ -284,13 +292,6 @@ body action databases_action
     action_policy => "fix";
 }
 
-body action rudder_module
-{
-  dry_run|global_dry_run::
-    action_policy => "warn";
-  !(dry_run|global_dry_run)::
-    action_policy => "fix";
-}
 
 body file control
 {
