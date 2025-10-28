@@ -1,5 +1,40 @@
 # Augeas module
 
+This module enables the use of [Augeas](https://augeas.net) on Linux systems.
+It is available in Rudder version 8.3 and above.
+
+## Interpreter
+
+The Augeas module provides an interpreter to help testing Augeas scripts interactively.
+
+```shell
+/opt/rudder/bin/raugtool --help
+Usage: /opt/rudder/bin/raugtool [OPTIONS]
+
+Optional arguments:
+  -h, --help             print help message
+  -v, --verbose          be verbose
+  --version              print version information and exit
+  -C, --context CONTEXT  Prefix to add.
+  -p, --path PATH        Output file path
+  -r, --root ROOT        use root as the root of the filesystem
+  -f, --file PATH        read commands from file
+  -e, --echo             echo commands when reading from a file
+  -l, --load-file PATH   load individual file in the tree
+  -s, --autosave         automatically save at the end of instructions
+  -i, --include PATH     additional load paths for lenses
+  --lens LENS            A lens to use.
+  -c, --typecheck        force type checking of lenses
+  -b, --backup           preserve originals of modified files with extension '.augsave'
+  -n, --new              save changes in files with extension '.augnew', leave original unchanged
+  --span                 always enabled, this option does nothing
+  -L, --noload           do not load any files into the tree on startup
+  -S, --nostdinc         do not search the builtin default directories for modules
+  -I, --interactive      run an interactive shell after evaluating the commands in STDIN and FILE
+  -t, --transform XFM    add a file transform; uses the 'transform' command syntax, e.g. -t 'Fstab incl /etc/fstab.bak'
+  -A, --noautoload       do not autoload modules from the search path
+```
+
 ## Language
 
 The module's DSL is an extension of the [Augeas DSL](https://augeas.net/docs/augeas.html) with some Rudder-specific
