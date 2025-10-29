@@ -45,102 +45,103 @@ get:
                     type: object
                     description: Group tree
                 example:
-                  id: GroupRoot
-                  name: Root of the group and group categories
-                  description:
-                    This is the root category for the groups (both dynamic and static)
-                    and group categories
-                  parent: GroupRoot
-                  categories:
-                    - id: SystemGroups
-                      name: System groups
-                      description: That category holds all the system and special target
-                      parent: GroupRoot
-                      categories: []
-                      groups:
-                        - id: hasPolicyServer-root
-                          displayName: All nodes managed by root policy server
-                          description: All nodes known by Rudder directly connected to the root server
-                          query:
-                            select: nodeAndPolicyServer
-                            composition: And
-                            where:
-                              - objectType: node
-                                attribute: policyServerId
-                                comparator: eq
-                                value: root
-                          nodeIds:
-                            - dd404bda-2785-4959-abaa-8f37a0bbd85e
-                            - f6223b0e-e2aa-4d1f-b6d1-74de8ea8e513
-                            - root
-                          dynamic: true
-                          enabled: true
-                          properties: []
-                          target: "group:hasPolicyServer-root"
-                          system: true
-                    - id: 38dd2107-a73b-45fb-916d-e110312abb87
-                      name: production groups
-                      description: ""
-                      parent: GroupRoot
-                      categories: []
-                      groups:
-                        - id: 79d83ff9-24d8-4be6-b1f7-cbb1c173f7a5
-                          displayName: Linux nodes
-                          description: ""
-                          query:
-                            select: node
-                            composition: And
-                            where:
-                              - objectType: node
-                                attribute: OS
-                                comparator: eq
-                                value: Linux
-                          nodeIds: []
-                          dynamic: false
-                          enabled: true
-                          target: "group:79d83ff9-24d8-4be6-b1f7-cbb1c173f7a5"
-                          system: false
-                  groups:
-                    - id: af208515-c2f2-4577-bbf4-9fffebbe6629
-                      displayName: Test Clients
-                      description: ""
-                      query:
-                        select: node
-                        composition: Or
-                        where:
-                          - objectType: node
-                            attribute: nodeHostname
-                            comparator: regex
-                            value: servername.*company.net
-                          - objectType: node
-                            attribute: nodeHostname
-                            comparator: regex
-                            value: lt serverbla.*company.net
-                      nodeIds: []
-                      dynamic: true
-                      enabled: true
-                      target: "group:af208515-c2f2-4577-bbf4-9fffebbe6629"
-                      system: false
-                    - id: d7634b2d-7189-422b-9971-24c29b75da46
-                      displayName: Test Clients
-                      description: ""
-                      query:
-                        select: node
-                        composition: Or
-                        where:
-                          - objectType: node
-                            attribute: nodeHostname
-                            comparator: regex
-                            value: servername.*company.net
-                          - objectType: node
-                            attribute: nodeHostname
-                            comparator: regex
-                            value: lt serverbla.*company.net
-                      nodeIds: []
-                      dynamic: true
-                      enabled: true
-                      target: "group:d7634b2d-7189-422b-9971-24c29b75da46"
-                      system: false
+                  groupCategories:
+                    id: GroupRoot
+                    name: Root of the group and group categories
+                    description:
+                      This is the root category for the groups (both dynamic and static)
+                      and group categories
+                    parent: GroupRoot
+                    categories:
+                      - id: SystemGroups
+                        name: System groups
+                        description: That category holds all the system and special target
+                        parent: GroupRoot
+                        categories: []
+                        groups:
+                          - id: hasPolicyServer-root
+                            displayName: All nodes managed by root policy server
+                            description: All nodes known by Rudder directly connected to the root server
+                            query:
+                              select: nodeAndPolicyServer
+                              composition: And
+                              where:
+                                - objectType: node
+                                  attribute: policyServerId
+                                  comparator: eq
+                                  value: root
+                            nodeIds:
+                              - dd404bda-2785-4959-abaa-8f37a0bbd85e
+                              - f6223b0e-e2aa-4d1f-b6d1-74de8ea8e513
+                              - root
+                            dynamic: true
+                            enabled: true
+                            properties: []
+                            target: "group:hasPolicyServer-root"
+                            system: true
+                      - id: 38dd2107-a73b-45fb-916d-e110312abb87
+                        name: production groups
+                        description: ""
+                        parent: GroupRoot
+                        categories: []
+                        groups:
+                          - id: 79d83ff9-24d8-4be6-b1f7-cbb1c173f7a5
+                            displayName: Linux nodes
+                            description: ""
+                            query:
+                              select: node
+                              composition: And
+                              where:
+                                - objectType: node
+                                  attribute: OS
+                                  comparator: eq
+                                  value: Linux
+                            nodeIds: []
+                            dynamic: false
+                            enabled: true
+                            target: "group:79d83ff9-24d8-4be6-b1f7-cbb1c173f7a5"
+                            system: false
+                    groups:
+                      - id: af208515-c2f2-4577-bbf4-9fffebbe6629
+                        displayName: Test Clients
+                        description: ""
+                        query:
+                          select: node
+                          composition: Or
+                          where:
+                            - objectType: node
+                              attribute: nodeHostname
+                              comparator: regex
+                              value: servername.*company.net
+                            - objectType: node
+                              attribute: nodeHostname
+                              comparator: regex
+                              value: lt serverbla.*company.net
+                        nodeIds: []
+                        dynamic: true
+                        enabled: true
+                        target: "group:af208515-c2f2-4577-bbf4-9fffebbe6629"
+                        system: false
+                      - id: d7634b2d-7189-422b-9971-24c29b75da46
+                        displayName: Test Clients
+                        description: ""
+                        query:
+                          select: node
+                          composition: Or
+                          where:
+                            - objectType: node
+                              attribute: nodeHostname
+                              comparator: regex
+                              value: servername.*company.net
+                            - objectType: node
+                              attribute: nodeHostname
+                              comparator: regex
+                              value: lt serverbla.*company.net
+                        nodeIds: []
+                        dynamic: true
+                        enabled: true
+                        target: "group:d7634b2d-7189-422b-9971-24c29b75da46"
+                        system: false
 
   tags:
     - Groups

@@ -42,7 +42,6 @@ post:
                       - username
                       - password
                       - permissions
-                      - isPreHashed
                     properties:
                       username:
                         type: string

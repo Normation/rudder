@@ -33,7 +33,7 @@ get:
                 required:
                   - plugins
                 properties:
-                  parameters:
+                  plugins:
                     type: array
                     items:
                       $ref: ../../components/schemas/plugins-info.yml

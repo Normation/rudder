@@ -68,8 +68,12 @@ post:
           properties:
             value:
               description: New value of the allowed networks
-              # FIXME: array?
-              type: object
+              type: array
+              items:
+                type: string
+              example:
+                - 192.168.2.0/24
+                - 192.168.0.0/16
   responses:
     "200":
       description: Allowed Networks
