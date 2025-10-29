@@ -11,4 +11,4 @@ schema:
     - running
     - finished
     - skipped
-  example: enabled
+  example: running

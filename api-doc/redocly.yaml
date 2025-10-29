@@ -13,9 +13,8 @@ rules:
   tag-description: "error"
   operation-2xx-response: "error"
   operation-operationId: "error"
-  # FIXME: temporarily disable these 2 rule until we fix all schemas
-  no-required-schema-properties-undefined: "off"
-  no-invalid-schema-examples: "off"
+  no-required-schema-properties-undefined: "error"
+  no-invalid-schema-examples: "error"
   no-invalid-parameter-examples: "error"
   no-server-example.com:
     # Some of our APIs are *actually* served on localhost

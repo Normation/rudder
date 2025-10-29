@@ -73,13 +73,7 @@ post:
               data:
                 type: object
                 description: Parameters
-                required:
-                  - plugins
-                properties:
-                  parameters:
-                    type: array
-                    items:
-                      $ref: ../../components/schemas/plugins-settings.yml
+                $ref: ../../components/schemas/plugins-settings.yml
   tags:
     - Plugins
   x-codeSamples:

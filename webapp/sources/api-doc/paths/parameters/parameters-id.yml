@@ -116,7 +116,6 @@ delete:
             required:
               - result
               - action
-              - data
               - id
             properties:
               id:
