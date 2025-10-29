@@ -29,6 +29,7 @@ zxcvbn = "3"
 pest = "2.7.15"
 pest_derive = "2.7.15"
 chrono = { version = "0.4.39", features = ["serde"] }
+itertools = "0.14.0"
 
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }
