@@ -390,7 +390,7 @@ limitations under the License.
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.9</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
-    <bouncycastle-compat>jdk18on</bouncycastle-compat>
+    <bouncycastle-compat>lts8on</bouncycastle-compat>
     <bouncycastle-version>1.82</bouncycastle-version>
     <better-files-version>3.9.2</better-files-version>
     <sourcecode-version>0.4.4</sourcecode-version>
