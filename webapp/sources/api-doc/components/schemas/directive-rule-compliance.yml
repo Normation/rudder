@@ -4,7 +4,6 @@ required:
   - name
   - compliance
   - complianceDetails
-  - nodes
 properties:
   id:
     type: string

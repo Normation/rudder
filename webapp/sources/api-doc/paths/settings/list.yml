@@ -33,7 +33,8 @@ get:
                 required:
                   - settings
                 properties:
-                  $ref: ../../components/schemas/settings.yml
+                  settings:
+                    $ref: ../../components/schemas/settings.yml
 
   tags:
     - Settings

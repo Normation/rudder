@@ -1,190 +1,190 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
-settings:
-  properties:
-    allowed_networks:
-      type: array
-      description: List of allowed networks for each policy server (root and relays)
-      items:
-        type: object
-        properties:
-          id:
+type: object
+properties:
+  allowed_networks:
+    type: array
+    description: List of allowed networks for each policy server (root and relays)
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "root"
+          description: Rudder id of the policy server
+        allowed_networks:
+          description: List of allowed networks
+          type: array
+          items:
+            description: Allowed network (`0.0.0.0/0` for no restriction `a.b.c.d/32` for one IP)
+            example: 192.168.40.0/24
             type: string
-            example: "root"
-            description: Rudder id of the policy server
-          allowed_networks:
-            description: List of allowed networks
-            type: array
-            items:
-              description: Allowed network (`0.0.0.0/0` for no restriction `a.b.c.d/32` for one IP)
-              example: 192.168.40.0/24
-              type: string
-              format: CIDR network
-    global_policy_mode:
-      type: string
-      description: Define the default setting for global policy mode
-      enum:
-        - "enforce"
-        - audit
-      example: enforce
-    global_policy_mode_overridable:
-      type: boolean
-      description: Allow overrides on this default setting
-      example: true
-    run_frequency:
-      description: Agent run schedule - time between agent runs (in minutes)
-      type: integer
-      example: 5
-    first_run_hour:
-      type: integer
-      example: 0
-      description: First agent run time - hour
-    first_run_minute:
-      type: integer
-      example: 0
-      description: First agent run time - minute
-    splay_time:
-      type: integer
-      example: 5
-      description: Maximum delay after scheduled run time (random interval)
-    modified_file_ttl:
-      type: integer
-      example: 7
-      description: Number of days to retain modified files
-    output_file_ttl:
-      type: integer
-      example: 7
-      description: Number of days to retain agent output files
-    require_time_synchronization:
-      type: boolean
-      example: true
-      description: Require time synchronization between nodes and policy server
-    relay_server_synchronization_method:
-      type: string
-      enum:
-        - "classic"
-        - rsync
-        - disabled
-      example: "classic"
-      description: Method used to synchronize data between server and relays, either "classic" (agent protocol, default), "rsync" (use rsync to synchronize, that you'll need to be manually set up), or "disabled" (use third party system to transmit data)
-    relay_server_synchronize_policies:
-      type: boolean
-      example: true
-      description: If **rsync** is set as a synchronization method, use rsync to synchronize policies between Rudder server and relays. If false, you'll have to synchronize policies yourself.
-    relay_server_synchronize_shared_files:
-      type: boolean
-      description: If **rsync** is set as a synchronization method, use rsync to synchronize shared files between Rudder server and relays. If false, you'll have to synchronize shared files yourself.
-    rudder_report_protocol_default:
-      type: string
-      enum:
-        - "HTTPS"
-        - SYSLOG
-      example: "HTTPS"
-      description: Default reporting protocol used
-    reporting_mode:
-      type: string
-      enum:
-        - full-compliance
-        - changes-only
-        - reports-disabled
-      example: full-compliance
-      description: Compliance reporting mode
-    heartbeat_frequency:
-      type: integer
-      example: 10
-      description: Send heartbeat every heartbeat_frequency runs (only on **changes-only** compliance mode)
-    enable_change_message:
-      type: boolean
-      example: true
-      description: Enable change audit logs
-    mandatory_change_message:
-      type: boolean
-      example: false
-      description: Make message mandatory
-    change_message_prompt:
-      type: string
-      example: Please provide a reason for this change
-      description: Explanation to display
-    enable_change_request:
-      type: boolean
-      example: false
-      description: Enable Change Requests
-    enable_self_validation:
-      type: boolean
-      example: true
-      description: Allow self validation
-    enable_self_deployment:
-      type: boolean
-      example: true
-      description: Allow self deployment
-    display_recent_changes_graphs:
-      type: boolean
-      example: true
-      description: Display changes graphs
-    enable_javascript_directives:
-      type: string
-      example: "enabled"
-      description: Enable script evaluation in Directives
-    send_metrics:
-      type: string
-      example: "not defined"
-      description: Send anonymous usage statistics
-    node_accept_duplicated_hostname:
-      type: boolean
-      example: false
-      description: Allow acceptation of a pending node when another one with the same hostname is already accepted
-      default: false
-    node_onaccept_default_state:
-      type: string
-      enum:
-        - enabled
-        - ignored
-        - empty-policies
-        - initializing
-        - preparing-eol
-      example: enabled
-      description: Set default state for node when they are accepted within Rudder
-    node_onaccept_default_policyMode:
-      type: string
-      enum:
-        - default
-        - "enforce"
-        - audit
-      example: default
-      description: Default policy mode for accepted node
-    unexpected_unbound_var_values:
-      type: boolean
-      description: Allows multiple reports for configuration based on a multivalued variable
-      default: true
-    rudder_compute_changes:
-      type: boolean
-      default: true
-      description: Compute list of changes (repaired reports) per rule
-    rudder_generation_compute_dyngroups:
-      type: boolean
-      default: true
-      description: Recompute all dynamic groups at the start of policy generation
-    rudder_compute_dyngroups_max_parallelism:
-      type: string
-      default: "1"
-      description: Set the parallelism to compute dynamic group, as a number of thread (i.e. 4), or a multiplicative of the number of core (x0.5)
-    rudder_generation_max_parallelism:
-      type: string
-      default: "x0.5"
-      description: Set the policy generation parallelism, either as an number of thread (i.e. 4), or a multiplicative of the number of core (x0.5)
-    rudder_generation_js_timeout:
-      type: integer
-      default: 30
-      description: Policy generation JS evaluation of directive parameter timeout in seconds
-    rudder_generation_continue_on_error:
-      type: boolean
-      default: false
-      description: Policy generation continues on error during NodeConfiguration evaluation
-    rudder_generation_delay:
-      type: string
-      default: "0 seconds"
-      description: Set a delay before starting policy generation, this will allow you to accumulate changes before they are deployed to Nodes, and can also lessen webapp resources needs. The value is a number followed by the time unit needed (seconds/s, minutes/m, hours/h ...), ie "5m" for 5 minutes
-    rudder_generation_policy:
-      type: string
-      default: "all"
-      description: Should policy generation be triggered automatically after a change (value 'all'), or should we wait until a manual launch (through api or UI, value 'onlyManual') or even no policy generation at all (value "none")
+            format: CIDR network
+  global_policy_mode:
+    type: string
+    description: Define the default setting for global policy mode
+    enum:
+      - "enforce"
+      - audit
+    example: enforce
+  global_policy_mode_overridable:
+    type: boolean
+    description: Allow overrides on this default setting
+    example: true
+  run_frequency:
+    description: Agent run schedule - time between agent runs (in minutes)
+    type: integer
+    example: 5
+  first_run_hour:
+    type: integer
+    example: 0
+    description: First agent run time - hour
+  first_run_minute:
+    type: integer
+    example: 0
+    description: First agent run time - minute
+  splay_time:
+    type: integer
+    example: 5
+    description: Maximum delay after scheduled run time (random interval)
+  modified_file_ttl:
+    type: integer
+    example: 7
+    description: Number of days to retain modified files
+  output_file_ttl:
+    type: integer
+    example: 7
+    description: Number of days to retain agent output files
+  require_time_synchronization:
+    type: boolean
+    example: true
+    description: Require time synchronization between nodes and policy server
+  relay_server_synchronization_method:
+    type: string
+    enum:
+      - "classic"
+      - rsync
+      - disabled
+    example: "classic"
+    description: Method used to synchronize data between server and relays, either "classic" (agent protocol, default), "rsync" (use rsync to synchronize, that you'll need to be manually set up), or "disabled" (use third party system to transmit data)
+  relay_server_synchronize_policies:
+    type: boolean
+    example: true
+    description: If **rsync** is set as a synchronization method, use rsync to synchronize policies between Rudder server and relays. If false, you'll have to synchronize policies yourself.
+  relay_server_synchronize_shared_files:
+    type: boolean
+    description: If **rsync** is set as a synchronization method, use rsync to synchronize shared files between Rudder server and relays. If false, you'll have to synchronize shared files yourself.
+  rudder_report_protocol_default:
+    type: string
+    enum:
+      - "HTTPS"
+      - SYSLOG
+    example: "HTTPS"
+    description: Default reporting protocol used
+  reporting_mode:
+    type: string
+    enum:
+      - full-compliance
+      - changes-only
+      - reports-disabled
+    example: full-compliance
+    description: Compliance reporting mode
+  heartbeat_frequency:
+    type: integer
+    example: 10
+    description: Send heartbeat every heartbeat_frequency runs (only on **changes-only** compliance mode)
+  enable_change_message:
+    type: boolean
+    example: true
+    description: Enable change audit logs
+  mandatory_change_message:
+    type: boolean
+    example: false
+    description: Make message mandatory
+  change_message_prompt:
+    type: string
+    example: Please provide a reason for this change
+    description: Explanation to display
+  enable_change_request:
+    type: boolean
+    example: false
+    description: Enable Change Requests
+  enable_self_validation:
+    type: boolean
+    example: true
+    description: Allow self validation
+  enable_self_deployment:
+    type: boolean
+    example: true
+    description: Allow self deployment
+  display_recent_changes_graphs:
+    type: boolean
+    example: true
+    description: Display changes graphs
+  enable_javascript_directives:
+    type: string
+    example: "enabled"
+    description: Enable script evaluation in Directives
+  send_metrics:
+    type: string
+    example: "not defined"
+    description: Send anonymous usage statistics
+  node_accept_duplicated_hostname:
+    type: boolean
+    example: false
+    description: Allow acceptation of a pending node when another one with the same hostname is already accepted
+    default: false
+  node_onaccept_default_state:
+    type: string
+    enum:
+      - enabled
+      - ignored
+      - empty-policies
+      - initializing
+      - preparing-eol
+    example: enabled
+    description: Set default state for node when they are accepted within Rudder
+  node_onaccept_default_policyMode:
+    type: string
+    enum:
+      - default
+      - "enforce"
+      - audit
+    example: default
+    description: Default policy mode for accepted node
+  unexpected_unbound_var_values:
+    type: boolean
+    description: Allows multiple reports for configuration based on a multivalued variable
+    default: true
+  rudder_compute_changes:
+    type: boolean
+    default: true
+    description: Compute list of changes (repaired reports) per rule
+  rudder_generation_compute_dyngroups:
+    type: boolean
+    default: true
+    description: Recompute all dynamic groups at the start of policy generation
+  rudder_compute_dyngroups_max_parallelism:
+    type: string
+    default: "1"
+    description: Set the parallelism to compute dynamic group, as a number of thread (i.e. 4), or a multiplicative of the number of core (x0.5)
+  rudder_generation_max_parallelism:
+    type: string
+    default: "x0.5"
+    description: Set the policy generation parallelism, either as an number of thread (i.e. 4), or a multiplicative of the number of core (x0.5)
+  rudder_generation_js_timeout:
+    type: integer
+    default: 30
+    description: Policy generation JS evaluation of directive parameter timeout in seconds
+  rudder_generation_continue_on_error:
+    type: boolean
+    default: false
+    description: Policy generation continues on error during NodeConfiguration evaluation
+  rudder_generation_delay:
+    type: string
+    default: "0 seconds"
+    description: Set a delay before starting policy generation, this will allow you to accumulate changes before they are deployed to Nodes, and can also lessen webapp resources needs. The value is a number followed by the time unit needed (seconds/s, minutes/m, hours/h ...), ie "5m" for 5 minutes
+  rudder_generation_policy:
+    type: string
+    default: "all"
+    description: Should policy generation be triggered automatically after a change (value 'all'), or should we wait until a manual launch (through api or UI, value 'onlyManual') or even no policy generation at all (value "none")

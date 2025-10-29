@@ -36,68 +36,69 @@ get:
                     type: object
                     description: Rule tree
                 example:
-                  id: rootRuleCategory
-                  name: Rules
-                  description: This is the main category of Rules
-                  parent: rootRuleCategory
-                  categories:
-                    - id: 4306143d-eabf-4478-b7b1-1616f4aa02b5
-                      name: Dev category
-                      description: ""
-                      parent: rootRuleCategory
-                      categories:
-                        - id: f45ec2fd-69f4-4669-9c22-1af3abe2a107
-                          name: Specific dev category
-                          description: ""
-                          parent: 4306143d-eabf-4478-b7b1-1616f4aa02b5
-                          categories: []
-                          rules:
-                            - id: b7fda4e7-3616-4e99-89b0-8ffadaf6b0f0
-                              displayName: my specific Rule
-                              shortDescription: ""
-                              longDescription: ""
-                              directives: []
-                              targets: []
-                              enabled: true
-                              system: false
-                      rules:
-                        - id: f2aa50a9-961c-4cce-a266-380cffcdce32
-                          displayName: dev Rule
-                          shortDescription: ""
-                          longDescription: ""
-                          directives: []
-                          targets: []
-                          enabled: true
-                          system: false
-                  rules:
-                    - id: 43cde273-5bb0-466f-8850-7d3fdde03253
-                      displayName: Global security policy
-                      shortDescription: ""
-                      longDescription: ""
-                      directives: []
-                      targets: []
-                      enabled: true
-                      system: false
-                    - id: 32377fd7-02fd-43d0-aab7-28460a91347b
-                      displayName: Global configuration for all nodes
-                      shortDescription: ""
-                      longDescription:
-                        This Rule was created automatically when Rudder was installed.
-                        It can be used to target Directives to all nodes (including the Rudder root server
-                        itself), or deleted if you would rather create your own set of Rules (it will
-                        never be created again).
-                      directives:
-                        - bff45fe2-8233-4d28-96aa-78b0390b548b
-                      targets:
-                        - include:
-                            or:
-                              - special:all
-                              - special:all_exceptPolicyServers
-                              - special:all_policyServers
-                          exclude:
-                            or: []
-                      enabled: false
-                      system: false
+                  ruleCategories:
+                    id: rootRuleCategory
+                    name: Rules
+                    description: This is the main category of Rules
+                    parent: rootRuleCategory
+                    categories:
+                      - id: 4306143d-eabf-4478-b7b1-1616f4aa02b5
+                        name: Dev category
+                        description: ""
+                        parent: rootRuleCategory
+                        categories:
+                          - id: f45ec2fd-69f4-4669-9c22-1af3abe2a107
+                            name: Specific dev category
+                            description: ""
+                            parent: 4306143d-eabf-4478-b7b1-1616f4aa02b5
+                            categories: []
+                            rules:
+                              - id: b7fda4e7-3616-4e99-89b0-8ffadaf6b0f0
+                                displayName: my specific Rule
+                                shortDescription: ""
+                                longDescription: ""
+                                directives: []
+                                targets: []
+                                enabled: true
+                                system: false
+                        rules:
+                          - id: f2aa50a9-961c-4cce-a266-380cffcdce32
+                            displayName: dev Rule
+                            shortDescription: ""
+                            longDescription: ""
+                            directives: []
+                            targets: []
+                            enabled: true
+                            system: false
+                    rules:
+                      - id: 43cde273-5bb0-466f-8850-7d3fdde03253
+                        displayName: Global security policy
+                        shortDescription: ""
+                        longDescription: ""
+                        directives: []
+                        targets: []
+                        enabled: true
+                        system: false
+                      - id: 32377fd7-02fd-43d0-aab7-28460a91347b
+                        displayName: Global configuration for all nodes
+                        shortDescription: ""
+                        longDescription:
+                          This Rule was created automatically when Rudder was installed.
+                          It can be used to target Directives to all nodes (including the Rudder root server
+                          itself), or deleted if you would rather create your own set of Rules (it will
+                          never be created again).
+                        directives:
+                          - bff45fe2-8233-4d28-96aa-78b0390b548b
+                        targets:
+                          - include:
+                              or:
+                                - special:all
+                                - special:all_exceptPolicyServers
+                                - special:all_policyServers
+                            exclude:
+                              or: []
+                        enabled: false
+                        system: false
 
   tags:
     - Rules
