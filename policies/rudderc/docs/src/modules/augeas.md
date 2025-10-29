@@ -35,6 +35,57 @@ Optional arguments:
   -A, --noautoload       do not autoload modules from the search path
 ```
 
+```shell
+raugtool> help
+Admin commands:
+  context    - change how relative paths are interpreted
+  load       - (re)load files under /files
+  save       - save all pending changes
+  transform  - add a file transform
+  load-file  - load a specific file
+  retrieve   - transform tree into text
+  store      - parse text into tree
+  quit       - exit the program
+
+Informational commands:
+  errors     - show all errors encountered in processing files
+  info       - print runtime information
+  help       - print help
+  source     - print the file to which a node belongs
+  preview    - preview the file contents for the path specified
+
+Read commands:
+  dump-xml   - print a subtree as XML
+  get        - get the value of a node
+  label      - get the label of a node
+  ls         - list children of a node
+  match      - print matches for a path expression
+  count      - print the number of matches for a path expression
+  print      - print a subtree
+  span       - print position in input file corresponding to tree
+
+Write commands:
+  clear      - clear the value of a node
+  clearm     - clear the value of multiple nodes
+  ins        - insert new node
+  insert     - insert new node (alias of 'ins')
+  mv         - move a subtree
+  move       - move a subtree (alias of 'mv')
+  cp         - copy a subtree
+  copy       - copy a subtree (alias of 'cp')
+  rename     - rename a subtree label
+  rm         - delete nodes and subtrees
+  set        - set the value of a node
+  setm       - set the value of multiple nodes
+  touch      - create a new node
+
+Path expression commands:
+  defnode    - set a variable, possibly creating a new node
+  defvar     - set a variable
+
+Type 'help <command>' for more information on a command
+```
+
 ## Language
 
 The module's DSL is an extension of the [Augeas DSL](https://augeas.net/docs/augeas.html) with some Rudder-specific
