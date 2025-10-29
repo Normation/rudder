@@ -775,9 +775,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       node <- factRepo.slowGet(NodeId("node1")).notOptional("node1 must be here")
       props = node.properties.appended(newProp)
       // first time: change should be here -
-      d1   <- factRepo.save(node.modify(_.properties).setTo(props))(using testChangeContext)
+      d1   <- factRepo.save(node.modify(_.properties).setTo(props))
       // second time: should be noop
-      d2   <- factRepo.save(node.modify(_.properties).setTo(props))(using testChangeContext)
+      d2   <- factRepo.save(node.modify(_.properties).setTo(props))
     } yield (d1, d2)).either.runNow
 
     val afterInv = mockLdapFactStorage.testServer
