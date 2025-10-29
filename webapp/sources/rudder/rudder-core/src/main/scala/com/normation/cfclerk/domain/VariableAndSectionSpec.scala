@@ -276,7 +276,7 @@ final case class ValueLabel(value: String, label: String) {
   def reverse: ValueLabel       = ValueLabel(label, value)
 }
 
-trait ValueLabelVariableSpec extends SectionVariableSpec {
+sealed trait ValueLabelVariableSpec extends SectionVariableSpec {
   val valueslabels: Seq[ValueLabel]
 }
 

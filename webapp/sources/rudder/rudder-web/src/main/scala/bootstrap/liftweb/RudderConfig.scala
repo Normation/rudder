@@ -3085,23 +3085,27 @@ object RudderConfigInit {
       () => configService.cfengine_outputs_ttl().toBox,
       () => configService.rudder_report_protocol_default().toBox
     )
-    lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
-      techniqueRepositoryImpl,
-      pathComputer,
-      new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH),
-      new PrepareTemplateVariablesImpl(
+    lazy val rudderCf3PromisesFileWriterService = {
+      val nodeConfigurationLogger = NodeConfigurationLogger.make(RUDDER_DEBUG_NODE_CONFIGURATION_PATH).runNow
+
+      new PolicyWriterServiceImpl(
         techniqueRepositoryImpl,
-        systemVariableSpecService,
-        new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles),
-        agentRegister
-      ),
-      new FillTemplatesService(),
-      writeAllAgentSpecificFiles,
-      HOOKS_D,
-      HOOKS_IGNORE_SUFFIXES,
-      RUDDER_CHARSET.value,
-      Some(RUDDER_GROUP_OWNER_GENERATED_POLICIES)
-    )
+        pathComputer,
+        nodeConfigurationLogger,
+        new PrepareTemplateVariablesImpl(
+          techniqueRepositoryImpl,
+          systemVariableSpecService,
+          new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles),
+          agentRegister
+        ),
+        new FillTemplatesService(),
+        writeAllAgentSpecificFiles,
+        HOOKS_D,
+        HOOKS_IGNORE_SUFFIXES,
+        RUDDER_CHARSET.value,
+        Some(RUDDER_GROUP_OWNER_GENERATED_POLICIES)
+      )
+    }
 
     // must be here because of circular dependency if in techniqueRepository
     techniqueRepositoryImpl.registerCallback(

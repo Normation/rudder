@@ -70,11 +70,6 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
             val label = valueLabel match {
               case select:    SelectVariableSpec    => SELECT
               case selectOne: SelectOneVariableSpec => SELECT1
-              case x =>
-                throw new IllegalArgumentException(
-                  s"We found '${x.getClass.getSimpleName}' when we were looking" +
-                  s" for SelectVariableSpec or SelectOneVariableSpec. Please report as a bug.'"
-                )
             }
 
             (label, valueLabel.valueslabels)
