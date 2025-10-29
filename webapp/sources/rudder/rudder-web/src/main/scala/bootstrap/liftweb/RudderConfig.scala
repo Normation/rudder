@@ -125,6 +125,7 @@ import com.normation.rudder.services.user.*
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
+import com.normation.rudder.web.StaticResourceRewrite
 import com.normation.rudder.web.components.administration.PolicyBackup
 import com.normation.rudder.web.components.administration.RudderCompanyAccount
 import com.normation.rudder.web.model.*
@@ -1405,6 +1406,7 @@ object RudderConfig extends Loggable {
   val propertiesService:                   NodePropertiesService                    = rci.propertiesService
   val purgeDeletedInventories:             PurgeDeletedInventories                  = rci.purgeDeletedInventories
   val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares               = rci.purgeUnreferencedSoftwares
+  val staticResourceRewrite:               StaticResourceRewrite                    = rci.staticResourceRewrite
   val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                      = rci.readOnlySoftwareDAO
   val recentChangesService:                NodeChangesService                       = rci.recentChangesService
   val removeNodeService:                   RemoveNodeService                        = rci.removeNodeService
@@ -1565,6 +1567,7 @@ case class RudderServiceApi(
     sharedFileApi:                       SharedFilesAPI,
     eventLogApi:                         EventLogAPI,
     systemApiService:                    SystemApiService11,
+    staticResourceRewrite:               StaticResourceRewrite,
     stringUuidGenerator:                 StringUuidGenerator,
     inventoryWatcher:                    InventoryFileWatcher,
     configService:                       ReadConfigService & UpdateConfigService,
@@ -1794,6 +1797,8 @@ object RudderConfigInit {
     lazy val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
+
+    lazy val staticResourceRewrite = new StaticResourceRewrite(rudderFullVersion)
 
     // implementation of user lookup using the `onBeginServicing` from LiftRules to set the current user
     implicit lazy val userService: UserService = CurrentUser
@@ -2803,7 +2808,7 @@ object RudderConfigInit {
 
     lazy val modificationService      =
       new ModificationService(gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
-    lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository)
+    lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository, staticResourceRewrite)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
       roLdapNodeGroupRepository,
@@ -3914,6 +3919,7 @@ object RudderConfigInit {
       sharedFileApi,
       eventLogApi,
       systemApiService11,
+      staticResourceRewrite,
       stringUuidGenerator,
       inventoryWatcher,
       configService,
