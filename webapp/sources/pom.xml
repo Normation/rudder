@@ -391,7 +391,7 @@ limitations under the License.
     <asm-version>9.9</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
     <bouncycastle-compat>lts8on</bouncycastle-compat>
-    <bouncycastle-version>1.82</bouncycastle-version>
+    <bouncycastle-version>2.73.9</bouncycastle-version>
     <better-files-version>3.9.2</better-files-version>
     <sourcecode-version>0.4.4</sourcecode-version>
     <quicklens-version>1.9.12</quicklens-version>
