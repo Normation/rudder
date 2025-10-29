@@ -56,7 +56,7 @@ properties:
         items:
           type: string
           example: "!="
-  _type:
+  type:
     type: string
     description: Type of the parameter
     enum:

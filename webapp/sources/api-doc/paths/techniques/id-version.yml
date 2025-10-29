@@ -88,7 +88,7 @@ delete:
               data:
                 type: object
                 required:
-                  - resources
+                  - techniques
                 properties:
                   techniques:
                     type: array

@@ -40,7 +40,7 @@ get:
                 required:
                   - nodeResult
                 properties:
-                  noderesult:
+                  nodeResult:
                     type: array
                     items:
                       $ref: ../../components/schemas/campaign-event-node-result.yml

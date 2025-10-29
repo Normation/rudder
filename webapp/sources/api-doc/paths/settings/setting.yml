@@ -37,12 +37,10 @@ get:
               data:
                 type: object
                 description: Information about the setting
-                required:
-                  - settings
                 properties:
                   settingId:
                     type: string
-                    example: value
+                    example: allowed_networks
                     description: Id and value of the property
   tags:
     - Settings
@@ -98,12 +96,10 @@ post:
               data:
                 type: object
                 description: Information about the setting
-                required:
-                  - settings
                 properties:
                   settingId:
                     type: string
-                    example: value
+                    example: allowed_networks
                     description: Id and value of the property
   tags:
     - Settings
