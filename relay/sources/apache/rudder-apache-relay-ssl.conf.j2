@@ -78,7 +78,6 @@ RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
-  SSLRequireSSL
   SSLUserName SSL_CLIENT_S_DN_UID
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
