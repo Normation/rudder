@@ -215,14 +215,17 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 </Location>
 
 <Location /rudder/relay-api/shared-folder>
+  SSLUserName SSL_CLIENT_S_DN_UID
+
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>
+      # rudder-networks-24.conf is automatically
+      # generated according to the hosts allowed by rudder.
       Include /opt/rudder/etc/rudder-networks-24.conf
     </RequireAny>
   </RequireAll>
 </Location>
-
 
 <Location /rudder/relay-api/shared-files>
   <RequireAll>
