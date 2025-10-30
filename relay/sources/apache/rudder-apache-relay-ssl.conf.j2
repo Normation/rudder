@@ -83,15 +83,9 @@ RewriteEngine On
 # UID in DN
 # The first 3 SAN DNS entries
 
-RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
-RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
-
-RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_0}=$1.example.com" "^(.+)=\1$"
-RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
-
-RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$"
-RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
-
+RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$" [OR]
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_0}=$1.example.com" "^(.+)=\1$" [OR]
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$" [OR] 
 RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
 RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
