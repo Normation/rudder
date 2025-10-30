@@ -17,7 +17,7 @@ SSLVerifyDepth 5
 SSLVerifyClient optional
 
 {% if classes.rudder_cert_validation is defined %}
-SSLUserName SSL_CLIENT_S_DN
+SSLUserName SSL_SESSION_ID
 {% else %}
 SSLUserName SSL_CLIENT_S_DN_UID
 {% endif %}
@@ -87,13 +87,13 @@ RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
 RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_0}=$1.example.com" "^(.+)=\1$"
-RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$"
-RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
-RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
