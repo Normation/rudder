@@ -14,6 +14,7 @@ DocumentRoot /var/www
 # Common TLS config
 SSLEngine on
 SSLVerifyDepth 5
+SSLVerifyClient optional
 
 # TLS 1.3 only
 SSLProtocol             -all +TLSv1.3
@@ -72,18 +73,22 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 #   -> final path is generated from the rule pattern
 RewriteEngine On
 
-RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.*?)=\1"
+RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
 RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
-  SSLVerifyClient require
   SSLUserName SSL_CLIENT_S_DN_UID
   SSLRequireSSL
 
-  # rudder-networks-24.conf is automatically
-  # generated according to the hosts allowed by rudder.
-  Include /opt/rudder/etc/rudder-networks-24.conf
+  <RequireAll>
+    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
+    <RequireAny>
+      # rudder-networks-24.conf is automatically
+      # generated according to the hosts allowed by rudder.
+      Include /opt/rudder/etc/rudder-networks-24.conf
+    </RequireAny>
+  </RequireAll>
 </Directory>
 
 # expose common archives publicly
@@ -208,9 +213,16 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 </Location>
 
 <Location /rudder/relay-api/shared-folder>
-  SSLVerifyClient require
+  SSLUserName SSL_CLIENT_S_DN_UID
 
-  Include /opt/rudder/etc/rudder-networks-24.conf
+  <RequireAll>
+    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
+    <RequireAny>
+      # rudder-networks-24.conf is automatically
+      # generated according to the hosts allowed by rudder.
+      Include /opt/rudder/etc/rudder-networks-24.conf
+    </RequireAny>
+  </RequireAll>
 </Location>
 
 
