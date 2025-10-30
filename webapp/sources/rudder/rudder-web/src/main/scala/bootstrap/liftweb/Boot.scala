@@ -91,6 +91,7 @@ import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.reflections.Reflections
@@ -282,8 +283,10 @@ object PluginsInfo {
 ////////// rewrites rules to remove the version from resources urls //////////
 //////////
 object StaticResourceRewrite extends RestHelper {
+  // cache id is composed with rudder instance id and rudder version
+  val cacheId = DigestUtils.sha256Hex(RudderConfig.instanceIdService.instanceId.value ++ RudderConfig.rudderFullVersion).take(24)
   // prefix added to signal that the resource is cached
-  val prefix:                                  String                 = s"cache-${RudderConfig.rudderFullVersion}"
+  val prefix:                                  String                 = s"cache-${cacheId.toString}"
   def headers(others: List[(String, String)]): List[(String, String)] = {
     ("Cache-Control", "max-age=31556926, public") ::
     ("Pragma", "") ::
