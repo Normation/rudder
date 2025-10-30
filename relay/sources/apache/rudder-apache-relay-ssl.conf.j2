@@ -16,6 +16,12 @@ SSLEngine on
 SSLVerifyDepth 5
 SSLVerifyClient optional
 
+{% if classes.rudder_cert_validation is defined %}
+SSLUserName SSL_CLIENT_S_DN
+{% else %}
+SSLUserName SSL_CLIENT_S_DN_UID
+{% endif %}
+
 # TLS 1.3 only
 SSLProtocol             -all +TLSv1.3
 SSLHonorCipherOrder     off
@@ -73,14 +79,24 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 #   -> final path is generated from the rule pattern
 RewriteEngine On
 
+# Look for the client uuid in different certificate fields:
+# UID in DN
+# The first 3 SAN DNS entries
+
 RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
+RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_0}=$1.example.com" "^(.+)=\1$"
+RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$"
+RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
 RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
-  SSLUserName SSL_CLIENT_S_DN_UID
-  SSLRequireSSL
-
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>
@@ -94,40 +110,42 @@ RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
 # expose common archives publicly
 Alias /common /var/rudder/share/common
 <Directory /var/rudder/share/common>
+  <RequireAll>
 {% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
-{% else %}
-  SSLVerifyClient none
+    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
-  # avoid repetitive warning in the logs caused by upper directory configuration
-  SSLUserName SSL_SESSION_ID
-  Include /opt/rudder/etc/rudder-networks-24.conf
+    <RequireAny>
+      Include /opt/rudder/etc/rudder-networks-24.conf
+    </RequireAny>
+  </RequireAll>
 </Directory>
 
 # Expose the server UUID through https
 Alias /uuid /opt/rudder/etc/uuid.hive
 <Directory /opt/rudder/etc>
+  <RequireAll>
 {% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
+    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
-  Require all granted
+    Require all granted
+  </RequireAll>
 </Directory>
 
 # WebDAV share to receive inventories
 Alias /inventories /var/rudder/inventories/incoming
 <Directory /var/rudder/inventories/incoming>
   DAV on
+{% if classes.rudder_cert_validation is not defined %}
   AuthName "WebDAV Storage"
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav-initial
-
-{% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
 {% endif %}
 
   <Limit PUT>
     <RequireAll>
-    {% if classes.rudder_cert_validation is not defined %}
+    {% if classes.rudder_cert_validation is defined %}
+      Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
+    {% else %}
       Require valid-user
     {% endif %}
       <RequireAny>
@@ -146,17 +164,17 @@ Alias /inventories /var/rudder/inventories/incoming
 Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 <Directory /var/rudder/inventories/accepted-nodes-updates>
   DAV on
+{% if classes.rudder_cert_validation is not defined %}
   AuthName "WebDAV Storage"
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav
-
-{% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
 {% endif %}
 
   <Limit PUT>
     <RequireAll>
-    {% if classes.rudder_cert_validation is not defined %}
+    {% if classes.rudder_cert_validation is defined %}
+      Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
+    {% else %}
       Require valid-user
     {% endif %}
       <RequireAny>
@@ -174,18 +192,18 @@ Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 # WebDAV share to receive reports
 Alias /reports /var/rudder/reports/incoming
 <Directory /var/rudder/reports/incoming>
-{% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
-{% endif %}
-
   DAV on
+{% if classes.rudder_cert_validation is not defined %}
   AuthName "WebDAV Storage"
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav
+{% endif %}
 
   <Limit PUT>
     <RequireAll>
-    {% if classes.rudder_cert_validation is not defined %}
+    {% if classes.rudder_cert_validation is defined %}
+      Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
+    {% else %}
       Require valid-user
     {% endif %}
       <RequireAny>
@@ -213,8 +231,6 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 </Location>
 
 <Location /rudder/relay-api/shared-folder>
-  SSLUserName SSL_CLIENT_S_DN_UID
-
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>
@@ -225,18 +241,25 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
   </RequireAll>
 </Location>
 
-
 <Location /rudder/relay-api/shared-files>
+  <RequireAll>
 {% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
+    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
-  Include /opt/rudder/etc/rudder-networks-24.conf
+    <RequireAny>
+      Include /opt/rudder/etc/rudder-networks-24.conf
+    </RequireAny>
+  </RequireAll>
 </Location>
 
 <Location /rudder/relay-api/remote-run>
+  <RequireAll>
 {% if classes.rudder_cert_validation is defined %}
-  SSLVerifyClient require
+    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
-  Include /opt/rudder/etc/rudder-networks-policy-server-24.conf
+    <RequireAny>
+      Include /opt/rudder/etc/rudder-networks-policy-server-24.conf
+    </RequireAny>
+  </RequireAll>
 </Location>
 
