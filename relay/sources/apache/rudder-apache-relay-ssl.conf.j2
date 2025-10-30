@@ -74,7 +74,7 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 RewriteEngine On
 
 RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
-RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
