@@ -63,6 +63,17 @@ const csvButtonConfig = (filename) => ({
   filename: filename,
   text: 'Export',
   exportOptions: {
+      format: {
+          body: function (html, row, col, node) {
+              // begin with default formatting
+              html = $.fn.DataTable.Buttons.stripData( html, null );
+              // N/A and curly braces are properties, get innerText ...
+              if (html === "N/A" || html.startsWith("{") ) {
+                html = node.innerText
+              }
+              return html;
+          }
+      },
     customizeData: function (data) {
       // export compliance percent
       const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")
