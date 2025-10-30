@@ -2027,7 +2027,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                   const nodePropertiesDiff = response["data"]["nodePropertiesDiff"]
                   if (nodePropertiesDiff) {
                     document.getElementById(`nodepropertiesdiff-${data.id}`).innerHTML = jsondiffpatch.formatters.html.format(
-                      jsondiffpatch.diff(JSON.stringify(nodePropertiesDiff.from), JSON.stringify(nodePropertiesDiff.to))
+                      jsondiffpatch.diff(nodePropertiesDiff.from, nodePropertiesDiff.to)
                     )
                   }
                 },
