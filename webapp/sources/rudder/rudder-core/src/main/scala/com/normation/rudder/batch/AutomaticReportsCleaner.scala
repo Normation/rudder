@@ -54,6 +54,7 @@ import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
 import org.joda.time.*
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -141,11 +142,9 @@ object AutomaticReportsCleaning {
   }
 
   // what we are looking for in node run interval JSON
-  final case class RunInterval(interval: Int)
+  final case class RunInterval(interval: Int) derives JsonDecoder
   def getMaxRunMinutes(ldapCon: LDAPConnectionProvider[RoLDAPConnection]): IOResult[Int] = {
     import com.normation.ldap.sdk.*
-    import net.liftweb.json.*
-    implicit val format = DefaultFormats
 
     val runIntervalAttr = "serializedAgentRunInterval"
     for {
@@ -154,16 +153,12 @@ object AutomaticReportsCleaning {
         ldap.get(new DN("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration"), "propertyValue")
       default = opt.map(_.getAsInt("propertyValue").getOrElse(5)).getOrElse(5) // default run value
       nodes  <- ldap.searchOne(new DN("ou=Nodes,cn=rudder-configuration"), BuildFilter.HAS(runIntervalAttr), runIntervalAttr)
-      ints   <- ZIO.foreach(nodes) { node =>                                   // don't fail on parsing error, just return 0
-                  (try {
-                    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval: @annotation.nowarn(
-                      "cat=deprecation"
-                    )
-                  } catch {
-                    case ex: Exception => 0
-                  }).succeed
-                }
+      ints    = nodes.map(node => {                                            // don't fail on parsing error, just return 0
+                  node(runIntervalAttr)
+                    .flatMap(_.fromJson[RunInterval].toOption)
+                    .map(_.interval)
+                    .getOrElse(0)
+                })
     } yield {
       (default +: ints).max
     }
