@@ -11,10 +11,12 @@ use rudder_commons::{logs::ok_output, methods::Methods};
 use serde::Serialize;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, ValueEnum)]
+#[derive(Default)]
 pub enum Format {
     /// Markdown output
     Markdown,
     /// HTML output
+    #[default]
     Html,
     /// JSON output
     ///
@@ -22,11 +24,6 @@ pub enum Format {
     Json,
 }
 
-impl Default for Format {
-    fn default() -> Self {
-        Self::Html
-    }
-}
 
 impl Format {
     /// Extension of the output files

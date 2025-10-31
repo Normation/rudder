@@ -32,17 +32,14 @@ use serde_json::Value;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, ValueEnum)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum Engine {
     Mustache,
+    #[default]
     Minijinja,
     Jinja2,
 }
 
-impl Default for Engine {
-    fn default() -> Self {
-        Self::Minijinja
-    }
-}
 
 impl Engine {
     fn minijinja(

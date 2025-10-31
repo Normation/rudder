@@ -16,16 +16,13 @@ use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum State {
+    #[default]
     Present,
     Absent,
 }
 
-impl Default for State {
-    fn default() -> Self {
-        Self::Present
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
