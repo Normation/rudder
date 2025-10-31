@@ -409,7 +409,7 @@ limitations under the License.
     <reflections-version>0.10.2</reflections-version>
     <graalvm-version>25.0.1</graalvm-version>
     <chimney-version>1.8.2</chimney-version>
-    <chimney-macro-version>2.0.2</chimney-version>
+    <chimney-macro-version>2.0.2</chimney-macro-version>
     <cron4s-version>0.8.2</cron4s-version>
     <ipaddress-version>5.5.1</ipaddress-version>
     <snakeyaml-version>2.5</snakeyaml-version>
