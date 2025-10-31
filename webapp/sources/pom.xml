@@ -372,7 +372,7 @@ limitations under the License.
     <scala2-version>2.13.17</scala2-version>
     <scala-binary-version>3</scala-binary-version>
     <scala-xml-version>1.3.0</scala-xml-version>
-    <lift-version>4.0.0-M1</lift-version>
+    <lift-version>4.0.0-M2</lift-version>
     <slf4j-version>2.0.17</slf4j-version>
     <logback-version>1.5.20</logback-version>
     <janino-version>3.1.12</janino-version>
@@ -401,7 +401,7 @@ limitations under the License.
     <json-path-version>2.9.0</json-path-version>
     <json-smart-version>2.6.0</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
-    <unboundid-version>7.0.2</unboundid-version>
+    <unboundid-version>7.0.3</unboundid-version>
     <fastparse-version>3.1.1</fastparse-version>
     <config-version>1.4.5</config-version>
     <caffeine-version>3.2.3</caffeine-version>
@@ -409,6 +409,7 @@ limitations under the License.
     <reflections-version>0.10.2</reflections-version>
     <graalvm-version>25.0.1</graalvm-version>
     <chimney-version>1.8.2</chimney-version>
+    <chimney-macro-version>2.0.2</chimney-macro-version>
     <cron4s-version>0.8.2</cron4s-version>
     <ipaddress-version>5.5.1</ipaddress-version>
     <snakeyaml-version>2.5</snakeyaml-version>
@@ -425,7 +426,6 @@ limitations under the License.
     <cats-version>2.13.0</cats-version>
     <ip4s-version>3.7.0</ip4s-version>
     <doobie-version>1.0.0-RC10</doobie-version>
-    <fs2-version>3.10.2</fs2-version>
     <cats-effect-version>3.6.1</cats-effect-version>
     <dev-zio-version>2.1.22</dev-zio-version>
     <zio-cats-version>23.1.0.5</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
