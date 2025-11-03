@@ -14,7 +14,7 @@
     "jquery": "^3.7.0",
     "jquery-ui": "^1.13.2",
     "jquery-ui-timepicker-addon": "^1.6.3",
-    "jsondiffpatch": "^0.7.3",
+    "jsondiffpatch": "^0.5.0",
     "jstree": "^3.3.15",
     "showdown": "^2.1.0",
     "showdown-xss-filter": "^0.2.0",

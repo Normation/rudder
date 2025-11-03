@@ -46,20 +46,14 @@ const paths = {
             'node_modules/chart.js/dist/chart.umd.js',
             'node_modules/datatables.net-plugins/sorting/natural.js',
             'node_modules/showdown-xss-filter/showdown-xss-filter.js',
+            'node_modules/jsondiffpatch/dist/jsondiffpatch.umd.slim.js',
         ],
         'dest': 'webapp/javascript/libs',
-    },
-    'vendor_esm': { // map of ESM sources per library
-        "jsondiffpatch" : {
-            'src': [
-                'node_modules/jsondiffpatch/lib/**/*.js',
-                'node_modules/jsondiffpatch/lib/**/*.css',
-            ],
-        }
     },
     'vendor_css': {
         'src': [
             'node_modules/*/dist/**/*.min.css*',
+            'node_modules/jsondiffpatch/dist/formatters-styles/html.css',
         ],
         'dest': 'webapp/style/libs',
     },
@@ -160,15 +154,6 @@ function vendor_js(cb) {
     cb();
 };
 
-function vendor_esm(cb) {
-    Object.entries(paths.vendor_esm).forEach(([lib, entry]) =>
-        src(entry.src, { base: "node_modules" })
-            .pipe(rename(({ dirname }) => { dirname: lib + "/" + dirname }))
-            .pipe(dest(entry.dest ?? paths.vendor_js.dest))
-    );
-    cb();
-};
-
 function css(cb) {
     src(paths.css.src, { encoding: false })
         .pipe(dest(paths.css.dest));
@@ -223,4 +208,4 @@ task('watch', series(clean, function() {
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
 }));
 
-task('default', series(clean, parallel(svg, elm, css, scss, js, vendor_css, vendor_js, vendor_esm)));
+task('default', series(clean, parallel(svg, elm, css, scss, js, vendor_css, vendor_js)));

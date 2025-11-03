@@ -2038,7 +2038,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                   const nodePropertiesDiff = response["data"]["nodePropertiesDiff"]
                   if (nodePropertiesDiff) {
                     document.getElementById(`nodepropertiesdiff-${data.id}`).innerHTML = jsondiffpatch.formatters.html.format(
-                      jsondiffpatch.diff(JSON.stringify(nodePropertiesDiff.from), JSON.stringify(nodePropertiesDiff.to))
+                      jsondiffpatch.diff(nodePropertiesDiff.from, nodePropertiesDiff.to)
                     )
                   }
                 },
@@ -2054,8 +2054,9 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           }
 
       }
-    , "dom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
+      '>t<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig("change_logs") ],
   };
 
   createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);

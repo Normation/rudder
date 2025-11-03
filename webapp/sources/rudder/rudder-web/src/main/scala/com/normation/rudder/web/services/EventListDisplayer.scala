@@ -39,8 +39,6 @@ package com.normation.rudder.web.services
 import com.normation.box.*
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository.*
-import com.normation.rudder.web.StaticResourceRewrite
-import com.normation.rudder.web.lift.JsCommands.*
 import com.normation.rudder.web.snippet.WithNonce
 import doobie.*
 import doobie.implicits.*
@@ -61,9 +59,7 @@ import scala.xml.*
  * Used to display the event list, in the pending modification (AsyncDeployment),
  * or in the administration EventLogsViewer
  */
-class EventListDisplayer(repos: EventLogRepository, staticResourceRewrite: StaticResourceRewrite) extends Loggable {
-
-  given StaticResourceRewrite = staticResourceRewrite
+class EventListDisplayer(repos: EventLogRepository) extends Loggable {
 
   def display(gridName: String, refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
     // common part between last events and interval
@@ -140,31 +136,21 @@ class EventListDisplayer(repos: EventLogRepository, staticResourceRewrite: Stati
       (now.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"), now.getZone.getID)
     }
 
-    ScriptModule(
-      OnLoad(JsRaw(s"""
-   const refreshEventLogs = ${refresh.toJsCmd};
-   initDatePickers(
-     "#filterLogs",
-     ${AnonFunc(
-          "param",
-          SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2
-        ).toJsCmd},
-     changeTimezone(new Date('${jsDateWithTimeZone}'), '${currentTimezone}'),
-     '${currentTimezone}',
-     ${hoursBeforeNow}
-   );
-   createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
-   refreshEventLogs();
-  """)) // JsRaw ok, escaped
-    )
-      .withStaticImport(JsModuleFeatures("createEventLogTable"), "javascript/rudder/changeLogs.js")
-      .fold(
-        err => {
-          logger.error(err.fullMsg)
-          WithNonce.scriptWithNonce(Script(OnLoad(Alert(s"Could not create event logs table: ${err.fullMsg}"))))
-        },
-        script => WithNonce.scriptWithNonce(script.toHtml)
-      )
+    WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
+     var refreshEventLogs = ${refresh.toJsCmd};
+     initDatePickers(
+       "#filterLogs",
+       ${AnonFunc(
+        "param",
+        SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2
+      ).toJsCmd},
+       changeTimezone(new Date('${jsDateWithTimeZone}'), '${currentTimezone}'),
+       '${currentTimezone}',
+       ${hoursBeforeNow}
+     );
+     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
+     refreshEventLogs();
+    """)))) // JsRaw ok, escaped
   }
 
 }
