@@ -1,6 +1,6 @@
 
 def failedBuild = false
-def version = "9.1"
+def version = "9.2"
 
 def slackResponse = null
 def changeUrl = env.CHANGE_URL
