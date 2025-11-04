@@ -6,10 +6,26 @@ It is available in Rudder version 8.3 and above.
 It takes the following arguments:
 
 - `Path`: Path of the file
-- `Script`: Commands to run on the file
+
+  example: `/files/etc/hosts/1/ipaddr`
+
+- `Script`: Augeas script to run on the file
+
+  example: `check /files/etc/hosts/1/ipaddr is ipv4`
+
 - `If_script`: Only run the script if this script succeeds
+
+  example: `check /files/etc/hosts/1/canonical ~ localhost`
+
 - `Lens`: Lens to use (defaults to detecting the lens based on file path)
+
+  For a list of supported lenses refer to the [Augeas documentation](https://augeas.net/stock_lenses.html)
+
+  example: `Hosts`
+
 - `Show_content`: Allow reports to contain extracts of the file content (defaults to true)
+
+  example: `true`
 
 ## Interpreter
 
