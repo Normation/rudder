@@ -3,6 +3,37 @@
 This module enables the use of [Augeas](https://augeas.net) on Linux systems.
 It is available in Rudder version 8.3 and above.
 
+The module supports two modes:
+
+- Enforce mode: The module applies changes specified by the Augeas `script` argument.
+- Audit mode: The module does not apply changes. Instead, it compares the
+changes with the actual file content and provides a diff view.
+
+The module takes the following arguments:
+
+- `Path`: Path of the file
+
+  example: `/etc/hosts`
+
+- `Script`: Augeas script to run on the file. The module adds audit
+capabilities to Augeas by introducing an additional directive called `check`.
+
+  example: `check /files/etc/hosts/1/ipaddr is ipv4`
+
+- `If_script`: Only run the script if this script succeeds
+
+  example: `check /files/etc/hosts/1/canonical ~ localhost`
+
+- `Lens`: Lens to use (defaults to detecting the lens based on file path)
+
+  For a list of supported lenses refer to the [Augeas documentation](https://augeas.net/stock_lenses.html)
+
+  example: `Hosts`
+
+- `Show_content`: Allow reports to contain extracts of the file content (defaults to true)
+
+  example: `true`
+
 ## Interpreter
 
 The Augeas module provides an interpreter to help testing Augeas scripts interactively.
