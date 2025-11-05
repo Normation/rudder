@@ -782,7 +782,8 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
     pass3::
       # Cleanup files
       "${report_file}"
-        delete => tidy;
+        delete => tidy,
+        action => immediate_ignore_dry_run;
 
   methods:
     pass3.!has_report::
