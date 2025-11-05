@@ -1,5 +1,6 @@
 module Editor.ViewTechniqueList exposing (..)
 
+import Compliance.Utils exposing (buildTooltipContent)
 import Dict
 import Either exposing (Either(..))
 import Html exposing (..)
@@ -10,6 +11,7 @@ import List.Extra
 import Maybe.Extra
 import NaturalOrdering as N exposing (compare)
 import Editor.DataTypes exposing (..)
+import String.Extra
 
 --
 -- This file deals with the technique list UI
@@ -186,6 +188,11 @@ draftsItem model draft =
 techniqueItem: Model -> Technique -> Html Msg
 techniqueItem model technique =
   let
+    directiveUsed = List.filter (\d -> d.techniqueName ==  technique.id.value) model.directives
+    isDirectiveExist = not (List.isEmpty directiveUsed)
+    techniqueIsUsed = if isDirectiveExist then "used" else ""
+    techniqueIsUsedMsg = if isDirectiveExist then (String.Extra.pluralize "directive" "directives" (List.length directiveUsed)) ++ " based on this technique" else "No directives based on this technique"
+
     techniqueMethods = List.concatMap allMethodCalls technique.elems
     unknownMethods = (List.filter (\c -> Maybe.Extra.isNothing (Dict.get c.methodName.value model.methods)) techniqueMethods)
     activeClass = case model.mode of
@@ -210,31 +217,38 @@ techniqueItem model technique =
     li [class "jstree-node jstree-leaf"]
           [ i[class "jstree-icon jstree-ocl"][]
           , a[class ("jstree-anchor " ++ activeClass), href (model.contextPath ++ "/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClickPreventDefault (SelectTechnique (Left technique))]
-            [ i [class "jstree-icon jstree-themeicon fa fa-cog jstree-themeicon-custom"][]
-            , span [class "treeGroupName"]
-              [ text technique.name  ]
-            , if Dict.member technique.id.value model.drafts then
-              span [class "badge" ] [ text "draft" ]
-              else text ""
-            , if hasDeprecatedMethod  then
-                span
-                [ class "cursor-help"
-                , attribute "data-bs-toggle" "tooltip"
-                , attribute "data-bs-placement" "top"
-                , attribute "data-bs-html" "true"
-                , title "<div>This technique uses <b>deprecated</b> generic methods.</div>"
-                ] [ i [ class "fa fa-info-circle deprecated-icon" ] [] ]
-              else
-                text ""
-            , if hasUnknownMethod  then
-                span
-                [ class "cursor-help"
-                , attribute "data-bs-toggle" "tooltip"
-                , attribute "data-bs-placement" "top"
-                , attribute "data-bs-html" "true"
-                , title ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join ", " (List.map (\m -> m.methodName.value) (List.Extra.unique unknownMethods))) ++ ".</br>These methods do not exist in the library, you must provide them or it will break at run time</div>")
-                ] [ i [ class "fa fa-warning text-warning-rudder min-size-icon unknown-gm-icon" ] [] ]
-              else
-                text ""
+            [ span
+              [ class "cursor-help"
+              , attribute "data-bs-toggle" "tooltip"
+              , attribute "data-bs-placement" "top"
+              , attribute "data-bs-html" "true"
+              , title (buildTooltipContent technique.name techniqueIsUsedMsg)
+              ]
+              [ i [class ("jstree-icon jstree-themeicon fa fa-cog jstree-themeicon-custom " ++ techniqueIsUsed)][]]
+              , span [class "treeGroupName"]
+                [ text technique.name  ]
+              , if Dict.member technique.id.value model.drafts then
+                span [class "badge" ] [ text "draft" ]
+                else text ""
+              , if hasDeprecatedMethod  then
+                  span
+                  [ class "cursor-help"
+                  , attribute "data-bs-toggle" "tooltip"
+                  , attribute "data-bs-placement" "top"
+                  , attribute "data-bs-html" "true"
+                  , title "<div>This technique uses <b>deprecated</b> generic methods.</div>"
+                  ] [ i [ class "fa fa-info-circle deprecated-icon" ] [] ]
+                else
+                  text ""
+              , if hasUnknownMethod  then
+                  span
+                  [ class "cursor-help"
+                  , attribute "data-bs-toggle" "tooltip"
+                  , attribute "data-bs-placement" "top"
+                  , attribute "data-bs-html" "true"
+                  , title ("<div>This technique uses <b>unknown</b> generic methods: " ++ (String.join ", " (List.map (\m -> m.methodName.value) (List.Extra.unique unknownMethods))) ++ ".</br>These methods do not exist in the library, you must provide them or it will break at run time</div>")
+                  ] [ i [ class "fa fa-warning text-warning-rudder min-size-icon unknown-gm-icon" ] [] ]
+                else
+                  text ""
             ]
           ]

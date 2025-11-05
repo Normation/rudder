@@ -248,3 +248,27 @@ decodeErrorDetails json =
   case title of
     Nothing -> ("" , "")
     Just s -> (s , (join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors))))
+
+decodePolicyModeDirective : Decoder PolicyMode
+decodePolicyModeDirective =
+  andThen (\s -> case s of
+                   "audit" -> succeed Audit
+                   "enforce" -> succeed Enforce
+                   "default" ->  succeed Default
+                   _ -> fail ""
+          ) string
+
+decodeDirective : Decoder Directive
+decodeDirective =
+  succeed Directive
+    |> required "id" (map DirectiveId string)
+    |> required "displayName" string
+    |> required "shortDescription" string
+    |> required "longDescription" string
+    |> required "techniqueName" string
+    |> required "techniqueVersion" string
+    |> required "priority" int
+    |> required "enabled" bool
+    |> required "system" bool
+    |> required "policyMode" decodePolicyModeDirective
+    --|> required "tags" (keyValuePairs string)

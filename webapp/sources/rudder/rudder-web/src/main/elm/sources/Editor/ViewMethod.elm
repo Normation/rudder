@@ -664,7 +664,7 @@ callBody model ui techniqueUi call pid =
           Nothing -> "gm-label-default"
           Just Audit -> "label-audit"
           Just Enforce -> "label-enforce"
-
+          Just Default -> ""
     appendLeftLabels = appendChild
                          ( element "div"
                            |> addClass ("gm-labels left")
@@ -705,6 +705,7 @@ callBody model ui techniqueUi call pid =
                                                Nothing -> "None"
                                                Just Enforce -> " "
                                                Just Audit -> " "
+                                               Just Default -> " "
                                              )
                              , element "ul"
                                |> addClass "dropdown-menu"
