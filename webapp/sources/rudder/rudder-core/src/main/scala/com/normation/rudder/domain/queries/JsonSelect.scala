@@ -40,7 +40,6 @@ package com.normation.rudder.domain.queries
 import com.jayway.jsonpath.Configuration
 import com.jayway.jsonpath.DocumentContext
 import com.jayway.jsonpath.JsonPath
-import com.jayway.jsonpath.spi.json.JsonSmartJsonProvider
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
@@ -49,7 +48,6 @@ import net.liftweb.util.Helpers.tryo
 import net.minidev.json.JSONArray
 import net.minidev.json.JSONAware
 import net.minidev.json.JSONValue
-import net.minidev.json.parser.JSONParser
 import scala.util.control.NonFatal
 
 /*
@@ -68,13 +66,10 @@ object JsonSelect {
    * - always return list,
    * - We don't want "SUPPRESS_EXCEPTIONS" because null are returned
    *   in place => better to Box it.
-   * - We don't want ALWAYS_RETURN_LIST, because it blindly add an array
+   * - We don't want ALWAYS_RETURN_LIST, because it blindly adds an array
    *   around the value, even if the value is already an array.
-   * - We need to use MODE_PERMISSIVE of Json smart as they changed default behavior in json smart 2.6.0 to accept
-   *   incomplete json, but our json path lib (jayway.jsonpath 2.9.0)  was not updated to use json smart 2.6 and now
-   *   sets a wrong mode MODE_PERMISSIVE_WITH_INCOMPLETE...
    */
-  val config: Configuration = Configuration.builder.build().jsonProvider(JsonSmartJsonProvider(JSONParser.MODE_PERMISSIVE))
+  val config: Configuration = Configuration.builder.build()
 
   /*
    * Return the selection corresponding to path from the string.
