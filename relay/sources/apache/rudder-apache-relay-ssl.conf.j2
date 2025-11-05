@@ -26,7 +26,7 @@ SSLSessionTickets       off
 
 # Key/Certificate used by the server for nodes communication
 
-{% if classes.rudder_cert_validation is defined %}
+{% if cert_validation %}
 <IfFile  /opt/rudder/etc/ssl/server.cert>
 SSLCertificateFile     /opt/rudder/etc/ssl/server.cert
 </IfFile>
@@ -44,12 +44,12 @@ SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
 SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
 {% endif %}
 
-{% if classes.rudder_cert_validation is defined and classes.rudder_custom_ca is defined %}
+{% if cert_validation and custom_ca %}
 # User provided CA
 SSLCACertificateFile /var/rudder/lib/ssl/policy_server_ca.pem
 {% endif %}
 
-{% if classes.rudder_cert_validation is not defined %}
+{% if not cert_validation %}
 # List of allowed certificates
 SSLCACertificateFile   /var/rudder/lib/ssl/nodescerts.pem
 # Set the list of accepted CA to send to then client when an authentication is needed
@@ -95,7 +95,7 @@ Alias /common /var/rudder/share/common
   # avoid repetitive warning in the logs caused by upper directory configuration
   SSLUserName SSL_SESSION_ID
   <RequireAll>
-{% if classes.rudder_cert_validation is defined %}
+{% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
     <RequireAny>
@@ -108,7 +108,7 @@ Alias /common /var/rudder/share/common
 Alias /uuid /opt/rudder/etc/uuid.hive
 <Directory /opt/rudder/etc>
   <RequireAll>
-{% if classes.rudder_cert_validation is defined %}
+{% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
     Require all granted
@@ -119,7 +119,7 @@ Alias /uuid /opt/rudder/etc/uuid.hive
 Alias /inventories /var/rudder/inventories/incoming
 <Directory /var/rudder/inventories/incoming>
   DAV on
-{% if classes.rudder_cert_validation is not defined %}
+{% if not cert_validation %}
   AuthName "WebDAV Storage"
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav-initial
@@ -127,7 +127,7 @@ Alias /inventories /var/rudder/inventories/incoming
 
   <Limit PUT>
     <RequireAll>
-    {% if classes.rudder_cert_validation is defined %}
+    {% if cert_validation %}
       Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     {% else %}
       Require valid-user
@@ -148,7 +148,7 @@ Alias /inventories /var/rudder/inventories/incoming
 Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 <Directory /var/rudder/inventories/accepted-nodes-updates>
   DAV on
-{% if classes.rudder_cert_validation is not defined %}
+{% if not cert_validation %}
   AuthName "WebDAV Storage"
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav
@@ -156,7 +156,7 @@ Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 
   <Limit PUT>
     <RequireAll>
-    {% if classes.rudder_cert_validation is defined %}
+    {% if cert_validation %}
       Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     {% else %}
       Require valid-user
@@ -177,7 +177,7 @@ Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 Alias /reports /var/rudder/reports/incoming
 <Directory /var/rudder/reports/incoming>
   DAV on
-{% if classes.rudder_cert_validation is not defined %}
+{% if not cert_validation %}
   AuthName "WebDAV Storage"
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav
@@ -185,7 +185,7 @@ Alias /reports /var/rudder/reports/incoming
 
   <Limit PUT>
     <RequireAll>
-    {% if classes.rudder_cert_validation is defined %}
+    {% if cert_validation %}
       Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     {% else %}
       Require valid-user
@@ -229,7 +229,7 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 
 <Location /rudder/relay-api/shared-files>
   <RequireAll>
-{% if classes.rudder_cert_validation is defined %}
+{% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
     <RequireAny>
@@ -240,7 +240,7 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 
 <Location /rudder/relay-api/remote-run>
   <RequireAll>
-{% if classes.rudder_cert_validation is defined %}
+{% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
     <RequireAny>
