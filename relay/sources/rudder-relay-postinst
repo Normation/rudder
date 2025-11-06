@@ -172,7 +172,12 @@ A2_CONF="/opt/rudder/etc/rudder-apache-relay-ssl.conf"
 TMP_DATA="/var/rudder/tmp/empty-classes.json"
 if [ ! -f "${A2_CONF}" ]; then
   echo "Generating initial ${A2_CONF} file" >> ${LOG_FILE}
-  echo '{ "classes": {} }' > "${TMP_DATA}"
+  cat << 'EOF' > "${TMP_DATA}"
+{
+  "cert_validation": false,
+  "custom_ca": false
+}
+EOF
   /opt/rudder/bin/rudder-module-template -t "${A2_CONF}.j2" -d "${TMP_DATA}" -o "${A2_CONF}"
   rm -f "${TMP_DATA}"
 fi
