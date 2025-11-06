@@ -1798,7 +1798,7 @@ object RudderConfigInit {
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
-    lazy val staticResourceRewrite = new StaticResourceRewrite(rudderFullVersion)
+    lazy val staticResourceRewrite = new StaticResourceRewrite(rudderFullVersion, instanceIdService.instanceId)
 
     // implementation of user lookup using the `onBeginServicing` from LiftRules to set the current user
     implicit lazy val userService: UserService = CurrentUser
