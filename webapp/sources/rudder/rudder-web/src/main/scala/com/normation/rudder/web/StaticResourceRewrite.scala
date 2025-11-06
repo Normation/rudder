@@ -37,18 +37,22 @@
 
 package com.normation.rudder.web
 
+import com.normation.rudder.services.servers.InstanceId
 import java.net.URLConnection
 import net.liftweb.http.LiftRules
 import net.liftweb.http.S
 import net.liftweb.http.StreamingResponse
 import net.liftweb.http.rest.RestHelper
+import org.apache.commons.codec.digest.DigestUtils
 import org.joda.time.DateTime
 
 ////////// rewrites rules to remove the version from resources urls //////////
 //////////
-class StaticResourceRewrite(rudderFullVersion: String) extends RestHelper {
+class StaticResourceRewrite(rudderFullVersion: String, instanceId: InstanceId) extends RestHelper {
+  // cache id is composed with rudder instance id and rudder version
+  val cacheId = DigestUtils.sha256Hex(instanceId.value ++ rudderFullVersion).take(24)
   // prefix added to signal that the resource is cached
-  val prefix:       String = s"cache-${rudderFullVersion}"
+  val prefix:       String = s"cache-${cacheId.toString}"
   // full URI to resources root, with context path
   val resourceRoot: String = s"${S.contextPath}/${prefix}"
 

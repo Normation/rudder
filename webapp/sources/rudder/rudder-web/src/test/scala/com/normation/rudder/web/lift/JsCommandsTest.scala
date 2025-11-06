@@ -1,6 +1,7 @@
 package com.normation.rudder.web.lift
 
 import com.normation.errors.SecurityError
+import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.web.StaticResourceRewrite
 import com.normation.rudder.web.lift.JsCommands.*
 import net.liftweb.http.js.JE.*
@@ -12,7 +13,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class JsCommandsTest extends Specification {
 
-  given StaticResourceRewrite = new StaticResourceRewrite("123")
+  given StaticResourceRewrite = new StaticResourceRewrite("123", InstanceId("42"))
 
   "JsCommands" should {
     "have JS module imports" in {
@@ -34,10 +35,11 @@ class JsCommandsTest extends Specification {
       )
     }
     "output html with added import to module" in {
+      // "f86e4af40842494647b24a99" is the result of the has for version "123" and instance ID "42"
       val expected = {
         """<script type="module">
           |// <![CDATA[
-          |import { functionA } from "/cache-123/javascript/some-lib";jQuery(document).ready(function() {functionA(null);});
+          |import { functionA } from "/cache-f86e4af40842494647b24a99/javascript/some-lib";jQuery(document).ready(function() {functionA(null);});
           |// ]]>
           |</script>""".stripMargin
       }
