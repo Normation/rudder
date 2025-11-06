@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -36,32 +36,74 @@
 */
 
 // --- MAIN COLORS
-$rudder-success : #13BEB7;
-$rudder-primary : #337ab7;
-$rudder-warning : #EF9600;
-$rudder-danger  : #DA291C;
-$rudder-info    : #337AB7;
-$rudder-darkgray: #72829D;
+$rudder-success   : #13BEB7;
+$rudder-primary   : #337AB7;
+$rudder-warning   : #EF9600;
+$rudder-danger    : #DA291C;
+$rudder-info      : #337AB7;
+
+$rudder-gray-100 : #F8F9FC;
+$rudder-gray-200 : #EEF1F9;
+$rudder-gray-300 : #E1E5EB;
+$rudder-gray-400 : #B1BBCB;
+$rudder-gray-500 : #72829D;
+$rudder-gray-600 : #36474E;
+$rudder-black    : #041922;
+
+// --- TEXT & LINK
+$rudder-txt-primary   : $rudder-black;
+$rudder-txt-secondary : $rudder-gray-500;
+$rudder-txt-light     : $rudder-gray-600;
+$rudder-txt-link      : #1295C2;
+
+// --- BACKGROUNDS
+$rudder-bg-light-gray : $rudder-gray-100;
+$rudder-bg-gray       : $rudder-gray-200;
+$rudder-bg-dark-gray  : $rudder-gray-300;
+$rudder-bg-info       : #E2F2FF;
+$rudder-bg-danger     : #F8D7DA;
+$rudder-bg-warning    : rgba($rudder-warning, .08);
+$rudder-bg-overlay    : rgba($rudder-black, .3);
+
+// --- BORDERS
+$rudder-border-color-default : #D6DEEF;
+$rudder-border-color-danger  : #AC2925;
+$rudder-border-color-warning : rgba($rudder-warning, .2);
+
+// --- BOX-SHADOWS
+$rudder-box-shadow-color : #DCE3EF;
+
+// --- ACCORDIONS
+$rudder-accordion-color-1 : #D1A9DD;
+$rudder-accordion-color-2 : #A9D6DD;
+$rudder-accordion-color-3 : #A9B9DD;
 
 // --- POLICY MODE
 $rudder-audit   : #1384BE;
 $rudder-enforce : #13BE7E;
 
-// --- TEXT & LINK
-$rudder-txt-primary   : #041922;
-$rudder-txt-secondary : #72829D;
-$rudder-txt-light     : #36474E;
-$rudder-txt-link      : #1295C2;
+// --- COMPLIANCE
+$color-compliance-disabled      : $rudder-gray-500;
+$color-compliance-success       : $rudder-success;
+$color-compliance-error         : $rudder-danger;
+$color-compliance-pending       : #14C3DD;
+$color-compliance-noreport      : $rudder-gray-400;
+$color-compliance-missing       : #F2E27D;
+$color-compliance-notapplicable : #8DCD8D;
+$color-compliance-noncompliant  : $rudder-warning;
 
-// --- BACKGROUNDS
-$rudder-bg-light-gray : #F8F9FC;
-$rudder-bg-gray       : #EEF1F9;
-$rudder-bg-dark-gray  : #E1E5EB;
-$rudder-bg-danger     : #F8D7DA;
+// --- SCORES
+$rudder-score-color-A : $rudder-success;
+$rudder-score-color-B : #68C96A;
+$rudder-score-color-C : #B3D337;
+$rudder-score-color-D : #FEDC04;
+$rudder-score-color-E : #F0940E;
+$rudder-score-color-F : $rudder-danger;
+$rudder-score-color-X : #B1BBCB;
 
-// --- BORDERS
-$rudder-border-color-default : #D6DEEF;
-$rudder-border-color-danger  : #AC2925;
-
-// --- BOX-SHADOWS
-$rudder-box-shadow-color: #DCE3EF;
+// --- PACKAGES
+$color-package-security    : $rudder-danger;
+$color-package-bugfix      : $rudder-warning;
+$color-package-enhancement : $rudder-success;
+$color-package-update      : $rudder-gray-500;
+$color-package-uptodate    : #00A65A;

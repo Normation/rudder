@@ -34,7 +34,7 @@
 *
 *************************************************************************************
 */
-// Modules
+
 @use 'rudder-variables' as *;
 
 .content-wrapper td, .content-wrapper th {
@@ -51,9 +51,9 @@
 .dataTables_wrapper_bottom {
   float            : left;
   width            : 100%;
-  border           : 1px solid #d6deef;
+  border           : 1px solid $rudder-border-color-default;
   padding          : 5px 10px;
-  background-color : #F8F9FC;
+  background-color : $rudder-bg-light-gray;
 }
 .dataTables_wrapper_top {
   border-bottom    : none;
@@ -90,30 +90,12 @@
 .dataTables_filter label{
   margin-bottom: 0;
 }
-.dataTables_filter input{
-  height: 30px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: initial;
-  line-height: 1.5;
-  border-radius: 3px;
-  border: 1px solid #d6deef;
-  min-width: 250px;
-  outline: none !important;
-  transition-duration: .2s;
-  background-color: #fff;
-}
-.dataTables_filter input:focus{
-  border-color: #c1c1c1;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
-}
 /* </WRAPPER TOP> */
 
 /* <TABLE> */
 .dataTable{
   width         : 100%;
-  border        : 1px solid #d6deef;
+  border        : 1px solid $rudder-border-color-default;
   font-size     : 14px;
   margin-bottom : 0px;
 }
@@ -129,7 +111,7 @@
 /* <THEAD> */
 .dataTable tr.head,
 .dataTables_scrollHead thead > tr {
-  border-bottom : 1px solid #d6deef;
+  border-bottom : 1px solid $rudder-border-color-default;
   font-size: 1.15em;
 }
 /* </THEAD> */
@@ -182,7 +164,7 @@
   text-rendering: auto;
   line-height: 1;
   font-weight: 900;
-  color: #b1bbcb;
+  color: $rudder-gray-400;
   margin-left : 6px;
   font-size: 18px;
   position: relative;
@@ -202,13 +184,13 @@
 }
 .dataTable tr.head th.sorting,
 .dataTables_scrollHead thead > tr th.sorting{
-  color: #738195;
+  color: $rudder-txt-secondary;
 }
 .dataTable tr.head th.sorting.sorting_desc,
 .dataTable tr.head th.sorting.sorting_asc,
 .dataTables_scrollHead thead > tr th.sorting_asc,
 .dataTables_scrollHead thead > tr th.sorting_desc{
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 .dataTable tr.head th.sorting:hover,
 .dataTable tr.head th.sorting.sorting_desc:hover,
@@ -243,12 +225,12 @@ td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditComplian
 .report-compliance .successAlreadyOK,
 .report-compliance .auditCompliant,
 .report-compliance .auditNotApplicable {
-  background-color: #13BEB7;
+  background-color: $rudder-success;
   color: #fff;
 }
 td.AuditNonCompliant,td.NonCompliant,
 .report-compliance .auditNonCompliant {
-  background-color:#ef9600;
+  background-color: $rudder-warning;
   color: #fff;
 }
 td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode,
@@ -274,7 +256,7 @@ td.Disabled, td.NoAnswer,
 td.Repaired,
 .report-compliance .successRepaired {
   background-color: #F5DD4D;
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 td.eventId{
   position:relative
@@ -323,20 +305,20 @@ td.listclose:after {
   position: relative;
 }
 .dataTable > tbody > tr.color2{
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
 }
 .dataTable > tbody > tr:hover{
-  background-color: #eef1f9;
+  background-color: $rudder-bg-gray;
 }
 .dataTable > tbody > tr.eventLogDescription {
   border-top: 1px solid transparent;
-  border-bottom: 1px solid #d6deef;
+  border-bottom: 1px solid $rudder-border-color-default;
   background-color: #FFF !important;
 }
 .dataTable > tbody > tr.opened {
-  border-top: 1px solid #d6deef !important;
+  border-top: 1px solid $rudder-border-color-default !important;
   border-bottom: 1px solid #c0d4e4;
-  background-color: #e2f2ff;
+  background-color: $rudder-bg-info;
 }
 
 .dataTable > tbody > tr.opened + tr.details + tr{
@@ -381,7 +363,7 @@ td.listclose:after {
 }
 .dataTable .innerDetails {
   display: none;
-  background : #F8F9FC;
+  background : $rudder-bg-light-gray;
   padding-left:50px;
   float: left;
   width: 100%;
@@ -403,9 +385,9 @@ table .innerDetails li{
 }
 
 tr.parametersDescription {
-  background-color: #F8F9FC !important;
+  background-color: $rudder-bg-light-gray !important;
   height: 30px;
-  border-top: 1px solid #d6deef !important;
+  border-top: 1px solid $rudder-border-color-default !important;
 
   .parametersDescriptionDetails {
     padding:15px;
@@ -442,7 +424,7 @@ tr.parametersDescription {
 .dataTables_paginate > span > .paginate_button,
 .dataTables_paginate > span > .ellipsis{
   padding: 2px 8px;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   cursor: pointer;
   background-color: #fff;
   transition-property: background-color;
@@ -467,7 +449,7 @@ tr.parametersDescription {
 .dataTables_paginate .ui-button.ui-state-disabled,
 .dataTables_paginate .paginate_button.disabled{
   cursor: default !important;
-  color: #041922 !important;
+  color: $rudder-txt-primary !important;
   background-color: #ffffff !important;
   opacity: .6;
 }
@@ -482,7 +464,7 @@ tr.parametersDescription {
   background-color: #fff;
   border-radius: 4px;
   color: #555;
-  border: 1px solid #ccc;
+  border: 1px solid $rudder-border-color-default;
   margin: 0 2px;
 }
 .dataTables_paginate .fg-button {
@@ -498,7 +480,7 @@ tr.parametersDescription {
 
 .dataTable > tbody > tr > td.dataTables_empty,
 .dataTable > tbody > tr > td .empty{
-  color: #738195;
+  color: $rudder-txt-secondary;
   font-style: italic;
   padding: 10px 6px;
 }
@@ -526,7 +508,7 @@ tr.parametersDescription {
   padding-bottom: 2px;
 }
 #nodePropertiesTab .action-icon.text-success{
-  color: #13BEB7;
+  color: $rudder-success;
 }
 #nodePropertiesTab .action-icon.text-danger {
   color: #de4b39;
@@ -637,7 +619,7 @@ tr.parametersDescription {
   z-index: 0;
 }
 #nodePropertiesTab .value-container.show-more + span.toggle-icon:after {
-  color: #041922;
+  color: $rudder-txt-primary;
   content: "\f054";
   display: inline-block;
   font: normal normal normal 14px/1;
@@ -670,13 +652,13 @@ table.dataTable tr.dtrg-group td {
   border-top: 1px #bbb solid;
 }
 td.greyBackground, th.greyBackground {
-  background-color : #F8F9FC;
+  background-color : $rudder-bg-light-gray;
 }
 #first_line_header .dataTables_filter {
   margin-right: 15px;
 }
 .dataTable td a.text-danger{
-  color: #EF9600;
+  color: $rudder-warning;
   margin-left: 4px;
 }
 .dataTable td a.text-danger:hover{
@@ -701,7 +683,7 @@ td.greyBackground, th.greyBackground {
 #select-columns .form-inline-flex label.input-group > .input-group-text{
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-  background-color: #f7F7F7;
+  background-color: $rudder-bg-light-gray;
 }
 #select-columns .form-inline-flex > *:not(:first-child){
   margin-left : 15px;

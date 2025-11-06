@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2017 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -30,21 +30,22 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
 *
 *************************************************************************************
 */
 
+@use 'rudder-variables' as *;
+
 .tab-filter .input-group label {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   padding: 2px 8px 0px 8px;
   font-size: 16px;
 }
 .content-wrapper .btn.updateTable:focus{
-  background-color: #F8F9FC;
-  border-color:#ccc;
+  background-color: $rudder-bg-light-gray;
+  border-color:$rudder-border-color-default;
   color:#3694d1;
 }
 .content-wrapper .btn.updateTable:focus:hover{
@@ -53,7 +54,7 @@
   border-color: #adadad;
 }
 .content-wrapper .btn-success[disabled]:hover{
-  background-color: #13beb7;
+  background-color: $rudder-success;
   border-color: #109f9a;
 }
 .panel-footer .tags-container{
@@ -125,7 +126,7 @@
 .input-group-text.addon-json{
   border-left: none;
   border-right: none;
-  background: #F8F9FC;
+  background: $rudder-bg-light-gray;
   font-weight: bold;
   cursor:default;
 }
@@ -195,7 +196,7 @@
 .tags-container .btn-group .btn.btn-default.search:hover,
 .tags-container .btn-group .btn.btn-default.search:focus,
 .tags-container .btn-group .btn.btn-default.search:active {
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   box-shadow: none;
 }
 
@@ -211,7 +212,7 @@
 
 .tags-container .btn-group .btn.active {
   box-shadow : none;
-  border-color : #ccc;
+  border-color : $rudder-border-color-default;
 }
 
 .tags-container .btn-group.btn-group-xs .btn:last-of-type {
@@ -232,7 +233,7 @@
   opacity : 1;
 }
 .tags-container .btn-group .btn.btn-default:hover .fa-times{
-  color: #DA291C;
+  color: $rudder-danger;
 }
 
 .tags-container .btn-group .btn.btn-default .fa.fa-tag{
@@ -252,7 +253,7 @@
   line-height: 22px;
   width: 27px;
   text-align: center;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   border-top-left-radius:50%;
   border-bottom-left-radius:50%;
   padding-top: 2px;
@@ -318,7 +319,7 @@
   font-weight:bold;
 }
 .only-tags a:hover{
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 .only-tags > .btn-xs{
   margin-bottom: 5px;
@@ -367,16 +368,16 @@ hr.separator-filter-tree{
   padding-bottom:0;
 }
 .content-wrapper .nav-tabs-filter > li > a.toggleTabFilter{
-  background-color: #F8F9FC !important;
-  border:1px solid #d6deef !important;
-  color:#738195 !important;
+  background-color: $rudder-bg-light-gray !important;
+  border:1px solid $rudder-border-color-default !important;
+  color:$rudder-txt-secondary !important;
   cursor:pointer !important;
   padding: 4px 25px 4px 10px;
   position: relative;
   margin-right: 5px;
 }
 .content-wrapper .nav-tabs > li > a.toggleTabFilter:hover{
-  color:#041922 !important;
+  color:$rudder-txt-primary !important;
 }
 .content-wrapper .nav-tabs > li > a.toggleTabFilter >span.fa{
   position: absolute;
@@ -390,8 +391,8 @@ hr.separator-filter-tree{
   margin: 0;
   padding: 8px 10px;
   font-size: 14px;
-  color: #041922;
-  background-color: #F8F9FC;
+  color: $rudder-txt-primary;
+  background-color: $rudder-bg-light-gray;
 }
 .tooltip .tooltip-inner > div.tags-list,
 .tooltip .tooltip-inner > div.tooltip-inner-content {
@@ -402,12 +403,12 @@ hr.separator-filter-tree{
 .tooltip > .tooltip-inner .tags-label{
   padding: 4px 8px;
   border-radius : 20px;
-  background-color: #04192215;
-  color: #738195;
+  background-color: $rudder-bg-gray;
+  color: $rudder-txt-secondary;
   display: inline-block;
   cursor: default;
   transition-duration: .2s;
-  transition-property: opacity, background, background-color;
+  transition-property: opacity, background-color;
   margin-right: 10px;
   white-space: nowrap;
 }
@@ -434,8 +435,8 @@ hr.separator-filter-tree{
 }
 
 .tags-label:hover{
-  background-color: #04192233;
-  color: #041922DD;
+  background-color: $rudder-bg-dark-gray;
+  color: $rudder-txt-light;
 }
 .tags-table table{
   margin-bottom: 0 !important;
@@ -496,7 +497,7 @@ hr.separator-filter-tree{
 
 .angucomplete-dropdown .angucomplete-title {
   clear: both;
-  color: #041922;
+  color: $rudder-txt-primary;
   display: block;
   font-weight: 400;
   line-height: 1.42857;
@@ -513,7 +514,7 @@ hr.separator-filter-tree{
 
 .angucomplete-searching{
   padding: 6px 10px;
-  color: #738195;
+  color: $rudder-txt-secondary;
   font-style: italic;
   cursor: default;
 }

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,7 +34,7 @@
 *
 *************************************************************************************
 */
-// Modules
+
 @use 'rudder-variables' as *;
 
 body {
@@ -202,7 +202,7 @@ pre.json-beautify code.elmsh {
 .content-wrapper .btn-default.active.disable,
 .modal .btn-default.active.disabled{
   color: #fff !important;
-  background-color: #13BEB7 !important;
+  background-color: $rudder-success !important;
   border-color: #109f9a !important;
 }
 
@@ -224,7 +224,7 @@ pre.json-beautify code.elmsh {
 }
 
 .content-wrapper .form-control[readonly] {
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   cursor: default;
 }
 /* SPINNERS */
@@ -237,8 +237,8 @@ pre.json-beautify code.elmsh {
 .content-wrapper .well.well-disabled, .content-wrapper .readonly-field > div > div{
   cursor: default;
   padding: 6px 12px;
-  background-color: #eef1f9;
-  border: 1px solid #d6deef;
+  background-color: $rudder-bg-gray;
+  border: 1px solid $rudder-border-color-default;
   box-shadow: none;
   margin-bottom: 0;
 }
@@ -258,7 +258,7 @@ pre.json-beautify code.elmsh {
   transition-duration:.2s;
 }
 .fa.info:hover{
-  color:#738195;
+  color:$rudder-txt-secondary;
 }
 .no-hpadding{
   padding-left:0 !important;
@@ -271,7 +271,7 @@ pre.json-beautify code.elmsh {
 .content-wrapper,
 .right-side,
 .rudder_col {
-  background-color: #f8f9fc;
+  background-color: $rudder-bg-light-gray;
 }
 .rudder_col {
   padding: 15px;
@@ -298,7 +298,7 @@ pre.json-beautify code.elmsh {
   padding: 15px;
 }
 .navbar-nav a .fa, .navbar-nav a:focus .fa {
-  color: #36474E;
+  color: $rudder-txt-light;
 }
 .navbar-nav a .fa-sign-out{
   font-size: 18px;
@@ -353,9 +353,9 @@ pre.json-beautify code.elmsh {
   display: block;
   margin-bottom: 10px;
   line-height: inherit;
-  color: #041922;
+  color: $rudder-txt-primary;
   border: 0;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
   font-size: 18px;
 }
 #details .callout-fade{
@@ -368,7 +368,7 @@ pre.json-beautify code.elmsh {
 .search-addon > .input-group-text{
   border-top-left-radius: 4px !important;
   border-bottom-left-radius: 4px !important;
-  background-color: #F8F9FC !important;
+  background-color: $rudder-bg-light-gray !important;
 }
 .content-wrapper .input-group.displaySub{
   width:100%;
@@ -379,7 +379,7 @@ pre.json-beautify code.elmsh {
 .fake-form-control{
   float: left;
   opacity: 1;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   -webkit-box-shadow: none;
   box-shadow: none;
   display: block;
@@ -462,7 +462,7 @@ pre.json-beautify code.elmsh {
   color: $rudder-warning;
 }
 .text-danger-rudder{
-  color: #C50000;
+  color: $rudder-danger;
 }
 .text-info-rudder{
   color: #1b809e;
@@ -509,14 +509,13 @@ pre.json-beautify code.elmsh {
 .directiveNode.is-disabled .item-name,
 .disableTreeNode > a .item-name{
   opacity: .5;
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 
 .badge-disabled,
 .badge-expired{
-  background-color: #04192257;
+  background-color: $rudder-gray-400;
   font-size: 0.8em;
-  color: #fff;
   font-weight: bold;
   padding: 2px 8px;
   margin-left: 4px;
@@ -590,7 +589,7 @@ pre.json-beautify code.elmsh {
     font-size: 12px;
     box-shadow: 0px 0px 5px rgba(0, 0, 0, .12);
     border-radius: 0px;
-    border: 1px solid #ccc;
+    border: 1px solid $rudder-border-color-default;
     border-radius: 3px;
 
     & > div {
@@ -603,7 +602,7 @@ pre.json-beautify code.elmsh {
         margin-bottom: 5px;
       }
       i b{
-        color:#041922;
+        color:$rudder-txt-primary;
         background: none;
         -webkit-background-clip: initial;
         -webkit-text-fill-color: initial;
@@ -639,16 +638,16 @@ pre.json-beautify code.elmsh {
     h4{
       background-color: #fff;
       font-weight: 600;
-      border-bottom: 1px solid #d6deef;
+      border-bottom: 1px solid $rudder-border-color-default;
       padding: 5px;
       font-size: 14px;
       margin: 10px 8px;
     }
     i.empty {
-      color: #738195;
+      color: $rudder-txt-secondary;
     }
     .small{
-      color: #738195;
+      color: $rudder-txt-secondary;
       margin-left: 4px;
     }
     label{
@@ -656,13 +655,13 @@ pre.json-beautify code.elmsh {
     }
   }
   &.top > .tooltip-arrow{
-    border-top-color: #ccc;
+    border-top-color: $rudder-border-color-default;
   }
   &.bottom > .tooltip-arrow{
-    border-bottom-color: #ccc;
+    border-bottom-color: $rudder-border-color-default;
   }
   &.right > .tooltip-arrow{
-    border-right-color: #ccc;
+    border-right-color: $rudder-border-color-default;
   }
   &.in {
     opacity: 1;
@@ -680,7 +679,7 @@ pre.json-beautify code.elmsh {
   font-weight: 700;
   border-radius: 3px;
   min-width: 78px;
-  background-color: #738195;
+  background-color: $rudder-gray-500;
 
   &[data-bs-trigger=click] {
     cursor: pointer !important;
@@ -710,7 +709,7 @@ pre.json-beautify code.elmsh {
 }
 
 .content-wrapper .rudder-label.label-audit{
-  background-color: #1384BE;
+  background-color: $rudder-audit;
 }
 
 .label-provider,
@@ -741,28 +740,29 @@ pre.json-beautify code.elmsh {
   .content-wrapper .label-text.label-audit:after
 , .content-wrapper .rudder-label.label-audit   + .tooltip b
 , .content-wrapper .label-text.label-audit     + .tooltip b
-, .content-wrapper .rudder-label.label-enforce + .tooltip b.text-Audit
-, .content-wrapper .label-text.label-enforce   + .tooltip b.text-Audit
-, .text-Audit{
-  color: #1384BE;
+, .content-wrapper .rudder-label.label-enforce + .tooltip b.text-audit
+, .content-wrapper .label-text.label-enforce   + .tooltip b.text-audit
+, .text-audit{
+  color: $rudder-audit;
 }
 
 .rudder-label.label-enforce, .rudder-label.label-green{
-  background-color: #13BE7E;
+  background-color: $rudder-enforce;
 }
 
 .btn.btn-grey:focus, .btn.btn-grey:hover, .btn.btn-grey:active {
-  background-color: #738195;
+  background-color: $rudder-gray-500;
   color: #eee;
 }
 
 .btn.btn-grey {
-  background-color: #aaa;
+  background-color: $rudder-gray-500;
+  color: #fff;
 }
 
 .content-wrapper .rudder-label.label-state{
   cursor: default;
-  background-color: #b1bbcb !important;
+  background-color: $rudder-gray-400 !important;
   color: #fff;
   border-radius: 10px !important;
   margin-left: 3px;
@@ -783,14 +783,11 @@ pre.json-beautify code.elmsh {
 , .content-wrapper .rudder-label.label-audit   + .tooltip b.text-Enforce
 , .content-wrapper .label-text.label-audit     + .tooltip b.text-Enforce
 , .text-Enforce {
-  color: #13BE7E;
+  color: $rudder-enforce;
 }
 .content-wrapper .rudder-label.label-mixed{
-  background: #13BE7E;
-  background: -moz-linear-gradient(-45deg, #13BE7E 0%, #13BE7E 50%, #1384BE 50%, #1384BE 100%);
-  background: -webkit-linear-gradient(-45deg, #13BE7E 0%, #13BE7E 50%, #1384BE 50%, #1384BE 100%);
-  background: linear-gradient(-45deg, #13BE7E 0%, #13BE7E 50%, #1384BE 50%, #1384BE 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#13BEB7', endColorstr='#1384BE',GradientType=1 );
+  background: $rudder-enforce;
+  background: linear-gradient(-45deg, $rudder-enforce 0%, $rudder-enforce 50%, $rudder-audit 50%, $rudder-audit 100%);
 }
 .content-wrapper .rudder-label.label-mixed:before,.content-wrapper .label-text.label-mixed:after{
   content: "Mixed";
@@ -799,7 +796,7 @@ pre.json-beautify code.elmsh {
   font-weight: bold;
 }
 .content-wrapper .rudder-label.label-error{
-  background-color: #DA291C;
+  background-color: $rudder-danger;
   margin-left: 3px;
 }
 .content-wrapper .rudder-label.label-error:before,.content-wrapper .label-text.label-error:after{
@@ -810,7 +807,7 @@ pre.json-beautify code.elmsh {
   content: "";
 }
 .content-wrapper .rudder-label.label-error + .tooltip b, .content-wrapper .label-text.label-error:after, .content-wrapper .label-text.label-error  + .tooltip b, .text-Error{
-  color: #DA291C;
+  color: $rudder-danger;
 }
 .content-wrapper .rudder-label.label-overriden:before,.content-wrapper .label-text.label-overriden:after,
 .content-wrapper .rudder-label.label-skipped:before,.content-wrapper .label-text.label-skipped:after{
@@ -889,13 +886,13 @@ pre.json-beautify code.elmsh {
 }
 /* --- SUCCESS --- */
 .callout-fade.callout-success{
-  border-left-color: #13BEB7;
+  border-left-color: $rudder-success;
 }
 .callout-fade.callout-success h4,.callout-fade.callout-success b{
-  color: #13BEB7;
+  color: $rudder-success;
 }
 .callout-fade.callout-success div.marker{
-  background-color: #13BEB7;
+  background-color: $rudder-success;
 }
 /* --- INFO --- */
 .callout-fade.callout-info{
@@ -910,7 +907,7 @@ pre.json-beautify code.elmsh {
 /* --- WARNING --- */
 .callout-fade.callout-warning{
   border-left-color: $rudder-warning;
-  background-color: #fefcf7;
+  background-color: $rudder-bg-warning;
 }
 .callout-fade.callout-warning h4,.callout-fade.callout-warning b{
   color: $rudder-warning;
@@ -928,13 +925,13 @@ pre.json-beautify code.elmsh {
 }
 /* --- DANGER --- */
 .callout-fade.callout-danger{
-  border-left-color: #C50000;
+  border-left-color: $rudder-danger;
 }
 .callout-fade.callout-danger h4,.callout-fade.callout-danger b{
-  color: #C50000;
+  color: $rudder-danger;
 }
 .callout-fade.callout-danger div.marker{
-  background-color: #C50000;
+  background-color: $rudder-danger;
 }
 .callout-fade ol,.callout-fade ul{
   margin-bottom: 10px;
@@ -962,11 +959,11 @@ pre.json-beautify code.elmsh {
   margin: 0 3px;
   font-size: 13px;
   line-height: 1.42857143;
-  color: #041922;
+  color: $rudder-txt-primary;
   word-break: break-all;
   word-wrap: break-word;
   background-color: #f5f5f5;
-  border: 1px solid #ccc;
+  border: 1px solid $rudder-border-color-default;
   border-radius: 4px;
   overflow:auto;
 }
@@ -991,11 +988,11 @@ pre.json-beautify code.elmsh {
 
 /* PLUS */
 .group-button.group-plus button.btn{
-  background-color: #13BEB7;
+  background-color: $rudder-success;
 }
 /* MINUS */
 .group-button.group-minus button.btn{
-  background-color: #C50000;
+  background-color: $rudder-danger;
 }
 /* WARNING */
 .group-button.group-warning button.btn{
@@ -1013,10 +1010,10 @@ pre.json-beautify code.elmsh {
   box-shadow: 0px 10px 10px -8px rgba(0, 0, 0, 0.18);
 }
 .small-box.bg-fade-1 .icon {
-  color:#13BEB7;
+  color:$rudder-success;
 }
 .small-box.bg-fade-1 .small-box-footer {
-  background-color: #13BEB7;
+  background-color: $rudder-success;
 }
   .small-box.bg-fade-2 .icon {
   color:#1b809e;
@@ -1031,10 +1028,10 @@ pre.json-beautify code.elmsh {
   background-color: $rudder-warning;
 }
   .small-box.bg-fade-4 .icon {
-  color:#c50000  ;
+  color:$rudder-danger  ;
 }
 .small-box.bg-fade-4 .small-box-footer {
-  background-color: #c50000;
+  background-color: $rudder-danger;
 }
   .small-box.bg-fade-5 .icon {
   color:#818181;
@@ -1052,10 +1049,10 @@ pre.json-beautify code.elmsh {
 *-----------------------------------------
 */
 .form-group.has-error label {
-  color: #DA291C;
+  color: $rudder-danger;
 }
 .form-group.has-error .form-control {
-  border-color: #DA291C;
+  border-color: $rudder-danger;
 }
 .no-margin-bottom{
   margin-bottom:0 !important;
@@ -1076,7 +1073,7 @@ pre.json-beautify code.elmsh {
 }
 .page-title,.inner-portlet h3.page-title {
   color: #555 !important;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
   box-shadow: none;
   padding: 0;
   width: 100%;
@@ -1090,7 +1087,7 @@ pre.json-beautify code.elmsh {
 
 .page-subtitle {
   color: #555 !important;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
   box-shadow: none;
   padding: 0;
   width: 100%;
@@ -1160,12 +1157,12 @@ form.rudder-form .policymode-group .btn-group .btn,form.rudder-form .btn-group.y
   font-size: 14px;
 }
 .policymode-group .mode{
-  color: #1384BE;
+  color: $rudder-audit;
   top: 2px;
   right: -2px;
 }
 .policymode-group .mode.enforce{
-  color: #13BE7E;
+  color: $rudder-enforce;
 }
 .policymode-group .mode:before{
   content: "(";
@@ -1190,10 +1187,10 @@ form.rudder-form .policymode-group .btn-group .btn.audit.active,form.rudder-form
   box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.225);
 }
 form.rudder-form .policymode-group .btn-group .btn.audit.active{
-  background-color: #1384BE;
+  background-color: $rudder-audit;
 }
 form.rudder-form .policymode-group .btn-group .btn.enforce.active{
-  background-color: #13BE7E;
+  background-color: $rudder-enforce;
 }
 
 /* CHECKBOX BUTTONS */
@@ -1207,7 +1204,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 }
 .checkbox-group input + span > span{
   border: 1px solid #ddd;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   padding: 6px 12px;
   margin: 0;
   font-size: 14px;
@@ -1233,7 +1230,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.225);
 }
 .checkbox-group input:checked + span > span{
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   color: #fff;
 }
 
@@ -1245,15 +1242,15 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   display: inline-block;
 }
 .group-help{
-  border-bottom: 1px solid #041922;
+  border-bottom: 1px solid $rudder-black;
   margin-bottom: 10px;
 }
 .group-help a.btn{
   background-color: #EDEDED;
-  color: #041922;
+  color: $rudder-txt-primary;
   margin-bottom: -1px;
   border-bottom-left-radius: 0;
-  border-color: #041922;
+  border-color: $rudder-black;
   transition-property: background-color;
   transition-duration: .1s;
 }
@@ -1264,7 +1261,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 
 .group-help a.btn:hover{
   color: #fff;
-  background-color: #041922;
+  background-color: $rudder-black;
 
 }
 .group-help .check-icon{
@@ -1284,7 +1281,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   opacity: 0;
   transition-property: opacity;
   transition-duration: .2s;
-  background-color: #c50000;
+  background-color: $rudder-danger;
   display: inline-block;
   color: #fff;
   margin-bottom: 4px;
@@ -1299,7 +1296,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 14px solid #C50000;
+  border-top: 14px solid $rudder-danger;
   display: inline-block;
   content: " ";
   position: absolute;
@@ -1322,7 +1319,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 }
 .button-group-success .button-warning{
   opacity:0;
-  background-color: #13BEB7;
+  background-color: $rudder-success;
   display: inline-block;
   color: #fff;
   margin-bottom: 4px;
@@ -1364,7 +1361,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 14px solid #13BEB7;
+  border-top: 14px solid $rudder-success;
   display: inline-block;
   content: " ";
   position: absolute;
@@ -1383,7 +1380,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 /* WITH ERRORS */
 
 .rudder-form .form-group.has-error label {
-  color: #C50000;
+  color: $rudder-danger;
 }
 .rudder-form .form-group.has-error .form-control {
   border-color: rgb(198, 200, 201);
@@ -1396,7 +1393,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 }
 .rudder-form .has-error .help-block{
   opacity: 1;
-  background-color: #C50000;
+  background-color: $rudder-danger;
   color: #fff;
   padding: 6px 12px;
   border-radius: 3px;
@@ -1407,7 +1404,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   height: 0;
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
-  border-bottom: 12px solid #C50000;
+  border-bottom: 12px solid $rudder-danger;
   display: inline-block;
   content: " ";
   position: absolute;
@@ -1416,7 +1413,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 }
 .rudder-form .has-feedback label~.form-control-feedback {
   top: 23px;
-  color:#C50000;
+  color:$rudder-danger;
   opacity: 0;
   transition-property: opacity;
   transition-duration: .2s;
@@ -1444,7 +1441,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   border: 2px solid transparent;
 }
 .message.message-success{
-  background-color: #13BEB7;
+  background-color: $rudder-success;
 }
 .message.message-warning{
   background-color: $rudder-warning;
@@ -1465,7 +1462,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   right:-7px;
 }
 .rudder-form .validation-form-message .message.message-success.success:after {
-  border-left: 14px solid #13BEB7;
+  border-left: 14px solid $rudder-success;
 }
 .rudder-form .validation-form-message .message.message-warning.success:after {
   border-left: 14px solid $rudder-warning ;
@@ -1497,7 +1494,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 .rudder-form .sublabel{
   font-weight: 600;
   font-size: 15px;
-  color: #041922;
+  color: $rudder-txt-primary;
   margin-bottom: 4px;
 }
 .bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-primary, .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-primary {
@@ -1508,7 +1505,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   margin-left: 8px;
 }
 .bootstrap-switch.bootstrap-switch-focused {
-  border-color: #ccc;
+  border-color: $rudder-border-color-default;
   -webkit-box-shadow: none;
   box-shadow: none;
 }
@@ -1517,7 +1514,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   display: inline-block;
   height: 15px;
   width: 15px;
-  border: 2px solid #d6deef;
+  border: 2px solid $rudder-border-color-default;
   text-align: center;
   line-height: 34px;
   position: absolute;
@@ -1551,7 +1548,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   opacity: 0;
   transition-property: opacity;
   transition-duration: .1s;
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 
 .rudder-form  input[type=radio] + input[type=hidden] + .label-radio span,
@@ -1607,14 +1604,14 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 hr.separation{
   width: 100%;
   height: 100px;
-  background-color: #d6deef;
+  background-color: $rudder-border-color-default;
   margin-top: 80px;
   margin-bottom: 20px;
 }
 
 /* POPOVER */
 .popover-title {
-  background-color: #041922;
+  background-color: $rudder-black;
   border-bottom: 1px solid #222d32;
   color: #fff;
 }
@@ -1673,7 +1670,7 @@ hr.separation{
 .content-wrapper .btn.btn-success.btn-outline,
 .modal .btn.btn-success.btn-outline{
   background-color: #fff !important;
-  color: #13BEB7 !important;
+  color: $rudder-success !important;
   transition-property: background-color, color;
   transition-duration: .2s;
 }
@@ -1686,7 +1683,7 @@ hr.separation{
 }
 .content-wrapper .btn.btn-success.btn-outline:hover,
 .modal .btn.btn-success.btn-outline:hover{
-  background-color: #13BEB7 !important;
+  background-color: $rudder-success !important;
   color: #fff !important;
 }
 .content-wrapper .btn.btn-danger.btn-outline:hover,
@@ -1728,10 +1725,10 @@ hr.separation{
   padding: 5px 8px;
 }
 #addaNetworkfield.error, .networkField.error{
-  border-color: #DA291C;
+  border-color: $rudder-danger;
 }
 .warningNetworkField{
-  color: #DA291C;
+  color: $rudder-danger;
   font-style: italic;
 }
 .networkFieldsContainer{
@@ -1771,7 +1768,7 @@ form input.dyngroupReloadingButton, form button#launchDebugScriptButton{
   font-size: 1.4em !important;
   margin-bottom: 6px;
   margin-top: 12px;
-  color: #041922 !important;
+  color: $rudder-txt-primary !important;
 }
 /* SPINNERS */
 .btn i.fa-spin {
@@ -1793,7 +1790,7 @@ ul > li.rudder-form > .input-group > .input-group-text:first-child{
 ul > li.rudder-form:first-child > .input-group label.form-control,
 #denyBadClocksForm ul > li:first-child > .input-group .input-group-text,
 ul > li.rudder-form:first-child > .input-group .input-group-text{
-  border-top:1px solid #d6deef;
+  border-top:1px solid $rudder-border-color-default;
 }
 #denyBadClocksForm ul > li:first-child > .input-group .input-group-text,
 ul > li.rudder-form:first-child > .input-group .input-group-text{
@@ -1813,7 +1810,7 @@ ul > li.rudder-form > .input-group label.form-control{
   border-top-right-radius:0;
   border-bottom-right-radius:0;
   font-weight: 500;
-  color: #041922;
+  color: $rudder-txt-primary;
   font-size: 14px;
   padding-right: 40px;
   display: flex;
@@ -1826,7 +1823,7 @@ ul.list-sm > li.rudder-form > .input-group label.form-control,#directiveRulesTab
 }
 ul > li.rudder-form > .input-group .input-group-text{
   padding: 3px 11px;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   min-width: 30px;
 }
 ul > li.rudder-form.form-sm > .input-group .input-group-text{
@@ -1890,7 +1887,7 @@ ul > li.rudder-form > .input-group.disabled *{
   height: 16px;
   display: inline-block;
   margin-bottom:0;
-  border: 1px solid #ccc;
+  border: 1px solid $rudder-border-color-default;
   border-radius: 25px;
   position: relative;
   top:2px;
@@ -1901,7 +1898,7 @@ ul > li.rudder-form > .input-group.disabled *{
   box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
 }
 .switch > input:checked + label {
-  background-color: #13BE7E;
+  background-color: $rudder-enforce;
 }
 .switch > input + label:after {
   content: "";
@@ -1913,7 +1910,7 @@ ul > li.rudder-form > .input-group.disabled *{
   top: -1px;
   left:-1px;
   border-radius: 50%;
-  border: 1px solid #ccc;
+  border: 1px solid $rudder-border-color-default;
   transition-duration:.2s;
   box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
@@ -1925,7 +1922,7 @@ ul > li.rudder-form > .input-group.disabled *{
 }
 .switch.switch-text > input + label:before {
   content: "off";
-  color: #738195;
+  color: $rudder-txt-secondary;
   left: 18px;
   font-weight: normal;
   font-size: 11px;
@@ -1956,18 +1953,18 @@ ul > li.rudder-form > .input-group.disabled *{
   min-width: 75px;
   margin: 0;
   padding: 2px 10px;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   text-align: center;
-  color: #738195;
+  color: $rudder-txt-secondary;
   transition-duration: .2s;
 }
 .wbBaseField.form-group .switch label.radio-inline input + .radioTextLabel:hover{
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   border-color: #ddd;
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 .wbBaseField.form-group .switch label.radio-inline input:checked + .radioTextLabel{
-  background-color: #1295c2;
+  background-color: $rudder-txt-link;
   border-color: #3178a0;
   cursor: default;
   color: #fff;
@@ -1998,7 +1995,7 @@ h3.box-title {
   font-size: 20px;
 }
 .box-header.with-border{
-  border-color: #d6deef !important;
+  border-color: $rudder-border-color-default !important;
 }
 .box.has-toolbar{
   margin-bottom:65px;
@@ -2022,7 +2019,7 @@ h3.box-title {
   margin-bottom:6px;
 }
 .box-header>.fa, .box-header>.ion, .box-header .box-title{
-  color:#041922;
+  color:$rudder-txt-primary;
 }
 .box .box-title .fa{
   color: #748195;
@@ -2062,7 +2059,7 @@ h3.box-title {
 }
 .box-body h3,
 .box-body h4,{
-  color:#041922;
+  color:$rudder-txt-primary;
   margin-bottom: 4px;
   border-bottom: 1px solid #eaeaea;
   padding-bottom: 7px;
@@ -2075,7 +2072,7 @@ h3.box-title {
 /* ========= */
 
 .btn.btn-blue{
-  background-color: #1384BE !important;
+  background-color: $rudder-audit !important;
   color: #fff !important;
   border: 1px solid #2173a9 !important;
 }
@@ -2083,7 +2080,7 @@ h3.box-title {
   box-shadow: inset 0 0 4px 1px #286090;
 }
 .btn.btn-blue:hover{
-  background-color: #337ab7 !important;
+  background-color: $rudder-primary !important;
   border-color: #2e6da4 !important;
   color: #fff !important;
 }
@@ -2108,7 +2105,7 @@ h3.box-title {
   padding-left: 0px;
   padding-bottom: 8px;
   margin-bottom: 25px;
-  border-bottom: 1px solid #d6deef;
+  border-bottom: 1px solid $rudder-border-color-default;
   margin-top: 20px;
   font-size: 17.5px;
 }
@@ -2144,10 +2141,10 @@ img.deprecation-icon{
   margin-left:0 !important;
 }
 .tooltip-content.policy-mode.audit p > b{
-  color:#1384BE;
+  color:$rudder-audit;
 }
 .tooltip-content.policy-mode.enforce p > b{
-  color:#13BE7E;
+  color:$rudder-enforce;
 }
 .deprecation-icon.fa-times{
   left:-2px;
@@ -2170,7 +2167,7 @@ b.dsc {
 }
 span.techversion {
   font-weight: 300;
-  color: #738195;
+  color: $rudder-txt-secondary;
   font-size: 10px;
 }
 .directiveNode .rudder-label + .tooltip{
@@ -2218,7 +2215,7 @@ table a > i.fa-pencil{
   transition-duration:.2s;
 }
 table a > i.fa-pencil:hover{
-  color:#041922;
+  color:$rudder-txt-primary;
 }
 /* RULES TABLE */
 
@@ -2257,7 +2254,7 @@ table a > i.fa-pencil:hover{
 #ui-datepicker-div{
   z-index: 9999 !important;
   background-color: #fff;
-  border: 1px solid #ccc;
+  border: 1px solid $rudder-border-color-default;
 }
 .ui-datepicker {
   width: 17em;
@@ -2286,8 +2283,8 @@ table a > i.fa-pencil:hover{
 }
 .ui-datepicker .ui-datepicker-prev-hover,
 .ui-datepicker .ui-datepicker-next-hover{
-  background-color: #eef1f9;
-  color: #041922;
+  background-color: $rudder-bg-gray;
+  color: $rudder-txt-primary;
 }
 .ui-datepicker .ui-datepicker-next-hover {
 
@@ -2346,7 +2343,7 @@ table a > i.fa-pencil:hover{
   padding: .7em .3em;
   text-align: center;
   text-transform: uppercase;
-  color: #aaa;
+  color: $rudder-txt-secondary;
 }
 
 .ui-datepicker td {
@@ -2367,7 +2364,7 @@ table a > i.fa-pencil:hover{
 }
 
 .ui-datepicker-calendar .ui-state-default.ui-state-hover{
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
 }
 
 .ui-datepicker-calendar .ui-state-default.ui-state-active{
@@ -2395,8 +2392,8 @@ table a > i.fa-pencil:hover{
   padding: .2em .6em;
   width: auto;
   overflow: visible;
-  background-color: #F8F9FC;
-  border: 1px solid #ccc;
+  background-color: $rudder-bg-light-gray;
+  border: 1px solid $rudder-border-color-default;
   transition-duration:.2s;
   outline: none !important;
 }
@@ -2405,12 +2402,12 @@ table a > i.fa-pencil:hover{
 }
 .ui-datepicker .ui-datepicker-buttonpane button.ui-datepicker-close{
   float: right;
-  background-color: #1384BE;
+  background-color: $rudder-audit;
   color: #fff !important;
   border: 1px solid #2173a9;
 }
 .ui-datepicker .ui-datepicker-buttonpane button.ui-datepicker-close:hover {
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   border-color: #2e6da4;
 }
 .ui-datepicker.ui-datepicker-multi {
@@ -2510,7 +2507,7 @@ table a > i.fa-pencil:hover{
   width: 95%
 }
 .ui-timepicker-div .ui_tpicker_time .ui_tpicker_time_input:focus {
-  border-bottom-color: #aaa
+  border-bottom-color: $rudder-gray-500
 }
 .ui-timepicker-rtl {
   direction: rtl
@@ -2555,7 +2552,7 @@ table a > i.fa-pencil:hover{
   display: none
 }
 .ui-timepicker-div a.ui-slider-handle{
-  border: 1px solid #aaaaaa;
+  border: 1px solid $rudder-gray-500;
   background: #ffffff;
   transition-duration:.2s;
 }
@@ -2593,7 +2590,7 @@ table a > i.fa-pencil:hover{
   color: inherit;
   border: 0;
   outline: 0;
-  border-bottom: solid 1px #ccc;
+  border-bottom: solid 1px $rudder-border-color-default;
   width: 95%
 }
 .ui-timepicker-div .ui_tpicker_time .ui_tpicker_time_input:focus {
@@ -2672,7 +2669,7 @@ table a > i.fa-pencil:hover{
  top: -.3em;
  margin-left: -.6em;
  background-color: #fff;
- border: 1px solid #ccc;
+ border: 1px solid $rudder-border-color-default;
  border-radius: 50%;
  outline: none !important;
  cursor: pointer;
@@ -2709,12 +2706,12 @@ table a > i.fa-pencil:hover{
 
 /* ID CARD */
 .id-card{
-  background-color: #F8F9FC;
-  border: 1px solid #d6deef;
+  background-color: $rudder-bg-light-gray;
+  border: 1px solid $rudder-border-color-default;
   border-radius: 4px;
   padding: 10px;
   font-size: 18px;
-  color: #041922;
+  color: $rudder-txt-primary;
   margin-bottom: 15px;
   display: flex;
 }
@@ -2724,7 +2721,7 @@ table a > i.fa-pencil:hover{
 .id-card .card-info label {
   font-weight: normal;
   display: inline-block;
-  color: #041922;
+  color: $rudder-txt-primary;
   opacity: .5;
   min-width: 180px;
 }
@@ -2748,9 +2745,9 @@ table a > i.fa-pencil:hover{
 /* MARKDOWN */
 .markdown{
   padding: 10px;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   border-radius: 4px;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   max-height: 400px;
   overflow: auto;
 }
@@ -2782,12 +2779,12 @@ table a > i.fa-pencil:hover{
 .dropdown-menu.dropdown-compliance{
   min-width: 250px;
   padding-top: 0;
-  border-top: 1px solid #D6DEEF;
+  border-top: 1px solid $rudder-border-color-default;
   height: 400px;
   overflow: auto;
 }
 ul.dropdown-menu.dropdown-compliance li {
-  border-bottom: 1px solid #D6DEEF;
+  border-bottom: 1px solid $rudder-border-color-default;
   display: flex;
   width: 100%;
   align-items: baseline;
@@ -2803,7 +2800,7 @@ ul.dropdown-menu.dropdown-compliance li:not(.compliance-group) > span:first-chil
   padding-left: 28px;
 }
 ul.dropdown-menu.dropdown-compliance > li {
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
 }
 ul.dropdown-menu.dropdown-compliance > li > span:last-child {
   font-weight: bold;
@@ -2957,34 +2954,34 @@ $node-logo-size: 50px;
 /* KEYFRAMES */
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}
-  100% {color: #041922;}
+  100% {color: $rudder-txt-primary;}
 }
 @-moz-keyframes text-radio-on {
   0%   {color: #646464;}
-  100% {color: #041922;}
+  100% {color: $rudder-txt-primary;}
 }
 @-o-keyframes text-radio-on {
   0%   {color: #646464;}
-  100% {color: #041922;}
+  100% {color: $rudder-txt-primary;}
 }
 @keyframes text-radio-on {
   0%   {color: #646464;}
-  100% {color: #041922;}
+  100% {color: $rudder-txt-primary;}
 }
 @-webkit-keyframes text-radio-off {
-  0%   {color: #041922;}
+  0%   {color: $rudder-txt-primary;}
   100% {color: #646464;}
 }
 @-moz-keyframes text-radio-off {
-  0%   {color: #041922;}
+  0%   {color: $rudder-txt-primary;}
   100% {color: #646464;}
 }
 @-o-keyframes text-radio-off {
-  0%   {color: #041922;}
+  0%   {color: $rudder-txt-primary;}
   100% {color: #646464;}
 }
 @keyframes text-radio-off {
-  0%   {color: #041922;}
+  0%   {color: $rudder-txt-primary;}
   100% {color: #646464;}
 }
 @-webkit-keyframes loader {

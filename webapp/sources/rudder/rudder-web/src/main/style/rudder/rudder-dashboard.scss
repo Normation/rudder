@@ -1,3 +1,42 @@
+/*
+*************************************************************************************
+* Copyright 2025 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+@use 'rudder-variables' as *;
+
 .content-wrapper,
 .content-wrapper > .rudder_col,
 .rudder-template,
@@ -15,35 +54,26 @@
   overflow: auto;
 }
 
-/* === PANEL === */
-
-.rudder-template .homePage .panel,
+/* === CARD === */
 .rudder-template .homePage .card{
   height: 100%;
   border-radius: 12px;
-  box-shadow: 0 10px 20px 6px #dce3ef63;
+  box-shadow: 0 6px 16px 2px $rudder-box-shadow-color;
   border: none !important;
   overflow: hidden;
 }
-.rudder-template .homePage .panel-default > .panel-heading {
-  border: none;
-  margin: 0;
-  font-weight: 600;
-  color: #041922;
-  background-color:transparent;
-}
 
 #globalComplianceStats {
-  color: #36474E;
+  color: $rudder-txt-light;
   padding: 0 30px;
 }
 
 .highlight{
-  color: #041922;
+  color: $rudder-txt-primary;
   font-weight:700;
 }
 .node-chart h4 {
-  color: #36474E;
+  color: $rudder-txt-light;
   margin-bottom: 15px;
   font-size: 1.3em;
 }
@@ -54,7 +84,7 @@
   }
   & > a {
     .badge{
-      background-color: #b1bbcb;
+      background-color: $rudder-gray-400;
       display: inline-flex;
       justify-content: center;
       align-items: center;
@@ -64,7 +94,7 @@
 
     &:hover {
       & .badge{
-         background-color: #72829D;
+         background-color: $rudder-gray-500;
          opacity:1;
        }
     }
@@ -94,7 +124,7 @@
   font-size:30px;
   float: left;
   width: 100%;
-  color: #36474E;
+  color: $rudder-txt-light;
 }
 .node-compliance-chart{
   padding: 15px;
@@ -109,8 +139,8 @@
     135deg,
     #eef1f8,
     #eef1f8 10px,
-    #f8f9fc 10px,
-    #f8f9fc 20px
+    $rudder-bg-light-gray 10px,
+    $rudder-bg-light-gray 20px
   );
   box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
 }
@@ -150,8 +180,8 @@
     135deg,
     #eef1f8,
     #eef1f8 10px,
-    #f8f9fc 10px,
-    #f8f9fc 20px
+    $rudder-bg-light-gray 10px,
+    $rudder-bg-light-gray 20px
   );
   display: flex;
   justify-content: center;
@@ -184,9 +214,9 @@ ul.graph-legend > li.legend{
   border-radius:4px;
   display: flex;
   align-items: flex-end;
-  color: #36474E;
+  color: $rudder-txt-light;
 }
 ul.graph-legend > li.legend:hover{
-  background-color: #F8F9FC;
-  color: #041922;
+  background-color: $rudder-bg-light-gray;
+  color: $rudder-txt-primary;
 }

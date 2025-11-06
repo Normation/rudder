@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,7 +34,7 @@
 *
 *************************************************************************************
 */
-// Modules
+
 @use 'rudder-variables' as *;
 
 .rudder-template > .one-col{
@@ -71,7 +71,7 @@
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid #dcdcdc;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   margin:0;
   transition-duration:.2s;
   opacity:.7;
@@ -96,8 +96,8 @@
   color:#fff;
 }
 #modeSelector > li:last-child > label input:checked + span{
-  background-color: #DA291C;
-  border-color: #DA291C;
+  background-color: $rudder-danger;
+  border-color: $rudder-danger;
 }
 #modeSelector > li:first-child > label input:checked + span{
   background-color: #3694d1;

@@ -109,7 +109,7 @@ object ComputePolicyMode {
       nodeModes:  Iterable[Option[PolicyMode]]
   ): ComputedPolicyMode = {
     val mixed          =
-      "This rule is applied on at least one node or directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
+      "This rule is applied on at least one node or directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-audit'>audits</b> them."
     val directivesMode = directives.map(_.policyMode)
     val nodeModeSet    = nodeModes.toSet
     // All directives and nodes are default, will use Rule mode
@@ -319,7 +319,7 @@ object ComputePolicyMode {
       directivesMode: Set[Option[PolicyMode]]
   ): ComputedPolicyMode = {
     val mixed =
-      "This Rule has at least one Directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
+      "This Rule has at least one Directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-audit'>audits</b> them."
     genericComputeMode(nodeMode, "Node", directivesMode, "Directives", globalMode, mixed)
   }
 
@@ -329,7 +329,7 @@ object ComputePolicyMode {
       directivesMode: Set[Option[PolicyMode]]
   ): ComputedPolicyMode = {
     val mixed =
-      "This Node applies at least one Directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
+      "This Node applies at least one Directive that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-audit'>audits</b> them."
     genericComputeMode(nodeMode, "Node", directivesMode, "Directives", globalMode, mixed)
   }
 
@@ -339,7 +339,7 @@ object ComputePolicyMode {
       directiveMode: Option[PolicyMode]
   ): ComputedPolicyMode = {
     val mixed =
-      "This Directive is applied on at least one Node that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-Audit'>audits</b> them."
+      "This Directive is applied on at least one Node that will <b class='text-Enforce'>enforces</b> configurations, and at least one that will <b class='text-audit'>audits</b> them."
     genericComputeMode(directiveMode, "Node", nodeModes, "Directives", globalMode, mixed)
   }
 }
