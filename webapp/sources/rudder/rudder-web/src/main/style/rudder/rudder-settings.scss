@@ -1,3 +1,42 @@
+/*
+*************************************************************************************
+* Copyright 2025 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+@use 'rudder-variables' as *;
+
 // GENERAL SETTINGS
 #settingsTabContent{
   display: flex;
@@ -113,7 +152,7 @@ ul.wizard-timeline{
       color: #b4b9ca
     }
     &.activeSection > .timeline-item .item-title {
-      color: #041922;
+      color: $rudder-txt-primary;
     }
     &.activeSection ~ li:last-child > .timeline-item .item-dot,
     &.activeSection ~ li > .timeline-connector:before{
@@ -256,7 +295,7 @@ ul.wizard-timeline{
           border-color: transparent;
 
           &:before{
-            border-color: #13beb7 !important;
+            border-color: $rudder-success !important;
           }
         }
 
@@ -285,7 +324,7 @@ ul.wizard-timeline{
     font-size: 16px;
 
     &.section-default{
-      color: #337ab7;
+      color: $rudder-info;
 
       & > div{
         background-color: #dcf3ff;
@@ -300,7 +339,7 @@ ul.wizard-timeline{
       }
 
       i {
-        color: #13beb7;
+        color: $rudder-success;
       }
     }
 

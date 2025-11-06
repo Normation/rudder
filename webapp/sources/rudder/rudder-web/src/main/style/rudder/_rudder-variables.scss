@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,33 +35,59 @@
 *************************************************************************************
 */
 
-// --- MAIN COLORS
-$rudder-success : #13BEB7;
-$rudder-primary : #337ab7;
-$rudder-warning : #EF9600;
-$rudder-danger  : #DA291C;
-$rudder-info    : #337AB7;
-$rudder-darkgray: #72829D;
+@use 'sass:color';
 
-// --- POLICY MODE
-$rudder-audit   : #1384BE;
-$rudder-enforce : #13BE7E;
+// --- MAIN COLORS
+$rudder-success   : #13BEB7;
+$rudder-primary   : #337AB7;
+$rudder-warning   : #EF9600;
+$rudder-danger    : #DA291C;
+$rudder-info      : #337AB7;
+$rudder-gray      : #72829D;
+$rudder-lightgray : #B1BBCB;
+$rudder-darkgray  : #36474E;
+$rudder-black     : #041922;
 
 // --- TEXT & LINK
-$rudder-txt-primary   : #041922;
-$rudder-txt-secondary : #72829D;
-$rudder-txt-light     : #36474E;
+$rudder-txt-primary   : $rudder-black;
+$rudder-txt-secondary : $rudder-gray;
+$rudder-txt-light     : $rudder-darkgray;
 $rudder-txt-link      : #1295C2;
 
 // --- BACKGROUNDS
 $rudder-bg-light-gray : #F8F9FC;
 $rudder-bg-gray       : #EEF1F9;
 $rudder-bg-dark-gray  : #E1E5EB;
+$rudder-bg-info       : #E2F2FF;
 $rudder-bg-danger     : #F8D7DA;
+$rudder-bg-warning    : rgba($rudder-warning, .08);
+$rudder-bg-overlay    : rgba($rudder-black, .3);
 
 // --- BORDERS
 $rudder-border-color-default : #D6DEEF;
 $rudder-border-color-danger  : #AC2925;
+$rudder-border-color-warning : rgba($rudder-warning, .2);
 
 // --- BOX-SHADOWS
-$rudder-box-shadow-color: #DCE3EF;
+$rudder-box-shadow-color : #DCE3EF;
+
+// --- POLICY MODE
+$rudder-audit   : #1384BE;
+$rudder-enforce : #13BE7E;
+
+// --- COMPLIANCE
+$color-compliance-disabled      : $rudder-gray;
+$color-compliance-success       : $rudder-success;
+$color-compliance-error         : $rudder-danger;
+$color-compliance-pending       : #14C3DD;
+$color-compliance-noreport      : $rudder-lightgray;
+$color-compliance-missing       : #F2E27D;
+$color-compliance-notapplicable : #8DCD8D;
+$color-compliance-noncompliant  : $rudder-warning;
+
+// --- PACKAGES
+$color-package-security    : $rudder-danger;
+$color-package-bugfix      : $rudder-warning;
+$color-package-enhancement : $rudder-success;
+$color-package-update      : $rudder-gray;
+$color-package-uptodate    : #00A65A;
