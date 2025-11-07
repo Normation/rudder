@@ -414,14 +414,14 @@ tr.parametersDescription {
 }
 .dt-info,
 .dt-length{
-  padding-top: 3px;
-  margin-right: 15px;
   font-style: italic;
   float:left;
+  flex: 33% 1 1;
 }
 .dt-paging {
   float: right;
   text-align: right;
+  flex: 33% 1 1;
 }
 .dt-paging .fg-button {
   display: inline-block;
@@ -733,6 +733,7 @@ td.greyBackground, th.greyBackground {
 .dt-length {
   display : flex;
   font-weight:100;
+  flex: 33% 0 1;
 }
 
 .dt-length label select {

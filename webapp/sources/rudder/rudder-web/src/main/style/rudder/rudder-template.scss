@@ -835,6 +835,9 @@ ul {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .rudder-template .template-main .main-table .dataTables_wrapper_top,
 .rudder-template .template-main .main-table .dataTable,
