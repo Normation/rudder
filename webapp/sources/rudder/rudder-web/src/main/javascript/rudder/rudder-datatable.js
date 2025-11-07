@@ -73,9 +73,10 @@ const csvButtonConfig = (filename, additionalCls) => ({
     format: {
           body: function (html, row, col, node) {
               // begin with default formatting
+              const isString = value => typeof value === 'string' || value instanceof String;
               html = $.fn.DataTable.Buttons.stripData( html, null );
               // N/A and curly braces are properties, get innerText ...
-              if (html === "N/A" || html.startsWith("{") ) {
+              if (isString(html) && (html === "N/A" || html.startsWith("{") )) {
                 html = node.innerText
               }
               return html;
