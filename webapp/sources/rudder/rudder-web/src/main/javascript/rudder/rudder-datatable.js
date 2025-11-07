@@ -42,6 +42,21 @@ var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
 
+$.extend(true, DataTable.defaults, {
+    oLanguage: {
+        sSearch: "",
+        sSearchPlaceholder: "Filter"
+    }
+});
+
+$.extend(true, DataTable.ext.classes, {
+    search: {
+		input: 'dt-input form-control'
+	},
+    length: {
+    	select: "dt-input form-select form-select-sm"
+    },
+});
 
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
@@ -99,7 +114,7 @@ const csvButtonConfig = (filename, additionalCls) => ({
  * This function is used to resort a table after its sorting data were changed ( like sorting function below)
  */
 function resortTable (tableId) {
-  var table = $("#"+tableId).DataTable({"retrieve" : true});
+  var table = new DataTable("#"+tableId, {"retrieve" : true});
   table.draw();
 }
 
@@ -173,36 +188,26 @@ $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
 };
 
 
-$.fn.dataTableExt.afnSortData['node-compliance'] = function ( oSettings, iColumn )
+$.fn.dataTableExt.afnSortData['node-compliance'] = function ( settings, iColumn )
 {
-    var data =
-      $.map(
-          // All data of the table
-          oSettings.oApi._fnGetDataMaster(oSettings)
-        , function (elem, index) {
-            if ("compliance" in elem) {
-              return computeCompliancePercent(elem.compliance)
-            }
-            return -1;
-          }
-      )
-    return data;
+    const data = settings.api.rows().data()
+    return data.map(function (elem, index) {
+        if ("compliance" in elem) {
+          return computeCompliancePercent(elem.compliance)
+        }
+        return -1;
+    });
 };
 
 $.fn.dataTableExt.afnSortData['changes'] = function ( oSettings, iColumn )
 {
-    var data =
-      $.map(
-          // All data of the table
-          oSettings.oApi._fnGetDataMaster(oSettings)
-        , function (elem, index) {
-            if (elem.id in recentChangesCount) {
-              return recentChangesCount[elem.id];
-            }
-            return -1;
-          }
-      )
-    return data;
+    const data = settings.api.rows().data()
+    return data.map(function (elem, index) {
+        if (elem.id in recentChangesCount) {
+          return recentChangesCount[elem.id];
+        }
+        return -1;
+    });
 };
 
 function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGraph) {
@@ -543,13 +548,13 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
           "targets": "_all"
         , "type"   : "natural"
       }]
-    , "fnDrawCallback": function( oSettings ) {
+    , "fnDrawCallback": function( settings ) {
+      const api = new $.fn.dataTable.Api( settings );
       initBsTooltips();
       $('#updateRuleTable').on('click',function(){
         refresh();
-      })
-      var rows = this._('tr', {"page":"current"});
-      $.each(rows, function(index,row) {
+      });
+      api.rows( {page:'current'} ).each(function(index,row) {
         var id = "Changes-"+row.id;
         // Display compliance progress bar if it has already been computed
         var compliance = ruleCompliances[row.id]
@@ -1212,7 +1217,7 @@ function callbackElement(oData, displayCompliance) {
 }
 
 function reloadTable(gridId, nodeIds, scores) {
-  var table = $('#'+gridId).DataTable();
+  var table = new DataTable('#'+gridId, );
   table.destroy();
   createNodeTable(gridId, nodeIds, function(){reloadTable(gridId, nodeIds, scores)}, scores)
 }
@@ -1508,7 +1513,11 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     }
   }
   var params = {
-      "filter" : true
+    "language" : {
+      "search" : "",
+      "searchPlaceholder" : "Filter"
+    }
+    , "filter" : true
     , "paging" : true
     , "lengthChange": true
     , "fixedHeader": true
@@ -1516,10 +1525,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "destroy" : true
     , "pagingType": "full_numbers"
     , "scrollCollapse": hasHandle
-    , "scrollY": hasHandle ? "200px" : null
-    , "language": {
-        "search": ""
-    }
+    // , "scrollY": hasHandle ? "200px" : null
     , columnDefs : [
       {
         "targets": "_all"
@@ -1535,10 +1541,10 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "type" : "POST"
     , "contentType" : "application/json"
     , "data" : function (d) {
-      var data = d
-      var softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
+      let data = d
+      const softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
 
-      var properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
+      const properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
       data = $.extend({}, d, { "software": softwareList, "properties": properties })
       if (nodeIds !== undefined) { data = $.extend({}, d, { "nodeIds": nodeIds, "software": softwareList, "properties" : properties }) }
       return JSON.stringify(data)
@@ -1548,7 +1554,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "drawCallback": function( oSettings ) {
         initBsTooltips();
       }
-    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header.d-flex" <"d-flex flex-fill" <"me-2" f> <"#edit-columns">> <"d-flex ms-auto my-auto" <"me-2" B> <"dataTables_refresh">>> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
+    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header.d-flex" <"d-flex flex-fill" <"me-3" f"d-flex"> <"#edit-columns">> <"d-flex ms-auto my-auto" <"me-2" B> <"dataTables_refresh">>> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
   };
 
 
@@ -1557,7 +1563,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
 
 
   function resetColumns()  {
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
@@ -1574,7 +1580,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
 
   function addColumn(columnName, value, checked) {
     var escapedValue = escapeHTML(value);
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
@@ -1626,7 +1632,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   }
 
   function removeColumn(columnIndex) {
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var data2 = table.rows().data();
 
     table.destroy();
@@ -1651,7 +1657,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     var addedScore = columns.filter((c) => c.title.endsWith(" Score")).map((c) => c.value).sort()
     // All ids of all available scores
     var scoreListId = scores.map((c) => c.id).sort()
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
     var confirmTxt = "<span>Confirm</span><i class=\"fa fa-check\"></i>"
     var textBtn    = editOpen ? confirmTxt : editTxt;
@@ -2354,7 +2360,7 @@ function getProgressBars(arr){
 }
 
 function refreshTable (gridId, data) {
-  var table = $('#'+gridId).DataTable({"retrieve": true});
+  var table = new DataTable('#'+gridId, {"retrieve": true});
   table.clear();
   table.rows.add(data);
   table.draw();
@@ -2474,7 +2480,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
 // Create a table from its id, data, columns, custom params, context patch and refresh function
 function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, isPopup) {
   var defaultParams = {
-      "asStripeClasses": [ 'color1', 'color2' ]
+    "asStripeClasses": [ 'color1', 'color2' ]
     , "bAutoWidth": false
     , "aoColumns": columns
     , "aaData": data
@@ -2500,7 +2506,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   var params = $.extend({},defaultParams,customParams);
 
-  var table = $('#'+gridId).DataTable( params );
+  var table = new DataTable('#'+gridId, params);
 
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
@@ -2512,9 +2518,8 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshBtn);
   }
 
-  $('.dataTables_filter input').attr("placeholder", "Filter");
-
-  $('.modal .dataTables_filter input').addClass("form-control");
+  //TODO: replace by custom DataTable.ext.classes
+  $('.dt-search input').addClass("form-control");
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 

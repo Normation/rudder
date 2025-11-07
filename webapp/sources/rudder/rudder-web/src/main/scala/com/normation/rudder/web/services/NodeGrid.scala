@@ -127,7 +127,7 @@ final class NodeGrid(
       """) & OnLoad( // JsRaw ok, escaped
       JsRaw(s"""
           /* Event handler function */
-          ${jsVarNameForId(jsTableId)} = $$('#${jsTableId}').dataTable({
+          ${jsVarNameForId(jsTableId)} = new DataTable('#${jsTableId}', {
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" : ${searchable},
@@ -143,9 +143,6 @@ final class NodeGrid(
             "bJQueryUI": false,
             "aaSorting": [[ 0, "asc" ]],
             "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sSearch": ""
-            },
             "aoColumns": [
               { "sWidth": "30%" },
               { "sWidth": "27%" },
@@ -168,7 +165,7 @@ final class NodeGrid(
    * initialization.
    */
   def initJsCallBack(tableId: String)(implicit qc: QueryContext): JsCmd = {
-    JsRaw(s"""$$( ${jsVarNameForId(tableId)}.fnGetNodes() ).each( function () {
+    JsRaw(s"""new DataTable(${jsVarNameForId(tableId)}).rows().nodes().to$$().each( function () {
           $$(this).click( function (event) {
             var source = event.target || event.srcElement;
             event.stopPropagation();

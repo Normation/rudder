@@ -100,7 +100,9 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
   , "lengthChange": true
   , "pagingType": "full_numbers"
   , "language":
-    { "Search": "" }
+    { "search": ""
+    , "searchPlaceholder" : "Search"
+    }
   , "order": [[ 0, "desc" ]]
   , "createdRow" :
       function( row, data, dataIndex, cells ) {

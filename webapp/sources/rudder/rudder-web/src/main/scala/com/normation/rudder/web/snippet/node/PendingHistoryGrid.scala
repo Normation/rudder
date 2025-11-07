@@ -86,19 +86,19 @@ object PendingHistoryGrid extends Loggable {
 
   }
 
-  def jsVarNameForId() = "pendingNodeHistoryTable"
+  private def jsVarNameForId() = "pendingNodeHistoryTable"
 
   def initJs(entries: Seq[EventLog] = Seq())(implicit qc: QueryContext): JsCmd = {
-    JsRaw("""
-        var #table_var#;
+    JsRaw(s"""
+        var ${jsVarNameForId()};
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
           var sOut = '<span id="'+id+'" class="sgridbph"/>';
           return sOut;
         }
-      """.replaceAll("#table_var#", jsVarNameForId())) & OnLoad(
-      JsRaw("""
-         #table_var# =  $('#pending_server_history').dataTable({
+      """) & OnLoad(
+      JsRaw(s"""
+         ${jsVarNameForId()} = new DataTable('#pending_server_history', {
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
@@ -111,16 +111,12 @@ object PendingHistoryGrid extends Loggable {
                       return JSON.parse( localStorage.getItem('DataTables_pending_server_history') );
                     },
             "bJQueryUI": false,
-            "oLanguage": {
-              "sSearch": ""
-            },
             "aaSorting": [[ 0, "desc" ]],
             "sPaginationType": "full_numbers",
             "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
             "buttons" : [ csvButtonConfig("pending_nodes_history") ]
           });
-          $('.dataTables_filter input').attr("placeholder", "Filter");
-          """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries) // JsRaw ok, const
+          """) & initJsCallBack(entries) // JsRaw ok, const
     )
   }
 
@@ -186,31 +182,28 @@ object PendingHistoryGrid extends Loggable {
     val deletedNodes     = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
 
     JsRaw(
-      """
-          $(#table_var#.fnGetNodes()).each( function () {
-                 $(this).click( function () {
-                    var id = $(this).attr("serveruuid");
-                    var inventory = $(this).attr("inventory");
-                    var jsuuid = $(this).attr("jsuuid");
-                    var kind = $(this).attr("kind");
-                    var opened = $(this).prop("open");
+      s"""new DataTable(${jsVarNameForId()}).rows().nodes().to$$().each( function () {
+                 $$(this).click( function () {
+                    var id = $$(this).attr("serveruuid");
+                    var inventory = $$(this).attr("inventory");
+                    var jsuuid = $$(this).attr("jsuuid");
+                    var kind = $$(this).attr("kind");
+                    var opened = $$(this).prop("open");
 
                     if (opened && opened.match("opened")) {
-                      #table_var#.fnClose(this);
-                      $(this).prop("open", "closed");
-                      $(this).find("span.listclose").removeClass("listclose").addClass("listopen");
+                      ${jsVarNameForId()}.fnClose(this);
+                      $$(this).prop("open", "closed");
+                      $$(this).find("span.listclose").removeClass("listclose").addClass("listopen");
                     } else {
-                      $(this).prop("open", "opened");
-                      $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
+                      $$(this).prop("open", "opened");
+                      $$(this).find("span.listopen").removeClass("listopen").addClass("listclose");
                       var ajaxParam = jsuuid + "|" + id + "|" + inventory + "|" + kind;
-                      #table_var#.fnOpen( this, fnFormatDetails(jsuuid), 'displayPastInventory' );
-                      %s;
+                      ${jsVarNameForId()}.fnOpen( this, fnFormatDetails(jsuuid), 'displayPastInventory' );
+                      ${SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes))._2.toJsCmd};
                     }
                   } );
                 })
           """
-        .format(SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes))._2.toJsCmd)
-        .replaceAll("#table_var#", jsVarNameForId()) // JsRaw ok, escaped
     )
   }
 
