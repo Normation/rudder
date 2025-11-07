@@ -54,8 +54,8 @@ import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
+import com.normation.rudder.rest.syntax.*
 import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator

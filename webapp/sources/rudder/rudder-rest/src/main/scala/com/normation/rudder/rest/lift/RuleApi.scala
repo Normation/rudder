@@ -55,7 +55,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.rest.{RuleApi as API, *}
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*

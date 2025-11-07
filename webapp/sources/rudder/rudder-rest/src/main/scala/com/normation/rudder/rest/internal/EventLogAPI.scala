@@ -62,12 +62,12 @@ import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
 import com.normation.rudder.rest.data.RestEventLogSuccess
 import com.normation.rudder.rest.data.SimpleDiffJson
-import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiModule
 import com.normation.rudder.rest.lift.LiftApiModule0
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiModuleString
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.services.*
 import com.normation.zio.UnsafeRun
