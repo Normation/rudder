@@ -92,7 +92,7 @@ class TestMigrateNodeAcceptationInventoriesFile extends TestMigrateNodeAcceptati
 // this one use postgres and will run only with -Dtest.postgres="true"
 @RunWith(classOf[JUnitRunner])
 class TestMigrateNodeAcceptationInventoriesJdbc extends TestMigrateNodeAcceptationInventories with DBCommon {
-  override def doJdbcTest = doDatabaseConnection
+  override def doJdbcTest(): Boolean = doDatabaseConnection
 
   // format: off
   //org.slf4j.LoggerFactory.getLogger("sql").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
@@ -112,7 +112,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     }
   }
 
-  def doJdbcTest = false
+  def doJdbcTest(): Boolean = false
 
   sequential
 
@@ -243,7 +243,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
 
   // lazy val needed to be able to not init datasource when tests are skipped
   lazy val testFactLog: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] & InventoryHistoryDelete =
-    if (doJdbcTest && doobie != null) new InventoryHistoryJdbcRepository(doobie) else fileFactLog
+    if (doJdbcTest() && doobie != null) new InventoryHistoryJdbcRepository(doobie) else fileFactLog
 
   // 0afa1d13-d125-4c91-9d71-24c47dc867e9 => deleted, far too old, not supported format
   // 0bd58a1f-3faa-4783-a7a2-52d84021663a => ok, only one file, age ok

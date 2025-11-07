@@ -46,7 +46,7 @@ class VersionTest extends Specification {
 
   def forceParse(s: String): Version = {
     ParseVersion.parse(s) match {
-      case Left(err) => throw new IllegalArgumentException(s"Error in test when parsing version '${s}': ${err}")
+      case Left(err) => throw new IllegalArgumentException(s"Error in test when parsing version '$s': $err")
       case Right(v)  => v
     }
   }
@@ -57,7 +57,7 @@ class VersionTest extends Specification {
     import PartType.*
     import Separator.*
     import VersionPart.*
-    def parse(s: String) = ParseVersion.parse(s).getOrElse(throw new RuntimeException(s"Can not parse: ${s}"))
+    def parse(s: String) = ParseVersion.parse(s).getOrElse(throw new RuntimeException(s"Can not parse: $s"))
 
     parse("1.0") === com.normation.utils.Version(0, Numeric(1), After(Dot, Numeric(0)) :: Nil)
     parse("1.0-alpha10") === com.normation.utils.Version(
@@ -158,25 +158,25 @@ class VersionTest extends Specification {
     val msg1 =
       "Error when parsing 'a:18' as a version. Only ascii (non-control, non-space) chars are allowed in a version string."
     "return left".format(msg1) in {
-      ParseVersion.parse("a:18") must beLeft[String].like { case e => e must contain(msg1) }
+      ParseVersion.parse("a:18").must(beLeft[String].like { case e => e.must(contain(msg1)) })
     }
 
     val msg2 = "Error when parsing 'a15' as a version. Only ascii (non-control, non-space) chars are allowed in a version string."
     "return left".format(msg2) in {
-      ParseVersion.parse("a15") must beLeft[String].like { case e => e must contain(msg2) }
+      ParseVersion.parse("a15").must(beLeft[String].like { case e => e.must(contain(msg2)) })
     }
   }
 
   private def equalVersions(version1: String, version2: String) = {
     // the actual comparison test
     "be so that '%s' == '%s'".format(version1, version2) in {
-      forceParse(version1) == forceParse(version2) must beTrue
+      (forceParse(version1) == forceParse(version2)).must(beTrue)
     }
     "be so that '%s' > '%s' is false".format(version1, version2) in {
-      forceParse(version1) > forceParse(version2) must beFalse
+      (forceParse(version1) > forceParse(version2)).must(beFalse)
     }
     "be so that '%s' < '%s' is false".format(version1, version2) in {
-      forceParse(version1) < forceParse(version2) must beFalse
+      (forceParse(version1) < forceParse(version2)).must(beFalse)
     }
   }
 
@@ -184,13 +184,13 @@ class VersionTest extends Specification {
   private def increasingVersions(version1: String, version2: String) = {
     // the actual comparison test
     "be so that '%s' < '%s'".format(version1, version2) in {
-      forceParse(version1) < forceParse(version2) must beTrue
+      (forceParse(version1) < forceParse(version2)).must(beTrue)
     }
     "be so that '%s' > '%s' is false".format(version1, version2) in {
-      forceParse(version1) > forceParse(version2) must beFalse
+      (forceParse(version1) > forceParse(version2)).must(beFalse)
     }
     "be so that '%s' == '%s' is false".format(version1, version2) in {
-      forceParse(version1) == forceParse(version2) must beFalse
+      (forceParse(version1) == forceParse(version2)).must(beFalse)
     }
   }
 }
