@@ -127,7 +127,7 @@ object DisplayNode extends Loggable {
         )
       }*)
     ) & JsRaw(s"""
-          $$('#${htmlId(jsId, gridId + "_")}').dataTable({
+          new DataTable('#${htmlId(jsId, gridId + "_")}', {
             "aaData":${gridDataId},
             "bJQueryUI": false,
             "bPaginate": true,
@@ -135,9 +135,6 @@ object DisplayNode extends Loggable {
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "asStripeClasses": [ 'color1', 'color2' ] ,
-            "oLanguage": {
-              "sSearch": ""
-            },
             "bLengthChange": true,
             "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
@@ -152,9 +149,7 @@ object DisplayNode extends Loggable {
             "buttons" : [ csvButtonConfig("node_${nodeId}_software", "btn-sm") ],
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
-        });
-        $$('.dataTables_filter input').attr("placeholder", "Filter");
-            """)).toBox match { // JsRaw ok, escaped
+        });""")).toBox match { // JsRaw ok, escaped
       case Empty            => Alert("No software found for that server")
       case Failure(m, _, _) => Alert("Error when trying to fetch software. Reported message: " + m)
       case Full(js)         => js
@@ -188,14 +183,11 @@ object DisplayNode extends Loggable {
     OnLoad({
         eltIds.map { i =>
           JsRaw(s"""
-              $$('#${htmlId(jsId, i + "_")}').dataTable({
+              new DataTable('#${htmlId(jsId, i + "_")}', {
                 "bJQueryUI": false,
                 "bRetrieve": true,
                 "bFilter": true,
                 "asStripeClasses": [ 'color1', 'color2' ],
-                "oLanguage": {
-                  "sSearch": ""
-                },
                 "bLengthChange": true,
                 "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
@@ -212,16 +204,13 @@ object DisplayNode extends Loggable {
                 "buttons" : [ csvButtonConfig("node_${nodeId.value}_${i}", "btn-sm") ],
                 "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
                 "pageLength": 25
-              });
-
-              $$('.dataTables_filter input').attr("placeholder", "Filter");
-                   | """.stripMargin('|')): JsCmd
+              });"""): JsCmd
         }.reduceLeft((i, acc) => acc & i) // JsRaw ok, escaped
       } & {
         eltIdswidth.map {
           case (id, columns, sorting) =>
             JsRaw(s"""
-              $$('#${htmlId(jsId, id + "_")}').dataTable({
+              new DataTable('#${htmlId(jsId, id + "_")}', {
                 "bJQueryUI": false,
                 "bRetrieve": true,
                 "sPaginationType": "full_numbers",
@@ -230,9 +219,6 @@ object DisplayNode extends Loggable {
                 "bPaginate": true,
                 "aoColumns": ${columns.map(col => s"{'sWidth': '${col}px'}").mkString("[", ",", "]")} ,
                 "aaSorting": [[ ${sorting}, "asc" ]],
-                "oLanguage": {
-                  "sSearch": ""
-                },
                 "bLengthChange": true,
                 "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
@@ -247,9 +233,7 @@ object DisplayNode extends Loggable {
                 "buttons" : [ csvButtonConfig("node_${nodeId.value}_${id}", "btn-sm") ],
                 "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
                 "pageLength": 25
-              });
-              $$('.dataTables_filter input').attr("placeholder", "Filter");
-           """): JsCmd // JsRaw ok, no user inputs
+              });"""): JsCmd // JsRaw ok, no user inputs
         }.reduceLeft((i, acc) => acc & i)
       } &
       // for the software tab, we check for the panel id, and the firstChild id
@@ -916,8 +900,6 @@ object DisplayNode extends Loggable {
             }
           }
           <thead>
-          <tr class="head">
-          </tr>
             <tr class="head">{
             columns.map(h => <th>{h._1}</th>).toSeq
           }</tr>

@@ -389,9 +389,9 @@ class RuleGrid(
             }
 
             JsRaw(s"""
-            var ruleTable = $$('#'+"${htmlId_rulesGridId}").dataTable();
-            var currentPageRow = ruleTable._('tr', {"page":"current"});
-            var currentPageIds = $$.map( currentPageRow , function(val) { return val.id});
+            const ruleTable = new DataTable('#'+"${htmlId_rulesGridId}");
+            const currentPageRow = ruleTable.rows({"page":"current"});
+            const currentPageIds = currentPageRow.map(({ id }) => id);
             ${computeGraphs.mkString(";")}
             resortTable("${htmlId_rulesGridId}")
           """) // JsRaw ok, escaped

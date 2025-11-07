@@ -42,6 +42,21 @@ var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
 
+$.extend(true, DataTable.defaults, {
+    oLanguage: {
+        sSearch: "",
+        sSearchPlaceholder: "Filter"
+    }
+});
+
+$.extend(true, DataTable.ext.classes, {
+    search: {
+		input: 'dt-input form-control'
+	},
+    length: {
+    	select: "dt-input form-select form-select-sm w-25"
+    },
+});
 
 /* Create an array with the values of all the checkboxes in a column */
 $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
@@ -100,7 +115,7 @@ const csvButtonConfig = (filename, additionalCls) => ({
  * This function is used to resort a table after its sorting data were changed ( like sorting function below)
  */
 function resortTable (tableId) {
-  var table = $("#"+tableId).DataTable({"retrieve" : true});
+  var table = new DataTable("#"+tableId, {"retrieve" : true});
   table.draw();
 }
 
@@ -174,36 +189,26 @@ $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
 };
 
 
-$.fn.dataTableExt.afnSortData['node-compliance'] = function ( oSettings, iColumn )
+$.fn.dataTableExt.afnSortData['node-compliance'] = function ( settings, iColumn )
 {
-    var data =
-      $.map(
-          // All data of the table
-          oSettings.oApi._fnGetDataMaster(oSettings)
-        , function (elem, index) {
-            if ("compliance" in elem) {
-              return computeCompliancePercent(elem.compliance)
-            }
-            return -1;
-          }
-      )
-    return data;
+    const data = settings.api.rows().data()
+    return data.map(function (elem, index) {
+        if ("compliance" in elem) {
+          return computeCompliancePercent(elem.compliance)
+        }
+        return -1;
+    });
 };
 
 $.fn.dataTableExt.afnSortData['changes'] = function ( oSettings, iColumn )
 {
-    var data =
-      $.map(
-          // All data of the table
-          oSettings.oApi._fnGetDataMaster(oSettings)
-        , function (elem, index) {
-            if (elem.id in recentChangesCount) {
-              return recentChangesCount[elem.id];
-            }
-            return -1;
-          }
-      )
-    return data;
+    const data = settings.api.rows().data()
+    return data.map(function (elem, index) {
+        if (elem.id in recentChangesCount) {
+          return recentChangesCount[elem.id];
+        }
+        return -1;
+    });
 };
 
 function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGraph) {
@@ -544,13 +549,13 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
           "targets": "_all"
         , "type"   : "natural"
       }]
-    , "fnDrawCallback": function( oSettings ) {
+    , "fnDrawCallback": function( settings ) {
+      const api = new $.fn.dataTable.Api( settings );
       initBsTooltips();
       $('#updateRuleTable').on('click',function(){
         refresh();
-      })
-      var rows = this._('tr', {"page":"current"});
-      $.each(rows, function(index,row) {
+      });
+      api.rows( {page:'current'} ).each(function(index,row) {
         var id = "Changes-"+row.id;
         // Display compliance progress bar if it has already been computed
         var compliance = ruleCompliances[row.id]
@@ -600,360 +605,6 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
  *  For 2/, they looks like: [ VALUE | COMPLIANCE ]
  */
 
-/*
- *   The table of rules compliance for a node (in the node details
- *   page, reports tab)
- *
- *   Javascript object containing all data to create a line in the DataTable
- *   { "rule" : Rule name [String]
- *   , "id" : Rule id [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
- *   , "compliancePercent" : Compliance percentage [Float]
- *   , "details" : Details of Directives contained in the Rule [Array of Directive values]
- *   , "jsid"    : unique identifier for the line [String]
- *   , "isSystem" : Is it a system Rule? [Boolean]
- *   }
- */
-function createRuleComplianceTable(gridId, data, contextPath, refresh) {
-
-  var columns = [ {
-      "sWidth": "75%"
-    , "mDataProp": "rule"
-    , "sTitle": "Rule"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("listopen");
-      $(nTd).empty();
-      //rule name is escaped server side, avoid double escape with .text()
-      $(nTd).html(oData.rule);
-      if (! oData.isSystem) {
-        var editIcon = $("<i>");
-        editIcon.addClass("fa fa-pencil");
-        var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
-        editLink.click(function(e) {e.stopPropagation();});
-        editLink.append(editIcon);
-        editLink.addClass("ps-1");
-        $(nTd).append(editLink);
-        $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
-      }
-    }
-  } , {
-    "sWidth": "25%"
-      , "mDataProp": "compliancePercent"
-      , "sTitle": "Status"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          var elem = $("<a></a>");
-          elem.addClass("noExpand");
-          elem.attr("href","javascript://");
-          elem.append(buildComplianceBar(oData.compliance));
-          elem.click(function() {oData.callback()});
-          $(nTd).empty();
-          $(nTd).append(elem);
-        }
-    } ];
-
-  var params = {
-      "bFilter" : true
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
-      }
-    , "aaSorting": [[ 0, "asc" ]]
-    , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createDirectiveTable(false, true, contextPath), contextPath, "rule");
-        initBsTooltips();
-      }
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-  };
-
-  createTable(gridId,data,columns, params, contextPath, refresh);
-
-}
-
-/**
- *
- * This is the expected report table that we display on node details, for
- * reports, when we don't have relevant information for compliance
- * (for example when we get reports for the wrong configuration id).
- *
- * The parameters are the same than for the above "createRuleComplianceTable"
- * method, and more precisely, the whole implementation is a simplified
- * version of that method, where only the first(s) column are kept.
- *
- */
-function createExpectedReportTable(gridId, data, contextPath, refresh) {
-  var defaultParams = {
-      "bFilter" : false
-    , "bPaginate" : false
-    , "bLengthChange": false
-    , "bInfo" : false
-    , "aaSorting": [[ 0, "asc" ]]
-  };
-
-  var localNodeComponentValueTable = function() {
-    var columns = [ {
-        "mDataProp": "value"
-      , "sTitle"   : "Value"
-    } ];
-    return function (gridId,data) {
-      createTable(gridId, data, columns, defaultParams, contextPath);
-      initBsTooltips();
-    }
-  };
-
-  var localComponentTable = function() {
-    var columns = [ {
-        "mDataProp": "component"
-      , "sTitle"   : "Component"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-            $(nTd).addClass("listopen");
-        }
-    } ];
-
-    var params = jQuery.extend(
-        {"createdRow": function( row, data, dataIndex ) {
-            var tt = this.api().row(row)
-            if(data.composition === undefined) {
-              createInnerTablerow(tt, data, localNodeComponentValueTable());
-            } else {
-              createInnerTablerow(tt, data,localComponentTable())
-            }
-        }
-
-    }, defaultParams);
-    return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
-  };
-
-  var localDirectiveTable = function() {
-    var columns = [ {
-        "mDataProp": "directive"
-      , "sTitle": "Directive"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          $(nTd).addClass("listopen");
-          var tooltipIcon = $("<i>");
-          tooltipIcon.addClass("fa fa-question-circle icon-info");
-          tooltipIcon.attr("data-bs-toggle","tooltip");
-          var toolTipContent= ("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
-          tooltipIcon.attr("title",tooltipContent);
-          $(nTd).append(tooltipIcon);
-          displayTags(nTd, oData.tags)
-          if (! oData.isSystem) {
-            var editLink = $("<a />");
-            editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
-            var editIcon = $("<i>");
-            editIcon.addClass("fa fa-pencil");
-            editLink.click(function(e) {e.stopPropagation();});
-            editLink.append(editIcon);
-            editLink.addClass("ps-1");
-            var policyMode = oData.policyMode ? oData.policyMode : "";
-            $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
-            $(nTd).append(editLink);
-          }
-        }
-    } ];
-
-    var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
-      createInnerTable(this, localComponentTable(), contextPath, "directive");
-    }}, defaultParams);
-
-
-    return function (gridId, data, refresh) {
-      createTable(gridId, data, columns, params, contextPath, refresh);
-      initBsTooltips();
-    }
-  };
-
-  var ruleColumn = [ {
-    "mDataProp": "rule"
-  , "sTitle"   : "Rule"
-  , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("listopen");
-      $(nTd).text(oData.rule);
-      displayTags(nTd, oData.tags)
-      if (! oData.isSystem) {
-        var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
-        var editIcon = $("<i>");
-        editIcon.addClass("fa fa-pencil");
-        editLink.click(function(e) {e.stopPropagation();});
-        editLink.append(editIcon);
-        editLink.addClass("ps-1");
-        $(nTd).append(editLink);
-        $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
-      }
-    }
-  } ];
-  var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, localDirectiveTable(), contextPath, "rule");
-        initBsTooltips();
-      }
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-  }
-  , defaultParams);
-  createTable(gridId,data, ruleColumn, params, contextPath, refresh);
-}
-
-
-/*
- *   Create a table of compliance for a Directive.
- *   Used in the compliance details for a Rule, and in the
- *   node details page, in report tab.
- *
- *   Javascript object containing all data to create a line in the DataTable *   Javascript object containing all data to create a line in the DataTable
- *   { "directive" : Directive name [String]
- *   , "id" : Directive id [String]
- *   , "techniqueName": Name of the technique the Directive is based upon [String]
- *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
- *   , "compliancePercent" : Compliance percentage [Float]
- *   , "details" : Details of components contained in the Directive [Array of Component values]
- *   , "jsid"    : unique identifier for the line [String]
- *   , "isSystem" : Is it a system Directive? [Boolean]
- *   }
- */
-function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
-  if (isTopLevel) {
-    var complianceWidth = "25%";
-    var directiveWidth = "75%";
-  } else {
-    var complianceWidth = "26.3%";
-    var directiveWidth = "73.7%";
-  }
-  var columns = [ {
-     "sWidth": directiveWidth
-    , "mDataProp": "directive"
-    , "sTitle": "Directive"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).empty();
-        //directive name is escaped server side, avoid double escape with document.createTextNode()
-        $(nTd).append(oData.directive);
-        $(nTd).addClass("listopen");
-        var tooltipIcon = $("<i>");
-        tooltipIcon.addClass("fa fa-question-circle icon-info");
-        tooltipIcon.attr("data-bs-toggle","tooltip");
-        var toolTipContent= ("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
-        tooltipIcon.attr("title",toolTipContent);
-        $(nTd).append(tooltipIcon);
-        displayTags(nTd, oData.tags);
-        if (! oData.isSystem) {
-          var editLink = $("<a />");
-          editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
-          var editIcon = $("<i>");
-          editIcon.addClass("fa fa-pencil");
-          editLink.click(function(e) {e.stopPropagation();});
-          editLink.append(editIcon);
-          editLink.addClass("ps-1");
-          $(nTd).append(editLink);
-          var policyMode = oData.policyMode ? oData.policyMode : policyMode ;
-          $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
-        }
-      }
-  } , {
-      "sWidth": complianceWidth
-    , "mDataProp": "compliancePercent"
-    , "sTitle": "Status"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = buildComplianceBar(oData.compliance);
-        $(nTd).empty();
-        $(nTd).append(elem);
-      }
-  } ];
-
-  var params = {
-      "bFilter" : isTopLevel
-    , "bPaginate" : isTopLevel
-    , "bLengthChange": isTopLevel
-    , "bInfo" : isTopLevel
-    , "sPaginationType": "full_numbers"
-    , "aaSorting": [[ 0, "asc" ]]
-    , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createComponentTable(isTopLevel, isNodeView, contextPath), contextPath, "directive");
-        initBsTooltips();
-      }
-  };
-
-  if (isTopLevel) {
-    var sDom = {
-        "sDom" : '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-      , "oLanguage": {
-          "sSearch": ""
-        }
-    };
-    $.extend(params,sDom);
-  }
-
-  return function (gridId, data, refresh) {
-    createTable(gridId, data, columns, params, contextPath, refresh);
-    initBsTooltips();
-  }
-}
-
-/*
- *   Create the table with the list of nodes, used in
- *   the pop-up from rule compliance details.
- *
- *   Javascript object containing all data to create a line in the DataTable
- *   { "node" : Node name [String]
- *   , "id" : Node id [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
- *   , "compliancePercent" : Compliance percentage [Float]
- *   , "details" : Details of Directive applied by the Node [Array of Directive values ]
- *   , "jsid"    : unique identifier for the line [String]
- *   }
- */
-function createNodeComplianceTable(gridId, data, contextPath, refresh) {
-  var columns = [ {
-      "sWidth": "75%"
-    , "mDataProp": "node"
-    , "sTitle": "Node"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen");
-        var editLink = $("<a />");
-        editLink.attr("href",contextPath +'/secure/nodeManager/node/'+oData.id);
-        var editIcon = $("<i>");
-        editIcon.addClass("fa fa-search node-details");
-        editLink.click(function(e) {e.stopPropagation();});
-        editLink.append(editIcon);
-        editLink.addClass("ps-1");
-        $(nTd).append(editLink);
-        $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation));
-      }
-  } , {
-      "sWidth": "25%"
-    , "mDataProp": "compliancePercent"
-    , "sTitle": "Status"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = $("<a></a>");
-        elem.addClass("noExpand");
-        elem.attr("href","javascript://");
-        elem.append(buildComplianceBar(oData.compliance));
-        elem.click(function() {oData.callback()});
-        $(nTd).empty();
-        $(nTd).append(elem);
-      }
-  } ];
-
-  var params = {
-      "bFilter" : true
-    , "bPaginate" : true
-    , "bLengthChange": true
-    , "sPaginationType": "full_numbers"
-    , "oLanguage": {
-        "sSearch": ""
-      }
-    , "aaSorting": [[ 0, "asc" ]]
-    , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this,createDirectiveTable(false, true, contextPath),"node");
-        initBsTooltips();
-      }
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-  };
-
-  createTable(gridId, data, columns, params, contextPath, refresh);
-  initBsTooltips();
-}
 
 /*
  *   Details of a component. Used on all tables.
@@ -1213,7 +864,7 @@ function callbackElement(oData, displayCompliance) {
 }
 
 function reloadTable(gridId, nodeIds, scores) {
-  var table = $('#'+gridId).DataTable();
+  var table = new DataTable('#'+gridId, );
   table.destroy();
   createNodeTable(gridId, nodeIds, function(){reloadTable(gridId, nodeIds, scores)}, scores)
 }
@@ -1509,7 +1160,11 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     }
   }
   var params = {
-      "filter" : true
+    "language" : {
+      "search" : "",
+      "searchPlaceholder" : "Filter"
+    }
+    , "filter" : true
     , "paging" : true
     , "lengthChange": true
     , "fixedHeader": true
@@ -1517,10 +1172,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "destroy" : true
     , "pagingType": "full_numbers"
     , "scrollCollapse": hasHandle
-    , "scrollY": hasHandle ? "200px" : null
-    , "language": {
-        "search": ""
-    }
+    // , "scrollY": hasHandle ? "200px" : null
     , columnDefs : [
       {
         "targets": "_all"
@@ -1536,10 +1188,10 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "type" : "POST"
     , "contentType" : "application/json"
     , "data" : function (d) {
-      var data = d
-      var softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
+      let data = d
+      const softwareList = columns.filter(function (c) { return ((typeof c.data) !== "function" && c.data.startsWith("software")) }).map(function (c) { return c.data.split(/\.(.+)/)[1] })
 
-      var properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
+      const properties = columns.filter(function (c) { return c.title.startsWith("Property") }).map(function (c) { return { "value": c.value, "inherited": c.inherited } })
       data = $.extend({}, d, { "software": softwareList, "properties": properties })
       if (nodeIds !== undefined) { data = $.extend({}, d, { "nodeIds": nodeIds, "software": softwareList, "properties" : properties }) }
       return JSON.stringify(data)
@@ -1549,7 +1201,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "drawCallback": function( oSettings ) {
         initBsTooltips();
       }
-    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header.d-flex" <"d-flex flex-fill" <"me-2" f> <"#edit-columns">> <"d-flex ms-auto my-auto" <"me-2" B> <"dataTables_refresh">>> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
+    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header.d-flex" <"d-flex flex-fill" <"me-3" f"d-flex"> <"#edit-columns">> <"d-flex ms-auto my-auto" <"me-2" B> <"dataTables_refresh">>> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
   };
 
 
@@ -1558,7 +1210,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
 
 
   function resetColumns()  {
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
@@ -1575,7 +1227,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
 
   function addColumn(columnName, value, checked) {
     var escapedValue = escapeHTML(value);
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var data2 = table.rows().data();
     table.destroy();
     $('#'+gridId).empty();
@@ -1627,7 +1279,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   }
 
   function removeColumn(columnIndex) {
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var data2 = table.rows().data();
 
     table.destroy();
@@ -1652,7 +1304,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     var addedScore = columns.filter((c) => c.title.endsWith(" Score")).map((c) => c.value).sort()
     // All ids of all available scores
     var scoreListId = scores.map((c) => c.id).sort()
-    var table = $('#'+gridId).DataTable();
+    var table = new DataTable('#'+gridId, );
     var editTxt    = "<span>Edit columns </span><i class=\"fa fa-pencil\"></i>"
     var confirmTxt = "<span>Confirm</span><i class=\"fa fa-check\"></i>"
     var textBtn    = editOpen ? confirmTxt : editTxt;
@@ -2355,7 +2007,7 @@ function getProgressBars(arr){
 }
 
 function refreshTable (gridId, data) {
-  var table = $('#'+gridId).DataTable({"retrieve": true});
+  var table = new DataTable('#'+gridId, {"retrieve": true});
   table.clear();
   table.rows.add(data);
   table.draw();
@@ -2423,59 +2075,10 @@ function createInnerTablerow(row, data,  createFunction, contextPath, kind) {
     } );
 }
 
-function createInnerTable(myTable,  createFunction, contextPath, kind) {
-  var plusTd = $(myTable.fnGetNodes());
-  plusTd.each( function () {
-    $(this).unbind();
-    $(this).click( function (e) {
-      if ($(e.target).hasClass('noExpand')) {
-        return false;
-      } else {
-        var fnData = myTable.fnGetData( this );
-        var i = $.inArray( this, anOpen );
-        var detailsId = fnData.jsid ;
-        if (kind !== undefined) {
-          detailsId += "-"+kind
-        }
-        detailsId += "-details";
-        if ( i === -1 ) {
-          $(this).addClass("opened");
-          $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-          var table = $("<table></table>");
-          var tableId = fnData.jsid;
-          if (kind !== undefined) {
-            tableId += "-"+kind;
-          }
-          tableId += "-table";
-          table.attr("id",tableId);
-          table.attr("cellspacing",0);
-          table.addClass("noMarginGrid");
-          var div = $("<div></div>");
-          div.addClass("innerDetails");
-          div.attr("id",detailsId);
-          div.append(table);
-          var nDetailsRow = myTable.fnOpen( this, div, 'details' );
-          var res = createFunction(tableId, fnData.details);
-          $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-          $('#'+detailsId).slideDown(300);
-          anOpen.push( this );
-        } else {
-          $(this).removeClass("opened");
-          $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-          $('#'+detailsId).slideUp(300, function () {
-            myTable.fnClose( this );
-            anOpen.splice( i, 1 );
-          } );
-        }
-      }
-    } );
-  } );
-}
-
 // Create a table from its id, data, columns, custom params, context patch and refresh function
 function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, isPopup) {
   var defaultParams = {
-      "asStripeClasses": [ 'color1', 'color2' ]
+    "asStripeClasses": [ 'color1', 'color2' ]
     , "bAutoWidth": false
     , "aoColumns": columns
     , "aaData": data
@@ -2502,7 +2105,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   var params = $.extend({},defaultParams,customParams);
 
-  var table = $('#'+gridId).DataTable( params );
+  var table = new DataTable('#'+gridId, params);
 
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
@@ -2514,9 +2117,8 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshBtn);
   }
 
-  $('.dataTables_filter input').attr("placeholder", "Filter");
-
-  $('.modal .dataTables_filter input').addClass("form-control");
+  //TODO: replace by custom DataTable.ext.classes
+  $('.dt-search input').addClass("form-control");
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
 

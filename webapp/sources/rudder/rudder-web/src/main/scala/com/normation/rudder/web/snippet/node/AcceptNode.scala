@@ -196,7 +196,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
    * template : the template that will be used (accept, or refuse)
    * popuId : the id of the popup
    */
-  def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String): JsCmd = {
+  private def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String): JsCmd = {
     val serverList = jsonArrayOfIds.fromJson[List[NodeId]].getOrElse(List.empty)
 
     if (serverList.isEmpty) {
@@ -205,7 +205,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
       SetHtml("manageNewNode", listNode(serverList, template)) & OnLoad(
         JsRaw("""
           /* Set the table layout */
-          $('#pendingNodeConfirm').dataTable({
+          new DataTable('#pendingNodeConfirm', {
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "searching": false,
