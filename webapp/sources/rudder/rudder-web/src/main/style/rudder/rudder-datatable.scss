@@ -407,6 +407,9 @@ tr.parametersDescription {
 /* <WRAPPER BOTTOM> */
 .dataTables_wrapper_bottom {
   border-top : none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .dt-info{
@@ -417,6 +420,7 @@ tr.parametersDescription {
   font-style: italic;
   float:left;
   flex: 33% 1 1;
+  text-wrap: nowrap;
 }
 .dt-paging {
   float: right;
