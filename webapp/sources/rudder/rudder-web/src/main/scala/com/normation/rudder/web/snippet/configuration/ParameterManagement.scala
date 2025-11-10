@@ -219,7 +219,9 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                   var color = 'color1';
                   if(jTr.hasClass('color2'))
                     color = 'color2';
-                  const row = ${jsVarNameForId(gridName)}.row(this).child(fnFormatDetails(jsid), color + ' parametersDescription details').show();
+                  const row = ${jsVarNameForId(
+          gridName
+        )}.row(this).child(fnFormatDetails(jsid), color + ' parametersDescription details').show();
                   $$('#'+jsid).html($$('#description-'+jsid).html());
                 }
                }
