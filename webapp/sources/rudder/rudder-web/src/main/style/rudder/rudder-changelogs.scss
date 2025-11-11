@@ -93,6 +93,8 @@ pre.technical-details{
 }
 .evloglmargin{
   margin: 7px 0;
+  max-width: 850px;
+  word-wrap: break-word;
 }
 li.eventLogUpdatePolicy {
   list-style-position: inside;
