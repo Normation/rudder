@@ -83,6 +83,9 @@ Path expression commands:
   defnode    - set a variable, possibly creating a new node
   defvar     - set a variable
 
+Audit commands:
+  check      - Audit a node
+
 Type 'help <command>' for more information on a command
 ```
 
