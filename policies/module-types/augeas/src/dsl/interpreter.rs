@@ -10,6 +10,7 @@ use crate::dsl::{
     script::{ExprType, Script},
 };
 use anyhow::{Result, bail};
+use itertools::Itertools;
 use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
@@ -484,7 +485,73 @@ impl<'a> Interpreter<'a> {
             }
 
             Expr::GenericAugeas(cmd) => {
-                let (_num, out) = self.aug.srun(cmd)?;
+                let out = match *cmd {
+                    "help" => {
+                        let out = self.aug.srun(cmd)?.1;
+                        let check_help_msg = "\nAudit commands:\n  check      - Audit a node\n\n";
+                        let help_msg =
+                            "Type 'help <command>' for more information on a command\n\n";
+
+                        let msgs = out.split("\n").collect::<Vec<&str>>();
+                        let msgs = msgs.iter().rev().skip(3).rev().join("\n");
+                        msgs + check_help_msg + help_msg
+                    }
+                    "help check" => "
+    Audit a node
+
+COMMAND
+    check - Audit a node
+
+  SYNOPSIS
+    check <PATH> [DIRECTIVE] [OPERATOR] <VALUE>
+
+  OPTIONS
+     <PATH>         augeas node
+         example: /files/etc/hosts/1
+
+     [DIRECTIVE]    directive to check
+         values include         check if the provided data is included by a node.
+
+         values not_include     check if the provided data is not included by a node
+
+         values equal           compare the provided array against multiple nodes
+
+         values equal orderred  compare the provided array against multiple nodes in the exact order
+
+         values in              check if the nodes values are in the provided allow list
+
+         values len             check the number of values using an operator and a specified number
+
+         len                    check the length of a value using an operator and a specified length
+
+         is                     checks the type of a value against a specified type
+
+         in_ip_range            checks whether an IP address or an IP range falls within one of the specified IP address ranges
+
+         password score         check the strength of a password against a provided minimum security score
+
+         password tluds         checks against a password policy based on a minimal number of character classes:
+                                (total length, lowercase letters, uppercase letters, digits, special characters)
+
+     [OPERATOR]     comparison operator
+         numeric comparison operators:
+             ==     Equal
+             !=     Not equal
+             <=     Less than or equal
+             >=     Greater than or equal
+             <      Less than
+             >      Greater than
+
+         regex comparison operators:
+             ~      Matches the regex pattern
+             !~     Does not match the regex pattern
+             eq     Equal
+             neq    Not equal
+
+     <VALUE>        value to compare"
+                        .to_string(),
+                    _ => self.aug.srun(cmd)?.1,
+                };
                 vec![InterpreterOut::from_out(out)?]
             }
             Expr::Save => vec![InterpreterOut::from_aug_res(self.aug.save())?],
