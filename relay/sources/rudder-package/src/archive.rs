@@ -15,7 +15,8 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
-    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, PACKAGES_FOLDER,
+    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_CONTENT_DEFAULT_FOLDER, PACKAGE_SCRIPTS_ARCHIVE,
+    PACKAGES_FOLDER,
     database::{Database, InstalledPlugin},
     plugin::Metadata,
     webapp::Webapp,
@@ -154,6 +155,10 @@ impl Rpkg {
             .collect::<Result<Vec<String>>>()?)
     }
 
+    fn get_default_extract_folder(&self) -> PathBuf {
+        PathBuf::from(PACKAGE_CONTENT_DEFAULT_FOLDER).join(self.metadata.short_name())
+    }
+
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
         debug!(
             "Extracting archive '{}' in folder '{}'",
@@ -213,6 +218,15 @@ impl Rpkg {
             db.uninstall(&self.metadata.name, false, webapp)?;
         }
 
+        // Clean the plugin package script folder before extracting the files
+        debug!(
+            "Cleaning the {} folder before extracting the plugin package scripts",
+            PACKAGE_SCRIPTS_ARCHIVE
+        );
+        fs::remove_dir_all(PACKAGE_SCRIPTS_ARCHIVE).context(format!(
+            "Could not clean the package script folder before install: {}",
+            PACKAGE_SCRIPTS_ARCHIVE
+        ))?;
         // Extract package scripts
         self.unpack_embedded_txz(
             PACKAGE_SCRIPTS_ARCHIVE,
@@ -227,6 +241,15 @@ impl Rpkg {
         self.metadata
             .run_package_script(PackageScript::Preinst, arg)?;
 
+        // Clean the plugin default content folder before extracting the files
+        debug!(
+            "Cleaning the {} folder before extracting the plugin content",
+            self.get_default_extract_folder().display()
+        );
+        fs::remove_dir_all(self.get_default_extract_folder()).context(format!(
+            "Could not clean the package content default folder before install: {}",
+            self.get_default_extract_folder().display()
+        ))?;
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
