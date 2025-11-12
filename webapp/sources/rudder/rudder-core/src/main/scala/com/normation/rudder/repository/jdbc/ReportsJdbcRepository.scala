@@ -94,8 +94,8 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
   }
 
-  override def findReportsByNode(nodeId: NodeId): Vector[Reports] = {
-    val q = Query[NodeId, Reports](baseQuery + " and nodeId = ? order by id desc limit 1000", None).toQuery0(nodeId)
+  override def findReportsByNode(nodeId: NodeId, limit: Int): Vector[Reports] = {
+    val q = Query[NodeId, Reports](baseQuery + s" and nodeId = ? order by id desc limit ${limit}", None).toQuery0(nodeId)
     // not a boxed return for that one?
     transactRunEither(xa => q.to[Vector].transact(xa)) match {
       case Right(x) => x
