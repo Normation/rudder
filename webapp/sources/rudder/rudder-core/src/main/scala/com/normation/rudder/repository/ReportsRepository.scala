@@ -77,12 +77,13 @@ trait ReportsRepository {
   ): IOResult[Map[NodeId, Seq[Reports]]]
 
   /**
-   * Returns all reports for the node, between the two differents date (optionnal)
-   * for a rule (optionnal) and for a specific serial of this rule (optionnal)
-   * Note : only the 1000 first entry are returned
+   * Returns all reports for the node, between the two different date (optionnal)
+   * for a rule (optional) and for a specific serial of this rule (optional)
+   * Note : only the 5000 first entry are returned
    */
   def findReportsByNode(
-      nodeId: NodeId
+      nodeId: NodeId,
+      limit:  Int = 5000
   ): Seq[Reports]
 
   def findReportsByNodeOnInterval(
