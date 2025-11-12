@@ -122,7 +122,7 @@ class SearchNodeComponent(
     <td class="first objectType"></td>
     <td class="attributeName"></td>
     <td class="comparator"></td>
-    <td class="inputValue"></td>
+    <td class="inputValue d-flex"></td>
     <td class="removeLine"></td>
     <td class="last addLine"></td>
   </tr>
@@ -758,7 +758,7 @@ object SearchNodeComponent {
     )
   }
 
-  private trait AsForm {
+  sealed private class AsForm private {
     /*
      * validate the value and returns a normalized one
      * for the field.
@@ -766,10 +766,13 @@ object SearchNodeComponent {
      */
     def toForm(value:    String, func: String => Any, attrs: (String, String)*): Elem = SHtml.text(value, func, attrs*)
     def initForm(formId: String): JsCmd = Noop
+    // In case any previous form was a date, we should clean up including eventual time-pickers
+    // (search for DateComparator and see https://issues.rudder.io/issues/27737)
+    // Note that this runs every time for every kind of form, because we don't know what the previous form kind was !
     def destroyForm(formId: String): JsCmd = {
       OnLoad(
         JsRaw(
-          """$('#%s').datepicker( "destroy" );""".format(formId)
+          s"""$$('#${formId}').datepicker( "destroy" ); $$('label:has(#include-time-${formId})').remove();"""
         )
       )
     }
@@ -777,7 +780,57 @@ object SearchNodeComponent {
 
   private object AsForm {
 
-    val default:                                                                     AsForm = new AsForm {}
+    val default:        AsForm = new AsForm {}
+    val dateComparator: AsForm = {
+      new AsForm {
+
+        // Init a jquery datepicker.
+        // It can be a "datetime" picker : use a checkbox, change the options accordingly
+        // (but we need to sync the datetime state with the checkbox).
+        // We assume the format has no millis, and as jquery picker seems to have no direct ISO8601 support,
+        // we append offset 'Z' for now (and fix the value with the offset when closing).
+        // Later, we could use the "input" browser tz
+        override def initForm(formId: String): JsCmd = OnLoad(
+          JsRaw(
+            s"""|const init = $$.datepicker.regional['en'];
+                |const formValue = () => $$('#${formId}').val();
+                |const dateHasTime = (date) => date.split('T').length > 1;
+                |const dateOpts = { dateFormat:'yy-mm-dd', showOn:'focus' };
+                |const timeOpts = {
+                |    ...dateOpts,
+                |    dateFormat:'yy-mm-dd',
+                |    showOn:'focus',
+                |    timeFormat:'HH:mm:ss',
+                |    separator: 'T',
+                |    onSelect: (d, input) => { $$('#${formId}').val(d+'Z') },
+                |    onClose: () => { if (dateHasTime(formValue()) && !formValue().endsWith('Z')) $$('#${formId}').val(formValue()+'Z'); },
+                |};
+                |
+                |$$('<label class="d-flex text-nowrap align-items-center user-select-none mx-1"><input type="checkbox" class="mx-1" id="include-time-${formId}">Include time (in UTC)</label>').insertAfter('#${formId}');
+                |const initValue = formValue();
+                |if (initValue && dateHasTime(initValue)) {
+                |  $$('#${formId}').datetimepicker(timeOpts);
+                |  $$('#include-time-${formId}').prop("checked", "checked");
+                  } else {
+                |  $$('#${formId}').datepicker(dateOpts);
+                |}
+                |
+                |$$('#include-time-${formId}').on('change', function() {
+                |  const check = this.checked;
+                |  const date = formValue();
+                |  if (check && date && !dateHasTime(date)) {
+                |    $$('#${formId}').val(date+'T00:00:00Z');
+                |  }
+                |  if (!check && dateHasTime(date)) {
+                |    $$('#${formId}').val(date.split('T')[0]);
+                |  }
+                |  $$('#${formId}').datetimepicker('destroy').datetimepicker(check ? timeOpts : dateOpts);
+                |});""".stripMargin
+          )
+        )
+      }
+    }
+
     def apply(toFormFunc: ((String, String => Any, Seq[(String, String)])) => Elem): AsForm = {
       new AsForm {
         override def toForm(value: String, func: String => Any, attrs: (String, String)*): Elem = toFormFunc((value, func, attrs))
@@ -869,19 +922,9 @@ object SearchNodeComponent {
             )
         }
       case DateComparator                             =>
-        new AsForm {
+        AsForm.dateComparator
 
-          // init a jquery datepicker
-          override def initForm(formId: String):    JsCmd = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
-       init['showOn'] = 'focus';
-       init['dateFormat'] = 'yy-mm-dd';
-       $('#%s').datepicker(init);
-       """.format(formId)))
-          override def destroyForm(formId: String): JsCmd = OnLoad(
-            JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId))
-          )
-        }
-      case MachineComparator                          =>
+      case MachineComparator =>
         import MachineComparator.*
         AsForm {
           case (value, func, attrs) =>
@@ -892,7 +935,7 @@ object SearchNodeComponent {
               attrs*
             )
         }
-      case VmTypeComparator                           =>
+      case VmTypeComparator  =>
         import VmTypeComparator.*
         AsForm {
           case (value, func, attrs) =>
@@ -903,7 +946,7 @@ object SearchNodeComponent {
               attrs*
             )
         }
-      case AgentComparator                            =>
+      case AgentComparator   =>
         import AgentComparator.*
         AsForm {
           case (value, func, attrs) =>
@@ -914,7 +957,7 @@ object SearchNodeComponent {
               attrs*
             )
         }
-      case EditorComparator                           =>
+      case EditorComparator  =>
         import EditorComparator.*
         AsForm {
           case (value, func, attrs) =>

@@ -50,6 +50,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.InstanceId
+import com.normation.utils.DateFormaterService
 import com.unboundid.ldap.sdk.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -424,7 +425,7 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
 
 sealed trait LDAPCriterionType extends CriterionType {
   // transform the given value to its LDAP string value
-  def toLDAP(value: String): PureResult[String]
+  protected def toLDAP(value: String): PureResult[String]
 
   def buildRegex(attribute:    String, value: String): PureResult[RegexFilter]    = Right(SimpleRegexFilter(attribute, value))
   def buildNotRegex(attribute: String, value: String): PureResult[NotRegexFilter] = Right(SimpleNotRegexFilter(attribute, value))
@@ -524,10 +525,13 @@ case object DateComparator extends LDAPCriterionType {
     s"Invalid date: '${value}', expected format is: 'yyyy-MM-dd'. Error was: ${e.getMessage}"
   )
 
-  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] =
-    parseDate(v).map(_.toString)
+  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = {
+    parseDate(v).orElse(parseDateTime(v)).as(v)
+  }
 
-  override def toLDAP(value: String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
+  override protected def toLDAP(value: String): Either[RudderError, String] = Left(
+    Unexpected(s"The LDAP filter for the date ${value} wasn't taken into account. This is a developer error (see buildFilter).")
+  )
 
   private def parseDate(value: String): PureResult[DateTime] = {
     allFmts
@@ -536,31 +540,49 @@ case object DateComparator extends LDAPCriterionType {
       .leftMap(error(value, _))
   }
 
+  private def parseDateTime(value: String): PureResult[DateTime] = {
+    DateFormaterService.parseDate(value)
+  }
+
   /*
    * Date comparison are not trivial, because we don't want to take care of the
    * time, but the time exists.
    */
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
+    val parsedDate = parseDate(value)
+    lazy val date  = parsedDate
+      .orElse(parseDateTime(value))
+      .getOrElse(
+        throw new IllegalArgumentException(
+          s"The date format was not recognized: '${value}' (expected 'yyyy-MM-dd') or an ISO8601 datetime"
+        )
+      )
+    def dateString = GeneralizedTime(date).toString
+    def date0000   = GeneralizedTime(date.withTimeAtStartOfDay).toString
+    def date2359   = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
 
-    // don't parse the date and throw exception when not needed
-    lazy val date = parseDate(value).getOrElse(
-      throw new IllegalArgumentException(s"The date format was not recognized: '${value}', expected 'yyyy-MM-dd'")
-    )
-    def date0000  = GeneralizedTime(date.withTimeAtStartOfDay).toString
-    def date2359  = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
-    def eq        = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
+    def eqDate     = AND(GTEQ(attributeName, date0000), LTEQ(attributeName, date2359))
+    def eqDateTime = AND(GTEQ(attributeName, dateString), LTEQ(attributeName, dateString))
 
-    comparator match {
+    // make distinction when it's not a date but a datetime
+    val isDateOnly = parsedDate.isRight
+    (isDateOnly, comparator) match {
       // for equals and not equals, check value for jocker
-      case Equals    => eq
-      case NotEquals => NOT(eq)
-      case NotExists => NOT(HAS(attributeName))
-      case Greater   => AND(HAS(attributeName), NOT(LTEQ(attributeName, date2359)))
-      case Lesser    => AND(HAS(attributeName), NOT(GTEQ(attributeName, date0000)))
-      case GreaterEq => GTEQ(attributeName, date0000)
-      case LesserEq  => LTEQ(attributeName, date2359)
+      case (true, Equals)     => eqDate
+      case (false, Equals)    => eqDateTime
+      case (true, NotEquals)  => NOT(eqDate)
+      case (false, NotEquals) => NOT(eqDateTime)
+      case (_, NotExists)     => NOT(HAS(attributeName))
+      case (true, Greater)    => AND(HAS(attributeName), NOT(LTEQ(attributeName, date2359)))
+      case (false, Greater)   => AND(HAS(attributeName), NOT(LTEQ(attributeName, dateString)))
+      case (true, Lesser)     => AND(HAS(attributeName), NOT(GTEQ(attributeName, date0000)))
+      case (false, Lesser)    => AND(HAS(attributeName), NOT(GTEQ(attributeName, dateString)))
+      case (true, GreaterEq)  => GTEQ(attributeName, date0000)
+      case (false, GreaterEq) => GTEQ(attributeName, dateString)
+      case (true, LesserEq)   => LTEQ(attributeName, date2359)
+      case (false, LesserEq)  => LTEQ(attributeName, dateString)
 //      case Regex => HAS(attributeName) //"default, non interpreted regex
-      case _         => HAS(attributeName) // default to Exists
+      case _                  => HAS(attributeName) // default to Exists
     }
   }
 
