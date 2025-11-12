@@ -36,6 +36,8 @@
  */
 package com.normation.rudder.domain.queries
 
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -43,7 +45,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class CmdbQueryTest extends Specification {
 
-  "French Datecomparator " should {
+  "Datecomparator " should {
     "accept valid French date" in {
       DateComparator.validate("23/07/2012", "eq") match {
         case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
@@ -56,8 +58,24 @@ class CmdbQueryTest extends Specification {
         case Right(_)  => success
       }
     }
-    "accept valid yyyy-MM-dd date" in {
+    "accept valid yyyy-MM-dd ISO date" in {
       DateComparator.validate("2012-07-23", "eq") match {
+        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
+        case Right(_)  => success
+      }
+    }
+
+    "accept valid ISO local date" in {
+      val date = ZonedDateTime.now().withNano(0)
+      DateComparator.validate(DateTimeFormatter.ISO_LOCAL_DATE.format(date), "eq") match {
+        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
+        case Right(_)  => success
+      }
+    }
+
+    "accept valid ISO datetime with offset" in {
+      val date = ZonedDateTime.now().withNano(0)
+      DateComparator.validate(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date), "eq") match {
         case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
         case Right(_)  => success
       }
@@ -67,13 +85,6 @@ class CmdbQueryTest extends Specification {
       DateComparator.validate("07/23/2012", "eq") match {
         case Left(_)  => success
         case Right(_) => failure("This american date shouldn't have been accepted")
-      }
-    }
-
-    "successfully onvert to LDAP a valid French date" in {
-      DateComparator.toLDAP("23/07/2012") match {
-        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
-        case Right(_)  => success
       }
     }
   }
