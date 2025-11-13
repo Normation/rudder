@@ -115,7 +115,7 @@ class RoLDAPRuleCategoryRepository(
         case _ =>
           val categoryDN = categoryEntries.map(_.dn).mkString("; ")
           Inconsistency(
-            s"Error, the directory contains multiple occurrence of group category with id ${id.value}. DN: ${categoryDN}"
+            s"Error, the directory contains multiple occurrence of rule category with id ${id.value}. DN: ${categoryDN}"
           ).fail
       }
     }
@@ -301,7 +301,7 @@ class WoLDAPRuleCategoryRepository(
       exists           <- categoryExists(con, category.name, newParent.dn, category.id)
       canAddByName     <- ZIO.when(exists) {
                             Inconsistency(
-                              s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level"
+                              s"Cannot update the Rule Group Category with name ${category.name} : a category with the same name exists at the same level"
                             ).fail
                           }
       categoryEntry     = mapper.ruleCategory2ldap(category, newParent.dn)
@@ -326,7 +326,7 @@ class WoLDAPRuleCategoryRepository(
                                             )
                               } yield {
                                 moved
-                              }).chainError("Error when trying to  automaticallyarchive the category move or update")
+                              }).chainError("Error when trying to automatically archive the category move or update")
                             case _                                                  => ZIO.unit
                           }
     } yield {

@@ -64,6 +64,7 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
+import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
 import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
@@ -71,6 +72,7 @@ import com.normation.rudder.rest.lift.TechniqueArchive
 import com.normation.rudder.rest.lift.TechniqueInfo
 import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.rudder.rest.lift.ZipArchiveBuilderService
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import java.io.FileOutputStream
@@ -88,6 +90,7 @@ import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
 import zio.Chunk
 import zio.ZIO
+import zio.json.*
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
@@ -207,6 +210,11 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         // unzip
         ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
 
+        val catFile = testDir / archiveName / ZipArchiveBuilderService.RULE_CATS
+        (catFile.exists must beTrue) and
+        (catFile.contentAsString.fromJson[JRuleCategories] must beRight(beLike[JRuleCategories] {
+          case r: JRuleCategories => r.children must haveLength(0)
+        })) and
         (children(testDir / s"${archiveName}/rules") must containTheSameElementsAs(List(fileName))) and
         (children(testDir / s"${archiveName}/groups").isEmpty must beTrue) and
         (children(testDir / s"${archiveName}/directives").isEmpty must beTrue) and
@@ -220,7 +228,17 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val fileName = "10__Global_configuration_for_all_nodes.json"
 
     val archiveName = "archive-rule-with-dep"
-    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    (for {
+      _ <- restTestSetUp.archiveAPIModule.rootDirName.set(archiveName)
+      r <- restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid("rule1"))).notOptional(s"test")
+      _ <- restTestSetUp.mockRules.ruleRepo.update(
+             r.copy(categoryId = RuleCategoryId("category1")),
+             ModificationId("rule"),
+             EventActor("test"),
+             None
+           )
+    } yield {}).runNow
 
     restTest.testGETResponse("/api/latest/archives/export?rules=rule1&include=groups,techniques") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
@@ -231,6 +249,13 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         // unzip
         ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
 
+        ((testDir / archiveName / ZipArchiveBuilderService.RULE_CATS).exists must beTrue) and
+        ((testDir / archiveName / ZipArchiveBuilderService.RULE_CATS).contentAsString.fromJson[JRuleCategories] must beRight(
+          beLike[JRuleCategories] {
+            case r: JRuleCategories =>
+              r.children.map(_.id) must containTheSameElementsAs(List(RuleCategoryId("category1")))
+          }
+        )) and
         (children(testDir / s"${archiveName}/rules") must containTheSameElementsAs(List(fileName))) and
         // only system group => none exported
         (children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(Nil)) and
@@ -274,6 +299,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         (children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(List(fileName))) and
         (children(testDir / s"${archiveName}/groups").isEmpty must beTrue) and
         (children(testDir / s"${archiveName}/rules").isEmpty must beTrue) and
+        ((testDir / archiveName / ZipArchiveBuilderService.RULE_CATS).exists must beFalse) and
         (children(testDir / s"${archiveName}/techniques").isEmpty must beTrue)
 
       case err => ko(s"I got an error in test: ${err}")
@@ -778,6 +804,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       .flatMap(entries => restTestSetUp.archiveAPIModule.zipArchiveReader.readPolicyItems(archiveDir + ".zip", entries))
       .runNow
 
+    val ruleCat  = restTestSetUp.mockRules.rootRuleCategory
     val rule1    = restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid("rule1"))).notOptional(s"test").runNow
     val dir1     = restTestSetUp.mockDirectives.directiveRepo.getDirective(DirectiveUid("directive1")).notOptional(s"test").runNow
     val tech     = restTestSetUp.mockTechniques.techniqueRepo
@@ -790,8 +817,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       .getOrElse(throw new IllegalArgumentException("test"))
     val techInfo = TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata)
 
-    (p.techniques(0).technique must beEqualTo(techInfo)) and
-    (p.directives(0).directive must beEqualTo(dir1)) and
+    (p.techniques(0).technique must beEqualTo(techInfo))
+    (p.directives(0).directive must beEqualTo(dir1))
+    (p.rules(0).categoryId must beEqualTo(RuleCategoryId("category1")))
+    (p.ruleCats(0).childCategories.keySet must containTheSameElementsAs(ruleCat.childs.map(_.id)))
     (p.rules(0) must beEqualTo(rule1))
   }
 
@@ -897,6 +926,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
             (p.techniques.sortBy(_.technique.id.name).apply(1).technique must beEqualTo(techInfo)) and
             (p.directives(0).directive must beEqualTo(dir1)) and
             (p.groups(0).group must beEqualTo(group))
+            (p.ruleCats(0).childCategories.keySet must containTheSameElementsAs(List(RuleCategoryId("category1"))))
             (p.rules(0) must beEqualTo(rule1))
         }
 
