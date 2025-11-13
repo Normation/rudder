@@ -74,9 +74,9 @@ bundle agent condition_from_string_match(condition, value, regex)
       "c_condition"       string => canonify("${condition}");
 
   classes:
-      "pass1"               expression => "any";
-      "pass2"               expression => "pass1";
       "pass3"               expression => "pass2";
+      "pass2"               expression => "pass1";
+      "pass1"               expression => "any";
 
     pass2::
       "${c_condition}_true" expression => regcmp("${regex}", "${value}"),
