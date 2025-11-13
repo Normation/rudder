@@ -115,7 +115,7 @@ class RoLDAPRuleCategoryRepository(
         case _ =>
           val categoryDN = categoryEntries.map(_.dn).mkString("; ")
           Inconsistency(
-            s"Error, the directory contains multiple occurrence of group category with id ${id.value}. DN: ${categoryDN}"
+            s"Error, the directory contains multiple occurrence of rule category with id ${id.value}. DN: ${categoryDN}"
           ).fail
       }
     }
