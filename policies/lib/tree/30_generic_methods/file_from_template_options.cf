@@ -204,20 +204,10 @@ show_content: ${show_content}
       "${report_data.method_id}" usebundle => pop_dry_run_mode();
 
   template:
-    pass2.!pass3.!(global_dry_run|dry_run)::
+    pass2.!pass3::
       "module_call"
         rudder_module_protocol  => "0",
-        state_dir               => "/var/rudder/tmp/",
-        backup_dir              => "/var/rudder/modified-files/",
-        node_id                 => "${g.uuid}",
-        agent_frequency_minutes => "${g.agent_run_interval}",
-        classes                 => classes_generic("${report_data.method_id}"),
-        data                    => "${module_inputs}";
-
-    pass2.!pass3.(global_dry_run|dry_run)::
-      "module_call"
-        action_policy           => "warn",
-        rudder_module_protocol  => "0",
+        action                  => rudder_module,
         state_dir               => "/var/rudder/tmp/",
         backup_dir              => "/var/rudder/modified-files/",
         node_id                 => "${g.uuid}",
