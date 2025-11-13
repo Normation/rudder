@@ -11,6 +11,7 @@ use std::{
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
 use ar::Archive;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
@@ -155,8 +156,20 @@ impl Rpkg {
             .collect::<Result<Vec<String>>>()?)
     }
 
-    fn get_default_extract_folder(&self) -> PathBuf {
-        PathBuf::from(PACKAGE_CONTENT_DEFAULT_FOLDER).join(self.metadata.short_name())
+    fn get_default_extract_folder(&self) -> Result<PathBuf> {
+        let safe_name_pattern = Regex::new(r"^[a-zA-Z0-9\-_]+$")?;
+        if safe_name_pattern.is_match(self.metadata.short_name()) {
+            bail!("The metadata short name contains illegal characters");
+        }
+        Ok(PathBuf::from(PACKAGE_CONTENT_DEFAULT_FOLDER).join(self.metadata.short_name()))
+    }
+
+    fn get_default_package_scripts_extract_folder(&self) -> Result<PathBuf> {
+        let safe_name_pattern = Regex::new(r"^[a-zA-Z0-9\-_]+$")?;
+        if safe_name_pattern.is_match(&self.metadata.name) {
+            bail!("The metadata name contains illegal characters");
+        }
+        Ok(PathBuf::from(PACKAGE_CONTENT_DEFAULT_FOLDER).join(&self.metadata.name))
     }
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
@@ -219,19 +232,17 @@ impl Rpkg {
         }
 
         // Clean the plugin package script folder before extracting the files
+        let package_script_folder = self.get_default_package_scripts_extract_folder()?;
         debug!(
             "Cleaning the {} folder before extracting the plugin package scripts",
             PACKAGE_SCRIPTS_ARCHIVE
         );
-        fs::remove_dir_all(PACKAGE_SCRIPTS_ARCHIVE).context(format!(
+        fs::remove_dir_all(&package_script_folder).context(format!(
             "Could not clean the package script folder before install: {}",
-            PACKAGE_SCRIPTS_ARCHIVE
+            package_script_folder.display()
         ))?;
         // Extract package scripts
-        self.unpack_embedded_txz(
-            PACKAGE_SCRIPTS_ARCHIVE,
-            PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone()),
-        )?;
+        self.unpack_embedded_txz(PACKAGE_SCRIPTS_ARCHIVE, package_script_folder)?;
         // Run preinst if any
         let arg = if is_upgrade {
             PackageScriptArg::Upgrade
@@ -242,13 +253,19 @@ impl Rpkg {
             .run_package_script(PackageScript::Preinst, arg)?;
 
         // Clean the plugin default content folder before extracting the files
+        let default_extract_folder = self.get_default_extract_folder()?;
         debug!(
             "Cleaning the {} folder before extracting the plugin content",
-            self.get_default_extract_folder().display()
+            default_extract_folder.display()
         );
-        fs::remove_dir_all(self.get_default_extract_folder()).context(format!(
+        fs::remove_dir_all(&default_extract_folder).context(format!(
             "Could not clean the package content default folder before install: {}",
-            self.get_default_extract_folder().display()
+            default_extract_folder.display()
+        ))?;
+        fs::create_dir_all(&default_extract_folder).context(format!(
+            "Could not create the default extract folder {} for plugin {}",
+            default_extract_folder.display(),
+            self.metadata.name
         ))?;
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
