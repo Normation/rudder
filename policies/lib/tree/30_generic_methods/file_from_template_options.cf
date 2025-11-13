@@ -161,10 +161,9 @@ bundle agent template_module_serializer(r_destination, r_engine, r_data, r_templ
 
 bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
   vars:
+     "datastate_path"  string => "";
    pass1.data_is_empty::
      "datastate_path"  string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
-   pass1.!data_is_empty::
-     "datastate_path"  string => "";
    pass1::
      "string_params"     data => bundlestate("template_module_serializer");
      "bool_params"       data => '---
@@ -185,11 +184,14 @@ show_content: ${show_content}
         template_method      => "inline_mustache",
         create               => "true",
         edit_defaults        => no_backup,
-        edit_template_string => "{{%-top-}}";
+        edit_template_string => "{{%-top-}}",
+        action               => immediate_ignore_dry_run,
+        # Needed for uniqueness
+        comment              => "${report_data.method_id}";
 
   methods:
      pass1.!pass2::
-       "serialize"               usebundle => template_module_serializer("${destination}",
+      "${report_data.method_id}" usebundle => template_module_serializer("${destination}",
                                                                          "${engine}",
                                                                          "${data}",
                                                                          "${template_string}",
