@@ -165,7 +165,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     OnLoad(
       JsRaw(s"""
           /* Event handler function */
-          ${jsVarNameForId(gridName)} = $$('#${gridName}').dataTable({
+          ${jsVarNameForId(gridName)} = new DataTable('#${gridName}', {
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth"   : false,
             "bFilter"      : true,
@@ -179,9 +179,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                       return JSON.parse( localStorage.getItem('DataTables_${gridName}') );
                     },
             "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sZeroRecords": "No parameters!",
-              "sSearch": ""
+            "language": {
+              "zeroRecords": "No parameters!"
             },
             "bJQueryUI"    : false,
             "aaSorting"    : [[ 0, "asc" ]],
@@ -190,47 +189,44 @@ class ParameterManagement extends DispatchSnippet with Loggable {
               { "sWidth": "600px" },
               { "sWidth": "140px" }
             ],
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
+            "sDom": '<"dataTables_wrapper_top" <"d-flex" f>>rt<"dataTables_wrapper_bottom"lip>',
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
-          });
-          $$('.dataTables_filter input').attr("placeholder", "Filter");
-          """) &
-      JsRaw("""
+          });""") &
+      JsRaw(s"""
         /* Formating function for row details */
           function fnFormatDetails(id) {
-            var sOut = '<span id="'+id+'" class="parametersDescriptionDetails"/>';
+            const sOut = '<span id="'+id+'" class="parametersDescriptionDetails"/>';
             return sOut;
           };
 
-          $(#table_var#.fnGetNodes() ).each( function () {
-            $(this).click( function (event) {
-              var jTr = $(this);
-              var opened = jTr.prop("open");
-              var source = event.target || event.srcElement;
-              if (!( $(source).is("button"))) {
+          ${jsVarNameForId(gridName)}.rows().nodes().to$$().each( function () {
+            $$(this).click( function (event) {
+              const jTr = $$(this);
+              const opened = jTr.prop("open");
+              const source = event.target || event.srcElement;
+              if (!( $$(source).is("button"))) {
                 if (opened && opened.match("opened")) {
                   jTr.prop("open", "closed");
-                  $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-                  #table_var#.fnClose(this);
-                  $(this).removeClass("opened");
+                  $$(this).find("td.listclose").removeClass("listclose").addClass("listopen");
+                  ${jsVarNameForId(gridName)}.row(this).child.hide();
+                  $$(this).removeClass("opened");
                 } else {
-                  $(this).addClass("opened");
+                  $$(this).addClass("opened");
                   jTr.prop("open", "opened");
-                  $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-                  var jsid = jTr.attr("jsuuid");
+                  $$(this).find("td.listopen").removeClass("listopen").addClass("listclose");
+                  const jsid = jTr.attr("jsuuid");
                   var color = 'color1';
                   if(jTr.hasClass('color2'))
                     color = 'color2';
-                  var row = $(#table_var#.fnOpen(this, fnFormatDetails(jsid), 'details'));
-                  $(row).addClass(color + ' parametersDescription');
-                  $('#'+jsid).html($('#description-'+jsid).html());
+                  const row = ${jsVarNameForId(
+          gridName
+        )}.row(this).child(fnFormatDetails(jsid), color + ' parametersDescription details').show();
+                  $$('#'+jsid).html($$('#description-'+jsid).html());
                 }
                }
             } );
-          })
-
-      """.replaceAll("#table_var#", jsVarNameForId(gridName))) // JsRaw ok, const
+          })""") // JsRaw ok, const
     )
   }
 
