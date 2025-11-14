@@ -98,7 +98,7 @@
 }
 
 .fm-arrow > svg > path:last-child{
-  fill: $rudder-gray;
+  fill: $rudder-gray-500;
 }
 
 .fm-arrow:focus {
@@ -108,7 +108,7 @@
 .fm-text {
   flex-grow: 1;
   margin-left: 10px;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   font-weight: 500;
 }
 
@@ -366,7 +366,7 @@
 .fm-bar-actions .btn{
   font-size: 16px;
   background-color: transparent !important;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
 }
 
 /* SEARCH FILTER */
@@ -404,7 +404,7 @@
   align-items: center;
   padding: 6px 0;
   cursor: pointer;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   position: relative;
   padding-left: 24px;
 }

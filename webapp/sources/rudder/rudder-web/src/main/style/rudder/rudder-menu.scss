@@ -986,7 +986,7 @@ header.main-header .logo-lg img{
 .main-header .navbar-nav .tasks-menu a > i,
 .main-header .navbar-nav .user-menu  a > span,
 #logout > i{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
 }
 
 .main-header .navbar-nav .tasks-menu a:hover > i,
@@ -1064,7 +1064,7 @@ header.main-header .logo-lg img{
 }
 .navbar-nav .dropdown-menu > li > a .label {
   font-size: 90%;
-  background-color: $rudder-gray;
+  background-color: $rudder-gray-500;
   color: #fff;
   font-weight: bold;
   padding: 1px 6px;

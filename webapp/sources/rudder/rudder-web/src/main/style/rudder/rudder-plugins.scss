@@ -204,7 +204,7 @@ $spinner-height-sm: $spinner-width-sm;
             border-radius: 0.25rem;
 
             &.plugin-webapp + &.plugin-integration{
-              background-color: $rudder-gray;
+              background-color: $rudder-gray-500;
               font-weight: 600 !important;
             }
           }

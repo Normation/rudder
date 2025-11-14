@@ -662,7 +662,7 @@ ul.files-list > li > .target-remove:hover + .border{
 }
 .files-list > li.empty {
   border-left: 4px solid $rudder-primary;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   font-style: italic;
   padding: 14px 10px !important;
   border-top-right-radius: 4px;
@@ -676,7 +676,7 @@ ul.files-list > li:last-of-type {
   border-bottom-right-radius: 4px;
 }
 ul.files-list > li > .fa{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   margin-right: 6px;
 }
 ul.files-list > li .icon-info{
@@ -727,7 +727,7 @@ ul.files-list > li .empty-name,
 ul.files-list > li .full-name{
   font-size: .8em;
   margin-top: 2px;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   display: inline-block;
 }
 .tab-resources ul.files-list > li .use-with{
@@ -904,7 +904,7 @@ button.btn.clipboard:hover {
 }
 
 #methods-list-container::-webkit-scrollbar-thumb {
-    background: $rudder-gray;
+    background: $rudder-gray-500;
 }
 .generic-methods-container > ul,
 .generic-methods-container > div{
@@ -935,7 +935,7 @@ button.btn.clipboard:hover {
   background-color:#eee;
 }
 #categories-list::-webkit-scrollbar-thumb {
-    background: $rudder-gray;
+    background: $rudder-gray-500;
 }
 #categories-list > h4{
   padding: 4px 15px;
@@ -1168,7 +1168,7 @@ ul li.hide-method {
 }
 .method-param > label{
   display: inline-block;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   cursor: pointer;
   margin-right: 4px;
 }
@@ -1388,7 +1388,7 @@ ul li.hide-method {
   background-color: #fff;
 }
 .btn.toggle-diff .badge{
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   color: $rudder-txt-light;
   margin-left: 4px;
   border-radius: 20px;
@@ -1400,7 +1400,7 @@ ul li.hide-method {
   transition-duration: .2s;
 }
 .btn.toggle-diff:hover .badge{
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   color: $rudder-txt-light;
 }
 .show-diff table{

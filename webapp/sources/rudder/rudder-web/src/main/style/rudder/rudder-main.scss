@@ -258,7 +258,7 @@ pre.json-beautify code.elmsh {
   transition-duration:.2s;
 }
 .fa.info:hover{
-  color:$rudder-gray;
+  color:$rudder-txt-secondary;
 }
 .no-hpadding{
   padding-left:0 !important;
@@ -514,7 +514,7 @@ pre.json-beautify code.elmsh {
 
 .badge-disabled,
 .badge-expired{
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   font-size: 0.8em;
   font-weight: bold;
   padding: 2px 8px;
@@ -644,10 +644,10 @@ pre.json-beautify code.elmsh {
       margin: 10px 8px;
     }
     i.empty {
-      color: $rudder-gray;
+      color: $rudder-txt-secondary;
     }
     .small{
-      color: $rudder-gray;
+      color: $rudder-txt-secondary;
       margin-left: 4px;
     }
     label{
@@ -679,7 +679,7 @@ pre.json-beautify code.elmsh {
   font-weight: 700;
   border-radius: 3px;
   min-width: 78px;
-  background-color: $rudder-gray;
+  background-color: $rudder-gray-500;
 
   &[data-bs-trigger=click] {
     cursor: pointer !important;
@@ -751,18 +751,18 @@ pre.json-beautify code.elmsh {
 }
 
 .btn.btn-grey:focus, .btn.btn-grey:hover, .btn.btn-grey:active {
-  background-color: $rudder-gray;
+  background-color: $rudder-gray-500;
   color: #eee;
 }
 
 .btn.btn-grey {
-  background-color: $rudder-gray;
+  background-color: $rudder-gray-500;
   color: #fff;
 }
 
 .content-wrapper .rudder-label.label-state{
   cursor: default;
-  background-color: $rudder-lightgray !important;
+  background-color: $rudder-gray-400 !important;
   color: #fff;
   border-radius: 10px !important;
   margin-left: 3px;
@@ -1922,7 +1922,7 @@ ul > li.rudder-form > .input-group.disabled *{
 }
 .switch.switch-text > input + label:before {
   content: "off";
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   left: 18px;
   font-weight: normal;
   font-size: 11px;
@@ -1955,7 +1955,7 @@ ul > li.rudder-form > .input-group.disabled *{
   padding: 2px 10px;
   border: 1px solid $rudder-border-color-default;
   text-align: center;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   transition-duration: .2s;
 }
 .wbBaseField.form-group .switch label.radio-inline input + .radioTextLabel:hover{
@@ -2167,7 +2167,7 @@ b.dsc {
 }
 span.techversion {
   font-weight: 300;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   font-size: 10px;
 }
 .directiveNode .rudder-label + .tooltip{
@@ -2343,7 +2343,7 @@ table a > i.fa-pencil:hover{
   padding: .7em .3em;
   text-align: center;
   text-transform: uppercase;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
 }
 
 .ui-datepicker td {
@@ -2507,7 +2507,7 @@ table a > i.fa-pencil:hover{
   width: 95%
 }
 .ui-timepicker-div .ui_tpicker_time .ui_tpicker_time_input:focus {
-  border-bottom-color: $rudder-gray
+  border-bottom-color: $rudder-gray-500
 }
 .ui-timepicker-rtl {
   direction: rtl
@@ -2552,7 +2552,7 @@ table a > i.fa-pencil:hover{
   display: none
 }
 .ui-timepicker-div a.ui-slider-handle{
-  border: 1px solid $rudder-gray;
+  border: 1px solid $rudder-gray-500;
   background: #ffffff;
   transition-duration:.2s;
 }

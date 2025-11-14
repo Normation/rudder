@@ -84,7 +84,7 @@
   }
   & > a {
     .badge{
-      background-color: $rudder-lightgray;
+      background-color: $rudder-gray-400;
       display: inline-flex;
       justify-content: center;
       align-items: center;
@@ -94,7 +94,7 @@
 
     &:hover {
       & .badge{
-         background-color: $rudder-gray;
+         background-color: $rudder-gray-500;
          opacity:1;
        }
     }

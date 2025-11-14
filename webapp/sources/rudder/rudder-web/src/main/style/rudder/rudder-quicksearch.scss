@@ -97,7 +97,7 @@
 #clear-search {
   cursor:text;
   transition: all .3s ease-in-out;
-  color:$rudder-gray;
+  color:$rudder-txt-secondary;
 
   .fa {
     transition-duration: .2s;
@@ -112,7 +112,7 @@
   color:#BBB;
 
   .fa:hover {
-    color:$rudder-gray;
+    color:$rudder-txt-secondary;
   }
 }
 
@@ -171,7 +171,7 @@
   border-bottom: none;
 }
 .dropdown-search .angucomplete-searching {
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   font-size: 14px;
 }
 .dropdown-search .angucomplete-searching > .fa{
@@ -368,10 +368,10 @@
 }
 .main-panel > .heading-search .active .badge {
   color: #fff;
-  background-color: $rudder-gray;
+  background-color: $rudder-gray-500;
 }
 .main-panel > .heading-search .active .badge:before{
-  border-right: 8px solid $rudder-gray;
+  border-right: 8px solid $rudder-gray-500;
 }
 .main-panel > .heading-search .badge:before {
   position: absolute;
@@ -498,7 +498,7 @@
   transform: rotate(90deg);
   margin-right: 10px;
   font-size: 12px;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   transition-duration:.3s;
 }
 .dropdown-search .dropdown-container{

@@ -370,7 +370,7 @@ hr.separator-filter-tree{
 .content-wrapper .nav-tabs-filter > li > a.toggleTabFilter{
   background-color: $rudder-bg-light-gray !important;
   border:1px solid $rudder-border-color-default !important;
-  color:$rudder-gray !important;
+  color:$rudder-txt-secondary !important;
   cursor:pointer !important;
   padding: 4px 25px 4px 10px;
   position: relative;
@@ -404,7 +404,7 @@ hr.separator-filter-tree{
   padding: 4px 8px;
   border-radius : 20px;
   background-color: $rudder-bg-gray;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   display: inline-block;
   cursor: default;
   transition-duration: .2s;
@@ -514,7 +514,7 @@ hr.separator-filter-tree{
 
 .angucomplete-searching{
   padding: 6px 10px;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   font-style: italic;
   cursor: default;
 }

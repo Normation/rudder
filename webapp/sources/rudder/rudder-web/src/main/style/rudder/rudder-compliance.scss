@@ -252,7 +252,7 @@ $small-prefix : "sm-";
 
 .compliance-score {
   label{
-    color: $rudder-gray;
+    color: $rudder-txt-secondary;
     font-weight: bold;
     white-space: nowrap;
   }
@@ -292,7 +292,7 @@ $small-prefix : "sm-";
   }
 
   .no-compliance{
-    color: $rudder-gray;
+    color: $rudder-txt-secondary;
     font-size: 1.2em;
     font-weight: bold;
 
@@ -307,7 +307,7 @@ $small-prefix : "sm-";
   label{
     min-width: 125px;
     padding-right: 15px;
-    color: $rudder-gray;
+    color: $rudder-txt-secondary;
     font-weight: bold;
 
     & + * {

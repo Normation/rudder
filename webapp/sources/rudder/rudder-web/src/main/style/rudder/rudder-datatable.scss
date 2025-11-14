@@ -164,7 +164,7 @@
   text-rendering: auto;
   line-height: 1;
   font-weight: 900;
-  color: $rudder-lightgray;
+  color: $rudder-gray-400;
   margin-left : 6px;
   font-size: 18px;
   position: relative;
@@ -184,7 +184,7 @@
 }
 .dataTable tr.head th.sorting,
 .dataTables_scrollHead thead > tr th.sorting{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
 }
 .dataTable tr.head th.sorting.sorting_desc,
 .dataTable tr.head th.sorting.sorting_asc,
@@ -480,7 +480,7 @@ tr.parametersDescription {
 
 .dataTable > tbody > tr > td.dataTables_empty,
 .dataTable > tbody > tr > td .empty{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   font-style: italic;
   padding: 10px 6px;
 }

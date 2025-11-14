@@ -175,11 +175,11 @@ ul {
 .rudder-template .header-subtitle{
   font-size: .8rem;
   font-weight: normal;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   margin-top: 4px;
 
   .clipboard{
-    color: $rudder-gray;
+    color: $rudder-txt-secondary;
     transition-duration: .2s;
     padding: 4px;
     cursor: pointer;
@@ -258,7 +258,7 @@ ul {
     padding: 10px 14px;
     transition-duration: .2s;
     cursor: pointer;
-    color: $rudder-gray;
+    color: $rudder-txt-secondary;
     background-color: #fff;
 
     &:hover{
@@ -320,7 +320,7 @@ ul {
 }
 
 .header-title span.badge-disabled {
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   font-size: 0.6em;
   color: #fff;
   font-weight: bold;
@@ -690,7 +690,7 @@ ul {
 }
 .rudder-template .main-header .header-description{
   margin-top: 10px;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
 }
 .rudder-template .main-header .header-description p{
   margin-bottom: 6px;
@@ -711,7 +711,7 @@ ul {
 }
 
 .rudder-template .main-navbar ul > li > .fa-times {
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   padding: 3px 4px;
   margin-left: 4px;
   position: relative;
@@ -725,7 +725,7 @@ ul {
 .rudder-template .main-navbar ul > li > .badge,
 .rudder-template .template-main .main-details .badge,
 .rudder-template .badge{
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   color: #fff;
   font-weight: 1000;
   margin-left: 4px;
@@ -823,7 +823,7 @@ ul {
   font-size: 14px;
 }
 .rudder-template .explanation-text{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   margin-bottom: 20px;
 }
 .rudder-template .explanation-text > ul > li{
@@ -930,7 +930,7 @@ ul {
   text-rendering: auto;
   line-height: 1;
   font-weight: 900;
-  color: $rudder-lightgray;
+  color: $rudder-gray-400;
   font-size: 22px;
   position: absolute;
 }
@@ -1092,7 +1092,7 @@ ul {
 }
 .rudder-template h3.page-title.foldable .fa {
   font-size: .8em;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   margin-left: 10px;
 }
 .rudder-template h3.page-title.foldable.folded .fa-chevron-down {
@@ -1102,7 +1102,7 @@ ul {
   margin-top: 20px;
   font-weight: bold !important;
   font-size: 1.2em !important;
-  color: $rudder-gray !important;
+  color: $rudder-txt-secondary !important;
 }
 .rudder-template .one-col .main-details > .inner-portlet:first-child h3.page-title,
 .rudder-template .one-col .main-details > div:first-child > .inner-portlet:first-child h3.page-title {
@@ -1152,7 +1152,7 @@ ul {
 }
 .tree-container .tree-heading {
   background-color: $rudder-bg-light-gray;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   margin: 0 calc(var(--bs-gutter-x)*-0.5);
   padding: 15px;
   display: flex;
@@ -1253,7 +1253,7 @@ ul {
   }
 }
 .jstree span.badge-disabled {
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   font-size: 0.7em;
   color: #fff;
   font-weight: bold;
@@ -1437,7 +1437,7 @@ $nbRows: 20;
   display: inline-block;
   transition-duration: .2s;
   transition-property: transform;
-  color: $rudder-lightgray;
+  color: $rudder-gray-400;
   opacity: .8;
   margin-left: 10px;
 }
@@ -1619,7 +1619,7 @@ label > .warning-info{
 .rudder-template .section-with-doc .section-right .doc{
   border-left: 1px solid $rudder-border-color-default;
   padding-left: 15px;
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   transition: color .2s;
   height: 100%;
 }
@@ -1716,7 +1716,7 @@ ul.applied-list > li > .border{
   transition-duration: .2s;
 }
 ul.applied-list > li:not(.unknown):hover > .border{
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
 }
 ul.applied-list > li > .target-remove:hover + .border{
   background-color: $rudder-danger !important;
@@ -1748,8 +1748,8 @@ ul.applied-list > li.new:hover > .border{
 }
 
 .applied-list > li.empty {
-  border-left: 4px solid $rudder-lightgray;
-  color: $rudder-gray;
+  border-left: 4px solid $rudder-gray-400;
+  color: $rudder-txt-secondary;
   font-style: italic;
 }
 
@@ -1766,7 +1766,7 @@ ul.applied-list > li:last-of-type {
   align-items: baseline;
 }
 ul.applied-list > li > span.fa{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
   margin-right: 6px;
 }
 ul.applied-list > li.unknown > span.fa,
@@ -1803,7 +1803,7 @@ ul.applied-list > li > span.warning-sign{
 }
 ul.applied-list > li > span.warning-sign{
   color: #fff;
-  background-color: $rudder-lightgray;
+  background-color: $rudder-gray-400;
   opacity: 1;
   cursor: default;
 }
@@ -1853,7 +1853,7 @@ ul.applied-list > .add-target > .fa{
 #directiveTree ul > li.included .action-icon,
 #groupTree ul > li.included .action-icon.accept,
 #groupTree ul > li.excluded .action-icon.except{
-  color: $rudder-gray;
+  color: $rudder-txt-secondary;
 }
 #directiveTree ul > li.included .action-icon:before{
   content: "\f00d";
