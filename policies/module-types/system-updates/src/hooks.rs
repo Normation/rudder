@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
+use anyhow::{Result, bail};
+use log::{debug, info};
+use rudder_module_type::{rudder_debug, rudder_error, rudder_info};
+use std::path::PathBuf;
 use std::{
     fmt, fs,
     os::unix::prelude::{MetadataExt, PermissionsExt},
@@ -8,11 +13,8 @@ use std::{
     process::Command,
 };
 
-use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
-use anyhow::{Result, bail};
-use rudder_module_type::{rudder_debug, rudder_error, rudder_info};
-
-const HOOKS_DIR: &str = "/var/rudder/system-update/hooks.d/";
+const HOOKS_DIR_COMPAT: &str = "/var/rudder/system-update/hooks.d/";
+const HOOKS_DIR: &str = "/opt/rudder/var/system-update-hooks.d/";
 const PRE_UPGRADE_HOOK: &str = "pre-upgrade";
 const PRE_REBOOT_HOOK: &str = "pre-reboot";
 const POST_HOOK_DIR: &str = "post-upgrade";
@@ -66,8 +68,27 @@ fn hook_is_runnable(path: &Path, euid: u32) -> Result<()> {
 }
 
 impl Hooks {
+    /// Determine the hooks directory to use, considering backward compatibility.
+    ///
+    /// * If the new hooks directory does not exist, but the deprecated one does,
+    ///   the deprecated one will be used with a warning.
+    /// * In all other cases, the new hooks directory will be used.
+    fn hooks_dir() -> PathBuf {
+        // Only use one location for the whole event for consistency.
+        let path_compat = Path::new(HOOKS_DIR_COMPAT);
+        let path_new = Path::new(HOOKS_DIR);
+        let actual_path = if !path_new.exists() && path_compat.exists() {
+            info!("Using deprecated hook directory: {}", path_compat.display());
+            path_compat
+        } else {
+            path_new
+        };
+        debug!("Using hook directory: {}", actual_path.display());
+        actual_path.to_path_buf()
+    }
+
     pub fn run(self) -> ResultOutput<()> {
-        let path = Path::new(HOOKS_DIR).join(self.to_string());
+        let path = Self::hooks_dir().join(self.to_string());
         Self::run_dir(path.as_path())
     }
 
