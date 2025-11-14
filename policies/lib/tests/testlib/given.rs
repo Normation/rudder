@@ -12,6 +12,7 @@ use crate::testlib::given::file_present::FilePresentStruct;
 use crate::testlib::given::posix_acl_present::PosixAclPresentStruct;
 use crate::testlib::method_to_test::MethodToTest;
 use directory_present::DirectoryPresentStruct;
+#[cfg(unix)]
 use posix_acl::Qualifier;
 use setup_state::SetupState;
 use setup_state::SetupState::{DirectoryPresent, FileAbsent, FilePresent, PosixAclPresent};
@@ -43,6 +44,7 @@ impl Given {
         }))
     }
 
+    #[cfg(unix)]
     pub fn posix_acl_present(
         path: &str,
         qualifier: Qualifier,
@@ -53,5 +55,14 @@ impl Given {
             qualifier,
             perm,
         }))
+    }
+
+    #[cfg(windows)]
+    pub fn posix_acl_present(
+        path: &str,
+        qualifier: Qualifier,
+        perm: posix_acl_present::Perms,
+    ) -> Given {
+        bail!("Not supported on Windows");
     }
 }

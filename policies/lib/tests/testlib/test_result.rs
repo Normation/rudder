@@ -2,11 +2,12 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 use crate::testlib::method_to_test::{MethodStatus, MethodToTest};
-use log::debug;
 use rudder_commons::report::Report;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct ExecutionResult {
+    pub directive_id: String,
     pub reports: Vec<Report>,
     pub conditions: Vec<std::string::String>,
     pub variables: serde_json::Value,
@@ -47,7 +48,8 @@ impl ExecutionResult {
         method_call: &MethodToTest,
         expected_status: MethodStatus,
     ) {
-        let expected_conditions = method_call.log_v4_result_conditions(expected_status);
+        let result_id = format!("{}-{}", self.directive_id, method_call.id);
+        let expected_conditions = method_call.log_v4_result_conditions(result_id, expected_status);
         for expected_pattern in expected_conditions.clone() {
             assert!(
                 self.conditions.iter().any(|c| expected_pattern.is_match(c)),

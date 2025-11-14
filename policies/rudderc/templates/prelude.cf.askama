@@ -1,0 +1,165 @@
+# Boilerplate to run a technique as a standalone file
+#
+# We don't want to support arbitrary Rudder techniques
+# as we would need a full Rudder system.
+#
+# On the opposite, we intend to enforce a limited interface, i.e. "ncf" + a very small part
+# of the system policies.
+#
+# This means:
+#
+# * No direct node property access
+# * No system techniques internals access
+# * We DON'T run from usual paths (/var/rudder/...)
+#   Everything happens in temporary directories
+# * Some methods won't work:
+#     sharedfile_*
+#     file_from_shared_folder
+#     file_from_remote_*
+#
+# This script requires the following environment variables to be defined:
+#
+# * LIB_PATH
+# * CWD
+# * TMP_DIR
+# * PARAMS_FILE
+
+# we need to include ncf
+body common control
+{
+      # we're not supposed to make CFEngine calls but just in case
+        protocol_version => "2";
+        tls_min_version  => "1.3";
+
+        inputs => {
+                    @{lib.files},
+        };
+
+        bundlesequence => {
+          "main",
+          "export_datastate"
+        };
+}
+
+body agent control
+{
+        ifelapsed => "1";
+        environment => { "DEBIAN_FRONTEND=noninteractive" };
+        abortclasses => { "should_not_continue", "abort_agent_run" };
+        default_repository => "${rudder_test_init.tmp}/modified-files";
+        #agentfacility => "NONE";
+}
+
+bundle common lib
+{
+  vars:
+  {% if library_path.is_some() %}
+      "ncf_tree"               string => "{{ library_path.as_ref().unwrap() }}";
+  {% else %}
+      "ncf_tree"               string => getenv("LIB_PATH", 1024);
+  {% endif %}
+
+      # Almost same as promises.cf, but only load necessary parts
+      "list_compatible_inputs" string => "/bin/sh ${ncf_tree}/10_ncf_internals/list-compatible-inputs";
+      "generic_framework"      string => execresult("${list_compatible_inputs} --ncf-path ${ncf_tree} 10_ncf_internals 20_cfe_basics 30_generic_methods", "useshell");
+      "default_files_relative"  slist => splitstring("${generic_framework}", "\n", 10000);
+      "files"                   slist => maplist("${ncf_tree}/${this}", default_files_relative);
+}
+
+bundle common node
+{
+  vars:
+      "properties" data => '{ "rudder": { "packages": { "installed_cache_expire": 60, "updates_cache_expire": 240 } } }';
+}
+
+bundle agent rudder_test_init {
+   vars:
+      # We want to look for params file in current dir, even if CFEngine
+      # is not found of it.
+  {% if work_dir.is_some() %}
+      "cwd" string => "{{ work_dir.as_ref().unwrap() }}";
+  {% else %}
+      "cwd" string => getenv("CWD","2048");
+  {% endif %}
+  {% if parameters_path.is_some() %}
+      "params" string => "{{ parameters_path.as_ref().unwrap() }}";
+  {% else %}
+      "params" string => getenv("PARAMS_FILE","2048");
+  {% endif %}
+  {% if temp_dir.is_some() %}
+      "tmp" string => "{{ temp_dir.as_ref().unwrap() }}";
+  {% else %}
+      "tmp" string => getenv("TMP_DIR","2048");
+  {% endif %}
+      # Read params for current test case
+      "test_case" data => readyaml("${cwd}/${params}", 100k);
+      # Define conditions
+      "conditions" slist => getvalues("test_case[conditions]");
+
+      "dry_run" string => "false";
+    dry_run_test::
+      "dry_run" string => "true";
+
+  classes:
+      "dry_run_test"  expression => strcmp("${test_case[policy_mode]}", "audit");
+      "${conditions}" expression => "any",
+                           scope => "namespace";
+
+  methods:
+    # lib ("ncf") init, including modules update
+      "initialization";
+    # static reporting content
+      "any" usebundle => rudder_reporting_context_v4("{{ directive_id }}","rule_id","{{ technique_id }}","","","report_id");
+}
+
+# "g" vars used by ncf
+bundle common g
+{
+  vars:
+      # TODO tmpdir?
+      "agent_run_interval"         string => "5";
+      "rudder_var"                 string => "/var/rudder";
+      "rudder_base"                string => "/opt/rudder";
+      "rudder_verify_certs_option" string => "";
+      "rudder_curl"                string => "/usr/bin/curl",
+        unless => fileexists("${rudder_base}/bin/curl");
+      "rudder_curl"                string => "${rudder_bin}/curl",
+        if => fileexists("${rudder_base}/bin/curl");
+      # hardcoded for all tests
+      "uuid"                       string => "fb264042-a1b8-4770-b090-a398ea6fbbc3";
+      "rudder_node_config_id"      string => "1";
+      "execRun"                    string => execresult("/bin/date -u \"+%Y-%m-%d %T+00:00\"", "noshell");
+
+  classes:
+      # OS classes for compatibility
+      "SUSE" expression => "sles";
+      "SuSE" expression => "sles";
+      "suse" expression => "sles";
+}
+
+body action enforce
+{
+  action_policy => "fix";
+}
+
+bundle agent export_datastate
+{
+  vars:
+  {% if datastate_path.is_some() %}
+      "datastate_path" string => "{{ datastate_path.as_ref().unwrap() }}";
+  {% else %}
+      "datastate_path" string => getenv("DATASTATE_FILE","2048");
+  {% endif %}
+
+  classes:
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+  files:
+    pass3::
+      "${datastate_path}"
+        template_method      => "inline_mustache",
+        create               => "true",
+        action               => enforce,
+        edit_template_string => {% raw %}"{{%-top-}}";{% endraw %}
+}
