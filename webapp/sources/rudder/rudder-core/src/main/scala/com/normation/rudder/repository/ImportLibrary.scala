@@ -155,8 +155,10 @@ trait ImportTechniqueLibrary {
    * to a new one.
    *
    * In case of error, we try to restore the old technique library.
+   *
+   * Non user compliance component (system or other policy type) must be ignored.
    */
-  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false): IOResult[Unit]
+  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent): IOResult[Unit]
 }
 
 trait ImportGroupLibrary {
@@ -166,6 +168,8 @@ trait ImportGroupLibrary {
    * to a new one.
    *
    * In case of error, we try to restore the old technique library.
+   *
+   * System groups must be ignored.
    */
-  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false): IOResult[Unit]
+  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent): IOResult[Unit]
 }

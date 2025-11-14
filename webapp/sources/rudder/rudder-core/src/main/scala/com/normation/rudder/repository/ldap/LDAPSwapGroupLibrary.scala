@@ -68,8 +68,7 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
     } yield {}
   }
 
-  // copy back system categories/groups if includeSystem is FALSE
-  def copyBackSystemEntrie(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
+  def copyBackSystemEntries(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
     // the only hard part could be for system group in non system categories, because
     // we may miss a parent. But it should not be allowed, so we consider such cases
     // as errors
@@ -163,9 +162,9 @@ class ImportGroupLibraryImpl(
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false): IOResult[Unit] = {
+  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent): IOResult[Unit] = {
     /*
-     * Hight level behaviour:
+     * High level behaviour:
      * - check that Group Library respects global rules
      *   no two categories or group with the same name, etc)
      *   If not, remove duplicates with error logs (because perhaps they are no duplicate,
@@ -220,12 +219,9 @@ class ImportGroupLibraryImpl(
         finished <- {
           (for {
             saved  <- saveUserLib(con, userLib)
-            system <- if (includeSystem) "OK".succeed
-                      else {
-                        copyBackSystemEntrie(con, rudderDit.GROUP.dn, targetArchiveDN).chainError(
-                          "Error when copying back system entries in the imported library"
-                        )
-                      }
+            system <- copyBackSystemEntries(con, rudderDit.GROUP.dn, targetArchiveDN).chainError(
+                        "Error when copying back system entries in the imported library"
+                      )
           } yield {
             system
           }).catchAll { e =>
@@ -268,20 +264,15 @@ class ImportGroupLibraryImpl(
 
       def sanitizeNodeGroup(nodeGroup: NodeGroup): Option[NodeGroup] = {
 
-        if (nodeGroup.isSystem && includeSystem == false) None
+        if (nodeGroup.isSystem) None
         else if (nodeGroupIds.contains(nodeGroup.id)) {
-          logEffect.error("Ignoring Active Technique because is ID was already processed: " + nodeGroup)
+          logEffect.error(s"Ignoring group '${nodeGroup.id.serialize}' because it was already processed")
           None
         } else {
           nodeGroupNames.get(nodeGroup.name) match {
             case Some(id) =>
               logEffect.error(
-                "Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'"
-                  .format(
-                    nodeGroup.id.serialize,
-                    nodeGroup.name,
-                    id.serialize
-                  )
+                s"Ignoring node group ID '${nodeGroup.id.serialize}' because it references technique with name '${nodeGroup.name}' already referenced with ID '${id.serialize}'"
               )
               None
             case None     =>
@@ -296,27 +287,21 @@ class ImportGroupLibraryImpl(
           isRoot:  Boolean
       ): Option[NodeGroupCategoryContent] = {
         val cat = content.category
-        if (!isRoot && content.category.isSystem && includeSystem == false) None
+        if (!isRoot && content.category.isSystem) None
         else if (categoryIds.contains(cat.id)) {
-          logEffect.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
+          logEffect.error("Ignoring group category because its ID was already processed: " + cat)
           None
         } else if (cat.name == null || cat.name.size < 1) {
-          logEffect.error("Ignoring Active Technique Category because its name is empty: " + cat)
+          logEffect.error("Ignoring group category because its name is empty: " + cat)
           None
         } else {
           categoryNamesByParent.get(cat.name) match { // name is mandatory
             case Some(list) if list.contains(parent.id) =>
               logEffect.error(
-                "Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category '%s' with ID '%s'"
-                  .format(
-                    cat.id.value,
-                    cat.name,
-                    parent.name,
-                    parent.id.value
-                  )
+                s"Ignoring group category with ID '${cat.id.value}' because its name is '${cat.name}' already referenced by category '${parent.name}' with ID '${parent.id.value}'"
               )
               None
-            case _                                      => // OK, process PT and sub categories !
+            case _                                      => // OK, process groups and sub categories !
               categoryIds += cat.id
               categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
