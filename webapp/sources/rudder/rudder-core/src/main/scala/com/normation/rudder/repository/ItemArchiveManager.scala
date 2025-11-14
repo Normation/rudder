@@ -101,19 +101,17 @@ trait ItemArchiveManager {
    * and return an ID for the archive on success.
    */
   def exportAll(
-      commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
-      includeSystem: Boolean = false
+      commiter: PersonIdent,
+      modId:    ModificationId,
+      actor:    EventActor,
+      reason:   Option[String]
   )(implicit qc: QueryContext): IOResult[(GitArchiveId, NotArchivedElements)]
 
   def exportRules(
-      commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
-      includeSystem: Boolean = false
+      commiter: PersonIdent,
+      modId:    ModificationId,
+      actor:    EventActor,
+      reason:   Option[String]
   ): IOResult[GitArchiveId]
 
   /**
@@ -122,27 +120,24 @@ trait ItemArchiveManager {
    * at the end of the process.
    */
   def exportTechniqueLibrary(
-      commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
-      includeSystem: Boolean = false
+      commiter: PersonIdent,
+      modId:    ModificationId,
+      actor:    EventActor,
+      reason:   Option[String]
   ): IOResult[(GitArchiveId, NotArchivedElements)]
 
   def exportGroupLibrary(
-      commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
-      includeSystem: Boolean = false
+      commiter: PersonIdent,
+      modId:    ModificationId,
+      actor:    EventActor,
+      reason:   Option[String]
   )(implicit qc: QueryContext): IOResult[GitArchiveId]
 
   def exportParameters(
-      commiter:      PersonIdent,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String],
-      includeSystem: Boolean = false
+      commiter: PersonIdent,
+      modId:    ModificationId,
+      actor:    EventActor,
+      reason:   Option[String]
   ): IOResult[GitArchiveId]
 
   /**
@@ -154,33 +149,28 @@ trait ItemArchiveManager {
    *
    */
   def importAll(
-      archiveId:     GitCommitId,
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      archiveId: GitCommitId,
+      commiter:  PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   def importRules(
-      archiveId:     GitCommitId,
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      archiveId: GitCommitId,
+      commiter:  PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   def importTechniqueLibrary(
-      archiveId:     GitCommitId,
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      archiveId: GitCommitId,
+      commiter:  PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   def importGroupLibrary(
-      archiveId:     GitCommitId,
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      archiveId: GitCommitId,
+      commiter:  PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   def importParameters(
-      archiveId:     GitCommitId,
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      archiveId: GitCommitId,
+      commiter:  PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   /**
@@ -189,38 +179,33 @@ trait ItemArchiveManager {
   private def lastGitCommitId = GitCommitId("HEAD")
 
   def importHeadAll(
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      commiter: PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
-    importAll(lastGitCommitId, commiter, includeSystem)
+    importAll(lastGitCommitId, commiter)
   }
 
   def importHeadRules(
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      commiter: PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
-    importRules(lastGitCommitId, commiter, includeSystem)
+    importRules(lastGitCommitId, commiter)
   }
 
   def importHeadTechniqueLibrary(
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      commiter: PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
-    importTechniqueLibrary(lastGitCommitId, commiter, includeSystem)
+    importTechniqueLibrary(lastGitCommitId, commiter)
   }
 
   def importHeadGroupLibrary(
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      commiter: PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
-    importGroupLibrary(lastGitCommitId, commiter, includeSystem)
+    importGroupLibrary(lastGitCommitId, commiter)
   }
 
   def importHeadParameters(
-      commiter:      PersonIdent,
-      includeSystem: Boolean = false
+      commiter: PersonIdent
   )(implicit cc: ChangeContext): IOResult[GitCommitId] = {
-    importParameters(lastGitCommitId, commiter, includeSystem)
+    importParameters(lastGitCommitId, commiter)
   }
 
   /**
@@ -231,8 +216,7 @@ trait ItemArchiveManager {
       commiter:         PersonIdent,
       rollbackedEvents: Seq[EventLog],
       target:           EventLog,
-      rollbackType:     String,
-      includeSystem:    Boolean = false
+      rollbackType:     String
   )(implicit cc: ChangeContext): IOResult[GitCommitId]
 
   /**
