@@ -56,6 +56,7 @@ import com.normation.rudder.repository.ImportTechniqueLibrary
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import scala.collection.mutable
 import zio.*
 import zio.syntax.*
 
@@ -74,7 +75,7 @@ class ImportTechniqueLibraryImpl(
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent): IOResult[Unit] = {
+  override def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent): IOResult[Unit] = {
     /*
      * High level behaviour:
      * - check that User Library respects global rules
@@ -106,7 +107,7 @@ class ImportTechniqueLibraryImpl(
           val categoryEntry = mapper.activeTechniqueCategory2ldap(content.category, parentDN)
           if (isRoot) {
             categoryEntry.addValues(A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-            categoryEntry.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
+            categoryEntry.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString())
             gitId.foreach(x => categoryEntry.resetValuesTo(A_TECHNIQUE_LIB_VERSION, x))
           }
 
@@ -189,25 +190,25 @@ class ImportTechniqueLibraryImpl(
 
     /**
      * Check that the user lib match our global rules:
-     * - two UPT can't referenced the same PT (arbitrary skip the second one)
+     * - two activeTechniques can't reference the same technique (arbitrary skip the second one)
      * - two categories WITH THE SAME PARENT can not have the same name (arbitrary skip the second one)
      * - all ids must be uniques
-     * + remove system library if we don't want them
+     * - remove active techniques that are marked system or which have a policyTypes that is not "rudder.base"
      */
     def checkUserLibConsistance(userLib: ActiveTechniqueCategoryContent): IOResult[ActiveTechniqueCategoryContent] = {
-      import scala.collection.mutable.Map
-      import scala.collection.mutable.Set
-      val directiveUids         = Set[DirectiveUid]()
-      val ptNames               = Map[TechniqueName, ActiveTechniqueId]()
-      val uactiveTechniqueIds   = Set[ActiveTechniqueId]()
-      val categoryIds           = Set[ActiveTechniqueCategoryId]()
+      val directiveUids         = mutable.Set[DirectiveUid]()
+      val ptNames               = mutable.Map[TechniqueName, ActiveTechniqueId]()
+      val uactiveTechniqueIds   = mutable.Set[ActiveTechniqueId]()
+      val categoryIds           = mutable.Set[ActiveTechniqueCategoryId]()
       // for a name, all Category already containing a child with that name.
-      val categoryNamesByParent = Map[String, List[ActiveTechniqueCategoryId]]()
+      val categoryNamesByParent = mutable.Map[String, List[ActiveTechniqueCategoryId]]()
 
-      def sanitizeUPT(uptContent: ActiveTechniqueContent): Option[ActiveTechniqueContent] = {
+      // exclude system and non `rudder.base` active techniques
+      def sanitizeActiveTechnique(uptContent: ActiveTechniqueContent): Option[ActiveTechniqueContent] = {
         val activeTechnique = uptContent.activeTechnique
-        if (activeTechnique.policyTypes.isSystem) None
-        else if (uactiveTechniqueIds.contains(activeTechnique.id)) {
+        if (activeTechnique.policyTypes.isSystem || !activeTechnique.policyTypes.isBase) {
+          None
+        } else if (uactiveTechniqueIds.contains(activeTechnique.id)) {
           logEffect.error("Ignoring Active Technique because is ID was already processed: " + activeTechnique)
           None
         } else {
@@ -222,7 +223,7 @@ class ImportTechniqueLibraryImpl(
                   )
               )
               None
-            case None     => // OK, proccess PIs !
+            case None     => // OK, process PIs !
               val sanitizedPis = uptContent.directives.flatMap { directive =>
                 if (directive.isSystem) None
                 else if (directiveUids.contains(directive.id.uid)) {
@@ -246,14 +247,17 @@ class ImportTechniqueLibraryImpl(
         }
       }
 
+      // For categories, we don't have a "policy type", so only exclude system ones.
+      // Root must be excluded in all cases, too.
       def recSanitizeCategory(
           content: ActiveTechniqueCategoryContent,
           parent:  ActiveTechniqueCategory,
           isRoot:  Boolean
       ): Option[ActiveTechniqueCategoryContent] = {
         val cat = content.category
-        if (!isRoot && content.category.isSystem) None
-        else if (categoryIds.contains(cat.id)) {
+        if (!isRoot && content.category.isSystem) {
+          None
+        } else if (categoryIds.contains(cat.id)) {
           logEffect.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
           None
         } else if (cat.name == null || cat.name.size < 1) {
@@ -277,7 +281,7 @@ class ImportTechniqueLibraryImpl(
               categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
               val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat, isRoot = false))
-              val subUPTs       = content.templates.flatMap(sanitizeUPT(_))
+              val subUPTs       = content.templates.flatMap(sanitizeActiveTechnique)
 
               Some(
                 content.copy(
