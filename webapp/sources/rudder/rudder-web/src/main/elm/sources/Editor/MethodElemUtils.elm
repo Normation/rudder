@@ -121,6 +121,7 @@ policyModeValue pm =
         Nothing -> "default"
         Just Audit -> "audit"
         Just Enforce -> "enforce"
+        Just Default -> "default"
 
 defaultNewForeach : Maybe String -> Maybe (List (Dict String String)) -> NewForeach
 defaultNewForeach foreachName foreach =

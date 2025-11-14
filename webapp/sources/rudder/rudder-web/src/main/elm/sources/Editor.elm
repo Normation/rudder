@@ -49,6 +49,7 @@ port readUrl             : (String -> msg) -> Sub msg
 port clearTooltips       : String -> Cmd msg
 port scrollMethod        : (Bool , String) -> Cmd msg
 port initInputs          : String -> Cmd msg
+port initTooltips        : () -> Cmd msg
 
 -- utility to write a understandable debug message from a get response
 debugHttpErr : Detailed.Error String -> String
@@ -89,9 +90,9 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True []
+    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True []
   in
-    (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model]) )
+    (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model, getDirectives model]) )
 
 updatedStoreTechnique: Model -> (Model, Cmd Msg)
 updatedStoreTechnique model =
@@ -223,6 +224,12 @@ update msg model =
       ({ model | techniques = techniques, loadingTechniques = False},  getUrl () )
     GetTechniques (Err err) ->
       ({ model | loadingTechniques = False} , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
+
+
+    GetDirectives (Ok  (_, directives)) ->
+      ({ model | directives = directives, loadingTechniques = False}, Cmd.batch [getUrl (), initTooltips ()] )
+    GetDirectives (Err err) ->
+      ({ model | loadingTechniques = False} , errorNotification  ("Error when getting directives: " ++ debugHttpErr err  ) )
 
     OpenTechniques ->
       ( { model | genericMethodsOpen = False } , Cmd.none )

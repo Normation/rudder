@@ -28,6 +28,28 @@ type alias Draft = { technique : Technique, origin : Maybe Technique, id : Draft
 
 type AgentValue = Value String | Variable (List AgentValue)
 
+type alias DirectiveId = { value : String }
+
+type alias Directive =
+  { id : DirectiveId
+  , displayName : String
+  , shortDescription : String
+  , longDescription :  String
+  , techniqueName : String
+  , techniqueVersion : String
+  --, parameters :
+  , priority : Int
+  , enabled : Bool
+  , system : Bool
+  , policyMode : PolicyMode
+  --, tags : List (String,String)
+  }
+
+getDirectivesBaseOnTechnique : TechniqueId -> List Directive -> List Directive
+getDirectivesBaseOnTechnique techniqueId directives =
+  List.filter (\d -> d.techniqueName == techniqueId.value) directives
+
+
 type alias Constraint =
   { allowEmpty : Maybe Bool
   , allowWhiteSpace:  Maybe Bool
@@ -95,7 +117,7 @@ type WorstReportKind = WorstReportWeightedOne | WorstReportWeightedSum | FocusWo
 
 type ReportingLogic = WorstReport WorstReportKind | WeightedReport | FocusReport String
 
-type PolicyMode = Audit | Enforce
+type PolicyMode = Audit | Enforce | Default
 
 
 type alias MethodBlock =
@@ -185,6 +207,7 @@ type alias Model =
   , methods            : Dict String Method
   , categories         : TechniqueCategory
   , drafts             : Dict String Draft
+  , directives         : List Directive
   , mode               : Mode
   , contextPath        : String
   , techniqueFilter    : TreeFilters
@@ -279,6 +302,7 @@ type CheckMode = Import String | EditYaml String | CheckJson Technique
 type Msg =
     SelectTechnique (Either Technique Draft)
   | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
+  | GetDirectives   (Result (Http.Detailed.Error String) ( Http.Metadata, List Directive ))
   | GetYaml         (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | UpdateTechnique Technique
