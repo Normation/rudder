@@ -61,6 +61,7 @@ import scala.xml.*
 object PendingHistoryGrid extends Loggable {
 
   val history           = RudderConfig.inventoryHistoryJdbcRepository
+  val agentRuns         = RudderConfig.roAgentRunsRepository
   val logService        = RudderConfig.inventoryEventLogService
   val logDetailsService = RudderConfig.eventLogDetailsService
   val configService     = RudderConfig.configService
@@ -225,21 +226,23 @@ object PendingHistoryGrid extends Loggable {
       val version      = ISODateTimeFormat.dateTimeParser.parseDateTime(arr(2))
       val isAcceptLine = arr(3) == "accepted"
       (for {
-        globalMode <- configService
-                        .rudder_global_policy_mode()
-                        .chainError(s" Could not get global policy mode when getting node '${id.value}' details")
-        m          <- history.get(id, version)
-      } yield (globalMode, m)).toBox match {
-        case Failure(m, _, _)             => Alert("Error while trying to display node history. Error message:" + m)
-        case Empty | Full((_, None))      => Alert("No history was retrieved for the chosen date")
-        case Full((globalMode, Some(sm))) =>
+        globalMode      <- configService
+                             .rudder_global_policy_mode()
+                             .chainError(s" Could not get global policy mode when getting node '${id.value}' details")
+        m               <- history.get(id, version)
+        agentRunsByNode <- agentRuns.getNodesLastRun(Set(id))
+        agentRun         = agentRunsByNode.get(id).flatten
+      } yield (globalMode, agentRun, m)).toBox match {
+        case Failure(m, _, _)                       => Alert("Error while trying to display node history. Error message:" + m)
+        case Empty | Full((_, _, None))             => Alert("No history was retrieved for the chosen date")
+        case Full((globalMode, agentRun, Some(sm))) =>
           SetHtml(
             jsuuid,
             (if (isAcceptLine)
                displayIfDeleted(id, version, deletedNodes)
              else
                NodeSeq.Empty) ++
-            DisplayNode.showPannedContent(sm.data.fact, globalMode, "hist")
+            DisplayNode.showPannedContent(agentRun, sm.data.fact, globalMode, "hist")
           ) &
           DisplayNode.jsInit(sm.id, "hist")
       }
