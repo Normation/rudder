@@ -123,7 +123,7 @@ class UserRepositoryUtilsTest extends Specification {
         trace = EventTrace(actor, date2),
         zombies = Map.empty,
         managed = Map.empty
-      ) must be equalTo (expected)
+      ) must be equalTo expected
 
     }
 
@@ -150,7 +150,7 @@ class UserRepositoryUtilsTest extends Specification {
         trace = EventTrace(actor, date2),
         zombies = Map("bob" -> bobZombie),
         managed = Map.empty
-      ) must be equalTo (expected)
+      ) must be equalTo expected
     }
 
     "returns updated users when zombies is resurrected with a different origin" in {
@@ -171,7 +171,7 @@ class UserRepositoryUtilsTest extends Specification {
         trace = trace2,
         zombies = Map("bob" -> bobRevived),
         managed = Map.empty
-      ) must be equalTo (expected)
+      ) must be equalTo expected
     }
 
     "returns updated users when user is added back to active users list, from the same origin and after having been deleted" in {
@@ -196,7 +196,7 @@ class UserRepositoryUtilsTest extends Specification {
         trace = EventTrace(actor, date2),
         zombies = Map("bob" -> bobZombie),
         managed = Map.empty
-      ) must be equalTo (expected)
+      ) must be equalTo expected
     }
 
     "returns updated users when managed and not in the active users should be deleted" in {
@@ -221,7 +221,7 @@ class UserRepositoryUtilsTest extends Specification {
         trace = EventTrace(actor, date2),
         zombies = Map.empty,
         managed = Map("bob" -> userInfosInit("bob"))
-      ) must be equalTo (expected)
+      ) must be equalTo expected
     }
   }
 }
@@ -238,7 +238,7 @@ class InMemoryUserRepositoryTest extends UserRepositoryTest {
 class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
   import doobie.*
 
-  override def doJdbcTest = doDatabaseConnection
+  override def doJdbcTest(): Boolean = doDatabaseConnection
 
   // format: off
   org.slf4j.LoggerFactory.getLogger("sql").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
@@ -248,7 +248,7 @@ class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
     cleanDb()
   }
 
-  if (!doJdbcTest) skipAll
+  if (!doJdbcTest()) skipAll
   lazy val repo: JdbcUserRepository = new JdbcUserRepository(doobie)
 
   // Running some queries must return some results (after the tests in the supertrait).
@@ -329,7 +329,7 @@ trait UserRepositoryTest extends Specification with Loggable {
   // either test in memory or postgresql depending on what is configured
   // When asking for pg test, we need a pg connection & all
   def doobie: Doobie
-  def doJdbcTest = false
+  def doJdbcTest() = false
 
   // to compare UserInfo with ==, we need to have everything in UTC.
   implicit class ForceTimeUTC(users: List[UserInfo]) {
@@ -412,7 +412,7 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
     "Setting users should handle case sensitivity parameter true value" >> {
       // even if "alice" already exist
-      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, "Alice" :: users, traceInit, isCaseSensitive = true).runNow
+      repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, "Alice" :: users, traceInit).runNow
       repo.getAll().map(_.map(_.id)).runNow must containTheSameElementsAs("Alice" :: users)
     }
 
@@ -446,7 +446,7 @@ trait UserRepositoryTest extends Specification with Loggable {
        * - other users are not changed
        */
       userInfosInit.map {
-        case u if (u.id == "bob") =>
+        case u if u.id == "bob" =>
           u.modify(_.status)
             .setTo(UserStatus.Deleted)
             .modify(_.statusHistory)
@@ -472,7 +472,7 @@ trait UserRepositoryTest extends Specification with Loggable {
        * - other users are not changed
        */
       userInfosBobRemoved.map {
-        case u if (u.id == "bob") =>
+        case u if u.id == "bob" =>
           u.modify(_.status)
             .setTo(UserStatus.Active)
             .modify(_.statusHistory)
@@ -497,7 +497,7 @@ trait UserRepositoryTest extends Specification with Loggable {
        * - other users are not changed
        */
       userInfosBobReactivated.map {
-        case u if (u.id == "bob") =>
+        case u if u.id == "bob" =>
           u.modify(_.status)
             .setTo(UserStatus.Deleted)
             .modify(_.statusHistory)
@@ -527,7 +527,7 @@ trait UserRepositoryTest extends Specification with Loggable {
        * - other users are not changed
        */
       userInfosBobRemovedIdempotent.map {
-        case u if (u.id == "bob") =>
+        case u if u.id == "bob" =>
           u.modify(_.status)
             .setTo(UserStatus.Active)
             .modify(_.statusHistory)
@@ -572,7 +572,7 @@ trait UserRepositoryTest extends Specification with Loggable {
     val traceBobDisabled     = EventTrace(actor, dateBobDisabled)
     val userInfosBobDisabled = {
       userInfosWilliamOidc.map {
-        case u if (u.id == "bob") =>
+        case u if u.id == "bob" =>
           u.modify(_.status)
             .setTo(UserStatus.Disabled)
             .modify(_.statusHistory)
@@ -643,7 +643,7 @@ trait UserRepositoryTest extends Specification with Loggable {
        * - other users are not changed
        */
       userInfosOidcDeleted.map {
-        case u if (u.id == "bob") =>
+        case u if u.id == "bob" =>
           UserInfo(
             u.id,
             dateBobPurged,
@@ -701,12 +701,12 @@ trait UserRepositoryTest extends Specification with Loggable {
       // set delete trace event to "dateInit" to make it simpler to know when the "deleted before" must be set to
       repo
         .delete(Nil, Some(dateInit.plusYears(1)), Nil, None, EventTrace(actor, dateInit))
-        .tap(users => errors.effectUioUnit(logger.debug(s"Users were marked deleted: ${users}")))
+        .tap(users => errors.effectUioUnit(logger.debug(s"Users were marked deleted: $users")))
         .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob")) // william is already deleted
 
       repo
         .purge(Nil, Some(dateInit.plusYears(1)), Nil, EventTrace(actor, DateTime.now(DateTimeZone.UTC)))
-        .tap(users => errors.effectUioUnit(logger.debug(s"Users were purged: ${users}")))
+        .tap(users => errors.effectUioUnit(logger.debug(s"Users were purged: $users")))
         .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob", "william", "xavier"))
 
       repo.getAll().runNow must beEmpty
@@ -736,8 +736,8 @@ trait UserRepositoryTest extends Specification with Loggable {
       val users = repo.getAll().runNow.toUTC
       (users.map(_.id) must containTheSameElementsAs(List("alice", "bob", "charlie", "david"))) and
       (users.filter(_.status == UserStatus.Disabled).map(_.id) must containTheSameElementsAs(List("charlie"))) and
-      (users.collectFirst { case u if (u.id == "charlie") => u.statusHistory.head } must beEqualTo(
-        Some(StatusHistory(UserStatus.Disabled, EventTrace(actor, date2, "")))
+      (users.collectFirst { case u if u.id == "charlie" => u.statusHistory.head } must beSome(
+        StatusHistory(UserStatus.Disabled, EventTrace(actor, date2))
       ))
     }
 
@@ -745,10 +745,10 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.delete(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), None, EventTrace(actor, date2)).runNow
       val users = repo.getAll().runNow.toUTC
       (users.map(_.id) must containTheSameElementsAs(List("alice", "bob", "charlie", "david"))) and
-      (users.filter(_.status == UserStatus.Deleted).size === 1) and
+      (users.count(_.status == UserStatus.Deleted) === 1) and
       (
-        users.collectFirst { case u if (u.id == "charlie") => u.statusHistory.head } must beEqualTo(
-          Some(StatusHistory(UserStatus.Deleted, EventTrace(actor, date2, "")))
+        users.collectFirst { case u if u.id == "charlie" => u.statusHistory.head } must beSome(
+          StatusHistory(UserStatus.Deleted, EventTrace(actor, date2))
         )
       )
     }

@@ -68,7 +68,7 @@ import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.SystemApi as API
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.SystemInfoJson.*
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckResult
