@@ -39,6 +39,7 @@ package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
 import com.normation.errors.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.syntax.*
@@ -46,6 +47,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.repository.ImportGroupLibrary
 import com.normation.rudder.repository.NodeGroupCategoryContent
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
@@ -61,17 +63,16 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
 
   // move user lib to archive branch
   def moveToArchive(connection: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
-    for {
-      ok <- connection
-              .move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN))
-              .chainError("Error when arching current Library with DN '%s' to LDAP".format(targetArchiveDN))
-    } yield {}
+    connection
+      .move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN))
+      .chainError(s"Error when arching current Library with DN '${targetArchiveDN}' to LDAP")
+      .unit
   }
 
-  // copy back system categories/groups if includeSystem is FALSE
-  def copyBackSystemEntrie(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
-    // the only hard part could be for system group in non system categories, because
-    // we may miss a parent. But it should not be allowed, so we consider such cases
+  /*
+   * Copy system entries and policies with a `policyTypes` which doesn't contain `rudder.base`.
+   */
+  def copyBackSystemEntries(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
     // as errors
     import com.normation.ldap.sdk.BuildFilter.EQ
     import com.normation.ldap.sdk.*
@@ -94,30 +95,35 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
       relatives.map(rdns => recBuildDN(sourceLibraryDN, rdns.reverse))
     }
 
+    // a filter for non user-defined policies
+    val notUserPoliciesFilter = OR(
+      EQ(A_IS_SYSTEM, true.toLDAPString), // isSystem
+      AND(HAS(A_POLICY_TYPES), NOT(SUB(A_POLICY_TYPES, "", Array(PolicyTypeName.rudderBase.value), "")))
+    )
+
     for {
-      entries         <- con.searchSub(targetArchiveDN, EQ(A_IS_SYSTEM, true.toLDAPString))
+      entries         <- con.searchSub(targetArchiveDN, notUserPoliciesFilter)
       allDNs           = entries.map(_.dn).toSet
       // update DN to UserLib DN, remove root entry and entries without parent in that set
       updatedDNEntries = {
         (entries.collect {
-          case entry if (entry.dn == targetArchiveDN)            =>
+          case entry if (entry.dn == targetArchiveDN)       =>
             logEffect.trace("Skipping root entry, already taken into account")
             None
-          case entry if (allDNs.exists(_ == entry.dn.getParent)) =>
+          case entry if allDNs.contains(entry.dn.getParent) =>
             // change the DN to user lib
             setUserLibRoot(entry.dn) match {
               case None     =>
                 logEffect.error(
-                  "Ignoring entry with DN '%s' because it does not belong to archive '%s'".format(entry.dn, targetArchiveDN)
+                  s"Ignoring entry with DN '${entry.dn}' because it does not belong to archive '${targetArchiveDN}'"
                 )
                 None
               case Some(dn) =>
                 Some(LDAPEntry(dn, entry.attributes))
             }
-          case entry                                             =>
+          case entry                                        =>
             logEffect.error(
-              "Error when trying to save entry '%s' marked as system: its parent is not available, perhaps it is not marked as system?"
-                .format(entry.dn)
+              s"Error when trying to save entry '${entry.dn}' marked as system: its parent is not available, perhaps it is not marked as system?"
             )
             None
         }).flatten
@@ -163,9 +169,9 @@ class ImportGroupLibraryImpl(
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent, includeSystem: Boolean = false): IOResult[Unit] = {
+  def swapGroupLibrary(rootCategory: NodeGroupCategoryContent): IOResult[Unit] = {
     /*
-     * Hight level behaviour:
+     * High level behaviour:
      * - check that Group Library respects global rules
      *   no two categories or group with the same name, etc)
      *   If not, remove duplicates with error logs (because perhaps they are no duplicate,
@@ -220,12 +226,9 @@ class ImportGroupLibraryImpl(
         finished <- {
           (for {
             saved  <- saveUserLib(con, userLib)
-            system <- if (includeSystem) "OK".succeed
-                      else {
-                        copyBackSystemEntrie(con, rudderDit.GROUP.dn, targetArchiveDN).chainError(
-                          "Error when copying back system entries in the imported library"
-                        )
-                      }
+            system <- copyBackSystemEntries(con, rudderDit.GROUP.dn, targetArchiveDN).chainError(
+                        "Error when copying back system entries in the imported library"
+                      )
           } yield {
             system
           }).catchAll { e =>
@@ -268,20 +271,15 @@ class ImportGroupLibraryImpl(
 
       def sanitizeNodeGroup(nodeGroup: NodeGroup): Option[NodeGroup] = {
 
-        if (nodeGroup.isSystem && includeSystem == false) None
+        if (nodeGroup.isSystem) None
         else if (nodeGroupIds.contains(nodeGroup.id)) {
-          logEffect.error("Ignoring Active Technique because is ID was already processed: " + nodeGroup)
+          logEffect.error(s"Ignoring group '${nodeGroup.id.serialize}' because it was already processed")
           None
         } else {
           nodeGroupNames.get(nodeGroup.name) match {
             case Some(id) =>
               logEffect.error(
-                "Ignoring Active Technique with ID '%s' because it references technique with name '%s' already referenced by active technique with ID '%s'"
-                  .format(
-                    nodeGroup.id.serialize,
-                    nodeGroup.name,
-                    id.serialize
-                  )
+                s"Ignoring node group ID '${nodeGroup.id.serialize}' because it references technique with name '${nodeGroup.name}' already referenced with ID '${id.serialize}'"
               )
               None
             case None     =>
@@ -296,27 +294,21 @@ class ImportGroupLibraryImpl(
           isRoot:  Boolean
       ): Option[NodeGroupCategoryContent] = {
         val cat = content.category
-        if (!isRoot && content.category.isSystem && includeSystem == false) None
+        if (!isRoot && content.category.isSystem) None
         else if (categoryIds.contains(cat.id)) {
-          logEffect.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
+          logEffect.error("Ignoring group category because its ID was already processed: " + cat)
           None
         } else if (cat.name == null || cat.name.size < 1) {
-          logEffect.error("Ignoring Active Technique Category because its name is empty: " + cat)
+          logEffect.error("Ignoring group category because its name is empty: " + cat)
           None
         } else {
           categoryNamesByParent.get(cat.name) match { // name is mandatory
             case Some(list) if list.contains(parent.id) =>
               logEffect.error(
-                "Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category '%s' with ID '%s'"
-                  .format(
-                    cat.id.value,
-                    cat.name,
-                    parent.name,
-                    parent.id.value
-                  )
+                s"Ignoring group category with ID '${cat.id.value}' because its name is '${cat.name}' already referenced by category '${parent.name}' with ID '${parent.id.value}'"
               )
               None
-            case _                                      => // OK, process PT and sub categories !
+            case _                                      => // OK, process groups and sub categories !
               categoryIds += cat.id
               categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 

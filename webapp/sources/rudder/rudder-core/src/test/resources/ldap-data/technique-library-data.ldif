@@ -1,0 +1,197 @@
+# we have a standard technique library
+
+# dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+# The root entry is already defined in data/bootstrap.ldif
+
+# standard rudder technique library, simplified:
+# // system part
+# - Rudder Internal : categories and active tech already defined in data/bootstrap.ldif
+#   - server-common
+#     - directiveId=server-common-root
+# // user part
+# - application
+#   - packageManagement
+#     - two directives
+# - ncf_techniques
+#   - user_technique1
+#     - one directive
+# // benchmark / other feature parts
+# - benchmarks
+#   - rsc_01
+#     - rsc_01_section1
+#       - one directive
+
+##
+## system categories and policies - jsut a directive
+##
+
+dn: directiveId=server-common-root,activeTechniqueId=server-common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: directive
+directiveId: server-common-root
+techniqueVersion: 1.0
+cn: Server Common
+directivePriority: 5
+isEnabled: TRUE
+isSystem: TRUE
+serializedTags: []
+
+##
+##  user policies
+##
+
+dn: techniqueCategoryId=applications,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: techniqueCategory
+cn: Application management
+techniqueCategoryId: applications
+description: This category contains Techniques designed to install, configure and manage applications
+isSystem: FALSE
+
+dn: activeTechniqueId=packageManagement,techniqueCategoryId=applications,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: activeTechnique
+acceptationTimestamp: {"1.3":"20231122131655.330Z"}
+activeTechniqueId: packageManagement
+techniqueId: packageManagement
+isEnabled: TRUE
+isSystem: FALSE
+
+dn: directiveId=8434c259-da5b-4b34-8e7d-1ae281c37acf,activeTechniqueId=packageManagement,techniqueCategoryId=applications,techniqueCategoryId=Active T
+ echniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: 8434c259-da5b-4b34-8e7d-1ae281c37acf
+techniqueVersion: 1.2
+cn: Package management
+description: Some more informations here
+directivePriority: 5
+directiveVariable: PACKAGE_ARCHITECTURE_SPECIFIC[0]:
+directiveVariable: PACKAGE_MANAGER_ALLOW_UNTRUSTED[0]:false
+directiveVariable: PACKAGE_LIST[0]:curl
+directiveVariable: PACKAGE_ARCHITECTURE[0]:default
+directiveVariable: PACKAGE_MANAGER_OPTIONS[0]:
+directiveVariable: PACKAGE_STATE[0]:present
+directiveVariable: PACKAGE_POST_HOOK_COMMAND[0]:
+directiveVariable: PACKAGE_VERSION_SPECIFIC[0]:
+directiveVariable: PACKAGE_MANAGER[0]:default
+directiveVariable: PACKAGE_VERSION[0]:latest
+isEnabled: TRUE
+isSystem: FALSE
+longDescription: management  information information
+serializedTags: []
+
+dn: directiveId=9205b229-2dc6-40d5-b1f6-49a2982adffb,activeTechniqueId=packageManagement,techniqueCategoryId=applications,techniqueCategoryId=Active T
+ echniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: 9205b229-2dc6-40d5-b1f6-49a2982adffb
+techniqueVersion: 1.1
+cn: verionned
+description: 2
+directivePriority: 5
+directiveVariable: PACKAGE_ARCHITECTURE_SPECIFIC[0]:
+directiveVariable: PACKAGE_MANAGER_ALLOW_UNTRUSTED[0]:false
+directiveVariable: PACKAGE_LIST[0]:packageVersion2
+directiveVariable: PACKAGE_ARCHITECTURE[0]:default
+directiveVariable: PACKAGE_MANAGER_OPTIONS[0]:
+directiveVariable: PACKAGE_STATE[0]:present
+directiveVariable: PACKAGE_POST_HOOK_COMMAND[0]:
+directiveVariable: PACKAGE_VERSION_SPECIFIC[0]:
+directiveVariable: PACKAGE_MANAGER[0]:default
+directiveVariable: PACKAGE_VERSION[0]:any
+isEnabled: TRUE
+isSystem: FALSE
+serializedTags: [{"key":"TODO-CHANGE-CODE","value":"in TagsEditForm"}]
+
+dn: techniqueCategoryId=ncf_techniques,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: techniqueCategory
+cn: User Techniques
+techniqueCategoryId: ncf_techniques
+description:: CiAgICBUZWNobmlxdWVzIGNyZWF0ZWQgdXNpbmcgdGhlIFRlY2huaXF1ZSBlZGl0b3IuCiAg
+isSystem: FALSE
+
+dn: activeTechniqueId=user_defined_tech1,techniqueCategoryId=ncf_techniques,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+acceptationTimestamp: {"1.0":"20231202174901.013Z"}
+activeTechniqueId: user_defined_tech1
+techniqueId: user_defined_tech1
+isEnabled: FALSE
+isSystem: FALSE
+
+dn: directiveId=ce8aec6f-d371-4047-96d1-6b69ccdef9ae,activeTechniqueId=user_defined_tech1,techniqueCategoryId=ncf_techniques,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: ce8aec6f-d371-4047-96d1-6b69ccdef9ae
+techniqueVersion: 1.0
+cn: user_defined_tech1
+directivePriority: 5
+directiveVariable: BD16C074-DEBC-433A-ADFC-3CB74FFFAD3F[0]:
+isEnabled: TRUE
+isSystem: FALSE
+serializedTags: []
+
+##
+## benchmarks policies
+##
+
+#
+# This part is special: we have benchmarks, that are :
+# - in a category marked as system
+# - but not themselves marked as system. They have a special attribute "policyTypes"
+#   with a value different from `rudder.base`
+#
+dn: techniqueCategoryId=benchmarks,techniqueCategoryId=Active Techniques,ou= Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: techniqueCategory
+cn: Security Benchmarks
+techniqueCategoryId: benchmarks
+description: This category contains techniques used by security benchmarks
+isSystem: TRUE
+
+dn: techniqueCategoryId=rsc_01,techniqueCategoryId=benchmarks,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: techniqueCategory
+cn: Rudder Security Checks - 01
+techniqueCategoryId: rsc_01
+description: Technique for Rudder Security Checks 01
+isSystem: TRUE
+
+dn: activeTechniqueId=rsc_01_section1,techniqueCategoryId=rsc_01,techniqueCategoryId=benchmarks,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: activeTechnique
+acceptationTimestamp: {"1.0":"20250331193137.677Z"}
+activeTechniqueId: rsc_01_section1
+techniqueId: rsc_01_section1
+isEnabled: TRUE
+policyTypes: ["security-benchmarks"]
+
+dn: directiveId=144b4459-5a1f-475e-aa8a-aee2575b569b-rsc_01_section1,activeTechniqueId=rsc_01_section1,techniqueCategoryId=rsc_01,techniqueCategoryId=benchmarks,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: directive
+directiveId: 144b4459-5a1f-475e-aa8a-aee2575b569b-rsc_01_section1
+techniqueVersion: 1.0
+cn: base security - rsc_01_section1
+directivePriority: 5
+directiveVariable: 6DB4869C-425B-11EE-845D-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][c291c0a0-b24c-4367-8c07-2eb2b7536559][6db4869c-425b-11ee-845d-84a938c470d4]}
+directiveVariable: 0CA1B52D-C9C9-449C-975D-987A5E07DFA7[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][ed8e435f-e42b-4265-803f-dd6293962b13][ec274bb3-e9f9-4ea3-ac87-2b3ff8fc051f][837906fc-9e55-49fe-a027-498c02a15048][0ca1b52d-c9c9-449c-975d-987a5e07dfa7]}
+directiveVariable: CD288EC4-CDD8-4BBB-A51E-5CB358A1128E[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][e788f971-94d3-4659-aa99-44ca5b7bbbb0][c6208255-a5f9-4a7f-bee7-19c28fec4819][ab962216-6705-46ba-9aed-095f2bc9c3c8][cd288ec4-cdd8-4bbb-a51e-5cb358a1128e]}
+directiveVariable: 3690FC90-425B-11EE-8B3A-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][f810b3a8-f662-4b21-a0ac-9678ffe9899e][3690fc90-425b-11ee-8b3a-84a938c470d4]}
+directiveVariable: 09B8B3BC-41C4-11EE-AF83-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][e61b624f-6ad0-4976-9d9d-0e5f72a6cc79][09b8b3bc-41c4-11ee-af83-84a938c470d4]}
+directiveVariable: F77E5CAD-89C0-484B-80B2-89D579B4E851[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][ec1cc8f4-e297-498d-b042-a44b390b9c5b][e088cfff-fd21-4e52-8e34-a6b779fda2b5][f77e5cad-89c0-484b-80b2-89d579b4e851]}
+directiveVariable: 2ED14C26-425B-11EE-BDD9-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][e82d987b-3126-4534-a30b-8475d66adc35][2ed14c26-425b-11ee-bdd9-84a938c470d4]}
+directiveVariable: 62C0CECC-B981-49BE-97D6-841CABF41D1F[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][ec1cc8f4-e297-498d-b042-a44b390b9c5b][45cfd2ac-cef5-4189-9abf-e74a26d26f8c][62c0cecc-b981-49be-97d6-841cabf41d1f]}
+directiveVariable: 51B6F04C-425B-11EE-AAF2-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][8b4f6cd7-5ec3-445a-9e03-686a52901437][51b6f04c-425b-11ee-aaf2-84a938c470d4]}
+directiveVariable: 307BD0B4-77BF-4D11-ACE3-FC57F7ABD3D9[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][ec1cc8f4-e297-498d-b042-a44b390b9c5b][fd81e770-8666-42b1-8745-845740b0529a][307bd0b4-77bf-4d11-ace3-fc57f7abd3d9]}
+directiveVariable: 2C0DB7F0-CFAA-486E-9EA6-497A9E0A6C58[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][7a536941-da14-4399-9ead-c75cc9dbfe2e][2c0db7f0-cfaa-486e-9ea6-497a9e0a6c58]}
+directiveVariable: 7F9B89E6-425B-11EE-A4FF-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][04910936-b346-41af-8477-4c051031d16c][7f9b89e6-425b-11ee-a4ff-84a938c470d4]}
+directiveVariable: 760B76F2-425B-11EE-A4C7-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][b9da630a-3604-44a5-9ee6-4b401e064700][760b76f2-425b-11ee-a4c7-84a938c470d4]}
+directiveVariable: 72F53B8A-2208-4061-A268-611560610D41[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][ec1cc8f4-e297-498d-b042-a44b390b9c5b][ea93d9bf-6ebf-4325-a7b3-1b7705ec96a2][72f53b8a-2208-4061-a268-611560610d41]}
+directiveVariable: 4673960E-425B-11EE-81A5-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][820c3a40-b9f2-4ab6-bb2c-5a923fb69fb3][4673960e-425b-11ee-81a5-84a938c470d4]}
+directiveVariable: 8BB7FAD4-425B-11EE-8753-84A938C470D4[0]:${node.properties[144b4459-5a1f-475e-aa8a-aee2575b569b][bfd46700-9216-494f-b42e-35dc056fa365][04910936-b346-41af-8477-4c051031d16c][8bb7fad4-425b-11ee-8753-84a938c470d4]}
+isEnabled: TRUE
+isSystem: TRUE
+policyMode: enforce
+serializedTags: []
