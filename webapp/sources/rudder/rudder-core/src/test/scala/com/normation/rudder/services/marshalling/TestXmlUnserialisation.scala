@@ -15,6 +15,8 @@ import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.Directive
@@ -316,6 +318,23 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     val group2 = nodeGroupUnserialisation.unserialise(xml)
 
     group2 must beRight(group)
+  }
+
+  "We should be able to unserialize a NodeGroupCategory" >> {
+    val id = "GroupRoot"
+    val dn = "Root of the group and group categories"
+    val d  = "This is the root category for the groups (both dynamic and static) and group categories"
+
+    val res = nodeGroupCategoryUnserialisation.unserialise(
+      <nodeGroupCategory fileFormat="6">
+        <id>{id}</id>
+        <displayName>{dn}</displayName>
+        <description>{d}</description>
+        <isSystem>true</isSystem>
+      </nodeGroupCategory>
+    )
+
+    res must beRight(NodeGroupCategory(NodeGroupCategoryId(id), dn, d, Nil, Nil, true))
   }
 
 }

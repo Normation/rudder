@@ -187,7 +187,7 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
       category    <- checkEntry(entry)
       _           <- TestFileFormat.check(category)
       id          <- getAndTransformChild(category, "id", _.text)
-      name        <- getAndTransformChild(category, "dispayName", _.text.trim)
+      name        <- getAndTransformChild(category, "displayName", _.text.trim)
       description <- getAndTransformChild(category, "description", _.text)
       isSystem    <- getAndParseChild(category, "isSystem", _.text.toBooleanOption)
     } yield {
