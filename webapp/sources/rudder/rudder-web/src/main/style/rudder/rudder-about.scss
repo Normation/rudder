@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,6 +35,8 @@
 *************************************************************************************
 */
 
+@use 'rudder-variables' as *;
+
 $col-label-width: 200px;
 $margin-label : 10px;
 
@@ -47,7 +49,7 @@ $margin-label : 10px;
       text-align: right;
   }
   label {
-    color: #738195;
+    color: $rudder-txt-secondary;
     margin-right: $margin-label;
 
     &:after{

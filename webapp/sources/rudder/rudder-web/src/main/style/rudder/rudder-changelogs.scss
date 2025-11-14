@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,9 +35,7 @@
 *************************************************************************************
 */
 
-// Modules
 @use 'rudder-variables' as *;
-
 
 .rudder-template > .one-col{
   flex: 1;
@@ -48,14 +46,14 @@
 }
 pre.technical-details{
   white-space: pre-wrap;
-  border: 1px solid #D6DEEF;
+  border: 1px solid $rudder-border-color-default;
   border-radius: 4px;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   padding: 4px;
 }
 #filterLogs {
   margin-top: 10px;
-  color: #738195;
+  color: $rudder-txt-secondary;
 }
 .btn.showParameters{
   margin-bottom: 10px;

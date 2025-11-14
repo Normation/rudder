@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2023 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,10 +35,12 @@
 *************************************************************************************
 */
 
+@use 'rudder-variables' as *;
+
 // -- Quicksearch background
 #background-fade-quicksearch {
   display:none;
-  background-color: #041922;
+  background-color: $rudder-bg-overlay;
   position:fixed;
   width:100%;
   height:calc(100vh - 50px);
@@ -70,10 +72,10 @@
 
   .input-group-text{
     cursor:pointer;
-    color: #041922AA;
+    color: $rudder-txt-secondary;
 
     &:hover{
-      color: #041922;
+      color: $rudder-txt-primary;
     }
   }
 
@@ -87,7 +89,7 @@
   .input-group-text,
   #searchInput,
   #clear-search{
-    background-color: #eef1f9;
+    background-color: $rudder-bg-gray;
     border: none !important;
   }
 }
@@ -95,7 +97,7 @@
 #clear-search {
   cursor:text;
   transition: all .3s ease-in-out;
-  color:#738195;
+  color:$rudder-txt-secondary;
 
   .fa {
     transition-duration: .2s;
@@ -110,12 +112,12 @@
   color:#BBB;
 
   .fa:hover {
-    color:#738195;
+    color:$rudder-txt-secondary;
   }
 }
 
 #help-search{
-  border-left: 1px solid #D6DEEF !important;
+  border-left: 1px solid $rudder-border-color-default !important;
 }
 
 
@@ -126,7 +128,7 @@
 
   &:focus,
   &:focus + #clear-search{
-    background-color: #F8F9FC;
+    background-color: $rudder-bg-light-gray;
     border-color: transparent;
   }
 
@@ -169,7 +171,7 @@
   border-bottom: none;
 }
 .dropdown-search .angucomplete-searching {
-  color: #738195;
+  color: $rudder-txt-secondary;
   font-size: 14px;
 }
 .dropdown-search .angucomplete-searching > .fa{
@@ -179,12 +181,12 @@
 .dropdown-search .dropdown-header h4 .fa{
   font-size: 15px;
   margin-right: 10px;
-  color: #13beb7;
+  color: $rudder-success;
   font-weight: 400;
 }
 .dropdown-search .dropdown-header h4{
   padding-bottom: 8px;
-  color: #36474e;
+  color: $rudder-txt-light;
 }
 .dropdown-search .dropdown-header h4.panel-title{
   padding-bottom: 0;
@@ -217,7 +219,7 @@
 }
 .dropdown-search .dropdown-header h4.filter-title{
   padding-top: 8px;
-  color: #36474e;
+  color: $rudder-txt-light;
   padding-bottom:0px;
   border-bottom:none;
 }
@@ -264,7 +266,7 @@
 }
 .dropdown-search .main-panel .heading-search{
   background-color: #fff;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   border-radius: 4px 4px 0 0;
   padding: 6px 0;
   margin:0;
@@ -279,7 +281,7 @@
 }
 .dropdown-search #toggleDoc:hover,.dropdown-search #toggleResult:hover{
   background-color: #ffffff;
-  color: #36474e;
+  color: $rudder-txt-light;
 }
 .dropdown-search #toggleDoc .fa,.dropdown-search #toggleResult .fa{
   top: 4px;
@@ -323,21 +325,21 @@
   line-height: 23px;
   font-size: 14px;
   text-transform: capitalize;
-  color: #36474E;
-  border: 1px solid #d6deef;
+  color: $rudder-txt-light;
+  border: 1px solid $rudder-border-color-default;
   margin-right: 4px;
   border-radius: 4px !important;
   background-color: #fff;
   outline:none !important;
 
   &.active{
-    background-color: #eef1f9;
-    border-color: #D6DEEF;
+    background-color: $rudder-bg-gray;
+    border-color: $rudder-border-color-default;
     box-shadow: none;
-    color: #041922;
+    color: $rudder-txt-primary;
   }
   &:hover{
-    background-color: #f8f9fC;
+    background-color: $rudder-bg-light-gray;
   }
 
   input[type="checkbox"]{
@@ -346,8 +348,8 @@
 }
 
 .main-panel > .heading-search .badge {
-  color: #041922;
-  background-color: #D6DEEF;
+  color: $rudder-txt-primary;
+  background-color: $rudder-border-color-default;
   border-radius:0;
   height: 28px;
   position: absolute;
@@ -366,10 +368,10 @@
 }
 .main-panel > .heading-search .active .badge {
   color: #fff;
-  background-color: #738195;
+  background-color: $rudder-gray-500;
 }
 .main-panel > .heading-search .active .badge:before{
-  border-right: 8px solid #738195;
+  border-right: 8px solid $rudder-gray-500;
 }
 .main-panel > .heading-search .badge:before {
   position: absolute;
@@ -382,7 +384,7 @@
   color: #fff;
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-right: 8px solid #D6DEEF;
+  border-right: 8px solid $rudder-border-color-default;
 }
 .angucomplete-searching{
   padding: 0px 5px 15px 5px;
@@ -391,7 +393,7 @@
   max-height: calc(80vh - 50px);
   overflow-y: auto;
   position: relative;
-  background-color: #eef1f9;
+  background-color: $rudder-bg-gray;
   border-radius: 0 0 4px 4px;
 }
 @media (max-width: 767px){
@@ -408,8 +410,8 @@
 .dropdown-search .list-group-item{
   border:none;
   margin-bottom:0px;
-  border-bottom:1px solid #d6deef;
-  color:#36474e;
+  border-bottom:1px solid $rudder-border-color-default;
+  color:$rudder-txt-light;
   font-size:13px;
   padding: 0;
 }
@@ -435,7 +437,7 @@
   border-top-right-radius: 0;
 }
 .dropdown-search .list-group-item:hover,.dropdown-search .list-group-item:nth-child(odd){
-  background-color:#f8f9fC;
+  background-color:$rudder-bg-light-gray;
 }
 .dropdown-search .list-group-item.title:hover{
   background-color:transparent;
@@ -477,17 +479,17 @@
   position:relative;
   transition-duration:.2s;
   text-decoration:none !important;
-  border-bottom: 2px solid #13beb7;
+  border-bottom: 2px solid $rudder-success;
   font-size: 1rem;
-  color: #041922;
+  color: $rudder-txt-primary;
   background-color: #fff;
 }
 .panel-default > .panel-heading .badge.label-danger{
-  background-color:#DA291C;
+  background-color:$rudder-danger;
 }
 .dropdown-search .panel-heading a.collapsed{
-  border-color: #D6DEEF;
-  border-bottom: 2px solid #D6DEEF;
+  border-color: $rudder-border-color-default;
+  border-bottom: 2px solid $rudder-border-color-default;
 }
 .dropdown-search .panel-heading a div{
   text-transform:initial;
@@ -496,7 +498,7 @@
   transform: rotate(90deg);
   margin-right: 10px;
   font-size: 12px;
-  color: #738195;
+  color: $rudder-txt-secondary;
   transition-duration:.3s;
 }
 .dropdown-search .dropdown-container{
@@ -521,7 +523,7 @@
   transform: rotate(0deg);
 }
 .navbar-form button.btn.btn-default.dropdown-toggle .fa {
-  color:#D6DEEF;
+  color:$rudder-border-color-default;
   transition-duration:.2s;
 }
 .quicksearch-form input.form-control{
@@ -537,5 +539,5 @@
 
 @keyframes bg-fade-in {
   0%   { opacity: 0;   }
-  100% { opacity: .75; }
+  100% { opacity: 1; }
 }

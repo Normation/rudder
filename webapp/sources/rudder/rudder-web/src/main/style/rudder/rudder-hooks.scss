@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,7 +34,6 @@
 *************************************************************************************
 */
 
-// MODULES
 @use 'rudder-variables' as *;
 
 .rudder-template > .one-col{
@@ -67,7 +66,7 @@
     color: $rudder-txt-light;
 
     small{
-      color: #738195;
+      color: $rudder-txt-secondary;
       margin-left: 8px;
       opacity: .8;
     }

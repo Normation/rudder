@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2023 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,7 +35,6 @@
 *************************************************************************************
 */
 
-// Modules
 @use 'rudder-variables' as *;
 
 // Override Rudder template
@@ -166,7 +165,7 @@ form select.selectField {
     }
   }
   &.preparing-eol{
-    background-color: #EF9600;
+    background-color: $rudder-warning;
     &:after{
       content : "Preparing EOL";
     }
@@ -365,7 +364,7 @@ pre.display-keys > label{
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid #e1e3e6;
-  border-left: 4px solid #337ab7;
+  border-left: 4px solid $rudder-info;
   max-width: 780px;
   padding: 10px;
   margin-bottom: 20px;
@@ -384,11 +383,11 @@ pre.display-keys > label{
   left: 0;
 }
 .info-card.critical{
-  border-left-color: #C80004;
+  border-left-color: $rudder-danger;
   background-color: #ff040908;
 }
 .info-card.critical .card-info h4{
-  color: #C80004;
+  color: $rudder-danger;
 }
 
 /* PROPERIES TAB */
@@ -504,7 +503,7 @@ div.serverDetail {
 .border-success {
   border-left-width: 5px;
   border-left-style: solid;
-  border-left-color: #13BEB7;
+  border-left-color: $rudder-success;
   border-radius: 5px;
 }
 
@@ -520,7 +519,7 @@ div.serverDetail {
   color: #c9302c;
 }
 .fa-check-custom {
-  color: #13BEB7;
+  color: $rudder-success;
 }
 
 /* TECHNICAL LOGS TAB */
