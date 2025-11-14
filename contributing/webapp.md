@@ -93,7 +93,7 @@ Install a recent jre, the latest LTS version should be fine.
 
 > Note: avoid using `apt` to install an open jdk, the jdk packaged by ubuntu do not work (strange behaviors compiling rudder webapp). 
 
-> Suggestion: see `jdkman` for a handy open source java installer.
+> Suggestion: see `sdkman` for a handy open source java installer.
 
 Run `java -version` to validate
 
@@ -207,10 +207,8 @@ Depending on your needs, a relay and some agents can be added:
   "agent2": { "rudder-setup": "agent", "system" : "debian7" },
 ...
 ```
-> Note: for testing purpose a local development environment is needed: this implies that the `server` field must at least contain `"rudder-setup": "dev-server"`.\
-But if you only want to test Rudder without making any changes to the source code, replace `"rudder-setup": "dev-server"` by `"rudder-setup": "server"`
 
-> Note: you will not be able to access Rudder at this stage, you will need to setup and run Rudder through IntelliJ to be able to access it locally.
+> Note: you will not be able to access Rudder at this stage, you will need to set up and run Rudder through IntelliJ to be able to access it locally.
 
 When your file is ready, you will have to create and prepare the box by running :
 ```
@@ -233,7 +231,7 @@ You can find the port number back in the Vagrantfile.
 
 > For an eventual later use: this will not be necessary in this guide, but if you want to connect to the box, use (in `rudder-test` directory) :
 ```
-vagrant ssh <env's name>_server
+vagrant ssh <env-name>_server
 ```
 <div class="success">
 <span style="font-weight: bold;">Congrats!</span> You succeed to start your own test environment.
@@ -245,7 +243,7 @@ vagrant ssh <env's name>_server
 
 1. Connect to your vagrant box env, in `rudder-tests` directory :
 ```
-vagrant ssh <env's name>_server
+vagrant ssh <env-name>_server
 ```
 
 2. In vagrant box, find in `/opt/rudder/etc/openldap/slapd.conf` the two lines starting with `rootdn` and `rootpw` and keep them for the next section, those value are gonna be useful to configure the ldap connection.
@@ -301,6 +299,7 @@ mkdir -p /var/rudder/inventories/incoming \
     /var/rudder/inventories/accepted-nodes-updates \
     /var/rudder/inventories/received \
     /var/rudder/inventories/failed \
+    /var/rudder/configuration-repository/campaigns/ \
     /var/log/rudder/core \
     /var/log/rudder/compliance/ \
     /var/rudder/run/ 
@@ -331,7 +330,6 @@ git clone https://github.com/Normation/rudder-techniques.git
 ```
 2. Move technique's directory to `/var/rudder/configuration-repository/`
 ```
-sudo mkdir -p /var/rudder/configuration-repository/
 sudo cp -r rudder-techniques/techniques /var/rudder/configuration-repository/
 git init /var/rudder/configuration-repository/
 ```
@@ -373,25 +371,40 @@ and choose `/rudder/webapp/sources/rudder` or you can choose only the modules th
 Then select "Import Module from external model" and go for Maven
 ![Import all the Rudder's modules](select_modules.png)
 
+### Local configuration for rudder in dev mode
+
+In order to run rudder locally with jetty, you will need to create a `users.xml` file. This file contains the user credentials that can be used to be log into the webapp, as well as the user permissions of each user.
+You may put this file wherever you choose ; for instance, you can put it in `rudder-tests/dev/users.xml`.
+The configuration below will create an administrator user with username `admin` and password `admin`. Copy and paste this configuration into your `users.xml` file.
+
+```
+<authentication hash="argon2id" case-sensitivity="true">
+    <!-- this is a bcrypt password but you can use an argon2id password starting from 9.0 -->
+    <!-- user-name=admin, password=admin -->
+    <user name="admin" password="$2a$12$bW.RsmvUn8nCUsh2bfwAe.ZntUVVNBv0siVDoG94Q7rpQlO46wjiS" permissions="administrator" />
+</authentication>
+```
+
 ### Setup Run configuration
 
-In _Run -> Edit Configuration_ add a new configuration and choose Jetty Runner
-- Jetty Runner Folder : _downloaded jar of jetty-runner with version BELOW 11 from https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-runner/
-(jetty 11 is not supported yet because of the lack of support for the servlet version used by rudder)_
+You will need version **11 or higher** of jetty-runner. Download the .jar here : https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-runner/
+
+In IntelliJ, select _Run -> Edit Configuration -> add a new configuration_ and choose Jetty Runner
+- Jetty Runner Folder : path of the jetty-runner .jar
 - Module : <all modules>
 - Path : `/rudder`
 - WebApp Folder :
 ```
-<rudder's path directory>/webapp/sources/rudder/rudder-web/src/main/webapp
+<workspace>/rudder/webapp/sources/rudder/rudder-web/src/main/webapp
 ```
 - Classes Folder :
 ```
-<rudder's path directory>/webapp/sources/rudder/rudder-web/target/classes
+<workspace>/rudder/webapp/sources/rudder/rudder-web/target/classes
 ```
 - Runs on Port : 8080
 - VM Args :
 ```
--DrjrDisableannotation=true -Drun.mode=production -XX:MaxMetaspaceSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=/home/<user>/rudder-tests/dev/configuration.properties
+-DrjrDisableannotation=true -Drun.mode=production -XX:MaxMetaspaceSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=<workspace>/rudder-tests/dev/configuration.properties -Drudder.authFile=<workspace>/rudder-tests/dev/users.xml
 ```
 > Note: `-Drun.mode` values : `production`, `development`
 
@@ -416,8 +429,8 @@ In IntelliJ : _File -> Project Structure -> Project settings_
 
 - Make sure that the Project java SDK is at least at version 8, same for Project language level
 ![SDK Setting](SDK_setup.png)
-- In `Modules` make sure that every your modules have a Language level at 8 at least
-- For every modules mark src/main/Scala as Sources
+- In `Modules`, make sure that the language level of each module is set to 8 or above
+- For every module, mark src/main/Scala as `Source Folder`
 ![Example of project's structure sources setup](project_structure.png)
 - Setup display format file manager
 ![Recommended options to display files in project tree](settings_filer.png)
@@ -444,26 +457,31 @@ Inside `rudder/webapp/sources/`.
 
 > Note: It can take several minutes to download all necessary dependencies.
 
+### Set up the build script
+The webapp module contains a script to build the project, located at `src/main/build.sh`.
+Running this script requires npm, as well as some node dependencies.
+
+Follow the official instructions to [install nodejs](https://nodejs.org/en/download) on your system.
+
+Then, install the required node dependencies; inside of `rudder/webapp/sources/rudder/rudder-web/src/main/`, run :
+
+```bash
+npm install
+```
+
 ### Setup File Watchers (Highly recommended)
 The purpose of the File Watcher is to automatically apply actions on defined file types
 when they are modified. In Rudder we use it to move generate frontend file (css, html, elm)
 to the right directory when they are modify.
 In Files -> Settings -> tools -> File Watchers
-Add 3 new Watcher : for CSS, HTML and Elm file with these configurations (change `file type` according to the watcher) :
+Add 3 new Watchers : for CSS, HTML and Elm file with these configurations (change `file type` according to the watcher) :
 
 The `Program` field value is the same for these 3 watchers
 
 ![File watcher setting](file_watcher2.png)
 
-Otherwise at every modification you will need to run the `src/main/build.sh` script in the module.
+Otherwise, you will need to run the `src/main/build.sh` script manually after each modification.
 
-Also, the requirement of the `src/main/build.sh` is to have installed node dependencies.
-
-So, inside `rudder/webapp/sources/rudder/rudder-web/src/main/`, run :
-
-```bash
-npm install
-```
 
 ## Setup technique editor
 
@@ -477,14 +495,22 @@ mkdir -p /var/rudder/configuration-repository/ncf
 
 Setup apache configuration:
 
-* Install apache (httpd or apache2)
+* Install apache (httpd or apache2 depending on your system)
 
-* Run the following commands (done on Fedora with httpd, path/service are different on deb systems) 
+* Run the following commands
 
+Commands for fedora (with httpd) :
 ```
 cp <path/to/rudder/repo>/contributing/rudder.conf /etc/httpd/conf.d/
 sed -i "s#<pathToncfRepo>#<path/to/ncf/repo>#" /etc/httpd/conf.d/rudder.conf
 service httpd restart
+```
+
+Commands for deb systems (with apache2) :
+```
+cp <path/to/rudder/repo>/contributing/rudder.conf /etc/apache2/conf-available/
+sed -i "s#<pathToncfRepo>#<path/to/ncf/repo>#" /etc/apache2/conf-available/rudder.conf
+service apache2 restart
 ```
 
 ## Running Rudder
@@ -494,25 +520,6 @@ You can now compile and run Rudder in IntelliJ !
 You can access the application by running it from IntelliJ. The url is:
 ##### http://localhost/rudder
 > Warning : make sure your development's environment is running before running Rudder. `./rtf platform setup <env's name>` in rudder-test directory. Otherwise you will get errors in IntelliJ's console.
-
-#### Local configuration for rudder in dev mode
-
-> Note: Some features will not work in this development environment 
-> - plugins
-> - agents (compliance and policy generation)
-
-user configuration > 
-
-> Note: the first time you run rudder locally with jetty, you will need to setup a user in the local user configuration.
-
-```
-<authentication hash="argon2id" case-sensitivity="true">
-    <!-- this is a bcrypt password but you can use an argon2id password starting from 9.0 -->
-    <!-- user-name=admin, password=admin -->
-    <user name="admin" password="$2a$12$bW.RsmvUn8nCUsh2bfwAe.ZntUVVNBv0siVDoG94Q7rpQlO46wjiS" permissions="administrator" />
-</authentication>
-
-```
 
 
 Let's code ! :rocket:
@@ -541,14 +548,15 @@ The war generated is named `rudder-web-8.3.5-SNAPSHOT.war` in this example.
 Copy the war in the vbox server
 ```
 cd <workspace>/rudder-tests
-vagrant upload <workspace>/rudder/webapp/sources/rudder/rudder-web/target/rudder-web-8.3.5-SNAPSHOT.war
+vagrant upload <workspace>/rudder/webapp/sources/rudder/rudder-web/target/rudder-web-8.3.5-SNAPSHOT.war <env-name>_server
 ```
 
 Connect to the vbox and put the war in the share directory and restart the service `rudder-jetty`
 ```
-vagrant ssh myvmtest_server
+vagrant ssh <env-name>_server
 sudo su
 mv rudder-web-8.3.5-SNAPSHOT.war /opt/rudder/share/webapps/
+cd /opt/rudder/share/webapps/
 mv rudder.war rudder.war.save
 mv rudder-web-8.3.5-SNAPSHOT.war rudder.war
 systemctl restart rudder-jetty
@@ -592,14 +600,111 @@ curl -k https://localhost:<port>/rudder/api/latest/systemUpdate/targets \
         -d '[]'
 ```
 
-#### Documentations
+#### Documentation
 If you want to learn how to use Rudder and its web interface, consult the documentation here : https://docs.rudder.io/reference/5.0/usage/web_interface.html :shipit:
 
-#### Contribution
+#### Contributions
 If you want to submit your code, please feel to contribute by following the [code submit process](https://github.com/Normation/rudder/blob/master/CONTRIBUTING.adoc), we would be happy to review your code and see new contributors join the boat! :heart:
 
 #### Bug reports
 If you detect any bugs in the application please feel free to report it by signing up here if you don't have already an account: https://issues.rudder.io/ :bug:
 
 #### Community
-If you want to discuss about Rudder and get some helps, you can join our Gitter : https://gitter.im/normation/rudder :speech_balloon:
+If you want to discuss Rudder or ask for help, you can join our Gitter : https://gitter.im/normation/rudder :speech_balloon:
+
+
+## Hotswap agent setup (Recommended)
+
+Setting up Hotswap agent allows code changes to be instantly reloaded in the webapp, without stopping and re-running it. The setup process is described below.
+
+* Download a _JBR with JCEF_  version of [JetBrainsRuntime](https://github.com/JetBrains/JetBrainsRuntime). Choose a Java version that is supported by Rudder (e.g. 17 or 21).
+* Untar the archive : `tar -xzvf jbr_jcef-x.y.z.os.version.tar.gz`
+* In IntelliJ, select _File -> Project Structure -> SDKs_. Click on the `+` button to add a new SDK, and choose the root `jbr_jcef` directory.
+* In _Project Structure_, go to the _Project_ tab. In the SDK field, choose the `jbr_jcef` sdk.
+* In _Run -> Edit Configurations_ , select your existing jetty configuration. Add the following VM arguments : 
+
+```
+-XX:+AllowEnhancedClassRedefinition 
+-XX:HotswapAgent=fatjar
+```
+
+* Download the [hotswap-agent .jar](https://github.com/HotswapProjects/HotswapAgent/releases/download/1.4.2-SNAPSHOT/hotswap-agent-1.4.2-SNAPSHOT.jar) 
+* Run the following commands to link it to the sdk :
+```
+cd jbr_jcef-21.0.3-linux-x64-b458.1/lib
+mkdir hotswap
+cd hotswap
+ln -s ../../hotswap-agent-1.4.2-SNAPSHOT.jar ./hotswap-agent.jar
+```
+* Download the [hotswap-agent.properties file](https://github.com/HotswapProjects/HotswapAgent/raw/master/hotswap-agent-core/src/main/resources/hotswap-agent.properties) in your `rudder/webapp/sources/rudder/rudder-web/src/main/resources` directory.
+* Edit the parameters in the `hotswap-agent.properties` file :
+```
+autoHotswap=true
+disabledPlugins=Spring,AnonymousClassPatch,Hibernate,HibernateJakarta,Hibernate3,Hibernate3JPA,SpringBoot,Jersey1,Jersey2,Tomcat,ZK,Logback,MyFaces,Mojarra,Omnifaces,ELResolver,WildFlyELResolver,OsgiEquinox,Owb,OwbJakarta,WebObjects,Weld,WeldJakarta,JBossModules,ResteasyRegistry,Deltaspike,GlassFish,Weblogic,Vaadin,Wicket,CxfJAXRS,FreeMarker,Undertow,MyBatis,IBatis,Thymeleaf,Velocity
+
+LOGGER=info
+LOGGER.org.hotswap.agent.plugin.spring=warning
+```
+
+* Re-run jetty.
+
+You're all set ! From now on, you only need to click _Build -> Rebuild project_ (or only a specific module) in order to reload your changes while the webapp is running.
+
+## Plugin installation (Optional)
+
+You may wish to test a plugin in the Rudder webapp in development mode. The plugin installation process is described below.
+
+### Download and build
+
+Clone the `rudder-plugins` repo into your workspace.
+Make sure your local clones of `rudder` and `rudder-plugins` are on the same branch, e.g. `branches/rudder/9.0`.
+
+Build the `plugins-common` module :
+```
+<workspace>/rudder-plugins$ make generate-all-pom
+<workspace>/rudder-plugins$ cd plugins-common
+<workspace>/rudder-plugins/plugins-common$ make
+```
+
+Each plugin has a dedicated directory. Build the plugin(s) you want to import :
+```
+<workspace>/rudder-plugins/$ cd <plugin-name>
+<workspace>/rudder-plugins/<plugin-name>$ make
+```
+
+> _NOTE :_ The plugin must be built prior to importing it in IntelliJ. The `make` step generates the `pom.xml` file of the module.
+
+### Import the plugin module in intelliJ
+
+In IntelliJ, Select _File -> Project structure -> Modules_. Click on the `+` button and select `Import module`.
+In the text field, paste the path of the `pom.xml` file at the root of the plugin's module, i.e. `<workspace>/rudder-plugins/<plugin-name>/pom.xml`, and click _OK_.
+You should now see the module `plugin-name` appear in the _Project_ tab, alongside the `rudder` module.
+
+### Testing
+
+In the Maven tab of IntelliJ, click _Reload all Maven projects_, and restart the webapp.
+You should now be able to use the plugin in your local Rudder instance.
+
+### Notes
+
+This process is mostly identical in case you want to import a private plugin. In that case, you will need to clone the private plugins repo and follow the installation instructions, as well as build the `plugins-common-private` module.
+Some plugins may require additional installation steps in order to work properly (e.g. the `security-benchmarks` plugin), in which case these steps should be documented in the root directory of the plugin's source code.
+
+## rudder and rudderc installation (Optional)
+
+While browsing the webapp, you may notice some error notifications. This is normal, since the Rudder software is supposed to be installed in your server VM, rather than your host machine.
+In order to reduce the amount of redundant error notifications and error logs in IntelliJ, you may want to copy some files from your server VM.
+Most error notifications are due to the absence of the `/opt/rudder/bin/rudder` and `/opt/rudder/bin/rudderc` binaries.
+
+Get the private SSH key path and hostname of your `<env-name>_server` VM with :
+```
+<workspace>/rudder-tests$ vagrant ssh-config
+```
+
+Copy the `rudder` and `rudderc` binaries (replace `<private/key/path>` and `<hostname>` with the values from the previous command) :
+```
+<workspace>/rudder-tests$ scp -i <private/key/path> -P 2222 vagrant@<hostname>:/opt/rudder/bin/rudder /opt/rudder/bin/rudder
+<workspace>/rudder-tests$ scp -i <private/key/path> -P 2222 vagrant@<hostname>:/opt/rudder/bin/rudderc /opt/rudder/bin/rudderc
+```
+
+You can copy other files from your server VM as needed.
