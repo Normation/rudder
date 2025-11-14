@@ -131,8 +131,9 @@ class LDAPDiffMapper(
                            mod.getModificationType match {
                              case ADD | REPLACE | DELETE => // if there is no values, we have to put "none"
                                mod.getValues().toList.traverse(value => RuleTarget.unser(value)) match {
-                                 case None          => diff
-                                 case Some(targets) => diff.map(_.copy(modTarget = Some(SimpleDiff(oldCr.targets, targets.toSet))))
+                                 case Left(_)        => diff
+                                 case Right(targets) =>
+                                   diff.map(_.copy(modTarget = Some(SimpleDiff(oldCr.targets, targets.toSet))))
                                }
                              case x                      =>
                                Left(
