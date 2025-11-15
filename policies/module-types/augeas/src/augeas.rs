@@ -3,19 +3,18 @@
 
 use crate::{
     AugeasParameters, RUDDER_LENS_LIB,
-    dsl::{
-        error::format_report,
-        interpreter::{
-            CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
-        },
+    dsl::interpreter::{
+        CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
     },
     report::diff,
 };
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
+use rudder_module_type::cli::FileRange;
 use rudder_module_type::{
-    CheckApplyResult, Outcome, PolicyMode, backup::Backup, rudder_debug, rudder_error, rudder_info,
+    CheckApplyResult, Outcome, PolicyMode, backup::Backup, cli::format_report, rudder_debug,
+    rudder_error, rudder_info,
 };
 use std::{
     borrow::Cow,
@@ -167,7 +166,7 @@ impl Augeas {
                 let report = format_report(
                     &format!("Load error: {}", e.kind),
                     &e.message,
-                    pos.position..(pos.position + 1),
+                    FileRange::Char(pos.position..(pos.position + 1)),
                     &path_str,
                     content,
                     None,

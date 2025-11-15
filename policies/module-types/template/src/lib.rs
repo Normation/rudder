@@ -6,7 +6,7 @@ pub mod minijinja_filters;
 use crate::cli::Cli;
 use clap::ValueEnum;
 use core::panic;
-use rudder_module_type::ProtocolResult;
+use rudder_module_type::{ProtocolResult, cli::format_report};
 use similar::TextDiff;
 use std::collections::HashMap;
 use std::io::Write;
@@ -19,9 +19,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use minijinja::UndefinedBehavior;
 use rudder_module_type::cfengine::called_from_agent;
+use rudder_module_type::cli::FileRange;
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     backup::Backup, parameters::Parameters, rudder_debug, run_module,
@@ -45,6 +46,25 @@ impl Default for Engine {
 }
 
 impl Engine {
+    fn minijinja_error_formatting(
+        e: minijinja::Error,
+        template: &str,
+        template_name: &str,
+    ) -> anyhow::Error {
+        if let Some(r) = e.range() {
+            anyhow!(format_report(
+                "Could not render template",
+                e.kind().to_string().as_str(),
+                FileRange::Byte(r),
+                template_name,
+                template,
+                e.detail()
+            ))
+        } else {
+            e.into()
+        }
+    }
+
     fn minijinja(
         template_path: Option<&Path>,
         template_src: Option<String>,
@@ -64,6 +84,7 @@ impl Engine {
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
         minijinja_contrib::add_to_environment(&mut env);
+        env.set_debug(true);
         env.add_template(&template_name, &template)?;
         env.add_filter("b64encode", minijinja_filters::b64encode);
         env.add_filter("b64decode", minijinja_filters::b64decode);
@@ -74,8 +95,10 @@ impl Engine {
         env.add_filter("quote", minijinja_filters::quote);
         env.add_filter("regex_escape", minijinja_filters::regex_escape);
         env.add_filter("regex_replace", minijinja_filters::regex_replace);
-        let tmpl = env.get_template(&template_name).unwrap();
-        Ok(tmpl.render(data)?)
+        let tmpl = env.get_template(&template_name)?;
+        tmpl
+            .render(data)
+            .map_err(|e| Self::minijinja_error_formatting(e, &template, &template_name))
     }
 
     fn jinja2(

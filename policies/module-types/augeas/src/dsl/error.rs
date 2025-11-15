@@ -3,7 +3,7 @@
 
 //! Represents a check error, with a message and a span in a file.
 
-use ariadne::{Config, Label, Report, ReportKind, Source};
+use rudder_module_type::cli::{FileRange, format_report};
 use std::ops::Range;
 
 /// Converts a raugeas span to an ariadne span
@@ -22,31 +22,14 @@ pub fn format_report_from_span(
     note: Option<&str>,
 ) -> String {
     let (file_name, range) = convert_span(span);
-    format_report(title, message, range, &file_name, file_content, note)
-}
-
-pub fn format_report(
-    title: &str,
-    message: &str,
-    range: Range<usize>,
-    file_name: &str,
-    file_content: &str,
-    note: Option<&str>,
-) -> String {
-    let miette_span = (file_name, range);
-
-    let mut report = Report::build(ReportKind::Error, miette_span.clone())
-        .with_config(Config::default().with_color(false))
-        .with_message(title)
-        .with_label(Label::new(miette_span).with_message(message));
-    if let Some(n) = note {
-        report = report.with_note(n);
-    }
-    let report = report.finish();
-    let source = Source::from(file_content);
-    let mut out = vec![];
-    report.write((file_name, source), &mut out).unwrap();
-    String::from_utf8_lossy(&out).to_string()
+    format_report(
+        title,
+        message,
+        FileRange::Char(range),
+        &file_name,
+        file_content,
+        note,
+    )
 }
 
 #[cfg(test)]
