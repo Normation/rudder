@@ -96,9 +96,9 @@ impl Engine {
         env.add_filter("regex_escape", minijinja_filters::regex_escape);
         env.add_filter("regex_replace", minijinja_filters::regex_replace);
         let tmpl = env.get_template(&template_name)?;
-        Ok(tmpl
+        tmpl
             .render(data)
-            .map_err(|e| Self::minijinja_error_formatting(e, &template, &template_name))?)
+            .map_err(|e| Self::minijinja_error_formatting(e, &template, &template_name))
     }
 
     fn jinja2(
