@@ -18,6 +18,7 @@
 
 # @name File from remote source
 # @description Ensure that a file or directory is copied from a policy server
+# @deprecated Use technique resources or [file_from_shared_folder](#_file_from_shared_folder) instead.
 # @documentation *Note*: This method uses the agent native file copy protocol, and can only download files from
 # the policy server. To download a file from an external source, you can use
 # HTTP with the [file_download](#_file_download) method.
