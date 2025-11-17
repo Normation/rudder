@@ -5,6 +5,8 @@ function {{ id|technique_name }} {
         [parameter(Mandatory = $true)]
         [string]$reportId,
         [parameter(Mandatory = $true)]
+        [string]$directiveId,
+        [parameter(Mandatory = $true)]
         [string]$techniqueName,
 {% for p in parameters %}
         [parameter(Mandatory = ${{ !p.constraints.allow_empty }})]
@@ -31,6 +33,7 @@ function {{ id|technique_name }} {
 
 {% for m in methods %}
     $reportId=$reportIdBase + "{{ m.id }}"
+    $resultId=$directiveId + '-' + "{{ m.id }}"
     try {
         $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
         $reportParams = @{
@@ -41,7 +44,7 @@ function {{ id|technique_name }} {
             ReportId = $reportId
             DisableReporting = ${{ m.disable_reporting }}
             TechniqueName = $techniqueName
-            MethodId = '{{ m.id }}'
+            ResultId = $resultId
         }
       {%- if m.is_supported %}
         {% match m.condition %}
@@ -78,7 +81,7 @@ function {{ id|technique_name }} {
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodId '{{ m.id }}' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -87,7 +90,7 @@ function {{ id|technique_name }} {
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodId '{{ m.id }}' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall -ResultId $resultId
     }
 {% endfor %}
     EndTechniqueCall -Name $techniqueName

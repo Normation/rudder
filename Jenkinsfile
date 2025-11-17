@@ -50,7 +50,7 @@ pipeline {
                         }
                         sh script: 'cp target/debug/rudder-module-* /opt/rudder/bin/'
                         dir("policies/lib") {
-                            sh script: 'cargo nextest run --retries 2', label: 'methods tests'
+                            sh script: 'cargo nextest run --no-default-features --features test-unix --retries 2 --no-capture', label: 'methods tests'
                         }
                     }
                     post {

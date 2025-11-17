@@ -22,14 +22,17 @@ pub fn get_result_condition_suffixes(status: MethodStatus) -> Vec<String> {
     let v = match status {
         MethodStatus::Success => vec!["ok", "kept", "not_repaired", "reached"],
         MethodStatus::Repaired => vec!["ok", "repaired", "not_kept", "reached"],
+        #[cfg(feature = "test-unix")]
         MethodStatus::Error => vec![
             "not_kept",
             "not_ok",
             "not_repaired",
-            "failed",
+            "failed", //legacy
             "error",
             "reached",
         ],
+        #[cfg(not(feature = "test-unix"))]
+        MethodStatus::Error => vec!["not_kept", "not_ok", "not_repaired", "error", "reached"],
         MethodStatus::NA => vec!["noop"],
     };
     v.iter().map(|s| s.to_string()).collect()
@@ -100,18 +103,10 @@ impl MethodToTest {
         ))
     }
 
-    pub fn log_v4_result_conditions(&self, status: MethodStatus) -> Vec<Regex> {
+    pub fn log_v4_result_conditions(&self, result_id: String, status: MethodStatus) -> Vec<Regex> {
         get_result_condition_suffixes(status)
             .into_iter()
-            .map(|s| {
-                Regex::new(&format!(
-                    "^{}_{}_{}$",
-                    cfengine_canonify(&self.id.to_string()),
-                    r"\d+",
-                    s
-                ))
-                .unwrap()
-            })
+            .map(|s| Regex::new(&format!("^{}_{}$", cfengine_canonify(&result_id), s)).unwrap())
             .collect()
     }
 

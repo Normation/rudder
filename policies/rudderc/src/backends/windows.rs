@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+pub mod directive_template;
 pub mod test;
 
 use std::path::Path;
 
-use anyhow::{Result, bail};
-use askama::Template;
-use rudder_commons::{Escaping, PolicyMode, methods::method::Agent};
-
 use super::Backend;
+use crate::backends::windows::directive_template::DirectiveTemplate;
+use crate::generate_directive::GenerateDirective;
 use crate::ir::{
     Technique,
     condition::Condition,
     technique::{ItemKind, LeafReportingMode, Method, Parameter},
 };
+use anyhow::{Result, bail};
+use askama::Template;
+use indexmap::IndexMap;
+use rudder_commons::{Escaping, PolicyMode, methods::method::Agent};
 
 pub struct Windows;
 
@@ -28,6 +31,32 @@ pub const POWERSHELL_OPTS: &[&str] = &["-NoProfile", "-NonInteractive"];
 impl Default for Windows {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl GenerateDirective for Windows {
+    fn generate_directive(
+        &self,
+        technique: Technique,
+        directive_id: &str,
+        _rule_id: &str,
+        params: IndexMap<String, String>,
+        policy_mode: PolicyMode,
+    ) -> Result<String> {
+        DirectiveTemplate {
+            bundle_name: &Windows::technique_name(&technique.id.to_string()),
+            technique_name: &technique.name,
+            policy_mode: &filters::camel_case(policy_mode)?,
+            params: &params
+                .iter()
+                .map(|(k, v)| format!("-{} '{}'", k, v))
+                .collect::<Vec<String>>()
+                .join(" "),
+            directive_id,
+            conditions: vec![], //rule_id
+        }
+        .render()
+        .map_err(anyhow::Error::from)
     }
 }
 

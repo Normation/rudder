@@ -22,6 +22,8 @@ pub mod frontends;
 pub mod ir;
 pub mod test;
 
+pub mod generate_directive;
+
 pub const TARGET_DIR: &str = "target";
 pub const TESTS_DIR: &str = "tests";
 /// Name of the technique files. The extension indicates the format.

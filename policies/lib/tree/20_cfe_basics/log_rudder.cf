@@ -151,6 +151,8 @@ bundle agent log_rudder_v4(parameter_value, message, details)
   methods:
       "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${report_data.report_id}"),
                                         if => "${report_data.should_report}";
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${report_data.result_id}"),
+                                        if => "${report_data.should_report}";
       "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.method_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
 }
 
@@ -523,6 +525,7 @@ bundle agent _method_reporting_context_v4(c_name, c_key, report_id)
     "report_data.report_id"      string => canonify("${report_id}");
     "report_data.method_id"      string => canonify("${report_id}_${report_data.index}");
     "report_data.identifier"     string => "${report_data.rule_id}@@${report_data.directive_id}@@${report_data.report_id_r}";
+    "report_data.result_id"      string => canonify("${report_data.directive_id}_${report_id}");
 
   methods:
       "${report_id}" usebundle => rudder_method_id_reset;
@@ -556,6 +559,7 @@ bundle agent rudder_reporting_context_v4(d_id, r_id, t_name, c_name, c_key, repo
     "report_data.report_id"      string => canonify("${report_id}");
     "report_data.method_id"      string => canonify("${report_id}_${report_data.index}");
     "report_data.identifier"     string => "${report_data.rule_id}@@${report_data.directive_id}@@${report_data.report_id_r}";
+    "report_data.result_id"      string => canonify("${d_id}_${report_id}");
 
   methods:
     "${report_id}" usebundle => rudder_method_id_reset;
@@ -584,6 +588,7 @@ bundle agent dump_reporting_context
   report_id = ${report_data.report_id}
   method_id = ${report_data.method_id}
   index = ${report_data.index}
+  result_id = ${report_data.result_id}
 }";
 }
 

@@ -31,17 +31,30 @@ fn it_is_not_applicable_in_audit_mode() {
 fn it_repairs_in_enforced_mode_if_the_command_succeeds() {
     let workdir = init_test();
     let file_path = workdir.path().join("target.txt");
+    let command: String;
 
-    let tested_method = &method(
-        "command_execution",
-        &[&format!("/bin/touch {}", file_path.to_str().unwrap())],
-    )
-    .enforce();
+    #[cfg(feature = "test-unix")]
+    {
+        command = format!("/bin/touch {}", file_path.display());
+    }
+
+    #[cfg(not(feature = "test-unix"))]
+    {
+        let script_path = workdir.path().join("touch.ps1");
+        std::fs::write(
+            &script_path,
+            format!("New-Item -Path '{}' -ItemType 'File'", file_path.display()),
+        )
+        .unwrap();
+        command = script_path.display().to_string();
+    }
+
+    let tested_method = method("command_execution", &[&command]).enforce();
     let r = MethodTestSuite::new()
-        .when(tested_method)
+        .when(&tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
-    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
-    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
+    r.assert_legacy_result_conditions(&tested_method, vec![MethodStatus::Repaired]);
+    r.assert_log_v4_result_conditions(&tested_method, MethodStatus::Repaired);
     assert!(
         file_path.exists(),
         "The file '{}' should have been created by the method execution",

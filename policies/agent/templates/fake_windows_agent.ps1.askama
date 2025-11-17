@@ -1,0 +1,53 @@
+$errorActionPreference = "Stop"
+Add-Type -Path '{{ library_folder }}/rudderLib/Library.dll'
+[Rudder.Logger]::StartLogger(' {{ log_file_path }}', '{{ verbosity }}')
+[Rudder.Logger]::Log.Debug("Loading the ncf library '{{ library_folder }}/ncf.ps1'")
+$script:rudderVariable = New-Object System.Collections.ArrayList
+.              '{{library_folder}}/ncf.ps1'
+#################
+# Load the ps1 files #
+#################
+try {
+  [Rudder.Logger]::Log.Debug("Loading technique file '{{ technique_file_path }}'")
+  . '{{ technique_file_path }}'
+} catch {
+  [Rudder.Logger]::Log.Error("${_}")
+  exit 1
+}
+#################
+# Load the data #
+#################
+$rudderState = cat '{{ state_file_path }}' | ConvertFrom-Json
+$rudderState.PSObject.Properties | Foreach-Object {
+  $name = $_.Name
+  $value = ConvertPSObjectToHashtable -InputObject $_.Value
+  [Rudder.Datastate]::AddVar($name, $value)
+}
+[Rudder.Datastate]::AddVar('startDate', ([System.DateTime]::UTCNow))
+[Rudder.Datastate]::AddVar('reportFile', '{{ report_file_path }}')
+
+#######################
+# Load the directives #
+#######################
+
+try {
+  [Rudder.Logger]::Log.Debug("Loading directive file '{{ directive_file_path }}'")
+  . '{{ directive_file_path }}'
+} catch {
+  [Rudder.Logger]::Log.Error("${_}")
+  exit 1
+}
+
+##################
+# Run the policy #
+##################
+
+Rudder-Control-Report -Step "start"
+Call_Directives
+Rudder-Control-Report -Step "end"
+
+######################
+# Dump the datastate #
+######################
+
+Set-Content -Path '{{ datastate_file_path }}' -Value (([Rudder.Datastate]::Get() | ConvertTo-Json -Depth 5))

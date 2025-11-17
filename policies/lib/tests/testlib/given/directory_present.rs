@@ -4,8 +4,8 @@
 use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::test_setup::TestSetupResult;
 use anyhow::Error;
-use log::debug;
 use std::fs;
+use tracing::debug;
 
 #[derive(Clone, Debug)]
 pub struct DirectoryPresentStruct {
