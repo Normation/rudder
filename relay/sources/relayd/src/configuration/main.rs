@@ -328,17 +328,12 @@ impl Default for InventoryConfig {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Default, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum InventoryOutputSelect {
     Upstream,
+    #[default]
     Disabled,
-}
-
-impl Default for InventoryOutputSelect {
-    fn default() -> Self {
-        Self::Disabled
-    }
 }
 
 #[serde_inline_default]
@@ -362,18 +357,13 @@ impl Default for ReportingConfig {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Default, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ReportingOutputSelect {
     Database,
     Upstream,
+    #[default]
     Disabled,
-}
-
-impl Default for ReportingOutputSelect {
-    fn default() -> Self {
-        Self::Disabled
-    }
 }
 
 pub trait OutputSelect {
