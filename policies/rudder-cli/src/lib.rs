@@ -4,6 +4,7 @@
 pub mod logs;
 
 use ariadne::{Config, IndexType, Label, Report, ReportKind, Source};
+use std::fmt::{Display, Formatter};
 use std::io::IsTerminal;
 use std::ops::Range;
 use std::panic;
@@ -57,6 +58,66 @@ pub enum OutputType {
     Terminal,
 }
 
+/// Compiler-like error in a file, pointing at a specific range
+pub struct FileError<'a> {
+    title: &'a str,
+    message: &'a str,
+    range: FileRange,
+    file_name: &'a str,
+    file_content: &'a str,
+    note: Option<&'a str>,
+}
+
+impl<'a> FileError<'a> {
+    pub fn new(
+        title: &'a str,
+        message: &'a str,
+        range: FileRange,
+        file_name: &'a str,
+        file_content: &'a str,
+        note: Option<&'a str>,
+    ) -> Self {
+        Self {
+            title,
+            message,
+            range,
+            file_name,
+            file_content,
+            note,
+        }
+    }
+}
+
+impl Display for FileError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let (index_type, range) = self.range.into_ariadne_range();
+        let span = (self.file_name, range);
+        #[cfg(not(test))]
+        let is_terminal = std::io::stdout().is_terminal();
+        #[cfg(test)]
+        let is_terminal = false;
+
+        let mut report = Report::build(ReportKind::Error, span.clone())
+            .with_config(
+                Config::default()
+                    .with_color(false)
+                    .with_index_type(index_type)
+                    .with_color(is_terminal)
+                    .with_compact(!is_terminal),
+            )
+            .with_message(self.title)
+            .with_label(Label::new(span).with_message(self.message));
+        if let Some(n) = self.note {
+            report = report.with_note(n);
+        }
+        let report = report.finish();
+        let source = Source::from(self.file_content);
+        let mut out = vec![];
+
+        report.write((self.file_name, source), &mut f).unwrap();
+    }
+}
+
 /// Compiler-like error reporting using ariadne
 ///
 /// Example:
@@ -80,28 +141,6 @@ pub fn format_report(
     file_content: &str,
     note: Option<&str>,
 ) -> String {
-    let (index_type, range) = range.into_ariadne_range();
-    let span = (file_name, range);
-    let is_terminal = std::io::stdout().is_terminal();
-
-    let mut report = Report::build(ReportKind::Error, span.clone())
-        .with_config(
-            Config::default()
-                .with_color(false)
-                .with_index_type(index_type)
-                .with_color(is_terminal)
-                .with_compact(!is_terminal),
-        )
-        .with_message(title)
-        .with_label(Label::new(span).with_message(message));
-    if let Some(n) = note {
-        report = report.with_note(n);
-    }
-    let report = report.finish();
-    let source = Source::from(file_content);
-    let mut out = vec![];
-    report.write((file_name, source), &mut out).unwrap();
-    String::from_utf8_lossy(&out).to_string()
 }
 
 #[cfg(test)]
