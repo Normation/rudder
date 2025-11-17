@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
+use assert_cmd::cargo_bin;
 use assert_cmd::prelude::*;
 use std::io::Read;
 use std::process::Command;
-use assert_cmd::{cargo_bin};
 use tempfile::NamedTempFile;
 
 static EXPECTED_FILE_CONTENT: &str = "Hello Ferris!";
