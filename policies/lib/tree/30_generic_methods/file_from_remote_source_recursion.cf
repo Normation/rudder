@@ -18,6 +18,7 @@
 
 # @name File from remote source recursion
 # @description Ensure that a file or directory is copied from a policy server
+# @deprecated Use technique resources or [file_from_shared_folder](#_file_from_shared_folder) instead.
 # @documentation This method requires that the policy server is configured to accept
 # copy of the source file or directory from the agents it will be applied to.
 #
