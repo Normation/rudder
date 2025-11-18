@@ -44,21 +44,16 @@ impl fmt::Display for LogConfig {
     }
 }
 
-#[derive(Copy, Debug, Eq, PartialEq, Deserialize, Clone)]
+#[derive(Default, Copy, Debug, Eq, PartialEq, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
     Off,
     Error,
     Warn,
+    #[default]
     Info,
     Debug,
     Trace,
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        Self::Info
-    }
 }
 
 impl fmt::Display for LogLevel {

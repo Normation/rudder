@@ -30,18 +30,15 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 // Configuration
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, ValueEnum)]
+#[derive(
+    Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, ValueEnum,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Engine {
     Mustache,
+    #[default]
     Minijinja,
     Jinja2,
-}
-
-impl Default for Engine {
-    fn default() -> Self {
-        Self::Minijinja
-    }
 }
 
 impl Engine {

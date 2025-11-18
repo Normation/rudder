@@ -12,9 +12,10 @@ use serde_yaml::Value;
 ///
 /// Simple representation to allow trivial optimizations. At some point we might add
 /// a real condition evaluator.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub enum Condition {
     /// a.k.a. "true" / "any"
+    #[default]
     Defined,
     /// a.k.a. "false" / "!any"
     NotDefined,
@@ -62,12 +63,6 @@ impl Condition {
 
     pub fn is_defined(&self) -> bool {
         matches!(self, Condition::Defined)
-    }
-}
-
-impl Default for Condition {
-    fn default() -> Self {
-        Self::Defined
     }
 }
 

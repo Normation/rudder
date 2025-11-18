@@ -10,22 +10,17 @@ use clap::ValueEnum;
 use rudder_commons::{logs::ok_output, methods::Methods};
 use serde::Serialize;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, ValueEnum)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, ValueEnum)]
 pub enum Format {
     /// Markdown output
     Markdown,
     /// HTML output
+    #[default]
     Html,
     /// JSON output
     ///
     /// It replaces the legacy `generic_methods.json` produced by `ncf.py`, to be used by the webapp
     Json,
-}
-
-impl Default for Format {
-    fn default() -> Self {
-        Self::Html
-    }
 }
 
 impl Format {
