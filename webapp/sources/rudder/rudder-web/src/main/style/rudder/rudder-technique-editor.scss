@@ -1714,3 +1714,7 @@ textarea.yaml-editor {
 pre.command-output{
   white-space: break-spaces;
 }
+
+.used {
+  color: $rudder-success !important;
+}
