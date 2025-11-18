@@ -240,12 +240,17 @@ class SearchNodeComponent(
 
       lines.append(cl)
 
-      val form            = asForm(cl.attribute.cType)
-      val initJs          = form.initForm("v_" + index)
-      val inputAttributes = ("id", "v_" + index) :: ("class", "queryInputValue form-control input-sm") :: {
+      val form   = asForm(cl.attribute.cType)
+      val initJs = form.initForm("v_" + index)
+
+      val inputAttributes = ("id", "v_" + index) :: {
         if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil
       }
-      val input           = form.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes*)
+      val inputNoClass    = form.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes*)
+      val inputClass      = classFromInputLabel(inputNoClass)
+      val input           =
+        inputNoClass % inputNoClass.attributes.append(Attribute.apply(pre = null, key = "class", value = inputClass, next = Null))
+
       (".removeLine *" #> {
         if (addRemove)
           SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "btn btn-danger btn-sm fw-bold"))
@@ -524,6 +529,14 @@ object SearchNodeComponent {
     }
   }
 
+  def classFromInputLabel(elem: Elem) = {
+    // bootstrap 5 class attributes that correspond to the elem's label
+    elem.label match {
+      case "select" => "queryInputValue form-select form-select-sm"
+      case _        => "queryInputValue form-control form-control-sm" // text input field by default
+    }
+  }
+
   def updateCompAndValue(
       func:     String => Any,
       ot:       String,
@@ -534,7 +547,7 @@ object SearchNodeComponent {
       v_old:    String
   ): JsCmd = {
     // change input display
-    val comp         = ditQueryData.criteriaMap.get(ot) match {
+    val comp           = ditQueryData.criteriaMap.get(ot) match {
       case None    => StringComparator
       case Some(o) =>
         o.criterionForName(a) match {
@@ -542,9 +555,9 @@ object SearchNodeComponent {
           case Some(comp) => comp.cType
         }
     }
-    val comparators  = optionComparatorsFor(ot, a)
-    val compNames    = comparators.map(_._1)
-    val selectedComp = compNames match {
+    val comparators    = optionComparatorsFor(ot, a)
+    val compNames      = comparators.map(_._1)
+    val selectedComp   = compNames match {
       case b :: _ =>
         compNames.filter(_ == c_oldVal) match {
           case x :: _ => x
@@ -552,8 +565,13 @@ object SearchNodeComponent {
         }
       case Nil    => ""
     }
-    val form         = asForm(comp)
-    val newForm      = form.toForm(v_old, func, ("id" -> v_eltid), ("class" -> "queryInputValue form-control input-sm"))
+    val form           = asForm(comp)
+    val newFormNoClass = form.toForm(v_old, func, ("id" -> v_eltid))
+    val inputClass     = classFromInputLabel(newFormNoClass)
+    val newForm        = newFormNoClass % newFormNoClass.attributes.append(
+      Attribute.apply(pre = null, key = "class", value = inputClass, next = Null)
+    )
+
     form.destroyForm(v_eltid) &
     JsCmds.Replace(v_eltid, newForm) &
     form.initForm(v_eltid) &
