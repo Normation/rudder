@@ -113,6 +113,7 @@ encodePolicyMode policyMode =
     case policyMode of
         Audit -> string "audit"
         Enforce -> string "enforce"
+        Default -> string "default"
 
 encodeMethodElem: MethodElem -> Value
 encodeMethodElem call =

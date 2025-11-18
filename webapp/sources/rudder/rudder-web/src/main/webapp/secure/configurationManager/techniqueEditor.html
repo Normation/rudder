@@ -163,7 +163,13 @@ $(document).ready(function(){
     }, addDelay);
   });
 
-  initBsTooltips();
+  // Initialize tooltips
+  app.ports.initTooltips.subscribe(function(msg) {
+    initBsTooltips();
+    setTimeout(function(){
+      initBsTooltips();
+    }, 800);
+  });
 
 });
 
