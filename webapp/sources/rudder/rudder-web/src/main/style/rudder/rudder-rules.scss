@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2017 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -30,10 +30,11 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
 *
 *************************************************************************************
 */
+
+@use 'rudder-variables' as *;
 
 /* === TEMPLATE === */
 .rudder-template .template-sidebar .sidebar-list li > a {
@@ -145,7 +146,7 @@ label.rule-info + div{
 #directiveFilters{
   padding: 15px 15px 10px 15px;
   margin: 0 -15px;
-  border-bottom: 1px solid #d6deef;
+  border-bottom: 1px solid $rudder-border-color-default;
   background-color: #F7F8F7;
 }
 
@@ -204,10 +205,10 @@ form.readonly-form .tags-container{
   margin-bottom: 15px;
 }
 .missing-cat {
-  color: #738195;
+  color: $rudder-txt-secondary;
 }
 .main-missing-cat {
-  color: #EF9600;
+  color: $rudder-warning;
 }
 .id-label {
   margin-top: 5px;

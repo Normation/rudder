@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -36,79 +36,19 @@
 */
 
 @use 'rudder-variables' as *;
+@use 'sass:color';
 
 @import "../../node_modules/bootstrap/scss/functions";
 @import "../../node_modules/bootstrap/scss/variables";
 @import "../../node_modules/bootstrap/scss/mixins";
+@import "../../node_modules/bootstrap/scss/spinners";
 
 // Limit the size of spinner in loading buttons
 $spinner-width-sm: 1.3rem;
 $spinner-height-sm: $spinner-width-sm;
-@import "../../node_modules/bootstrap/scss/spinners";
 
 .rudder-template .template-main {
   flex: auto !important;
-}
-
-.plugin:first-child h3.title-section {
-  margin-top: 0;
-}
-
-.plugin h3.title-section:before {
-  content: "\f12e";
-  display: inline-block;
-  font: normal normal normal 14px/1;
-  font-family: "Font Awesome 5 Free";
-  font-weight: 900;
-  font-size: inherit;
-  text-rendering: auto;
-  -webkit-font-smoothing: antialiased;
-  margin-right: 6px;
-  color: #04192277;
-}
-
-.plugin .description {
-  color: #738195;
-}
-
-.license-card {
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid #e1e3e6;
-  border-left: 4px solid #337ab7;
-  max-width: 780px;
-  padding: 10px;
-
-  & .license-info {
-
-    & .license-info-title {
-      font-size: $h4-font-size;
-      color: #337ab7;
-      margin-top: 0;
-      padding-right: 40px;
-      position: relative;
-
-      & .license-icon {
-        font-size: 50px;
-        position: absolute;
-        top: 0;
-        right: 0;
-      }
-    }
-
-    & .license-info-title+p {
-      padding-right: 40px;
-    }
-
-    & p:last-child,
-    & dl:last-child {
-      margin-bottom: 0;
-    }
-
-    & dl {
-      margin-bottom: 10px;
-    }
-  }
 }
 
 .header-title {
@@ -217,7 +157,7 @@ $spinner-height-sm: $spinner-width-sm;
         opacity: 95%;
 
         & .badge.float-end {
-          background-color: #D6DEEF;
+          background-color: $rudder-border-color-default;
         }
       }
 
@@ -245,7 +185,7 @@ $spinner-height-sm: $spinner-width-sm;
 
         & .plugin-doc-icon {
           margin-left: 0.6rem;
-          color: #337ab7;
+          color: $rudder-info;
           opacity: 0.8;
           &:hover {
             opacity: 1;
@@ -264,7 +204,7 @@ $spinner-height-sm: $spinner-width-sm;
             border-radius: 0.25rem;
 
             &.plugin-webapp + &.plugin-integration{
-              background-color: #72829d;
+              background-color: $rudder-gray-500;
               font-weight: 600 !important;
             }
           }
@@ -315,7 +255,7 @@ $spinner-height-sm: $spinner-width-sm;
           padding-bottom: 1em;
         }
         & .list-group li {
-          background: #f8f9fc;
+          background: $rudder-bg-light-gray;
         }
       }
     }
@@ -323,34 +263,9 @@ $spinner-height-sm: $spinner-width-sm;
 }
 
 
-/* === License warning === */
-.license-card.warning {
-  border-left-color: #EF9600;
-  background-color: #EF96000d;
-}
-
-.license-card.warning .license-info h4 {
-  color: #EF9600;
-}
-
-.license-card.warning p.txt-warning {
-  color: #ef8004;
-  font-weight: bold;
-  margin-top: 6px;
-}
-
-/* === License danger === */
-.license-card.critical {
-  border-left-color: #C80004;
-  background-color: #ff040908;
-}
 
 .txt-critical {
   color: #9e0205 !important;
-}
-
-.license-card.critical .license-info h4 {
-  color: #C80004;
 }
 
 /* === LICENSE DETAILS === */
@@ -376,15 +291,11 @@ $spinner-height-sm: $spinner-width-sm;
   margin-top: 25px;
 }
 
-.pluginpadd {
-  padding: 0 10px;
-}
-
 .badge-plugin-version {
   margin-left: 15px;
   display: inline-block;
   background-color: #FFEAD1;
-  color: #EF9600;
+  color: $rudder-warning;
   padding: 5px;
   border-radius: 3px;
   font-size: 12px;

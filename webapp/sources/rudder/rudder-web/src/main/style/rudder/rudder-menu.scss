@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -114,16 +114,13 @@ $menu-width: 230px;
   }
 }
 
-.main-header .form-control::-moz-placeholder {
-  color: #36474eaa;
+.main-header .form-control::-moz-placeholder,
+.main-header .form-control::-webkit-input-placeholder,
+.main-header .form-control:-ms-input-placeholder {
+  color: $rudder-txt-secondary;
   opacity: 1
 }
-.main-header .form-control:-ms-input-placeholder {
-  color: #36474Eaa
-}
-.main-header .form-control::-webkit-input-placeholder {
-  color: #36474Eaa
-}
+
 .main-header .navbar-custom-menu {
   float: right
 }
@@ -559,10 +556,10 @@ header.main-header .logo-lg img{
     width: 100%;
     display: flex;
     padding: 0 26px;
-    color:#DA291C !important;
+    color:$rudder-danger !important;
 
     &:hover {
-      background-color: #DA291C !important;
+      background-color: $rudder-danger !important;
       color: #fff !important;
     }
   }
@@ -739,7 +736,7 @@ header.main-header .logo-lg img{
   }
 }
 .navbar .navbar-nav>li>a,.main-header .navbar .sidebar-toggle {
-  color: #36474e;
+  color: $rudder-txt-light;
 }
 .main-header .navbar .sidebar-toggle:hover {
   background-color: $navbar-hover-color;
@@ -757,7 +754,7 @@ header.main-header .logo-lg img{
   }
 }
 .main-header .logo:hover {
-  background-color: #36474e
+  background-color: $rudder-gray-600
 }
 .main-header li.user-header {
   background-color: #f08004
@@ -918,7 +915,7 @@ header.main-header .logo-lg img{
     float: none;
     width: 280px;
     background-color: rgb(255, 255, 255);
-    border: 1px solid #ccc;
+    border: 1px solid $rudder-border-color-default;
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 4px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
@@ -940,7 +937,7 @@ header.main-header .logo-lg img{
 }
 .navbar .navbar-nav li.notifications-menu> a{
   height: 100%;
-  color: #36474e;
+  color: $rudder-txt-light;
   text-decoration: none !important;
 }
 .navbar .navbar-nav li.notifications-menu> a:hover{
@@ -968,7 +965,7 @@ header.main-header .logo-lg img{
       background-color: $navbar-hover-color;
     }
     & > a {
-      color: #36474e;
+      color: $rudder-txt-light;
       cursor: pointer;
 
       &:hover{
@@ -989,20 +986,20 @@ header.main-header .logo-lg img{
 .main-header .navbar-nav .tasks-menu a > i,
 .main-header .navbar-nav .user-menu  a > span,
 #logout > i{
-  color: #738195;
+  color: $rudder-txt-secondary;
 }
 
 .main-header .navbar-nav .tasks-menu a:hover > i,
 #logout:hover > i{
-  color: #36474E;
+  color: $rudder-txt-light;
 }
 
 .notifications-menu .rudder-badge {
   position: relative;
   left: 7px;
   top: -2px;
-  background-color: #eef1f9;
-  border: 2px solid #eef1f9;
+  background-color: $rudder-bg-gray;
+  border: 2px solid $rudder-bg-gray;
   color: rgb(34, 45, 50);
   border-radius:3px;
 }
@@ -1021,7 +1018,7 @@ header.main-header .logo-lg img{
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-right: 11px solid #eef1f9;
+  border-right: 11px solid $rudder-bg-gray;
   position: absolute;
 }
 
@@ -1034,7 +1031,7 @@ header.main-header .logo-lg img{
   color: #3c763d;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa.text-danger{
-  color: #DA291C;
+  color: $rudder-danger;
 }
  .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa-flag-o, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa-flag-checkered{
   font-size: 16px;
@@ -1057,7 +1054,7 @@ header.main-header .logo-lg img{
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover.text-danger,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:focus.text-danger,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:visited.text-danger{
-  color: #DA291C !important;
+  color: $rudder-danger !important;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover {
   color: #444444 !important;
@@ -1067,7 +1064,7 @@ header.main-header .logo-lg img{
 }
 .navbar-nav .dropdown-menu > li > a .label {
   font-size: 90%;
-  background-color: #738195;
+  background-color: $rudder-gray-500;
   color: #fff;
   font-weight: bold;
   padding: 1px 6px;
@@ -1132,7 +1129,7 @@ header.main-header .logo-lg img{
 .navbar .navbar-nav li.notifications-menu.bg-error a:active #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-error a:focus  #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-error.open     #generation-status{
-  color: #da291c;
+  color: $rudder-danger;
 }
 .navbar .navbar-nav li.notifications-menu.bg-error #generation-status > span:after{
   content: "\f00d";
@@ -1176,7 +1173,7 @@ header.main-header .logo-lg img{
 .navbar .navbar-nav li.notifications-menu.bg-refresh a:active #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-refresh a:focus  #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-refresh.open     #generation-status{
-  color: #1295c2;
+  color: $rudder-txt-link;
 }
 .navbar .navbar-nav li.notifications-menu.bg-refresh #generation-status > span:after{
   content: "\f021";
@@ -1222,7 +1219,7 @@ header.main-header .logo-lg img{
   padding: 3px;
 }
 .navbar .navbar-nav li.plugin-warning.critical > a > .fa:after{
-  color: #da291c;
+  color: $rudder-danger;
 }
 
 .navbar .navbar-nav li.plugin-warning + .tooltip > .tooltip-inner h4,
@@ -1231,13 +1228,13 @@ header.main-header .logo-lg img{
 }
 .navbar .navbar-nav li.plugin-warning.critical + .tooltip > .tooltip-inner h4,
 .tooltip > .tooltip-inner h4.critical {
-  color: #da291c;
+  color: $rudder-danger;
 }
 .plugin-icon.icon-info{
   color: #ef9601;
 }
 .plugin-icon.icon-info.critical{
-  color: #da291c;
+  color: $rudder-danger;
 }
 
 /* === HEALTCHECK NOTIFICATIONS === */
@@ -1255,10 +1252,10 @@ header.main-header .logo-lg img{
   background-color: #ef9601;
 }
 .critical-light-notif {
-  background-color: #C80003;
+  background-color: $rudder-danger;
 }
 .critical-icon {
-  color: #C80003;
+  color: $rudder-danger;
 }
 .warning-icon {
   color: #ef9601;
@@ -1269,7 +1266,7 @@ header.main-header .logo-lg img{
 
 .icon-info{
   margin-left: 5px;
-  color: #337ab7;
+  color: $rudder-info;
   cursor:help;
 }
 .sidebar-collapse .plugin-icon.icon-info{

@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2020 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -33,6 +33,8 @@
 *
 *************************************************************************************
 */
+
+@use 'rudder-variables' as *;
 
 .main-table table tbody > tr {
   cursor: pointer;
@@ -158,7 +160,7 @@ label.radio-inline > input {
   display: none;
 }
 label.radio-inline > span {
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
   padding: 6px 12px;
@@ -182,12 +184,12 @@ label.radio-inline > input:checked + span {
   border-color: #2173a9;
 }
 label.radio-inline:hover > input:checked + span {
-  background-color: #337ab7;
+  background-color: $rudder-primary;
 
 }
 label.radio-inline:hover > span {
-  background-color: #f7f7f7;
-  color: #041922;
+  background-color: $rudder-bg-light-gray;
+  color: $rudder-txt-primary;
 }
 .align-radio-generate-input span{
   vertical-align: initial;
@@ -201,7 +203,7 @@ label.radio-inline:hover > span {
   display: none !important;
 }
 .toggle-cond > i.fa{
-  color: #041922;
+  color: $rudder-txt-primary;
   opacity: .4;
   margin-left : 6px;
   transition : opacity .2s;
@@ -215,7 +217,7 @@ label.radio-inline:hover > span {
 
 /* === GROUP PROPERTIES === */
 .info h4{
-  color: #738195;
+  color: $rudder-txt-secondary;
   font-size: 1.2em;
   font-weight: normal;
   margin-bottom: 4px;

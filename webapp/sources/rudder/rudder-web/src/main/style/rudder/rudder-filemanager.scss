@@ -1,3 +1,41 @@
+/*
+*************************************************************************************
+* Copyright 2025 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+*
+*************************************************************************************
+*/
+
+@use 'rudder-variables' as *;
+@use 'sass:color';
 
 .filemanager-container{
   position: fixed;
@@ -6,7 +44,7 @@
   left: 0;
   right: 0;
   z-index: 99999;
-  background: rgba(85, 95, 110, 0.4);
+  background-color: $rudder-bg-overlay;
 }
 
 .fm-button {
@@ -46,8 +84,8 @@
 .fm-bar {
   display: flex;
   align-items: center;
-  background-color: #F8F9FC;
-  border-bottom: 1px solid #D6DEEF;
+  background-color: $rudder-bg-light-gray;
+  border-bottom: 1px solid $rudder-border-color-default;
   padding: 0 12px;
 }
 
@@ -60,7 +98,7 @@
 }
 
 .fm-arrow > svg > path:last-child{
-  fill: #738195;
+  fill: $rudder-gray-500;
 }
 
 .fm-arrow:focus {
@@ -70,7 +108,7 @@
 .fm-text {
   flex-grow: 1;
   margin-left: 10px;
-  color: #738195;
+  color: $rudder-txt-secondary;
   font-weight: 500;
 }
 
@@ -137,7 +175,7 @@
 }
 
 .fm-file:hover {
-  background-color: #eef1f9;
+  background-color: $rudder-bg-gray;
 }
 
 .fm-selected {
@@ -186,18 +224,18 @@
   justify-content: flex-end;
   align-items: center;
   padding: 0 12px;
-  background-color: #F8F9FC;
-  border-top: 1px solid #D6DEEF;
+  background-color: $rudder-bg-light-gray;
+  border-top: 1px solid $rudder-border-color-default;
 }
 
 .fm-control button {
     margin-left: 7px;
     padding: 5px 10px;
     border-radius: 4px;
-    color: #041922;
+    color: $rudder-txt-primary;
     background-color: #FFFFFF;
     cursor: pointer;
-    border: 1px solid #D6DEEF;
+    border: 1px solid $rudder-border-color-default;
 }
 
 .fm-helper {
@@ -225,7 +263,7 @@
   position: fixed;
   width: 150px;
   padding: 5px 0;
-  border: 1px solid #D6DEEF;
+  border: 1px solid $rudder-border-color-default;
   background-color: #FFFFFF;
   border-radius: 4px;
 }
@@ -241,7 +279,7 @@
 }
 
 .fm-context-menu button:hover {
-  background-color: #eef1f9;
+  background-color: $rudder-bg-gray;
 }
 
 .fm-context-menu .disabled {
@@ -281,7 +319,7 @@
   z-index: 1;
   width: 100%;
   height: 100%;
-  background-color: #041922AA;
+  background-color: $rudder-bg-overlay;
 }
 
 .fm-modal {
@@ -328,13 +366,13 @@
 .fm-bar-actions .btn{
   font-size: 16px;
   background-color: transparent !important;
-  color: #738195;
+  color: $rudder-txt-secondary;
 }
 
 /* SEARCH FILTER */
 .dropdown-menu.search-dropdown{
   padding: 10px;
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
   width: 250px;
 }
 
@@ -349,7 +387,7 @@
   width: 320px;
   height: 100%;
   background-color: #fafafa;
-  border-right: 1px solid #D6DEEF;
+  border-right: 1px solid $rudder-border-color-default;
 }
 
 .fm-filetree ul{
@@ -366,19 +404,19 @@
   align-items: center;
   padding: 6px 0;
   cursor: pointer;
-  color: #738195;
+  color: $rudder-txt-secondary;
   position: relative;
   padding-left: 24px;
 }
 
 .fm-filetree ul li a:hover{
-  background-color: #eef1f9;
-  color: #041922;
+  background-color: $rudder-bg-gray;
+  color: $rudder-txt-primary;
 }
 .fm-filetree ul li a:before,
 .fm-filetree ul ul:before{
   content: "";
-  border-left: 2px solid #D6DEEF;
+  border-left: 2px solid $rudder-border-color-default;
   display: block;
   position: absolute;
   height: 100%;

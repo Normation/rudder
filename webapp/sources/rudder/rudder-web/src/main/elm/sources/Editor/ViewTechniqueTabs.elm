@@ -400,9 +400,9 @@ techniqueTab model technique creation ui =
             let
               number = List.length (List.filter (\s -> (s.state == New) || (s.state == Deleted)) technique.resources)
             in
-              div [ class "resources-uncommitted" ] [ -- ng-if="getResourcesByState(selectedTechnique.resources, 'new').length>0 || getResourcesByState(selectedTechnique.resources, 'deleted').length > 0">
+              div [ class "resources-uncommitted" ] [
                 span [] [
-                  i [ class "fa fa-exclamation-triangle"] []
+                  i [ class "fa fa-exclamation-triangle me-2"] []
                 , text ("There " ++ (if(number == 1) then "is " else "are "))
                 , b [] [ text (String.fromInt number) ]
                 , text (" unsaved " ++ ((if(number == 1) then "file " else "files")) ++ ", save your changes to complete upload.")

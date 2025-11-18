@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2017 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -34,6 +34,9 @@
 *
 *************************************************************************************
 */
+
+@use 'rudder-variables' as *;
+
 #editForm {
   display: flex;
   flex-direction: column;
@@ -53,7 +56,7 @@
   flex-direction: column;
 }
 .section-title {
-  border-bottom-color: #d6deef ;
+  border-bottom-color: $rudder-border-color-default ;
 }
 #techniqueDetails{
   display: flex;
@@ -144,10 +147,10 @@
   min-height: calc(100vh - 200px);
 }
 #directiveRulesTab .box {
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
 }
 #directiveRulesTab .box-header.with-border {
-  background-color: #f8f9fc;
+  background-color: $rudder-bg-light-gray;
 }
 #directiveRulesTab .rudder-form  input[type=checkbox] + .label-radio + .check-icon{
   right: 7px;
@@ -275,7 +278,7 @@
   display: none !important;
 }
 .toggle-doc > i.fa{
-  color: #041922;
+  color: $rudder-txt-primary;
   opacity: .4;
   margin-left : 6px;
   transition : opacity .2s;
@@ -291,24 +294,24 @@
   margin-top: 0;
 }
 .policymode-group input:checked + span > span.audit-btn{
-  background-color: #1384BE;
+  background-color: $rudder-audit;
   color: #fff;
 }
 .policymode-group input:checked + span > span.enforce-btn{
-  background-color: #13be7e;
+  background-color: $rudder-enforce;
   color: #fff;
 }
 .policymode-group input:checked + span > span.global-btn{
-  background-color: #f8f9fc;
-  color: #041922;
+  background-color: $rudder-bg-light-gray;
+  color: $rudder-txt-primary;
 }
 .policymode-group .global-mode.audit:before{
   content: "audit";
-  color: #1384BE;
+  color: $rudder-audit;
 }
 .policymode-group .global-mode.enforce:before{
   content: "enforce";
-  color: #13be7e;
+  color: $rudder-enforce;
 }
 /* === PARAMETERS === */
 .input-feature {
@@ -383,14 +386,14 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   font-size: 22px;
   cursor: default;
   background: none;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
   padding: 0 0 5px 0;
   margin-bottom: 10px;
-  color: #041922;
+  color: $rudder-txt-primary;
 }
 .foldableSection div.section-title{
   font-size: 20px;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
 }
 .foldableSection.foldedSection div.section-title{
   border-bottom-color: transparent;
@@ -430,7 +433,7 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
 
 .foldableSection .foldableSection > .section-title{
   border-bottom: none;
-  color: #041922DD;
+  color: $rudder-txt-light;
   margin-bottom: 8px;
   transition-duration: .2s;
   cursor: pointer;
@@ -451,14 +454,14 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
   bottom: 0;
   left: 12.5px;
   width: 2px;
-  background-color: #d6deef;
+  background-color: $rudder-border-color-default;
   transition: background-color .2s;
 }
 .sectionFieldset.foldableSection.unfoldedSection:hover:before{
-  background-color: #13beb7;
+  background-color: $rudder-success;
 }
 .sectionFieldset.foldableSection.foldedSection:hover:before{
-  background-color: #aaa;
+  background-color: $rudder-gray-500;
 }
 
 
@@ -467,11 +470,11 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
   width: calc(100% - 15px);
 }
 table.directiveGroupDef{
-  border-left: 2px solid #d6deef;
+  border-left: 2px solid $rudder-border-color-default;
   transition: border-left-color .2s;
 }
 table.directiveGroupDef:hover{
-  border-left-color: #13beb7;
+  border-left-color: $rudder-success;
 }
 
 div.unfoldedSection div.section-title:before,

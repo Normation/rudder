@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2020 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -30,10 +30,12 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
-
 *
 *************************************************************************************
 */
+
+@use 'rudder-variables' as *;
+
 .rudder-template > .one-col{
   flex: 1;
 }
@@ -56,7 +58,7 @@
   transition: background-color .2s;
 }
 .checklist-container .check:hover {
-  background-color: #F8F9FC;
+  background-color: $rudder-bg-light-gray;
 }
 
 .global-msg {
@@ -67,29 +69,10 @@
   font-size:50px;
   margin-right: 35px;
 }
-
-.btn-checks .fa{
-  margin-left: 10px;
-}
-
 .content-block {
   text-align: center;
 }
 
-.btn-checks {
-  font-size: 16px !important;
-  margin-top: 40px;
-  background-color: transparent;
-  border-color: #3F9BFF;
-  color: #287bd6;
-  box-shadow: 0 2px 5px 0 rgba(96, 111, 152, 0.25);
-  transition-duration: .2s;
-  min-width: 170px;
-}
-.btn-checks:hover {
-  border-color: #337ab7;
-  color: #337ab7;
-}
 
 .circle {
   width                : 20px;
@@ -104,8 +87,8 @@
   background-color: #81D674;
 }
 .warning-light {
-  background-color: #EF9600;
+  background-color: $rudder-warning;
 }
 .critical-light {
-  background-color: #C80003;
+  background-color: $rudder-danger;
 }

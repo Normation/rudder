@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2024 Normation SAS
+* Copyright 2025 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -36,8 +36,7 @@
 */
 
 @use 'sass:color';
-
-@import "rudder-variables";
+@use 'rudder-variables' as *;
 
 // --- COLORS
 $primary    : $rudder-primary;
@@ -45,7 +44,14 @@ $success    : $rudder-success;
 $warning    : $rudder-warning;
 $danger     : $rudder-danger;
 $info       : $rudder-info;
-$dark       : $rudder-darkgray;
+$dark       : $rudder-gray-500;
+
+$gray-100 : $rudder-gray-100;
+$gray-200 : $rudder-gray-200;
+$gray-300 : $rudder-gray-300;
+$gray-400 : $rudder-gray-400;
+$gray-500 : $rudder-gray-500;
+$gray-600 : $rudder-gray-600;
 
 $body-color : $rudder-txt-primary;
 $link-color : $rudder-txt-link;

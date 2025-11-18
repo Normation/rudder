@@ -2497,6 +2497,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     }
 
     $.extend(defaultParams,storageParams);
+
   }
 
   var params = $.extend({},defaultParams,customParams);
