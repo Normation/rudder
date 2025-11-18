@@ -59,6 +59,7 @@ import scala.xml.*
  */
 class NodeHistoryViewer extends StatefulSnippet {
   lazy val historyRepos  = RudderConfig.inventoryHistoryJdbcRepository
+  lazy val agentRuns     = RudderConfig.roAgentRunsRepository
   lazy val configService = RudderConfig.configService
 
   var uuid:         NodeId                  = NodeId("temporary")
@@ -81,16 +82,18 @@ class NodeHistoryViewer extends StatefulSnippet {
           <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect)}</p>
           {
           (for {
-            globalMode <- configService
-                            .rudder_global_policy_mode()
-                            .chainError(s" Could not get global policy mode when getting node '${uuid.value}' details")
-            data       <- historyRepos.get(uuid, selectedDate)
-          } yield (globalMode, data)).toBox match {
-            case Failure(m, _, _)             => <div class="error">Error while trying to display node history. Error message: {m}</div>
-            case Empty | Full((_, None))      => <div class="error">No history was retrieved for the chosen date</div>
-            case Full((globalMode, Some(sm))) =>
+            globalMode      <- configService
+                                 .rudder_global_policy_mode()
+                                 .chainError(s" Could not get global policy mode when getting node '${uuid.value}' details")
+            data            <- historyRepos.get(uuid, selectedDate)
+            agentRunsByNode <- agentRuns.getNodesLastRun(Set(uuid))
+            agentRun         = agentRunsByNode.get(uuid).flatten
+          } yield (globalMode, agentRun, data)).toBox match {
+            case Failure(m, _, _)                       => <div class="error">Error while trying to display node history. Error message: {m}</div>
+            case Empty | Full((_, _, None))             => <div class="error">No history was retrieved for the chosen date</div>
+            case Full((globalMode, agentRun, Some(sm))) =>
               <div id={hid}>{
-                DisplayNode.showPannedContent(sm.data.fact, globalMode, "hist") ++
+                DisplayNode.showPannedContent(agentRun, sm.data.fact, globalMode, "hist") ++
                 Script(DisplayNode.jsInit(sm.id, "hist"))
               }</div>
           }
@@ -128,15 +131,17 @@ class NodeHistoryViewer extends StatefulSnippet {
 
   private def onSelect(date: DateTime)(implicit qc: QueryContext): JsCmd = {
     (for {
-      globalMode <- configService
-                      .rudder_global_policy_mode()
-                      .chainError(s" Could not get global policy mode when getting node '${uuid.value}' details")
-      m          <- historyRepos.get(uuid, date)
-    } yield (globalMode, m)).toBox match {
-      case Failure(m, _, _)             => Alert("Error while trying to display node history. Error message:" + m)
-      case Empty | Full((_, None))      => Alert("No history was retrieved for the chosen date")
-      case Full((globalMode, Some(sm))) =>
-        SetHtml(hid, DisplayNode.showPannedContent(sm.data.fact, globalMode, "hist")) &
+      globalMode      <- configService
+                           .rudder_global_policy_mode()
+                           .chainError(s" Could not get global policy mode when getting node '${uuid.value}' details")
+      m               <- historyRepos.get(uuid, date)
+      agentRunsByNode <- agentRuns.getNodesLastRun(Set(uuid))
+      agentRun         = agentRunsByNode.get(uuid).flatten
+    } yield (globalMode, agentRun, m)).toBox match {
+      case Failure(m, _, _)                       => Alert("Error while trying to display node history. Error message:" + m)
+      case Empty | Full((_, _, None))             => Alert("No history was retrieved for the chosen date")
+      case Full((globalMode, agentRun, Some(sm))) =>
+        SetHtml(hid, DisplayNode.showPannedContent(agentRun, sm.data.fact, globalMode, "hist")) &
         DisplayNode.jsInit(sm.id, "hist")
     }
   }

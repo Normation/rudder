@@ -52,6 +52,7 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.score.ComplianceScore
 import com.normation.rudder.score.GlobalScore
@@ -96,13 +97,14 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode.*
 
-  private val nodeFactRepo         = RudderConfig.nodeFactRepository
-  private val reportDisplayer      = RudderConfig.reportDisplayer
-  private val logDisplayer         = RudderConfig.logDisplayer
-  private val uuidGen              = RudderConfig.stringUuidGenerator
-  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private val configService        = RudderConfig.configService
-  private val scoreService         = RudderConfig.rci.scoreService
+  private val roAgentRunsRepository = RudderConfig.roAgentRunsRepository
+  private val nodeFactRepo          = RudderConfig.nodeFactRepository
+  private val reportDisplayer       = RudderConfig.reportDisplayer
+  private val logDisplayer          = RudderConfig.logDisplayer
+  private val uuidGen               = RudderConfig.stringUuidGenerator
+  private val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
+  private val configService         = RudderConfig.configService
+  private val scoreService          = RudderConfig.rci.scoreService
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
@@ -220,41 +222,38 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        nodeFactRepo.slowGet(node.id)(using CurrentUser.queryContext, attrs = SelectFacts.noSoftware).toBox match {
-          case Full(Some(nf)) =>
-            val tab  = displayDetailsMode.tab
-            val jsId = JsNodeId(nodeId, "")
-            def htmlId(jsId: JsNodeId, prefix: String): String = StringEscapeUtils.escapeEcmaScript(prefix + jsId.toString)
-            val detailsId = htmlId(jsId, "details_")
-
-            val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
-            configService.rudder_global_policy_mode().toBox match {
-              case Full(globalMode) =>
-                bindNode(nf, withinPopup, globalMode, globalScore) ++ WithNonce.scriptWithNonce(
-                  Script(
-                    DisplayNode.jsInit(node.id, "") &
-                    JsRaw(s"""
-                    var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
-                    var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
-                    activeTabBtn.classList.add('active');
-                    var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
-                    """) & // JsRaw ok, escaped
-                    buildJsTree(groupTreeId)
-                  )
-                )
-              case e: EmptyBox =>
-                val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
-                logger.error(msg, e)
-                <div class="error">{msg}</div>
-            }
-          case Full(None)     =>
+        (for {
+          globalMode <- configService
+                          .rudder_global_policy_mode()
+                          .chainError(s" Could not get global policy mode when getting node '${node.id.value}' details")
+          agentRun   <- roAgentRunsRepository.getNodesLastRun(Set(node.id))
+          nodeFact   <- nodeFactRepo.slowGet(node.id)(using attrs = SelectFacts.noSoftware)
+          globalScore = scoreService.getGlobalScore(node.id).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
+        } yield (globalMode, agentRun, nodeFact, globalScore)).toBox match {
+          case Failure(m, _, _)                                          =>
+            <div class="error">Error while trying to display node fact. Error message: {m}</div>
+          case Empty | Full((_, _, None, _))                             =>
             val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
             logger.error(msg)
             <div class="error">{msg}</div>
-          case e: EmptyBox =>
-            val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
-            logger.error(msg, e)
-            <div class="error">{msg}</div>
+          case Full((globalMode, agentRun, Some(nodeFact), globalScore)) =>
+            val tab  = displayDetailsMode.tab
+            val jsId = JsNodeId(node.id, "")
+            def htmlId(jsId: JsNodeId, prefix: String): String = StringEscapeUtils.escapeEcmaScript(prefix + jsId.toString)
+            val detailsId = htmlId(jsId, "details_")
+            bindNode(agentRun.get(node.id).flatten, nodeFact, withinPopup, globalMode, globalScore) ++ WithNonce
+              .scriptWithNonce(
+                Script(
+                  DisplayNode.jsInit(node.id, "") &
+                  JsRaw(s"""
+                        var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
+                        var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
+                        activeTabBtn.classList.add('active');
+                        var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
+                        """) & // JsRaw ok, escaped
+                  buildJsTree(groupTreeId)
+                )
+              )
         }
     }
   }
@@ -265,6 +264,7 @@ class ShowNodeDetailsFromNode(
    */
 
   private def bindNode(
+      agentRun:    Option[AgentRunWithNodeConfig],
       nodeFact:    NodeFact,
       withinPopup: Boolean,
       globalMode:  GlobalPolicyMode,
@@ -282,6 +282,7 @@ class ShowNodeDetailsFromNode(
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
     "#nodeDetails" #> DisplayNode.showNodeDetails(
+      agentRun,
       nodeFact,
       globalMode,
       Some(node.creationDate),

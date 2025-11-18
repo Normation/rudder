@@ -2804,7 +2804,7 @@ object RudderConfigInit {
       )
     }
 
-    lazy val nodeGridImpl = new NodeGrid(nodeFactRepository, configService)
+    lazy val nodeGridImpl = new NodeGrid(roAgentRunsRepository, nodeFactRepository, configService)
 
     lazy val modificationService      =
       new ModificationService(gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
