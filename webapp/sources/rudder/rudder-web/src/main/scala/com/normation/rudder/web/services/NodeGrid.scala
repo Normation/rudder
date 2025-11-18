@@ -46,6 +46,7 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.utils.Utils.isEmpty
 import net.liftweb.common.*
@@ -80,6 +81,7 @@ final case class JsonArg(jsid: String, id: String, status: String)
  * - call the display(servers) method
  */
 final class NodeGrid(
+    agentRunsRepo: RoReportsExecutionRepository,
     nodeFactRepo:  CoreNodeFactRepository,
     configService: ReadConfigService
 ) extends Loggable {
@@ -256,24 +258,26 @@ final class NodeGrid(
     implicit val formats = DefaultFormats
 
     (for {
-      json       <- tryo(parse(jsonArg)).toIO.chainError("Error when trying to parse argument for node")
+      json            <- tryo(parse(jsonArg)).toIO.chainError("Error when trying to parse argument for node")
       // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-      arg        <- tryo(json.extract[JsonArg]: @annotation.nowarn("cat=deprecation")).toIO
-      status     <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
-      nodeId      = NodeId(arg.id)
-      nodeFact   <- nodeFactRepo
-                      .slowGetCompat(nodeId, status, SelectFacts.noSoftware)
-                      .notOptional(s"Error when trying to find information for node '${nodeId.value}'")
-      globalMode <- configService
-                      .rudder_global_policy_mode()
-                      .chainError(
-                        s" Could not get global policy mode when getting node '${nodeId}' details"
-                      )
+      arg             <- tryo(json.extract[JsonArg]: @annotation.nowarn("cat=deprecation")).toIO
+      status          <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
+      nodeId           = NodeId(arg.id)
+      agentRunsByNode <- agentRunsRepo.getNodesLastRun(nodeIds = Set(nodeId))
+      agentRun         = agentRunsByNode.get(nodeId).flatten
+      nodeFact        <- nodeFactRepo
+                           .slowGetCompat(nodeId, status, SelectFacts.noSoftware)
+                           .notOptional(s"Error when trying to find information for node '${nodeId.value}'")
+      globalMode      <- configService
+                           .rudder_global_policy_mode()
+                           .chainError(
+                             s" Could not get global policy mode when getting node '${nodeId}' details"
+                           )
 
-    } yield (nodeId, nodeFact, arg.jsid, status, globalMode)).toBox match {
-      case Full((nodeId, nodeFact, jsid, status, globalMode)) =>
+    } yield (nodeId, agentRun, nodeFact, arg.jsid, status, globalMode)).toBox match {
+      case Full((nodeId, agentRun, nodeFact, jsid, status, globalMode)) =>
         // Node may not be available, so we look for it outside the for comprehension
-        SetHtml(jsid, DisplayNode.showPannedContent(nodeFact, globalMode)) &
+        SetHtml(jsid, DisplayNode.showPannedContent(agentRun, nodeFact, globalMode)) &
         DisplayNode.jsInit(nodeFact.id, "")
       case e: EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
