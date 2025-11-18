@@ -18,6 +18,7 @@
 
 # @name File from remote template
 # @description Build a file from a template on the Rudder server
+# @deprecated Use technique resources and [file_from_template_options](_file_from_template_options) instead.
 # @documentation Write a file based on a template on the Rudder server and data available on the node
 #
 # #### Usage
