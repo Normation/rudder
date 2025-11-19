@@ -24,7 +24,9 @@
 # Please note that only global variables are available within templates.
 #
 # @parameter prefix The prefix of the variable name
+# @parameter_constraint prefix "regex" : "^[a-zA-Z_]+$"
 # @parameter name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter_constraint name "regex" : "^[a-zA-Z_]+$"
 # @parameter file_name       The path of the file
 # 
 # @parameter_rename variable_prefix prefix
