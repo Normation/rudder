@@ -62,7 +62,7 @@ pub enum OutputType {
 ///
 /// Example:
 ///
-/// ```
+/// ```text
 /// Error: Check error
 //    ╭─[ /etc/hosts:1:1 ]
 //    │
@@ -151,6 +151,8 @@ mod tests {
             Some("This is a note"),
         );
         let output = include_str!("../tests/report.log");
+        let output_stdout = include_str!("../tests/report-stdout.log");
         assert_eq!(report.render(Some(false)), output);
+        assert_eq!(report.render(Some(true)), output_stdout);
     }
 }
