@@ -11,10 +11,9 @@ use crate::{
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
-use rudder_module_type::cli::FileRange;
+use rudder_module_type::cli::{FileError, FileRange};
 use rudder_module_type::{
-    CheckApplyResult, Outcome, PolicyMode, backup::Backup, cli::format_report, rudder_debug,
-    rudder_error, rudder_info,
+    CheckApplyResult, Outcome, PolicyMode, backup::Backup, rudder_debug, rudder_error, rudder_info,
 };
 use std::{
     borrow::Cow,
@@ -163,8 +162,9 @@ impl Augeas {
         // We have loaded the target, let's check for parsing errors.
         if let Some(e) = aug.tree_error(format!("/augeas/{path_str}"))? {
             if let (Some(pos), Some(content)) = (&e.position, current_content.as_ref()) {
-                let report = format_report(
-                    &format!("Load error: {}", e.kind),
+                let message = format!("Load error: {}", e.kind);
+                let report = FileError::new(
+                    &message,
                     &e.message,
                     FileRange::Char(pos.position..(pos.position + 1)),
                     &path_str,

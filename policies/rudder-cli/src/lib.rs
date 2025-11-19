@@ -44,8 +44,8 @@ pub enum FileRange {
 ///
 /// It can be either a byte range or a character range depending on its source.
 impl FileRange {
-    fn into_ariadne_range(self) -> (IndexType, Range<usize>) {
-        match self {
+    fn to_ariadne_range(&self) -> (IndexType, Range<usize>) {
+        match self.clone() {
             FileRange::Byte(r) => (IndexType::Byte, r),
             FileRange::Char(r) => (IndexType::Char, r),
         }
@@ -59,6 +59,20 @@ pub enum OutputType {
 }
 
 /// Compiler-like error in a file, pointing at a specific range
+///
+/// Example:
+///
+/// ```
+/// Error: Check error
+//    ╭─[ /etc/hosts:1:1 ]
+//    │
+//  1 │ 192.168.215.135 lists.normation.com
+//    │ ───────┬───────
+//    │        ╰───────── IP is not in allowed range: 10.0.0.0/16
+//    │
+//    │ Note: This is a note
+// ───╯
+/// ```
 pub struct FileError<'a> {
     title: &'a str,
     message: &'a str,
@@ -86,24 +100,20 @@ impl<'a> FileError<'a> {
             note,
         }
     }
-}
 
-impl Display for FileError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let (index_type, range) = self.range.into_ariadne_range();
+    pub fn render(&self, in_terminal: Option<bool>) -> String {
+        let (index_type, range) = self.range.to_ariadne_range();
         let span = (self.file_name, range);
-        #[cfg(not(test))]
-        let is_terminal = std::io::stdout().is_terminal();
-        #[cfg(test)]
-        let is_terminal = false;
+
+        let in_terminal = in_terminal.unwrap_or_else(|| std::io::stdout().is_terminal());
 
         let mut report = Report::build(ReportKind::Error, span.clone())
             .with_config(
                 Config::default()
                     .with_color(false)
                     .with_index_type(index_type)
-                    .with_color(is_terminal)
-                    .with_compact(!is_terminal),
+                    .with_color(in_terminal)
+                    .with_compact(!in_terminal),
             )
             .with_message(self.title)
             .with_label(Label::new(span).with_message(self.message));
@@ -114,33 +124,16 @@ impl Display for FileError {
         let source = Source::from(self.file_content);
         let mut out = vec![];
 
-        report.write((self.file_name, source), &mut f).unwrap();
+        report.write((self.file_name, source), &mut out).unwrap();
+        String::from_utf8_lossy(&out).to_string()
     }
 }
 
-/// Compiler-like error reporting using ariadne
-///
-/// Example:
-///
-/// ```
-/// Error: Check error
-//    ╭─[ /etc/hosts:1:1 ]
-//    │
-//  1 │ 192.168.215.135 lists.normation.com
-//    │ ───────┬───────
-//    │        ╰───────── IP is not in allowed range: 10.0.0.0/16
-//    │
-//    │ Note: This is a note
-// ───╯
-/// ```
-pub fn format_report(
-    title: &str,
-    message: &str,
-    range: FileRange,
-    file_name: &str,
-    file_content: &str,
-    note: Option<&str>,
-) -> String {
+impl Display for FileError<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let rendered = self.render(None);
+        write!(f, "{}", rendered)
+    }
 }
 
 #[cfg(test)]
@@ -149,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_inline_check_error() {
-        let report = format_report(
+        let report = FileError::new(
             "Check error",
             "IP is not in allowed range: 10.0.0.0/16",
             FileRange::Char(0..15),
@@ -158,6 +151,6 @@ mod tests {
             Some("This is a note"),
         );
         let output = include_str!("../tests/report.log");
-        assert_eq!(report, output);
+        assert_eq!(report.render(Some(false)), output);
     }
 }

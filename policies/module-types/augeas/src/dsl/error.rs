@@ -3,10 +3,10 @@
 
 //! Represents a check error, with a message and a span in a file.
 
-use rudder_module_type::cli::{FileRange, format_report};
+use rudder_module_type::cli::{FileError, FileRange};
 use std::ops::Range;
 
-/// Converts a raugeas span to an ariadne span
+/// Converts a raugeas span to a generic span
 fn convert_span(span: raugeas::Span) -> (String, Range<usize>) {
     (
         span.filename.unwrap_or("".to_string()),
@@ -22,14 +22,15 @@ pub fn format_report_from_span(
     note: Option<&str>,
 ) -> String {
     let (file_name, range) = convert_span(span);
-    format_report(
+    let error = FileError::new(
         title,
         message,
         FileRange::Char(range),
         &file_name,
         file_content,
         note,
-    )
+    );
+    error.render(None)
 }
 
 #[cfg(test)]

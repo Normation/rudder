@@ -6,7 +6,7 @@ pub mod minijinja_filters;
 use crate::cli::Cli;
 use clap::ValueEnum;
 use core::panic;
-use rudder_module_type::{ProtocolResult, cli::format_report};
+use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
 use std::collections::HashMap;
 use std::io::Write;
@@ -22,7 +22,7 @@ use std::{
 use anyhow::{Context, Result, anyhow, bail};
 use minijinja::UndefinedBehavior;
 use rudder_module_type::cfengine::called_from_agent;
-use rudder_module_type::cli::FileRange;
+use rudder_module_type::cli::{FileError, FileRange};
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     backup::Backup, parameters::Parameters, rudder_debug, run_module,
@@ -52,14 +52,16 @@ impl Engine {
         template_name: &str,
     ) -> anyhow::Error {
         if let Some(r) = e.range() {
-            anyhow!(format_report(
+            let e_kind = e.kind().to_string();
+            let err = FileError::new(
                 "Could not render template",
-                e.kind().to_string().as_str(),
+                &e_kind,
                 FileRange::Byte(r),
                 template_name,
                 template,
-                e.detail()
-            ))
+                e.detail(),
+            );
+            anyhow!(err.render(None))
         } else {
             e.into()
         }
@@ -96,8 +98,7 @@ impl Engine {
         env.add_filter("regex_escape", minijinja_filters::regex_escape);
         env.add_filter("regex_replace", minijinja_filters::regex_replace);
         let tmpl = env.get_template(&template_name)?;
-        tmpl
-            .render(data)
+        tmpl.render(data)
             .map_err(|e| Self::minijinja_error_formatting(e, &template, &template_name))
     }
 
