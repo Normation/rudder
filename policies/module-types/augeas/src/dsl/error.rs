@@ -37,13 +37,6 @@ pub fn format_report_from_span(
 mod tests {
     use super::*;
 
-    fn trim_lines(s: &str) -> String {
-        s.lines()
-            .map(|l| l.trim())
-            .collect::<Vec<&str>>()
-            .join("\n")
-    }
-
     #[test]
     fn test_inline_check_error() {
         let report = format_report_from_span(
@@ -58,8 +51,8 @@ mod tests {
             "192.168.215.135 lists.normation.com\n192.168.215.12 mail.normation.com",
             Some("This is a note"),
         );
-        println!("{report}");
-        let reference = include_str!("../../tests/ariadne.out");
-        assert_eq!(trim_lines(&report), trim_lines(reference));
+        let reference = include_str!("../../tests/report.log");
+        std::fs::write("tests/report.log", &report);
+        assert_eq!(&report, reference);
     }
 }

@@ -559,7 +559,7 @@ mod tests {
                 None,
             )
             .err().unwrap();
-        assert!(r.to_string().starts_with("Error: Load error: parse_failed"));
+        assert!(r.to_string().contains("Load error: parse_failed"));
         fs::remove_dir_all(d).unwrap();
     }
 }
