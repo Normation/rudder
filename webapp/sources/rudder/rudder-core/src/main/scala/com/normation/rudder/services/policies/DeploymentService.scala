@@ -1449,7 +1449,7 @@ object BuildNodeConfiguration extends Loggable {
                             }
                             // if a node is in state "empty policies", we only keep system policies + log
                             filteredDrafts = if (context.nodeInfo.rudderSettings.state == NodeState.EmptyPolicies) {
-                                               PolicyGenerationLogger.info(
+                                               PolicyGenerationLogger.debug(
                                                  s"Node '${context.nodeInfo.fqdn}' (${context.nodeInfo.id.value}) is in '${context.nodeInfo.rudderSettings.state.name}' state, keeping only system policies for it"
                                                )
                                                filtered.flatMap(d => {
