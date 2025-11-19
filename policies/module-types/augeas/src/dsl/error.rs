@@ -52,7 +52,6 @@ mod tests {
             Some("This is a note"),
         );
         let reference = include_str!("../../tests/report.log");
-        std::fs::write("tests/report.log", &report);
         assert_eq!(&report, reference);
     }
 }
