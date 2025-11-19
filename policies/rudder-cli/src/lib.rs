@@ -105,7 +105,10 @@ impl<'a> FileError<'a> {
         let (index_type, range) = self.range.to_ariadne_range();
         let span = (self.file_name, range);
 
+        #[cfg(not(test))]
         let in_terminal = in_terminal.unwrap_or_else(|| std::io::stdout().is_terminal());
+        #[cfg(test)]
+        let in_terminal = false;
 
         let mut report = Report::build(ReportKind::Error, span.clone())
             .with_config(
