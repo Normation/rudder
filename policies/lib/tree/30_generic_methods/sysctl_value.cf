@@ -150,7 +150,7 @@ bundle agent sysctl_value(key, value, filename, option) {
       "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix_variable_get}");
       "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
 
-    pass1.!pass2.can_edit::
+    pass2.!pass3.can_edit::
       # if get command returns an error, we need to set the value
       # of if value is not valid
       "${report_data.method_id}" usebundle => call_method("file_ensure_key_value");
