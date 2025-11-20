@@ -519,6 +519,8 @@ final case class MultivaluedSectionField(
           },
           attr*
         )
+      } else {
+        NodeSeq.Empty
       }
     }</div>
     </lift:authz>
