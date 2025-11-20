@@ -62,7 +62,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
 import scala.collection.immutable.SortedMap
 import scala.xml.Elem
-import scala.xml.parsing.ConstructingParser
+import scala.xml.transform.RewriteRule
 import zio.*
 import zio.syntax.*
 
@@ -432,6 +432,33 @@ trait UserFileSecurityLevelMigration {
   def enforceModern(file: File): IOResult[Unit]
 }
 
+object FileUserDetailListProvider {
+
+  /*
+   * The rewrite rule for migrating hash/unsafe hash.
+   * We want to change the `authentication` node
+   */
+  def XmlMigrationRule(hash: String, unsafeHashes: Boolean): Elem => PureResult[RewriteRule] = (_: Elem) => {
+    Right(new RewriteRule {
+      override def transform(n: xml.Node): Seq[xml.Node] = {
+        Seq(n match {
+          case e: Elem if (e.label == UserManagementIO.AUTHENTICATION_ROOT_ELT) =>
+            e.copy(attributes = {
+              e.attributes
+                .append(
+                  new scala.xml.UnprefixedAttribute("hash", hash, scala.xml.Null)
+                ) // will override existing hash attribute
+                .append(
+                  new scala.xml.UnprefixedAttribute("unsafe-hashes", unsafeHashes.toString, scala.xml.Null)
+                )
+            })
+          case _ => n
+        })
+      }
+    })
+  }
+}
+
 final class FileUserDetailListProvider(
     roleApiMapping:            RoleApiMapping,
     override val file:         UserFile,
@@ -491,31 +518,7 @@ final class FileUserDetailListProvider(
   // directly changes the file content !!
   private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
     // replace "hash" value and "unsafe-hashes" value
-    for {
-      parsedFile <- IOResult.attempt(ConstructingParser.fromFile(sourceTargetFile.toJava, preserveWS = true))
-      userXML    <- IOResult.attempt(parsedFile.document().children)
-
-      toUpdate <- IOResult.attempt((userXML \\ "authentication").head)
-
-      _ <- toUpdate match {
-             case e: Elem =>
-               val newXml = {
-                 e.copy(attributes = {
-                   e.attributes
-                     .append(
-                       new scala.xml.UnprefixedAttribute("hash", hash, scala.xml.Null)
-                     ) // will override existing hash attribute
-                     .append(
-                       new scala.xml.UnprefixedAttribute("unsafe-hashes", unsafeHashes.toString, scala.xml.Null)
-                     )
-                 })
-               }
-
-               UserManagementIO.replaceXml(userXML, newXml, sourceTargetFile)
-             case _ =>
-               Unexpected(s"Wrong formatting : ${sourceTargetFile.path}").fail
-           }
-    } yield {}
+    UserManagementIO.transformUserFile(sourceTargetFile, FileUserDetailListProvider.XmlMigrationRule(hash, unsafeHashes))
   }
 
 }
