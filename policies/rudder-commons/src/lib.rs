@@ -223,9 +223,11 @@ impl MethodConstraints {
         if !self.allow_empty && value.is_empty() {
             bail!("value must not be empty");
         }
-        // allow_whitespace allows empty string
-        if !value.is_empty() && !self.allow_whitespace && value.trim().is_empty() {
-            bail!("value must not be only whitespaces");
+        // allow_whitespace allows leading or trailing whitespaces
+        if !self.allow_whitespace
+            && (value.starts_with(char::is_whitespace) || value.ends_with(char::is_whitespace))
+        {
+            bail!("value must not have leading or trailing whitespaces");
         }
         if value.len() > self.max_length {
             bail!(
@@ -405,6 +407,23 @@ mod tests {
         assert!(constraints.is_valid("").is_err());
         assert!(constraints.is_valid("    ").is_err());
         assert!(constraints.is_valid("42").is_ok());
+        assert!(constraints.is_valid("  test  ").is_err());
+        assert!(constraints.is_valid("  test").is_err());
+        assert!(constraints.is_valid("test  ").is_err());
+        assert!(constraints.is_valid("\ttest").is_err());
+        assert!(constraints.is_valid("test\t").is_err());
+
+        let constraints = MethodConstraints {
+            allow_whitespace: true,
+            ..Default::default()
+        };
+        assert!(constraints.is_valid("").is_err());
+        assert!(constraints.is_valid("    ").is_ok());
+        assert!(constraints.is_valid("  test  ").is_ok());
+        assert!(constraints.is_valid("  test").is_ok());
+        assert!(constraints.is_valid("test  ").is_ok());
+        assert!(constraints.is_valid("\ttest").is_ok());
+        assert!(constraints.is_valid("test\t").is_ok());
 
         let constraints = MethodConstraints {
             allow_empty: true,
