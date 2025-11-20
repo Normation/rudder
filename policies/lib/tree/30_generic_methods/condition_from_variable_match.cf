@@ -58,17 +58,20 @@ bundle agent condition_from_variable_match(condition, variable_name, expected_ma
       "class_prefix"  string => canonify("condition_from_variable_match_${condition}");
 
   classes:
-      "pass1" expression => "any";
-      "pass2" expression => "pass1";
       "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
     pass2::
-      "var_exists"  expression => isvariable("${variable_name}");
+      "var_exists"    expression => isvariable("${variable_name}");
+      "var_is_string" expression => "any";
+      # to uncomment when upgrading to cfengine >= 3.26
+      #"var_is_string" expression => is_type("${variable_name}", "string");
 
-      "${condition}_true"  and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists"},
+      "${condition}_true"  and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists", "var_is_string"},
                          scope => "namespace";
 
-      "${condition}_false"  or => {"!${condition}_true", "!var_exists"},
+      "${condition}_false"  or => {"!${condition}_true", "!var_exists", "var_exists.!var_is_string"},
                          scope => "namespace";
 
   methods:
@@ -85,14 +88,19 @@ bundle agent condition_from_variable_match(condition, variable_name, expected_ma
 
       "${report_data.method_id}" usebundle => log_rudder_v4("${condition}","Condition ${condition}_true was defined as the variable ${variable_name} matched the expected pattern", ""),
                                         if => and( regcmp("${expected_match}", "${${variable_name}}"),
-                                                  "var_exists"
+                                                  "var_exists",
+                                                  "var_is_string"
                                               );
       "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "Condition ${condition}_false was defined as the variable ${variable_name} did not match the expected pattern", ""),
-                                       if => and( "var_exists",
+                                        if => and( "var_exists",
+                                                  "var_is_string",
                                                   not(regcmp("${expected_match}", "${${variable_name}}"))
                                              );
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "Condition ${condition}_false was defined as the variable ${variable_name} was not of type string", ""),
+                                        if => "var_exists.!var_is_string";
       "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "Condition ${condition}_false was defined as the variable ${variable_name} was undefined", ""),
                                     unless => "var_exists";
   reports:
-    "This is the variable: ${${variable_name}}";
+    pass3::
+      "This is the variable: ${${variable_name}}";
 }
