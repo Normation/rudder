@@ -413,35 +413,41 @@ class ReportDisplayer(
                        * Remote runs are only supported on cfengine agent, so disable access to button for
                        * other kind of agent (windows in particular).
                        */
-                      def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
+                      def triggerAgent(defaultOrInventory: String, node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
                         if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
-                          <div id="triggerAgent" class="mb-3">
-            <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
-                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd});"
+                          <div id={"triggerAgent" + defaultOrInventory} class="mb-3">
+            <button id={"triggerBtn" + defaultOrInventory} class="btn btn-primary btn-trigger"  onclick={
+                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd}, '$defaultOrInventory');"
                           }>
-              <span>Trigger agent</span>
-              &nbsp;
-              <i class="fa fa-play"></i>
-            </button>
-            &nbsp;
-            <button id="visibilityOutput" class="btn btn-content btn-state" type="button" data-bs-toggle="collapse" data-bs-target="#report" aria-expanded="false" aria-controls="report" style="display: none;" >
-            </button>
-            &emsp;
-            <div id="countDown" style="display:inline-block;">
-              <span style="color:#b1bbcb;"></span>
-            </div>
-            <div id="report" style="margin-top:10px;" class="collapse">
-              <pre class="p-2"></pre>
-            </div>
-          </div>
+                              <span>Trigger agent {defaultOrInventory}</span>
+                              &nbsp;
+                              <i class="fa fa-play"></i>
+                            </button>
+                            &nbsp;
+            <button id={
+                            "visibilityOutput" + defaultOrInventory
+                          } class="btn btn-content btn-state" type="button" data-bs-toggle="collapse" data-bs-target={
+                            "#report" + defaultOrInventory
+                          } aria-expanded="false" aria-controls={"report" + defaultOrInventory} style="display: none;" >
+                            </button>
+                            &emsp;
+            <div id={"countDown" + defaultOrInventory} style="display:inline-block;">
+                              <span style="color:#b1bbcb;"></span>
+                            </div>
+                            <div id={"report" + defaultOrInventory} style="margin-top:10px;" class="collapse">
+                              <pre class="p-2"></pre>
+                            </div>
+                          </div>
                         } else {
-                          <div id="triggerAgent" class="mb-3">
-            <button id="triggerBtn" class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
-              <span>Trigger Agent</span>
-              &nbsp;
-              <i class="fa fa-play"></i>
-            </button>
-          </div>
+                          <div id={"triggerAgent" + defaultOrInventory} class="mb-3">
+            <button id={
+                            "triggerBtn" + defaultOrInventory
+                          } class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
+                              <span>Trigger Agent {defaultOrInventory}</span>
+                              &nbsp;
+                              <i class="fa fa-play"></i>
+                            </button>
+                          </div>
                         }
                       } else {
                         NodeSeq.Empty
@@ -459,7 +465,8 @@ class ReportDisplayer(
                         case R.NoRunNoExpectedReport | R.NoExpectedReport =>
                           (
                             "lastreportgrid-intro" #> intro
-                            & "runagent" #> triggerAgent(node)
+                            & "runagentinventory" #> triggerAgent("Inventory", node)
+                            & "runagent" #> triggerAgent("", node)
                             & "lastreportgrid-grid" #> NodeSeq.Empty
                             & "lastreportgrid-missing" #> NodeSeq.Empty
                             & "lastreportgrid-unexpected" #> NodeSeq.Empty
@@ -469,7 +476,8 @@ class ReportDisplayer(
                             R.ReportsDisabledInInterval | R.NoUserRulesDefined =>
                           (
                             "lastreportgrid-intro" #> intro
-                            & "runagent" #> triggerAgent(node)
+                            & "runagentinventory" #> triggerAgent("Inventory", node)
+                            & "runagent" #> triggerAgent("", node)
                             & "lastreportgrid-grid" #> showReportDetail(
                               node,
                               withCompliance = false,
@@ -485,7 +493,8 @@ class ReportDisplayer(
 
                           (
                             "lastreportgrid-intro" #> intro
-                            & "runagent" #> triggerAgent(node)
+                            & "runagentinventory" #> triggerAgent("Inventory", node) // trigger agent inventory
+                            & "runagent" #> triggerAgent("", node)                   // trigger agent (default behaviour)
                             & "lastreportgrid-grid" #> showReportDetail(
                               node,
                               withCompliance = true,

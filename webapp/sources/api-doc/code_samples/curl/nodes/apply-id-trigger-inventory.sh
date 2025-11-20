@@ -1,0 +1,1 @@
+curl --header "X-API-Token: yourToken" --request POST --header "Content-Type: application/json"  https://rudder.example.com/rudder/api/latest/nodes/root/applyPolicy --data '{"classes":["force_inventory"]}'
