@@ -5,7 +5,14 @@ post:
   description: This API allows to trigger an agent run on the target node. Response is a stream of the actual agent run on the node.
   operationId: applyPolicy
   parameters:
-    - $ref: ../../components/parameters/node-id.yml
+    - $ref: "../../components/parameters/node-id.yml"
+  requestBody:
+    description: Optional description in *Markdown*
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/apply-policy-trigger-inventory.yml"
   responses:
     200:
       $ref: "../../components/responses/agent-output.yml"
@@ -14,4 +21,8 @@ post:
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/nodes/apply-id.sh
+        $ref: "../../code_samples/curl/nodes/apply-id.sh"
+    - lang: curl
+      source:
+        $ref: "../../code_samples/curl/nodes/apply-id-trigger-inventory.sh"
+

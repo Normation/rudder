@@ -1,0 +1,9 @@
+type: object
+properties:
+  classes:
+    type: array
+    description: Parameter to trigger a specific run, like an inventory for instance.
+    items:
+      type: string
+      description: A class name like force_inventory for instance.
+      example: "force_inventory"
