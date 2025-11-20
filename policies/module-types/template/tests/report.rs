@@ -17,10 +17,7 @@ fn main() {
 }
 ";
 
-    let wanted_diff = "--- old
-+++ new
-@@ -1,4 +1,4 @@
- 
+    let wanted_diff = "@@ -2,3 +2,3 @@
  fn main() {
 -    println!(\"Hello, World!\");
 +    println!(\"Hello, Ferris!\");

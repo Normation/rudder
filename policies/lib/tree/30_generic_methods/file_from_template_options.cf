@@ -129,7 +129,6 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
 
   classes:
       "has_module"   expression => fileexists("${module_file}");
-
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -141,7 +140,7 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("rudder_actual_file_from_template_options");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Template rendering of ${destination}", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "${rudder_actual_file_from_template_options.report}", "");
 
     pass3.!has_module::
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
@@ -149,7 +148,7 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
       "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Template module is not supported on this agent", "");
 }
 
-bundle agent template_module_serializer(r_destination, r_engine, r_data, r_template_string, r_template_path, r_datastate_path) {
+bundle agent template_module_serializer(r_destination, r_engine, r_data, r_template_string, r_template_path, r_datastate_path, r_report_file) {
   vars:
     "path"            string => "${r_destination}";
     "engine"          string => "${r_engine}";
@@ -157,13 +156,17 @@ bundle agent template_module_serializer(r_destination, r_engine, r_data, r_templ
     "template_string" string => "${r_template_string}";
     "template_path"   string => "${r_template_path}";
     "datastate_path"  string => "${r_datastate_path}";
+    "report_file"     string => "${r_report_file}";
 }
 
 bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
   vars:
-     "datastate_path"  string => "";
+   "destination_c" string => canonify("${destination}");
+   "report_file" string => "/var/rudder/tmp/rudder-module-template${destination_c}.log";
    pass1.data_is_empty::
      "datastate_path"  string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
+   pass1.!data_is_empty::
+     "datastate_path"  string => "";
    pass1::
      "string_params"     data => bundlestate("template_module_serializer");
      "bool_params"       data => '---
@@ -171,8 +174,15 @@ show_content: ${show_content}
 ';
      "inputs_as_data"    data => mergedata('string_params', 'bool_params');
      "module_inputs"   string => storejson('inputs_as_data');
+   pass2::
+     "report"      string => readfile("${report_file}", "0"),
+                        if => "has_report";
 
   classes:
+    pass2::
+      "has_report"   expression => fileexists("${report_file}");
+
+    any::
       "pass3"         expression => "pass2";
       "pass2"         expression => "pass1";
       "pass1"         expression => "any";
@@ -184,19 +194,22 @@ show_content: ${show_content}
         template_method      => "inline_mustache",
         create               => "true",
         edit_defaults        => no_backup,
-        edit_template_string => "{{%-top-}}",
-        action               => immediate_ignore_dry_run,
-        # Needed for uniqueness
-        comment              => "${report_data.method_id}";
+        edit_template_string => "{{%-top-}}";
+
+    pass3.has_report::
+      "${report_file}"
+        delete => tidy,
+        action => immediate_ignore_dry_run;
 
   methods:
      pass1.!pass2::
-      "${report_data.method_id}" usebundle => template_module_serializer("${destination}",
+       "serialize"               usebundle => template_module_serializer("${destination}",
                                                                          "${engine}",
                                                                          "${data}",
                                                                          "${template_string}",
                                                                          "${template_path}",
-                                                                         "${datastate_path}");
+                                                                         "${datastate_path}",
+									 "${report_file}");
      pass3.data_is_empty::
       # In non audit mode, we need to force enforce mode to remove the temp files.
       "${report_data.method_id}" usebundle => push_dry_run_mode("false");
@@ -204,6 +217,9 @@ show_content: ${show_content}
       "${report_data.method_id}" usebundle => file_absent("${datastate_path}");
       "${report_data.method_id}" usebundle => call_method_end("file_absent");
       "${report_data.method_id}" usebundle => pop_dry_run_mode();
+
+     pass3.!has_report::
+        "error" usebundle => _classes_failure("${report_data.method_id}");
 
   template:
     pass2.!pass3.!(global_dry_run|dry_run)::
