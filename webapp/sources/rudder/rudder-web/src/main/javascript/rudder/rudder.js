@@ -596,61 +596,64 @@ function checkIPaddress(address) {
   return (/^((((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|(0|([1-2][0-9]))|(3[0-2])))?)|(([0-9a-f]|:){1,4}(:([0-9a-f]{0,4})*){1,7}(\/([0-9]{1,2}|1[01][0-9]|12[0-8]))?)|(0.0.0.0))$/i).test(address);
 }
 
-function callRemoteRun(nodeId, refreshCompliance) {
-  var $textAction = $( "#triggerBtn" ).find("span").first();
-  var $iconButton = $( "#triggerBtn" ).find("i");
-  var $panelContent = $("#report").find("pre");
-  var spinner = '<img class="svg-loading" src="'+resourcesPath+'/images/ajax-loader-white.svg"/>';
+function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
+  const $textAction = $("#triggerBtn" + defaultOrInventory).find("span").first();
+  const $iconButton = $("#triggerBtn" + defaultOrInventory).find("i");
+  const $panelContent = $("#report" + defaultOrInventory).find("pre");
+  const spinner = '<img class="svg-loading" src="'+resourcesPath+'/images/ajax-loader-white.svg"/>';
 
   function showOrHideBtn() {
-    $(".collapse").on('show.bs.collapse', function(){
-      $("#visibilityOutput").html($("#visibilityOutput").html().replace("Show", "Hide"));
+    $("#report" + defaultOrInventory + ".collapse").on('show.bs.collapse', function(){
+      $("#visibilityOutput" + defaultOrInventory).html($("#visibilityOutput" + defaultOrInventory).html().replace("Show", "Hide"));
     }).on('hide.bs.collapse', function(){
-      $("#visibilityOutput").html($("#visibilityOutput").html().replace("Hide", "Show"));
+      $("#visibilityOutput" + defaultOrInventory).html($("#visibilityOutput" + defaultOrInventory).html().replace("Hide", "Show"));
     });
   }
 
   function showTriggerBtn() {
     $iconButton.children().remove(".svg-loading");
     $iconButton.addClass("fa fa-play");
-    $( "#triggerBtn" ).prop('disabled', null).blur();
-    $textAction.html("Trigger agent")
+    $("#triggerBtn" + defaultOrInventory).prop('disabled', null).blur();
+    $textAction.html("Trigger agent " + defaultOrInventory)
   }
 
   $iconButton.removeClass("fa fa-play").append(spinner)
-  $( "#triggerBtn" ).attr('disabled', 'disabled')
+  $("#triggerBtn" + defaultOrInventory).attr('disabled', 'disabled')
   $textAction.html("Loading")
-  $("#report").removeClass("in");
-  $("#visibilityOutput").removeClass("btn-success");
-  $("#visibilityOutput").removeClass("btn-danger");
-  $("#visibilityOutput").hide();
-  $("#report").removeClass("border-success");
-  $("#report").removeClass("border-fail");
-  $panelContent.remove();
+  $("#report" + defaultOrInventory).removeClass("in");
+  $("#visibilityOutput" + defaultOrInventory).removeClass("btn-success");
+  $("#visibilityOutput" + defaultOrInventory).removeClass("btn-danger");
+  $("#visibilityOutput" + defaultOrInventory).hide();
+  $("#report" + defaultOrInventory).removeClass("border-success");
+  $("#report" + defaultOrInventory).removeClass("border-fail");
+  $("pre" + "#response" + defaultOrInventory).remove();
   $(".alert-danger").remove();
-  $("#countDown").find("span").empty();
+  $("#countDown" + defaultOrInventory).find("span").empty();
+
+  const classes = defaultOrInventory == "Inventory" ? '{"classes":["force_inventory"]}' : ""
 
   $.ajax({
     type: "POST",
-    url: contextPath + "/secure/api/nodes/" + nodeId + "/applyPolicy" ,
+    url: contextPath + "/secure/api/nodes/" + nodeId + "/applyPolicy",
+    data: classes,
     contentType: "application/json; charset=utf-8",
     success: function (response, status, jqXHR) {
-        $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-check-custom"></i>');
-        $("#report").html('<pre>' + escapeHTML(response) + '</pre>');
-        $("#report").addClass("border-success");
-        $("#visibilityOutput").show();
+        $("#visibilityOutput" + defaultOrInventory).addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-check-custom"></i>');
+        $("#report" + defaultOrInventory).html('<pre id="response' + defaultOrInventory + '">' + escapeHTML(response) + '</pre>');
+        $("#report" + defaultOrInventory).addClass("border-success");
+        $("#visibilityOutput" + defaultOrInventory).show();
         showOrHideBtn();
         var counter = 5;
         var interval = setInterval(function() {
-          $('#countDown').find("span").show()
+          $('#countDown' + defaultOrInventory).find("span").show()
           counter--;
-          $("#countDown").find("span").html("Refresh table in " + counter);
+          $("#countDown" + defaultOrInventory).find("span").html("Refresh table in " + counter);
           if (counter == 0) {
-            $("#countDown").find("span").html("Table of compliance has been refreshed");
+            $("#countDown" + defaultOrInventory).find("span").html("Table of compliance has been refreshed");
             refreshCompliance();
             clearInterval(interval);
             setTimeout(function() {
-              $('#countDown').find("span").fadeOut();
+              $('#countDown' + defaultOrInventory).find("span").fadeOut();
               showTriggerBtn();
             }, 3000);
               }
@@ -659,16 +662,17 @@ function callRemoteRun(nodeId, refreshCompliance) {
     error: function (jqXHR, textStatus, errorThrown) {
         $iconButton.children().remove(".svg-loading");
         $iconButton.addClass("fa fa-play");
-        $( "#triggerBtn" ).prop('disabled', null).blur();
-        $textAction.html("Trigger agent");
-        $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-times-custom"></i>');
-        $("#report").remove("pre").html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
-        $("#report").addClass("border-fail");
-        $("#visibilityOutput").show();
+        $("#triggerBtn" + defaultOrInventory).prop('disabled', null).blur();
+        $textAction.html("Trigger agent " + defaultOrInventory);
+        $("#visibilityOutput" + defaultOrInventory).addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-times-custom"></i>');
+        $("#report" + defaultOrInventory).remove("pre" + "#response" + defaultOrInventory).html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
+        $("#report" + defaultOrInventory).addClass("border-fail");
+        $("#visibilityOutput" + defaultOrInventory).show();
         showOrHideBtn();
         showTriggerBtn();
     }
   });
+
 }
 
 function showHideRunLogs(scrollTarget, tabId, init, refresh) {
