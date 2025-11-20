@@ -124,6 +124,7 @@ impl Engine {
                 .args([templating_script_path, template_path])
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
                 .spawn()
                 .unwrap_or_else(|_| panic!("Failed to execute {}", templating_script_path));
 
@@ -133,11 +134,11 @@ impl Engine {
                 .expect("Failed to write to stdin");
 
             let output_info = child.wait_with_output()?;
-            let output = String::from_utf8_lossy(&output_info.stdout).to_string();
             if !output_info.status.success() {
+                let output = String::from_utf8_lossy(&output_info.stderr).to_string();
                 bail!("Error {} failed with : {}", script_name, output);
             }
-            output
+            String::from_utf8_lossy(&output_info.stdout).to_string()
         } else {
             bail!("Jinja2 templating engine is not supported on Windows")
         };
