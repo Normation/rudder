@@ -80,6 +80,7 @@ object UserManagementIO {
    *   new RuleTransformer(new RewriteRule { ...}).transform(<authentication>... existing content...</autentication>)
    * ```
    * We also provide the original <authentication> Elem since it can be necessary for some transformation.
+   * The actual rewrite logic is delegated to `replaceXml`.
    *
    * That method is atomic:
    * - only one can be executed in parallel,
@@ -100,12 +101,18 @@ object UserManagementIO {
     } yield ())
   }
 
+  /*
+   * This pure function rewrite `originalXml` according to `RewriteRule`.
+   * In addition, we provide access in transformer to `originalXml` to:
+   * - be able to look around it for things in other nodes (like "hash" value)
+   * - check for a property, like "user does not exist" before adding it.
+   */
   def replaceXml(
-      originalDoc:   NodeSeq,
+      originalXml:   NodeSeq,
       transformer:   Elem => PureResult[RewriteRule],
       debugFileName: String
   ): PureResult[NodeSeq] = {
-    (originalDoc \\ AUTHENTICATION_ROOT_ELT).headOption match {
+    (originalXml \\ AUTHENTICATION_ROOT_ELT).headOption match {
       // that file should always have exactly one `authentication` root tag (plus comments around, maybe)
       case Some(e: Elem) =>
         for {
@@ -113,7 +120,7 @@ object UserManagementIO {
         } yield {
           // here, `RuleTransformer` is necessary to get the recursion on children
           val newXml = new RuleTransformer(rewriteRule).transform(e)
-          originalDoc.flatMap { x =>
+          originalXml.flatMap { x =>
             if (x.label == AUTHENTICATION_ROOT_ELT) {
               newXml
             } else {
