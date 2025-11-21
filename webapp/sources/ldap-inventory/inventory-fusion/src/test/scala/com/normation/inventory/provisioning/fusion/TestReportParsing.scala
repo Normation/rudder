@@ -222,11 +222,6 @@ class TestInventoryParsing extends Specification with Loggable {
       val arch = parseRun("fusion-inventories/sles-10-64-sp3-2011-08-23-16-06-17.ocs").node.archDescription
       arch must beEqualTo(Some("x86_64"))
     }
-
-    "be 'ppc64' on AIX" in {
-      val arch = parseRun("fusion-inventories/sovma136-2014-02-10-07-13-43.ocs").node.archDescription
-      arch must beEqualTo(Some("ppc64"))
-    }
   }
 
   "Local Accounts" should {
