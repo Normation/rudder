@@ -70,7 +70,7 @@ impl From<ValidateResult> for ValidateOutcome {
             Ok(()) => ValidateOutcome::Valid,
             Err(e) => {
                 // Use Debug to show full anyhow error stack
-                rudder_error!("{:?}", e);
+                rudder_error!("{:#}", e);
                 ValidateOutcome::Invalid
             }
         }
@@ -106,7 +106,8 @@ impl From<CheckApplyResult> for EvaluateOutcome {
             }
             Err(e) => {
                 // returning a non kept requires an error log
-                rudder_error!("{}", e);
+                // Use Debug to show full anyhow error stack
+                rudder_error!("{:#}", e);
                 EvaluateOutcome::NotKept
             }
         }
