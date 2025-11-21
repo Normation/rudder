@@ -201,7 +201,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.231
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch )
 ### Policy types, used to replace and extends isSystem for technique
-attributetype ( RudderAttributes:232
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.232
   NAME 'policyTypes'
   DESC 'What kind of compliance that policy checks'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15

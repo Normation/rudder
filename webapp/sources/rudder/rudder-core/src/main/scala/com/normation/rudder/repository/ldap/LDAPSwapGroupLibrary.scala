@@ -39,6 +39,7 @@ package com.normation.rudder.repository.ldap
 
 import com.normation.NamedZioLogger
 import com.normation.errors.*
+import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.ldap.sdk.syntax.*
@@ -46,6 +47,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.repository.ImportGroupLibrary
 import com.normation.rudder.repository.NodeGroupCategoryContent
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
@@ -62,16 +64,16 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
 
   // move user lib to archive branch
   def moveToArchive(connection: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
-    for {
-      ok <- connection
-              .move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN))
-              .chainError("Error when arching current Library with DN '%s' to LDAP".format(targetArchiveDN))
-    } yield {}
+    connection
+      .move(sourceLibraryDN, targetArchiveDN.getParent, Some(targetArchiveDN.getRDN))
+      .chainError(s"Error when arching current Library with DN '${targetArchiveDN}' to LDAP")
+      .unit
   }
 
+  /*
+   * Copy system entries and policies with a `policyTypes` which doesn't contain `rudder.base`.
+   */
   def copyBackSystemEntries(con: RwLDAPConnection, sourceLibraryDN: DN, targetArchiveDN: DN): IOResult[Unit] = {
-    // the only hard part could be for system group in non system categories, because
-    // we may miss a parent. But it should not be allowed, so we consider such cases
     // as errors
     import com.normation.ldap.sdk.BuildFilter.EQ
     import com.normation.ldap.sdk.*
@@ -94,30 +96,35 @@ trait LDAPImportLibraryUtil extends NamedZioLogger {
       relatives.map(rdns => recBuildDN(sourceLibraryDN, rdns.reverse))
     }
 
+    // a filter for non user-defined policies
+    val notUserPoliciesFilter = OR(
+      EQ(A_IS_SYSTEM, true.toLDAPString), // isSystem
+      AND(HAS(A_POLICY_TYPES), NOT(SUB(A_POLICY_TYPES, "", Array(PolicyTypeName.rudderBase.value), "")))
+    )
+
     for {
-      entries         <- con.searchSub(targetArchiveDN, EQ(A_IS_SYSTEM, true.toLDAPString))
+      entries         <- con.searchSub(targetArchiveDN, notUserPoliciesFilter)
       allDNs           = entries.map(_.dn).toSet
       // update DN to UserLib DN, remove root entry and entries without parent in that set
       updatedDNEntries = {
         (entries.collect {
-          case entry if (entry.dn == targetArchiveDN)            =>
+          case entry if (entry.dn == targetArchiveDN)       =>
             logEffect.trace("Skipping root entry, already taken into account")
             None
-          case entry if (allDNs.exists(_ == entry.dn.getParent)) =>
+          case entry if allDNs.contains(entry.dn.getParent) =>
             // change the DN to user lib
             setUserLibRoot(entry.dn) match {
               case None     =>
                 logEffect.error(
-                  "Ignoring entry with DN '%s' because it does not belong to archive '%s'".format(entry.dn, targetArchiveDN)
+                  s"Ignoring entry with DN '${entry.dn}' because it does not belong to archive '${targetArchiveDN}'"
                 )
                 None
               case Some(dn) =>
                 Some(LDAPEntry(dn, entry.attributes))
             }
-          case entry                                             =>
+          case entry                                        =>
             logEffect.error(
-              "Error when trying to save entry '%s' marked as system: its parent is not available, perhaps it is not marked as system?"
-                .format(entry.dn)
+              s"Error when trying to save entry '${entry.dn}' marked as system: its parent is not available, perhaps it is not marked as system?"
             )
             None
         }).flatten
