@@ -101,7 +101,7 @@ import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.normation.rudder.rest.data.Rest.NodeDetails
 import com.normation.rudder.rest.data.Validation.NodeValidationError
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.NoDetailsScore
 import com.normation.rudder.score.Score
@@ -601,7 +601,7 @@ class NodeApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       import com.normation.rudder.score.ScoreSerializer.*
-      import com.normation.rudder.rest.implicits.*
+      import com.normation.rudder.rest.syntax.*
       nodeApiService.getNodeDetailsScore(NodeId(id))(using authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
