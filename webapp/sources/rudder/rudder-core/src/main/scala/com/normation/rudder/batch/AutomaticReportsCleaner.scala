@@ -39,6 +39,7 @@ package com.normation.rudder.batch
 
 import com.normation.errors.IOResult
 import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
@@ -54,6 +55,7 @@ import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
 import org.joda.time.*
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -75,6 +77,8 @@ object AutomaticReportsCleaning {
 
   val defaultArchiveTTL = 0
   val defaultDeleteTTL  = 4
+
+  private[batch] val runIntervalAttr = "serializedAgentRunInterval"
 
   /**
    *  Build a frequency depending on the value
@@ -141,32 +145,32 @@ object AutomaticReportsCleaning {
   }
 
   // what we are looking for in node run interval JSON
-  final case class RunInterval(interval: Int)
+  final case class RunInterval(interval: Int) derives JsonDecoder
+  object RunInterval {
+    val default: RunInterval = RunInterval(0)
+  }
   def getMaxRunMinutes(ldapCon: LDAPConnectionProvider[RoLDAPConnection]): IOResult[Int] = {
     import com.normation.ldap.sdk.*
-    import net.liftweb.json.*
-    implicit val format = DefaultFormats
 
-    val runIntervalAttr = "serializedAgentRunInterval"
     for {
       ldap   <- ldapCon
       opt    <-
         ldap.get(new DN("propertyName=agent_run_interval,ou=Application Properties,cn=rudder-configuration"), "propertyValue")
       default = opt.map(_.getAsInt("propertyValue").getOrElse(5)).getOrElse(5) // default run value
       nodes  <- ldap.searchOne(new DN("ou=Nodes,cn=rudder-configuration"), BuildFilter.HAS(runIntervalAttr), runIntervalAttr)
-      ints   <- ZIO.foreach(nodes) { node =>                                   // don't fail on parsing error, just return 0
-                  (try {
-                    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval: @annotation.nowarn(
-                      "cat=deprecation"
-                    )
-                  } catch {
-                    case ex: Exception => 0
-                  }).succeed
-                }
+      ints    = nodes.map(getRunInterval(_).interval)
     } yield {
       (default +: ints).max
     }
+  }
+
+  /**
+   * Doesn't fail on parsing error, just returns default: 0 
+   */
+  private[batch] def getRunInterval(ldapEntry: LDAPEntry): RunInterval = {
+    ldapEntry(runIntervalAttr)
+      .flatMap(_.fromJson[RunInterval].toOption)
+      .getOrElse(RunInterval.default)
   }
 }
 
