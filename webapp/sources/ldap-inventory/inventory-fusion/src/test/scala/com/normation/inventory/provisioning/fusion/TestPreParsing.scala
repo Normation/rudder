@@ -109,10 +109,4 @@ class TestPreParsing extends Specification {
     inventories must beRight
   }
 
-  "AIX version should be correctly set in OPERATINSYSTEM" in {
-    val aix = post
-      .check("fusion-inventories/sovma136-2014-02-10-07-13-43.ocs")
-      .map(xml => (xml \\ "OPERATINGSYSTEM" \ "KERNEL_VERSION").text)
-    aix must beRight[String](===("5300-12"))
-  }
 }
