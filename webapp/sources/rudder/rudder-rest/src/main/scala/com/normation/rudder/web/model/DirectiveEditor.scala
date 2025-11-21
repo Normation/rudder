@@ -596,7 +596,7 @@ final case class DirectiveEditor(
   def toFormNodeSeq: NodeSeq = {
     <div class="variableDefinition">
       <table class="directiveVarDef">
-        {sectionField.childFields.flatMap(_.toFormNodeSeq)}
+        {sectionField.childFields.filter(_.getAllSectionFields.exists(_.getAllVariables.nonEmpty)).flatMap(_.toFormNodeSeq)}
       </table>
     </div>
   }
@@ -607,7 +607,7 @@ final case class DirectiveEditor(
         <br/>
         <div>Variables to be defined for this Technique</div>
         <table class="directiveVarDisplay">
-          {sectionField.childFields.flatMap(_.toHtmlNodeSeq)}
+          {sectionField.childFields.filter(_.getAllSectionFields.exists(_.getAllVariables.nonEmpty)).flatMap(_.toHtmlNodeSeq)}
         </table>
       </div>
     </div>
