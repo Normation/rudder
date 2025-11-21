@@ -243,41 +243,9 @@ case object AlmaLinux        extends LinuxType { val name = "AlmaLinux"    }
 case object Raspbian         extends LinuxType { val name = "Raspbian"     }
 case object Tuxedo           extends LinuxType { val name = "Tuxedo"       }
 
-//solaris has only one flavour for now
-//to be updated in the future with OSS verison
-object SolarisOS extends OsType {
-  val kernelName = "Solaris"
-  val name       = "Solaris"
-}
-
-//AIX has only one flavour
-object AixOS extends OsType {
-  val kernelName = "AIX"
-  val name       = "AIX"
-}
-
-// The BSD familly - should I make it a subclass of LinuxType? Or Ubuntu ?
-sealed abstract class BsdType extends OsType {
-  override val kernelName = "BSD"
-}
-
-object BsdType {
-  val allKnownTypes: List[BsdType] = (
-    FreeBSD
-      :: UnknownBsdType
-      :: Nil
-  )
-}
-
-case object UnknownBsdType extends BsdType { val name = "UnknownBSD" }
-case object FreeBSD        extends BsdType { val name = "FreeBSD"    }
-
 /**
  * The different OS type. For now, we know:
  * - Linux
- * - Solaris
- * - AIX
- * - BSD
  * - Windows.
  * And a joker
  * - Unknown
@@ -308,28 +276,6 @@ final case class Linux(
     override val servicePack:   Option[String],
     override val kernelVersion: Version
 ) extends OsDetails(os, fullName, version, servicePack, kernelVersion)
-
-final case class Solaris(
-    override val fullName:      String,
-    override val version:       Version,
-    override val servicePack:   Option[String],
-    override val kernelVersion: Version
-) extends OsDetails(SolarisOS, fullName, version, servicePack, kernelVersion)
-
-final case class Bsd(
-    override val os:            OsType,
-    override val fullName:      String,
-    override val version:       Version,
-    override val servicePack:   Option[String],
-    override val kernelVersion: Version
-) extends OsDetails(os, fullName, version, servicePack, kernelVersion)
-
-final case class Aix(
-    override val fullName:      String,
-    override val version:       Version,
-    override val servicePack:   Option[String],
-    override val kernelVersion: Version
-) extends OsDetails(AixOS, fullName, version, servicePack, kernelVersion)
 
 final case class Windows(
     override val os:            OsType,
@@ -387,12 +333,6 @@ object ParseOSType {
         else if (x.contains("tuxedo")) Tuxedo
         else UnknownLinuxType
 
-      case ("solaris", _, _) => SolarisOS
-
-      case ("aix", _, _) => AixOS
-
-      case ("freebsd", _, _) => FreeBSD
-
       case _ => UnknownOSType
     }
   }
@@ -421,31 +361,6 @@ object ParseOSType {
       case distrib: LinuxType =>
         Linux(
           os = distrib,
-          fullName = fullName,
-          version = version,
-          servicePack = servicePack,
-          kernelVersion = kernelVersion
-        )
-
-      case FreeBSD =>
-        Bsd(
-          os = FreeBSD,
-          fullName = fullName,
-          version = version,
-          servicePack = servicePack,
-          kernelVersion = kernelVersion
-        )
-
-      case SolarisOS =>
-        Solaris(
-          fullName = fullName,
-          version = version,
-          servicePack = servicePack,
-          kernelVersion = kernelVersion
-        )
-
-      case AixOS =>
-        Aix(
           fullName = fullName,
           version = version,
           servicePack = servicePack,
@@ -541,7 +456,7 @@ object SoftwareUpdateSeverity extends Enum[SoftwareUpdateSeverity] {
  * - from: tools that produced that update (yum, apt, etc)
  * - what kind
  * - source: from what source like repo name (for now, they are not specific)
- * #TODO: other informations ? A Map[String, String] of things ?
+ * #TODO: other information? A Map[String, String] of things ?
  */
 final case class SoftwareUpdate(
     name:        String,

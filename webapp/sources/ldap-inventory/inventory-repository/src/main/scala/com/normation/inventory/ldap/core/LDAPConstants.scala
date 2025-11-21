@@ -213,11 +213,6 @@ object LDAPConstants {
   val A_OS_FEDORA          = "Fedora"
   val A_OS_SUZE            = "Suse"
   val A_OS_ANDROID         = "Android"
-  val A_OS_UNKNOWN_SOLARIS = "Unknown Solaris version"
-  val A_OS_SOLARIS         = "Solaris"
-  val A_OS_AIX             = "AIX"
-  val A_OS_FREEBSD         = "FreeBSD"
-  val A_OS_UNKNOWN_BSD     = "Unknown BSD flavor"
   val A_OS_ORACLE          = "Oracle"
   val A_OS_SCIENTIFIC      = "Scientific"
   val A_OS_SLACKWARE       = "Slackware"
@@ -241,9 +236,6 @@ object LDAPConstants {
   val OC_WINDOWS_NODE = "windowsNode"
   val OC_UNIX_NODE    = "unixNode"
   val OC_LINUX_NODE   = "linuxNode"
-  val OC_SOLARIS_NODE = "solarisNode"
-  val OC_AIX_NODE     = "aixNode"
-  val OC_BSD_NODE     = "bsdNode"
   val OC_MACHINE      = "machine"
   val OC_PM           = "physicalMachine"
   val OC_VM           = "virtualMachine"
@@ -263,17 +255,14 @@ object LDAPConstants {
   val OC_DYN_GROUP    = "dynGroup"
 
   // vm type
-  val OC_VM_VIRTUALBOX   = "virtualBox"
-  val OC_VM_XEN          = "xen"
-  val OC_VM_VMWARE       = "vmWare"
-  val OC_VM_SOLARIS_ZONE = "solarisZone"
-  val OC_VM_QEMU         = "qemu"
-  val OC_VM_AIX_LPAR     = "aixLpar"
-  val OC_VM_HYPERV       = "hyperV"
-  val OC_VM_BSDJAIL      = "bsdJail"
-  val OC_VM_LXC          = "lxc"
-  val OC_VM_VIRTUOZZO    = "virtuozzo"
-  val OC_VM_OPENVZ       = "openvz"
+  val OC_VM_VIRTUALBOX = "virtualBox"
+  val OC_VM_XEN        = "xen"
+  val OC_VM_VMWARE     = "vmWare"
+  val OC_VM_QEMU       = "qemu"
+  val OC_VM_HYPERV     = "hyperV"
+  val OC_VM_LXC        = "lxc"
+  val OC_VM_VIRTUOZZO  = "virtuozzo"
+  val OC_VM_OPENVZ     = "openvz"
 
   implicit val OC: LDAPSchema = new LDAPSchema()
 
@@ -293,19 +282,16 @@ object LDAPConstants {
     may = Set(A_MB_UUID, A_MANUFACTURER, A_SERIAL_NUMBER)
   )
 
-  val OC_OC_PM:              LDAPObjectClass = OC.createObjectClass(OC_PM)
-  val OC_OC_VM:              LDAPObjectClass = OC.createObjectClass(OC_VM)
-  val OC_OC_VM_VIRTUALBOX:   LDAPObjectClass = OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
-  val OC_OC_VM_XEN:          LDAPObjectClass = OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
-  val OC_OC_VM_VMWARE:       LDAPObjectClass = OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
-  val OC_OC_VM_SOLARIS_ZONE: LDAPObjectClass = OC.createObjectClass(OC_VM_SOLARIS_ZONE, OC(OC_VM))
-  val OC_OC_VM_QEMU:         LDAPObjectClass = OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
-  val OC_OC_VM_AIX_LPAR:     LDAPObjectClass = OC.createObjectClass(OC_VM_AIX_LPAR, OC(OC_VM))
-  val OC_OC_VM_HYPERV:       LDAPObjectClass = OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
-  val OC_OC_VM_BSDJAIL:      LDAPObjectClass = OC.createObjectClass(OC_VM_BSDJAIL, OC(OC_VM))
-  val OC_OC_VM_LXC:          LDAPObjectClass = OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
-  val OC_OC_VM_VIRTUOZZO:    LDAPObjectClass = OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
-  val OC_OC_VM_OPENVZ:       LDAPObjectClass = OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
+  val OC_OC_PM:            LDAPObjectClass = OC.createObjectClass(OC_PM)
+  val OC_OC_VM:            LDAPObjectClass = OC.createObjectClass(OC_VM)
+  val OC_OC_VM_VIRTUALBOX: LDAPObjectClass = OC.createObjectClass(OC_VM_VIRTUALBOX, OC(OC_VM))
+  val OC_OC_VM_XEN:        LDAPObjectClass = OC.createObjectClass(OC_VM_XEN, OC(OC_VM))
+  val OC_OC_VM_VMWARE:     LDAPObjectClass = OC.createObjectClass(OC_VM_VMWARE, OC(OC_VM))
+  val OC_OC_VM_QEMU:       LDAPObjectClass = OC.createObjectClass(OC_VM_QEMU, OC(OC_VM))
+  val OC_OC_VM_HYPERV:     LDAPObjectClass = OC.createObjectClass(OC_VM_HYPERV, OC(OC_VM))
+  val OC_OC_VM_LXC:        LDAPObjectClass = OC.createObjectClass(OC_VM_LXC, OC(OC_VM))
+  val OC_OC_VM_VIRTUOZZO:  LDAPObjectClass = OC.createObjectClass(OC_VM_VIRTUOZZO, OC(OC_VM))
+  val OC_OC_VM_OPENVZ:     LDAPObjectClass = OC.createObjectClass(OC_VM_OPENVZ, OC(OC_VM))
 
   OC.createObjectClass(
     OC_PE,
@@ -320,11 +306,8 @@ object LDAPConstants {
     OC_VM_VIRTUALBOX,
     OC_VM_XEN,
     OC_VM_VMWARE,
-    OC_VM_SOLARIS_ZONE,
     OC_VM_QEMU,
-    OC_VM_AIX_LPAR,
     OC_VM_HYPERV,
-    OC_VM_BSDJAIL,
     OC_VM_LXC,
     OC_VM_VIRTUOZZO,
     OC_VM_OPENVZ
@@ -451,9 +434,6 @@ object LDAPConstants {
 
   OC.createObjectClass(OC_UNIX_NODE, sup = OC(OC_NODE))
   OC.createObjectClass(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))
-  OC.createObjectClass(OC_SOLARIS_NODE, sup = OC(OC_UNIX_NODE))
-  OC.createObjectClass(OC_AIX_NODE, sup = OC(OC_UNIX_NODE))
-  OC.createObjectClass(OC_BSD_NODE, sup = OC(OC_UNIX_NODE))
 
   OC.createObjectClass(
     OC_OU,

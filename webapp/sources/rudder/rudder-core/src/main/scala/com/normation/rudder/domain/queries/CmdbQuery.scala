@@ -234,7 +234,7 @@ case object NodeStateComparator extends NodeCriterionType {
 }
 
 case object NodeOstypeComparator extends NodeCriterionType {
-  val osTypes:                                                                        List[String]        = List("AIX", "BSD", "Linux", "Solaris", "Windows")
+  val osTypes:                                                                        List[String]        = List("Linux", "Windows")
   override def comparators:                                                           Seq[BaseComparator] = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String]  = {
     if (null == v || v.isEmpty) Left(Inconsistency("Empty string not allowed")) else Right(v)
@@ -251,13 +251,12 @@ case object NodeOstypeComparator extends NodeCriterionType {
 
 case object NodeOsNameComparator extends NodeCriterionType {
 
-  val osNames: List[OsType] = AixOS ::
-    BsdType.allKnownTypes.sortBy(_.name) :::
+  val osNames: List[OsType] = {
     LinuxType.allKnownTypes.sortBy {
       _.name
     } :::
-    (SolarisOS :: Nil) :::
     WindowsType.allKnownTypes
+  }
 
   override def comparators:                                                           Seq[BaseComparator] = Seq(Equals, NotEquals)
   override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String]  = {
@@ -658,13 +657,10 @@ case object MachineComparator extends LDAPCriterionType {
 case object VmTypeComparator extends LDAPCriterionType {
   final case class vm(obj: VmType, ldapClass: String, displayName: String)
   val vmTypes: List[(String, String)] = List(
-    (OC_VM_AIX_LPAR, VmType.AixLPAR.name),
-    (OC_VM_BSDJAIL, VmType.BSDJail.name),
     (OC_VM_HYPERV, VmType.HyperV.name),
     (OC_VM_LXC, VmType.LXC.name),
     (OC_VM_OPENVZ, VmType.OpenVZ.name),
     (OC_VM_QEMU, VmType.QEmu.name),
-    (OC_VM_SOLARIS_ZONE, VmType.SolarisZone.name),
     (OC_VM_VIRTUALBOX, VmType.VirtualBox.name),
     (OC_VM_VIRTUOZZO, VmType.Virtuozzo.name),
     (OC_VM_VMWARE, VmType.VMWare.name),

@@ -441,11 +441,8 @@ class InventoryMapper(
       case VirtualMachineType(VirtualBox)    => OC_OC_VM_VIRTUALBOX
       case VirtualMachineType(Xen)           => OC_OC_VM_XEN
       case VirtualMachineType(VMWare)        => OC_OC_VM_VMWARE
-      case VirtualMachineType(SolarisZone)   => OC_OC_VM_SOLARIS_ZONE
       case VirtualMachineType(QEmu)          => OC_OC_VM_QEMU
-      case VirtualMachineType(AixLPAR)       => OC_OC_VM_AIX_LPAR
       case VirtualMachineType(HyperV)        => OC_OC_VM_HYPERV
-      case VirtualMachineType(BSDJail)       => OC_OC_VM_BSDJAIL
       case VirtualMachineType(OpenVZ)        => OC_OC_VM_OPENVZ
       case VirtualMachineType(Virtuozzo)     => OC_OC_VM_VIRTUOZZO
       case VirtualMachineType(LXC)           => OC_OC_VM_LXC
@@ -457,20 +454,17 @@ class InventoryMapper(
   def machineTypeFromObjectClasses(objectClassNames: Set[String]): MachineType = {
     def objectClass2MachineType(oc: LDAPObjectClass): MachineType = {
       oc match {
-        case LDAPObjectClass(OC_VM, _, _, _)              => VirtualMachineType(UnknownVmType)
-        case LDAPObjectClass(OC_VM_VIRTUALBOX, _, _, _)   => VirtualMachineType(VirtualBox)
-        case LDAPObjectClass(OC_VM_XEN, _, _, _)          => VirtualMachineType(Xen)
-        case LDAPObjectClass(OC_VM_VMWARE, _, _, _)       => VirtualMachineType(VMWare)
-        case LDAPObjectClass(OC_VM_SOLARIS_ZONE, _, _, _) => VirtualMachineType(SolarisZone)
-        case LDAPObjectClass(OC_VM_QEMU, _, _, _)         => VirtualMachineType(QEmu)
-        case LDAPObjectClass(OC_VM_AIX_LPAR, _, _, _)     => VirtualMachineType(AixLPAR)
-        case LDAPObjectClass(OC_VM_HYPERV, _, _, _)       => VirtualMachineType(HyperV)
-        case LDAPObjectClass(OC_VM_BSDJAIL, _, _, _)      => VirtualMachineType(BSDJail)
-        case LDAPObjectClass(OC_VM_LXC, _, _, _)          => VirtualMachineType(LXC)
-        case LDAPObjectClass(OC_VM_VIRTUOZZO, _, _, _)    => VirtualMachineType(Virtuozzo)
-        case LDAPObjectClass(OC_VM_OPENVZ, _, _, _)       => VirtualMachineType(OpenVZ)
-        case LDAPObjectClass(OC_PM, _, _, _)              => PhysicalMachineType
-        case _                                            => UnknownMachineType
+        case LDAPObjectClass(OC_VM, _, _, _)            => VirtualMachineType(UnknownVmType)
+        case LDAPObjectClass(OC_VM_VIRTUALBOX, _, _, _) => VirtualMachineType(VirtualBox)
+        case LDAPObjectClass(OC_VM_XEN, _, _, _)        => VirtualMachineType(Xen)
+        case LDAPObjectClass(OC_VM_VMWARE, _, _, _)     => VirtualMachineType(VMWare)
+        case LDAPObjectClass(OC_VM_QEMU, _, _, _)       => VirtualMachineType(QEmu)
+        case LDAPObjectClass(OC_VM_HYPERV, _, _, _)     => VirtualMachineType(HyperV)
+        case LDAPObjectClass(OC_VM_LXC, _, _, _)        => VirtualMachineType(LXC)
+        case LDAPObjectClass(OC_VM_VIRTUOZZO, _, _, _)  => VirtualMachineType(Virtuozzo)
+        case LDAPObjectClass(OC_VM_OPENVZ, _, _, _)     => VirtualMachineType(OpenVZ)
+        case LDAPObjectClass(OC_PM, _, _, _)            => PhysicalMachineType
+        case _                                          => UnknownMachineType
       }
     }
     val machineTypes = objectClassNames.filter(x => machineTypesNames.exists(y => x.equalsIgnoreCase(y)))
@@ -728,24 +722,6 @@ class InventoryMapper(
         }
         linux
 
-      case Solaris(_, _, _, _) =>
-        val solaris = dit.NODES.NODE.solarisModel(server.main.id)
-        solaris.addValues(A_OS_NAME, A_OS_SOLARIS)
-        solaris
-
-      case Aix(_, _, _, _) =>
-        val aix = dit.NODES.NODE.aixModel(server.main.id)
-        aix.addValues(A_OS_NAME, A_OS_AIX)
-        aix
-
-      case Bsd(os, _, _, _, _) =>
-        val bsd = dit.NODES.NODE.bsdModel(server.main.id)
-        os match {
-          case FreeBSD => bsd.addValues(A_OS_NAME, A_OS_FREEBSD)
-          case _       => bsd.addValues(A_OS_NAME, A_OS_UNKNOWN_BSD)
-        }
-        bsd
-
       case Windows(
             os,
             osFullName,
@@ -972,16 +948,6 @@ class InventoryMapper(
                          }
                          Right(Linux(os, osFullName, osVersion, osServicePack, kernelVersion))
 
-                       } else if (entry.isA(OC_SOLARIS_NODE)) {
-                         Right(Solaris(osFullName, osVersion, osServicePack, kernelVersion))
-                       } else if (entry.isA(OC_AIX_NODE)) {
-                         Right(Aix(osFullName, osVersion, osServicePack, kernelVersion))
-                       } else if (entry.isA(OC_BSD_NODE)) {
-                         val os = osName match {
-                           case A_OS_FREEBSD => FreeBSD
-                           case _            => UnknownBsdType
-                         }
-                         Right(Bsd(os, osFullName, osVersion, osServicePack, kernelVersion))
                        } else if (entry.isA(OC_NODE)) {
                          Right(UnknownOS(osFullName, osVersion, osServicePack, kernelVersion))
                        } else Left(UnknownElement(s"Unknow OS type: '${entry.valuesFor(A_OC).mkString(", ")}'"))

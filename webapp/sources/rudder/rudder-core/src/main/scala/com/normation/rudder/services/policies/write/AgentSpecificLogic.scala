@@ -40,7 +40,6 @@ package com.normation.rudder.services.policies.write
 import cats.syntax.traverse.*
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.Bsd
 import com.normation.inventory.domain.Linux
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.policies.NodeRunHook
@@ -189,17 +188,14 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
   }
 
   /**
-   * This version only handle open source unix-like (*linux, *bsd) for
-   * the community version of CFEngine. Plugins are needed for other
-   * flavors (anything with CFEngine enterprise, AIX, Solaris, etc).
-   * The node must be a simple node or the root policy server.
+   * This version only handle open source unix-like (*linux) for
+   * the community version of CFEngine.
    */
   override def handle(agentNodeProps: AgentNodeProperties): Boolean = {
     (!agentNodeProps.isPolicyServer || agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID) && (
       (agentNodeProps.agentType, agentNodeProps.osDetails) match {
         case (AgentType.CfeCommunity, _: Linux) => true
-        case (AgentType.CfeCommunity, _: Bsd)   => true
-        // for now AIX, Windows, Solaris and UnknownOS goes there.
+        // for now Windows and UnknownOS goes there.
         case _                                  => false
       }
     )

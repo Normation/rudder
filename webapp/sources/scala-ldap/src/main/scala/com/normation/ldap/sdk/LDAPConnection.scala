@@ -668,6 +668,11 @@ class RwLDAPConnection(
         case None           =>
           applyAdd(new AddRequest(entry.backed))
         case Some(existing) =>
+          // ignore objectClass change here, since they can't be handled in a save. If the change is incompatible,
+          // we will get an error about illegal attribute. If it's ok, then it will go well.
+          // Typically, this will make existing AIX/Solaris/etc not producing error when disabled following
+          // https://issues.rudder.io/issues/27785
+          existing.resetValuesTo("objectClass", entry.valuesFor("objectClass").toList*)
           val mods = LDAPEntry.merge(
             existing,
             entry,

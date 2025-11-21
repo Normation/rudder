@@ -148,18 +148,15 @@ sealed abstract class VmType(override val entryName: String) extends EnumEntry {
 }
 
 object VmType extends Enum[VmType] {
-  case object AixLPAR       extends VmType("aixlpar")     { override def displayName: String = "AIX LPAR"        }
-  case object BSDJail       extends VmType("bsdjail")     { override def displayName: String = "BSD Jail"        }
-  case object HyperV        extends VmType("hyperv")      { override def displayName: String = "Hyper-V"         }
-  case object LXC           extends VmType("lxc")         { override def displayName: String = "LXC"             }
-  case object OpenVZ        extends VmType("openvz")      { override def displayName: String = "OpenVz"          }
-  case object QEmu          extends VmType("qemu")        { override def displayName: String = "QEMU"            }
-  case object SolarisZone   extends VmType("solariszone") { override def displayName: String = "Solaris Zone"    }
-  case object VirtualBox    extends VmType("vbox")        { override def displayName: String = "VirtualBox"      }
-  case object Virtuozzo     extends VmType("virtuozzo")   { override def displayName: String = "Virtuozzo"       }
-  case object VMWare        extends VmType("vmware")      { override def displayName: String = "VMware"          }
-  case object Xen           extends VmType("xen")         { override def displayName: String = "Xen"             }
-  case object UnknownVmType extends VmType("unknownvm")   { override def displayName: String = "Unknown VM Type" }
+  case object HyperV        extends VmType("hyperv")    { override def displayName: String = "Hyper-V"         }
+  case object LXC           extends VmType("lxc")       { override def displayName: String = "LXC"             }
+  case object OpenVZ        extends VmType("openvz")    { override def displayName: String = "OpenVz"          }
+  case object QEmu          extends VmType("qemu")      { override def displayName: String = "QEMU"            }
+  case object VirtualBox    extends VmType("vbox")      { override def displayName: String = "VirtualBox"      }
+  case object Virtuozzo     extends VmType("virtuozzo") { override def displayName: String = "Virtuozzo"       }
+  case object VMWare        extends VmType("vmware")    { override def displayName: String = "VMware"          }
+  case object Xen           extends VmType("xen")       { override def displayName: String = "Xen"             }
+  case object UnknownVmType extends VmType("unknownvm") { override def displayName: String = "Unknown VM Type" }
 
   def values:           IndexedSeq[VmType]     = findValues
   def parse(s: String): Either[String, VmType] = {
