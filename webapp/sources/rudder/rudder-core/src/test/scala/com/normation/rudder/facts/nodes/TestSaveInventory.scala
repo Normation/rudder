@@ -383,7 +383,9 @@ class TestSaveInventoryLdap extends TestSaveInventory {
       }
     ).runNow
 
-    (res must beMatching(".*subject doesn't contain same node ID in 'UID' attribute as inventory node ID.*"))
+    (res must beMatching(
+      ".*subject for node 'b73ea451-c42a-420d-a540-47b445e58313' doesn't contain same node ID in 'UID' attribute as inventory node ID.*"
+    ))
   }
 }
 

@@ -703,7 +703,7 @@ class SystemApiService11(
   private def restoreLatestArchive(
       req:         Req,
       list:        () => IOResult[Map[DateTime, GitArchiveId]],
-      restore:     (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId],
+      restore:     (GitCommitId, PersonIdent) => IOResult[GitCommitId],
       archiveType: String
   )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
@@ -714,8 +714,7 @@ class SystemApiService11(
       (date, tag) = x
       restored   <- restore(
                       tag.commit,
-                      commiter,
-                      false
+                      commiter
                     )
     } yield {
       restored
@@ -727,14 +726,13 @@ class SystemApiService11(
 
   private def restoreLatestCommit(
       req:         Req,
-      restore:     (PersonIdent, Boolean) => IOResult[GitCommitId],
+      restore:     PersonIdent => IOResult[GitCommitId],
       archiveType: String
   )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
       commiter <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
       restored <- restore(
-                    commiter,
-                    false
+                    commiter
                   )
     } yield {
       restored
@@ -747,7 +745,7 @@ class SystemApiService11(
   private def restoreByDatetime(
       req:         Req,
       list:        () => IOResult[Map[DateTime, GitArchiveId]],
-      restore:     (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId],
+      restore:     (GitCommitId, PersonIdent) => IOResult[GitCommitId],
       datetime:    String,
       archiveType: String
   )(implicit qc: QueryContext): Either[String, JField] = {
@@ -765,8 +763,7 @@ class SystemApiService11(
           )
       restored   <- restore(
                       tag.commit,
-                      commiter,
-                      false
+                      commiter
                     )
     } yield {
       restored
@@ -778,13 +775,13 @@ class SystemApiService11(
 
   private def archive(
       req:         Req,
-      archive:     (PersonIdent, ModificationId, EventActor, Option[String], Boolean) => IOResult[GitArchiveId],
+      archive:     (PersonIdent, ModificationId, EventActor, Option[String]) => IOResult[GitArchiveId],
       archiveType: String
   )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
       committer <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
       archiveId <-
-        archive(committer, newModId, qc.actor, Some("Create new archive requested from REST API"), false)
+        archive(committer, newModId, qc.actor, Some("Create new archive requested from REST API"))
     } yield {
       archiveId
     }).either.runNow.fold(
@@ -1024,7 +1021,7 @@ class SystemApiService11(
     implicit val action   = "archiveDirectives"
     implicit val prettify = params.prettify
 
-    archive(req, ((a, b, c, d, e) => itemArchiveManager.exportTechniqueLibrary(a, b, c, d, e).map(_._1)), "directives") match {
+    archive(req, ((a, b, c, d) => itemArchiveManager.exportTechniqueLibrary(a, b, c, d).map(_._1)), "directives") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -1052,7 +1049,7 @@ class SystemApiService11(
     implicit val action   = "archiveAll"
     implicit val prettify = params.prettify
 
-    archive(req, ((a, b, c, d, e) => itemArchiveManager.exportAll(a, b, c, d, e).map(_._1)), "full") match {
+    archive(req, ((a, b, c, d) => itemArchiveManager.exportAll(a, b, c, d).map(_._1)), "full") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }

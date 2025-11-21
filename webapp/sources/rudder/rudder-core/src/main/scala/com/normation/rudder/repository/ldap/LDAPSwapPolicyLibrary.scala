@@ -75,9 +75,9 @@ class ImportTechniqueLibraryImpl(
    *
    * In case of error, we try to restore the old technique library.
    */
-  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent, includeSystem: Boolean = false): IOResult[Unit] = {
+  def swapActiveTechniqueLibrary(rootCategory: ActiveTechniqueCategoryContent): IOResult[Unit] = {
     /*
-     * Hight level behaviour:
+     * High level behaviour:
      * - check that User Library respects global rules
      *   (at most one UPT for each PT, no two categories with the same name, etc)
      *   If not, remove duplicates with error logs (because perhaps they are no duplicate,
@@ -161,12 +161,9 @@ class ImportTechniqueLibraryImpl(
         finished <- {
           (for {
             saved  <- saveUserLib(con, userLib, gitId)
-            system <- if (includeSystem) "OK".succeed
-                      else {
-                        copyBackSystemEntrie(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN).chainError(
-                          "Error when copying back system entries in the imported technique library"
-                        )
-                      }
+            system <- copyBackSystemEntries(con, rudderDit.ACTIVE_TECHNIQUES_LIB.dn, targetArchiveDN).chainError(
+                        "Error when copying back system entries in the imported technique library"
+                      )
           } yield {
             system
           }).catchAll { e =>
@@ -210,7 +207,7 @@ class ImportTechniqueLibraryImpl(
 
       def sanitizeUPT(uptContent: ActiveTechniqueContent): Option[ActiveTechniqueContent] = {
         val activeTechnique = uptContent.activeTechnique
-        if (activeTechnique.policyTypes.isSystem && includeSystem == false) None
+        if (activeTechnique.policyTypes.isSystem) None
         else if (uactiveTechniqueIds.contains(activeTechnique.id)) {
           logEffect.error("Ignoring Active Technique because is ID was already processed: " + activeTechnique)
           None
@@ -228,7 +225,7 @@ class ImportTechniqueLibraryImpl(
               None
             case None     => // OK, proccess PIs !
               val sanitizedPis = uptContent.directives.flatMap { directive =>
-                if (directive.isSystem && includeSystem == false) None
+                if (directive.isSystem) None
                 else if (directiveUids.contains(directive.id.uid)) {
                   logEffect.error(
                     "Ignoring following PI because an other PI with the same ID was already processed: " + directive
@@ -256,7 +253,7 @@ class ImportTechniqueLibraryImpl(
           isRoot:  Boolean
       ): Option[ActiveTechniqueCategoryContent] = {
         val cat = content.category
-        if (!isRoot && content.category.isSystem && includeSystem == false) None
+        if (!isRoot && content.category.isSystem) None
         else if (categoryIds.contains(cat.id)) {
           logEffect.error("Ignoring Active Technique Category because its ID was already processed: " + cat)
           None
