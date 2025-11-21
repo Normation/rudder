@@ -153,8 +153,8 @@ valueCompliance complianceFilters =
     ItemFun
         (\_ _ _ -> [])
         (\_ i -> i)
-        [ ( "Value", .value >> text, \d1 d2 -> N.compare d1.value d2.value )
-        , ( "Message", .message >> text, \d1 d2 -> N.compare d1.message d2.message )
+        [ ( "Value", .value >> (\v -> div[class "value-container font-monospace"][text v]), \d1 d2 -> N.compare d1.value d2.value )
+        , ( "Message", .message >> (\v -> div[class "value-container font-monospace"][text v]), \d1 d2 -> N.compare d1.message d2.message )
         , ( "Status", \r -> td [ class "report-compliance" ] [ div [] [ span [ class r.status ] [ text (buildComplianceReport r) ] ] ], \d1 d2 -> Basics.compare (reportStatusOrder d1) (reportStatusOrder d2) )
         ]
         .value
