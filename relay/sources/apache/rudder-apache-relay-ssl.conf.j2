@@ -16,6 +16,12 @@ SSLEngine on
 SSLVerifyDepth 5
 SSLVerifyClient optional_no_ca
 
+{% if classes.rudder_cert_validation is defined %}
+SSLUserName SSL_SESSION_ID
+{% else %}
+SSLUserName SSL_CLIENT_S_DN_UID
+{% endif %}
+
 # TLS 1.3 only
 SSLProtocol             -all +TLSv1.3
 SSLHonorCipherOrder     off
@@ -73,12 +79,18 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 #   -> final path is generated from the rule pattern
 RewriteEngine On
 
-RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
+# Look for the client uuid in different certificate fields:
+# UID in DN
+# The first 3 SAN DNS entries
+
+RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$" [OR]
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_0}=$1.example.com" "^(.+)=\1$" [OR]
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$" [OR] 
+RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
 RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
-  SSLUserName SSL_CLIENT_S_DN_UID
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>
@@ -92,8 +104,6 @@ RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 # expose common archives publicly
 Alias /common /var/rudder/share/common
 <Directory /var/rudder/share/common>
-  # avoid repetitive warning in the logs caused by upper directory configuration
-  SSLUserName SSL_SESSION_ID
   <RequireAll>
 {% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
@@ -215,8 +225,6 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 </Location>
 
 <Location /rudder/relay-api/shared-folder>
-  SSLUserName SSL_CLIENT_S_DN_UID
-
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>
@@ -248,3 +256,4 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
     </RequireAny>
   </RequireAll>
 </Location>
+
