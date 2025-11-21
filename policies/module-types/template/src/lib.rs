@@ -355,22 +355,12 @@ impl ModuleType0 for Template {
             false
         };
 
-        let reported_diff = if p.show_content {
-            let reported_diff = diff(content, output.clone());
-            let max_reported_diff = 10_000;
-
-            if reported_diff.len() > max_reported_diff {
-                format!(
-                    "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
-                )
-            } else {
-                reported_diff
-            }
-        } else {
-            format!(
-                "Changes to {output_file_d} could not be reported. The diff output is disabled."
-            )
-        };
+        let reported_diff = compute_diff_or_warning(
+            &content,
+            &output,
+            &output_file_d.to_string(),
+            p.show_content,
+        );
 
         let outcome = match (already_correct, mode) {
             (true, _) => Outcome::success(),
@@ -418,6 +408,28 @@ pub fn diff(old: String, new: String) -> String {
     let diff = TextDiff::from_lines(&old, &new);
     let mut unified = diff.unified_diff();
     unified.context_radius(3).header("old", "new").to_string()
+}
+
+fn compute_diff_or_warning(
+    content: &str,
+    output: &str,
+    output_file_d: &str,
+    show_content: bool,
+) -> String {
+    if show_content {
+        let reported_diff = diff(content.to_string(), output.to_string());
+        let max_reported_diff = 10_000;
+
+        if reported_diff.len() > max_reported_diff {
+            format!(
+                "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
+            )
+        } else {
+            reported_diff
+        }
+    } else {
+        format!("Changes to {output_file_d} could not be reported. The diff output is disabled.")
+    }
 }
 
 fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Error> {
