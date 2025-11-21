@@ -1,5 +1,6 @@
 package com.normation.rudder.domain.policies
 
+import com.normation.JsonSpecMatcher
 import com.normation.inventory.domain.Debian
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
@@ -19,9 +20,10 @@ import net.liftweb.common.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
-class RuleTargetTest extends Specification with Loggable {
+class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
 
   val nodeIds: Set[NodeId] = (for {
     i <- 0 to 10
@@ -213,13 +215,40 @@ class RuleTargetTest extends Specification with Loggable {
   }
 
   "Rule targets" should {
-    "Be correctly serialized and deserialized from their target" in {
-      allTargets.forall { gt =>
-        RuleTarget.unser(gt.target) match {
-          case Some(unser) => unser == gt
-          case None        => false
-        }
-      } === true
+
+    "unserialize an invalid target from string" in {
+      RuleTarget.unser("an-invalid-target") must beLeft
+    }
+
+    "unserialize a simple target from a string" in {
+      RuleTarget.unser("group:a-string-target") === NodeGroupId.parse("a-string-target").map(GroupTarget(_))
+    }
+
+    "unserialize a non group rule target" in {
+      "policy server" in {
+        RuleTarget.unser("policyServer:a-node-id") must beRight(PolicyServerTarget(NodeId("a-node-id")))
+      }
+      "other special targets" in {
+        List(AllTarget, AllPolicyServers, AllTargetExceptPolicyServers).forall(t => RuleTarget.unser(t.target) must beRight(t))
+      }
+    }
+
+    "unserialize a default target to union" in {
+      RuleTarget.unser("{}") must beRight(TargetUnion())
+    }
+
+    "serialize a target composition of simple targets" in {
+      allComposite.forall { (c, _) =>
+        // groups targets are sorted
+        c.target must equalsJsonSemantic(c match {
+          case TargetUnion(targets)        => s"""{"or":${targets.toList.map(_.target).sorted.toJson}}"""
+          case TargetIntersection(targets) => s"""{"and":${targets.toList.map(_.target).sorted.toJson}}"""
+        })
+      }
+    }
+
+    "Be correctly serialized and unserialized from their target" in {
+      allTargets.forall(gt => RuleTarget.unser(gt.target) must beRight(gt))
     }
 
     /*
@@ -234,8 +263,8 @@ class RuleTargetTest extends Specification with Loggable {
       val newFormat = """{"include":{"or":["special:all_policyServers"]},"exclude":{"or":[]}}"""
 
       val p = RuleTarget.unser(oldFormat)
-      (p === Some(TargetExclusion(TargetUnion(Set(AllPolicyServers)), TargetUnion()))) and
-      (p.get.toString === newFormat)
+      p must beRight(TargetExclusion(TargetUnion(Set(AllPolicyServers)), TargetUnion()))
+      p.map(_.toString) must beRight(newFormat)
     }
 
     "Is able to correctly parse the old format and write back for simple nodes" in {
@@ -244,8 +273,8 @@ class RuleTargetTest extends Specification with Loggable {
       val newFormat = """{"include":{"or":["special:all_exceptPolicyServers"]},"exclude":{"or":[]}}"""
 
       val p = RuleTarget.unser(oldFormat)
-      (p === Some(TargetExclusion(TargetUnion(Set(AllTargetExceptPolicyServers)), TargetUnion()))) and
-      (p.get.toString === newFormat)
+      p must beRight(TargetExclusion(TargetUnion(Set(AllTargetExceptPolicyServers)), TargetUnion()))
+      p.map(_.toString) must beRight(newFormat)
     }
 
     "Have their group target removed in composite targets" in {
