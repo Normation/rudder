@@ -40,12 +40,9 @@ package com.normation.rudder.web.snippet
 //lift std import
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.inventory.domain.AixOS
-import com.normation.inventory.domain.BsdType
 import com.normation.inventory.domain.LinuxType
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.SolarisOS
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.WindowsType
 import com.normation.inventory.ldap.core.TimingDebugLoggerPure
@@ -352,11 +349,10 @@ class HomePage extends StatefulSnippet {
 
   def inventoryInfo(): NodeSeq = {
 
-    val osTypes = AixOS ::
-      SolarisOS ::
-      BsdType.allKnownTypes :::
+    val osTypes = {
       LinuxType.allKnownTypes :::
       WindowsType.allKnownTypes
+    }
 
     // mapping between os name and their string representation (printed on screen).
 

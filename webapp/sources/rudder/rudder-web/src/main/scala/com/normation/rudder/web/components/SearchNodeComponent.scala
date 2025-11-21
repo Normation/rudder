@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.inventory.domain.BsdType
 import com.normation.inventory.domain.LinuxType
 import com.normation.inventory.domain.OsType
 import com.normation.inventory.ldap.core.LDAPConstants.*
@@ -886,8 +885,7 @@ object SearchNodeComponent {
               x match {
                 // add linux: for linux
                 case _: LinuxType => "Linux - " + S.?("os.name." + x.name)
-                case _: BsdType   => "BSD - " + S.?("os.name." + x.name)
-                // nothing special for windows, Aix and Solaris
+                // nothing special for windows
                 case _ => S.?("os.name." + x.name)
               }
             }

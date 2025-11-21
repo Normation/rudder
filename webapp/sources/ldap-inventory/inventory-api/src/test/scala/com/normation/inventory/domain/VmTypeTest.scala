@@ -6,6 +6,6 @@ import zio.test.ZIOSpecDefault
 
 object VmTypeTest extends ZIOSpecDefault {
   private val validNames =
-    Seq("unknown", "solariszone", "vbox", "vmware", "qemu", "xen", "aixlpar", "hyperv", "bsdjail", "virtuozzo", "openvz", "lxc")
+    Seq("unknown", "vbox", "vmware", "qemu", "xen", "hyperv", "virtuozzo", "openvz", "lxc")
   override def spec: Spec[Any, Nothing] = EnumLaws.laws(VmType, validNames)
 }
