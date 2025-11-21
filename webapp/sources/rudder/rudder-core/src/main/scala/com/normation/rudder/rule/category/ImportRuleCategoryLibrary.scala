@@ -130,7 +130,7 @@ class ImportRuleCategoryLibraryImpl(
           (for {
             saved  <- saveUserLib(con)
             system <- ZIO.when(!includeSystem) {
-                        copyBackSystemEntrie(con, rudderDit.RULECATEGORY.dn, targetArchiveDN).chainError(
+                        copyBackSystemEntries(con, rudderDit.RULECATEGORY.dn, targetArchiveDN).chainError(
                           "Error when copying back system entries in the imported Rule category library"
                         )
                       }
