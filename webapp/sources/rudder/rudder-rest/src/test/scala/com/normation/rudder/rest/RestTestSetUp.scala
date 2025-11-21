@@ -594,73 +594,62 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   class FakeItemArchiveManager extends ItemArchiveManager {
     override def exportAll(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
+        commiter: PersonIdent,
+        modId:    ModificationId,
+        actor:    EventActor,
+        reason:   Option[String]
     )(implicit qc: QueryContext): IOResult[(GitArchiveId, NotArchivedElements)] =
       ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportRules(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
+        commiter: PersonIdent,
+        modId:    ModificationId,
+        actor:    EventActor,
+        reason:   Option[String]
     ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportTechniqueLibrary(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
+        commiter: PersonIdent,
+        modId:    ModificationId,
+        actor:    EventActor,
+        reason:   Option[String]
     ): IOResult[(GitArchiveId, NotArchivedElements)] = ZIO.succeed((fakeGitArchiveId, fakeNotArchivedElements))
     override def exportGroupLibrary(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
+        commiter: PersonIdent,
+        modId:    ModificationId,
+        actor:    EventActor,
+        reason:   Option[String]
     )(implicit qc: QueryContext): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def exportParameters(
-        commiter:      PersonIdent,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String],
-        includeSystem: Boolean
+        commiter: PersonIdent,
+        modId:    ModificationId,
+        actor:    EventActor,
+        reason:   Option[String]
     ): IOResult[GitArchiveId] = ZIO.succeed(fakeGitArchiveId)
     override def importAll(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
+        archiveId: GitCommitId,
+        commiter:  PersonIdent
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importRules(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
+        archiveId: GitCommitId,
+        commiter:  PersonIdent
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importTechniqueLibrary(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
+        archiveId: GitCommitId,
+        commiter:  PersonIdent
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importGroupLibrary(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
+        archiveId: GitCommitId,
+        commiter:  PersonIdent
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def importParameters(
-        archiveId:     GitCommitId,
-        commiter:      PersonIdent,
-        includeSystem: Boolean
+        archiveId: GitCommitId,
+        commiter:  PersonIdent
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
     override def rollback(
         archiveId:        GitCommitId,
         commiter:         PersonIdent,
         rollbackedEvents: Seq[EventLog],
         target:           EventLog,
-        rollbackType:     String,
-        includeSystem:    Boolean
+        rollbackType:     String
     )(implicit cc: ChangeContext): IOResult[GitCommitId] = ZIO.succeed(fakeGitCommitId)
 
     /**

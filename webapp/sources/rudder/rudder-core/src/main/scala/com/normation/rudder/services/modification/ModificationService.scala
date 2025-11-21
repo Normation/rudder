@@ -79,8 +79,7 @@ class ModificationService(
                           commiter,
                           rollbackedEvents,
                           target,
-                          "after",
-                          includeSystem = false
+                          "after"
                         )(using
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
@@ -118,8 +117,7 @@ class ModificationService(
                           commiter,
                           rollbackedEvents,
                           target,
-                          "before",
-                          includeSystem = false
+                          "before"
                         )(using
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
