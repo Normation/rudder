@@ -7,7 +7,7 @@ use crate::cli::Cli;
 use clap::ValueEnum;
 use core::panic;
 use rudder_module_type::ProtocolResult;
-use similar::TextDiff;
+use similar::{Algorithm, udiff::unified_diff};
 use std::collections::HashMap;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -203,6 +203,8 @@ pub struct TemplateParameters {
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
+    #[serde(default)]
+    report_file: Option<PathBuf>,
 }
 
 fn default_as_true() -> bool {
@@ -372,16 +374,28 @@ impl ModuleType0 for Template {
             )
         };
 
+        let mut report = String::new();
+
         let outcome = match (already_correct, mode) {
-            (true, _) => Outcome::success(),
+            (true, _) => {
+                let report = format!("File '{output_file_d}' was already correct");
+                if let Some(r) = p.report_file {
+                    fs::write(r, &report)?;
+                }
+                Outcome::success()
+            }
             (false, PolicyMode::Audit) => {
                 if already_present {
-                    bail!(
-                        "Output file {output_file_d} is present but content is not up to date. diff: {reported_diff}"
-                    )
+                    report.push_str(format!(
+                        "File '{output_file_d}' is present but content is not up to date.\nFile diff:\n{reported_diff}"
+                    ).as_str());
                 } else {
-                    bail!("Output file {output_file_d} does not exist")
+                    report.push_str(format!("Output file {output_file_d} does not exist").as_str());
                 }
+                if let Some(r) = p.report_file {
+                    fs::write(r, &report)?;
+                }
+                bail!("{report}");
             }
             (false, PolicyMode::Enforce) => {
                 // Backup current file
@@ -400,14 +414,14 @@ impl ModuleType0 for Template {
                     .unwrap_or_default();
 
                 if already_present {
-                    Outcome::repaired(format!(
-                        "Replaced {output_file_d} content from template {source_file} diff: {reported_diff}",
-                    ))
+                    report.push_str(format!("Replaced '{output_file_d}' content from template '{source_file}'\nFile diff:\n{reported_diff}").as_str());
                 } else {
-                    Outcome::repaired(format!(
-                        "Written new {output_file_d} from template {source_file} diff: {reported_diff}",
-                    ))
+                    report.push_str(format!("Written new '{output_file_d}' from template '{source_file}'\nFile diff:\n{reported_diff}").as_str());
                 }
+                if let Some(r) = p.report_file {
+                    fs::write(r, &report)?;
+                }
+                Outcome::repaired(report)
             }
         };
         Ok(outcome)
@@ -415,9 +429,7 @@ impl ModuleType0 for Template {
 }
 
 pub fn diff(old: String, new: String) -> String {
-    let diff = TextDiff::from_lines(&old, &new);
-    let mut unified = diff.unified_diff();
-    unified.context_radius(3).header("old", "new").to_string()
+    unified_diff(Algorithm::Myers, &old, &new, 1, None)
 }
 
 fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Error> {
