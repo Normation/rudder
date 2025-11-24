@@ -230,8 +230,6 @@ paths:
     $ref: paths/parameters/parameters.yml
   "/parameters/{parameterId}":
     $ref: paths/parameters/parameters-id.yml
-  "/inventories/info":
-    $ref: paths/inventories/info.yml
   "/inventories/upload":
     $ref: paths/inventories/upload.yml
   "/inventories/watcher/start":
