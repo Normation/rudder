@@ -40,25 +40,20 @@ package com.normation.rudder.rest.lift
 import better.files.*
 import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.inventory.InventoryFileWatcher
+import com.normation.rudder.ports.InventoryFileWatcherPort
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.InventoryApi as API
-import com.normation.rudder.rest.RestError
-import com.normation.rudder.rest.RestUtils.effectiveResponse
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonDSL.*
 import zio.*
 import zio.syntax.*
 
 class InventoryApi(
-    inventoryFileWatcher: InventoryFileWatcher,
+    inventoryFileWatcher: InventoryFileWatcherPort,
     incomingInventoryDir: File
 ) extends LiftApiModuleProvider[API] {
 
@@ -66,27 +61,10 @@ class InventoryApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
-      case API.QueueInformation   => QueueInformation
       case API.UploadInventory    => UploadInventory
       case API.FileWatcherStart   => FileWatcherStart
       case API.FileWatcherStop    => FileWatcherStop
       case API.FileWatcherRestart => FileWatcherRestart
-    }
-  }
-
-  object QueueInformation extends LiftApiModule0 {
-    val tooManyRequestError: RestError                 = new RestError {
-      override def code: Int = 429 // too many requests
-    }
-    val schema:              API.QueueInformation.type = API.QueueInformation
-    val actionName = "queueInformation"
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val json = (
-        ("queueMaxSize"       -> Int.MaxValue)
-          ~ ("queueSaturated" -> false)
-      )
-
-      effectiveResponse(None, json, tooManyRequestError, actionName, params.prettify)
     }
   }
 
@@ -152,55 +130,31 @@ class InventoryApi(
 
   object FileWatcherStart extends LiftApiModule0 {
     val schema:                                                                                                API.FileWatcherStart.type = API.FileWatcherStart
-    implicit val actionName:                                                                                   String                    = "fileWatcherStart"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse              = {
-      implicit val pretty = params.prettify
-      inventoryFileWatcher.startWatcher() match {
-        case Right(()) =>
-          toJsonResponse(None, "Incoming inventory watcher started")
-        case Left(ex)  =>
-          toJsonError(
-            None,
-            s"Error when trying to start incoming inventories file watcher. Reported exception was: ${ex.fullMsg}."
-          )
-      }
+      inventoryFileWatcher
+        .startWatcher()
+        .as("Incoming inventory watcher started")
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
   object FileWatcherStop extends LiftApiModule0 {
     val schema:                                                                                                API.FileWatcherStop.type = API.FileWatcherStop
-    implicit val actionName:                                                                                   String                   = "fileWatcherStop"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
-      implicit val pretty = params.prettify
-      inventoryFileWatcher.stopWatcher() match {
-        case Right(()) =>
-          toJsonResponse(None, "Incoming inventory watcher stopped")
-        case Left(ex)  =>
-          toJsonError(
-            None,
-            s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${ex.fullMsg}."
-          )
-      }
+      inventoryFileWatcher
+        .stopWatcher()
+        .as("Incoming inventory watcher stopped")
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
   object FileWatcherRestart extends LiftApiModule0 {
     val schema:                                                                                                API.FileWatcherRestart.type = API.FileWatcherRestart
-    implicit val actionName:                                                                                   String                      = "frileWatcherRestart"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
-      implicit val pretty = params.prettify
-      (for {
-        _ <- inventoryFileWatcher.stopWatcher()
-        _ <- inventoryFileWatcher.startWatcher()
-      } yield ()) match {
-        case Right(()) =>
-          toJsonResponse(None, "Incoming inventory watcher restarted")
-        case Left(ex)  =>
-          toJsonError(
-            None,
-            s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${ex.fullMsg}."
-          )
-      }
+      inventoryFileWatcher
+        .restartWatcher()
+        .as("Incoming inventory watcher restarted")
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
