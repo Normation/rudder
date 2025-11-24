@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use crate::{Engine, compute_diff_or_warning, get_python_version};
+use crate::{Engine, get_python_version, report_output};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
@@ -90,20 +90,12 @@ impl Cli {
         let already_correct = if already_present {
             content = read_to_string(&cli.out)
                 .with_context(|| format!("Failed to read file {}", cli.out.display()))?;
-            if content == output {
-                true
-            } else {
-                println!(
-                    "Output file '{}' exists but has outdated content",
-                    cli.out.display()
-                );
-                false
-            }
+            content == output
         } else {
             false
         };
 
-        let reported_diff = compute_diff_or_warning(
+        let reported_diff = report_output(
             &content,
             &output,
             cli.out.to_string_lossy().as_ref(),
