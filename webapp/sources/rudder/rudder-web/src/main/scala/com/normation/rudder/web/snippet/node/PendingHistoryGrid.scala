@@ -242,12 +242,6 @@ object PendingHistoryGrid extends Loggable {
     }
   }
 
-  import com.normation.rudder.domain.logger.ApplicationLoggerPure
-  val result: Either[String, Boolean] = Left("plop")
-  result.left
-    .map(e => ApplicationLoggerPure.Auth.logEffect.warn(s"Error while computing Argon2 hash: ${e}"))
-    .getOrElse(false)
-
   def displayIfDeleted(id: NodeId, lastInventoryDate: DateTime, deletedNodes: Map[NodeId, Seq[EventLog]]): NodeSeq = {
     // only take events that could have delete that inventory, as we set the default value to an empty sequence, there's no null here with the apply on the map
     val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(DateFormaterService.toInstant(lastInventoryDate)))
