@@ -74,18 +74,18 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 RewriteEngine On
 
 {% if cert_validation %}
-# Allow customization of the download ACL depending on the used certificate
-# If the file exist it must contain the rewrite rule to apply
+# Allow customization of the node certificate ACL depending on the used certificate.
+# If the file exist it must contain the rewrite cond to apply.
 #
 # For example, for SAN based uuids, the file could contain:
 #
 # RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$" [OR]
 # RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
 #
-<IfFile  /opt/rudder/etc/rudder-apache-nodes-dl.conf>
-Include /opt/rudder/etc/rudder-apache-nodes-dl.conf
+<IfFile  /opt/rudder/etc/rudder-apache-nodes-auth.conf>
+Include /opt/rudder/etc/rudder-apache-nodes-auth.conf
 </IfFile>
-<IfFile !/opt/rudder/etc/rudder-apache-nodes-dl.conf>
+<IfFile !/opt/rudder/etc/rudder-apache-nodes-auth.conf>
 # Same as below
 RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
 </IfFile>
