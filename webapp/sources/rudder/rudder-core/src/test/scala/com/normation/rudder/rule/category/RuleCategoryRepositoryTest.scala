@@ -125,20 +125,19 @@ abstract class RuleCategoryRepositoryTest extends ZIOSpecDefault {
           assertTrue(newRoot.childs.contains(ruleCategory2))
         }
       ),
-      //TODO: this is fishy : this returns a failed response, but it succeeds creating a duplicate 'root' in LDAP, which makes other test below fail
-      // test("error when creating root category")(
-      //   assertZIO(
-      //     repository
-      //       .create(initialRoot, initialRoot.id, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
-      //       .either
-      //   )(Assertion.isLeft)
-      // ),
+      test("error when creating root category")(
+        assertZIO(
+          repository
+            .create(initialRoot, initialRoot.id, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+            .either
+        )(Assertion.isLeft(Assertion.assertion("root already exists")(_.fullMsg.contains("exists"))))
+      ),
       test("error when creating already existing category")(
         assertZIO(
           repository
             .create(ruleCategory2, initialRoot.id, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
             .either
-        )(Assertion.isLeft)
+        )(Assertion.isLeft(Assertion.assertion("given category already exists")(_.fullMsg.contains("exists"))))
       ),
       test("create a new parent and move existing category")(
         for {
@@ -151,8 +150,10 @@ abstract class RuleCategoryRepositoryTest extends ZIOSpecDefault {
 
           newRoot <- roRepository.getRootCategory()
         } yield {
-          assertTrue(newRoot.childs.contains(ruleCategoryParentOf2)) &&
-          assertTrue(newRoot.contains(ruleCategory2.id))
+          assertTrue(newRoot.childs.find(_.id == ruleCategoryParentOf2.id).exists(_.contains(ruleCategory2.id))) &&
+          assertTrue(newRoot.contains(ruleCategory2.id)) &&
+          // TODO: this does not work for Mock test : the root is replaced by the "ruleCategoryParentOf2", and gets the root as children now :(
+          assertTrue(newRoot.allChildren == initialRoot.childs.map(_.id).toSet + ruleCategory2.id + ruleCategoryParentOf2.id)
         }
       )
     ) @@ TestAspect.sequential

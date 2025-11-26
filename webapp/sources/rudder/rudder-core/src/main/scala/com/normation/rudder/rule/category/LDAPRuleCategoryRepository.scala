@@ -57,6 +57,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.unboundid.ldap.sdk.DN
+import scala.jdk.CollectionConverters.*
 import zio.*
 import zio.syntax.*
 
@@ -180,28 +181,33 @@ class WoLDAPRuleCategoryRepository(
   override def loggerName: String = this.getClass.getName
 
   /**
-   * Check if a category exist with the given name
+   * Check if a category exist with the given name, or if category is the root one
    */
   private def categoryExists(
       con:      RoLDAPConnection,
-      name:     String,
+      category: RuleCategory,
       parentDn: DN
   ): IOResult[Boolean] = {
-    categoryMutex.readLock(
-      con
-        .searchOne(parentDn, AND(IS(OC_RULE_CATEGORY), EQ(A_NAME, name)), A_RULE_CATEGORY_UUID)
-        .flatMap(_.size match {
-          case 0 => false.succeed
-          case 1 => true.succeed
-          case _ =>
-            logPure.error(s"More than one Rule Category has ${name} name under ${parentDn}") *>
-            true.succeed
-        })
-    )
+    val optRootId: Option[String] = parentDn.getRDN.getNameValuePairs.asScala.headOption.map(_.getAttributeValue)
+    if (optRootId.contains(category.id.value)) {
+      true.succeed
+    } else {
+      categoryMutex.readLock(
+        con
+          .searchOne(parentDn, AND(IS(OC_RULE_CATEGORY), OR(EQ(A_NAME, category.name))), A_RULE_CATEGORY_UUID)
+          .flatMap(_.size match {
+            case 0 => false.succeed
+            case 1 => true.succeed
+            case _ =>
+              logPure.error(s"More than one Rule Category has ${category.name} name under ${parentDn}") *>
+              true.succeed
+          })
+      )
+    }
   }
 
   /**
-   * Check if a category exist with the given name
+   * Check if a category with a different ID exists with the given name
    */
   private def categoryExists(
       con:       RoLDAPConnection,
@@ -256,7 +262,7 @@ class WoLDAPRuleCategoryRepository(
       con                 <- ldap
       parentCategoryEntry <-
         getCategoryEntry(con, into, "1.1").notOptional(s"The parent category '${into.value}' was not found, can not add")
-      exists              <- categoryExists(con, that.name, parentCategoryEntry.dn)
+      exists              <- categoryExists(con, that, parentCategoryEntry.dn)
       canAddByName        <- ZIO.when(exists) {
                                Inconsistency(
                                  s"Cannot create the Node Group Category with name '${that.name}' : a category with the same name exists at the same level"
