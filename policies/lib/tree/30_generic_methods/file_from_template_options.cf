@@ -194,7 +194,8 @@ show_content: ${show_content}
         template_method      => "inline_mustache",
         create               => "true",
         edit_defaults        => no_backup,
-        edit_template_string => "{{%-top-}}";
+        edit_template_string => "{{%-top-}}",
+        action => immediate_ignore_dry_run;
 
     pass3.has_report::
       "${report_file}"
