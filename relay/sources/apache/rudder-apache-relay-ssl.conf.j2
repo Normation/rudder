@@ -95,9 +95,7 @@ Alias /common /var/rudder/share/common
   # avoid repetitive warning in the logs caused by upper directory configuration
   SSLUserName SSL_SESSION_ID
   <RequireAll>
-{% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
-{% endif %}
     <RequireAny>
       Include /opt/rudder/etc/rudder-networks-24.conf
     </RequireAny>
@@ -119,18 +117,11 @@ Alias /uuid /opt/rudder/etc/uuid.hive
 Alias /inventories /var/rudder/inventories/incoming
 <Directory /var/rudder/inventories/incoming>
   DAV on
-{% if not cert_validation %}
-  AuthName "WebDAV Storage"
-  AuthType Basic
-  AuthUserFile /opt/rudder/etc/htpasswd-webdav-initial
-{% endif %}
 
   <Limit PUT>
     <RequireAll>
     {% if cert_validation %}
       Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
-    {% else %}
-      Require valid-user
     {% endif %}
       <RequireAny>
         # rudder-networks-24.conf is automatically generated according to the hosts allowed by rudder.
@@ -148,19 +139,10 @@ Alias /inventories /var/rudder/inventories/incoming
 Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 <Directory /var/rudder/inventories/accepted-nodes-updates>
   DAV on
-{% if not cert_validation %}
-  AuthName "WebDAV Storage"
-  AuthType Basic
-  AuthUserFile /opt/rudder/etc/htpasswd-webdav
-{% endif %}
 
   <Limit PUT>
     <RequireAll>
-    {% if cert_validation %}
       Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
-    {% else %}
-      Require valid-user
-    {% endif %}
       <RequireAny>
         # rudder-networks-24.conf is automatically generated according to the hosts allowed by rudder.
         Include /opt/rudder/etc/rudder-networks-24.conf
@@ -177,19 +159,10 @@ Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 Alias /reports /var/rudder/reports/incoming
 <Directory /var/rudder/reports/incoming>
   DAV on
-{% if not cert_validation %}
-  AuthName "WebDAV Storage"
-  AuthType Basic
-  AuthUserFile /opt/rudder/etc/htpasswd-webdav
-{% endif %}
 
   <Limit PUT>
     <RequireAll>
-    {% if cert_validation %}
       Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
-    {% else %}
-      Require valid-user
-    {% endif %}
       <RequireAny>
         Include /opt/rudder/etc/rudder-networks-24.conf
       </RequireAny>
@@ -229,9 +202,7 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 
 <Location /rudder/relay-api/shared-files>
   <RequireAll>
-{% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
-{% endif %}
     <RequireAny>
       Include /opt/rudder/etc/rudder-networks-24.conf
     </RequireAny>
