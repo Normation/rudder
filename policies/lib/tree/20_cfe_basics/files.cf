@@ -761,10 +761,29 @@ promise agent augeas {
   path => "/opt/rudder/bin/rudder-module-augeas";
 }
 
+bundle agent augeas_module_serializer(r_path, r_script, r_lens, r_if_script, r_max_file_size, r_report_file) {
+  vars:
+    "path"              string => "${r_path}";
+    "script"            string => "${r_script}";
+    "lens"              string => "${r_lens}";
+    "if_script"         string => "${r_if_script}";
+    "max_file_size"     string => "${r_max_file_size}";
+    "report_file"       string => "${r_report_file}";
+}
+
 bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_content) {
   vars:
-      "c_path"      string => canonify("${path}");
-      "report_file" string => "/var/rudder/tmp/rudder-module-augeas-${c_path}.log";
+      "c_path"        string => canonify("${path}");
+      "report_file"   string => "/var/rudder/tmp/rudder-module-augeas-${c_path}.log";
+      "max_file_size" string => "10MB";
+    pass1::
+      "string_params"     data => bundlestate("augeas_module_serializer");
+      "bool_params"       data => '---
+show_file_content: ${show_content}
+';
+     "inputs_as_data"    data => mergedata('string_params', 'bool_params');
+     "module_inputs"   string => storejson('inputs_as_data');
+
     pass2::
       "report"      string => readfile("${report_file}", "0"),
                         if => "has_report";
@@ -786,6 +805,13 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
         action => immediate_ignore_dry_run;
 
   methods:
+    pass1.!pass2::
+       "serialize"               usebundle => augeas_module_serializer("${path}",
+                                                                       "${script}",
+                                                                       "${lens}",
+                                                                       "${if_script}",
+                                                                       "${max_file_size}",
+                                                                       "${report_file}");
     pass3.!has_report::
       "error" usebundle => _classes_failure("${report_data.method_id}");
 
@@ -799,15 +825,5 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",
         classes                 => classes_generic("${report_data.method_id}"),
-        data                    => parsejson('{
-          "path": "${path}",
-          "script": "${script}",
-          "show_file_content": ${show_content},
-          "lens": "${lens}",
-          "if_script": "${if_script}",
-          "max_file_size": "10MB",
-          "report_file": "${report_file}"
-        }');
-
+        data                    => "${module_inputs}";
 }
-
