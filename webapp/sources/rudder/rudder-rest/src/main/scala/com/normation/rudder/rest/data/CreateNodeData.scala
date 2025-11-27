@@ -322,14 +322,11 @@ object Validation {
   object Machine       extends Enum[Machine] {
     case object MPhysical      extends Machine { val tpe: MachineType = PhysicalMachineType                      }
     case object MUnknownVmType extends Machine { val tpe: VirtualMachineType = VirtualMachineType(UnknownVmType) }
-    case object MSolarisZone   extends Machine { val tpe: VirtualMachineType = VirtualMachineType(SolarisZone)   }
     case object MVirtualBox    extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VirtualBox)    }
     case object MVMWare        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(VMWare)        }
     case object MQEmu          extends Machine { val tpe: VirtualMachineType = VirtualMachineType(QEmu)          }
     case object MXen           extends Machine { val tpe: VirtualMachineType = VirtualMachineType(Xen)           }
-    case object MAixLPAR       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(AixLPAR)       }
     case object MHyperV        extends Machine { val tpe: VirtualMachineType = VirtualMachineType(HyperV)        }
-    case object MBSDJail       extends Machine { val tpe: VirtualMachineType = VirtualMachineType(BSDJail)       }
 
     val values: IndexedSeq[Machine] = findValues
   }
