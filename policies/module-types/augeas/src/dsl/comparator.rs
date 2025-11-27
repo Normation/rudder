@@ -36,8 +36,8 @@ impl NumComparator {
             NumComparator::GreaterThanOrEqual => a.ge(b),
             NumComparator::NotEqual => a.ne(b),
             NumComparator::Equal => a.eq(b),
-            NumComparator::LessThanOrEqual => a.lt(b),
-            NumComparator::LessThan => a.le(b),
+            NumComparator::LessThanOrEqual => a.le(b),
+            NumComparator::LessThan => a.lt(b),
         }
     }
 }
@@ -261,6 +261,108 @@ mod tests {
 
         let n: Number = "42KB".parse().unwrap();
         assert_eq!(n, Number::Bytes(ByteSize::kb(42)));
+    }
+
+    #[test]
+    fn test_numeric_comparator_gt() {
+        let gt = NumericComparison {
+            comparator: NumComparator::GreaterThan,
+            value: Number::Int(42),
+        };
+
+        let r = gt.matches(Number::Int(84)).unwrap();
+        assert!(r);
+
+        let r = gt.matches(Number::Int(42)).unwrap();
+        assert!(!r);
+
+        let r = gt.matches(Number::Int(21)).unwrap();
+        assert!(!r);
+    }
+
+    #[test]
+    fn test_numeric_comparator_ge() {
+        let ge = NumericComparison {
+            comparator: NumComparator::GreaterThanOrEqual,
+            value: Number::Int(42),
+        };
+
+        let r = ge.matches(Number::Int(84)).unwrap();
+        assert!(r);
+
+        let r = ge.matches(Number::Int(42)).unwrap();
+        assert!(r);
+
+        let r = ge.matches(Number::Int(21)).unwrap();
+        assert!(!r);
+    }
+
+    #[test]
+    fn test_numeric_comparator_ne() {
+        let ne = NumericComparison {
+            comparator: NumComparator::NotEqual,
+            value: Number::Int(42),
+        };
+
+        let r = ne.matches(Number::Int(84)).unwrap();
+        assert!(r);
+
+        let r = ne.matches(Number::Int(42)).unwrap();
+        assert!(!r);
+
+        let r = ne.matches(Number::Int(21)).unwrap();
+        assert!(r);
+    }
+
+    #[test]
+    fn test_numeric_comparator_eq() {
+        let eq = NumericComparison {
+            comparator: NumComparator::Equal,
+            value: Number::Int(42),
+        };
+
+        let r = eq.matches(Number::Int(84)).unwrap();
+        assert!(!r);
+
+        let r = eq.matches(Number::Int(42)).unwrap();
+        assert!(r);
+
+        let r = eq.matches(Number::Int(21)).unwrap();
+        assert!(!r);
+    }
+
+    #[test]
+    fn test_numeric_comparator_lt() {
+        let lt = NumericComparison {
+            comparator: NumComparator::LessThan,
+            value: Number::Int(42),
+        };
+
+        let r = lt.matches(Number::Int(84)).unwrap();
+        assert!(!r);
+
+        let r = lt.matches(Number::Int(42)).unwrap();
+        assert!(!r);
+
+        let r = lt.matches(Number::Int(21)).unwrap();
+        assert!(r);
+    }
+
+    #[test]
+    fn test_numeric_comparator_le() {
+        let le = NumericComparison {
+            comparator: NumComparator::LessThanOrEqual,
+            value: Number::Int(42),
+        };
+
+        let r = le.matches(Number::Int(84)).unwrap();
+        assert!(!r);
+
+        let r = le.matches(Number::Int(42)).unwrap();
+        assert!(r);
+
+        let r = le.matches(Number::Int(21)).unwrap();
+        assert!(r);
     }
 
     #[test]
