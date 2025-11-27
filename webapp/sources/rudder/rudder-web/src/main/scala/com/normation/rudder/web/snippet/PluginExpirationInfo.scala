@@ -38,12 +38,12 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.PluginsInfo
+import com.normation.plugins.PluginError
 import com.normation.plugins.PluginName
-import com.normation.plugins.RudderPluginLicenseStatus
 import com.softwaremill.quicklens.*
 import java.time.ZonedDateTime
-import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.RenderDispatch
 import scala.xml.NodeSeq
 
 private case class Warning(
@@ -60,15 +60,10 @@ private object Warning {
  * This snippet allow to display a warning if a plugin is near
  * expiration date.
  */
-class PluginExpirationInfo extends DispatchSnippet with Loggable {
+class PluginExpirationInfo extends DispatchSnippet with RenderDispatch {
   import PluginExpirationInfo.*
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "render"     => pluginInfo
-    case "renderIcon" => pluginInfoIcon
-  }
-
-  def pluginInfo(html: NodeSeq): NodeSeq = {
+  override def render(html: NodeSeq): NodeSeq = {
     val warning = checkPluginWarnings
     def notifHtml(notifClass: String, notifTitle: String): NodeSeq = {
       val tooltipContent =
@@ -90,26 +85,6 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
       NodeSeq.Empty
     }
   }
-
-  def pluginInfoIcon(html: NodeSeq): NodeSeq = {
-    val warning                                                  = checkPluginWarnings
-    def displayPluginIcon(iconClass: String, notifTitle: String) = {
-      val tooltipContent =
-        "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle'></i> " + notifTitle + "</h4><div>More details on <b>Plugin information</b> page</div>"
-      <i class={
-        "fa fa-exclamation-triangle plugin-icon icon-info " ++ iconClass
-      } data-bs-toggle="tooltip" data-bs-placement="right" title={
-        tooltipContent
-      } data-bs-container="body"></i>
-    }
-    if (warning.licenseError.nonEmpty || warning.licenseExpired.nonEmpty) {
-      displayPluginIcon("critical", "Plugin license error require your attention")
-    } else if (warning.licenseNearExpiration.nonEmpty) {
-      displayPluginIcon("warning", "Plugin license near expiration")
-    } else {
-      NodeSeq.Empty
-    }
-  }
 }
 
 private object PluginExpirationInfo {
@@ -118,26 +93,30 @@ private object PluginExpirationInfo {
    * Summary of the status of the different plugins
    */
   private def checkPluginWarnings = {
-    val now = ZonedDateTime.now()
-    PluginsInfo.plugins.foldLeft(Warning.empty) {
-      case (current, (_, plugin)) =>
-        plugin.status.current match {
-          case RudderPluginLicenseStatus.EnabledNoLicense            => current
-          case RudderPluginLicenseStatus.EnabledWithLicense(lic)     =>
-            if (lic.endDate.minusMonths(1).isBefore(now)) {
-              current.modify(_.licenseNearExpiration).using(m => m + (plugin.name -> lic.endDate))
-            } else {
-              current
-            }
-          case RudderPluginLicenseStatus.Disabled(reason, None)      =>
-            current.modify(_.licenseError).using(_ + (plugin.name -> reason))
-          case RudderPluginLicenseStatus.Disabled(reason, Some(lic)) =>
-            if (lic.endDate.isBefore(now)) {
-              current.modify(_.licenseExpired).using(m => m + (plugin.name -> lic.endDate))
-            } else {
-              current.modify(_.licenseError).using(_ + (plugin.name -> reason))
-            }
+    PluginsInfo.pluginInfos.plugins.foldLeft(Warning.empty) {
+      case (pluginsWarning, plugin) =>
+        val licenseErrors = plugin.errors.collect {
+          case PluginError.RudderLicenseError(reason) =>
+            (PluginName(plugin.name) -> reason)
+        }.toMap
+
+        val licenseExpiredError = plugin.errors.collect {
+          case PluginError.LicenseExpiredError(expirationDate) =>
+            (PluginName(plugin.name) -> expirationDate)
         }
+
+        val licenseNearExpirationError = plugin.errors.collect {
+          case PluginError.LicenseNearExpirationError(_, expirationDate) =>
+            (PluginName(plugin.name) -> expirationDate)
+        }
+
+        pluginsWarning
+          .modify(_.licenseError)
+          .using(_ ++ licenseErrors)
+          .modify(_.licenseExpired)
+          .using(_ ++ licenseExpiredError)
+          .modify(_.licenseNearExpiration)
+          .using(_ ++ licenseNearExpirationError)
     }
   }
 }

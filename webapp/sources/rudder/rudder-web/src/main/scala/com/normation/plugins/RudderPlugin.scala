@@ -176,7 +176,6 @@ object RudderPluginDef {
     Transformer
       .define[RudderPluginDef, Plugin]
       .withFieldConst(_.pluginType, PluginType.Webapp)
-      .withFieldConst(_.errors, List.empty)
       .withFieldComputed(_.name, _.shortName) // the RudderPluginDef name is used in plugins themselves
       .withFieldComputed(_.description, _.description.toString())
       .withFieldComputed(_.version, p => Some(p.version.pluginVersion.toVersionStringNoEpoch))
@@ -202,6 +201,21 @@ object RudderPluginDef {
         {
           case RudderPluginLicenseStatus.EnabledWithLicense(license) => Some(license)
           case _                                                     => None
+        }
+      )
+      .withFieldComputed(
+        _.errors,
+        plugin => {
+          plugin.status.current match {
+            case RudderPluginLicenseStatus.EnabledNoLicense            => List.empty
+            case RudderPluginLicenseStatus.EnabledWithLicense(license) =>
+              PluginError
+                .fromRudderLicensedPlugin(plugin.version.pluginVersion, AbiVersion(plugin.version.rudderAbi), license)
+
+            case RudderPluginLicenseStatus.Disabled(reason, details) =>
+              PluginError
+                .fromRudderDisabledPlugin(plugin.version.pluginVersion, AbiVersion(plugin.version.rudderAbi), reason, details)
+          }
         }
       )
       .buildTransformer

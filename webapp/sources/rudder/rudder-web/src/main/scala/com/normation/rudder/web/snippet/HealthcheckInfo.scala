@@ -38,46 +38,25 @@ package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.services.healthcheck.HealthcheckResult
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckUtils.compareCheck
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.web.snippet.NotificationLevel.Info
 import com.normation.zio.*
-import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.RenderDispatch
 import scala.xml.NodeSeq
 
 sealed trait NotificationLevel
 object NotificationLevel {
-  case object Info     extends NotificationLevel
   case object Warning  extends NotificationLevel
   case object Critical extends NotificationLevel
 }
 
-class HealthcheckInfo(
-) extends DispatchSnippet with Loggable {
+class HealthcheckInfo extends DispatchSnippet with RenderDispatch {
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "render"     => healthcheckInfo
-    case "renderIcon" => healthcheckInfoIcon
-  }
-
-  def getLevel(checks: List[HealthcheckResult]): NotificationLevel = {
-    checks.foldLeft(Info: NotificationLevel) { (previous, checkResult) =>
-      (previous, checkResult) match {
-        case (NotificationLevel.Critical, _) => NotificationLevel.Critical
-        case (_, _: Critical)                => NotificationLevel.Critical
-        case (NotificationLevel.Warning, _)  => NotificationLevel.Warning
-        case (_, _: Warning)                 => NotificationLevel.Warning
-        case (_, _)                          => Info
-      }
-    }
-  }
-
-  def healthcheckInfo(html: NodeSeq): NodeSeq = {
+  override def render(html: NodeSeq): NodeSeq = {
     def notifHtml(notifClass: String, notifTitle: String, checksHtml: List[String]): NodeSeq = {
       val checksMenu = "<ul class='menu'>" + checksHtml.mkString("\n") + "</ul>"
 
@@ -125,28 +104,6 @@ class HealthcheckInfo(
         }
       }).runNow
     } else NodeSeq.Empty
-  }
-
-  def healthcheckInfoIcon(html: NodeSeq): NodeSeq = {
-    def displayPluginIcon(iconClass: String, notifTitle: String): NodeSeq = {
-      val tooltipContent =
-        "<h4 class='" + iconClass + "' > <i class='fa fa-exclamation-triangle text-warning'></i> " + notifTitle + "</h4><div>More details on <b>Health Check</b> page</div>"
-      <i class={
-        "fa fa-exclamation-triangle plugin-icon icon-info " ++ iconClass
-      } data-bs-toggle="tooltip" data-bs-placement="right" title={
-        tooltipContent
-      } data-bs-container="body"></i>
-    }
-
-    (for {
-      checks <- RudderConfig.healthcheckNotificationService.healthcheckCache.get
-    } yield {
-      getLevel(checks) match {
-        case NotificationLevel.Critical => displayPluginIcon("critical", "There is an anomaly that requires your attention")
-        case NotificationLevel.Warning  => displayPluginIcon("warning", "Something may cause an anomaly")
-        case NotificationLevel.Info     => NodeSeq.Empty
-      }
-    }).runNow
   }
 
 }
