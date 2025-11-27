@@ -158,7 +158,7 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
 
       def genericModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
-        mod.addValues(A_OC, OC.objectClassNames(OC_NODE).toSeq*)
+        mod.addValues(A_OC, OC.objectClassNames(OC_UNIX_NODE).toSeq*)
         mod
       }
 
@@ -171,24 +171,6 @@ final case class InventoryDit(val BASE_DN: DN, val SOFTWARE_BASE_DN: DN, val nam
       def windowsModel(id: NodeId): LDAPEntry = {
         val mod = model(id)
         mod.addValues(A_OC, OC.objectClassNames(OC_WINDOWS_NODE).toSeq*)
-        mod
-      }
-
-      def solarisModel(id: NodeId): LDAPEntry = {
-        val mod = model(id)
-        mod.addValues(A_OC, OC.objectClassNames(OC_SOLARIS_NODE).toSeq*)
-        mod
-      }
-
-      def aixModel(id: NodeId): LDAPEntry = {
-        val mod = model(id)
-        mod.addValues(A_OC, OC.objectClassNames(OC_AIX_NODE).toSeq*)
-        mod
-      }
-
-      def bsdModel(id: NodeId): LDAPEntry = {
-        val mod = model(id)
-        mod.addValues(A_OC, OC.objectClassNames(OC_BSD_NODE).toSeq*)
         mod
       }
 

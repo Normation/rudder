@@ -110,8 +110,6 @@ properties:
         enum:
           - Windows
           - Linux
-          - AIX
-          - FreeBSD
       name:
         type: string
         description: Operating system name (distribution on Linux, etc.)

@@ -902,6 +902,7 @@ objectclass ( InventoryObjectClasses:80.3
   SUP VirtualMachine
   AUXILIARY )
 
+# deprecated, keep id
 objectclass ( InventoryObjectClasses:80.4
   NAME 'solarisZone'
   DESC 'A Zone in Solaris OS'
@@ -914,12 +915,14 @@ objectclass ( InventoryObjectClasses:80.5
   SUP VirtualMachine
   AUXILIARY )
 
+# deprecated, keep id
 objectclass ( InventoryObjectClasses:80.6
   NAME 'aixLpar'
   DESC 'An LPAR partition on AIX'
   SUP VirtualMachine
   AUXILIARY )
 
+# deprecated, keep id
 objectclass ( InventoryObjectClasses:80.7
   NAME 'BSDJail'
   DESC 'A BSD Jail'
@@ -1061,18 +1064,21 @@ objectclass ( InventoryObjectClasses:17
   SUP unixNode
   STRUCTURAL )
 
+# deprecated, keep id
 objectclass ( InventoryObjectClasses:23
   NAME 'solarisNode'
   DESC 'A node running with Solaris as operating system'
   SUP unixNode
   STRUCTURAL )
 
+# deprecated, keep id
 objectclass ( InventoryObjectClasses:24
   NAME 'aixNode'
   DESC 'A node running with AIX as operating system'
   SUP unixNode
   STRUCTURAL )
 
+# deprecated, keep id
 objectclass ( InventoryObjectClasses:25
   NAME 'bsdNode'
   DESC 'A node running with BSD as operating system'

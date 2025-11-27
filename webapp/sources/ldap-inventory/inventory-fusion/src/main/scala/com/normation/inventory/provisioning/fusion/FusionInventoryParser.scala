@@ -643,20 +643,14 @@ class FusionInventoryParser(
     val ix86   = """.*(i[3-9]86).*""".r
     val x86    = """.*(x86|32-bit).*""".r
     val x86_64 = """.*(x86_64|amd64|64-bit).*""".r
-    val aix    = """.*(aix).*""".r
 
-    if (os.os == AixOS) {
-      "ppc64"
-    } else {
-      s.toLowerCase() match {
-        case "powerpc" => "ppc"
-        // x64_64 must be check before x86 regex
-        case x86_64(_) => "x86_64"
-        case x86(_)    => "x86"
-        case ix86(x)   => x
-        case aix(_)    => "ppc64"
-        case x         => x
-      }
+    s.toLowerCase() match {
+      case "powerpc" => "ppc"
+      // x64_64 must be check before x86 regex
+      case x86_64(_) => "x86_64"
+      case x86(_)    => "x86"
+      case ix86(x)   => x
+      case x         => x
     }
   }
 
@@ -671,7 +665,7 @@ class FusionInventoryParser(
      * ARCHNAME : architecture type.
      *      We want i686, x86_64, armv7l, etc
      * VMSYSTEM : The virtualization technologie used if the machine is a virtual machine.
-     *      Can be: Physical (default), Xen, VirtualBox, Virtual Machine, VMware, QEMU, SolarisZone, Aix LPAR, Hyper-V
+     *      Can be: Physical (default), Xen, VirtualBox, Virtual Machine, VMware, QEMU, LPAR, Hyper-V...
      *
      * MEMORY : RAM for that OS
      *      Ex: "512"
@@ -744,10 +738,7 @@ class FusionInventoryParser(
           case "virtual machine" => inventory.machine.copy(machineType = VirtualMachineType(UnknownVmType))
           case "vmware"          => inventory.machine.copy(machineType = VirtualMachineType(VMWare))
           case "qemu"            => inventory.machine.copy(machineType = VirtualMachineType(QEmu))
-          case "solariszone"     => inventory.machine.copy(machineType = VirtualMachineType(SolarisZone))
-          case "aix_lpar"        => inventory.machine.copy(machineType = VirtualMachineType(AixLPAR))
           case "hyper-v"         => inventory.machine.copy(machineType = VirtualMachineType(HyperV))
-          case "bsdjail"         => inventory.machine.copy(machineType = VirtualMachineType(BSDJail))
           case "virtuozzo"       => inventory.machine.copy(machineType = VirtualMachineType(Virtuozzo))
           case "openvz"          => inventory.machine.copy(machineType = VirtualMachineType(OpenVZ))
           case "lxc"             => inventory.machine.copy(machineType = VirtualMachineType(LXC))
@@ -830,25 +821,6 @@ class FusionInventoryParser(
             productId = optText(contentNode \\ "WINPRODID"),
             productKey = optText(contentNode \\ "WINPRODKEY")
           )
-
-        case a: Aix =>
-          // Aix version is stocked in HARDWARE -> OSVERSION,
-          // but we move that value in OPERATING_SYSTEM => KERNEL_VERSION (see checkKernelVersion in PreInventoryParserCheckConsistency.scala )
-          // If We are on aix we should use that value instead of the one stored in OPERATING_SYSTEM => VERSION
-
-          // aix Version format is decomposed into 3 fields: Major (M), minor(m) and Technology level (T)
-          // the format is Mmxx-TT (like 5300-12 => 5.3.12)
-          val aixVersionPattern = "(\\d)(\\d)\\d\\d-(\\d{2})".r
-          val versionText       = optText(xml \\ "KERNEL_VERSION").getOrElse("N/A") match {
-            case aixVersionPattern(major, minor, techLevel) =>
-              // first digit in Technology can be 0, remove it by transforming in Int
-              s"${major}.${minor}.${techLevel.toInt}"
-            // Not matching, keep value
-            case v                                          => v
-          }
-          val aixVersion        = new Version(versionText)
-
-          a.copy(version = aixVersion)
 
         // other cases are left unchanged
         case x => x

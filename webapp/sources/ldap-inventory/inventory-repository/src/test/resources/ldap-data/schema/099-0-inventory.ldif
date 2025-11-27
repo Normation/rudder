@@ -736,24 +736,9 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.3
   DESC 'A Xen VM'
   SUP VirtualMachine
   AUXILIARY )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.4
-  NAME 'solarisZone'
-  DESC 'A Zone in Solaris OS'
-  SUP VirtualMachine
-  AUXILIARY )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.5
   NAME 'qemu'
   DESC 'A Qemu VM'
-  SUP VirtualMachine
-  AUXILIARY )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.6
-  NAME 'aixLpar'
-  DESC 'An LPAR partition on AIX'
-  SUP VirtualMachine
-  AUXILIARY )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.7
-  NAME 'BSDJail'
-  DESC 'A BSD Jail'
   SUP VirtualMachine
   AUXILIARY )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.80.8
@@ -871,21 +856,6 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.16
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.17
   NAME 'linuxNode'
   DESC 'A node running GNU/Linux as an operating system'
-  SUP unixNode
-  STRUCTURAL )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.23
-  NAME 'solarisNode'
-  DESC 'A node running with Solaris as operating system'
-  SUP unixNode
-  STRUCTURAL )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.24
-  NAME 'aixNode'
-  DESC 'A node running with AIX as operating system'
-  SUP unixNode
-  STRUCTURAL )
-objectClasses: ( 1.3.6.1.4.1.35061.1.2.25
-  NAME 'bsdNode'
-  DESC 'A node running with BSD as operating system'
   SUP unixNode
   STRUCTURAL )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.18

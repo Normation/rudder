@@ -33,20 +33,6 @@
 # objectClass: organizationalUnit
 # ou: profile
 #
-# dn: cn=Solaris,ou=profile,dc=example,dc=com
-# objectClass: top
-# objectClass: DUAConfigProfile
-# cn: Solaris
-# defaultNodeList: ldap1.example.com ldap2.example.com
-# defaultSearchBase: dc=example,dc=com
-# defaultSearchScope: one
-# searchTimeLimit: 30
-# bindTimeLimit: 2
-# credentialLevel: anonymous
-# authenticationMethod: simple
-# followReferrals: TRUE
-# profileTTL: 43200
-#
 dn: cn=schema
 objectClass: top
 objectClass: ldapSubentry
