@@ -1496,6 +1496,7 @@ function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, re
     , "aaSorting": [[ 0, "desc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
       '>t<"dataTables_wrapper_bottom"lip>'
+    , "scrollX"     : true
     , "buttons" : [ csvButtonConfig(`node_${nodeId}_technical_logs`) ],
 
   };
