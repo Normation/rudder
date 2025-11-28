@@ -58,7 +58,6 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
 import com.normation.rudder.apidata.JsonResponseObjects.JRRule
 import com.normation.rudder.apidata.implicits.*
-import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ActiveDirective
 import com.normation.rudder.configuration.ConfigurationRepository
@@ -103,12 +102,17 @@ import com.normation.rudder.rest.ArchiveApi as API
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.ImportAnswer.*
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.rule.category.WoRuleCategoryRepository
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
+import io.scalaland.chimney.Iso
+import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -118,6 +122,7 @@ import java.nio.file.NoSuchFileException
 import java.text.Normalizer
 import java.time.Instant
 import java.util.zip.ZipEntry
+import net.liftweb.common.SimpleActor
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
@@ -365,6 +370,38 @@ class FileArchiveNameService(
 
 }
 
+final case class JRuleCategories(
+    id:          RuleCategoryId,
+    name:        String,
+    description: String,
+    children:    List[JRuleCategories]
+) {
+  def keepInHierarchy(ids: Set[RuleCategoryId]): JRuleCategories = {
+    copy(children = children.filter(_.hasDescendantIn(ids)).map(_.keepInHierarchy(ids)))
+  }
+
+  private def hasDescendantIn(ids: Set[RuleCategoryId]): Boolean = {
+    ids.contains(id) || children.exists(_.hasDescendantIn(ids))
+  }
+
+}
+object JRuleCategories {
+  implicit val encoderId: JsonEncoder[RuleCategoryId] = JsonEncoder[String].contramap(_.value)
+
+  implicit lazy val encoder: JsonEncoder[JRuleCategories] = DeriveJsonEncoder.gen[JRuleCategories]
+  implicit lazy val decoder: JsonDecoder[JRuleCategories] = DeriveJsonDecoder.gen[JRuleCategories]
+
+  implicit lazy val transformer:        Transformer[RuleCategory, JRuleCategories]        = {
+    Transformer
+      .define[RuleCategory, JRuleCategories]
+      .withFieldComputed(_.children, _.childs.sortBy(_.id.value).map(_.transformInto[JRuleCategories]))
+      .buildTransformer
+  }
+  implicit lazy val transformerArchive: Transformer[JRuleCategories, RuleCategoryArchive] = {
+    Transformer.derive[JRuleCategories, RuleCategoryArchive]
+  }
+}
+
 // a simple Json-able object for group categories
 case class JGroupCategory(
     id:          String,
@@ -410,6 +447,7 @@ class ZipArchiveBuilderService(
     techniqueRevisionRepo:  TechniqueRevisionRepository,
     groupRepo:              RoNodeGroupRepository,
     ruleRepo:               RoRuleRepository,
+    ruleCategoryRepo:       RoRuleCategoryRepository,
     directiveRepo:          RoDirectiveRepository,
     techniqueRepo:          TechniqueRepository
 ) {
@@ -579,9 +617,16 @@ class ZipArchiveBuilderService(
     }
   }
 
-  def getRuleCatZippable(ids: Set[RuleCategoryId]): IOResult[Seq[Zippable]] = {
-    // todo : https://issues.rudder.io/issues/25061
-    Seq().succeed
+  def getRuleCatZippable(ids: Set[RuleCategoryId], root: String): IOResult[Seq[Zippable]] = {
+    val path = root + "/" + RULE_CATS
+    if (ids.isEmpty) {
+      Seq().succeed
+    } else {
+      ruleCategoryRepo
+        .getRootCategory()
+        .map(_.transformInto[JRuleCategories].keepInHierarchy(ids).toJsonPretty)
+        .map(json => List(Zippable(path, Some(getJsonZippableContent(json)))))
+    }
   }
 
   /*
@@ -764,7 +809,7 @@ class ZipArchiveBuilderService(
                            }
                            .map(_.flatten)
       ruleCats        <- ruleCatsRef.get
-      ruleCatsZip     <- getRuleCatZippable(ruleCats)
+      ruleCatsZip     <- getRuleCatZippable(ruleCats, root)
       groupsDir        = root + "/" + GROUPS_DIR
       _               <- usedNames.update(_ + ((GROUPS_DIR, Set.empty[String])))
       groupsDirZip     = Zippable(groupsDir, None)
@@ -884,8 +929,45 @@ final case class GroupArchive(
 )
 
 /**
+ * The root of the rule categories, there is only a single root
+ */
+final case class RuleCategoryArchive(
+    id:          RuleCategoryId,
+    name:        String,
+    description: String,
+    children:    List[RuleCategoryArchive]
+) {
+  import RuleCategoryArchive.*
+
+  /**
+   * All children of the root rule category
+   */
+  def childCategories:  Map[RuleCategoryId, RuleCategoryArchive]      = {
+    children.map(c => c.id -> c).toMap.flatMap { case (k, v) => v.childCategories + (k -> v) }
+  }
+  def parentCategories: Map[RuleCategoryArchive, RuleCategoryArchive] = {
+    (children.map(_ -> this) ++ children.flatMap(_.parentCategories)).toMap
+  }
+
+  def toRuleCategory: RuleCategory = {
+    // Root RuleCategory is system, so upon transformation the root is system
+    this.transformInto[RuleCategory].copy(isSystem = true)
+  }
+}
+object RuleCategoryArchive {
+  implicit lazy val iso: Iso[RuleCategoryArchive, RuleCategory] = {
+    Iso
+      .define[RuleCategoryArchive, RuleCategory]
+      .enableDefaultValues
+      .withFieldRenamed(_.children, _.childs)
+      .buildIso
+  }
+}
+
+/**
  * An archive to be saved (~) atomically
- * For techniques, we only parse metadata.xml, and we keep files as is
+ * For techniques, we only parse metadata.xml, and we keep files as is.
+ * Rule categories should have the single root if present
  */
 final case class PolicyArchive(
     metadata:      PolicyArchiveMetadata,
@@ -894,6 +976,7 @@ final case class PolicyArchive(
     directives:    Chunk[DirectiveArchive],
     groupCats:     Chunk[GroupCategoryArchive],
     groups:        Chunk[GroupArchive],
+    ruleCats:      Chunk[RuleCategoryArchive],
     rules:         Chunk[Rule]
 ) {
   // format: off
@@ -904,13 +987,24 @@ final case class PolicyArchive(
        | - directives          : ${directives.map(d => s"'${d.directive.name}' [${d.directive.id.serialize}]").sorted.mkString(", ")}
        | - group categories    : ${groupCats.map(c => s"'${c.category.name}' [${c.category.id}]").sorted.mkString(", ")}
        | - groups              : ${groups.map(g => s"'${g.group.name}' [${g.group.id.serialize}]").sorted.mkString(", ")}
+       | - rule categories     : ${ruleCats.toList.flatMap(_.childCategories).map { case (id, cat) => s"'${cat.name}' [${id.value}]"}.sorted.mkString(", ")}\"\"\".stripMargin
        | - rules               : ${rules.map(r => s"'${r.name}' [${r.id.serialize}]").sorted.mkString(", ")}""".stripMargin
   }
   // format: on
 }
 object PolicyArchive {
-  def empty: PolicyArchive =
-    PolicyArchive(PolicyArchiveMetadata.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: PolicyArchive = {
+    PolicyArchive(
+      PolicyArchiveMetadata.empty,
+      Chunk.empty,
+      Chunk.empty,
+      Chunk.empty,
+      Chunk.empty,
+      Chunk.empty,
+      Chunk.empty,
+      Chunk.empty
+    )
+  }
 }
 
 final case class SortedEntries(
@@ -919,10 +1013,12 @@ final case class SortedEntries(
     directives:     Chunk[(String, Array[Byte])],
     groupCats:      Chunk[(String, Array[Byte])],
     groups:         Chunk[(String, Array[Byte])],
+    ruleCats:       Chunk[(String, Array[Byte])],
     rules:          Chunk[(String, Array[Byte])]
 )
 object SortedEntries {
-  def empty: SortedEntries = SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: SortedEntries =
+    SortedEntries(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 final case class PolicyArchiveUnzip(
@@ -968,6 +1064,7 @@ class ZipArchiveReaderImpl(
   val directiveRegex:     Regex = """(.*/|)directives/(.+.json)""".r
   val groupCatsRegex:     Regex = """(.*/|)groups/(.*category.json)""".r
   val groupRegex:         Regex = """(.*/|)groups/(.+.json)""".r
+  val ruleCatsRegex:      Regex = """(.*/|)(rule-categories\.json)""".r
   val ruleRegex:          Regex = """(.*/|)rules/(.+.json)""".r
 
   /*
@@ -1124,6 +1221,11 @@ class ZipArchiveReaderImpl(
       .toIO
       .flatMap(_.toGroup(cmdbQueryParser).map(d => GroupArchive(d._2, d._1)))
   }
+  def parseRuleCat(name: String, content: Array[Byte])(implicit
+      dec: JsonDecoder[JRuleCategories]
+  ): IOResult[RuleCategoryArchive] = {
+    (new String(content, StandardCharsets.UTF_8)).fromJson[JRuleCategories].toIO.map(_.transformInto[RuleCategoryArchive])
+  }
   def parseRule(name: String, content: Array[Byte])(implicit dec: JsonDecoder[JRRule]):           IOResult[Rule]             = {
     (new String(content, StandardCharsets.UTF_8)).fromJson[JRRule].toIO.flatMap(_.toRule())
   }
@@ -1179,6 +1281,11 @@ class ZipArchiveReaderImpl(
   ): IOResult[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, groups, modifyLens[PolicyArchiveUnzip](_.policies.groups), parseGroup)
   }
+  def parseRuleCats(arch: PolicyArchiveUnzip, cats: Chunk[(String, Array[Byte])])(implicit
+      dec: JsonDecoder[JRuleCategories]
+  ): IOResult[PolicyArchiveUnzip] = {
+    parseSimpleFile(arch, cats, modifyLens[PolicyArchiveUnzip](_.policies.ruleCats), parseRuleCat)
+  }
   def parseRules(arch: PolicyArchiveUnzip, rules: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JRRule]
   ): IOResult[PolicyArchiveUnzip] = {
@@ -1205,6 +1312,9 @@ class ZipArchiveReaderImpl(
           case (groupRegex(_, x), Some(content))         =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found group file ${x}")
             arch.modify(_.groups).using(_ :+ (x, content))
+          case (ruleCatsRegex(_, x), Some(content))      =>
+            ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found rule category file ${x}")
+            arch.modify(_.ruleCats).using(_ :+ (x, content))
           case (ruleRegex(_, x), Some(content))          =>
             ApplicationLoggerPure.Archive.logEffect.trace(s"Archive '${archiveName}': found rule file ${x}")
             arch.modify(_.rules).using(_ :+ (x, content))
@@ -1265,17 +1375,21 @@ class ZipArchiveReaderImpl(
                            )
       withDirectives    <- parseDirectives(withTechniqueCats, sortedEntries.directives)
       _                 <- ApplicationLoggerPure.Archive.debug(
-                             s"Processing archive '${archiveName}': groups: '${sortedEntries.groups.map(_._1).mkString("', '")}'"
+                             s"Processing archive '${archiveName}': groups categories: '${sortedEntries.groupCats.map(_._1).mkString("', '")}'"
                            )
       withGroupCats     <- parseGroupCats(withDirectives, sortedEntries.groupCats)
       _                 <- ApplicationLoggerPure.Archive.debug(
-                             s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
+                             s"Processing archive '${archiveName}': groups: '${sortedEntries.groups.map(_._1).mkString("', '")}'"
                            )
       withGroups        <- parseGroups(withGroupCats, sortedEntries.groups)
       _                 <- ApplicationLoggerPure.Archive.debug(
+                             s"Processing archive '${archiveName}': rules categories: '${sortedEntries.ruleCats.map(_._1).mkString("', '")}'"
+                           )
+      withRuleCats      <- parseRuleCats(withGroups, sortedEntries.ruleCats)
+      _                 <- ApplicationLoggerPure.Archive.debug(
                              s"Processing archive '${archiveName}': rules: '${sortedEntries.rules.map(_._1).mkString("', '")}'"
                            )
-      withRules         <- parseRules(withGroups, sortedEntries.rules)
+      withRules         <- parseRules(withRuleCats, sortedEntries.rules)
       // aggregate errors
       policies          <- withRules.errors.toList match {
                              case Nil       => withRules.policies.succeed
@@ -1414,17 +1528,19 @@ object SaveArchiveServicebyRepo {
  * overwrite existing policies if updates are available in the archive.
  */
 class SaveArchiveServicebyRepo(
-    techniqueArchiver: TechniqueArchiverImpl,
-    techniqueReader:   TechniqueReader,
-    roDirectiveRepos:  RoDirectiveRepository,
-    woDirectiveRepos:  WoDirectiveRepository,
-    roGroupRepos:      RoNodeGroupRepository,
-    woGroupRepos:      WoNodeGroupRepository,
-    roRuleRepos:       RoRuleRepository,
-    woRuleRepos:       WoRuleRepository,
-    techLibUpdate:     UpdateTechniqueLibrary,
-    asyncDeploy:       AsyncDeploymentActor,
-    uuidGen:           StringUuidGenerator
+    techniqueArchiver:   TechniqueArchiverImpl,
+    techniqueReader:     TechniqueReader,
+    roDirectiveRepos:    RoDirectiveRepository,
+    woDirectiveRepos:    WoDirectiveRepository,
+    roGroupRepos:        RoNodeGroupRepository,
+    woGroupRepos:        WoNodeGroupRepository,
+    roRuleRepos:         RoRuleRepository,
+    woRuleRepos:         WoRuleRepository,
+    roRuleCategoryRepos: RoRuleCategoryRepository,
+    woRuleCategoryRepos: WoRuleCategoryRepository,
+    techLibUpdate:       UpdateTechniqueLibrary,
+    asyncDeploy:         SimpleActor[AutomaticStartDeployment],
+    uuidGen:             StringUuidGenerator
 ) extends SaveArchiveService {
 
   val GroupRootId = NodeGroupCategoryId("GroupRoot")
@@ -1582,6 +1698,52 @@ class SaveArchiveServicebyRepo(
            }
     } yield ()
   }
+  def saveRuleCategory(eventMetadata: EventMetadata, r: RuleCategoryArchive):    IOResult[Unit] = {
+    roRuleCategoryRepos.getRootCategory().flatMap { root =>
+      val newRoot  = r.toRuleCategory
+      val parents  = r.parentCategories
+      val children = r.childCategories
+      def recSave(c: RuleCategoryArchive, created: Ref[Set[RuleCategoryId]]): IOResult[Unit] = {
+        def needsCreate    = !root.contains(c.id) && newRoot.contains(c.id)
+        val hasSameParents = root.findParents(c.id).map(_.map(_.id)) == newRoot.findParents(c.id).map(_.map(_.id))
+        def alreadyExists  = (id: RuleCategoryId) => created.get.map(_.contains(id))
+        if (c.id == root.id || hasSameParents) {
+          ZIO.unit
+        } else {
+          // create starting from the greatest parent
+          ZIO.foreach(parents.get(c))(recSave(_, created)) *>
+          (if (needsCreate) {
+             ZIO.unlessZIODiscard(alreadyExists(c.id))(
+               woRuleCategoryRepos.create(
+                 c.toRuleCategory,
+                 parents.get(c).fold(newRoot.id)(_.id),
+                 eventMetadata.modId,
+                 eventMetadata.actor,
+                 eventMetadata.msg
+               ) *> created.update(_ + c.id) *>
+               ApplicationLoggerPure.Archive.trace(
+                 s"Created rule category parent from archive: '${c.name}' (${c.id.value})"
+               )
+             )
+           } else {
+             woRuleCategoryRepos.updateAndMove(
+               c.toRuleCategory,
+               parents.get(c).fold(newRoot.id)(_.id),
+               eventMetadata.modId,
+               eventMetadata.actor,
+               eventMetadata.msg
+             ) *> ApplicationLoggerPure.Archive.trace(
+               s"Moved rule category parent from archive: '${c.name}' (${c.id.value}) to ${parents(c).id}"
+             )
+           })
+        }
+      }
+      for {
+        created <- Ref.make(Set.empty[RuleCategoryId])
+        _       <- ZIO.foreachDiscard(children.values)(recSave(_, created))
+      } yield ()
+    }
+  }
   def saveRule(eventMetadata: EventMetadata, mergePolicy: MergePolicy, r: Rule): IOResult[Unit] = {
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding rule from archive: '${r.name}' (${r.id.serialize})")
@@ -1629,6 +1791,7 @@ class SaveArchiveServicebyRepo(
       m  = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
       _ <- ZIO.foreach(archive.groupCats)(saveGroupCat(eventMetadata, _, m))
       _ <- ZIO.foreach(archive.groups)(saveGroup(_))
+      _ <- ZIO.foreach(archive.ruleCats)(saveRuleCategory(eventMetadata, _))
       _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
       // update technique lib, regenerate policies
       _ <- ZIO.when(archive.techniques.nonEmpty) {
