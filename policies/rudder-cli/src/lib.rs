@@ -5,7 +5,6 @@ pub mod logs;
 
 use ariadne::{Config, IndexType, Label, Report, ReportKind, Source};
 use std::fmt::{Display, Formatter};
-#[cfg(not(test))]
 use std::io::IsTerminal;
 use std::ops::Range;
 use std::panic;
@@ -105,14 +104,7 @@ impl<'a> FileError<'a> {
     pub fn render(&self, in_terminal: Option<bool>) -> String {
         let (index_type, range) = self.range.to_ariadne_range();
         let span = (self.file_name, range);
-
-        #[cfg(not(test))]
         let in_terminal = in_terminal.unwrap_or_else(|| std::io::stdout().is_terminal());
-        #[cfg(test)]
-        let in_terminal = {
-            let _ = in_terminal;
-            false
-        };
 
         let mut report = Report::build(ReportKind::Error, span.clone())
             .with_config(

@@ -512,8 +512,8 @@ mod tests {
                 .is_valid(r#"{"a": 42, "b": 42, "c": 42,}"#)
                 .is_err()
         );
-        assert!(constraints.is_valid(r#""#).is_ok());
-        assert!(constraints.is_valid(r#"  "#).is_ok());
+        assert!(constraints.is_valid(r#""#).is_err());
+        assert!(constraints.is_valid(r#"  "#).is_err());
 
         let constraints = MethodConstraints {
             valid_format: Some(ParameterFormat::Yaml),

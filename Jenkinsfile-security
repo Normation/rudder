@@ -1,5 +1,3 @@
-
-
 def version = "9.1"
 def slackResponse = null
 
@@ -7,13 +5,15 @@ def errors = []
 
 def changeUrl = env.CHANGE_URL
 
-
-
 // Check vulns in dependencies on repo branches
 def failedBuild = false
 
 pipeline {
     agent none
+
+    environment {
+        CI = 1
+    }
     triggers { cron('@daily') }
 
     stages {

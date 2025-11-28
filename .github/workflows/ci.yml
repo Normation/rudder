@@ -7,7 +7,7 @@ jobs:
     name: test
     runs-on: windows-latest
     env:
-      RUSTFLAGS: -D warnings
+      CI: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -15,7 +15,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.92.0
 
       - name: Run tests
-        run: cd policies\module-types\template && cargo test --locked
+        run: make cargo-test PACKAGE=rudder-module-template
 
     permissions:
       contents: read

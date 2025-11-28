@@ -1,6 +1,6 @@
-= Rust dev environment
+# Rust dev environment
 
-== General information
+## General information
 
 The compiler version used to build the projects are
 set in a `rust-toolchain.toml` file in each project root, but
@@ -13,27 +13,27 @@ and to use `--locked` for build and test commands.
 
 The Rust projects share a common base Makefile (`rust.makefile` at the repository root).
 
-== Development environment
+## Development environment
 
-=== Rust toolchain
+### Rust toolchain
 
 The easiest way to install and manage
-Rust toolchains locally is to use https://rustup.rs[rustup].
+Rust toolchains locally is to use [rustup](https://rustup.rs).
 It will install the latest stable toolchain by default, and download
 additional toolchains when needed (based on the `rust-toolchain.toml` file).
 
-=== IDE/Editor
+### IDE/Editor
 
-https://areweideyet.com/[Good IDEs for Rust development] include IntelliJ IdeaC, Visual Studio Code or
+[Good IDEs for Rust development](https://areweideyet.com/) include JetBrains RustRover/CLion, Visual Studio Code or
 any editor supporting LSP.
 
-When using VS Code or another LSP-based editor integration, https://github.com/rust-analyzer/rust-analyzer#language-server-quick-start[rust-analyzer]
+When using VS Code or another LSP-based editor integration, [rust-analyzer](https://github.com/rust-analyzer/rust-analyzer#language-server-quick-start)
 should be used.
 
 Our CI checks source formatting using the default `rustfmt` configuration, so the easiest way to apply it
 is to configure your editor to format the files on save.
 
-We also prevent `clippy` warning so it can be useful to configure your editor to use it for linting
+We also prevent `clippy` warning, so it can be useful to configure your editor to use it for linting
 instead of `cargo check`.
 
 === Tools
