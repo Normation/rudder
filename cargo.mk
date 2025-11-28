@@ -10,6 +10,11 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 # Not designed for dev workflow, but for CI/CD and release builds.
 # Special effort for auditable builds and SBOM generation.
 
+# EXpose an interface as close to cargo as possible.
+# Don't try to abstract. Amost a wrapper.
+#
+# make release BIN=rudderc FEATURES=embedded-lib
+
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 
 CARGO_AUDITABLE_VER := 0.7.2
@@ -54,33 +59,18 @@ cargo-auditable:
 cargo-cyclonedx:
 	cargo install --locked cargo-cyclonedx@$(CARGO_CYCLONEDX_VER)
 
-# Production builds
-rudder-relayd: target/release/rudder-relayd
-
-rudder-package-gpgv: target/release/rudder-package
-rudder-package-sequoia: export CARGO_FEATURES=sequoia
-rudder-package-sequoia: target/release/rudder-package
-
-rudder-report: target/release/rudder-report
-
-rudderc: target/release/rudderc
-rudderc-embedded: export CARGO_FEATURES=embedded-lib
-rudderc-embedded: target/release/rudderc
-
-module-template: target/release/rudder-module-template
-
-module-commands: target/release/rudder-module-commands
-
-module-system-updates: target/release/rudder-module-system-updates
-module-system-updates-apt: export CARGO_FEATURES=apt
-module-system-updates-apt: target/release/rudder-module-system-updates
-module-system-updates-apt-old: export CARGO_FEATURES=apt-compat
-module-system-updates-apt-old: target/release/rudder-module-system-updates
-
-module-inventory: target/release/rudder-module-inventory
-
-target/release/%: rust-version cargo-auditable
-	cargo auditable build --bin $* --features=${CARGO_FEATURES} --release --locked --jobs $(JOBS)
+cargo-release: rust-version cargo-auditable cargo-cyclonedx
+ifdef BIN
+	cargo auditable build --bin $(BIN) --features=$(FEATURES) --release --locked --jobs $(JOBS)
+	# Build all SBOMs and pick the right one, then cleanup.
+	# Currently cargo-cyclonedx cannot target a single binary.
+	cargo cyclonedx --quiet --format json --describe binaries --target all --features=$(FEATURES)
+	find . -name "$(BIN)_bin.cdx.json" -exec mv {} target/ \;
+	@find . -path "./target" -prune -o -name "*.cdx.json" -exec rm {} \;
+else
+	@echo "Please specify BIN=your_binary_name"
+	@exit 1
+endif
 
 dev-doc:
 	cargo doc --document-private-items --open
@@ -89,21 +79,11 @@ lint:
 	cargo fmt --all -- --check
 	cargo clippy --all-targets --examples --tests -- --deny warnings
 
-# FIXME features??
-sbom: rust-version cargo-cyclonedx
-	cargo cyclonedx --quiet --format json --describe binaries --target all
-	rm -rf target/sbom
-	mkdir -p target/sbom
-	find . -path "./target" -prune -o -name "*.cdx.json" -exec mv {} target/sbom/ \;
-
 clean:
-	find . -name "*.cdx.*" - -exec rm {} \;
+	find . -name "*.cdx.*" -exec rm {} \;
 	cargo clean
 	rm -rf target
 
 veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo
-
-# Let cargo handles its dependencies
-.PHONY: target/release/%

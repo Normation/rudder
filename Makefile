@@ -3,7 +3,7 @@
 
 # Entry point for building the release artifacts and some CI steps
 
-include rust.mk
+include cargo.mk
 
 mvn-version:
 	mvn --version
