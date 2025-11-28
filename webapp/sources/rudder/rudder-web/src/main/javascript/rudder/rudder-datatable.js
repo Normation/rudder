@@ -1834,6 +1834,7 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
     , "aaSorting": [[ 0, "desc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
       '>rt<"dataTables_wrapper_bottom"lip>'
+    , "scrollX"     : true
   };
 
   if (regroup) {
