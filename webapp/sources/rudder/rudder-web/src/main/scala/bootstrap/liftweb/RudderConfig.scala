@@ -2205,6 +2205,7 @@ object RudderConfigInit {
             gitParseTechniqueLibrary,
             roLdapNodeGroupRepository,
             roRuleRepository,
+            roRuleCategoryRepository,
             roDirectiveRepository,
             techniqueRepository
           )
@@ -2224,6 +2225,8 @@ object RudderConfigInit {
             woNodeGroupRepository,
             roRuleRepository,
             woRuleRepository,
+            roRuleCategoryRepository,
+            woRuleCategoryRepository,
             updateTechniqueLibrary,
             asyncDeploymentAgent,
             stringUuidGenerator
