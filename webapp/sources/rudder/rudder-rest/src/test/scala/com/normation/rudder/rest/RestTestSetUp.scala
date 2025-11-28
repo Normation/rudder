@@ -1021,6 +1021,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       mockTechniques.techniqueRevisionRepo,
       mockNodeGroups.groupsRepo,
       mockRules.ruleRepo,
+      mockRules.ruleCategoryRepo,
       mockDirectives.directiveRepo,
       mockTechniques.techniqueRepo
     )
