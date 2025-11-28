@@ -15,10 +15,12 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 CARGO_AUDITABLE_VER := 0.7.2
 CARGO_CYCLONEDX_VER := 0.5.7
 
-#export RUSTFLAGS="-D warnings"
-
+# Specific CI behavior
 ifeq ($(CI),1)
+export RUSTFLAGS=--deny warnings
+# faster cold builds
 export CARGO_INCREMENTAL=0
+# retry on network failures
 export CARGO_NET_RETRY=10
 export RUSTUP_MAX_RETRIES=10
 endif
@@ -42,7 +44,6 @@ rust-version:
 	@echo "jobs=$(JOBS)"
 	@cargo --version
 	@rustc --version
-	@rustc --version
 	@cc --version | head -n1
 	@echo "RUSTC_WRAPPER=$${RUSTC_WRAPPER}"
 	@if [ "$$RUSTC_WRAPPER" = "sccache" ]; then sccache --show-stats; fi
@@ -53,9 +54,30 @@ cargo-auditable:
 cargo-cyclonedx:
 	cargo install --locked cargo-cyclonedx@$(CARGO_CYCLONEDX_VER)
 
+# Production builds
 rudder-relayd: target/release/rudder-relayd
-rudder-package: target/release/rudder-package
+
+rudder-package-gpgv: target/release/rudder-package
+rudder-package-sequoia: export CARGO_FEATURES=sequoia
+rudder-package-sequoia: target/release/rudder-package
+
+rudder-report: target/release/rudder-report
+
 rudderc: target/release/rudderc
+rudderc-embedded: export CARGO_FEATURES=embedded-lib
+rudderc-embedded: target/release/rudderc
+
+module-template: target/release/rudder-module-template
+
+module-commands: target/release/rudder-module-commands
+
+module-system-updates: target/release/rudder-module-system-updates
+module-system-updates-apt: export CARGO_FEATURES=apt
+module-system-updates-apt: target/release/rudder-module-system-updates
+module-system-updates-apt-old: export CARGO_FEATURES=apt-compat
+module-system-updates-apt-old: target/release/rudder-module-system-updates
+
+module-inventory: target/release/rudder-module-inventory
 
 target/release/%: rust-version cargo-auditable
 	cargo auditable build --bin $* --features=${CARGO_FEATURES} --release --locked --jobs $(JOBS)
