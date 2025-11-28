@@ -12,6 +12,7 @@ pipeline {
 
     environment {
         RUDDER_VERSION = "${version}"
+        CI             = 1
     }
     triggers {
         cron('@midnight')
