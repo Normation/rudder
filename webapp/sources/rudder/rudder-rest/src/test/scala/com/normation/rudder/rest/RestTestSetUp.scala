@@ -951,6 +951,7 @@ class RestTestSetUp {
       mockTechniques.techniqueRevisionRepo,
       mockNodeGroups.groupsRepo,
       mockRules.ruleRepo,
+      mockRules.ruleCategoryRepo,
       mockDirectives.directiveRepo,
       mockTechniques.techniqueRepo
     )
