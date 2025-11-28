@@ -53,7 +53,7 @@ import com.normation.rudder.rest.PluginInternalApi as API
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.JsonPluginsSystemDetails
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -125,7 +125,7 @@ class PluginInternalApi(
           _       <- pluginService.install(plugins).tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
         } yield ()
       }).chainError("Could not install plugins")
-        .toLiftResponseZero(params, schema)
+        .toLiftResponseZeroUnit(params, schema)
     }
   }
 
@@ -139,7 +139,7 @@ class PluginInternalApi(
         } yield ()
       }).chainError("Could not remove plugins")
         .tapError(err => ApplicationLoggerPure.error(err.fullMsg))
-        .toLiftResponseZero(params, schema)
+        .toLiftResponseZeroUnit(params, schema)
     }
   }
 
@@ -164,7 +164,7 @@ class PluginInternalApi(
           _       <- pluginService.updateStatus(status, plugins).tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
         } yield ()
       }).chainError(s"Could not change plugin status to '${s}'")
-        .toLiftResponseZero(params, schema)
+        .toLiftResponseZeroUnit(params, schema)
     }
   }
 
