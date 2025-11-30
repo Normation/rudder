@@ -78,6 +78,14 @@ else
 	@exit 1
 endif
 
+cargo-test: rust-version
+ifdef PACKAGE
+	cargo test --package $(PACKAGE) --features=$(FEATURES) --locked --jobs $(JOBS)
+else
+	@echo "Please specify PACKAGE=crate_name"
+	@exit 1
+endif
+
 dev-doc:
 	cargo doc --document-private-items --open
 
