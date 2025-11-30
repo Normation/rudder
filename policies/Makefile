@@ -5,10 +5,13 @@ include ../cargo.mk
 
 check: lint
 	cd rudderc && make check
-	cd module-types/system-updates && cargo test --locked
-	cd module-types/system-updates && cargo test --locked --features apt
-	cd module-types/system-updates && cargo test --locked --features apt-compat
-	cd module-types/augeas && cargo test --locked
-	cd module-types/template && cargo test --locked
-	cd module-types/commands && cargo test --locked
-	cd module-types/inventory && cargo test --locked
+	$(MAKE) cargo-test PACKAGE=rudder-cli
+	$(MAKE) cargo-test PACKAGE=rudder-commons
+	$(MAKE) cargo-test PACKAGE=rudder-report
+	$(MAKE) cargo-test PACKAGE=rudder-system-updates
+	$(MAKE) cargo-test PACKAGE=rudder-system-updates FEATURES=apt
+	$(MAKE) cargo-test PACKAGE=rudder-system-updates FEATURES=apt-compat
+	$(MAKE) cargo-test PACKAGE=augeas
+	$(MAKE) cargo-test PACKAGE=template
+	$(MAKE) cargo-test PACKAGE=commands
+	$(MAKE) cargo-test PACKAGE=inventory

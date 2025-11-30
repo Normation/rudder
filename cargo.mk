@@ -32,6 +32,10 @@ export CARGO_INCREMENTAL=0
 # retry on network failures
 export CARGO_NET_RETRY=10
 export RUSTUP_MAX_RETRIES=10
+# limit jobs on CI
+JOBS := 2
+else
+JOBS := $(shell nproc)
 endif
 
 # Use sccache if available
@@ -41,13 +45,6 @@ else
   SCCACHE :=
 endif
 export RUSTC_WRAPPER=$(SCCACHE)
-
-# set jobs to number of cores or 2 on jenkins
-ifneq ($(JENKINS_HOME),)
-  JOBS := 2
-else
-  JOBS := $(shell nproc)
-endif
 
 rust-version:
 	@echo "jobs=$(JOBS)"

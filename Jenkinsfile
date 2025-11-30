@@ -405,11 +405,7 @@ pipeline {
                                     }
                                 }
                                 sh script: 'make agent-windows', label: 'install local Windows agent'
-                                sh script: 'make check', label: 'rudderc tests'
                                 sh script: 'make docs', label: 'rudderc docs'
-                            }
-                            dir('policies/rudder-report') {
-                                sh script: 'make check', label: 'rudder-report tests'
                             }
                             dir('policies') {
                                 sh script: 'make check', label: 'policies test'
