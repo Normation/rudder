@@ -3731,17 +3731,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rudder-report"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "rudder-relayd",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "rudder_cli"
 version = "0.0.0-dev"
 dependencies = [
@@ -3793,6 +3782,17 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "test-generator",
+]
+
+[[package]]
+name = "rudder_report"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "rudder-relayd",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
