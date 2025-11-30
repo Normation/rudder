@@ -1,5 +1,5 @@
 [package]
-name = "rudder-cli"
+name = "rudder_cli"
 version = "0.0.0-dev"
 description = "Common definitions for CLIs in Rudder"
 authors.workspace = true

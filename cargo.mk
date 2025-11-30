@@ -88,7 +88,7 @@ dev-doc:
 
 lint:
 	cargo fmt --all -- --check
-	cargo clippy --all-targets --examples --tests -- --deny warnings
+	cargo clippy --all-targets --examples --tests --locked -- --deny warnings
 
 clean:
 	find . -name "*.cdx.*" -exec rm {} \;
