@@ -5,9 +5,15 @@
 
 include cargo.mk
 
-mvn-version:
+webapp-version:
 	mvn --version
+	npm --version
 
-webapp: mvn-version
+webapp-release: webapp-version
 	cd webapp/sources && mvn --batch-mode clean package -DskipTests
+	find webapp/sources -name "rudder-webapp.cdx.json"
+	# TODO sbom for webapp: maven & npm in the build process
+
+clean:
+	find . -name "*.cdx.*" -exec rm {} \;
 

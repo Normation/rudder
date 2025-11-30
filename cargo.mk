@@ -17,6 +17,10 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 
+
+# TODO distribution des sbom vs precision, version de nos crates dans cargo
+
+
 CARGO_AUDITABLE_VER := 0.7.2
 CARGO_CYCLONEDX_VER := 0.5.7
 
@@ -62,13 +66,15 @@ cargo-cyclonedx:
 cargo-release: rust-version cargo-auditable cargo-cyclonedx
 ifdef BIN
 	cargo auditable build --bin $(BIN) --features=$(FEATURES) --release --locked --jobs $(JOBS)
-	# Build all SBOMs and pick the right one, then cleanup.
-	# Currently cargo-cyclonedx cannot target a single binary.
-	cargo cyclonedx --quiet --format json --describe binaries --target all --features=$(FEATURES)
-	find . -name "$(BIN)_bin.cdx.json" -exec mv {} target/ \;
+	@# Build all SBOMs and pick the right one, then cleanup.
+	@# Currently cargo-cyclonedx cannot target a single binary.
+	cargo cyclonedx --quiet --spec-version 1.5 --format json --describe binaries --target all --features=$(FEATURES)
+	@find . -path "./target" -prune -o -name "$(BIN)_bin.cdx.json" -exec mv {} target/release/$(BIN).cdx.json \;
 	@find . -path "./target" -prune -o -name "*.cdx.json" -exec rm {} \;
+	@echo ""
+	@echo "> Built target/release/$(BIN) and target/release/$(BIN).cdx.json"
 else
-	@echo "Please specify BIN=your_binary_name"
+	@echo "Please specify BIN=binary_name"
 	@exit 1
 endif
 
