@@ -689,13 +689,13 @@ pipeline {
                                 }
                                 sh script: 'RUDDERC_VERSION="${RUDDER_VERSION}-${GIT_COMMIT}" make static', label: 'public binary'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'repository-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" ../../target/release/rudderc packager@${HOST_REPO}:/var/www/repos/tools/rudderc/${RUDDER_VERSION}/rudderc-linux-x86_64', label: 'publish rudderc'
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" ../../target/release/rudderc ${KEY_USER}@${HOST_REPO}:/var/www/repos/tools/rudderc/${RUDDER_VERSION}/rudderc-linux-x86_64', label: 'publish rudderc'
                                 }
                             }
                             dir('policies/rudder-report') {
                                 sh script: 'make static', label: 'public binary'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'repository-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" ../../target/release/rudder-report packager@${HOST_REPO}:/var/www/repos/tools/rudder-report/rudder-report-x86_64', label: 'publish rudder-report'
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" ../../target/release/rudder-report ${KEY_USER}@${HOST_REPO}:/var/www/repos/tools/rudder-report/rudder-report-x86_64', label: 'publish rudder-report'
                                 }
                             }
                         }
