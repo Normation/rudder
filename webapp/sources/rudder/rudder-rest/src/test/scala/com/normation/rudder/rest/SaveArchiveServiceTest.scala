@@ -106,17 +106,17 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
         rootRuleCategoryWithCat12
       ),
       test("move nested rule category2")(
-        withCtx(_.save(policyArchiveRuleCategory(rootRuleCategoryWithSubcat2), MergePolicy.KeepRuleTargets))(root => {
-          // the expected value is wrong : the test Repo does something unexpected, it leads to multiple categories with same ID, and the root is moved.
-          // for now, check that the "rootRuleCategory" effectively contains the expected format
-          assertTrue(
+        // the expected value is wrong : the test Repo does something unexpected, it leads to multiple categories with same ID, and the root is moved.
+        // for now, check that the "rootRuleCategory" effectively contains the expected format
+        withCtx(_.save(policyArchiveRuleCategory(rootRuleCategoryWithSubcat2), MergePolicy.KeepRuleTargets))(
+          root =>
             root
               .find(rootRuleCategory.id)
               .map(_._1)
               .getOrElse(rootRuleCategory)
-              .transformInto[JRuleCategories] == rootRuleCategoryWithSubcat2.transformInto[JRuleCategories]
-          )
-        })
+              .transformInto[JRuleCategories],
+          Assertion.equalTo(rootRuleCategoryWithSubcat2.transformInto[JRuleCategories])
+        )
       )
     ) @@ TestAspect.sequential
   }
@@ -129,12 +129,13 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
    * Test the result using JRuleCategories, which sorts children by id
    */
   private def testSaveRuleCategories(label: String)(policyArchive: PolicyArchive, expectedRoot: RuleCategory) = test(label) {
-    withCtx(_.save(policyArchive, MergePolicy.KeepRuleTargets))(root =>
-      assertTrue(root.transformInto[JRuleCategories] == expectedRoot.transformInto[JRuleCategories])
+    withCtx(_.save(policyArchive, MergePolicy.KeepRuleTargets))(
+      _.transformInto[JRuleCategories],
+      Assertion.equalTo(expectedRoot.transformInto[JRuleCategories])
     )
   }
 
-  def withCtx(save: SaveArchiveService => IOResult[Unit])(io: RuleCategory => TestResult) = {
+  private def withCtx[A](save: SaveArchiveService => IOResult[Unit])(transform: RuleCategory => A, assertion: Assertion[A]) = {
     val ruleCategoryRepo = mockRules.ruleCategoryRepo
     val archiveSaver     = new SaveArchiveServicebyRepo(
       null,
@@ -152,13 +153,12 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       dummyUuidGen
     )
     for {
-      _ <- save(archiveSaver)
-      a <- ruleCategoryRepo.getRootCategory()
+      _    <- save(archiveSaver)
+      root <- ruleCategoryRepo.getRootCategory()
     } yield {
-      io(a)
+      assert(transform(root))(assertion)
     }
   }
-
 }
 
 private object SaveArchiveServiceTest {
