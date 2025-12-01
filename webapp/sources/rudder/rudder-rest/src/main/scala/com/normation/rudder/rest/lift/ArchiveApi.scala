@@ -224,7 +224,7 @@ class ArchiveApi(
 
       // we use lots of comma separated arg, factor out the splitting logic
       def splitArg(req: Req, name: String): List[String]                 =
-        req.params.getOrElse(name, Nil).flatMap(seq => seq.split(',').toList.map(_.strip()))
+        req.params.getOrElse(name, Nil).flatMap(seq => seq.split(',').toList.map(_.strip()).distinct)
       def parseRuleIds(req: Req):           IOResult[List[RuleId]]       = {
         ZIO.foreach(splitArg(req, "rules"))(RuleId.parse(_).toIO)
       }

@@ -201,7 +201,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
     val archiveName = "archive-rule-no-dep"
     restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
 
-    restTest.testGETResponse("/api/latest/archives/export?rules=rule1&include=none") {
+    // also check that the rule is included only once, https://issues.rudder.io/issues/27953
+    restTest.testGETResponse("/api/latest/archives/export?rules=rule1,rule1&include=none") {
       case Full(OutputStreamResponse(out, _, _, _, 200)) =>
         val zipFile = testDir / s"${archiveName}.zip"
         val zipOut  = new FileOutputStream(zipFile.toJava)
