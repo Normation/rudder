@@ -460,7 +460,7 @@ final case class JsonUserFormData(
 object JsonUserFormData {
   given (using encoder: PasswordEncoder): UserPasswordEncoder[SecretUserPassword] = encoder.encode(_)
 
-  given transformer(using passwordEncoder: PasswordEncoder): Transformer[JsonUserFormData, User]           = {
+  given transformer(using passwordEncoder: UserPasswordEncoder[SecretUserPassword]): Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
       .withFieldComputed(
@@ -474,7 +474,7 @@ object JsonUserFormData {
       .withFieldConst(_.tenants, None)
       .buildTransformer
   }
-  given transformerUpdateUser:                               Transformer[JsonUserFormData, UpdateUserFile] = {
+  given transformerUpdateUser:                                                       Transformer[JsonUserFormData, UpdateUserFile] = {
     Transformer
       .define[JsonUserFormData, UpdateUserFile]
       .withFieldComputed(
@@ -483,7 +483,7 @@ object JsonUserFormData {
       )
       .buildTransformer
   }
-  given transformerUpdateUserInfo:                           Transformer[JsonUserFormData, UpdateUserInfo] =
+  given transformerUpdateUserInfo:                                                   Transformer[JsonUserFormData, UpdateUserInfo] =
     Transformer.define[JsonUserFormData, UpdateUserInfo].enableOptionDefaultsToNone.buildTransformer
 }
 
