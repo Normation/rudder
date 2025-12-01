@@ -109,7 +109,7 @@ object UserPassword {
    * by only making it possible to obtain a hashed password after encoding (see usage)
    */
   trait UserPasswordEncoder[T <: UserPassword] {
-    private[UserPassword] def encode(t: CharSequence): String
+    protected[users] def encode(t: CharSequence): String
   }
 
   given (using encoder: UserPasswordEncoder[SecretUserPassword]): Transformer[SecretUserPassword, HashedUserPassword] =
