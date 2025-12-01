@@ -10,7 +10,7 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 # Not designed for dev workflow, but for CI/CD and release builds.
 # Special effort for auditable builds and SBOM generation.
 
-# EXpose an interface as close to cargo as possible.
+# Expose an interface as close to cargo as possible.
 # Don't try to abstract. Amost a wrapper.
 #
 # make release BIN=rudderc FEATURES=embedded-lib
@@ -60,20 +60,26 @@ cargo-auditable:
 cargo-cyclonedx:
 	cargo install --locked cargo-cyclonedx@$(CARGO_CYCLONEDX_VER)
 
-cargo-release: rust-version cargo-auditable cargo-cyclonedx
+cargo-release: rust-version cargo-auditable
 ifdef BIN
 	cargo auditable build --bin $(BIN) --features=$(FEATURES) --release --locked --jobs $(JOBS)
+else
+	@echo "Please specify BIN=binary_name"
+	@exit 1
+endif
+
+cargo-sbom: rust-version cargo-cyclonedx
 	@# Build all SBOMs and pick the right one, then cleanup.
 	@# Currently cargo-cyclonedx cannot target a single binary.
 	cargo cyclonedx --quiet --spec-version 1.5 --format json --describe binaries --target all --features=$(FEATURES)
 	@find . -path "./target" -prune -o -name "$(BIN)_bin.cdx.json" -exec mv {} target/release/$(BIN).cdx.json \;
 	@find . -path "./target" -prune -o -name "*.cdx.json" -exec rm {} \;
+	gzip -f target/release/$(BIN).cdx.json
 	@echo ""
-	@echo "> Built target/release/$(BIN) and target/release/$(BIN).cdx.json"
-else
-	@echo "Please specify BIN=binary_name"
-	@exit 1
-endif
+	@echo "> Built target/release/$(BIN) and target/release/$(BIN).cdx.json.gz"
+
+install-release: cargo-release
+	install -m 755 target/release/$(BIN) $(DESTDIR)/bin/$(BIN)
 
 cargo-test: rust-version
 ifdef PACKAGE
