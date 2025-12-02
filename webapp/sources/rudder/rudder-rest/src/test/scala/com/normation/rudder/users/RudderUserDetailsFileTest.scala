@@ -1,12 +1,12 @@
 package com.normation.rudder.users
 
+import com.normation.XmlSpecMatcher
 import org.junit.runner.RunWith
-import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class RudderUserDetailsFileTest extends Specification with XmlMatchers {
+class RudderUserDetailsFileTest extends Specification with XmlSpecMatcher {
 
   // content of the XML file, with unsafe-hashes removed
   val userXml = <authentication  unsafe-hashes="true" hash="sha-1" case-sensitivity="true">
@@ -22,6 +22,6 @@ class RudderUserDetailsFileTest extends Specification with XmlMatchers {
   val exec = UserManagementIO.replaceXml(userXml, FileUserDetailListProvider.XmlMigrationRule("plop"), "testFile")
 
   "migration rule should work" >> {
-    exec must beRight(beEqualToIgnoringSpace(expectedXml))
+    exec must beRight(equalsIgnoringSpace(expectedXml))
   }
 }

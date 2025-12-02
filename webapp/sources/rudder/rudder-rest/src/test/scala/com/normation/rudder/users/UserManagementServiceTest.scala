@@ -1,15 +1,15 @@
 package com.normation.rudder.users
 
+import com.normation.XmlSpecMatcher
 import com.normation.rudder.users.UserPassword.SecretUserPassword
 import com.normation.rudder.users.UserPassword.UnknownPassword
 import com.normation.rudder.users.UserPassword.UserPasswordEncoder
 import org.junit.runner.RunWith
-import org.specs2.matcher.XmlMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class UserManagementServiceTest extends Specification with XmlMatchers {
+class UserManagementServiceTest extends Specification with XmlSpecMatcher {
 
   // content of the XML file
   val userXml = <authentication hash="sha-1" case-sensitivity="true">
@@ -46,7 +46,7 @@ class UserManagementServiceTest extends Specification with XmlMatchers {
       )
 
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
           <user name="user1" password="1234" permissions="user" tenants="zoneA" />
           <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
@@ -64,7 +64,7 @@ class UserManagementServiceTest extends Specification with XmlMatchers {
         "testFile.xml"
       )
 
-      exec must beLeft()
+      exec must beLeft
     }
   }
 
@@ -72,7 +72,7 @@ class UserManagementServiceTest extends Specification with XmlMatchers {
     "correctly delete it if it exist" in {
       val exec = UserManagementIO.replaceXml(userXml, UserManagementService.deleteUserXmlRewriteRule("user1"), "test")
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
           </authentication>
@@ -83,7 +83,7 @@ class UserManagementServiceTest extends Specification with XmlMatchers {
     "let the file unchanged if the user is not present" in {
       val exec = UserManagementIO.replaceXml(userXml, UserManagementService.deleteUserXmlRewriteRule("mallory"), "test")
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user1" password="1234" permissions="user" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
@@ -106,7 +106,7 @@ class UserManagementServiceTest extends Specification with XmlMatchers {
         "test"
       )
       exec must beRight(
-        beEqualToIgnoringSpace(
+        equalsIgnoringSpace(
           <authentication hash="sha-1" case-sensitivity="true">
             <user name="user3" password="sha-1terces" permissions="perm1,perm2" tenants="zoneA" />
             <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
