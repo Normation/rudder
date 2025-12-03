@@ -361,7 +361,7 @@ pipeline {
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('relay/sources/rudder-package') {
-                                sh script: 'make check', label: 'policies tests'
+                                sh script: 'make check', label: 'rudder-package tests'
                             }
                         }
                     }
@@ -371,7 +371,7 @@ pipeline {
                                 failedBuild = true
                                 errors.add("Tests - rudder-package")
                                 //notifier.notifyResult("rust-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackSend(channel: slackResponse.threadId, message: "Error during rudder-package tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
                             }
                         }
                         cleanup {
