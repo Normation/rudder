@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use assert_cmd::Command;
-use assert_cmd::cargo;
+use assert_cmd::cargo_bin;
+use assert_cmd::prelude::*;
 use std::io::Read;
+use std::process::Command;
 use tempfile::NamedTempFile;
 
 static EXPECTED_FILE_CONTENT: &str = "Hello Ferris!";
@@ -12,7 +13,7 @@ static EXPECTED_FILE_CONTENT: &str = "Hello Ferris!";
 fn test_default_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     // The default template engine is set to minijinja.
     let mut output_file = NamedTempFile::new()?;
-    let mut cmd = Command::new(cargo::cargo_bin!("rudder-module-template"));
+    let mut cmd = Command::new(cargo_bin!("rudder-module-template"));
 
     cmd.arg("--template").arg("tests/template.j2");
     cmd.arg("--data").arg("tests/data.json");
@@ -29,7 +30,7 @@ fn test_default_template_engine() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn test_minijinja_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
-    let mut cmd = Command::new(cargo::cargo_bin!("rudder-module-template"));
+    let mut cmd = Command::new(cargo_bin!("rudder-module-template"));
 
     cmd.arg("--template").arg("tests/template.j2");
     cmd.arg("--data").arg("tests/data.json");
@@ -48,7 +49,7 @@ fn test_minijinja_template_engine() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(target_family = "unix")]
 fn test_jinja2_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
-    let mut cmd = Command::new(cargo::cargo_bin!("rudder-module-template"));
+    let mut cmd = Command::new(cargo_bin!("rudder-module-template"));
 
     cmd.arg("--template").arg("tests/template.j2");
     cmd.arg("--data").arg("tests/data.json");
@@ -66,7 +67,7 @@ fn test_jinja2_template_engine() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn test_mustache_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
-    let mut cmd = Command::new(cargo::cargo_bin!("rudder-module-template"));
+    let mut cmd = Command::new(cargo_bin!("rudder-module-template"));
 
     cmd.arg("--template").arg("tests/template.mustache");
     cmd.arg("--data").arg("tests/data.json");
@@ -84,7 +85,7 @@ fn test_mustache_template_engine() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn test_mustache_cfengine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
-    let mut cmd = Command::new(cargo::cargo_bin!("rudder-module-template"));
+    let mut cmd = Command::new(cargo_bin!("rudder-module-template"));
 
     cmd.arg("--template").arg("tests/template2.mustache");
     cmd.arg("--data").arg("tests/data2.json");

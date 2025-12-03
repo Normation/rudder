@@ -1,26 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use super::{POWERSHELL_BIN, POWERSHELL_OPTS, filters};
+use crate::backends::windows::directive_template::DirectiveTemplate;
+use crate::{backends::Windows, ir::Technique, test::TestCase};
+use anyhow::{Context, Result, bail};
+use askama::Template;
+use rudder_cli::logs::ok_output;
+use rudder_commons::report::{Report, RunLog};
+use std::process::Command;
 use std::{
     fs::{self, create_dir_all, read_to_string},
     path::Path,
-    process::Command,
-};
-
-use super::filters;
-use crate::{
-    backends::{
-        Windows,
-        windows::{POWERSHELL_BIN, POWERSHELL_OPTS},
-    },
-    ir::Technique,
-    test::TestCase,
-};
-use anyhow::{Context, Result, bail};
-use askama::Template;
-use rudder_commons::{
-    logs::ok_output,
-    report::{Report, RunLog},
 };
 use tracing::debug;
 
@@ -33,16 +24,6 @@ struct TechniqueTestTemplate<'a> {
     ncf_path: &'a Path,
     directive_path: &'a Path,
     technique_path: &'a Path,
-}
-
-#[derive(Template)]
-#[template(path = "test-directive.ps1.askama", escape = "none")]
-struct TechniqueTestDirectiveTemplate<'a> {
-    technique: &'a str,
-    technique_name: &'a str,
-    policy_mode: &'a str,
-    params: &'a str,
-    conditions: Vec<&'a String>,
 }
 
 /// Run a test technique with the Windows agent
@@ -66,11 +47,12 @@ pub fn win_agent(
         .collect::<Vec<String>>()
         .join(" ");
 
-    let technique_test_directive = TechniqueTestDirectiveTemplate {
-        technique: &Windows::technique_name_plain(&technique.id.to_string()),
+    let technique_test_directive = DirectiveTemplate {
+        bundle_name: &Windows::technique_name_plain(&technique.id.to_string()),
         technique_name: &technique.name,
         policy_mode: &filters::camel_case(case.policy_mode.to_string())?,
         params: &params,
+        directive_id: "test@@0@@test",
         conditions: case.conditions.iter().collect(),
     };
     let directive_path = case_dir.join("directive.ps1");

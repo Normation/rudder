@@ -275,10 +275,7 @@ fn it_is_executed_using_correct_group() {
     let file_content = std::fs::read_to_string(file_path).unwrap();
     assert_eq!(
         file_content.trim(),
-        &get_current_groupname()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        &get_current_groupname().unwrap().to_string_lossy(),
         "File content does not match the expected output"
     );
     end_test(workdir);

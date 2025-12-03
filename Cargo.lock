@@ -18,6 +18,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "agent"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "chrono",
+ "clap",
+ "hostname",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml 0.9.8",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2207,11 +2224,12 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 name = "lib"
 version = "0.0.0-dev"
 dependencies = [
+ "agent",
  "anyhow",
  "dyn-clone",
  "env_logger",
+ "indexmap 2.12.0",
  "itertools 0.14.0",
- "log 0.4.28",
  "posix-acl",
  "regex",
  "rudder_commons",
@@ -2222,6 +2240,8 @@ dependencies = [
  "tempfile",
  "test-log",
  "tiny_http",
+ "tracing",
+ "tracing-subscriber",
  "uzers",
 ]
 
@@ -3779,12 +3799,14 @@ dependencies = [
 name = "rudderc"
 version = "0.0.0-dev"
 dependencies = [
+ "agent",
  "anyhow",
  "askama",
  "boon",
  "clap",
  "format_serde_error",
  "include_dir",
+ "indexmap 2.12.0",
  "mdbook",
  "nom 8.0.0",
  "pretty_assertions",

@@ -1,30 +1,3 @@
-# Boilerplate to run a technique as a standalone file
-#
-# We don't want to support arbitrary Rudder techniques
-# as we would need a full Rudder system.
-#
-# On the opposite, we intend to enforce a limited interface, i.e. "ncf" + a very small part
-# of the system policies.
-#
-# This means:
-#
-# * No direct node property access
-# * No system techniques internals access
-# * We DON'T run from usual paths (/var/rudder/...)
-#   Everything happens in temporary directories
-# * Some methods won't work:
-#     sharedfile_*
-#     file_from_shared_folder
-#     file_from_remote_*
-#
-# This script requires the following environment variables to be defined:
-#
-# * LIB_PATH
-# * CWD
-# * TMP_DIR
-# * PARAMS_FILE
-
-# we need to include ncf
 body common control
 {
       # we're not supposed to make CFEngine calls but just in case
@@ -33,6 +6,8 @@ body common control
 
         inputs => {
                     @{lib.files},
+                    "{{ technique_file_path }}",
+                    "{{ directive_file_path }}"
         };
 
         bundlesequence => {
@@ -46,54 +21,25 @@ body agent control
         ifelapsed => "1";
         environment => { "DEBIAN_FRONTEND=noninteractive" };
         abortclasses => { "should_not_continue", "abort_agent_run" };
-        default_repository => "${rudder_test_init.tmp}/modified-files";
+        default_repository => "{{ work_dir }}/modified-files";
         #agentfacility => "NONE";
 }
 
 bundle common lib
 {
   vars:
-      "ncf_tree" string => getenv("LIB_PATH", 1024);
-
+      "ncf_tree"               string => "{{ library_folder }}";
       # Almost same as promises.cf, but only load necessary parts
       "list_compatible_inputs" string => "/bin/sh ${ncf_tree}/10_ncf_internals/list-compatible-inputs";
       "generic_framework"      string => execresult("${list_compatible_inputs} --ncf-path ${ncf_tree} 10_ncf_internals 20_cfe_basics 30_generic_methods", "useshell");
-      "default_files_relative" slist => splitstring("${generic_framework}", "\n", 10000);
-      "files"         slist => maplist("${ncf_tree}/${this}", default_files_relative);
+      "default_files_relative"  slist => splitstring("${generic_framework}", "\n", 10000);
+      "files"                   slist => maplist("${ncf_tree}/${this}", default_files_relative);
 }
 
 bundle common node
 {
   vars:
       "properties" data => '{ "rudder": { "packages": { "installed_cache_expire": 60, "updates_cache_expire": 240 } } }';
-}
-
-bundle agent rudder_test_init {
-   vars:
-      # We want to look for params file in current dir, even if CFEngine
-      # is not found of it.
-      "cwd" string => getenv("CWD","2048");
-      "params" string => getenv("PARAMS_FILE","2048");
-      "tmp" string => getenv("TMP_DIR","2048");
-      # Read params for current test case
-      "test_case" data => readyaml("${cwd}/${params}", 100k);
-      # Define conditions
-      "conditions" slist => getvalues("test_case[conditions]");
-
-      "dry_run" string => "false";
-    dry_run_test::
-      "dry_run" string => "true";
-
-  classes:
-      "dry_run_test"  expression => strcmp("${test_case[policy_mode]}", "audit");
-      "${conditions}" expression => "any",
-                           scope => "namespace";
-
-  methods:
-    # lib ("ncf") init, including modules update
-      "initialization";
-    # static reporting content
-      "any" usebundle => rudder_reporting_context_v4("directive_id","rule_id","technique_id","","","report_id");
 }
 
 # "g" vars used by ncf
@@ -128,17 +74,15 @@ body action enforce
 
 bundle agent export_datastate
 {
-  vars:
-    "datastate_file" string => getenv("DATASTATE_FILE","2048");
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
   files:
     pass3::
-      "${datastate_file}"
+      "{{ datastate_file_path }}"
         template_method      => "inline_mustache",
         create               => "true",
         action               => enforce,
-        edit_template_string => "{{%-top-}}";
+        edit_template_string => {% raw %}"{{%-top-}}";{% endraw %}
 }
