@@ -11,7 +11,7 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 # Special effort for auditable builds and SBOM generation.
 
 # Expose an interface as close to cargo as possible.
-# Don't try to abstract. Amost a wrapper.
+# Don't try to abstract. Almost a wrapper.
 #
 # make release BIN=rudderc FEATURES=embedded-lib
 
