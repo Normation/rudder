@@ -24,9 +24,9 @@
 # will not fail if one of the variables do not exist, and will return the other one. If both are undefined, the method will still fail.
 #
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^[a-zA-Z_]+$"
+# @parameter_constraint prefix "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^[a-zA-Z_]+$"
+# @parameter_constraint name "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter first_variable  The first variable, which content will be overridden in the resulting variable if necessary (written in the form prefix.name)
 # @parameter second_variable The second variable, which content will override the first in the resulting variable if necessary (written in the form prefix.name)
 #
