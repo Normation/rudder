@@ -81,6 +81,8 @@ import net.liftweb.common.Box.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
+import java.time.Instant
 import scala.xml.*
 
 /**
@@ -902,13 +904,13 @@ class EventLogDetailsServiceImpl(
       modToken          <- getFromToString((apiAccount \ "token").headOption)
       modDescription    <- getFromToString((apiAccount \ "description").headOption)
       modIsEnabled      <- getFromTo[Boolean]((apiAccount \ "enabled").headOption, s => tryo(s.text.toBoolean))
-      modTokenGenDate   <- getFromTo[DateTime](
+      modTokenGenDate   <- getFromTo[Instant](
                              (apiAccount \ "tokenGenerationDate").headOption,
-                             s => tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text))
+                             s => tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text).toJavaInstant)
                            )
-      modExpirationDate <- getFromTo[Option[DateTime]](
+      modExpirationDate <- getFromTo[Option[Instant]](
                              (apiAccount \ "expirationDate").headOption,
-                             s => Full(tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text)).toOption)
+                             s => Full(tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text).toJavaInstant).toOption)
                            )
       modAccountKind    <- getFromToString((apiAccount \ "accountKind").headOption)
       modAcls           <- getFromTo[List[ApiAclElement]](

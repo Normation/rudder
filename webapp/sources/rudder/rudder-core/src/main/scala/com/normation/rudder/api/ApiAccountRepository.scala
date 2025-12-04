@@ -60,6 +60,8 @@ import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
+import java.time.Instant
+
 /**
  * A repository to retrieve API Accounts
  */
@@ -111,8 +113,8 @@ final class RoLDAPApiAccountRepository(
       Some(systemToken),
       "For internal use",
       isEnabled = true,
-      creationDate = DateTime.now(DateTimeZone.UTC),
-      tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
+      creationDate = Instant.now,
+      tokenGenerationDate = Instant.now,
       tenants = NodeSecurityContext.All
     )
   }

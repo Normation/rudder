@@ -14,6 +14,13 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
           equalTo(org.joda.time.DateTime(input.toEpochMilli, DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime()))
         )
       }
+    },
+    test("formatAsDateTime should behave like jodatime ISODateTimeFormat.dateTime") {
+      check(Gen.instant(min = Instant.EPOCH, max = Instant.parse("9999-01-01T00:00:00Z"))) { input =>
+        assert(DateFormaterService.formatAsDateTime(input))(
+          equalTo(org.joda.time.DateTime(input.toEpochMilli, DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime()))
+        )
+      }
     }
   )
 }

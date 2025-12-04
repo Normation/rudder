@@ -77,10 +77,13 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
+import com.normation.utils.DateFormaterService
+
 import java.time.format.DateTimeFormatter
 import net.liftweb.common.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.xml.{Node as XNode, *}
 import zio.json.*
 
@@ -527,7 +530,7 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
               }
             }</authorization>
           )
-        ) ++ exp.map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate>).getOrElse(NodeSeq.Empty)
+        ) ++ exp.map(d => <expirationDate>{DateFormaterService.formatAsDateTime(d)}</expirationDate>).getOrElse(NodeSeq.Empty)
     }
 
     createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)(
@@ -537,8 +540,8 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
        <token>{account.token.flatMap(_.exposeHash()).getOrElse("")}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
-       <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
-       <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
+       <creationDate>{DateFormaterService.formatAsDateTime(account.creationDate)}</creationDate>
+       <tokenGenerationDate>{DateFormaterService.formatAsDateTime(account.tokenGenerationDate)}</tokenGenerationDate>
        <tenants>{account.tenants.serialize}</tenants>
       ) ++ kind
     )

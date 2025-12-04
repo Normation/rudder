@@ -231,6 +231,37 @@ object DateFormaterService {
 
   def formatAsBasicDateTime(instant: Instant): String = basicDateTimeFormatter.format(instant.atOffset(ZoneOffset.UTC))
 
+  private val dateTimeFormatter = {
+    val date = new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(YEAR, 4, 10, SignStyle.NEVER)
+      .appendLiteral('-')
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendLiteral('-')
+      .appendValue(DAY_OF_MONTH, 2)
+      .toFormatter()
+
+    val time = new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendLiteral(':')
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .optionalStart
+      .appendLiteral(':')
+      .appendValue(SECOND_OF_MINUTE, 2)
+      .optionalStart
+      .appendFraction(NANO_OF_SECOND, 3, 3, true)
+      .appendOffsetId()
+      .toFormatter()
+
+    new java.time.format.DateTimeFormatterBuilder().parseCaseInsensitive
+      .append(date)
+      .appendLiteral('T')
+      .append(time)
+      .toFormatter()
+  }
+
+
+  def formatAsDateTime(instant: Instant): String = dateTimeFormatter.format(instant.atOffset(ZoneOffset.UTC))
+
   def getDisplayDateTimePicker(date: DateTime): String = {
     date.toString(dateFormatTimePicker)
   }
