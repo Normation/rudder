@@ -44,15 +44,18 @@ import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.VmType.*
 import com.normation.inventory.services.provisioning.*
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.HostnameRegex
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
+
 import java.net.InetAddress
 import java.time.Instant
 import java.util.Locale
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
+
 import scala.xml.*
 import zio.*
 import zio.json.*
@@ -762,7 +765,7 @@ class FusionInventoryParser(
             InventoryProcessingLogger.logEffect.warn(s"Error when parsing date for last user login. ${err}")
             None
           case Right(time) =>
-            Some(DateFormaterService.toInstant(time))
+            Some(time.toJavaInstant)
         }
       }
     )
@@ -1033,7 +1036,7 @@ class FusionInventoryParser(
         Some(
           Bios(
             name = model,
-            releaseDate = date.map(DateFormaterService.toInstant),
+            releaseDate = date.map(_.toJavaInstant),
             editor = optText(b \ "BMANUFACTURER").map(s => new SoftwareEditor(s)),
             version = optText(b \ "BVERSION").map(v => new Version(v)),
             manufacturer = systemManufacturer,
@@ -1341,7 +1344,7 @@ class FusionInventoryParser(
       case None       => None;
       case Some(date) =>
         try {
-          Some(DateFormaterService.toInstant(DateTime.parse(date, fmt)))
+          Some(DateTime.parse(date, fmt).toJavaInstant)
         } catch {
           case e: IllegalArgumentException =>
             InventoryProcessingLogger.logEffect.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))

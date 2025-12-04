@@ -42,7 +42,9 @@ import com.normation.rudder.*
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.zio.*
+
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import org.joda.time.{Duration as JTDuration, *}
@@ -259,7 +261,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
       test("When there is no handler, a campaign even should stop immediately") {
         for {
           _ <- Effects.reset(eb0)
-          _ <- TestClock.setTime(DateFormaterService.toInstant(now))
+          _ <- TestClock.setTime(now.toJavaInstant)
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
@@ -270,7 +272,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
       test("if before date-1h then stop at schedule") {
         for {
           _ <- Effects.reset(eb0)
-          _ <- TestClock.setTime(DateFormaterService.toInstant(now.minusDays(1)))
+          _ <- TestClock.setTime(now.minusDays(1).toJavaInstant)
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
@@ -282,7 +284,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         for {
           _ <- Effects.reset(eb0)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
-          _ <- TestClock.setTime(DateFormaterService.toInstant(now))
+          _ <- TestClock.setTime(now.toJavaInstant)
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
@@ -315,7 +317,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         for {
           _ <- Effects.reset(eb1)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
-          _ <- TestClock.setTime(DateFormaterService.toInstant(now))
+          _ <- TestClock.setTime(now.toJavaInstant)
           n <- Effects.createNextScheduledCampaignEvent(failingCampaign, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e1.id)).notOptional("missing event in store")

@@ -46,6 +46,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -55,6 +56,7 @@ import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.*
+
 import scala.xml.*
 
 object PendingHistoryGrid extends Loggable {
@@ -244,7 +246,7 @@ object PendingHistoryGrid extends Loggable {
 
   def displayIfDeleted(id: NodeId, lastInventoryDate: DateTime, deletedNodes: Map[NodeId, Seq[EventLog]]): NodeSeq = {
     // only take events that could have delete that inventory, as we set the default value to an empty sequence, there's no null here with the apply on the map
-    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(DateFormaterService.toInstant(lastInventoryDate)))
+    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(lastInventoryDate.toJavaInstant))
     // sort those events by date, to take the closer deletion date from the inventory date (head of the list)
     effectiveEvents.sortWith((ev1, ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
