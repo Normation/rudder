@@ -48,11 +48,10 @@ import java.io.InputStream
 import java.nio.file
 import java.nio.file.ClosedWatchServiceException
 import java.nio.file.StandardWatchEventKinds
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.TrueFileFilter
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 import zio.*
@@ -363,9 +362,9 @@ class CheckExistingInventoryFilesImpl(
 ) extends CheckExistingInventoryFiles {
 
   def processOldFiles(files: List[File]): UIO[Unit] = {
-    val now           = DateTime.now(DateTimeZone.UTC)
-    val purgeTime     = now.minusMillis(purgeAfter.toMillis.toInt)
-    val orphanTime    = now.minusMillis(waitingSignatureTime.toMillis.toInt)
+    val now           = Instant.now
+    val purgeTime     = now.minus(purgeAfter)
+    val orphanTime    = now.minus(waitingSignatureTime)
     val filteredFiles = filterFiles(purgeTime, orphanTime, files)
 
     deleteFiles(filteredFiles.toClean) *> addFiles(filteredFiles.toKeep)
@@ -397,12 +396,12 @@ class CheckExistingInventoryFilesImpl(
   // - file without supported extensions
   // - then, we delete all inventories files older than our threshold
   // - and the one that are not in pair (if older than waitingSignatureTime
-  def filterFiles(maxAgeGlobal: DateTime, maxAgeOrphan: DateTime, files: List[File]): FilteredFiles = {
+  def filterFiles(maxAgeGlobal: Instant, maxAgeOrphan: Instant, files: List[File]): FilteredFiles = {
     import com.softwaremill.quicklens.*
     val (filtered, pairs) = files.foldLeft((FilteredFiles(Nil, Nil, Nil), Map[String, List[File]]())) {
       case ((filteredFiles, pairs), file) =>
         if (hasValidExtension(file)) {
-          val fileLastModTime = file.lastModifiedTime.toEpochMilli
+          val fileLastModTime = file.lastModifiedTime
           // if file is very recent, just ignore, it can still be processed
           if (maxAgeOrphan.isBefore(fileLastModTime)) { // too yound, ignore
             (filteredFiles.modify(_.toIgnore).using(file :: _), pairs)
