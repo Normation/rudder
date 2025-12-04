@@ -44,15 +44,14 @@ import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
+import java.time.Instant
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.joda.time.format.ISODateTimeFormat
 
 final case class StartLibUpdate(actor: EventActor)
 
@@ -117,7 +116,7 @@ class CheckTechniqueLibrary(
         policyPackageUpdater.update(
           ModificationId(uuidGen.newUuid),
           actor,
-          Some(s"Automatic batch update at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime())}")
+          Some(s"Automatic batch update at ${DateFormaterService.formatAsBasicDateTime(Instant.now)}")
         ) match {
           case Full(t) =>
             logger.trace(s"***** udpate successful for ${t.size} techniques")
