@@ -463,11 +463,12 @@ class CheckExistingInventoryFilesImpl(
     import scala.jdk.CollectionConverters.*
     (for {
       // if that fails, just exit
-      ageLimit <- IOResult.attempt(DateTime.now(DateTimeZone.UTC).minusMillis(d.toMillis.toInt))
+      now      <- Clock.instant
+      ageLimit <- IOResult.attempt(now.minus(d))
       filter    = (f: File) => {
                     if (
                       f.exists && InventoryProcessingUtils
-                        .hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime.toEpochMilli))
+                        .hasValidInventoryExtension(f) && (f.isRegularFile && ageLimit.isAfter(f.lastModifiedTime))
                     ) Some(f)
                     else None
                   }
