@@ -57,10 +57,10 @@ import zio.json.*
 
 object DateFormaterService {
 
-  implicit class JodaTimeToJava(d: DateTime) {
+  extension (self: DateTime) {
     // see https://stackoverflow.com/a/47753227 - read other solution and the comment in them, too
     def toJava: ZonedDateTime =
-      ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID, ZoneId.SHORT_IDS))
+      ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(self.getMillis), ZoneId.of(self.getZone.getID, ZoneId.SHORT_IDS))
   }
 
   trait DateTimeCodecs {
