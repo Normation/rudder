@@ -1,6 +1,7 @@
 package com.normation.ldap.sdk
 
-import java.time.{Instant, ZoneOffset}
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.SignStyle
 import java.time.temporal.ChronoField.DAY_OF_MONTH
