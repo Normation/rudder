@@ -58,9 +58,10 @@ import zio.json.*
 object DateFormaterService {
 
   extension (self: DateTime) {
+    def toJavaInstant: Instant = Instant.ofEpochMilli(self.getMillis)
+
     // see https://stackoverflow.com/a/47753227 - read other solution and the comment in them, too
-    def toJava: ZonedDateTime =
-      ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(self.getMillis), ZoneId.of(self.getZone.getID, ZoneId.SHORT_IDS))
+    def toZonedDateTime: ZonedDateTime = self.toJavaInstant.atZone(ZoneId.of(self.getZone.getID, ZoneId.SHORT_IDS))
   }
 
   trait DateTimeCodecs {
@@ -75,15 +76,13 @@ object DateFormaterService {
     implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
       new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
 
-    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = {
-      _.toJava
-    }
+    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
     implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
       new DateTime(x.toInstant.toEpochMilli, DateTimeZone.UTC)
     }
 
-    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = { x => x.toJava.toInstant }
+    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = _.toJavaInstant
 
     implicit val transformInstantDateTime: Transformer[Instant, DateTime] = { x =>
       new DateTime(x.toEpochMilli, DateTimeZone.UTC)
