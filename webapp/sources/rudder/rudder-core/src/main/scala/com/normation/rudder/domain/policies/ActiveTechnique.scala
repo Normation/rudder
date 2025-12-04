@@ -72,31 +72,30 @@ final case class ActiveTechnique(
   def isEnabled: Boolean = _isEnabled || policyTypes.isSystem
 }
 
-final case class AcceptationDateTime(versions: Map[TechniqueVersion, DateTime]) {
-  def withNewVersions(vs: Map[TechniqueVersion, DateTime]) = AcceptationDateTime(versions ++ vs)
-}
+opaque type AcceptationDateTime = Map[TechniqueVersion, DateTime]
 
 object AcceptationDateTime {
+  extension (self: AcceptationDateTime) {
+    def withNewVersions(vs: Map[TechniqueVersion, DateTime]): AcceptationDateTime = (self ++ vs)
+    def versions: Map[TechniqueVersion, DateTime] = self
+  }
 
-  def empty = AcceptationDateTime(Map())
+  def empty: AcceptationDateTime = Map()
 
-  implicit val decoderTechniqueVersion: JsonFieldDecoder[TechniqueVersion] =
-    JsonFieldDecoder.string.mapOrFail(TechniqueVersion.parse)
-  implicit val encoderTechniqueVersion: JsonFieldEncoder[TechniqueVersion] = JsonFieldEncoder.string.contramap(_.serialize)
+  def apply(versions: Map[TechniqueVersion, DateTime]): AcceptationDateTime = versions
 
-  implicit val codecDateTime: JsonCodec[DateTime] = new JsonCodec(
-    JsonEncoder.string.contramap(s => GeneralizedTime(s).toString()),
-    JsonDecoder.string.mapOrFail(x => {
+  given JsonCodec[AcceptationDateTime] = {
+    given JsonFieldDecoder[TechniqueVersion] = JsonFieldDecoder.string.mapOrFail(TechniqueVersion.parse)
+    given JsonFieldEncoder[TechniqueVersion] = JsonFieldEncoder.string.contramap(_.serialize)
+
+    given JsonEncoder[DateTime] = JsonEncoder.string.contramap(s => GeneralizedTime(s).toString())
+    given JsonDecoder[DateTime] = JsonDecoder.string.mapOrFail { x =>
       GeneralizedTime
         .parse(x)
         .map(x => DateFormaterService.toDateTime(x.instant))
-        .toRight(s"Error when parsing '${x}' as a generalized time'")
-    })
-  )
+        .toRight(s"Error when parsing '$x' as a generalized time'")
+    }
 
-  // we're forced to spell it
-  implicit val mapCodec: JsonCodec[Map[TechniqueVersion, DateTime]] = JsonCodec.map
-
-  implicit val decoderAcceptationDateTime: JsonDecoder[AcceptationDateTime] = mapCodec.decoder.map(AcceptationDateTime.apply)
-  implicit val encoderAcceptationDateTime: JsonEncoder[AcceptationDateTime] = mapCodec.encoder.contramap(_.versions)
+    JsonCodec.map[TechniqueVersion, DateTime]
+  }
 }
