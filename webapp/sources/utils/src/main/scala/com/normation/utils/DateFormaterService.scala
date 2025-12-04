@@ -45,6 +45,8 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.format.SignStyle
+import java.time.temporal.ChronoField.*
 import java.util.TimeZone
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
@@ -152,7 +154,8 @@ object DateFormaterService {
     ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   }
 
-  def toDateTime(instant:  Instant): DateTime  = json.transformInstantDateTime.transform(instant)
+  def toDateTime(instant: Instant): DateTime = json.transformInstantDateTime.transform(instant)
+
   def toLocalDate(instant: Instant): LocalDate = json.transformInstantLocalDate.transform(instant)
 
   def parseDate(date: String): PureResult[DateTime] = {
@@ -215,6 +218,32 @@ object DateFormaterService {
         Left(Inconsistency((s"String '${date}' can't be parsed as a date (expected pattern: yyyy-MM-dd): ${ex.getMessage}")))
     }
   }
+
+  private val basicDateTimeFormatter = {
+    val date = new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(YEAR, 4, 10, SignStyle.NEVER)
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendValue(DAY_OF_MONTH, 2)
+      .toFormatter()
+
+    val time = new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .optionalStart
+      .appendValue(SECOND_OF_MINUTE, 2)
+      .optionalStart
+      .appendFraction(NANO_OF_SECOND, 0, 3, true)
+      .appendOffsetId()
+      .toFormatter()
+
+    new java.time.format.DateTimeFormatterBuilder().parseCaseInsensitive
+      .append(date)
+      .appendLiteral('T')
+      .append(time)
+      .toFormatter()
+  }
+
+  def formatAsBasicDateTime(instant: Instant): String = basicDateTimeFormatter.format(instant.atOffset(ZoneOffset.UTC))
 
   def getDisplayDateTimePicker(date: DateTime): String = {
     date.toString(dateFormatTimePicker)
