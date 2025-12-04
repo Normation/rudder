@@ -82,6 +82,7 @@ import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
@@ -89,6 +90,7 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
+
 import java.time.Instant
 import java.time.LocalTime
 import zio.*
@@ -310,7 +312,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.lastInventoryDate, levelField("lastInventoryDate")(nodeInfo.inventoryDate))
         .withFieldComputed(
           _.lastRunDate,
-          levelField(_)("lastRunDate")(agentRun.map(x => DateFormaterService.toInstant(x.agentRunId.date)))
+          levelField(_)("lastRunDate")(agentRun.map(_.agentRunId.date.toJavaInstant))
         )
         .withFieldComputed(_.policyServerId, levelField("policyServerId")(nodeInfo.policyServerId))
         .withFieldComputed(

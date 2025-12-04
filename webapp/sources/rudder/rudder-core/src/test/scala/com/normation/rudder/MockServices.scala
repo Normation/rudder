@@ -127,12 +127,14 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+
 import java.time.Instant
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
@@ -143,6 +145,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
 import scala.util.control.NonFatal
@@ -3402,8 +3405,8 @@ class MockCampaign() {
       val h = CampaignEventHistory(
         e0.id,
         e0.state,
-        DateFormaterService.toInstant(e0.start),
-        Some(DateFormaterService.toInstant(e0.end))
+        e0.start.toJavaInstant,
+        Some(e0.end.toJavaInstant)
       )
       Ref.make(Map((e0.id -> (e0, h :: Nil)))).runNow
     }
@@ -3422,8 +3425,8 @@ class MockCampaign() {
         val h       = CampaignEventHistory(
           event.id,
           event.state,
-          DateFormaterService.toInstant(event.start),
-          Some(DateFormaterService.toInstant(event.end))
+          event.start.toJavaInstant,
+          Some(event.end.toJavaInstant)
         )
         map + ((event.id, (event, h :: history)))
       }

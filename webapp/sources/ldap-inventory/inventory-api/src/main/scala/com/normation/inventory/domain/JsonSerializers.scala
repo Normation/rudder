@@ -38,6 +38,8 @@
 package com.normation.inventory.domain
 
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
+
 import java.net.InetAddress
 import java.time.Instant
 import org.joda.time.format.DateTimeFormatter
@@ -76,7 +78,7 @@ object JsonSerializers {
   // the update date is normalized in RFC3339, UTC, no millis
   def parseSoftwareUpdateInstant(d: String): Either[String, Instant] = {
     try {
-      Right(DateFormaterService.toInstant(JsonSerializers.softwareUpdateDateTimeFormat.parseDateTime(d)))
+      Right(JsonSerializers.softwareUpdateDateTimeFormat.parseDateTime(d).toJavaInstant)
     } catch {
       case e: IllegalArgumentException =>
         Left(s"Error when parsing date '${d}', we expect an RFC3339, UTC no millis format. Error: ${e.getMessage}")

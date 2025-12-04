@@ -47,8 +47,10 @@ import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.schema.LDAPObjectClass
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.{Version as _, *}
+
 import java.net.InetAddress
 import java.time.Instant
 import org.joda.time.DateTime
@@ -127,7 +129,7 @@ class InventoryMapper(
     e.setOpt(soft.description, A_DESCRIPTION, (x: String) => x)
     e.setOpt(soft.version, A_SOFT_VERSION, (x: Version) => x.value)
     e.setOpt(soft.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
-    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(DateFormaterService.toInstant(x)).toString)
+    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(x.toJavaInstant).toString)
     e.setOpt(soft.sourceName, A_SOURCE_NAME, (x: String) => x)
     e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, (x: Version) => x.value)
     soft.license.foreach { lic =>
