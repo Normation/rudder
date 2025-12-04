@@ -192,7 +192,6 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import enumeratum.*
-
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -220,7 +219,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
-
 import scala.annotation.nowarn
 import scala.collection.MapView
 import scala.concurrent.duration.Duration

@@ -49,7 +49,6 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
-
 import java.time.Instant
 import org.joda.time.DateTime
 import zio.*

@@ -89,7 +89,6 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
-
 import java.time.Instant
 import java.time.LocalTime
 import zio.*

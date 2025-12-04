@@ -82,7 +82,6 @@ import net.liftweb.common.Box.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-
 import scala.xml.*
 
 /**

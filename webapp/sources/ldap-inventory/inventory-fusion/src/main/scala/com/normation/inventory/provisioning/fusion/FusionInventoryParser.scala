@@ -48,14 +48,12 @@ import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.HostnameRegex
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
-
 import java.net.InetAddress
 import java.time.Instant
 import java.util.Locale
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
-
 import scala.xml.*
 import zio.*
 import zio.json.*

@@ -38,7 +38,6 @@
 package com.normation.inventory.domain
 
 import java.time.Instant
-import org.joda.time.DateTime
 
 final case class License(
     name:           String,
@@ -55,7 +54,7 @@ final case class Software(
     description:   Option[String] = None,
     version:       Option[Version] = None,
     editor:        Option[SoftwareEditor] = None,
-    releaseDate:   Option[DateTime] = None,
+    releaseDate:   Option[Instant] = None,
     license:       Option[License] = None,
     sourceName:    Option[String] = None,
     sourceVersion: Option[Version] = None
