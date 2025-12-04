@@ -152,8 +152,8 @@ object DateFormaterService {
     ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   }
 
-  def toDateTime(instant:  Instant):  DateTime  = json.transformInstantDateTime.transform(instant)
-  def toLocalDate(instant: Instant):  LocalDate = json.transformInstantLocalDate.transform(instant)
+  def toDateTime(instant:  Instant): DateTime  = json.transformInstantDateTime.transform(instant)
+  def toLocalDate(instant: Instant): LocalDate = json.transformInstantLocalDate.transform(instant)
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {

@@ -42,8 +42,7 @@ import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.rudder.domain.policies.AcceptationDateTime
 import com.normation.rudder.facts.nodes.MockLdapFactStorage
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.utils.DateFormaterService
-import org.joda.time.DateTime
+import java.time.Instant
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -77,9 +76,9 @@ class LDAPEntityMapperTest extends Specification {
 
   "active technique acceptationTimestamp map" >> {
     implicit class GetGT(s: String) {
-      def getGT: DateTime = {
+      def getGT: Instant = {
         GeneralizedTime.parse(s) match {
-          case Some(gt) => DateFormaterService.toDateTime(gt.instant)
+          case Some(gt) => gt.instant
           case None     => throw new IllegalArgumentException(s"Can not parse GeneralizedTime from: ${s}")
         }
       }

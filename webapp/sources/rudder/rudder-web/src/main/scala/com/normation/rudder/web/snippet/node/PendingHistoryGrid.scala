@@ -56,7 +56,6 @@ import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.*
-
 import scala.xml.*
 
 object PendingHistoryGrid extends Loggable {

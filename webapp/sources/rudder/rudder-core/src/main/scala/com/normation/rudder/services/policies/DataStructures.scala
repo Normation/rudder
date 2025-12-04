@@ -80,7 +80,7 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.ComplianceMode
 import com.typesafe.config.ConfigValue
-import org.joda.time.DateTime
+import java.time.Instant
 import scala.collection.immutable.TreeMap
 import zio.Chunk
 import zio.json.*
@@ -490,7 +490,7 @@ final case class Policy(
     directiveName: String, // human readable name of the original directive, for ex for log
 
     technique:           PolicyTechnique,
-    techniqueUpdateTime: DateTime,
+    techniqueUpdateTime: Instant,
     policyVars:          NonEmptyList[PolicyVars],
     priority:            Int,
     policyMode:          Option[PolicyMode],
@@ -584,7 +584,7 @@ final case class ParsedPolicyDraft(
     directiveName: String, // human readable name of the original directive, for ex for log
 
     technique:         Technique,
-    acceptationDate:   DateTime,
+    acceptationDate:   Instant,
     priority:          Int,
     isSystem:          Boolean,
     policyMode:        Option[PolicyMode],
@@ -629,7 +629,7 @@ final case class BoundPolicyDraft(
     directiveName: String, // human-readable name of the original directive, for ex for log
 
     technique:       Technique,
-    acceptationDate: DateTime,
+    acceptationDate: Instant,
     expandedVars:    Map[ComponentId, Variable], // contains vars with expanded parameters
 
     originalVars: Map[ComponentId, Variable], // contains original, pre-compilation, variable values

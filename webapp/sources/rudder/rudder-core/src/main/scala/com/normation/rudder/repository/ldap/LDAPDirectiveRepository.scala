@@ -74,8 +74,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.Instant
 import scala.collection.immutable.SortedMap
 import zio.*
 import zio.json.*
@@ -1182,10 +1181,11 @@ class WoLDAPDirectiveRepository(
       }
       categoryEntry     <-
         getCategoryEntry(con, categoryId, "1.1").notOptional(s"Category entry with ID '${categoryId.value}' was not found")
+      now               <- Clock.instant
       newActiveTechnique = ActiveTechnique(
                              ActiveTechniqueId(techniqueName.value),
                              techniqueName,
-                             AcceptationDateTime(versions.map(x => x -> DateTime.now(DateTimeZone.UTC)).toMap),
+                             AcceptationDateTime(versions.map(x => x -> now).toMap),
                              policyTypes = policyTypes
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
@@ -1314,7 +1314,7 @@ class WoLDAPDirectiveRepository(
 
   def setAcceptationDatetimes(
       uactiveTechniqueId: ActiveTechniqueId,
-      datetimes:          Map[TechniqueVersion, DateTime],
+      datetimes:          Map[TechniqueVersion, Instant],
       modId:              ModificationId,
       actor:              EventActor,
       reason:             Option[String]

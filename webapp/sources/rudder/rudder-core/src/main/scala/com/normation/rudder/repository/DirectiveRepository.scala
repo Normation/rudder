@@ -52,10 +52,9 @@ import com.normation.rudder.domain.policies.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.softwaremill.quicklens.*
+import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.Full
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.collection.SortedMap
 
 /**
@@ -86,7 +85,7 @@ final case class CategoryWithActiveTechniques(
 final case class FullActiveTechnique(
     id:                   ActiveTechniqueId,
     techniqueName:        TechniqueName,
-    acceptationDatetimes: SortedMap[TechniqueVersion, DateTime],
+    acceptationDatetimes: SortedMap[TechniqueVersion, Instant],
     techniques:           SortedMap[TechniqueVersion, Technique],
     directives:           List[Directive],
     isEnabled:            Boolean = true,
@@ -125,7 +124,7 @@ final case class FullActiveTechnique(
     // must not change from generation to the next, so => Epoch.
     this.copy(
       techniques = techniques ++ here.map(t => (t.id.version, t)),
-      acceptationDatetimes = acceptationDatetimes ++ here.map(t => (t.id.version, new DateTime(0, DateTimeZone.UTC)))
+      acceptationDatetimes = acceptationDatetimes ++ here.map(t => (t.id.version, Instant.EPOCH))
     )
   }
 
@@ -167,12 +166,12 @@ final case class FullActiveTechniqueCategory(
       + (id -> activeTechniques)
   )
 
-  val allTechniques: Map[TechniqueId, (Technique, Option[DateTime])] = {
+  val allTechniques: Map[TechniqueId, (Technique, Option[Instant])] = {
     allActiveTechniques.flatMap {
       case (_, at) => (
         at.techniques.map {
           case (version, technique) =>
-            (TechniqueId(at.techniqueName, version) -> ((technique, at.acceptationDatetimes.get(version))))
+            TechniqueId(at.techniqueName, version) -> (technique, at.acceptationDatetimes.get(version))
         }
       )
     }
@@ -182,7 +181,7 @@ final case class FullActiveTechniqueCategory(
     subCategories.foldLeft(Map((id -> this)))(_ ++ _.allCategories)
   }
 
-  def getUpdateDateTime(id: TechniqueId): Option[DateTime] = {
+  def getUpdateDateTime(id: TechniqueId): Option[Instant] = {
     allTechniques.get(id).flatMap(_._2)
   }
 
@@ -279,7 +278,7 @@ final case class FullActiveTechniqueCategory(
     if (this.id == categoryId) {
       // only keep technique with the good name
       val techs    = techniques.filter(_.id.name == techniqueName)
-      val now      = DateTime.now(DateTimeZone.UTC)
+      val now      = Instant.now()
       val newTimes = techs.map(t => (t.id.version, now))
       val newTechs = techs.map(t => (t.id.version, t))
       val updated  = activeTechniques.find(_.id.value == techniqueName.value) match {
@@ -287,7 +286,7 @@ final case class FullActiveTechniqueCategory(
           FullActiveTechnique(
             ActiveTechniqueId(techniqueName.value),
             techniqueName,
-            SortedMap[TechniqueVersion, DateTime]() ++ newTimes,
+            SortedMap[TechniqueVersion, Instant]() ++ newTimes,
             SortedMap[TechniqueVersion, Technique]() ++ newTechs,
             Nil,
             isEnabled = true,
@@ -569,7 +568,7 @@ trait WoDirectiveRepository {
    */
   def setAcceptationDatetimes(
       id:        ActiveTechniqueId,
-      datetimes: Map[TechniqueVersion, DateTime],
+      datetimes: Map[TechniqueVersion, Instant],
       modId:     ModificationId,
       actor:     EventActor,
       reason:    Option[String]

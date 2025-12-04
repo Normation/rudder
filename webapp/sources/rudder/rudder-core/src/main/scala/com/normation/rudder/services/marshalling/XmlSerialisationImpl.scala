@@ -77,9 +77,9 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
+import java.time.format.DateTimeFormatter
 import net.liftweb.common.*
 import org.apache.commons.text.StringEscapeUtils
-import org.joda.time.format.ISODateTimeFormat
 import scala.xml.{Node as XNode, *}
 import zio.json.*
 
@@ -187,7 +187,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion: String) extends ActiveTechniq
         activeTechnique.acceptationDatetimes.versions.map {
           case (version, date) =>
             // we never serialize revision in xml
-            <version name={version.version.toVersionString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
+            <version name={version.version.toVersionString}>{DateTimeFormatter.ISO_INSTANT.format(date)}</version>
         }
       }</versions>
     )

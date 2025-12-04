@@ -61,9 +61,9 @@ import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -237,7 +237,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ): IOResult[ActiveTechniqueId] = ???
     override def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
+        datetimes: Map[TechniqueVersion, Instant],
         modId:     ModificationId,
         actor:     EventActor,
         reason:    Option[String]

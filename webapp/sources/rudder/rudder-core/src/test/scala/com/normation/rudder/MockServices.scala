@@ -134,7 +134,6 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
-
 import java.time.Instant
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
@@ -145,7 +144,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
-
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
 import scala.util.control.NonFatal
@@ -1115,7 +1113,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     override def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
+        datetimes: Map[TechniqueVersion, Instant],
         modId:     ModificationId,
         actor:     EventActor,
         reason:    Option[String]

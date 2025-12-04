@@ -90,7 +90,6 @@ import java.time.Instant
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.collection.SortedMap
 import zio.Chunk
 import zio.syntax.*
@@ -611,7 +610,7 @@ object NodeConfigData {
   val fat1: FullActiveTechnique = FullActiveTechnique(
     "d1",
     "t1",
-    SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00")),
+    SortedMap(toTV("1.0") -> Instant.parse("2016-01-01T12:00:00.000+00:00")),
     SortedMap(toTV("1.0") -> t1),
     d1 :: d2 :: Nil
   )
@@ -924,7 +923,7 @@ class TestNodeConfiguration(
       ruleName,
       directiveName,
       technique,
-      DateTime.now(DateTimeZone.UTC),
+      Instant.now,
       variableMap,
       variableMap,
       technique.trackerVariableSpec.toVariable(Seq(id.getReportId)),

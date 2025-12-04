@@ -186,14 +186,12 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
-import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import enumeratum.*
-
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.ZonedDateTime
@@ -221,7 +219,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
-
 import scala.annotation.nowarn
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
