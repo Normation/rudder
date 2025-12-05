@@ -166,7 +166,6 @@ class LiftInitContextListener extends ContextLoaderListener {
         try {
           err match {
             case SystemError(_, ex) => ApplicationLogger.error(msg, ex)
-            case _                  => ApplicationLogger.error(msg + " see jetty log for details")
           }
         } catch {
           case _: Exception => // just ignore, we also do a println after to have something
