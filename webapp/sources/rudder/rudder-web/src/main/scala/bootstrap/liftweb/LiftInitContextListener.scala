@@ -95,7 +95,9 @@ class LiftInitContextListener extends ContextLoaderListener {
     Logger.setup = Full(() => Logback.withFile(logbackFile)())
 
     val pid = new File("/proc/self").getCanonicalFile().getName()
+    org.slf4j.LoggerFactory.getLogger("-").info(s"- - - - - - - - - - - - - - - - - - - - - - - - - - -")
     ApplicationLogger.info(s"Rudder starts with PID ${pid} on ${java.lang.Runtime.getRuntime().availableProcessors()} cores")
+    org.slf4j.LoggerFactory.getLogger("-").info(s"- - - - - - - - - - - - - - - - - - - - - - - - - - -")
 
     /// init all our non-spring services ///
 
@@ -124,7 +126,7 @@ class LiftInitContextListener extends ContextLoaderListener {
      * And in all case, an error in init almost always need a restart of Rudder.
      *
      * We need to try/catch everything, because things in RudderConfig can throw random
-     * exception at init, and so it would be out of the ZIO effect manegement (in class
+     * exception at init, and so it would be out of the ZIO effect management (in class
      * instantiation, before call to init() method).
      *
      * We simply "System.exit(1)", because we assume rudder is the only webapp on the
@@ -158,9 +160,21 @@ class LiftInitContextListener extends ContextLoaderListener {
         Left(SystemError("Error during initialization of Rudder", ex))
     }) match {
       case Left(err) =>
+        val msg =
+          s"FATAL ERROR An error happened during Rudder boot. Rudder will stop now. Error: ${err.fullMsg}"
+        // try logging on the main logger
+        try {
+          err match {
+            case SystemError(_, ex) => ApplicationLogger.error(msg, ex)
+            case _                  => ApplicationLogger.error(msg + " see jetty log for details")
+          }
+        } catch {
+          case _: Exception => // just ignore, we also do a println after to have something
+        }
+        // we also log on the jetty stdout logger
         System.err.println(
           s"[${org.joda.time.format.ISODateTimeFormat.dateTime().print(System.currentTimeMillis())}] " +
-          s"ERROR FATAL An error happen during Rudder boot. Rudder will stop now. Error: ${err.fullMsg}"
+          msg
         )
         err.cause.printStackTrace()
         System.exit(1)
