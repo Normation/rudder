@@ -408,92 +408,68 @@ showMethodTab model method parentId call uiInfo =
       let
         classParameter = getClassParameter method
         paramValue = call.parameters |> List.Extra.find (\c -> c.id == classParameter.name) |> Maybe.map (.value) |> Maybe.withDefault [Value ""]
+        fullParamValue = method.classPrefix ++ "_" ++ (canonify paramValue)
+        conditions =
+          if (String.startsWith "condition_from" method.classPrefix)
+          then
+          [ element "label"
+            |> appendChild (element "small" |> appendText "Conditions defined by this method")
+          , element "div"
+            |> addClass "form-horizontal editForm result-class"
+            |> appendChildList
+              [ methodCondition {conditionName = "True", conditionValue = "true", paramValue = (canonify paramValue), class = "result-success"}
+              , methodCondition {conditionName = "False", conditionValue = "false", paramValue = (canonify paramValue), class = "result-error"}]]
+          else []
       in
         element "div"
           |> addClass "tab-result"
           |> appendChildList
+            (conditions ++
             [ element "label"
               |> appendChild (element "small" |> appendText "Result conditions defined by this method")
             , element "div"
               |> addClass "form-horizontal editForm result-class"
               |> appendChildList
-                [ element "div"
-                  |> addClass "input-group result-success"
-                  |> appendChildList
-                    [ element "div"
-                      |> addClass "input-group-text"
-                      |> appendText "Success"
-                    , element "input"
-                      |> addClass "form-control"
-                      |> addAttributeList
-                        [ readonly True
-                        , type_ "text"
-                        , value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")
-                        , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                        , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                        ]
-                    , element "button"
-                       |> addClass "btn btn-outline-secondary clipboard"
-                       |> addAttributeList
-                         [ type_ "button"
-                         , title "Copy to clipboard"
-                         ]
-                       |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")))
-                       |> appendChild (element "i" |> addClass "ion ion-clipboard")
-                    ]
-                , element "div"
-                  |> addClass "input-group result-repaired"
-                  |> appendChildList
-                    [ element "div"
-                      |> addClass "input-group-text"
-                      |> appendText "Repaired"
-                    , element "input"
-                      |> addClass "form-control"
-                      |> addAttributeList
-                        [ readonly True
-                        , type_ "text"
-                        , value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")
-                        , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                        , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                        ]
-                    , element "button"
-                       |> addClass "btn btn-outline-secondary clipboard"
-                       |> addAttributeList
-                         [ type_ "button"
-                         , title "Copy to clipboard"
-                         ]
-                       |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")))
-                       |> appendChild (element "i" |> addClass "ion ion-clipboard")
-                    ]
-                , element "div"
-                  |> addClass "input-group result-error"
-                  |> appendChildList
-                    [ element "div"
-                      |> addClass "input-group-text"
-                      |> appendText "Error"
-                    , element "input"
-                      |> addClass "form-control"
-                      |> addAttributeList
-                        [ readonly True
-                        , type_ "text"
-                        , value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")
-                        , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                        , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                        ]
-                    , element "button"
-                       |> addClass "btn btn-outline-secondary clipboard"
-                       |> addAttributeList
-                         [ type_ "button"
-                         , title "Copy to clipboard"
-                         ]
-                       |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")))
-                       |> appendChild (element "i" |> addClass "ion ion-clipboard")
-                    ]
-                ]
-            ]
+                [ methodCondition {conditionName = "Success", conditionValue = "kept", paramValue = fullParamValue, class = "result-success"}
+                , methodCondition {conditionName = "Repaired", conditionValue = "repaired", paramValue = fullParamValue, class = "result-repaired"}
+                , methodCondition {conditionName = "Error", conditionValue = "error", paramValue = fullParamValue, class = "result-error"}]
+            ])
 
     CallForEach ->
       displayTabForeach (CallUiInfo uiInfo call)
+
+
+methodCondition : { conditionName: String, conditionValue: String, paramValue: String, class: String } -> Element Msg
+methodCondition { conditionName, conditionValue, paramValue, class } =
+  element "div"
+    |> addClass "input-group"
+    |> addClass class
+    |> appendChildList
+      [ element "div"
+        |> addClass "input-group-text"
+        |> appendText conditionName
+      , element "input"
+        |> addClass "form-control"
+        |> addAttributeList
+          [ readonly True
+          , type_ "text"
+          , value (paramValue ++ "_" ++ conditionValue)
+          , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+          , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
+          ]
+      , element "button"
+        |> addClass "btn btn-outline-secondary clipboard"
+        |> addAttributeList
+          [ type_ "button"
+          , title "Copy to clipboard"
+          ]
+        |> addAction ("click", (Copy (paramValue ++ "_" ++ conditionValue)))
+        |> appendChild (element "i" |> addClass "ion ion-clipboard")
+     ]
+
+
+
+
 
 methodDetail: Method -> MethodCall -> Maybe CallId -> MethodCallUiInfo -> Model -> Element Msg
 methodDetail method call parentId ui model =
