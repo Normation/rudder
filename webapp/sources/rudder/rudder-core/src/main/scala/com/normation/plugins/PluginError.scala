@@ -40,6 +40,7 @@ import Ordering.Implicits.*
 import com.normation.plugins.cli.*
 import com.normation.utils.ParseVersion
 import com.normation.utils.PartType
+import com.normation.utils.Version
 import enumeratum.*
 import enumeratum.EnumEntry.*
 import java.time.ZonedDateTime
@@ -58,6 +59,7 @@ object PluginError       {
     case object LicenseExpiredError        extends Kind
     case object LicenseNearExpirationError extends Kind
     case object AbiVersionError            extends Kind
+    case object WebappLicenseError         extends Kind
     override def values: IndexedSeq[Kind] = findValues
   }
 
@@ -86,6 +88,13 @@ object PluginError       {
       s"This plugin was not built for current Rudder ABI version ${rudderFullVersion}. You should update it to avoid code incompatibilities."
   }
 
+  // An error from Webapp license check on runtime plugin (not from rudder-package)
+  final case class RudderLicenseError(reason: String) extends PluginError {
+    override def kind:       Kind.WebappLicenseError.type = Kind.WebappLicenseError
+    override def displayMsg: String                       =
+      s"Plugin license error leads to disabling it in the webapp: ${reason}"
+  }
+
   def fromRudderPackagePlugin(
       plugin: RudderPackagePlugin
   )(implicit rudderFullVersion: String, abiVersion: AbiVersion): List[PluginError] = {
@@ -94,6 +103,31 @@ object PluginError       {
       validateLicenseNeeded(plugin.requiresLicense, plugin.license),
       plugin.license.flatMap(l => validateLicenseExpiration(l.endDate))
     ).flatten
+  }
+
+  def fromRudderLicensedPlugin(
+      rudderFullVersion: Version,
+      abiVersion:        AbiVersion,
+      license:           PluginLicense
+  ): List[PluginError] = {
+    List(
+      validateAbiVersion(rudderFullVersion.toVersionStringNoEpoch, abiVersion),
+      validateLicenseExpiration(license.endDate)
+    ).flatten
+  }
+
+  def fromRudderDisabledPlugin(
+      rudderFullVersion: Version,
+      abiVersion:        AbiVersion,
+      reason:            String,
+      details:           Option[PluginLicense]
+  ): List[PluginError] = {
+    validateAbiVersion(rudderFullVersion.toVersionStringNoEpoch, abiVersion).toList
+      .appended(
+        details
+          .flatMap(lic => validateLicenseExpiration(lic.endDate))
+          .getOrElse(RudderLicenseError(reason))
+      )
   }
 
   private def validateAbiVersion(

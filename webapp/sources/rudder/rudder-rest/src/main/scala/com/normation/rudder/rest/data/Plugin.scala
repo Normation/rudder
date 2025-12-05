@@ -188,7 +188,7 @@ object JsonPluginSystemDetails {
   implicit val encoder:         JsonEncoder[JsonPluginSystemDetails] = DeriveJsonEncoder.gen[JsonPluginSystemDetails]
 
   implicit val transformer: Transformer[Plugin, JsonPluginSystemDetails] = {
-    Transformer.define[Plugin, JsonPluginSystemDetails].buildTransformer
+    Transformer.derive[Plugin, JsonPluginSystemDetails]
   }
 }
 
