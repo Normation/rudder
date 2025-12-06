@@ -357,22 +357,12 @@ impl ModuleType0 for Template {
             false
         };
 
-        let reported_diff = if p.show_content {
-            let reported_diff = diff(content, output.clone());
-            let max_reported_diff = 10_000;
-
-            if reported_diff.len() > max_reported_diff {
-                format!(
-                    "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
-                )
-            } else {
-                reported_diff
-            }
-        } else {
-            format!(
-                "Changes to {output_file_d} could not be reported. The diff output is disabled."
-            )
-        };
+        let reported_diff = report_output(
+            &content,
+            &output,
+            &output_file_d.to_string(),
+            p.show_content,
+        );
 
         let mut report = String::new();
 
@@ -430,6 +420,23 @@ impl ModuleType0 for Template {
 
 pub fn diff(old: String, new: String) -> String {
     unified_diff(Algorithm::Myers, &old, &new, 1, None)
+}
+
+fn report_output(before: &str, after: &str, output_file_d: &str, show_content: bool) -> String {
+    if show_content {
+        let reported_diff = diff(before.to_string(), after.to_string());
+        let max_reported_diff = 10_000;
+
+        if reported_diff.len() > max_reported_diff {
+            format!(
+                "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
+            )
+        } else {
+            reported_diff
+        }
+    } else {
+        format!("The diff output is disabled. Changes to {output_file_d} are not being reported.")
+    }
 }
 
 fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Error> {
