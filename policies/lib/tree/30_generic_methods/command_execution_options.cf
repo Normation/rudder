@@ -231,59 +231,46 @@ show_content: ${show_content}
       "pass3"     expression => "pass2";
       "pass2"     expression => "pass1";
       "pass1"     expression => "any";
-      "is_noop"   expression => and( "audit_${report_data.method_id}_kept",
-                                     not(strcmp("true", "${run_in_audit_mode}"))
-                                   );
+    global_dry_run|dry_run::
+      "is_actually_noop"   expression => and( "${report_data.method_id}_kept",
+                                     not(strcmp("true", "${run_in_audit_mode}")) );
 
   methods:
     pass1.!pass2::
-      "serialize" usebundle => command_module_serializer("${command}",
-                                                         "${args}",
-                                                         "${shell_path}",
-                                                         "${chdir}",
-                                                         "${timeout}",
-                                                         "${stdin}",
-                                                         "${compliant_codes}",
-                                                         "${repaired_codes}",
-                                                         "${output_to_file}",
-                                                         "${uid}",
-                                                         "${gid}",
-                                                         "${user}",
-                                                         "${group}",
-                                                         "${umask}",
-                                                         "${env_vars}");
-    pass3.(global_dry_run|dry_run)::
+      "${report_data.method_id}" usebundle => command_module_serializer("${command}",
+                                                                        "${args}",
+                                                                        "${shell_path}",
+                                                                        "${chdir}",
+                                                                        "${timeout}",
+                                                                        "${stdin}",
+                                                                        "${compliant_codes}",
+                                                                        "${repaired_codes}",
+                                                                        "${output_to_file}",
+                                                                        "${uid}",
+                                                                        "${gid}",
+                                                                        "${user}",
+                                                                        "${group}",
+                                                                        "${umask}",
+                                                                        "${env_vars}");
+
+    pass3.is_actually_noop::
       # Due to limitation on the audit mode, the module can not return a repaired when the
       # policy mode is set to audit and the flag run_in_audit_mode is set.
       # When this happens, we have to assume a kept from the module is a repaired disguised
       # in a kept status. When the flag is not set and we are in audit, a kept is in fact a
       # noop in disguise.
-      "${report_data.method_id}" usebundle => _classes_noop("${report_data.method_id}"),
-                                        if => "is_noop";
-      "${report_data.method_id}" usebundle => _classes_copy("audit_${report_data.method_id}", "${report_data.method_id}"),
-                                    unless => "is_noop";
+      "${report_data.method_id}" usebundle => _classes_cancel("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_noop("${report_data.method_id}");
+
   ruddercommands:
-    pass2.!pass3.!(global_dry_run|dry_run)::
+    pass2.!pass3::
       "module_call"
         rudder_module_protocol  => "0",
+        action                  => rudder_module,
         state_dir               => "/var/rudder/tmp/",
         backup_dir              => "/var/rudder/modified-files/",
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",
         classes                 => classes_generic("${report_data.method_id}"),
         data                    => "${module_inputs}";
-    pass2.!pass3.(global_dry_run|dry_run)::
-      "module_call"
-        action_policy           => "warn",
-        rudder_module_protocol  => "0",
-        state_dir               => "/var/rudder/tmp/",
-        backup_dir              => "/var/rudder/modified-files/",
-        node_id                 => "${g.uuid}",
-        agent_frequency_minutes => "${g.agent_run_interval}",
-        classes                 => classes_generic("audit_${report_data.method_id}"),
-        data                    => "${module_inputs}";
-
-  reports:
-    pass3::
-      "${module_inputs}";
 }
