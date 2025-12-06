@@ -1,0 +1,36 @@
+---
+description: Start the inventory watcher if necessary
+method: POST
+url: /api/latest/inventories/watcher/start
+response:
+  code: 200
+  content: >-
+    {
+      "action": "fileWatcherStart",
+      "result": "success",
+      "data": "Incoming inventory watcher started"
+    }
+---
+description: Restart the inventory watcher if necessary
+method: POST
+url: /api/latest/inventories/watcher/restart
+response:
+  code: 200
+  content: >-
+    {
+      "action": "fileWatcherRestart",
+      "result": "success",
+      "data": "Incoming inventory watcher restarted"
+    }
+---
+description: Stop the inventory watcher if necessary
+method: POST
+url: /api/latest/inventories/watcher/stop
+response:
+  code: 200
+  content: >-
+    {
+      "action": "fileWatcherStop",
+      "result": "success",
+      "data": "Incoming inventory watcher stopped"
+    }
