@@ -73,7 +73,25 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 #   -> final path is generated from the rule pattern
 RewriteEngine On
 
+{% if cert_validation %}
+# Allow customization of the node certificate ACL depending on the used certificate.
+# If the file exist it must contain the rewrite cond to apply.
+#
+# For example, for SAN based uuids, the file could contain:
+#
+# RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$" [OR]
+# RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
+#
+<IfFile  /opt/rudder/etc/rudder-apache-nodes-auth.conf>
+Include /opt/rudder/etc/rudder-apache-nodes-auth.conf
+</IfFile>
+<IfFile !/opt/rudder/etc/rudder-apache-nodes-auth.conf>
+# Same as below
 RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
+</IfFile>
+{% else %}
+RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
+{% endif %}
 RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
