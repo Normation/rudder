@@ -161,12 +161,11 @@ bundle agent template_module_serializer(r_destination, r_engine, r_data, r_templ
 
 bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
   vars:
-   "destination_c" string => canonify("${destination}");
-   "report_file" string => "/var/rudder/tmp/rudder-module-template${destination_c}.log";
+     "destination_c"   string => canonify("${destination}");
+     "report_file"     string => "/var/rudder/tmp/rudder-module-template${destination_c}.log";
+     "datastate_path"  string => "";
    pass1.data_is_empty::
      "datastate_path"  string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
-   pass1.!data_is_empty::
-     "datastate_path"  string => "";
    pass1::
      "string_params"     data => bundlestate("template_module_serializer");
      "bool_params"       data => '---
@@ -175,12 +174,12 @@ show_content: ${show_content}
      "inputs_as_data"    data => mergedata('string_params', 'bool_params');
      "module_inputs"   string => storejson('inputs_as_data');
    pass2::
-     "report"      string => readfile("${report_file}", "0"),
-                        if => "has_report";
+     "report"          string => readfile("${report_file}", "0"),
+                           if => "has_report";
 
   classes:
     pass2::
-      "has_report"   expression => fileexists("${report_file}");
+      "has_report"    expression => fileexists("${report_file}");
 
     any::
       "pass3"         expression => "pass2";
@@ -195,48 +194,37 @@ show_content: ${show_content}
         create               => "true",
         edit_defaults        => no_backup,
         edit_template_string => "{{%-top-}}",
-        action => immediate_ignore_dry_run;
+        action               => immediate_ignore_dry_run,
+        # Needed for uniqueness
+        comment              => "${report_data.method_id}";
 
     pass3.has_report::
       "${report_file}"
         delete => tidy,
         action => immediate_ignore_dry_run;
+    pass3.data_is_empty::
+      "${datastate_path}"
+        delete => tidy,
+        action => immediate_ignore_dry_run;
 
   methods:
-     pass1.!pass2::
-       "serialize"               usebundle => template_module_serializer("${destination}",
+    pass1.!pass2::
+      "${report_data.method_id}" usebundle => template_module_serializer("${destination}",
                                                                          "${engine}",
                                                                          "${data}",
                                                                          "${template_string}",
                                                                          "${template_path}",
                                                                          "${datastate_path}",
-									 "${report_file}");
-     pass3.data_is_empty::
-      # In non audit mode, we need to force enforce mode to remove the temp files.
-      "${report_data.method_id}" usebundle => push_dry_run_mode("false");
-      "${report_data.method_id}" usebundle => call_method("file_absent");
-      "${report_data.method_id}" usebundle => file_absent("${datastate_path}");
-      "${report_data.method_id}" usebundle => call_method_end("file_absent");
-      "${report_data.method_id}" usebundle => pop_dry_run_mode();
+                                                                         "${report_file}");
 
-     pass3.!has_report::
-        "error" usebundle => _classes_failure("${report_data.method_id}");
+    pass3.!has_report::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
   template:
-    pass2.!pass3.!(global_dry_run|dry_run)::
+    pass2.!pass3::
       "module_call"
         rudder_module_protocol  => "0",
-        state_dir               => "/var/rudder/tmp/",
-        backup_dir              => "/var/rudder/modified-files/",
-        node_id                 => "${g.uuid}",
-        agent_frequency_minutes => "${g.agent_run_interval}",
-        classes                 => classes_generic("${report_data.method_id}"),
-        data                    => "${module_inputs}";
-
-    pass2.!pass3.(global_dry_run|dry_run)::
-      "module_call"
-        action_policy           => "warn",
-        rudder_module_protocol  => "0",
+        action                  => rudder_module,
         state_dir               => "/var/rudder/tmp/",
         backup_dir              => "/var/rudder/modified-files/",
         node_id                 => "${g.uuid}",
