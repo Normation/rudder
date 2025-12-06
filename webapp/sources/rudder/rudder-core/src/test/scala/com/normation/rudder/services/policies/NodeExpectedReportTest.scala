@@ -56,6 +56,9 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.Version7_1.JsonRuleExpectedReports7_1
 import com.normation.rudder.domain.reports.RuleExpectedReports
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import org.joda.time.DateTime
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
@@ -70,6 +73,7 @@ import zio.json.*
 @RunWith(classOf[JUnitRunner])
 class NodeExpectedReportTest extends Specification {
 
+  val yesterday = LocalDateTime.now.minusDays(1).toInstant(ZoneOffset.UTC)
   /*
    * The different case to test are:
    *
@@ -230,7 +234,7 @@ class NodeExpectedReportTest extends Specification {
     "rule name",
     "directive name",
     technique = t1,
-    DateTime.now.minusDays(1),
+    yesterday,
     policyVars = NonEmptyList.of(
       PolicyVars(
         PolicyId(r1, d1, TechniqueVersionHelper("1.0")),
@@ -260,7 +264,7 @@ class NodeExpectedReportTest extends Specification {
     "rule name",
     "directive name",
     technique = t2,
-    DateTime.now.minusDays(1),
+    yesterday,
     policyVars = NonEmptyList.of(
       PolicyVars(
         PolicyId(r2, d3, TechniqueVersionHelper("1.0")),
@@ -283,7 +287,7 @@ class NodeExpectedReportTest extends Specification {
     "rule name",
     "directive name",
     technique = tNoComponent,
-    DateTime.now.minusDays(1),
+    yesterday,
     policyVars = NonEmptyList.of(
       PolicyVars(
         PolicyId(r2, d4, TechniqueVersionHelper("1.0")),
@@ -448,7 +452,7 @@ class NodeExpectedReportTest extends Specification {
       "rule name with block",
       "directive name with block",
       technique = policyTechniqueWithBlock,
-      DateTime.now.minusDays(1),
+      yesterday,
       policyVars = NonEmptyList.of(
         PolicyVars(
           PolicyId(r3, d4, TechniqueVersionHelper("1.0")),

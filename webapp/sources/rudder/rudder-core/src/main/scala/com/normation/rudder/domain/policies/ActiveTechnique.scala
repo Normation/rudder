@@ -40,8 +40,7 @@ package com.normation.rudder.domain.policies
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.ldap.sdk.GeneralizedTime
-import com.normation.utils.DateFormaterService
-import org.joda.time.DateTime
+import java.time.Instant
 import zio.json.*
 
 final case class ActiveTechniqueId(value: String) extends AnyVal
@@ -72,8 +71,8 @@ final case class ActiveTechnique(
   def isEnabled: Boolean = _isEnabled || policyTypes.isSystem
 }
 
-final case class AcceptationDateTime(versions: Map[TechniqueVersion, DateTime]) {
-  def withNewVersions(vs: Map[TechniqueVersion, DateTime]) = AcceptationDateTime(versions ++ vs)
+final case class AcceptationDateTime(versions: Map[TechniqueVersion, Instant]) {
+  def withNewVersions(vs: Map[TechniqueVersion, Instant]) = AcceptationDateTime(versions ++ vs)
 }
 
 object AcceptationDateTime {
@@ -84,18 +83,18 @@ object AcceptationDateTime {
     JsonFieldDecoder.string.mapOrFail(TechniqueVersion.parse)
   implicit val encoderTechniqueVersion: JsonFieldEncoder[TechniqueVersion] = JsonFieldEncoder.string.contramap(_.serialize)
 
-  implicit val codecDateTime: JsonCodec[DateTime] = new JsonCodec(
+  implicit val instantCodec: JsonCodec[Instant] = new JsonCodec(
     JsonEncoder.string.contramap(s => GeneralizedTime(s).toString()),
     JsonDecoder.string.mapOrFail(x => {
       GeneralizedTime
         .parse(x)
-        .map(x => DateFormaterService.toDateTime(x.instant))
+        .map(_.instant)
         .toRight(s"Error when parsing '${x}' as a generalized time'")
     })
   )
 
   // we're forced to spell it
-  implicit val mapCodec: JsonCodec[Map[TechniqueVersion, DateTime]] = JsonCodec.map
+  implicit val mapCodec: JsonCodec[Map[TechniqueVersion, Instant]] = JsonCodec.map
 
   implicit val decoderAcceptationDateTime: JsonDecoder[AcceptationDateTime] = mapCodec.decoder.map(AcceptationDateTime.apply)
   implicit val encoderAcceptationDateTime: JsonEncoder[AcceptationDateTime] = mapCodec.encoder.contramap(_.versions)

@@ -21,6 +21,7 @@
 package com.normation.ldap.sdk
 
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.unboundid.util.StaticUtils
 import java.text.ParseException
 import java.time.Instant
@@ -46,7 +47,7 @@ final case class GeneralizedTime(val instant: Instant) extends AnyVal {
 object GeneralizedTime {
 
   def apply(dt: DateTime): GeneralizedTime = {
-    new GeneralizedTime(DateFormaterService.toInstant(dt))
+    new GeneralizedTime(dt.toJavaInstant)
   }
 
   /**
