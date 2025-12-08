@@ -13,6 +13,7 @@ members = [
            "policies/module-types/inventory",
            "policies/module-types/system-updates",
            "policies/module-types/template",
+           "policies/module-types/secedit",
            "policies/lib",
            "relay/sources/relayd",
            "relay/sources/rudder-package"]
