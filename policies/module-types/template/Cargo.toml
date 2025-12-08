@@ -16,9 +16,8 @@ serde_json = "1"
 # json and urlencode provide built-in filters
 minijinja = { version = "2", features = ["preserve_order", "json", "urlencode", "builtins"] }
 mustache = { version = "0.9.0", git = "https://github.com/Normation/rust-mustache.git" , features = ["CFEngine"] }
-rudder_module_type = { path = "../../rudder-module-type" }
+rudder_module_type = { path = "../../rudder-module-type", features = ["diff"] }
 clap = { version = "4.5.32", features = ["derive"] }
-similar = "2.6.0"
 tempfile = "3.19.1"
 base64 = "0.22.1"
 urlencoding = "2.1.3"

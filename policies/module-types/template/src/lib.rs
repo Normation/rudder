@@ -7,7 +7,7 @@ use crate::cli::Cli;
 use clap::ValueEnum;
 use core::panic;
 use rudder_module_type::ProtocolResult;
-use similar::{Algorithm, udiff::unified_diff};
+use rudder_module_type::diff::diff;
 use std::collections::HashMap;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -355,7 +355,7 @@ impl ModuleType0 for Template {
         };
 
         let reported_diff = if p.show_content {
-            let reported_diff = diff(content, output.clone());
+            let reported_diff = diff(&content, &output);
             let max_reported_diff = 10_000;
 
             if reported_diff.len() > max_reported_diff {
@@ -423,10 +423,6 @@ impl ModuleType0 for Template {
         };
         Ok(outcome)
     }
-}
-
-pub fn diff(old: String, new: String) -> String {
-    unified_diff(Algorithm::Myers, &old, &new, 1, None)
 }
 
 fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Error> {

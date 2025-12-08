@@ -9,13 +9,13 @@ use crate::{
             CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
         },
     },
-    report::diff,
 };
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{
-    CheckApplyResult, Outcome, PolicyMode, backup::Backup, rudder_debug, rudder_error, rudder_info,
+    CheckApplyResult, Outcome, PolicyMode, backup::Backup, diff::diff, rudder_debug, rudder_error,
+    rudder_info,
 };
 use std::{
     borrow::Cow,
