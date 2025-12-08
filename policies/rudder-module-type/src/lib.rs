@@ -343,3 +343,35 @@ pub mod backup {
         }
     }
 }
+
+#[cfg(feature = "diff")]
+pub mod diff {
+    use similar::{Algorithm, udiff::unified_diff};
+
+    /// Compute the unified diff string between two strings.
+    ///
+    /// Uses three lines of context.
+    pub fn diff(a: &str, b: &str) -> String {
+        let diff_1 = unified_diff(Algorithm::Myers, a, b, 1, None);
+
+        // Give more context if the diff is short enough.
+        if diff_1.len() > 100 {
+            diff_1
+        } else {
+            unified_diff(Algorithm::Myers, a, b, 3, None)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_diff() {
+            let a = "foo\nbar\nbaz\n";
+            let b = "foo\nbaz\nbar\n";
+            let diff = diff(a, b);
+            assert_eq!(diff, "@@ -1,3 +1,3 @@\n foo\n+baz\n bar\n-baz\n");
+        }
+    }
+}

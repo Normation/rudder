@@ -3547,7 +3547,6 @@ dependencies = [
  "serde-inline-default",
  "serde_json",
  "serde_with",
- "similar",
  "tempfile",
  "zxcvbn",
 ]
@@ -3643,7 +3642,6 @@ dependencies = [
  "sha1",
  "sha2",
  "shlex",
- "similar",
  "tempfile",
  "urlencoding",
 ]
@@ -3792,6 +3790,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "serde_yaml",
+ "similar",
  "test-generator",
 ]
 

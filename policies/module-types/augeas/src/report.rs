@@ -17,7 +17,6 @@
 use crate::{CRATE_NAME, CRATE_VERSION};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use similar::{Algorithm, udiff::unified_diff};
 use std::{fmt::Display, sync::LazyLock};
 
 static SOURCE_NAME: LazyLock<String> = LazyLock::new(|| format!("{CRATE_NAME}/{CRATE_VERSION}"));
@@ -37,20 +36,6 @@ impl Display for Outcome {
             Outcome::NonCompliant => write!(f, "NonCompliant"),
             Outcome::Failure => write!(f, "Failure"),
         }
-    }
-}
-
-/// Compute the unified diff string between two strings.
-///
-/// Uses three lines of context.
-pub fn diff(a: &str, b: &str) -> String {
-    let diff_1 = unified_diff(Algorithm::Myers, a, b, 1, None);
-
-    // Give more context if the diff is short enough.
-    if diff_1.len() > 100 {
-        diff_1
-    } else {
-        unified_diff(Algorithm::Myers, a, b, 3, None)
     }
 }
 
@@ -147,14 +132,6 @@ pub struct Event {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_diff() {
-        let a = "foo\nbar\nbaz\n";
-        let b = "foo\nbaz\nbar\n";
-        let diff = diff(a, b);
-        assert_eq!(diff, "@@ -1,3 +1,3 @@\n foo\n+baz\n bar\n-baz\n");
-    }
 
     #[test]
     fn test_report_human_format() {
