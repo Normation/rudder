@@ -4,6 +4,8 @@
 use rand::Rng;
 use std::{process::Command, thread, time};
 
+/// WARNING: Sensitive to collisions (birthday problem).
+/// For now we retry the tests.
 pub fn random_ports() -> (u16, u16) {
     let mut rng = rand::rng();
     let r = rng.random_range(2000..65000);
