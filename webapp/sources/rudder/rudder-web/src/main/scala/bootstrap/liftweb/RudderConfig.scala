@@ -3054,18 +3054,14 @@ object RudderConfigInit {
     lazy val itemArchiveManager: ItemArchiveManager = itemArchiveManagerImpl
 
     lazy val globalComplianceModeService: ComplianceModeService   = {
-      new ComplianceModeServiceImpl(
-        () => configService.rudder_compliance_mode_name(),
-        () => configService.rudder_compliance_heartbeatPeriod()
-      )
+      new ComplianceModeServiceImpl(() => configService.rudder_compliance_mode_name())
     }
     lazy val globalAgentRunService:       AgentRunIntervalService = {
       new AgentRunIntervalServiceImpl(
         () => configService.agent_run_interval().toBox,
         () => configService.agent_run_start_hour().toBox,
         () => configService.agent_run_start_minute().toBox,
-        () => configService.agent_run_splaytime().toBox,
-        () => configService.rudder_compliance_heartbeatPeriod().toBox
+        () => configService.agent_run_splaytime().toBox
       )
     }
 

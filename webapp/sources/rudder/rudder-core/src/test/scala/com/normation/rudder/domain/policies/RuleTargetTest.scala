@@ -40,7 +40,7 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
       isSystem = false,
       isPolicyServer = false,
       creationDate = Instant.now(),
-      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = List(),
       policyMode = None,
       securityTag = None

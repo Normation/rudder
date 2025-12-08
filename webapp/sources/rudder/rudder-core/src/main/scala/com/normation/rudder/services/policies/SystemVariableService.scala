@@ -306,35 +306,12 @@ class SystemVariableServiceImpl(
       }
     }
 
-    val heartBeatFrequency = {
-      if (nodeInfo.rudderSettings.isPolicyServer) {
-        // A policy server is always sending heartbeat
-        1
-      } else {
-        globalComplianceMode.mode match {
-          case ChangesOnly =>
-            nodeInfo.rudderSettings.reportingConfiguration.heartbeatConfiguration match {
-              // It overrides! use it to compute the new heartbeatInterval
-              case Some(heartbeatConf) if heartbeatConf.overrides =>
-                heartbeatConf.heartbeatPeriod
-              case _                                              =>
-                globalComplianceMode.heartbeatPeriod
-            }
-          case _           =>
-            1
-        }
-      }
-    }
-
     val agentRunVariables = (agentRunParams.map {
       case (runInterval, startTime, schedule) =>
-        // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
-        val heartbeat = runInterval.interval * heartBeatFrequency - 1
-        val vars      = {
+        val vars = {
           systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable(Seq(runInterval.interval.toString)) ::
           systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable(Seq(runInterval.splaytime.toString)) ::
           systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule)) ::
-          systemVariableSpecService.get("RUDDER_HEARTBEAT_INTERVAL").toVariable(Seq(heartbeat.toString)) ::
           systemVariableSpecService.get("RUDDER_REPORT_MODE").toVariable(Seq(globalComplianceMode.name)) ::
           systemVariableSpecService.get("AGENT_RUN_STARTTIME").toVariable(Seq(ComputeSchedule.formatStartTime(startTime))) ::
           Nil

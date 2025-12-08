@@ -47,8 +47,7 @@ import zio.json.*
 /**
  * Class that contains all relevant information about the reporting configuration:
  * * agent run interval
- * * compliance mode (soon)
- * * heartbeat configuration
+ * * reporting protocol
  *
  * Everything is option because that information is at the node level and
  * may not be defined (for example if the node only use default global values)
@@ -57,18 +56,8 @@ import zio.json.*
  */
 final case class ReportingConfiguration(
     agentRunInterval:       Option[AgentRunInterval],
-    heartbeatConfiguration: Option[HeartbeatConfiguration],
     agentReportingProtocol: Option[AgentReportingProtocol]
 )
-
-final case class HeartbeatConfiguration(
-    overrides:       Boolean,
-    heartbeatPeriod: Int
-)
-
-object HeartbeatConfiguration {
-  implicit val codecHeartbeatConfiguration: JsonCodec[HeartbeatConfiguration] = DeriveJsonCodec.gen
-}
 
 final case class AgentRunInterval(
     overrides:   Option[Boolean],
@@ -82,7 +71,7 @@ object AgentRunInterval {
   implicit val codecAgentRunInterval: JsonCodec[AgentRunInterval] = DeriveJsonCodec.gen
 }
 
-final case class ResolvedAgentRunInterval(interval: Duration, heartbeatPeriod: Int)
+final case class ResolvedAgentRunInterval(interval: Duration)
 
 trait AgentRunIntervalService {
   def getGlobalAgentRun(): Box[AgentRunInterval]
@@ -92,8 +81,7 @@ class AgentRunIntervalServiceImpl(
     readGlobalInterval:    () => Box[Int],
     readGlobalStartHour:   () => Box[Int],
     readGlobalStartMinute: () => Box[Int],
-    readGlobalSplaytime:   () => Box[Int],
-    readGlobalHeartbeat:   () => Box[Int]
+    readGlobalSplaytime:   () => Box[Int]
 ) extends AgentRunIntervalService {
 
   override def getGlobalAgentRun(): Box[AgentRunInterval] = {

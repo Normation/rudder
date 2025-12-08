@@ -1130,20 +1130,6 @@ class EventLogFactoryImpl(
             }
         }
       } {
-        modifyDiff.modHeartbeat match {
-          case None    => NodeSeq.Empty
-          case Some(x) =>
-            SimpleDiff.toXml(<heartbeat/>, x) {
-              _ match {
-                case None     => NodeSeq.Empty
-                case Some(hb) => (
-                  <override>{hb.overrides}</override>
-                                  <period>{hb.heartbeatPeriod}</period>
-                )
-              }
-            }
-        }
-      } {
         modifyDiff.modPolicyMode match {
           case None    => NodeSeq.Empty
           case Some(x) =>

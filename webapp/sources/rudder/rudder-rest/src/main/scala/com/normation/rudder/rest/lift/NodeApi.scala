@@ -922,7 +922,7 @@ class NodeApiService(
         isSystem = false,
         isPolicyServer = false,
         creationDate = Instant.now(),
-        nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+        nodeReportingConfiguration = ReportingConfiguration(None, None),
         properties = Nil,
         policyMode = None,
         securityTag = None

@@ -53,7 +53,7 @@ class TestNodeFactSerialisation extends Specification with JsonSpecMatcher {
         ),
         RudderSettings(
           CertifiedKey,
-          ReportingConfiguration(None, None, None),
+          ReportingConfiguration(None, None),
           NodeKind.Node,
           PendingInventory,
           NodeState.Ignored,

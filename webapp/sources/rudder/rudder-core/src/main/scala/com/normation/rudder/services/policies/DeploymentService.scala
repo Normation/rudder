@@ -85,7 +85,6 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
@@ -658,10 +657,6 @@ trait PromiseGenerationService {
           id,
           NodeModeConfig(
             globalComplianceMode,
-            info.rudderSettings.reportingConfiguration.heartbeatConfiguration match {
-              case Some(HeartbeatConfiguration(true, i)) => Some(i)
-              case _                                     => None
-            },
             globalAgentRun,
             info.rudderSettings.reportingConfiguration.agentRunInterval,
             globalPolicyMode,

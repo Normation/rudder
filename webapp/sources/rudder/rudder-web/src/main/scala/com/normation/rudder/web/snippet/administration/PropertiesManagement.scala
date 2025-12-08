@@ -53,7 +53,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.AgentPolicyModeEditForm
 import com.normation.rudder.web.components.AgentScheduleEditForm
-import com.normation.rudder.web.components.ComplianceModeEditForm
+import com.normation.rudder.web.components.ReportingModeEditForm
 import com.normation.rudder.web.snippet.WithNonce
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
@@ -482,9 +482,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     () => startNewPolicyGeneration()
   )
 
-  val complianceModeEditForm:  ComplianceModeEditForm[GlobalComplianceMode] = {
+  val complianceModeEditForm:  ReportingModeEditForm[GlobalComplianceMode] = {
     val globalMode = configService.rudder_compliance_mode().toBox
-    new ComplianceModeEditForm[GlobalComplianceMode](
+    new ReportingModeEditForm[GlobalComplianceMode](
       globalMode,
       (complianceMode) => {
         configService.set_rudder_compliance_mode(complianceMode, CurrentUser.actor, genericReasonMessage).toBox
@@ -493,10 +493,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       globalMode
     )
   }
-  val agentPolicyModeEditForm: AgentPolicyModeEditForm                      = {
+  val agentPolicyModeEditForm: AgentPolicyModeEditForm                     = {
     new AgentPolicyModeEditForm()
   }
-  def getSchedule():           Box[AgentRunInterval]                        = {
+  def getSchedule():           Box[AgentRunInterval]                       = {
     for {
       starthour <- configService.agent_run_start_hour()
       startmin  <- configService.agent_run_start_minute()

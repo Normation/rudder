@@ -304,12 +304,6 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.352
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
-attributeTypes: ( 1.3.6.1.4.1.35061.2.1.353
-  NAME 'serializedHeartbeatRunConfiguration'
-  DESC 'Serialization of the defined heartbeat configuration defined for that node'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-  EQUALITY caseExactMatch
-  SUBSTR caseIgnoreSubstringsMatch )
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.354
   NAME 'agentReportingProtocol'
   DESC 'Protocol used by agent for reporting'
@@ -343,7 +337,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.1
   STRUCTURAL
   MUST ( nodeId $ cn $ isSystem )
   MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $ securityTag $
-  serializedHeartbeatRunConfiguration $ agentReportingProtocol $ policyMode $ state $ isBroken) )
+  agentReportingProtocol $ policyMode $ state $ isBroken) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
   NAME 'rudderPolicyServer'
   DESC 'The Node representation of a policy server'

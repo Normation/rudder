@@ -89,10 +89,6 @@ properties:
       - reports-disabled
     example: full-compliance
     description: Compliance reporting mode
-  heartbeat_frequency:
-    type: integer
-    example: 10
-    description: Send heartbeat every heartbeat_frequency runs (only on **changes-only** compliance mode)
   enable_change_message:
     type: boolean
     example: true

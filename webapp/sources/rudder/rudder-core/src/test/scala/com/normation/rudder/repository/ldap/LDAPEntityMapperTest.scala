@@ -42,7 +42,6 @@ import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.rudder.domain.policies.AcceptationDateTime
 import com.normation.rudder.facts.nodes.MockLdapFactStorage
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import org.junit.runner.*
@@ -74,15 +73,6 @@ class LDAPEntityMapperTest extends Specification {
       (json1.fromJson[AgentRunInterval] must beRight(i1)) and
       (json2.fromJson[AgentRunInterval] must beRight(i2))
     }
-  }
-
-  "HeartbeatConfiguration" >> {
-
-    val json = """{"overrides":true,"heartbeatPeriod":20}"""
-    val h    = HeartbeatConfiguration(true, 20)
-
-    (json.fromJson[HeartbeatConfiguration] must beRight(h)) and
-    h.toJson === json
   }
 
   "active technique acceptationTimestamp map" >> {

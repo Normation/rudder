@@ -317,19 +317,13 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
               },
               errorMsg = {
                 val allModes = ComplianceModeName.allModes.map(_.name).mkString("'", "' or '", "'")
-                s"Forbiden value, only ${allModes} are authorized"
+                s"Forbidden value, only ${allModes} are authorized"
               }
             )
           )
         ),
-        default = Some("full-compliance")
+        default = Some(ComplianceModeName.FullCompliance.name)
       )
-    ),
-    SystemVariableSpec(
-      "RUDDER_HEARTBEAT_INTERVAL",
-      "Interval between two heartbeat sending in changes-only mode (in number of runs)",
-      multivalued = false,
-      constraint = Constraint(typeName = IntegerVType())
     ),
     SystemVariableSpec(
       "RUDDER_NODE_CONFIG_ID",

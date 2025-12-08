@@ -342,13 +342,13 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   )
 
   val globalAgentRun:       AgentRunInterval     = AgentRunInterval(None, 5, 1, 0, 4)
-  val globalComplianceMode: GlobalComplianceMode = GlobalComplianceMode(FullCompliance, 15)
+  val globalComplianceMode: GlobalComplianceMode = GlobalComplianceMode(ComplianceModeName.FullCompliance)
 
   val globalSystemVariables: Map[String, Variable] = systemVariableService
     .getGlobalSystemVariables(globalAgentRun)
     .openOrThrowException("I should get global system variable in test!")
 
-  // a false technique compiler that return a value depending of the name of the
+  // a false technique compiler that return a value depending on the name of the
   // technique in parameter (known by the name of the parent path in technique.path)
   // - if it contains "technique_with_error", then return 42 + error message
   // - else returns 0
@@ -1943,7 +1943,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
 3jccIfXR+UOVrHdSl0QmGOxb
 -----END CERTIFICATE-----"""
 
-  val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None, None)
+  val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None)
 
   val id1: NodeId = NodeId("node1")
   val hostname1 = "node1.localhost"
@@ -2224,8 +2224,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     pendingId2  -> pendingNode2Fact
   )
   val defaultModesConfig: NodeModeConfig        = NodeModeConfig(
-    globalComplianceMode = GlobalComplianceMode(FullCompliance, 30),
-    nodeHeartbeatPeriod = None,
+    globalComplianceMode = GlobalComplianceMode(ComplianceModeName.FullCompliance),
     globalAgentRun = AgentRunInterval(None, 5, 0, 0, 0),
     nodeAgentRun = None,
     globalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always),
@@ -2279,7 +2278,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
       isSystem = false,
       isPolicyServer = false,
       creationDate = Instant.now(),
-      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = Nil,
       policyMode = None,
       securityTag = None
