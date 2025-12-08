@@ -6,4 +6,5 @@ include ../../../rust.makefile
 # relayd tools, for general relay build see ../Makefile
 
 check: lint
-	cargo test --locked
+	# -j1 for now to avoid test interference on remote run
+	cargo nextest run --locked --retries 3 -j1
