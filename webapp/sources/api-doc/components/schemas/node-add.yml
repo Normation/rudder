@@ -44,11 +44,8 @@ items:
       enum:
         - physical
         - vm
-        - aixlpar
-        - bsdjail
         - hyperv
         - qemu
-        - solariszone
         - vbox
         - vmware
         - xen
@@ -68,11 +65,8 @@ items:
           type: string
           description: The kind of virtual machine for the node
           enum:
-            - aixlpar
-            - bsdjail
             - hyperv
             - qemu
-            - solariszone
             - vbox
             - vmware
             - xen
