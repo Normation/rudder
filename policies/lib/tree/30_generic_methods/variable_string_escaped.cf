@@ -39,7 +39,6 @@
 # ````
 #
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^[a-zA-Z_]+$"
 #
 # @parameter_rename variable_name name
 # @class_prefix variable_string_escaped

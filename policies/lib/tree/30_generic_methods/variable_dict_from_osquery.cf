@@ -63,9 +63,7 @@
 # To access this value, use the `${prefix.var1[0][cpu_logical_cores]}` syntax.
 #
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^[a-zA-Z_]+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^[a-zA-Z_]+$"
 # @parameter query           The query to execute (ending with a semicolon)
 # 
 # @parameter_rename variable_prefix prefix
