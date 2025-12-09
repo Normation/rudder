@@ -49,6 +49,8 @@ import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
 import com.normation.rudder.apidata.JsonQueryObjects.JQRule
+import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
+import com.normation.rudder.apidata.JsonResponseObjects.JRGroupV21
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -74,6 +76,7 @@ import com.normation.rudder.rest.lift.ZipArchiveBuilderService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import io.scalaland.chimney.syntax.*
 import java.io.FileOutputStream
 import java.util.zip.ZipFile
 import net.liftweb.common.Full
@@ -1030,6 +1033,47 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         }
 
       case err => ko(s"I got an error in test (response should error 500): ${err}")
+    }
+  }
+
+  // see https://issues.rudder.io/issues/28007, the groups format have changed in 9.0 API, but archives API needs to support old ones
+  "import group with JSON format previous to API v21" >> {
+    import com.normation.rudder.apidata.implicits.*
+
+    /*
+     * Copy the content of a existing archive into an import directory, zip-it
+     */
+    val dest = testDir / "archive-group-v21"
+    // so that we have initial groups
+    FileUtils.copyDirectory((testDir / "archive-group").toJava, dest.toJava)
+
+    // replace with the old serialized group format : "category" instead of "categoryId"
+    val (group, categoryId) = restTestSetUp.mockNodeGroups.groupsRepo
+      .getNodeGroup(NodeGroupId(NodeGroupUid("0000f5d3-8c61-4d20-88a7-bb947705ba8a")))
+      // hidden properties are not copied in archive
+      .map((g, id) => (g.copy(properties = g.properties.filter(_.visibility == Displayed)), id))
+      .runNow
+    val serializedGroup     = JRGroup.fromGroup(group, categoryId, None).transformInto[JRGroupV21]
+    (dest / "groups" / "category_1" / (group.name + ".json")).overwrite(serializedGroup.toJsonPretty)
+
+    // now zip it
+    val zip = File(dest.pathAsString + ".zip")
+    dest.zipTo(zip)
+
+    // reset archive saver
+    restTestSetUp.archiveAPIModule.archiveSaver.base.set(Option.empty[(PolicyArchive, MergePolicy)]).runNow
+    restTest.testBinaryPOSTResponse(s"/api/latest/archives/import", "archive", zip.name, zip.newInputStream.readAllBytes()) {
+      case Full(LiftJsonResponse(res, _, 200)) =>
+        restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
+          case None         => ko(s"No policies were saved")
+          case Some((p, m)) => {
+            // the only one group can be imported and has the original category
+            (p.groups(0).group must beEqualTo(group)) and
+            (p.groups(0).category must beEqualTo(categoryId))
+          }
+        }
+
+      case err => ko(s"I got an error in test: ${err}")
     }
   }
 
