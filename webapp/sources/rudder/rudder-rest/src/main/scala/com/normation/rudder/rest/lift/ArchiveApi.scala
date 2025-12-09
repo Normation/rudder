@@ -57,6 +57,7 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
 import com.normation.rudder.apidata.JsonResponseObjects.JRRule
+import com.normation.rudder.apidata.RudderJsonDecoders
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ActiveDirective
@@ -78,6 +79,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
@@ -1243,12 +1245,12 @@ class ZipArchiveReaderImpl(
       archiveName: String,
       arch:        PolicyArchiveUnzip,
       techniques:  Map[String, Chunk[(String, Array[Byte])]]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     ZIO.foldLeft(techniques)(arch) {
       case (a, (basepath, files)) =>
         parseTechnique(archiveName, basepath, files).either.map {
           case Right(res) => a.modify(_.policies.techniques).using(_ :+ res)
-          case Left(err)  => a.modify(_.errors).using(_ :+ err)
+          case Left(err)  => a.modify(_.errors).using(_ :+ Chained(s"Could not parse techniques in archive '${archiveName}'", err))
         }
     }
   }
@@ -1257,38 +1259,40 @@ class ZipArchiveReaderImpl(
       elements: Chunk[(String, Array[Byte])],
       accessor: PathLazyModify[PolicyArchiveUnzip, Chunk[A]],
       parser:   (String, Array[Byte]) => IOResult[A]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     ZIO.foldLeft(elements)(arch) {
-      case (a, t) =>
-        parser(t._1, t._2).either.map {
+      case (a, (file, content)) =>
+        parser(file, content).either.map {
           case Right(res) => accessor.using(_ :+ res)(a)
-          case Left(err)  => a.modify(_.errors).using(_ :+ err)
+          case Left(err)  =>
+            a.modify(_.errors)
+              .using(_ :+ Chained(s"Could not parse file '${file}' in archive '${arch.policies.metadata.filename}'", err))
         }
     }
   }
   def parseDirectives(arch: PolicyArchiveUnzip, directives: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JRDirective]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, directives, modifyLens[PolicyArchiveUnzip](_.policies.directives), parseDirective)
   }
   def parseGroupCats(arch: PolicyArchiveUnzip, cats: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JGroupCategory]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, cats, modifyLens[PolicyArchiveUnzip](_.policies.groupCats), parseGroupCat)
   }
   def parseGroups(arch: PolicyArchiveUnzip, groups: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JRGroup]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, groups, modifyLens[PolicyArchiveUnzip](_.policies.groups), parseGroup)
   }
   def parseRuleCats(arch: PolicyArchiveUnzip, cats: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JRuleCategories]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, cats, modifyLens[PolicyArchiveUnzip](_.policies.ruleCats), parseRuleCat)
   }
   def parseRules(arch: PolicyArchiveUnzip, rules: Chunk[(String, Array[Byte])])(implicit
       dec: JsonDecoder[JRRule]
-  ): IOResult[PolicyArchiveUnzip] = {
+  ): UIO[PolicyArchiveUnzip] = {
     parseSimpleFile(arch, rules, modifyLens[PolicyArchiveUnzip](_.policies.rules), parseRule)
   }
 
@@ -1356,7 +1360,7 @@ class ZipArchiveReaderImpl(
     }
 
     // now, parse everything and collect errors
-    import com.normation.rudder.apidata.JsonResponseObjectDecodes.*
+    import JsonResponseObjectDecodes.given
     import com.normation.cfclerk.domain.TechniqueCategoryMetadata.codecTechniqueCategoryMetadata
     for {
       _                 <- ApplicationLoggerPure.Archive.debug(
@@ -1805,4 +1809,30 @@ class SaveArchiveServicebyRepo(
       _ <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
     } yield ()
   }
+}
+
+/*
+ * Decoders for JsonResponse objects used in Archive API :
+ * structures that need to be read back as they serialized AND deserialized in this API
+ */
+private object JsonResponseObjectDecodes extends RudderJsonDecoders {
+  import com.normation.rudder.apidata.JsonResponseObjects.*
+
+  given decodeJRParentProperty:          JsonDecoder[JRParentProperty]          = DeriveJsonDecoder.gen
+  given decodeJRPropertyHierarchy:       JsonDecoder[JRPropertyHierarchy]       = DeriveJsonDecoder.gen
+  given decodePropertyProvider:          JsonDecoder[PropertyProvider]          = JsonDecoder.string.map(s => PropertyProvider(s))
+  given decodeJRParentPropertyDetails:   JsonDecoder[JRParentPropertyDetails]   = DeriveJsonDecoder.gen
+  given decodeJRPropertyHierarchyStatus: JsonDecoder[JRPropertyHierarchyStatus] = DeriveJsonDecoder.gen
+  given decodeJRProperty:                JsonDecoder[JRProperty]                = DeriveJsonDecoder.gen
+
+  given decodeJRCriterium:           JsonDecoder[JRCriterium]           = DeriveJsonDecoder.gen
+  given decodeJRDirectiveSectionVar: JsonDecoder[JRDirectiveSectionVar] = DeriveJsonDecoder.gen
+
+  given decodeJRApplicationStatus: JsonDecoder[JRApplicationStatus] = DeriveJsonDecoder.gen
+  given decodeJRQuery:             JsonDecoder[JRQuery]             = DeriveJsonDecoder.gen
+  given decodeJRDirectiveSection:  JsonDecoder[JRDirectiveSection]  = DeriveJsonDecoder.gen
+  given decodeJRRule:              JsonDecoder[JRRule]              = DeriveJsonDecoder.gen
+  given decodeJRGroup:             JsonDecoder[JRGroup]             = DeriveJsonDecoder.gen
+  given decodeJRDirective:         JsonDecoder[JRDirective]         = DeriveJsonDecoder.gen
+
 }
