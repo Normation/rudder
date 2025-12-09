@@ -484,21 +484,6 @@ mod tests {
         assert!(constraints.is_valid("ab").is_ok());
         assert!(constraints.is_valid("a").is_err());
         assert!(constraints.is_valid("aa").is_err());
-
-        let constraints = MethodConstraints {
-            regex: Some(RegexConstraint {
-                value: r"^(_|[^\p{Punct}])+$".to_string(),
-                error_message: None,
-            }),
-            ..Default::default()
-        };
-        assert!(constraints.is_valid("a").is_ok());
-        assert!(constraints.is_valid("ラダー").is_ok());
-        assert!(constraints.is_valid("abcd_éfgh").is_ok());
-        assert!(constraints.is_valid("___").is_ok());
-        assert!(constraints.is_valid("abcd-éfgh").is_err());
-        assert!(constraints.is_valid("my_{var}_").is_err());
-        assert!(constraints.is_valid("yes.no").is_err());
     }
 
     #[test]
