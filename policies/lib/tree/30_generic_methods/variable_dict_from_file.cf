@@ -25,9 +25,9 @@
 #
 # See [variable_dict_from_file_type](#_variable_dict_from_file_type) for complete documentation.
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^[a-zA-Z_]+$"
+# @parameter_constraint prefix "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^[a-zA-Z_]+$"
+# @parameter_constraint name "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter file_name       The absolute local file name with JSON content
 #
 # 
