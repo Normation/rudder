@@ -72,9 +72,7 @@
 #   unusable as a rudder variable, expect to dump an error or configuration somewhere.
 #
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter path            The path to the file and node label
 # @parameter lens            The lens specified by the user in case they want to load a specified lens associated with its file
 # @parameter file            The absolute path to the file specified by the user in case they want to load a specified file associated with its lens

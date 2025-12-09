@@ -102,9 +102,7 @@
 # The `prefix.sum` string variable will contain `5` and `prefix.product` will contain `30`.
 #
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter expression      The mathematical expression to evaluate
 # @parameter format          The format string to use
 # 
