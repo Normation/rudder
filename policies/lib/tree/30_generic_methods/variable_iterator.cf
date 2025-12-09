@@ -29,9 +29,7 @@
 # Please note that only global variables are available within templates.
 #
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter value           The variable content
 # @parameter separator       Regular expression that is used to split the value into items ( usually: , )
 # @parameter_constraint separator "allow_whitespace_string" : true
