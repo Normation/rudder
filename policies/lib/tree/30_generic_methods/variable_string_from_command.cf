@@ -28,9 +28,7 @@
 # * The command will be executed even in *Audit mode*
 #
 # @parameter prefix The prefix of the variable name
-# @parameter_constraint prefix "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter name   The variable to define, the full name will be prefix.name
-# @parameter_constraint name "regex" : "^(_|[^\p{Punct}\s])+$"
 # @parameter command         The command to execute
 #
 # @parameter_rename variable_prefix prefix
