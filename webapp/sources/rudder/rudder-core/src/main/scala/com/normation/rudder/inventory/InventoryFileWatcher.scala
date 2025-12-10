@@ -41,6 +41,7 @@ import better.files.*
 import com.normation.box.IOManaged
 import com.normation.errors.*
 import com.normation.inventory.domain.InventoryProcessingLogger
+import com.normation.rudder.ports.InventoryFileWatcherPort
 import com.normation.zio.*
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -76,7 +77,7 @@ import zio.syntax.*
 // utility object to hold common utilities
 object InventoryProcessingUtils {
 
-  val inventoryExtensions: List[String] = "gz" :: "xml" :: "ocs" :: "sign" :: Nil
+  private val inventoryExtensions: List[String] = "gz" :: "xml" :: "ocs" :: "sign" :: Nil
 
   val signExtension = ".sign"
 
@@ -111,18 +112,17 @@ class InventoryFileWatcher(
     maxOldInventoryAge:    Duration, // when do we delete old inventories still there
 
     collectOldInventoriesFrequency: Duration // how often you check for old inventories
-) {
+) extends InventoryFileWatcherPort {
 
-  val takeCareOfUnprocessedFileAfter: Duration  = 3.minutes
-  val semaphore:                      Semaphore = Semaphore.make(1).runNow
+  private val takeCareOfUnprocessedFileAfter: Duration = 3.minutes
 
-  val incoming: File = File(incomingInventoryPath)
+  private val incoming: File = File(incomingInventoryPath)
   InventoryProcessingUtils.logDirPerm(incoming, "Incoming")
-  val updated:  File = File(updatedInventoryPath)
+  private val updated:  File = File(updatedInventoryPath)
   InventoryProcessingUtils.logDirPerm(updated, "Accepted nodes updates")
 
   // service for cleaning
-  val cleaner       = new CheckExistingInventoryFilesImpl(
+  private val cleaner       = new CheckExistingInventoryFilesImpl(
     fileProcessor,
     incoming :: updated :: Nil,
     maxOldInventoryAge,
@@ -130,10 +130,7 @@ class InventoryFileWatcher(
     InventoryProcessingUtils.hasValidInventoryExtension
   )
   // the cron that look for old files (or existing ones on startup/watcher restart)
-  val cronForMissed = new SchedulerMissedNotify(
-    cleaner,
-    collectOldInventoriesFrequency
-  )
+  private val cronForMissed = new SchedulerMissedNotify(cleaner, collectOldInventoriesFrequency)
 
   def startGarbageCollection: Unit = {
     (for {
@@ -146,56 +143,63 @@ class InventoryFileWatcher(
   // That reference holds watcher instance to be able to stop them if asked
   val ref: Ref.Synchronized[Option[Watchers]] = Ref.Synchronized.make(Option.empty[Watchers]).runNow
 
-  def startWatcher(): Either[RudderError, Unit] = semaphore
-    .withPermit(
-      ref.updateZIO(opt => {
-        opt match {
-          case Some(_) => // does nothing
-            InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
-            opt.succeed
+  def startWatcher(): IOResult[Unit] = ref.updateZIO {
+    case opt @ Some(_) => // does nothing
+      InventoryProcessingLogger.info(s"Starting incoming inventory watcher ignored (already started).") *>
+      opt.succeed
 
-          case None =>
-            val w = Watchers(incoming, updated, fileProcessor, cleaner)
-            (for {
-              _ <- w.start()
-              // start scheduler for old file, it will take care of inventories
-              _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started")
-            } yield Some((w))).catchAll(err => {
-              InventoryProcessingLogger.error(
-                s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
-              ) *>
-              err.fail
-            })
-        }
+    case None =>
+      val w = Watchers(incoming, updated, fileProcessor, cleaner)
+      (for {
+        _ <- w.start() // start scheduler for old file, it will take care of inventories
+        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher started")
+      } yield Some(w)).tapError { err =>
+        InventoryProcessingLogger.error(
+          s"Error when trying to start incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
+        )
+      }
+  }
+
+  def restartWatcher(): IOResult[Unit] = ref.updateZIO {
+    case None =>
+      val w = Watchers(incoming, updated, fileProcessor, cleaner)
+      (for {
+        _ <- w.start() // start scheduler for old file, it will take care of inventories
+        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher restarted")
+      } yield Some(w)).tapError { err =>
+        InventoryProcessingLogger.error(
+          s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${err.fullMsg}"
+        )
+      }
+
+    case Some(w) =>
+      (for {
+        _ <- w.stop()
+        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
+        _ <- w.start() // start scheduler for old file, it will take care of inventories
+        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher restarted")
+      } yield None).tapError(err => {
+        InventoryProcessingLogger.error(
+          s"Error when trying to restart incoming inventories file watcher. Reported exception was: ${err.fullMsg}."
+        )
       })
-    )
-    .either
-    .runNow
+  }
 
-  def stopWatcher(): Either[RudderError, Unit] = semaphore
-    .withPermit(
-      ref.updateZIO(opt => {
-        opt match {
-          case None => // ok
-            InventoryProcessingLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).") *>
-            None.succeed
+  override def stopWatcher(): IOResult[Unit] = ref.updateZIO {
+    case None => // ok
+      InventoryProcessingLogger.info(s"Stopping incoming inventory watcher ignored (already stopped).") *>
+      None.succeed
 
-          case Some(w) =>
-            (for {
-              _ <- w.stop()
-              _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
-            } yield None).catchAll(err => {
-              InventoryProcessingLogger.error(
-                s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}."
-              ) *>
-              // in all case, remove the previous watcher, it's most likely in a dead state
-              err.fail
-            })
-        }
+    case Some(w) =>
+      (for {
+        _ <- w.stop()
+        _ <- InventoryProcessingLogger.info(s"Incoming inventory watcher stopped")
+      } yield None).tapError(err => {
+        InventoryProcessingLogger.error(
+          s"Error when trying to stop incoming inventories file watcher. Reported exception was: ${err.fullMsg}."
+        )
       })
-    )
-    .either
-    .runNow
+  }
 }
 
 /*

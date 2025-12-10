@@ -66,6 +66,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.ports.InventoryFileWatcherPort
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -782,6 +783,15 @@ class MockCompliance(mockDirectives: MockDirectives) {
       .toNodeStatusReport()
   }
 
+}
+
+class MockInventoryFileWatcher extends InventoryFileWatcherPort {
+
+  override def startWatcher(): IOResult[Unit] = ZIO.succeed(())
+
+  override def stopWatcher(): IOResult[Unit] = ZIO.succeed(())
+
+  override def restartWatcher(): IOResult[Unit] = ZIO.succeed(())
 }
 
 class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSession], usersConfigFile: File) {
