@@ -2,16 +2,11 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 mod cli;
-pub mod minijinja_filters;
+mod engine;
 use crate::cli::Cli;
-use clap::ValueEnum;
-use core::panic;
+use engine::Engine;
 use rudder_module_type::ProtocolResult;
 use rudder_module_type::diff::diff;
-use std::collections::HashMap;
-use std::io::Write;
-use std::process::{Command, Stdio};
-use tempfile::{NamedTempFile, TempPath};
 
 use std::{
     fs,
@@ -20,7 +15,6 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use minijinja::UndefinedBehavior;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
@@ -28,144 +22,6 @@ use rudder_module_type::{
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-// Configuration
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, ValueEnum)]
-#[serde(rename_all = "snake_case")]
-pub enum Engine {
-    Mustache,
-    Minijinja,
-    Jinja2,
-}
-
-impl Default for Engine {
-    fn default() -> Self {
-        Self::Minijinja
-    }
-}
-
-impl Engine {
-    fn minijinja(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-    ) -> Result<String> {
-        let (template, template_name) = match (&template_path, template_src) {
-            (Some(p), _) => (
-                read_to_string(p)
-                    .with_context(|| format!("Failed to read template {}", p.display()))?,
-                p.file_name().unwrap().to_string_lossy().into_owned(),
-            ),
-            (_, Some(s)) => (s, "template".to_string()),
-            _ => unreachable!(),
-        };
-        // We need to create the Environment even for one template
-        let mut env = minijinja::Environment::new();
-        // Fail on non-defined values, even in iteration
-        env.set_undefined_behavior(UndefinedBehavior::Strict);
-        minijinja_contrib::add_to_environment(&mut env);
-        env.add_template(&template_name, &template)?;
-        env.add_filter("b64encode", minijinja_filters::b64encode);
-        env.add_filter("b64decode", minijinja_filters::b64decode);
-        env.add_filter("basename", minijinja_filters::basename);
-        env.add_filter("dirname", minijinja_filters::dirname);
-        env.add_filter("urldecode", minijinja_filters::urldecode);
-        env.add_filter("hash", minijinja_filters::hash);
-        env.add_filter("quote", minijinja_filters::quote);
-        env.add_filter("regex_escape", minijinja_filters::regex_escape);
-        env.add_filter("regex_replace", minijinja_filters::regex_replace);
-        let tmpl = env.get_template(&template_name).unwrap();
-        Ok(tmpl.render(data)?)
-    }
-
-    fn jinja2(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-        temporary_dir: &Path,
-        python: &str,
-    ) -> Result<String> {
-        let named: TempPath;
-        let template_path = match (&template_path, template_src) {
-            (Some(p), _) => p.to_str().unwrap(),
-            (_, Some(s)) => {
-                let mut tmp_file = NamedTempFile::new().expect("Failed to create tempfile");
-                tmp_file
-                    .write_all(s.to_string().as_bytes())
-                    .expect("Failed to write template in tempfile");
-                named = tmp_file.into_temp_path();
-                named.to_str().unwrap()
-            }
-            _ => unreachable!(),
-        };
-
-        let templating_script_content = include_str!("../jinja2-templating.py");
-        let script_name = "jinja2-templating.py";
-
-        let mut path = PathBuf::from(temporary_dir);
-        path.push(script_name);
-        let templating_script_path = path.to_str().unwrap();
-
-        if !fs::exists(templating_script_path)? {
-            fs::write(templating_script_path, templating_script_content)?;
-            #[cfg(target_family = "unix")]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let perms = fs::Permissions::from_mode(0o755);
-                fs::set_permissions(templating_script_path, perms)?;
-            }
-            #[cfg(target_family = "windows")]
-            {
-                let mut perms = fs::metadata(templating_script_path)?.permissions();
-                perms.set_readonly(false);
-                fs::set_permissions(templating_script_path, perms)?;
-            }
-        }
-
-        let output = if cfg!(target_os = "linux") {
-            let mut child = Command::new(python)
-                .args([templating_script_path, template_path])
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap_or_else(|_| panic!("Failed to execute {}", templating_script_path));
-
-            let stdin = child.stdin.as_mut().unwrap();
-            stdin
-                .write_all(data.to_string().as_bytes())
-                .expect("Failed to write to stdin");
-
-            let output_info = child.wait_with_output()?;
-            if !output_info.status.success() {
-                let output = String::from_utf8_lossy(&output_info.stderr).to_string();
-                bail!("Error {} failed with : {}", script_name, output);
-            }
-            String::from_utf8_lossy(&output_info.stdout).to_string()
-        } else {
-            bail!("Jinja2 templating engine is not supported on Windows")
-        };
-        Ok(output)
-    }
-
-    fn mustache(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-    ) -> Result<String> {
-        let template =
-            match (&template_path, template_src) {
-                (Some(p), _) => mustache::compile_path(p)
-                    .with_context(|| "Failed to compile mustache template")?,
-                (_, Some(ref s)) => mustache::compile_str(s)
-                    .with_context(|| "Failed to compile mustache template")?,
-                _ => unreachable!(),
-            };
-        template
-            .render_to_string(&data)
-            .with_context(|| "Rendering mustache template")
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -248,9 +104,7 @@ where
 
 // Module
 
-struct Template {
-    python_version: Option<Result<String>>,
-}
+struct Template {}
 
 impl ModuleType0 for Template {
     fn metadata(&self) -> ModuleTypeMetadata {
@@ -308,33 +162,12 @@ impl ModuleType0 for Template {
             bail!("Could not get datastate file")
         };
 
-        let output = match p.engine {
-            Engine::Mustache => {
-                Engine::mustache(p.template_path.as_deref(), p.template_string, template_data)?
-            }
-            Engine::Minijinja => {
-                Engine::minijinja(p.template_path.as_deref(), p.template_string, template_data)?
-            }
-            Engine::Jinja2 => {
-                // Only detect if necessary
-                if self.python_version.is_none() {
-                    self.python_version = Some(get_python_version());
-                }
-
-                let python_bin = match self.python_version {
-                    Some(Ok(ref v)) => v,
-                    Some(Err(ref e)) => bail!("Could not get python version: {}", e),
-                    None => unreachable!(),
-                };
-                Engine::jinja2(
-                    p.template_path.as_deref(),
-                    p.template_string,
-                    template_data,
-                    parameters.temporary_dir.as_path(),
-                    python_bin,
-                )?
-            }
-        };
+        let renderer = p.engine.renderer(parameters.temporary_dir.as_ref(), None)?;
+        let output = renderer.render(
+            p.template_path.as_deref(),
+            p.template_string.as_deref(),
+            template_data,
+        )?;
 
         let already_present = output_file.exists();
 
@@ -449,36 +282,13 @@ fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Erro
 }
 
 pub fn entry() -> Result<(), anyhow::Error> {
-    let promise_type = Template {
-        python_version: None,
-    };
+    let promise_type = Template {};
 
     if called_from_agent() {
         run_module(promise_type)
     } else {
         Cli::run()
     }
-}
-
-fn get_python_version() -> Result<String> {
-    let args = ["-c", "import jinja2"];
-    let python_versions = HashMap::from([
-        ("python3", "- python3 -c import jinja2"),
-        ("python2", "- python2 -c import jinja2"),
-        ("python", "- python -c import jinja2"),
-    ]);
-    let mut used_cmd: Vec<&str> = vec![];
-    for (version, cmd) in python_versions {
-        let status = Command::new(version).args(args).status();
-        if status.is_ok() && status?.success() {
-            return Ok(version.to_string());
-        }
-        used_cmd.push(cmd);
-    }
-    bail!(
-        "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n{}",
-        used_cmd.join("\n")
-    )
 }
 
 #[cfg(test)]
