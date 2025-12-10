@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest
 
+import better.files.File
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
@@ -291,6 +292,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
   val mockCompliance                                 = new MockCompliance(mockDirectives)
   val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement()
+  val mockInventoryFileWatcher                       = new MockInventoryFileWatcher()
+  val mockInventoryDir                               = File.newTemporaryFile()
 
   val dynGroupUpdaterService =
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
@@ -1192,7 +1195,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     apiAccountApi,
     infoApi,
     eventLogApi,
-    new PluginInternalApi(pluginsSystemService)
+    new PluginInternalApi(pluginsSystemService),
+    new InventoryApi(mockInventoryFileWatcher, mockInventoryDir)
   )
 
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
