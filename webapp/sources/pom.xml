@@ -954,6 +954,12 @@ limitations under the License.
       <artifactId>zio-test_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
       <scope>test</scope>
+    </dependency>    <!-- zio tests -->
+    <dependency> <!-- MigrationLiftjson2Ziojson, see if useful in other tests afterward -->
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-test-magnolia_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>dev.zio</groupId>
