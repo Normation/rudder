@@ -174,6 +174,7 @@ show_content: ${show_content}
      "inputs_as_data"    data => mergedata('string_params', 'bool_params');
      "module_inputs"   string => storejson('inputs_as_data');
    pass2::
+     "report"          string => "An error occurred";
      "report"          string => readfile("${report_file}", "0"),
                            if => "has_report";
 
@@ -201,11 +202,13 @@ show_content: ${show_content}
     pass3.has_report::
       "${report_file}"
         delete => tidy,
-        action => immediate_ignore_dry_run;
+        action => immediate_ignore_dry_run,
+        comment => "${report_data.method_id}";
     pass3.data_is_empty::
       "${datastate_path}"
         delete => tidy,
-        action => immediate_ignore_dry_run;
+        action => immediate_ignore_dry_run,
+        comment => "${report_data.method_id}";
 
   methods:
     pass1.!pass2::
