@@ -60,6 +60,8 @@ impl Engine {
         let mut env = minijinja::Environment::new();
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
+        // Remove line breaks after blocks. Ansible's default.
+        env.set_trim_blocks(true);
         minijinja_contrib::add_to_environment(&mut env);
         env.add_template(&template_name, &template)?;
         env.add_filter("b64encode", minijinja_filters::b64encode);
