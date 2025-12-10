@@ -23,7 +23,7 @@ class ScoreApiImpl(scoreService: ScoreService) extends LiftApiModuleProvider[API
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
-      import com.normation.rudder.rest.implicits.*
+      import com.normation.rudder.rest.syntax.*
       val res = for {
         availablesScores <- scoreService.getAvailableScore()
       } yield {

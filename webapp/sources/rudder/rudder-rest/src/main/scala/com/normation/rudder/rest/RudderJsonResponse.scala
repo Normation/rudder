@@ -96,7 +96,7 @@ object RudderJsonResponse {
 
   //////////////////////////// Lift JSON response ////////////////////////////
 
-  final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(implicit encoder: JsonEncoder[A])
+  final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(using encoder: JsonEncoder[A])
       extends LiftResponse {
     def toResponse: InMemoryResponse = {
       // Indent is not the number of space per indentation, but the level of indentation for this elem starts...
@@ -126,7 +126,7 @@ object RudderJsonResponse {
 
   sealed trait ResponseError {
     def errorMsg: Option[String]
-    def toLiftErrorResponse(id: Option[String], schema: ResponseSchema)(implicit
+    def toLiftErrorResponse(id: Option[String], schema: ResponseSchema)(using
         prettify: Boolean
     ): LiftResponse = this match {
       case UnauthorizedError(errorMsg) => unauthorizedError(id, schema, errorMsg)
@@ -142,15 +142,15 @@ object RudderJsonResponse {
 
   object generic {
     // generic response, not in rudder normalized format - use it if you want an ad-hoc json response.
-    def success[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):           LiftJsonResponse[A] =
+    def success[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):           LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 200)
-    def internalError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
+    def internalError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 500)
-    def unauthorizedError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]): LiftJsonResponse[A] =
+    def unauthorizedError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]): LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 401)
-    def notFoundError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
+    def notFoundError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 404)
-    def forbiddenError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):    LiftJsonResponse[A] =
+    def forbiddenError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):    LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 404)
   }
 
@@ -161,20 +161,20 @@ object RudderJsonResponse {
 
   // rudder response. The "A" parameter is the business object (or list of it) in the response.
   // Success
-  def successOne[A](schema: ResponseSchema, obj: A, id: Option[String])(implicit
+  def successOne[A](schema: ResponseSchema, obj: A, id: Option[String])(using
       prettify: Boolean,
       encoder:  JsonEncoder[A]
   ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
     schema.dataContainer match {
       case Some(key) =>
-        implicit val enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
+        given enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, id, Map((key, List(obj)))))
       case None      => // in that case, the object is not even in a list
-        implicit val enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
+        given enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, id, obj))
     }
   }
-  def successList[A](schema: ResponseSchema, objs: List[A])(implicit
+  def successList[A](schema: ResponseSchema, objs: List[A])(using
       prettify: Boolean,
       encoder:  JsonEncoder[A]
   ): LiftJsonResponse[
@@ -182,62 +182,62 @@ object RudderJsonResponse {
   ] = {
     schema.dataContainer match {
       case None      =>
-        implicit val enc: JsonEncoder[JsonRudderApiResponse[List[A]]] = DeriveJsonEncoder.gen
+        given enc: JsonEncoder[JsonRudderApiResponse[List[A]]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, None, objs))
       case Some(key) =>
-        implicit val enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
+        given enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, None, Map(key -> objs)))
     }
   }
-  def successZero(schema: ResponseSchema)(implicit
+  def successZero(schema: ResponseSchema)(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
-    implicit val enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
+    given enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
     generic.success(JsonRudderApiResponse.success(schema, None))
   }
-  def successZero(schema: ResponseSchema, msg: String)(implicit
+  def successZero(schema: ResponseSchema, msg: String)(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
-    implicit val enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
+    given enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
     generic.success(JsonRudderApiResponse.success(schema, None, msg))
   }
   // errors
-  implicit val nothing:      JsonEncoder[Option[Unit]]                = new JsonEncoder[Option[Unit]] {
+  given nothing:      JsonEncoder[Option[Unit]]                = new JsonEncoder[Option[Unit]] {
     def unsafeEncode(n:       Option[Unit], indent: Option[Int], out: zio.json.internal.Write): Unit = out.write("null")
     override def isNothing(a: Option[Unit]): Boolean = true
   }
-  implicit val errorEncoder: JsonEncoder[JsonRudderApiResponse[Unit]] = DeriveJsonEncoder.gen
+  given errorEncoder: JsonEncoder[JsonRudderApiResponse[Unit]] = DeriveJsonEncoder.gen
 
-  def internalError(id: Option[String], schema: ResponseSchema, errorMsg: String)(implicit
+  def internalError(id: Option[String], schema: ResponseSchema, errorMsg: String)(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.internalError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
   // Internal error with a specific schema
-  def internalError[A](id: Option[String], schema: ResponseSchema, obj: A, errorMsg: Option[String])(implicit
+  def internalError[A](id: Option[String], schema: ResponseSchema, obj: A, errorMsg: Option[String])(using
       prettify: Boolean,
       encoder:  JsonEncoder[A]
   ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
     schema.dataContainer match {
       case Some(key) =>
-        implicit val enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
+        given enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
         generic.internalError(JsonRudderApiResponse.genericError(id, schema, Map((key, List(obj))), errorMsg))
       case None      => // in that case, the object is not even in a list
-        implicit val enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
+        given enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
         generic.internalError(JsonRudderApiResponse.genericError(id, schema, obj, errorMsg))
     }
   }
-  def unauthorizedError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(implicit
+  def unauthorizedError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.unauthorizedError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(implicit
+  def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.notFoundError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def forbiddenError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(implicit
+  def forbiddenError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.forbiddenError(JsonRudderApiResponse.error(id, schema, errorMsg))
@@ -245,10 +245,10 @@ object RudderJsonResponse {
 
   // import that to transform a class from JsonResponse into a lift response. An encoder for the JsonResponse class
   // must be available.
-  trait implicits {
-    implicit class ToLiftResponseList[A](result: IOResult[Seq[A]]) {
-      def toLiftResponseList(params: DefaultParams, schema: ResponseSchema)(implicit encoder: JsonEncoder[A]): LiftResponse = {
-        implicit val prettify = params.prettify
+  object syntax {
+    extension [A](result: IOResult[Seq[A]]) {
+      def toLiftResponseList(params: DefaultParams, schema: ResponseSchema)(using encoder: JsonEncoder[A]): LiftResponse = {
+        given prettify: Boolean = params.prettify
         result
           .fold(
             err => {
@@ -262,31 +262,36 @@ object RudderJsonResponse {
           .catchAllDefect(err => zio.ZIO.succeed(internalError(None, schema, err.getMessage)))
           .runNow
       }
-      def toLiftResponseList(params: DefaultParams, schema: EndpointSchema)(implicit encoder: JsonEncoder[A]): LiftResponse = {
+      def toLiftResponseList(params: DefaultParams, schema: EndpointSchema)(using encoder: JsonEncoder[A]): LiftResponse = {
         toLiftResponseList(params, ResponseSchema.fromSchema(schema))
       }
     }
 
-    implicit class ToLiftResponseOne[A](result: IOResult[A]) {
-      // ADT that matches error or success to determine the id value to use/compute
-      sealed trait IdTrace {
-        // if no computed id is given, we use the constant one
-        def success(a: A): Option[String] = this match {
-          case SuccessIdTrace(f) => f(a)
-          case ConstIdTrace(id)  => id
-        }
-        def error:         Option[String] = this match {
-          case ConstIdTrace(id)  => id
-          case SuccessIdTrace(_) => None
-        }
+    // ADT that matches error or success to determine the id value to use/compute
+    sealed trait IdTrace[A] {
+      import IdTrace.*
+      // if no computed id is given, we use the constant one
+      def success(a: A): Option[String] = this match {
+        case Success(f) => f(a)
+        case Const(id)  => id
       }
-      case class ConstIdTrace(id: Option[String]) extends IdTrace // can apply to both error and success cases
-      case class SuccessIdTrace(computeId: A => Option[String]) extends IdTrace
 
-      private def toLiftResponseOne(params: DefaultParams, schema: ResponseSchema, id: IdTrace)(implicit
+      def error: Option[String] = this match {
+        case Const(id)  => id
+        case Success(_) => None
+      }
+    }
+
+    object IdTrace {
+      case class Const[A](id: Option[String])               extends IdTrace[A] // can apply to both error and success cases
+      case class Success[A](computeId: A => Option[String]) extends IdTrace[A]
+    }
+
+    extension [A](result: IOResult[A]) {
+      private def toLiftResponseOne(params: DefaultParams, schema: ResponseSchema, id: IdTrace[A])(using
           encoder: JsonEncoder[A]
       ): LiftResponse = {
-        implicit val prettify = params.prettify
+        given prettify: Boolean = params.prettify
         result
           .fold(
             err => {
@@ -300,23 +305,23 @@ object RudderJsonResponse {
           .catchAllDefect(err => zio.ZIO.succeed(internalError(id.error, schema, err.getMessage)))
           .runNow
       }
-      def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
+      def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
           encoder: JsonEncoder[A]
       ): LiftResponse = {
-        toLiftResponseOne(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))
+        toLiftResponseOne(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))
       }
-      def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
+      def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
           encoder: JsonEncoder[A]
       ): LiftResponse = {
-        toLiftResponseOne(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))
+        toLiftResponseOne(params, ResponseSchema.fromSchema(schema), IdTrace.Success(id))
       }
       // when the computation give the response schema
       def toLiftResponseOneMap[B](
           params:      DefaultParams,
           errorSchema: ResponseSchema,
           map:         A => (ResponseSchema, B, Option[String])
-      )(implicit encoder: JsonEncoder[B]): LiftResponse = {
-        implicit val prettify = params.prettify
+      )(using encoder: JsonEncoder[B]): LiftResponse = {
+        given prettify: Boolean = params.prettify
         result
           .fold(
             err => {
@@ -334,45 +339,12 @@ object RudderJsonResponse {
           .runNow
       }
 
-      // to create responses with specific API errors, we provide syntax using evidence on type A : Either[_, _]
-      def toLiftResponseOneEither[B: JsonEncoder](
-          params: DefaultParams,
-          schema: ResponseSchema,
-          id:     IdTrace
-      )(implicit ev: A <:< Either[ResponseError, B]): LiftResponse = {
-        implicit val prettify = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
-            },
-            either => {
-              ev.apply(either) match {
-                case Left(e)  => e.toLiftErrorResponse(id.error, schema)
-                case Right(b) => successOne[B](schema, b, id.success(either))
-              }
-            }
-          )
-          .runNow
-      }
-      def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
-          ev: A <:< Either[ResponseError, B]
-      ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(using JsonEncoder[B], ev)
-      }
-      def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
-          ev: A <:< Either[ResponseError, B]
-      ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(using JsonEncoder[B], ev)
-      }
-
       def toLiftResponseZeroEither(
           params: DefaultParams,
           schema: ResponseSchema,
-          id:     IdTrace
-      )(implicit ev: A <:< Either[ResponseError, Any]): LiftResponse = {
-        implicit val prettify = params.prettify
+          id:     IdTrace[A]
+      )(using ev: A <:< Either[ResponseError, Any]): LiftResponse = {
+        given prettify: Boolean = params.prettify
         result
           .fold(
             err => {
@@ -388,22 +360,23 @@ object RudderJsonResponse {
           )
           .runNow
       }
-      def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
+      def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(using ev)
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))(using ev)
       }
-      def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
+
+      def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(using ev)
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), IdTrace.Success[A](id))(using ev)
       }
 
     }
     // when you don't have any response, just a success
-    implicit class ToLiftResponseZero(result: IOResult[Unit]) {
-      def toLiftResponseZero(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
-        implicit val prettify = params.prettify
+    extension (result: IOResult[Unit]) {
+      def toLiftResponseZeroUnit(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
+        given prettify: Boolean = params.prettify
         result
           .fold(
             err => {
@@ -414,15 +387,15 @@ object RudderJsonResponse {
           )
           .runNow
       }
-      def toLiftResponseZero(params: DefaultParams, schema: EndpointSchema): LiftResponse = {
-        toLiftResponseZero(params, ResponseSchema.fromSchema(schema))
+      def toLiftResponseZeroUnit(params: DefaultParams, schema: EndpointSchema): LiftResponse = {
+        toLiftResponseZeroUnit(params, ResponseSchema.fromSchema(schema))
       }
     }
 
     // when you don't have any parameter, just a message as response
-    implicit class ToLiftResponseZeroString(result: IOResult[String]) {
+    extension (result: IOResult[String]) {
       def toLiftResponseZero(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
-        implicit val prettify = params.prettify
+        given prettify: Boolean = params.prettify
         result
           .fold(
             err => {
@@ -443,4 +416,4 @@ object RudderJsonResponse {
   }
 }
 
-object implicits extends RudderJsonResponse.implicits
+export RudderJsonResponse.syntax

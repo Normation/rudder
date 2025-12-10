@@ -45,8 +45,8 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.GroupInternalApi as API
-import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.*
+import com.normation.rudder.rest.syntax.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req

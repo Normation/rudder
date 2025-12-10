@@ -54,7 +54,7 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.ParameterApi as API
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction

@@ -45,7 +45,7 @@ import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.{ApiAccounts as API, *}
 import com.normation.rudder.rest.data.*
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*

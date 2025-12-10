@@ -49,7 +49,7 @@ import com.normation.rudder.rest.PluginApi as API
 import com.normation.rudder.rest.RudderJsonRequest.ReqToJson
 import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.data.JsonPluginSettings
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
