@@ -1,5 +1,6 @@
 {
   "GHSA-grv7-fg5c-xmjg": "A DoS",
   "GHSA-3xgq-45jj-v275": "A DoS on regexp, probably only in a Dev ependency",
-  "GHSA-33vc-wfww-vjfv": "An XSS which does not affect node properties diff render"
+  "GHSA-33vc-wfww-vjfv": "An XSS which does not affect node properties diff render",
+  "GHSA-5j98-mcp5-4vw2": "glob command injection unused in gulp-elm"
 }
