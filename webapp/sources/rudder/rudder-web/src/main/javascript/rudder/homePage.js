@@ -193,7 +193,15 @@ function homePage (
                 <div  id="score-${score.scoreId}-legend"></div>
               </div>`)
     var complianceHColors = score.data.colors.map(x => complianceHoverColors[x]);
-    doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
+    var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
+    var noScoreIndex = score.data.labels.indexOf("No score")
+    // Hide no score details, chart is a promise execute only when fulfilled
+    if (noScoreIndex !== -1) {
+      scoreChart.then(function (sc){
+        sc.toggleDataVisibility(noScoreIndex)
+        sc.update()
+      })
+    }
   })
 
   initBsTooltips();
