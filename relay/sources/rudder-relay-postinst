@@ -178,7 +178,7 @@ if [ ! -f "${A2_CONF}" ]; then
   "custom_ca": false
 }
 EOF
-  /opt/rudder/bin/rudder-module-template -t "${A2_CONF}.j2" -d "${TMP_DATA}" -o "${A2_CONF}"
+  /opt/rudder/bin/rudder-module-template -t "${A2_CONF}.j2" -d "${TMP_DATA}" -o "${A2_CONF}" >> ${LOG_FILE}
   rm -f "${TMP_DATA}"
 fi
 systemctl start "${APACHE}" >> ${LOG_FILE}
