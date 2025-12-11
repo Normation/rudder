@@ -91,9 +91,6 @@ object DateFormaterService {
     implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
       JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
 
-    implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
-      new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
-
     implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
     implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
@@ -150,9 +147,7 @@ object DateFormaterService {
   def serializeZDT(datetime: ZonedDateTime): String =
     datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
 
-  def serializeInstant(datetime: Instant): String = {
-    ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-  }
+  def serializeInstant(instant: Instant): String = instant.toString
 
   def toDateTime(instant: Instant): DateTime = json.transformInstantDateTime.transform(instant)
 

@@ -79,23 +79,27 @@ object AcceptationDateTime {
 
   def empty = AcceptationDateTime(Map())
 
-  implicit val decoderTechniqueVersion: JsonFieldDecoder[TechniqueVersion] =
-    JsonFieldDecoder.string.mapOrFail(TechniqueVersion.parse)
-  implicit val encoderTechniqueVersion: JsonFieldEncoder[TechniqueVersion] = JsonFieldEncoder.string.contramap(_.serialize)
+  given acceptationDateTimeCodec: JsonCodec[AcceptationDateTime] = {
+    given JsonFieldDecoder[TechniqueVersion] = JsonFieldDecoder.string.mapOrFail(TechniqueVersion.parse)
 
-  implicit val instantCodec: JsonCodec[Instant] = new JsonCodec(
-    JsonEncoder.string.contramap(s => GeneralizedTime(s).toString()),
-    JsonDecoder.string.mapOrFail(x => {
-      GeneralizedTime
-        .parse(x)
-        .map(_.instant)
-        .toRight(s"Error when parsing '${x}' as a generalized time'")
-    })
-  )
+    given JsonFieldEncoder[TechniqueVersion] = JsonFieldEncoder.string.contramap(_.serialize)
 
-  // we're forced to spell it
-  implicit val mapCodec: JsonCodec[Map[TechniqueVersion, Instant]] = JsonCodec.map
+    given JsonEncoder[Instant] = JsonEncoder.string.contramap(s => GeneralizedTime(s).toString())
 
-  implicit val decoderAcceptationDateTime: JsonDecoder[AcceptationDateTime] = mapCodec.decoder.map(AcceptationDateTime.apply)
-  implicit val encoderAcceptationDateTime: JsonEncoder[AcceptationDateTime] = mapCodec.encoder.contramap(_.versions)
+    given JsonDecoder[Instant] = JsonDecoder.string.mapOrFail { x =>
+      {
+        GeneralizedTime
+          .parse(x)
+          .map(_.instant)
+          .toRight(s"Error when parsing '${x}' as a generalized time'")
+      }
+    }
+
+    // we're forced to spell it
+    given mapCodec:                 JsonCodec[Map[TechniqueVersion, Instant]] = JsonCodec.map
+    val decoderAcceptationDateTime: JsonDecoder[AcceptationDateTime]          = mapCodec.decoder.map(AcceptationDateTime.apply)
+    val encoderAcceptationDateTime: JsonEncoder[AcceptationDateTime]          = mapCodec.encoder.contramap(_.versions)
+    JsonCodec(encoderAcceptationDateTime, decoderAcceptationDateTime)
+  }
+
 }
