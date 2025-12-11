@@ -13,6 +13,7 @@ check:
 	cd module-types/template && make check
 	cd module-types/commands && make check
 	cd module-types/inventory && make check
+	cd module-types/scheduler && make check
 
 install:
 	cd rudderc && make install

@@ -14,8 +14,10 @@ jobs:
 
     - uses: dtolnay/rust-toolchain@1.91.0
 
-    - name: Run tests
+    - name: Run template module tests
       run: cd policies\module-types\template && cargo test --locked
+    - name: Run scheduler module tests
+      run: cd policies\module-types\scheduler && cargo test --locked
 
     permissions:
       contents: read
