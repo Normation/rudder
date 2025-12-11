@@ -401,6 +401,8 @@ class ApiAccountMapping(
         account
           .modify(_.name)
           .setToIfDefined(up.name)
+          .modify(_.description)
+          .setToIfDefined(up.description)
           .modify(_.isEnabled)
           .setToIfDefined(up.status.map(_ == ApiAccountStatus.Enabled))
           .modify(_.tenants)
