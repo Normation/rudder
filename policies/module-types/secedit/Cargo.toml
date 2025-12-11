@@ -1,0 +1,11 @@
+[package]
+name = "rudder-module-secedit"
+version = "0.0.0-dev"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1.0.100"

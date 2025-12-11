@@ -14,8 +14,11 @@ jobs:
 
     - uses: dtolnay/rust-toolchain@1.91.0
 
-    - name: Run tests
+    - name: rudder-module-template tests
       run: cd policies\module-types\template && cargo test --locked
+
+    - name: rudder-module-secedit tests
+      run: cd policies\module-types\secedit && cargo test --locked
 
     permissions:
       contents: read

@@ -3611,6 +3611,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rudder-module-secedit"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "rudder-module-system-updates"
 version = "0.0.0-dev"
 dependencies = [
