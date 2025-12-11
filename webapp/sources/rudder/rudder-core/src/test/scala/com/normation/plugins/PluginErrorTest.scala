@@ -36,6 +36,7 @@
  */
 package com.normation.plugins
 
+import com.normation.plugins.PluginError.RudderLicenseError
 import com.normation.plugins.cli.RudderPackagePlugin
 import com.normation.utils.ParseVersion
 import java.time.ZonedDateTime
@@ -169,6 +170,83 @@ class PluginErrorTest extends Specification {
         )
       }
     }
+
+    "list errors from rudder webapp plugin" in {
+
+      "plugin enabled, without need for license" in {
+        val now     = ZonedDateTime.now
+        val license = fakeLicense(now, now.plusMonths(2))
+
+        val errors = PluginError.fromRudderLicensedPlugin(pluginAbiVersion.value, pluginAbiVersion, license)
+        errors must beEmpty
+      }
+
+      "plugin enabled, with license near expiration" in {
+        val now        = ZonedDateTime.now
+        val expiration = now.plusDays(2)
+        val license    = fakeLicense(now.minusMonths(2), expiration)
+
+        val errors = PluginError.fromRudderDisabledPlugin(
+          pluginAbiVersion.value,
+          pluginAbiVersion,
+          "",
+          Some(license)
+        )
+        errors must haveLength(1)
+        errors.head must beLikeA {
+          case e: PluginError.LicenseNearExpirationError =>
+            e.expirationDate.toLocalDate must beEqualTo(expiration.toLocalDate)
+        }
+      }
+
+      "plugin disabled, with expired license" in {
+        val expiration = ZonedDateTime.now().minusMonths(1)
+        val license    = fakeLicense(ZonedDateTime.now().minusMonths(2), expiration)
+
+        val errors = PluginError.fromRudderDisabledPlugin(
+          pluginAbiVersion.value,
+          pluginAbiVersion,
+          "",
+          Some(license)
+        )
+        errors must containTheSameElementsAs(
+          List(
+            PluginError.LicenseExpiredError(expiration)
+          )
+        )
+      }
+
+      "plugin enabled, with ABI version error" in {
+        val badAbiVersion = AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
+        val now           = ZonedDateTime.now
+        val license       = fakeLicense(now, now.plusMonths(2))
+
+        val errors = PluginError.fromRudderLicensedPlugin(
+          pluginAbiVersion.value,
+          badAbiVersion,
+          license
+        )
+        errors must containTheSameElementsAs(
+          List(
+            PluginError.RudderAbiVersionError(rudderVersion)
+          )
+        )
+      }
+
+      "plugin with license error" in {
+        val errors = PluginError.fromRudderDisabledPlugin(
+          pluginAbiVersion.value,
+          pluginAbiVersion,
+          "license invalid",
+          None
+        )
+        errors must containTheSameElementsAs(
+          List(
+            RudderLicenseError("license invalid")
+          )
+        )
+      }
+    }
   }
 
   private def fakePlugin(
@@ -184,5 +262,19 @@ class PluginErrorTest extends Specification {
     description = "Test plugin",
     requiresLicense = requiresLicense,
     license = license
+  )
+
+  private def fakeLicense(
+      startDate: ZonedDateTime,
+      endDate:   ZonedDateTime
+  ) = PluginLicense(
+    Licensee(""),
+    SoftwareId(""),
+    MinVersion(""),
+    MaxVersion(""),
+    startDate,
+    endDate,
+    MaxNodes.unlimited,
+    Map.empty
   )
 }
