@@ -1,12 +1,14 @@
 package com.normation.utils
 
-import java.time.Instant
-import java.time.ZoneId
-import java.time.temporal.ChronoField
+import com.normation.utils.DateFormaterService.toJavaInstant
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import zio.test.*
 import zio.test.Assertion.*
+
+import java.time.format.DateTimeFormatter
+import java.time.temporal.{ChronoField, ChronoUnit}
+import java.time.{Instant, ZoneId, ZoneOffset}
 
 object DateFormaterServiceSpec extends ZIOSpecDefault {
   def spec = suite("DateFormaterService")(
@@ -62,6 +64,34 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
       ) { input =>
         assert(DateFormaterService.serializeInstant(input))(
           equalTo(input.toString)
+        )
+      }
+    },
+    test("rfcDateformat should parse any instant without milliseconds") {
+      check(
+        Gen
+          .instant(
+            min = Instant.EPOCH,
+            max = Instant.parse("9999-01-01T00:00:00Z")
+          )
+          .map(_.truncatedTo(ChronoUnit.SECONDS))
+      ) { input =>
+        assert(DateFormaterService.rfcDateformat.parseDateTime(input.toString).toJavaInstant)(
+          equalTo(input)
+        )
+      }
+    },
+    test("rfcDateformat should parse any offsetdatetime without milliseconds") {
+      check(
+        Gen
+          .offsetDateTime(
+          min = Instant.EPOCH.atOffset(ZoneOffset.UTC),
+          max = Instant.parse("9999-01-01T00:00:00Z").atOffset(ZoneOffset.UTC)
+          )
+          .map(_.truncatedTo(ChronoUnit.SECONDS))
+      ) { input =>
+        assert(DateFormaterService.rfcDateformat.parseDateTime(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(input)).toJavaInstant)(
+          equalTo(input.toInstant)
         )
       }
     }
