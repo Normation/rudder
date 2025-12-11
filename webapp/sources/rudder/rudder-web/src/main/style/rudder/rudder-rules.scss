@@ -34,7 +34,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 /* === TEMPLATE === */
 .rudder-template .template-sidebar .sidebar-list li > a {
@@ -146,7 +146,7 @@ label.rule-info + div{
 #directiveFilters{
   padding: 15px 15px 10px 15px;
   margin: 0 -15px;
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   background-color: #F7F8F7;
 }
 
@@ -205,10 +205,10 @@ form.readonly-form .tags-container{
   margin-bottom: 15px;
 }
 .missing-cat {
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 .main-missing-cat {
-  color: $rudder-warning;
+  color: rudder.$warning;
 }
 .id-label {
   margin-top: 5px;

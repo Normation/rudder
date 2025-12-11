@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .content-wrapper td, .content-wrapper th {
   padding: 4px 3px;
@@ -51,9 +51,9 @@
 .dataTables_wrapper_bottom {
   float            : left;
   width            : 100%;
-  border           : 1px solid $rudder-border-color-default;
+  border           : 1px solid rudder.$border-color-default;
   padding          : 5px 10px;
-  background-color : $rudder-bg-light-gray;
+  background-color : rudder.$bg-light-gray;
 }
 .dataTables_wrapper_top {
   border-bottom    : none;
@@ -92,7 +92,7 @@
 /* <TABLE> */
 .dataTable{
   width         : 100%;
-  border        : 1px solid $rudder-border-color-default;
+  border        : 1px solid rudder.$border-color-default;
   font-size     : 14px;
   margin-bottom : 0px;
 }
@@ -108,7 +108,7 @@
 /* <THEAD> */
 .dataTable tr.head,
 .dt-scroll-head thead > tr {
-  border-bottom : 1px solid $rudder-border-color-default;
+  border-bottom : 1px solid rudder.$border-color-default;
   font-size: 1.15em;
 }
 /* </THEAD> */
@@ -163,7 +163,7 @@
   text-rendering: auto;
   line-height: 1;
   font-weight: 900;
-  color: $rudder-gray-400;
+  color: rudder.$gray-400;
   margin-left : 6px;
   font-size: 18px;
   position: relative;
@@ -185,13 +185,13 @@
 }
 .dataTable tr.head th.sorting,
 .dt-scroll-head thead > tr th.sorting{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 .dataTable tr.head th.sorting.sorting_desc,
 .dataTable tr.head th.sorting.sorting_asc,
 .dt-scroll-head thead > tr th.sorting_asc,
 .dt-scroll-head thead > tr th.sorting_desc{
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 .dataTable tr.head th.sorting:hover,
 .dataTable tr.head th.sorting.sorting_desc:hover,
@@ -228,12 +228,12 @@ td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.AuditComplian
 .report-compliance .successAlreadyOK,
 .report-compliance .auditCompliant,
 .report-compliance .auditNotApplicable {
-  background-color: $rudder-success;
+  background-color: rudder.$success;
   color: #fff;
 }
 td.AuditNonCompliant,td.NonCompliant,
 .report-compliance .auditNonCompliant {
-  background-color: $rudder-warning;
+  background-color: rudder.$warning;
   color: #fff;
 }
 td.Missing,td.EnforceError,td.AuditError,td.Error,td.Unexpected,td.BadPolicyMode,
@@ -259,7 +259,7 @@ td.Disabled, td.NoAnswer,
 td.Repaired,
 .report-compliance .successRepaired {
   background-color: #F5DD4D;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 td.eventId{
   position:relative
@@ -308,20 +308,20 @@ td.listclose:after {
   position: relative;
 }
 .dataTable > tbody > tr.color2{
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 .dataTable > tbody > tr:hover{
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 .dataTable > tbody > tr.eventLogDescription {
   border-top: 1px solid transparent;
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   background-color: #FFF !important;
 }
 .dataTable > tbody > tr.opened {
-  border-top: 1px solid $rudder-border-color-default !important;
+  border-top: 1px solid rudder.$border-color-default !important;
   border-bottom: 1px solid #c0d4e4;
-  background-color: $rudder-bg-info;
+  background-color: rudder.$bg-info;
 }
 
 .dataTable > tbody > tr.opened + tr.details + tr{
@@ -366,7 +366,7 @@ td.listclose:after {
 }
 .dataTable .innerDetails {
   display: none;
-  background : $rudder-bg-light-gray;
+  background : rudder.$bg-light-gray;
   padding-left:50px;
   float: left;
   width: 100%;
@@ -388,9 +388,9 @@ table .innerDetails li{
 }
 
 tr.parametersDescription {
-  background-color: $rudder-bg-light-gray !important;
+  background-color: rudder.$bg-light-gray !important;
   height: 30px;
-  border-top: 1px solid $rudder-border-color-default !important;
+  border-top: 1px solid rudder.$border-color-default !important;
 
   .parametersDescriptionDetails {
     padding:15px;
@@ -431,7 +431,7 @@ tr.parametersDescription {
 .dt-paging > span > .dt-paging-button,
 .dt-paging > span > .ellipsis{
   padding: 2px 8px;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   cursor: pointer;
   background-color: #fff;
   transition-property: background-color;
@@ -456,7 +456,7 @@ tr.parametersDescription {
 .dt-paging .ui-button.ui-state-disabled,
 .dt-paging .dt-paging-button.disabled{
   cursor: default !important;
-  color: $rudder-txt-primary !important;
+  color: rudder.$txt-primary !important;
   background-color: #ffffff !important;
   opacity: .6;
 }
@@ -471,7 +471,7 @@ tr.parametersDescription {
   background-color: #fff;
   border-radius: 4px;
   color: #555;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   margin: 0 2px;
 }
 .dt-paging .fg-button {
@@ -487,7 +487,7 @@ tr.parametersDescription {
 
 .dataTable > tbody > tr > td.dataTables_empty,
 .dataTable > tbody > tr > td .empty{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   font-style: italic;
   padding: 10px 6px;
 }
@@ -515,7 +515,7 @@ tr.parametersDescription {
   padding-bottom: 2px;
 }
 #nodePropertiesTab .action-icon.text-success{
-  color: $rudder-success;
+  color: rudder.$success;
 }
 #nodePropertiesTab .action-icon.text-danger {
   color: #de4b39;
@@ -626,7 +626,7 @@ tr.parametersDescription {
   z-index: 0;
 }
 #nodePropertiesTab .value-container.show-more + span.toggle-icon:after {
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   content: "\f054";
   display: inline-block;
   font: normal normal normal 14px/1;
@@ -659,10 +659,10 @@ table.dataTable tr.dtrg-group td {
   border-top: 1px #bbb solid;
 }
 td.greyBackground, th.greyBackground {
-  background-color : $rudder-bg-light-gray;
+  background-color : rudder.$bg-light-gray;
 }
 .dataTable td a.text-danger{
-  color: $rudder-warning;
+  color: rudder.$warning;
   margin-left: 4px;
 }
 .dataTable td a.text-danger:hover{
@@ -687,7 +687,7 @@ td.greyBackground, th.greyBackground {
 #select-columns .form-inline-flex label.input-group > .input-group-text{
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 #select-columns .form-inline-flex > *:not(:first-child){
   margin-left : 15px;

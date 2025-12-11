@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 // GENERAL SETTINGS
 #settingsTabContent{
@@ -152,7 +152,7 @@ ul.wizard-timeline{
       color: #b4b9ca
     }
     &.activeSection > .timeline-item .item-title {
-      color: $rudder-txt-primary;
+      color: rudder.$txt-primary;
     }
     &.activeSection ~ li:last-child > .timeline-item .item-dot,
     &.activeSection ~ li > .timeline-connector:before{
@@ -295,7 +295,7 @@ ul.wizard-timeline{
           border-color: transparent;
 
           &:before{
-            border-color: $rudder-success !important;
+            border-color: rudder.$success !important;
           }
         }
 
@@ -324,7 +324,7 @@ ul.wizard-timeline{
     font-size: 16px;
 
     &.section-default{
-      color: $rudder-info;
+      color: rudder.$info;
 
       & > div{
         background-color: #dcf3ff;
@@ -339,7 +339,7 @@ ul.wizard-timeline{
       }
 
       i {
-        color: $rudder-success;
+        color: rudder.$success;
       }
     }
 

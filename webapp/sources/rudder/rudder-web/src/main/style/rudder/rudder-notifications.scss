@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .rudder-notification{
     position: fixed;
@@ -56,16 +56,16 @@
 
         .callout-fade{
             &.callout-success{
-              border-color: $rudder-success;
+              border-color: rudder.$success;
             }
             &.callout-info{
-              border-color: $rudder-info;
+              border-color: rudder.$info;
             }
             &.callout-warning{
-              border-color: $rudder-warning;
+              border-color: rudder.$warning;
             }
             &.callout-danger{
-              border-color: $rudder-danger;
+              border-color: rudder.$danger;
             }
             & > p{
               white-space: pre-line;

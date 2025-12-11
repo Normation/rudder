@@ -35,13 +35,13 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 @import "../../node_modules/bootstrap/scss/functions";
 @import "../../node_modules/bootstrap/scss/variables";
 @import "../../node_modules/bootstrap/scss/mixins";
 
-$navbar-hover-color : $rudder-bg-light-gray;
+$navbar-hover-color : rudder.$bg-light-gray;
 
 // VARIABLES
 $menu-width: 230px;
@@ -54,7 +54,7 @@ $menu-width: 230px;
 }
 .content-wrapper{
   transition: transform .3s ease-in-out,margin .3s ease-in-out;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   margin-left: $menu-width;
   min-height: 100%;
   z-index: 800;
@@ -104,7 +104,7 @@ $menu-width: 230px;
   height: 50px;
   border-radius: 0;
   background-color: #fff;
-  box-shadow: 4px 4px 10px $rudder-box-shadow-color;
+  box-shadow: 4px 4px 10px rudder.$box-shadow-color;
 }
 
 .modal-open {
@@ -117,7 +117,7 @@ $menu-width: 230px;
 .main-header .form-control::-moz-placeholder,
 .main-header .form-control::-webkit-input-placeholder,
 .main-header .form-control:-ms-input-placeholder {
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   opacity: 1
 }
 
@@ -155,7 +155,7 @@ $menu-width: 230px;
   padding: 0 15px;
   font-weight: 300;
   overflow: hidden;
-  background-color: $rudder-txt-primary;
+  background-color: rudder.$txt-primary;
   position: relative;
   z-index: 9999;
 }
@@ -246,7 +246,7 @@ header.main-header .logo-lg img{
   width: $menu-width;
   z-index: 810;
   transition: transform .3s ease-in-out,width .3s ease-in-out;
-  background-color: $rudder-txt-primary;
+  background-color: rudder.$txt-primary;
 }
 @media (max-width: 767px) {
   .main-sidebar {
@@ -556,10 +556,10 @@ header.main-header .logo-lg img{
     width: 100%;
     display: flex;
     padding: 0 26px;
-    color:$rudder-danger !important;
+    color:rudder.$danger !important;
 
     &:hover {
-      background-color: $rudder-danger !important;
+      background-color: rudder.$danger !important;
       color: #fff !important;
     }
   }
@@ -736,11 +736,11 @@ header.main-header .logo-lg img{
   }
 }
 .navbar .navbar-nav>li>a,.main-header .navbar .sidebar-toggle {
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
 }
 .main-header .navbar .sidebar-toggle:hover {
   background-color: $navbar-hover-color;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 @media (max-width: 767px) {
   .main-header .navbar .dropdown-menu li.divider {
@@ -754,7 +754,7 @@ header.main-header .logo-lg img{
   }
 }
 .main-header .logo:hover {
-  background-color: $rudder-gray-600
+  background-color: rudder.$gray-600
 }
 .main-header li.user-header {
   background-color: #f08004
@@ -768,11 +768,11 @@ header.main-header .logo-lg img{
 }
 .sidebar-menu>li.active>a, .sidebar-menu>li:hover>a {
   color: #fff;
-  background-color: $rudder-txt-primary;
-  border-left-color: $rudder-success
+  background-color: rudder.$txt-primary;
+  border-left-color: rudder.$success
 }
 .sidebar-menu>li.active>a>i, .sidebar-menu>li:hover>a>i {
-  color: $rudder-success
+  color: rudder.$success
 }
 .sidebar-menu>li>.treeview-menu {
   margin: 0;
@@ -822,9 +822,9 @@ header.main-header .logo-lg img{
 }
 .treeview-menu>li>a .fa {
   visibility:hidden;
-  color: $rudder-success;
+  color: rudder.$success;
   position:relative;
-  color: $rudder-success;
+  color: rudder.$success;
   left:-2px;
 }
 .treeview-menu>li>a.active .fa {
@@ -854,7 +854,7 @@ header.main-header .logo-lg img{
 
 .sidebar-menu>li.footer {
   color: #fff;
-  background: $rudder-txt-primary;
+  background: rudder.$txt-primary;
   margin-top: auto;
   animation: squeeze .3s ease-in-out forwards;
 }
@@ -915,7 +915,7 @@ header.main-header .logo-lg img{
     float: none;
     width: 280px;
     background-color: rgb(255, 255, 255);
-    border: 1px solid $rudder-border-color-default;
+    border: 1px solid rudder.$border-color-default;
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 4px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
@@ -937,11 +937,11 @@ header.main-header .logo-lg img{
 }
 .navbar .navbar-nav li.notifications-menu> a{
   height: 100%;
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
   text-decoration: none !important;
 }
 .navbar .navbar-nav li.notifications-menu> a:hover{
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 .navbar-nav li.dropdown {
   height: 50px;
@@ -952,7 +952,7 @@ header.main-header .logo-lg img{
   &:active .rudder-badge,
   &:visited .rudder-badge{
     background-color: #fff;
-    border-color: $rudder-border-color-default;
+    border-color: rudder.$border-color-default;
   }
 }
 
@@ -965,11 +965,11 @@ header.main-header .logo-lg img{
       background-color: $navbar-hover-color;
     }
     & > a {
-      color: $rudder-txt-light;
+      color: rudder.$txt-light;
       cursor: pointer;
 
       &:hover{
-        color: $rudder-txt-primary;
+        color: rudder.$txt-primary;
       }
     }
   }
@@ -986,20 +986,20 @@ header.main-header .logo-lg img{
 .main-header .navbar-nav .tasks-menu a > i,
 .main-header .navbar-nav .user-menu  a > span,
 #logout > i{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 
 .main-header .navbar-nav .tasks-menu a:hover > i,
 #logout:hover > i{
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
 }
 
 .notifications-menu .rudder-badge {
   position: relative;
   left: 7px;
   top: -2px;
-  background-color: $rudder-bg-gray;
-  border: 2px solid $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
+  border: 2px solid rudder.$bg-gray;
   color: rgb(34, 45, 50);
   border-radius:3px;
 }
@@ -1007,7 +1007,7 @@ header.main-header .logo-lg img{
   border-color: #fff;
 }
 .notifications-menu a:hover .rudder-badge::before {
-  border-right-color: $rudder-border-color-default;
+  border-right-color: rudder.$border-color-default;
 }
 .notifications-menu .rudder-badge::before {
   content: "";
@@ -1018,20 +1018,20 @@ header.main-header .logo-lg img{
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-right: 11px solid $rudder-bg-gray;
+  border-right: 11px solid rudder.$bg-gray;
   position: absolute;
 }
 
 .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa{
   width: 30px;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   opacity: 0.4;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa.text-succes{
   color: #3c763d;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa.text-danger{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
  .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa-flag-o, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .fa-flag-checkered{
   font-size: 16px;
@@ -1048,13 +1048,13 @@ header.main-header .logo-lg img{
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover.text-success,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:focus.text-success,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:visited.text-success{
-  color: $rudder-success !important;
+  color: rudder.$success !important;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a.text-danger,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover.text-danger,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:focus.text-danger,
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:visited.text-danger{
-  color: $rudder-danger !important;
+  color: rudder.$danger !important;
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li > a:hover {
   color: #444444 !important;
@@ -1064,7 +1064,7 @@ header.main-header .logo-lg img{
 }
 .navbar-nav .dropdown-menu > li > a .label {
   font-size: 90%;
-  background-color: $rudder-gray-500;
+  background-color: rudder.$gray-500;
   color: #fff;
   font-weight: bold;
   padding: 1px 6px;
@@ -1129,7 +1129,7 @@ header.main-header .logo-lg img{
 .navbar .navbar-nav li.notifications-menu.bg-error a:active #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-error a:focus  #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-error.open     #generation-status{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .navbar .navbar-nav li.notifications-menu.bg-error #generation-status > span:after{
   content: "\f00d";
@@ -1141,7 +1141,7 @@ header.main-header .logo-lg img{
 .navbar .navbar-nav li.notifications-menu.bg-ok a:active #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-ok a:focus  #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-ok.open     #generation-status{
-  color: $rudder-success;
+  color: rudder.$success;
 }
 .navbar .navbar-nav li.notifications-menu.bg-ok #generation-status > span:after{
   content: "\f00c";
@@ -1173,7 +1173,7 @@ header.main-header .logo-lg img{
 .navbar .navbar-nav li.notifications-menu.bg-refresh a:active #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-refresh a:focus  #generation-status,
 .navbar .navbar-nav li.notifications-menu.bg-refresh.open     #generation-status{
-  color: $rudder-txt-link;
+  color: rudder.$txt-link;
 }
 .navbar .navbar-nav li.notifications-menu.bg-refresh #generation-status > span:after{
   content: "\f021";
@@ -1181,7 +1181,7 @@ header.main-header .logo-lg img{
 }
 /* ---- */
 #generation-status.label-success{
-  background-color: $rudder-success !important;
+  background-color: rudder.$success !important;
 }
 .label-neutral{
   background-color: #ABACAC !important;
@@ -1219,7 +1219,7 @@ header.main-header .logo-lg img{
   padding: 3px;
 }
 .navbar .navbar-nav li.plugin-warning.critical > a > .fa:after{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 
 .navbar .navbar-nav li.plugin-warning + .tooltip > .tooltip-inner h4,
@@ -1228,13 +1228,13 @@ header.main-header .logo-lg img{
 }
 .navbar .navbar-nav li.plugin-warning.critical + .tooltip > .tooltip-inner h4,
 .tooltip > .tooltip-inner h4.critical {
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .plugin-icon.icon-info{
   color: #ef9601;
 }
 .plugin-icon.icon-info.critical{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 
 /* === HEALTCHECK NOTIFICATIONS === */
@@ -1252,10 +1252,10 @@ header.main-header .logo-lg img{
   background-color: #ef9601;
 }
 .critical-light-notif {
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }
 .critical-icon {
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .warning-icon {
   color: #ef9601;
@@ -1266,7 +1266,7 @@ header.main-header .logo-lg img{
 
 .icon-info{
   margin-left: 5px;
-  color: $rudder-info;
+  color: rudder.$info;
   cursor:help;
 }
 .sidebar-collapse .plugin-icon.icon-info{

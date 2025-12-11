@@ -36,7 +36,7 @@
 */
 
 // --- MODULES
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 @use 'sass:color';
 
 /* =====  GENERAL  ===== */
@@ -46,7 +46,7 @@
 }
 .deprecated-icon{
   font-size: .9em;
-  color: $rudder-warning !important;
+  color: rudder.$warning !important;
   opacity: 1 !important;
 }
 .filters-container .deprecated-icon{
@@ -87,13 +87,13 @@
   transition-duration: .2s;
 }
 .btn.btn-outline-success{
-  color: $rudder-success;
+  color: rudder.$success;
 }
 .btn.btn-outline-success:hover{
   background-color: #85b711;
 }
 .btn.btn-outline-primary{
-  color: $rudder-primary;
+  color: rudder.$primary;
   transition-property: background-color, color;
   transition-duration: .2s;
 }
@@ -109,7 +109,7 @@
   left: -250px !important;
 }
 .popover-content b{
-  color: $rudder-success;
+  color: rudder.$success;
 }
 .popover-content .deprecated-message{
   margin: 2px 0 4px 0;
@@ -127,12 +127,12 @@
   word-break: break-all
 }
 .popover .description + .deprecated-info{
-  border-top: 1px solid $rudder-border-color-default;
+  border-top: 1px solid rudder.$border-color-default;
   margin-top: 8px;
   padding-top: 6px;
 }
 .btn.btn-danger.btn-outline{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .btn.btn-danger.btn-outline:hover{
   background-color: #c9302c;
@@ -158,7 +158,7 @@ body > .container-fluid {
 }
 
 .label-checkbox{
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   cursor: pointer;
 }
 
@@ -201,10 +201,10 @@ body > .ng-toast {
 .dndPlaceholder{
   margin: 10px 0;
   padding: 15px;
-  border: 2px dashed $rudder-border-color-default;
+  border: 2px dashed rudder.$border-color-default;
   border-radius: 4px;
   height: 58px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 /* ===== TECHNIQUES ===== */
 .col-techniques label.btn{
@@ -220,33 +220,33 @@ body > .ng-toast {
 }
 .sidebar-body .empty{
   padding: 15px;
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   font-style: italic;
   color: #999;
   height: fit-content;
 }
 .techniques-list-container > ul > li {
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   transition-duration: .2s;
   display: flex;
 }
 .techniques-list-container > ul > li:hover ,
 .techniques-list-container > ul > li.active {
-  background-color: $rudder-bg-info;
+  background-color: rudder.$bg-info;
 }
 .techniques-list-container > ul > li.active > div.col,
 .techniques-list-container > ul > li:hover > div.col{
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 .techniques-list-container > ul > li > div.item{
   padding: 6px 8px;
-  border-left: 8px solid $rudder-border-color-default;
+  border-left: 8px solid rudder.$border-color-default;
   cursor: pointer;
   transition-duration: .2s;
   flex: 1;
 }
 .techniques-list-container > ul > li.active > div.item{
-  border-left-color: $rudder-primary;
+  border-left-color: rudder.$primary;
 }
 .techniques-list-container > ul > li > div.col-auto{
   padding: 6px 15px;
@@ -260,7 +260,7 @@ body > .ng-toast {
 }
 .techniques-list-container > ul > li > div.col-auto:hover {
   color: #fff;
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
 }
 .techniques-list-container > ul > li > div.col-auto:hover > i{
   opacity: 1;
@@ -298,7 +298,7 @@ ul.tabs-list{
 ul.tabs-list > li{
   padding: 6px 0px;
   position: relative;
-  color: $rudder-primary;
+  color: rudder.$primary;
   cursor: pointer;
   margin-right: 15px
 }
@@ -313,19 +313,19 @@ ul.tabs-list > li:before{
   transition-duration: .2s;
 }
 ul.tabs-list > li:hover:before{
-  background-color: $rudder-border-color-default;
+  background-color: rudder.$border-color-default;
 }
 ul.tabs-list > li.active{
-	color: $rudder-txt-primary;
+	color: rudder.$txt-primary;
 }
 ul.tabs-list > li.active:before{
-  background-color: $rudder-primary !important;
+  background-color: rudder.$primary !important;
 }
 ul.tabs-list > li > .badge{
   margin-left: 4px;
 
   &.has-foreach{
-    background-color: $rudder-primary !important;
+    background-color: rudder.$primary !important;
   }
 }
 ul.tabs-list > li > .badge.empty{
@@ -339,7 +339,7 @@ ul.tabs-list > li > .badge.empty{
 }
 
 #technique-editor .main-details h5{
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   padding: 0 15px 4px 15px;
   text-transform: uppercase;
   font-size: 1.2em;
@@ -363,7 +363,7 @@ ul.tabs-list > li > .badge.empty{
 }
 #technique-editor .main-details #methods{
   padding: 20px 15px 100px 15px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   flex: 1;
 }
 
@@ -375,7 +375,7 @@ ul.tabs-list > li > .badge.empty{
 }
 .no-methods:first-child:last-child{
   padding: 15px !important;
-  border: 2px dashed $rudder-border-color-default;
+  border: 2px dashed rudder.$border-color-default;
   border-radius: 4px;
   color: #0519258c;
   background-color: #f3f8ff;
@@ -403,20 +403,20 @@ $drop-zone-marker-height : 6px;
     position: absolute;
     width: 100%;
     height: $drop-zone-marker-height;
-    background-color: $rudder-border-color-default;
+    background-color: rudder.$border-color-default;
     opacity: .4;
     border-radius: 10px;
   }
   &.drop-target:before{
     opacity:1 !important;
     background-color: #1295C3;
-    box-shadow: 0 0px 12px $rudder-bg-info;
+    box-shadow: 0 0px 12px rudder.$bg-info;
   }
 }
 .drop-target.no-methods{
-  border-color: $rudder-txt-link !important;
+  border-color: rudder.$txt-link !important;
   opacity:1 !important;
-  box-shadow: 0 0px 12px $rudder-bg-info;
+  box-shadow: 0 0px 12px rudder.$bg-info;
 }
 
 .card-method.showMethodCall[hidden]{
@@ -438,7 +438,7 @@ $drop-zone-marker-height : 6px;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   margin: 0;
-  background-color: $rudder-black;
+  background-color: rudder.$black;
   padding-left : 0;
   padding-right: 0;
 }
@@ -493,11 +493,11 @@ $drop-zone-marker-height : 6px;
   background-image: none;
 }
 .filemanager-container table > tbody > tr.item-list:nth-child(odd) {
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 .filemanager-container table > tbody > tr.item-list:hover,
 .filemanager-container table.table-files .selected {
-  background-color: $rudder-bg-info !important;
+  background-color: rudder.$bg-info !important;
 }
 .filemanager-container .table-files .selected td,
 .filemanager-container .table-files .selected td a{
@@ -511,12 +511,12 @@ $drop-zone-marker-height : 6px;
 }
 .filemanager-container a,
 .filemanager-container .nav-sidebar>li.active>a{
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 
 .filemanager-container .file-tree .nav-sidebar>li.active>a i,
 .filemanager-container .file-tree .nav-sidebar>li>a:hover i{
-   color: $rudder-primary !important;
+   color: rudder.$primary !important;
 }
 
 .filemanager-container .toolbar {
@@ -548,9 +548,9 @@ $drop-zone-marker-height : 6px;
   border-bottom-left-radius: 0;
   background-color: #fff;
   border-color: #fff;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   box-shadow: none;
-  border-left-color: $rudder-border-color-default;
+  border-left-color: rudder.$border-color-default;
 }
 .upload-list .list-group li.list-group-item .btn:hover{
   color: #fff;
@@ -576,7 +576,7 @@ ul.files-list .form-control{
   box-shadow: none !important;
 }
 ul.files-list > li {
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   padding: 10px;
   padding-left: 14px;
   display: block;
@@ -601,8 +601,8 @@ ul.files-list.parameters > li > .param{
 
 ul.files-list.parameters > li > .param .input-group > label.input-group-text{
   border-left: none;
-  border-color: $rudder-border-color-default;
-  background: $rudder-bg-light-gray;
+  border-color: rudder.$border-color-default;
+  background: rudder.$bg-light-gray;
   cursor: pointer;
 }
 ul.files-list.parameters > li > .param > div.form-group {
@@ -616,7 +616,7 @@ ul.files-list.parameters > li > .param > div.form-group ~ div.form-group {
   padding-left:5px;
 }
 ul.files-list > li > .border{
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
   opacity: .6;
   position: absolute;
   top: -1px;
@@ -626,13 +626,13 @@ ul.files-list > li > .border{
   transition-duration: .2s;
 }
 ul.files-list > li.state-new > .border{
-  background-color: $rudder-success;
+  background-color: rudder.$success;
 }
 ul.files-list > li.state-modified > .border{
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
 }
 ul.files-list > li.state-deleted > .border{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }
 ul.files-list > li.state-new:before,
 ul.files-list > li.state-modified:before,
@@ -644,25 +644,25 @@ ul.files-list > li.state-deleted:before{
 }
 ul.files-list > li.state-new:before{
   content:"NEW";
-  color: $rudder-success;
+  color: rudder.$success;
 }
 ul.files-list > li.state-modified:before{
   content:"MODIFIED";
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 ul.files-list > li.state-deleted:before{
   content:"DELETED";
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 ul.files-list > li:hover > .border{
   opacity: 1;
 }
 ul.files-list > li > .target-remove:hover + .border{
-  background-color: $rudder-danger !important;
+  background-color: rudder.$danger !important;
 }
 .files-list > li.empty {
-  border-left: 4px solid $rudder-primary;
-  color: $rudder-txt-secondary;
+  border-left: 4px solid rudder.$primary;
+  color: rudder.$txt-secondary;
   font-style: italic;
   padding: 14px 10px !important;
   border-top-right-radius: 4px;
@@ -676,15 +676,15 @@ ul.files-list > li:last-of-type {
   border-bottom-right-radius: 4px;
 }
 ul.files-list > li > .fa{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   margin-right: 6px;
 }
 ul.files-list > li .icon-info{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   transition-duration: .2s;
 }
 ul.files-list > li:hover .icon-info{
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 ul.files-list > li > span.target-remove,
 ul.files-list > li > span.warning-sign{
@@ -696,18 +696,18 @@ ul.files-list > li > span.warning-sign{
   transition: .2s;
   background-color: #fff;
   color: #999;
-  border-left: 1px solid $rudder-border-color-default;
+  border-left: 1px solid rudder.$border-color-default;
   opacity: .6;
   cursor: pointer;
 }
 ul.files-list > li > span.warning-sign{
   color: #fff;
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
   opacity: 1;
   cursor: default;
 }
 ul.files-list > li > span.target-remove:hover{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
   color: #fff;
 }
 
@@ -727,7 +727,7 @@ ul.files-list > li .empty-name,
 ul.files-list > li .full-name{
   font-size: .8em;
   margin-top: 2px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   display: inline-block;
 }
 .tab-resources ul.files-list > li .use-with{
@@ -753,7 +753,7 @@ ul.files-list > li > .remove-item{
   display: flex;
   padding-right: 15px;
   padding-left: 15px;
-  border-left: 1px solid $rudder-border-color-default;
+  border-left: 1px solid rudder.$border-color-default;
   align-items: center;
   color: #f3a6a6;
   background-color: #fff;
@@ -765,7 +765,7 @@ ul.files-list > li > .remove-item{
 }
 ul.files-list > li > .remove-item:hover{
   color: #fff;
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }
 
 .resources-uncommitted {
@@ -774,32 +774,32 @@ ul.files-list > li > .remove-item:hover{
   text-align: center;
   margin-bottom: 20px;
   text-align: left;
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
 }
 .resources-uncommitted > span{
-  background-color: $rudder-bg-info;
+  background-color: rudder.$bg-info;
   padding: 10px;
   border-radius: 4px;
   display: block;
 }
 .resources-uncommitted .fas{
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 .btn-manage{
   margin-bottom: 20px;
 }
 
 .is-edited .method .edit-method {
-  color: $rudder-primary !important;
+  color: rudder.$primary !important;
 }
 .missingParameters .method .edit-method{
-  color: $rudder-warning !important;
+  color: rudder.$warning !important;
 }
 .errorParameters .method .edit-method {
   color: #c63d3a !important;
 }
 button.btn.clipboard {
-  border-color: $rudder-border-color-default !important;
+  border-color: rudder.$border-color-default !important;
   box-shadow: none !important;
   background: #fff;
   transition-duration: .2s;
@@ -836,7 +836,7 @@ button.btn.clipboard:hover {
 .method-info:not(.closed) .tabs > .block-child{
   margin: -15px -15px -10px -15px;
   padding: 20px 15px 10px 35px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 
 /* METHOD DETAILS */
@@ -859,7 +859,7 @@ button.btn.clipboard:hover {
   font-size: 12px;
 }
 .method-details .tabs-list{
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   margin: 10px 0px 15px 0px;
   width: 100% ;
 }
@@ -904,7 +904,7 @@ button.btn.clipboard:hover {
 }
 
 #methods-list-container::-webkit-scrollbar-thumb {
-    background: $rudder-gray-500;
+    background: rudder.$gray-500;
 }
 .generic-methods-container > ul,
 .generic-methods-container > div{
@@ -935,7 +935,7 @@ button.btn.clipboard:hover {
   background-color:#eee;
 }
 #categories-list::-webkit-scrollbar-thumb {
-    background: $rudder-gray-500;
+    background: rudder.$gray-500;
 }
 #categories-list > h4{
   padding: 4px 15px;
@@ -943,7 +943,7 @@ button.btn.clipboard:hover {
 #categories-list > li > a{
   display: block;
   padding: 6px 15px;
-  color: $rudder-primary;
+  color: rudder.$primary;
   text-decoration: none !important;
   cursor: pointer;
 }
@@ -951,7 +951,7 @@ button.btn.clipboard:hover {
   display: flex;
   justify-content: flex-end;
   padding: 10px 0;
-  border-top: 1px solid $rudder-border-color-default;
+  border-top: 1px solid rudder.$border-color-default;
 }
 .main-footer .btn{
   margin-right: 15px;
@@ -978,8 +978,8 @@ ul.list-unstyled > li{
 }
 #methods li.card-method{
   margin-bottom: 20px;
-  border: 1px solid rgba($rudder-border-color-default, .5);
-  border-bottom-color: $rudder-border-color-default;
+  border: 1px solid rgba(rudder.$border-color-default, .5);
+  border-bottom-color: rudder.$border-color-default;
 }
 #methods li.card-method:last-child{
   margin-bottom: 0;
@@ -996,7 +996,7 @@ ul.list-unstyled > li{
   max-height:100000px
 }
 .method-elmt {
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
 }
 ul li.hide-method {
   margin-bottom : 0px !important;
@@ -1052,8 +1052,8 @@ ul li.hide-method {
   align-items: baseline;
 }
 .method .cursorMove {
-  background-color: $rudder-bg-dark-gray;
-  color: $rudder-txt-light;
+  background-color: rudder.$bg-dark-gray;
+  color: rudder.$txt-light;
   padding: 0 10px;
   min-width: 38px;
   display: flex;
@@ -1126,7 +1126,7 @@ ul li.hide-method {
   bottom: 0;
   left: 0;
   width: 3px;
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
   z-index: 100;
 }
 .card-method.showMethodBlock .method .method-info .method-condition,
@@ -1157,7 +1157,7 @@ ul li.hide-method {
   flex: 1;
 }
 .method .method-name i{
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 .method .tooltip-icon{
   opacity: 0;
@@ -1168,7 +1168,7 @@ ul li.hide-method {
 }
 .method-param > label{
   display: inline-block;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   cursor: pointer;
   margin-right: 4px;
 }
@@ -1177,7 +1177,7 @@ ul li.hide-method {
 }
 .method-condition > label{
   display: inline-block;
-  color: $rudder-primary;
+  color: rudder.$primary;
   margin: 0 4px 0 0;
 }
 .method-info.closed .method-condition > label{
@@ -1201,8 +1201,8 @@ ul li.hide-method {
   position: relative;
   display: flex;
   align-items: center;
-  color: $rudder-primary;
-  border-left: 1px solid $rudder-border-color-default;
+  color: rudder.$primary;
+  border-left: 1px solid rudder.$border-color-default;
   cursor: pointer;
   padding: 10px;
 }
@@ -1220,7 +1220,7 @@ ul li.hide-method {
   left: -5px;
   opacity: 0;
   top: calc(50% - 5px);
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
   z-index: 999;
 }
 .method-details .btn.show-doc:before{
@@ -1232,7 +1232,7 @@ ul li.hide-method {
   opacity: 0;
   right: 0;
   top: calc(50% - 5px);
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
   z-index: 999;
   transition-duration: .2s;
   transition-property: background-color;
@@ -1242,7 +1242,7 @@ ul li.hide-method {
 }
 .method.doc-opened .show-doc,
 .active > .method > .edit-method{
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
   color: #fff !important;
 }
 .method.doc-opened .show-doc:before,
@@ -1272,7 +1272,7 @@ ul li.hide-method {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border: 1px solid #a7d0f1;
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
 }
 .method + .markdown{
   font-size: .9em;
@@ -1333,10 +1333,10 @@ ul li.hide-method {
 }
 .missingParameters .warn-param.warning {
   display: inline-flex;
-  background-color: $rudder-warning;
+  background-color: rudder.$warning;
 }
 .warn-param.error{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }
 .warn-param b {
   background-color: #00000055;
@@ -1356,13 +1356,13 @@ ul li.hide-method {
   background-color: #eceef1;
 }
 .result-class .result-success .input-group-text:first-child{
-  border-left-color: $rudder-success;
+  border-left-color: rudder.$success;
 }
 .result-class .result-repaired .input-group-text:first-child{
   border-left-color: #ffd715;
 }
 .result-class .result-error .input-group-text:first-child{
-  border-left-color: $rudder-danger;
+  border-left-color: rudder.$danger;
 }
 .result-class .clipboard{
   background-color: #e9ecef;
@@ -1375,11 +1375,11 @@ ul li.hide-method {
 .btn.toggle-diff{
   box-shadow: none !important;
   outline: none !important;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   min-width: 160px;
   margin-top: 20px;
   margin-bottom: 10px;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   text-align: left;
   position: relative;
   padding-right: 25px;
@@ -1388,8 +1388,8 @@ ul li.hide-method {
   background-color: #fff;
 }
 .btn.toggle-diff .badge{
-  background-color: $rudder-gray-400;
-  color: $rudder-txt-light;
+  background-color: rudder.$gray-400;
+  color: rudder.$txt-light;
   margin-left: 4px;
   border-radius: 20px;
   padding: 4px 10px;
@@ -1400,14 +1400,14 @@ ul li.hide-method {
   transition-duration: .2s;
 }
 .btn.toggle-diff:hover .badge{
-  background-color: $rudder-gray-400;
-  color: $rudder-txt-light;
+  background-color: rudder.$gray-400;
+  color: rudder.$txt-light;
 }
 .show-diff table{
-  border-left: 1px solid $rudder-border-color-default;
-  border-bottom: 1px solid $rudder-border-color-default;
-  border-right: 1px solid $rudder-border-color-default;
-  background-color: $rudder-bg-light-gray;
+  border-left: 1px solid rudder.$border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
+  border-right: 1px solid rudder.$border-color-default;
+  background-color: rudder.$bg-light-gray;
   border-radius: 4px;
   table-layout : fixed;
   width: 100%;
@@ -1419,10 +1419,10 @@ ul li.hide-method {
   word-break: break-all;
 }
 .show-diff table tbody > tr > td:nth-child(2) {
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .show-diff table tbody > tr > td:nth-child(3) {
-  color: $rudder-success;
+  color: rudder.$success;
 }
 
 /* LOADER */
@@ -1573,10 +1573,10 @@ ul li.hide-method {
     cursor: default;
 
     &.gm-foreach{
-      background-color: $rudder-primary !important;
+      background-color: rudder.$primary !important;
       opacity: 1;
       & > .counter{
-        background-color: color.scale($rudder-primary, $lightness: -20%);
+        background-color: color.scale(rudder.$primary, $lightness: -20%);
       }
     }
   }
@@ -1596,13 +1596,13 @@ ul li.hide-method {
 
 .gm-labels .gm-label.gm-label-name,
 .gm-labels .gm-label.gm-label-default{
-  color: $rudder-txt-primary;
-  background-color: $rudder-bg-dark-gray;
+  color: rudder.$txt-primary;
+  background-color: rudder.$bg-dark-gray;
 }
 
 
 .gm-labels .gm-label.gm-label-label {
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   background-color:#fff;
   font-weight:bold;
   padding: 0;
@@ -1612,7 +1612,7 @@ ul li.hide-method {
   right: 120px;
 }
 .gm-label-unknown-name {
-  background-color:$rudder-danger;
+  background-color:rudder.$danger;
   color: #ffffff;
 }
 .method-info .method-condition:not(.d-none) + .method-name .gm-label-name{
@@ -1640,15 +1640,15 @@ ul li.hide-method {
   width: 15px;
 }
 .fa-edit {
-  color: $rudder-txt-link;
+  color: rudder.$txt-link;
 }
 .error{
   animation: shake 0.2s ease-in-out 0s 2;
-  border-color: $rudder-danger !important;
+  border-color: rudder.$danger !important;
 }
 .form-select:focus.error{
    outline: 0;
-   box-shadow: 0 0 0 0.25rem rgba($rudder-danger, .2);
+   box-shadow: 0 0 0 0.25rem rgba(rudder.$danger, .2);
 }
 @keyframes shake {
   0% { margin-left: 0rem; }
@@ -1657,22 +1657,22 @@ ul li.hide-method {
   100% { margin-left: 0rem; }
 }
 .mandatory-param {
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .cursor-help {
   margin-left: 4px;
 }
 .unknown-gm-icon {
-  color:$rudder-danger;
+  color:rudder.$danger;
 }
 
 /* FOREACH TAB */
 .foreach-keys {
   & > span {
-    background-color: $rudder-bg-light-gray;
+    background-color: rudder.$bg-light-gray;
 
     .fa {
-      color: $rudder-txt-secondary;
+      color: rudder.$txt-secondary;
     }
   }
 }
@@ -1680,7 +1680,7 @@ ul li.hide-method {
   .table-foreach{
     width: fit-content;
     th{
-      background-color: $rudder-bg-light-gray;
+      background-color: rudder.$bg-light-gray;
       &:not(:last-child){
         min-width: 100px;
       }
@@ -1690,9 +1690,9 @@ ul li.hide-method {
       padding: 6px;
     }
     tr.item-foreach.new{
-      border-top: 2px solid $rudder-border-color-default !important;
+      border-top: 2px solid rudder.$border-color-default !important;
       td{
-        background-color: $rudder-bg-light-gray !important;
+        background-color: rudder.$bg-light-gray !important;
       }
     }
   }
@@ -1716,5 +1716,5 @@ pre.command-output{
 }
 
 .used {
-  color: $rudder-success !important;
+  color: rudder.$success !important;
 }
