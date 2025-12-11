@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
+import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
 import com.normation.rudder.*
@@ -60,6 +61,7 @@ import java.security.SecureRandom
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
+import scala.annotation.nowarn
 import scala.collection.immutable.SortedMap
 import scala.xml.Elem
 import scala.xml.transform.RewriteRule
@@ -419,7 +421,7 @@ trait UserDetailListProvider {
 }
 
 trait UserFileSecurityLevelMigration {
-  def file: UserFile
+  def userFile: UserFile
 
   /**
     * Migrates the provided file to the modern security level, but allow legacy hashes to subsist
@@ -461,7 +463,7 @@ object FileUserDetailListProvider {
 
 final class FileUserDetailListProvider(
     roleApiMapping:            RoleApiMapping,
-    override val file:         UserFile,
+    override val userFile:     UserFile,
     passwordEncoderDispatcher: PasswordEncoderDispatcher
 ) extends UserDetailListProvider with UserFileSecurityLevelMigration {
   import RudderPasswordEncoder.SecurityLevel.*
@@ -486,22 +488,26 @@ final class FileUserDetailListProvider(
   /**
    * Reload the list of users. Only update the cache if there is no errors.
    */
-  def reloadPure(): IOResult[ValidatedUserList] = {
-    for {
-      config <- UserFileProcessing.parseUsers(roleApiMapping, passwordEncoderDispatcher, file, reload = true)
-      _      <- cache.set(config)
-      cbs    <- callbacks.get
-      _      <- ZIO.foreach(cbs) { cb =>
-                  cb.exec(config)
-                    .catchAll(err => logger.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}"))
-                }
-    } yield {
-      config
-    }
+  @nowarn("msg=a type was inferred to be `Any`; this may indicate a programming error.")
+  def reloadPure(): ZIO[Scope, RudderError, ValidatedUserList] = {
+    ZIO
+      .service[Scope]
+      .flatMap(_.extend(for {
+        config <- UserFileProcessing.parseUsers(roleApiMapping, passwordEncoderDispatcher, userFile, reload = true)
+        _      <- cache.set(config)
+        cbs    <- callbacks.get
+        _      <- ZIO.foreach(cbs) { cb =>
+                    cb.exec(config)
+                      .catchAll(err => logger.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}"))
+                  }
+      } yield {
+        config
+      }))
   }
 
   def reload(): Unit = {
-    reloadPure().unit
+    UserManagementIO
+      .inUserFileSemaphore(reloadPure().unit)
       .catchAll(err => logger.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}"))
       .runNow
   }
@@ -518,7 +524,9 @@ final class FileUserDetailListProvider(
   // directly changes the file content !!
   private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
     // replace "hash" value and "unsafe-hashes" value
-    UserManagementIO.transformUserFile(sourceTargetFile, FileUserDetailListProvider.XmlMigrationRule(hash, unsafeHashes))
+    ZIO.scoped(
+      UserManagementIO.transformUserFile(sourceTargetFile, FileUserDetailListProvider.XmlMigrationRule(hash, unsafeHashes))
+    )
   }
 
 }
