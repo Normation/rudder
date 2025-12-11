@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use crate::{Engine, compute_diff_or_warning, get_python_version};
+use crate::{Engine, compute_diff_or_warning};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
@@ -60,22 +60,10 @@ impl Cli {
         }
 
         let value: Value = serde_json::from_str(&data)?;
-        let output = match cli.engine {
-            Engine::Mustache => Engine::mustache(Some(cli.template.as_path()), None, value)?,
-            Engine::Minijinja => Engine::minijinja(Some(cli.template.as_path()), None, value)?,
-            Engine::Jinja2 => {
-                let tmp = tempdir()?;
-                let temporary_dir = tmp.path();
-                let python_version = get_python_version()?;
-                Engine::jinja2(
-                    Some(cli.template.as_path()),
-                    None,
-                    value,
-                    temporary_dir,
-                    &python_version,
-                )?
-            }
-        };
+        let tmp = tempdir()?;
+        let temporary_dir = tmp.path();
+        let renderer = cli.engine.renderer(temporary_dir, None)?;
+        let output = renderer.render(Some(cli.template.as_path()), None, value)?;
 
         let already_present = cli.out.exists();
 
