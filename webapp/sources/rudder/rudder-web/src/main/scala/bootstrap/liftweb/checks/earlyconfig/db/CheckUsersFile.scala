@@ -45,6 +45,7 @@ import com.normation.rudder.users.UserFileProcessing
 import com.normation.rudder.users.UserFileSecurityLevelMigration
 import com.normation.rudder.users.UserManagementIO
 import com.normation.zio.UnsafeRun
+import zio.Duration
 import zio.ZIO
 
 class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends BootstrapChecks {
@@ -59,29 +60,31 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
   }
 
   def prog: IOResult[Unit] = {
-    // at startup we need to read the file that may need to be migrated
-    (for {
-      xml               <- UserFileProcessing.readUserFile(migration.file)
-      parsedHash        <- UserFileProcessing.parseXmlHash(xml)
-      parsedUnsafeHashes = UserFileProcessing.parseXmlUnsafeHashes(xml)
+    // at start-up we need to read the file that may need to be migrated
+    UserManagementIO
+      .inUserFileSemaphore(for {
+        xml               <- UserFileProcessing.readUserFile(migration.userFile)
+        parsedHash        <- UserFileProcessing.parseXmlHash(xml)
+        parsedUnsafeHashes = UserFileProcessing.parseXmlUnsafeHashes(xml)
 
-      // invalid hash also need to be renamed to modern one
-      securityLevel <- (parsedHash, parsedUnsafeHashes) match {
-                         case (Right(hash), Right(_)) =>
-                           allChecks(SecurityLevel.fromPasswordEncoderType(hash))
+        // invalid hash also need to be renamed to modern one
+        securityLevel <- (parsedHash, parsedUnsafeHashes) match {
+                           case (Right(hash), Right(_)) =>
+                             allChecks(SecurityLevel.fromPasswordEncoderType(hash))
 
-                         case (Left(unknownValue), _) =>
-                           BootstrapLogger.Early.DB.warn(
-                             s"Error when reading users file hash in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
-                           ) *>
-                           migration.enforceModern(userFile)
-                         case (_, Left(unknownValue)) =>
-                           BootstrapLogger.Early.DB.warn(
-                             s"Error when reading users file unsafe-hashes in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
-                           ) *>
-                           migration.enforceModern(userFile)
-                       }
-    } yield {})
+                           case (Left(unknownValue), _) =>
+                             BootstrapLogger.Early.DB.warn(
+                               s"Error when reading users file hash in ${migration.userFile.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
+                             ) *>
+                             migration.enforceModern(userFile)
+                           case (_, Left(unknownValue)) =>
+                             BootstrapLogger.Early.DB.warn(
+                               s"Error when reading users file unsafe-hashes in ${migration.userFile.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
+                             ) *>
+                             migration.enforceModern(userFile)
+                         }
+      } yield {})
+      .timeoutFail(Unexpected("User file semaphore timeout (migration)"))(Duration.fromMillis(1000))
   }
 
   def allChecks(currentSecurityLevel: SecurityLevel): IOResult[Unit] = {
@@ -93,5 +96,5 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
     } yield {}
   }
 
-  private def userFile = UserManagementIO.getUserFilePath(migration.file)
+  private def userFile = UserManagementIO.getUserFilePath(migration.userFile)
 }

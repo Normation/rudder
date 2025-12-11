@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
+import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.Unexpected
 import com.normation.rudder.*
@@ -419,7 +420,7 @@ trait UserDetailListProvider {
 }
 
 trait UserFileSecurityLevelMigration {
-  def file: UserFile
+  def userFile: UserFile
 
   /**
     * Migrates the provided file to the modern security level, but allow legacy hashes to subsist
@@ -461,7 +462,7 @@ object FileUserDetailListProvider {
 
 final class FileUserDetailListProvider(
     roleApiMapping:            RoleApiMapping,
-    override val file:         UserFile,
+    override val userFile:     UserFile,
     passwordEncoderDispatcher: PasswordEncoderDispatcher
 ) extends UserDetailListProvider with UserFileSecurityLevelMigration {
   import RudderPasswordEncoder.SecurityLevel.*
@@ -486,10 +487,11 @@ final class FileUserDetailListProvider(
   /**
    * Reload the list of users. Only update the cache if there is no errors.
    */
-  def reloadPure(): IOResult[ValidatedUserList] = {
-    for {
-      config <- UserFileProcessing.parseUsers(roleApiMapping, passwordEncoderDispatcher, file, reload = true)
-      _      <- cache.set(config)
+  def reloadPure(): ZIO[Scope, RudderError, ValidatedUserList] = {
+    (for {
+      config <- UserFileProcessing.parseUsers(roleApiMapping, passwordEncoderDispatcher, userFile, reload = true)
+      scope  <- ZIO.scope
+      _      <- scope.addFinalizer(cache.set(config))
       cbs    <- callbacks.get
       _      <- ZIO.foreach(cbs) { cb =>
                   cb.exec(config)
@@ -497,11 +499,12 @@ final class FileUserDetailListProvider(
                 }
     } yield {
       config
-    }
+    })
   }
 
   def reload(): Unit = {
-    reloadPure().unit
+    UserManagementIO
+      .inUserFileSemaphore(reloadPure().unit)
       .catchAll(err => logger.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}"))
       .runNow
   }
@@ -518,7 +521,9 @@ final class FileUserDetailListProvider(
   // directly changes the file content !!
   private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
     // replace "hash" value and "unsafe-hashes" value
-    UserManagementIO.transformUserFile(sourceTargetFile, FileUserDetailListProvider.XmlMigrationRule(hash, unsafeHashes))
+    ZIO.scoped(
+      UserManagementIO.transformUserFile(sourceTargetFile, FileUserDetailListProvider.XmlMigrationRule(hash, unsafeHashes))
+    )
   }
 
 }
@@ -567,21 +572,25 @@ object UserFileProcessing {
     }
   }
 
-  def readUserFile(resource: UserFile): IOResult[Elem] = {
-    IOResult.attempt {
-      XmlSafe.load(resource.inputStream())
-    }.mapError {
-      // map a SAXParseException to a technical butmore user-friendly but error message
-      case s @ SystemError(_, e: SAXParseException) =>
-        s.copy(
-          msg = s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
-              .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})"
-        )
-      case s                                        =>
-        s.copy(
-          msg =
-            "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted."
-        )
+  def readUserFile(resource: UserFile): ZIO[Scope, SystemError, Elem] = {
+    val ar = ZIO.acquireRelease(IOResult.attempt(resource.inputStream()))(is => is.close().succeed)
+
+    ar.flatMap { is =>
+      IOResult.attempt {
+        XmlSafe.load(is)
+      }.mapError {
+        // map a SAXParseException to a technical but more user-friendly but error message
+        case s @ SystemError(_, e: SAXParseException) =>
+          s.copy(
+            msg = s"User definitions: XML in file /opt/rudder/etc/rudder-users.xml is incorrect, error message is: ${e
+                .getMessage()} (line ${e.getLineNumber()}, column ${e.getColumnNumber()})"
+          )
+        case s                                        =>
+          s.copy(
+            msg =
+              "User definitions: An error occurred while parsing /opt/rudder/etc/rudder-users.xml. Logging in to the Rudder web interface will not be possible until this is fixed and the application restarted."
+          )
+      }
     }
   }
 
@@ -590,8 +599,7 @@ object UserFileProcessing {
       passwordEncoderDispatcher: PasswordEncoderDispatcher,
       resource:                  UserFile,
       reload:                    Boolean
-  ): IOResult[ValidatedUserList] = {
-
+  ): ZIO[Scope, RudderError, ValidatedUserList] = {
     for {
       xml <- readUserFile(resource)
       res <- parseXml(roleApiMapping, passwordEncoderDispatcher, xml, resource.name, reload)
