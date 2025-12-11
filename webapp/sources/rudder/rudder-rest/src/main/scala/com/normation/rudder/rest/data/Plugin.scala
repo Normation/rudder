@@ -44,7 +44,7 @@ import enumeratum.Enum
 import enumeratum.EnumEntry.*
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
-import java.time.ZonedDateTime
+import java.time.Instant
 import zio.*
 import zio.json.*
 
@@ -56,8 +56,8 @@ final case class JsonPluginLicense(
     softwareId:     String,
     minVersion:     String,
     maxVersion:     String,
-    startDate:      ZonedDateTime,
-    endDate:        ZonedDateTime,
+    startDate:      Instant,
+    endDate:        Instant,
     maxNodes:       Option[Int],
     additionalInfo: Map[String, String]
 )
@@ -91,17 +91,17 @@ object JsonPluginsDetails {
   */
 final case class JsonGlobalPluginLimits(
     licensees: Option[NonEmptyChunk[String]],
-    startDate: Option[ZonedDateTime],
-    endDate:   Option[ZonedDateTime],
+    startDate: Option[Instant],
+    endDate:   Option[Instant],
     maxNodes:  Option[Int]
 )
 
 object JsonGlobalPluginLimits {
-  import DateFormaterService.json.encoderZonedDateTime
+  import DateFormaterService.json.encoderInstant
 
-  implicit val encoder:     JsonEncoder[JsonGlobalPluginLimits]                                      = DeriveJsonEncoder.gen
-  implicit val transformer: Transformer[GlobalPluginsLicense[ZonedDateTime], JsonGlobalPluginLimits] =
-    Transformer.derive[GlobalPluginsLicense[ZonedDateTime], JsonGlobalPluginLimits]
+  implicit val encoder:     JsonEncoder[JsonGlobalPluginLimits]                                = DeriveJsonEncoder.gen
+  implicit val transformer: Transformer[GlobalPluginsLicense[Instant], JsonGlobalPluginLimits] =
+    Transformer.derive[GlobalPluginsLicense[Instant], JsonGlobalPluginLimits]
 }
 
 /**
@@ -145,7 +145,7 @@ object JsonPluginsSystemDetails {
   */
 final case class JsonPluginsLicense(
     licensees: Option[NonEmptyChunk[String]],
-    startDate: Option[ZonedDateTime],
+    startDate: Option[Instant],
     endDates:  Option[GlobalPluginsLicense.DateCounts],
     maxNodes:  Option[Int]
 )
@@ -153,8 +153,8 @@ object JsonPluginsLicense {
 
   import com.normation.plugins.GlobalPluginsLicense.*
 
-  implicit val dateFieldEncoder: JsonFieldEncoder[ZonedDateTime] =
-    JsonFieldEncoder[String].contramap(DateFormaterService.serializeZDT)
+  implicit val dateFieldEncoder: JsonFieldEncoder[Instant] =
+    JsonFieldEncoder[String].contramap(DateFormaterService.serializeInstant)
 
   implicit val dateCountEncoder:  JsonEncoder[DateCount]          = DeriveJsonEncoder.gen[DateCount]
   implicit val dateCountsEncoder: JsonEncoder[DateCounts]         = JsonEncoder[Chunk[DateCount]].contramap(m => Chunk.from(m.values))

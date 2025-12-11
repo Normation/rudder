@@ -41,7 +41,7 @@ import cats.Semigroup
 import com.normation.utils.DateFormaterService
 import com.normation.utils.Version
 import io.scalaland.chimney.Transformer
-import java.time.ZonedDateTime
+import java.time.Instant
 import zio.Chunk
 import zio.NonEmptyChunk
 import zio.json.*
@@ -106,8 +106,8 @@ final case class PluginLicense(
     softwareId: SoftwareId,
     minVersion: MinVersion,
     maxVersion: MaxVersion,
-    startDate:  ZonedDateTime,
-    endDate:    ZonedDateTime,
+    startDate:  Instant,
+    endDate:    Instant,
     maxNodes:   MaxNodes,
     others:     Map[String, String]
 ) {
@@ -188,7 +188,7 @@ object PluginsMetadata {
 sealed abstract class GlobalPluginsLicense[EndDate](
     val licensees: Option[NonEmptyChunk[String]],
     // for now, min/max version is not used and is always 00-99
-    val startDate: Option[ZonedDateTime],
+    val startDate: Option[Instant],
     val endDate:   Option[EndDate],
     val maxNodes:  Option[Int]
 ) {
@@ -224,32 +224,32 @@ sealed abstract class GlobalPluginsLicense[EndDate](
 object GlobalPluginsLicense {
 
   /**
-    * Typeclass for proving that a type can be constructed from a Java ZonedDateTime.
+    * Typeclass for proving that a type can be constructed from a Java Instant.
     * This should be a functor to allow building wrapping datastructures but is limited to supported ones for now.
     */
   sealed private[plugins] trait ToEndDate[T] {
-    def fromZonedDateTime(date: ZonedDateTime): T
+    def fromInstant(date: Instant): T
   }
   private[plugins] object ToEndDate          {
     def apply[T](implicit ev: ToEndDate[T]) = ev
 
-    implicit val id: ToEndDate[ZonedDateTime] = new ToEndDate[ZonedDateTime] {
-      def fromZonedDateTime(date: ZonedDateTime): ZonedDateTime = date
+    implicit val id: ToEndDate[Instant] = new ToEndDate[Instant] {
+      def fromInstant(date: Instant): Instant = date
     }
 
     implicit val dateCounts: ToEndDate[DateCounts] = new ToEndDate[DateCounts] {
-      override def fromZonedDateTime(date: ZonedDateTime): DateCounts = DateCounts.one(date)
+      override def fromInstant(date: Instant): DateCounts = DateCounts.one(date)
     }
   }
 
-  final case class DateCount(date: ZonedDateTime, count: Int)
+  final case class DateCount(date: Instant, count: Int)
   // Dedicated structure for counts by date. Encoded as json list but using a Map for unicity when grouping by date (could be an opaque type)
-  final case class DateCounts(value: Map[ZonedDateTime, DateCount]) {
+  final case class DateCounts(value: Map[Instant, DateCount]) {
     def values: Iterable[DateCount] = value.values
   }
-  object DateCounts                                                 {
+  object DateCounts                                           {
     // single date count is has a count of 1, upon aggregation counts will be added
-    def one(date: ZonedDateTime): DateCounts = DateCounts(Map(date -> DateCount(date, 1)))
+    def one(date: Instant): DateCounts = DateCounts(Map(date -> DateCount(date, 1)))
 
     implicit object semigroup extends Semigroup[DateCounts] {
       override def combine(a: DateCounts, b: DateCounts): DateCounts = {
@@ -263,14 +263,14 @@ object GlobalPluginsLicense {
   // Instances for aggregating plugin licenses : end date has specific combination logic needing public typeclass instances
   object EndDateImplicits {
     // this instance is specifically to take the mininum of dates, for end date
-    implicit val minZonedDateTime: Semigroup[ZonedDateTime] = Semigroup.instance((x, y) => if (x.isBefore(y)) x else y)
+    implicit val minInstant: Semigroup[Instant] = Semigroup.instance((x, y) => if (x.isBefore(y)) x else y)
   }
 
   def fromLicense[T: ToEndDate](info: PluginLicense): GlobalPluginsLicense[T] = {
     new GlobalPluginsLicense[T](
       Some(NonEmptyChunk(info.licensee.value)),
       Some(info.startDate),
-      Some(ToEndDate[T].fromZonedDateTime(info.endDate)),
+      Some(ToEndDate[T].fromInstant(info.endDate)),
       info.maxNodes.value
     ) {}
   }
@@ -295,12 +295,12 @@ object GlobalPluginsLicense {
   */
 final case class GlobalPluginsLicenseLimits(
     override val licensees: Option[NonEmptyChunk[String]],
-    override val startDate: Option[ZonedDateTime],
-    override val endDate:   Option[ZonedDateTime],
+    override val startDate: Option[Instant],
+    override val endDate:   Option[Instant],
     override val maxNodes:  Option[Int]
-) extends GlobalPluginsLicense[ZonedDateTime](licensees, startDate, endDate, maxNodes)
+) extends GlobalPluginsLicense[Instant](licensees, startDate, endDate, maxNodes)
 object GlobalPluginsLicenseLimits {
-  def from(base: GlobalPluginsLicense[ZonedDateTime]): GlobalPluginsLicenseLimits = {
+  def from(base: GlobalPluginsLicense[Instant]): GlobalPluginsLicenseLimits = {
     import base.*
     GlobalPluginsLicenseLimits(licensees, startDate, endDate, maxNodes)
   }
@@ -312,7 +312,7 @@ object GlobalPluginsLicenseLimits {
   */
 final case class GlobalPluginsLicenseCounts(
     override val licensees: Option[NonEmptyChunk[String]],
-    override val startDate: Option[ZonedDateTime],
+    override val startDate: Option[Instant],
     override val endDate:   Option[GlobalPluginsLicense.DateCounts],
     override val maxNodes:  Option[Int]
 ) extends GlobalPluginsLicense[GlobalPluginsLicense.DateCounts](licensees, startDate, endDate, maxNodes)

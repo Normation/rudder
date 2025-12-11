@@ -71,6 +71,7 @@ import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import net.liftweb.http.*
@@ -467,7 +468,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private def showVersions(
       activeTechnique: FullActiveTechnique,
-      validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]
+      validTechniques: Seq[(TechniqueVersion, Technique, Instant)]
   )(implicit qc: QueryContext): NodeSeq = {
 
     val techniqueVersionInfo    = validTechniques.map {

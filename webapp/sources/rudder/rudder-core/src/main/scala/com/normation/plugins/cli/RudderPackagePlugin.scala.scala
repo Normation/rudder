@@ -45,7 +45,7 @@ import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
-import java.time.ZonedDateTime
+import java.time.Instant
 import zio.*
 import zio.json.*
 
@@ -66,11 +66,11 @@ object RudderPackagePlugin {
   // License representation is limited to these fields in rudder package
   @jsonMemberNames(SnakeCase)
   final case class LicenseInfo(
-      startDate: ZonedDateTime,
-      endDate:   ZonedDateTime
+      startDate: Instant,
+      endDate:   Instant
   )
   object LicenseInfo {
-    import DateFormaterService.json.decoderZonedDateTime
+    import DateFormaterService.json.decoderInstant
     implicit val decoder: JsonDecoder[LicenseInfo] = DeriveJsonDecoder.gen[LicenseInfo]
 
     /**

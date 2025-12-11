@@ -37,11 +37,10 @@
 
 package com.normation.inventory.domain
 
-import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.javatimeRfcDateformat
 import java.net.InetAddress
 import java.time.Instant
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.ISODateTimeFormat
+import java.time.OffsetDateTime
 import zio.json.*
 
 /*
@@ -63,8 +62,6 @@ import zio.json.*
  */
 
 object JsonSerializers {
-  val softwareUpdateDateTimeFormat: DateTimeFormatter = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC()
-
   // We need another JSON data tree for older versions where some JSON are serialized in humanized form
   object implicits {
     export com.normation.inventory.domain.InventoryJsonDecoders.*
@@ -76,7 +73,7 @@ object JsonSerializers {
   // the update date is normalized in RFC3339, UTC, no millis
   def parseSoftwareUpdateInstant(d: String): Either[String, Instant] = {
     try {
-      Right(DateFormaterService.toInstant(JsonSerializers.softwareUpdateDateTimeFormat.parseDateTime(d)))
+      Right(OffsetDateTime.parse(d, javatimeRfcDateformat).toInstant)
     } catch {
       case e: IllegalArgumentException =>
         Left(s"Error when parsing date '${d}', we expect an RFC3339, UTC no millis format. Error: ${e.getMessage}")

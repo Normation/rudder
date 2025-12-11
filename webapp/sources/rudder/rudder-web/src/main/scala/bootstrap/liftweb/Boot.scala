@@ -79,6 +79,7 @@ import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
 import java.net.URI
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.Locale
 import net.liftweb.common.*
@@ -248,9 +249,9 @@ object PluginsInfo {
 
   def plugins: Map[PluginName, RudderPluginDef] = _plugins
 
-  def pluginInfos: PluginsMetadata[ZonedDateTime] = {
+  def pluginInfos: PluginsMetadata[Instant] = {
     import com.normation.plugins.GlobalPluginsLicense.EndDateImplicits.*
-    PluginsMetadata.fromPlugins[ZonedDateTime](_plugins.values.toList.sortBy(_.name.value).map(_.transformInto[Plugin]))
+    PluginsMetadata.fromPlugins[Instant](_plugins.values.toList.sortBy(_.name.value).map(_.transformInto[Plugin]))
   }
 
   // plugins details for the public plugins API with a different mapping, more oriented towards API consumers

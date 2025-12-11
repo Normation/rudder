@@ -76,6 +76,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import org.apache.commons.text.StringEscapeUtils
@@ -366,9 +367,6 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
 
 class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation {
 
-  // we expect acceptation date to be in ISO-8601 format
-  private val dateFormatter = ISODateTimeFormat.dateTime
-
   def unserialise(entry: XNode): Box[ActiveTechnique] = {
     for {
       activeTechnique  <- {
@@ -402,7 +400,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                               ptVersion       <- TechniqueVersion
                                                    .parse(ptVersionName)
                                                    .toBox ?~! s"Error when trying to parse '${ptVersionName}' as a technique version."
-                              acceptationDate <- tryo(dateFormatter.parseDateTime(version.text))
+                              acceptationDate <- tryo(Instant.parse(version.text))
                             } yield {
                               (ptVersion, acceptationDate)
                             }

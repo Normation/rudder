@@ -42,7 +42,9 @@ import com.normation.utils.ParseVersion
 import com.normation.utils.PartType
 import enumeratum.*
 import enumeratum.EnumEntry.*
+import java.time.Instant
 import java.time.ZonedDateTime
+import java.time.ZoneId
 
 /**
  * An error enumeration to identify plugin management errors and the associated messages
@@ -127,13 +129,14 @@ object PluginError       {
   /**
    * license near expiration : 1 month before now.
    */
-  private def validateLicenseExpiration(endDate: ZonedDateTime): Option[LicenseExpirationError] = {
-    val now = ZonedDateTime.now()
-    if (endDate.isBefore(now)) {
-      Some(LicenseExpiredError(endDate))
-    } else if (endDate.minusMonths(1).isBefore(now)) {
-      val daysLeft = java.time.Duration.between(now, endDate).toDays.toInt
-      Some(LicenseNearExpirationError(daysLeft, endDate))
+  private def validateLicenseExpiration(endDate: Instant): Option[LicenseExpirationError] = {
+    val endZonedDateTime = endDate.atZone(ZoneId.systemDefault()) // we do datetime computation in the server zone
+    val now              = ZonedDateTime.now()
+    if (endZonedDateTime.isBefore(now)) {
+      Some(LicenseExpiredError(endZonedDateTime))
+    } else if (endZonedDateTime.minusMonths(1).isBefore(now)) {
+      val daysLeft = java.time.Duration.between(now, endZonedDateTime).toDays.toInt
+      Some(LicenseNearExpirationError(daysLeft, endZonedDateTime))
     } else {
       None
     }

@@ -56,8 +56,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.zio.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.Instant
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -171,7 +170,7 @@ class RuleValServiceTest extends Specification {
     FullActiveTechnique(
       ActiveTechniqueId("activeTechId"),
       techniqueId.name,
-      acceptationDatetimes = SortedMap((techniqueId.version, new DateTime(DateTimeZone.UTC))),
+      acceptationDatetimes = SortedMap((techniqueId.version, Instant.now)),
       techniques = SortedMap((techniqueId.version, technique)),
       directives = List(directive),
       isEnabled = true,

@@ -70,8 +70,8 @@ class PluginErrorTest extends Specification {
           requiresLicense = false,
           license = Some(
             RudderPackagePlugin.LicenseInfo(
-              ZonedDateTime.now().minusMonths(2),
-              expiration
+              ZonedDateTime.now().minusMonths(2).toInstant,
+              expiration.toInstant
             )
           )
         )
@@ -91,8 +91,8 @@ class PluginErrorTest extends Specification {
           requiresLicense = false,
           license = Some(
             RudderPackagePlugin.LicenseInfo(
-              now.minusMonths(2),
-              expiration
+              now.minusMonths(2).toInstant,
+              expiration.toInstant
             )
           )
         )

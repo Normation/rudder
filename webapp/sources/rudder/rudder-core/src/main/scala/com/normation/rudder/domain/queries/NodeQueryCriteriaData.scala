@@ -63,9 +63,8 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.utils.DateFormaterService
+import java.time.Instant
 import java.time.LocalDate
-import java.time.ZonedDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.function.Predicate
@@ -265,7 +264,7 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, insta
               _.lastInventoryDate.toChunk.map(DateFormaterService.toLocalDate),
               NodeCriterionMatcherDate(_)
             )(
-              _.lastInventoryDate.toChunk.map(ZonedDateTime.ofInstant(_, ZoneId.of("UTC"))),
+              _.lastInventoryDate.toChunk,
               NodeCriterionMatcherDateTime(_)
             )
         ),
@@ -737,23 +736,23 @@ private object NodeCriterionMatcherDate {
 }
 
 /**
- * Comparator on exact datetime, except for the millis (since we don't need to compare on millis, which are not even parsed).
- * We don't process further for reliability, so DateTime comparison should be mostly useful for >, >=, < and <=.
+ * Comparator on exact instant, except for the millis (since we don't need to compare on millis, which are not even parsed).
+ * We don't process further for reliability, so Instant comparison should be mostly useful for >, >=, < and <=.
  */
-final case class NodeCriterionMatcherDateTime(private val extractorNode: CoreNodeFact => Chunk[ZonedDateTime])
-    extends NodeCriterionOrderedValueMatcher[ZonedDateTime] {
-  import NodeCriterionMatcherDateTime.*
+final case class NodeCriterionMatcherDateTime(private val extractorNode: CoreNodeFact => Chunk[Instant])
+    extends NodeCriterionOrderedValueMatcher[Instant] {
+  import NodeCriterionMatcherInstant.*
 
-  override def extractor:            CoreNodeFact => Chunk[ZonedDateTime] =
+  override def extractor:            CoreNodeFact => Chunk[Instant] =
     (n: CoreNodeFact) => extractorNode(n).map(_.truncatedTo(ChronoUnit.SECONDS))
-  override def parse(value: String): Option[ZonedDateTime]                = {
-    parseDateTime(value).map(_.truncatedTo(ChronoUnit.SECONDS))
+  override def parse(value: String): Option[Instant]                = {
+    parseInstant(value).map(_.truncatedTo(ChronoUnit.SECONDS))
   }
-  override def serialise(a: ZonedDateTime): String = DateFormaterService.serializeZDT(a)
-  val order: Ordering[ZonedDateTime] = Ordering.by(_.toInstant.toEpochMilli)
+  override def serialise(a: Instant): String = DateFormaterService.serializeInstant(a)
+  val order: Ordering[Instant] = Ordering.by(_.toEpochMilli)
 }
-private object NodeCriterionMatcherDateTime                 {
-  val parseDateTime: String => Option[ZonedDateTime] = (s: String) => DateFormaterService.parseDateZDT(s).toOption
+private object NodeCriterionMatcherInstant            {
+  val parseInstant: String => Option[Instant] = (s: String) => DateFormaterService.parseInstant(s).toOption
 }
 
 /*

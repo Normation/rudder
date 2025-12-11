@@ -91,6 +91,7 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.zio.*
 import java.io.File as JFile
 import java.io.InputStream
+import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
@@ -265,7 +266,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     ): IOResult[ActiveTechniqueId] = ???
     def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
+        datetimes: Map[TechniqueVersion, Instant],
         modId:     ModificationId,
         actor:     EventActor,
         reason:    Option[String]

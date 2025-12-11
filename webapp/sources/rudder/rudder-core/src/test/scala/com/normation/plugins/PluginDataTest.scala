@@ -1,6 +1,6 @@
 package com.normation.plugins
 
-import java.time.ZonedDateTime
+import java.time.Instant
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -40,8 +40,8 @@ class PluginDataTest extends Specification {
 
   "GlobalPluginLicense" should {
     "aggregate plugins license" in {
-      val startDate = ZonedDateTime.parse("2025-02-05T18:40:00+01:00")
-      val endDate   = startDate.plusMonths(2)
+      val startDate = Instant.parse("2025-02-05T17:40:00")
+      val endDate   = Instant.parse("2025-02-05T19:40:00")
       val license   = {
         PluginLicense(
           Licensee("test"),
@@ -56,11 +56,11 @@ class PluginDataTest extends Specification {
       }
 
       "with maximum start date and minimum end date" in {
-        import GlobalPluginsLicense.EndDateImplicits.minZonedDateTime
-        val maxStart = startDate.plusDays(1)
-        val minEnd   = endDate.minusDays(1)
-        val a        = GlobalPluginsLicense.fromLicense[ZonedDateTime](license)
-        val b        = GlobalPluginsLicense.fromLicense[ZonedDateTime](license.copy(startDate = maxStart, endDate = minEnd))
+        import GlobalPluginsLicense.EndDateImplicits.minInstant
+        val maxStart = Instant.parse("2025-02-06T17:40:00")
+        val minEnd   = Instant.parse("2025-02-04T19:40:00")
+        val a        = GlobalPluginsLicense.fromLicense[Instant](license)
+        val b        = GlobalPluginsLicense.fromLicense[Instant](license.copy(startDate = maxStart, endDate = minEnd))
 
         val combined = a.combine(b)
         combined.startDate must beSome(maxStart)
@@ -85,16 +85,16 @@ class PluginDataTest extends Specification {
       }
 
       "from multiple licenses with some empty optional fields" in {
-        import GlobalPluginsLicense.EndDateImplicits.minZonedDateTime
+        import GlobalPluginsLicense.EndDateImplicits.minInstant
         // only the max nodes can be empty
-        val opt = GlobalPluginsLicense.from[ZonedDateTime](Chunk(license, license))
+        val opt = GlobalPluginsLicense.from[Instant](Chunk(license, license))
 
-        opt must beSome(beLike[GlobalPluginsLicense[ZonedDateTime]](_.maxNodes must beNone))
+        opt must beSome(beLike[GlobalPluginsLicense[Instant]](_.maxNodes must beNone))
       }
 
       "from no license" in {
-        import GlobalPluginsLicense.EndDateImplicits.minZonedDateTime
-        val opt = GlobalPluginsLicense.from[ZonedDateTime](Chunk.empty)
+        import GlobalPluginsLicense.EndDateImplicits.minInstant
+        val opt = GlobalPluginsLicense.from[Instant](Chunk.empty)
 
         opt must beNone
       }

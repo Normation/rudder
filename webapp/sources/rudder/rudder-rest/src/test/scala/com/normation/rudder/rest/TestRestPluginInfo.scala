@@ -51,7 +51,7 @@ import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.PluginApi
 import com.normation.zio.UnsafeRun
-import java.time.ZonedDateTime
+import java.time.Instant
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.mocks.MockHttpServletRequest
@@ -85,8 +85,8 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
     Some(
       JsonGlobalPluginLimits(
         Some(NonEmptyChunk("Rudder corporation ltd")),
-        Some(ZonedDateTime.parse("2024-03-03T00:00:00Z")),
-        Some(ZonedDateTime.parse("2024-06-30T12:00:00Z")),
+        Some(Instant.parse("2024-03-03T00:00:00Z")),
+        Some(Instant.parse("2024-06-30T12:00:00Z")),
         Some(50)
       )
     ),
@@ -115,8 +115,8 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
             "LimitedPluginId",
             "0.0-0.0",
             "99.99-99.99",
-            ZonedDateTime.parse("2024-01-01T00:00:00Z"),
-            ZonedDateTime.parse("2024-12-31T23:59:59Z"),
+            Instant.parse("2024-01-01T00:00:00Z"),
+            Instant.parse("2024-12-31T23:59:59Z"),
             Some(1000),
             Map()
           )
@@ -138,8 +138,8 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
             "DisabledPluginId",
             "0.0-0.0",
             "99.99-99.99",
-            ZonedDateTime.parse("2024-03-03T00:00:00Z"),
-            ZonedDateTime.parse("2024-06-30T12:00:00Z"),
+            Instant.parse("2024-03-03T00:00:00Z"),
+            Instant.parse("2024-06-30T12:00:00Z"),
             Some(50),
             Map()
           )
