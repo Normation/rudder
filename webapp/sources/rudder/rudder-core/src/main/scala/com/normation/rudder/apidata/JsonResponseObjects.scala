@@ -2170,7 +2170,6 @@ trait RudderJsonEncoders {
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
   import com.normation.rudder.score.ScoreSerializer.*
-  import com.normation.utils.DateFormaterService.json.*
 
   implicit lazy val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
   implicit lazy val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
