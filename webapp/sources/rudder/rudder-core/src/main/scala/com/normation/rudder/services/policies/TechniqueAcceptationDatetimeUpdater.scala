@@ -57,8 +57,6 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import net.liftweb.common.Box
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 

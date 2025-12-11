@@ -75,8 +75,6 @@ import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import java.time.Instant
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.collection.immutable.SortedMap
 import zio.*
 import zio.json.*

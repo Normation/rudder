@@ -48,8 +48,6 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.Control.bestEffort
 import java.time.Instant
 import net.liftweb.common.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.syntax.*
 
 trait RuleValService {

@@ -81,7 +81,6 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.ComplianceMode
 import com.typesafe.config.ConfigValue
 import java.time.Instant
-import org.joda.time.DateTime
 import scala.collection.immutable.TreeMap
 import zio.Chunk
 import zio.json.*
@@ -302,7 +301,6 @@ object NodeConfiguration {
     // if you are sure you can move it from here and just import it here
     import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
     import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
-    import com.normation.utils.DateFormaterService.json.*
 
     given JsonEncoder[ComplianceMode]               = DeriveJsonEncoder.gen[ComplianceMode]
     given JsonEncoder[TechniqueVersion]             = JsonEncoder[String].contramap(_.serialize)

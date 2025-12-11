@@ -77,7 +77,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
 import java.time.Instant
-import java.time.format.DateTimeFormatter
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import org.apache.commons.text.StringEscapeUtils

@@ -42,7 +42,6 @@ import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.ScheduledType
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.json.implicits.*
-import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJavaInstant
 import doobie.*
 import doobie.implicits.*

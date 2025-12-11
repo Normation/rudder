@@ -55,8 +55,6 @@ import com.softwaremill.quicklens.*
 import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.Full
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.collection.SortedMap
 
 /**
