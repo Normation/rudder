@@ -116,8 +116,9 @@ object DateFormaterService {
       .withZoneUTC()
   }
 
-  val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
-  val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
+  val javatimeRfcDateformat:   java.time.format.DateTimeFormatter = java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME
+  val rfcDateformat:           DateTimeFormatter                  = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
+  val rfcDateformatWithMillis: DateTimeFormatter                  = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
 
   val javaDisplayDateFormat: java.time.format.DateTimeFormatter =
     java.time.format.DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ")
