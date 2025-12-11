@@ -35,55 +35,162 @@
 *************************************************************************************
 */
 
-// --- MAIN COLORS
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (_Create_ & Success in most cases)
+/// @group 1-main-colors
+/// @type Color
 $rudder-success   : #13BEB7;
+
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// @group 1-main-colors
+/// @type Color
 $rudder-primary   : #337AB7;
+
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// @group 1-main-colors
+/// @type Color
 $rudder-warning   : #EF9600;
+
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// @group 1-main-colors
+/// @type Color
 $rudder-danger    : #DA291C;
+
+/// Info color is applied on informative elements (e.g. icons, border, and text that provides info to user)
+/// @group 1-main-colors
+/// @type Color
 $rudder-info      : #337AB7;
 
+// --- GRAY COLORS
+
+/// Use as a light background color (on pages or ‘default’ buttons)
+/// @group 2-gray-colors
+/// @type Color
 $rudder-gray-100 : #F8F9FC;
+/// TODO
+/// @group 2-gray-colors
+/// @type Color
 $rudder-gray-200 : #EEF1F9;
+/// TODO
+/// @group 2-gray-colors
+/// @type Color
 $rudder-gray-300 : #E1E5EB;
+/// TODO
+/// @group 2-gray-colors
+/// @type Color
 $rudder-gray-400 : #B1BBCB;
+/// TODO
+/// @group 2-gray-colors
+/// @type Color
 $rudder-gray-500 : #72829D;
+/// Mainly used as a lighter text colour
+/// @group 2-gray-colors
+/// @type Color
 $rudder-gray-600 : #36474E;
+/// Mainly used as text color. It is also the color of the Rudder logo text and the background color of the sidebar.
+/// @group 2-gray-colors
+/// @type Color
 $rudder-black    : #041922;
 
 // --- TEXT & LINK
+/// Rudder's primary text color. Its value corresponds to the value of ```$rudder-black``` variable.
+/// @group 3-text-links
+/// @type Color
 $rudder-txt-primary   : $rudder-black;
+/// TODO
+/// @group 3-text-links
+/// @type Color
 $rudder-txt-secondary : $rudder-gray-500;
+/// TODO
+/// @group 3-text-links
+/// @type Color
 $rudder-txt-light     : $rudder-gray-600;
+/// TODO
+/// @group 3-text-links
+/// @type Color
 $rudder-txt-link      : #1295C2;
 
 // --- BACKGROUNDS
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-light-gray : $rudder-gray-100;
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-gray       : $rudder-gray-200;
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-dark-gray  : $rudder-gray-300;
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-info       : #E2F2FF;
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-danger     : #F8D7DA;
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-warning    : rgba($rudder-warning, .08);
+/// TODO
+/// @group 4-background
+/// @type Color
 $rudder-bg-overlay    : rgba($rudder-black, .3);
 
-// --- BORDERS
+
+// --- BORDERS & SHADOWS
+
+/// TODO
+/// @group 5-borders-shadows
+/// @type Color
 $rudder-border-color-default : #D6DEEF;
+/// TODO
+/// @group 5-borders-shadows
+/// @type Color
 $rudder-border-color-danger  : #AC2925;
+/// TODO
+/// @group 5-borders-shadows
+/// @type Color
 $rudder-border-color-warning : rgba($rudder-warning, .2);
 
-// --- BOX-SHADOWS
+/// TODO
+/// @group 5-borders-shadows
+/// @type Color
 $rudder-box-shadow-color : #DCE3EF;
 $rudder-box-shadow-hover-color : #B3BFD5;
 
+
 // --- ACCORDIONS
+
+/// Used to highlights accordion border
+/// @group 6-accordions
+/// @type Color
 $rudder-accordion-color-1 : #D1A9DD;
+/// Used to highlights accordion border
+/// @group 6-accordions
+/// @type Color
 $rudder-accordion-color-2 : #A9D6DD;
+/// Used to highlights accordion border
+/// @group 6-accordions
+/// @type Color
 $rudder-accordion-color-3 : #A9B9DD;
 
+
 // --- POLICY MODE
+
+/// This color refers to and represents the “audit” policy mode.
+/// @group 6-accordions
+/// @type Color
 $rudder-audit   : #1384BE;
 $rudder-enforce : #13BE7E;
 
+
 // --- COMPLIANCE
+/// TODO
+/// @group 7-compliance
+/// @type Color
 $color-compliance-disabled      : $rudder-gray-500;
 $color-compliance-success       : $rudder-success;
 $color-compliance-error         : $rudder-danger;
@@ -93,7 +200,11 @@ $color-compliance-missing       : #F2E27D;
 $color-compliance-notapplicable : #8DCD8D;
 $color-compliance-noncompliant  : $rudder-warning;
 
+
 // --- SCORES
+/// TODO
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-A : $rudder-success;
 $rudder-score-color-B : #68C96A;
 $rudder-score-color-C : #B3D337;
@@ -102,7 +213,11 @@ $rudder-score-color-E : #F0940E;
 $rudder-score-color-F : $rudder-danger;
 $rudder-score-color-X : #B1BBCB;
 
+
 // --- PACKAGES
+/// TODO
+/// @group 9-packages
+/// @type Color
 $color-package-security    : $rudder-danger;
 $color-package-bugfix      : $rudder-warning;
 $color-package-enhancement : $rudder-success;
