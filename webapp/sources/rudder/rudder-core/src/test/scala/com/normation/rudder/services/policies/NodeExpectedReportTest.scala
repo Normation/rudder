@@ -57,9 +57,7 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.Version7_1.JsonRuleExpectedReports7_1
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
 import java.time.ZoneOffset
-import org.joda.time.DateTime
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*

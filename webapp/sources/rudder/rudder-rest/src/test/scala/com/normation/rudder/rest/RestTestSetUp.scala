@@ -185,7 +185,6 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
-import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
@@ -1089,8 +1088,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
             SoftwareId("test-softwareId"),
             MinVersion("0.0.0-0.0.0"),
             MaxVersion("99.99.0-99.99.0"),
-            ZonedDateTime.parse("2025-01-10T20:53:20Z"),
-            ZonedDateTime.parse("2025-01-10T20:53:20Z"),
+            Instant.parse("2025-01-10T20:53:20Z"),
+            Instant.parse("2025-01-10T20:53:20Z"),
             MaxNodes(Some(1_000_000)),
             Map.empty[String, String].toMap
           )

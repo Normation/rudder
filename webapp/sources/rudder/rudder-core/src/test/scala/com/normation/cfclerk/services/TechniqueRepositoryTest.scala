@@ -65,7 +65,6 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import net.liftweb.common.*
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

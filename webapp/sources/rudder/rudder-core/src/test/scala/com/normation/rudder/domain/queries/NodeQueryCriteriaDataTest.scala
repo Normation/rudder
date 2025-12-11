@@ -155,14 +155,13 @@ class NodeQueryCriteriaDataTest extends Specification with AfterAll with BeforeA
   "Date comparator" should {
 
     val dateMatcher                                                           = NodeCriterionMatcherDate(_.lastInventoryDate.toChunk.map(DateFormaterService.toLocalDate))
-    val dateTimeMatcher                                                       =
-      NodeCriterionMatcherDateTime(_.lastInventoryDate.toChunk.map(ZonedDateTime.ofInstant(_, ZoneId.of("UTC"))))
+    val dateTimeMatcher                                                       = NodeCriterionMatcherDateTime(_.lastInventoryDate.toChunk)
     val combined                                                              = NodeCriterionMatcher
       .combineBy(
         _.lastInventoryDate.toChunk.map(DateFormaterService.toLocalDate),
         NodeCriterionMatcherDate(_)
       )(
-        _.lastInventoryDate.toChunk.map(ZonedDateTime.ofInstant(_, ZoneId.of("UTC"))),
+        _.lastInventoryDate.toChunk,
         NodeCriterionMatcherDateTime(_)
       )
     def dateOnly(date: Instant, f: LocalDate => LocalDate = identity)         =

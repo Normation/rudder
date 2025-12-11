@@ -1,6 +1,8 @@
 package com.normation.utils
 
 import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.ChronoField
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import zio.test.*
@@ -14,6 +16,54 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
           equalTo(org.joda.time.DateTime(input.toEpochMilli, DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime()))
         )
       }
+    },
+    test("parseDateZDT should parse any instant") {
+      check(Gen.instant(min = Instant.EPOCH, max = Instant.parse("9999-01-01T00:00:00Z"))) { input =>
+        assert(DateFormaterService.parseDateZDT(input.toString))(
+          isRight(equalTo(input))
+        )
+      }
+    },
+    test("parseDateZDT should parse any offsetdatetime") {
+      check(
+        Gen.instant(
+          min = Instant.EPOCH,
+          max = Instant.parse("9999-01-01T00:00:00Z")
+        ),
+        Gen.zoneOffset
+      ) { (input, offset) =>
+        assert(DateFormaterService.parseDateZDT(input.atOffset(offset).toString))(
+          isRight(equalTo(input.atOffset(offset).toInstant))
+        )
+      }
+    },
+    test("serializeZDT should parse have the same output as Instant.toString") {
+      check(
+        Gen
+          .zonedDateTime(
+            min = Instant.EPOCH.atZone(ZoneId.of("Z")),
+            max = Instant.parse("9999-01-01T00:00:00Z").atZone(ZoneId.of("Z"))
+          )
+          .map(_.withNano(1)) // Instant and ISO_OFFSET_DATE_TIME do not agree about removing trailing 0 to nanoseconds
+      ) { input =>
+        assert(DateFormaterService.serializeZDT(input))(
+          equalTo(input.toInstant.toString)
+        )
+      }
+    },
+    test("serializeInstant should parse have the same output as Instant.toString") {
+      check(
+        Gen
+          .instant(
+            min = Instant.EPOCH,
+            max = Instant.parse("9999-01-01T00:00:00Z")
+          )
+          .map(_.`with`(ChronoField.NANO_OF_SECOND, 1))
+      ) { input =>
+        assert(DateFormaterService.serializeInstant(input))(
+          equalTo(input.toString)
+        )
+      }
     }
-  )
+  ) @@ TestAspect.shrinks(0)
 }

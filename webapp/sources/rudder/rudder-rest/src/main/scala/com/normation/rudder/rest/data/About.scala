@@ -44,7 +44,7 @@ import com.normation.rudder.metrics.*
 import com.normation.utils.Version
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
-import java.time.ZonedDateTime
+import java.time.Instant
 import zio.json.*
 import zio.json.internal.Write
 
@@ -94,8 +94,8 @@ object NodesJson   {
 }
 case class LicenseJson(
     licensee:           String,
-    startDate:          ZonedDateTime,
-    endDate:            ZonedDateTime,
+    startDate:          Instant,
+    endDate:            Instant,
     allowedNodesNumber: Option[Int],
     supportedVersions:  String
 )

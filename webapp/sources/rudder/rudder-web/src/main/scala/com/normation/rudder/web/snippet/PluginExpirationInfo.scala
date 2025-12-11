@@ -41,15 +41,17 @@ import bootstrap.liftweb.PluginsInfo
 import com.normation.plugins.PluginName
 import com.normation.plugins.RudderPluginLicenseStatus
 import com.softwaremill.quicklens.*
+import java.time.Instant
 import java.time.ZonedDateTime
+import java.time.ZoneId
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
 
 private case class Warning(
     licenseError:          Map[PluginName, String],
-    licenseExpired:        Map[PluginName, ZonedDateTime],
-    licenseNearExpiration: Map[PluginName, ZonedDateTime]
+    licenseExpired:        Map[PluginName, Instant],
+    licenseNearExpiration: Map[PluginName, Instant]
 )
 
 private object Warning {
@@ -118,13 +120,16 @@ private object PluginExpirationInfo {
    * Summary of the status of the different plugins
    */
   private def checkPluginWarnings = {
-    val now = ZonedDateTime.now()
+    extension (
+        instant: Instant
+    ) def toZonedDateTime = instant.atZone(ZoneId.systemDefault()) // we use server zone for datetime computations
+    val now               = ZonedDateTime.now()
     PluginsInfo.plugins.foldLeft(Warning.empty) {
       case (current, (_, plugin)) =>
         plugin.status.current match {
           case RudderPluginLicenseStatus.EnabledNoLicense            => current
           case RudderPluginLicenseStatus.EnabledWithLicense(lic)     =>
-            if (lic.endDate.minusMonths(1).isBefore(now)) {
+            if (lic.endDate.toZonedDateTime.minusMonths(1).isBefore(now)) {
               current.modify(_.licenseNearExpiration).using(m => m + (plugin.name -> lic.endDate))
             } else {
               current
@@ -132,7 +137,7 @@ private object PluginExpirationInfo {
           case RudderPluginLicenseStatus.Disabled(reason, None)      =>
             current.modify(_.licenseError).using(_ + (plugin.name -> reason))
           case RudderPluginLicenseStatus.Disabled(reason, Some(lic)) =>
-            if (lic.endDate.isBefore(now)) {
+            if (lic.endDate.toZonedDateTime.isBefore(now)) {
               current.modify(_.licenseExpired).using(m => m + (plugin.name -> lic.endDate))
             } else {
               current.modify(_.licenseError).using(_ + (plugin.name -> reason))

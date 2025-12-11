@@ -68,7 +68,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.softwaremill.quicklens.*
 import java.time.Instant
-import org.joda.time.DateTime
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*

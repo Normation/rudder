@@ -71,12 +71,10 @@ object DateFormaterService {
     implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
     implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
 
-    implicit val encoderZonedDateTime: JsonEncoder[ZonedDateTime] = JsonEncoder[String].contramap(serializeZDT)
-    implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
-      JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
+    implicit val encoderInstant: JsonEncoder[Instant] = JsonEncoder[String].contramap(_.toString)
+    implicit val decoderInstant: JsonDecoder[Instant] = JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
 
-    implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
-      new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
+    implicit val codecInstant: JsonCodec[Instant] = JsonCodec(encoderInstant, decoderInstant)
 
     implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
@@ -136,9 +134,7 @@ object DateFormaterService {
   def serializeZDT(datetime: ZonedDateTime): String =
     datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
 
-  def serializeInstant(datetime: Instant): String = {
-    ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-  }
+  def serializeInstant(instant: Instant): String = instant.toString
 
   def toDateTime(instant: Instant): DateTime = json.transformInstantDateTime.transform(instant)
 
@@ -165,7 +161,7 @@ object DateFormaterService {
         // try to parse as a ISO DateTime with time zone
         parseDateZDT(instant).fold(
           _ => Left(Inconsistency(s"String '${instant}' can't be parsed as an ISO instant: ${ex.getMessage}")),
-          zdt => Right(zdt.toInstant)
+          zdt => Right(zdt)
         )
     }
   }
@@ -179,9 +175,9 @@ object DateFormaterService {
   }
 
   // ISO date time with timezone
-  def parseDateZDT(date: String): PureResult[ZonedDateTime] = {
+  def parseDateZDT(date: String): PureResult[Instant] = {
     try {
-      Right(ZonedDateTime.parse(date, java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+      Right(Instant.parse(date))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
     }
