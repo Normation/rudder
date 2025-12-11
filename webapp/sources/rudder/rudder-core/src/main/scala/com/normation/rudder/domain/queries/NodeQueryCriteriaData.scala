@@ -752,7 +752,7 @@ final case class NodeCriterionMatcherDateTime(private val extractorNode: CoreNod
   val order: Ordering[Instant] = Ordering.by(_.toEpochMilli)
 }
 private object NodeCriterionMatcherInstant            {
-  val parseInstant: String => Option[Instant] = (s: String) => DateFormaterService.parseDateZDT(s).toOption
+  val parseInstant: String => Option[Instant] = (s: String) => DateFormaterService.parseInstant(s).toOption
 }
 
 /*

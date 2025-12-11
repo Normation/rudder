@@ -20,7 +20,6 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJavaInstant
 import com.unboundid.util.StaticUtils
 import java.text.ParseException

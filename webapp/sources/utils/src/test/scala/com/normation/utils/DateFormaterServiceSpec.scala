@@ -17,14 +17,14 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
         )
       }
     },
-    test("parseDateZDT should parse any instant") {
+    test("parseInstant should parse any instant") {
       check(Gen.instant(min = Instant.EPOCH, max = Instant.parse("9999-01-01T00:00:00Z"))) { input =>
-        assert(DateFormaterService.parseDateZDT(input.toString))(
+        assert(DateFormaterService.parseInstant(input.toString))(
           isRight(equalTo(input))
         )
       }
     },
-    test("parseDateZDT should parse any offsetdatetime") {
+    test("parseInstant should parse any offsetdatetime") {
       check(
         Gen.instant(
           min = Instant.EPOCH,
@@ -32,7 +32,7 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
         ),
         Gen.zoneOffset
       ) { (input, offset) =>
-        assert(DateFormaterService.parseDateZDT(input.atOffset(offset).toString))(
+        assert(DateFormaterService.parseInstant(input.atOffset(offset).toString))(
           isRight(equalTo(input.atOffset(offset).toInstant))
         )
       }

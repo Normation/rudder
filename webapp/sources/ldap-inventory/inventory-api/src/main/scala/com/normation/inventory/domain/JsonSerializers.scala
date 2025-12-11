@@ -37,7 +37,6 @@
 
 package com.normation.inventory.domain
 
-import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJavaInstant
 import java.net.InetAddress
 import java.time.Instant

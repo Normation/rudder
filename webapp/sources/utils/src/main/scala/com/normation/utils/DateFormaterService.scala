@@ -72,7 +72,7 @@ object DateFormaterService {
     implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
 
     implicit val encoderInstant: JsonEncoder[Instant] = JsonEncoder[String].contramap(_.toString)
-    implicit val decoderInstant: JsonDecoder[Instant] = JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
+    implicit val decoderInstant: JsonDecoder[Instant] = JsonDecoder[String].mapOrFail(parseInstant(_).left.map(_.fullMsg))
 
     implicit val codecInstant: JsonCodec[Instant] = JsonCodec(encoderInstant, decoderInstant)
 
@@ -157,12 +157,7 @@ object DateFormaterService {
     try {
       Right(Instant.parse(instant))
     } catch {
-      case NonFatal(ex) =>
-        // try to parse as a ISO DateTime with time zone
-        parseDateZDT(instant).fold(
-          _ => Left(Inconsistency(s"String '${instant}' can't be parsed as an ISO instant: ${ex.getMessage}")),
-          zdt => Right(zdt)
-        )
+      case NonFatal(ex) => Left(Inconsistency(s"String '${instant}' can't be parsed as an ISO instant: ${ex.getMessage}"))
     }
   }
 
@@ -171,15 +166,6 @@ object DateFormaterService {
       Right(ISODateTimeFormat.date().parseDateTime(date).withZone(DateTimeZone.UTC))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date: ${ex.getMessage}"))
-    }
-  }
-
-  // ISO date time with timezone
-  def parseDateZDT(date: String): PureResult[Instant] = {
-    try {
-      Right(Instant.parse(date))
-    } catch {
-      case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
     }
   }
 
