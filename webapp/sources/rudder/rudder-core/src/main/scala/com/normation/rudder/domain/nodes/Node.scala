@@ -47,9 +47,9 @@ import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface.toNode
-import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.tenants.SecurityTag
 import enumeratum.*
 import java.time.Instant
 
@@ -70,7 +70,7 @@ final case class Node(
     nodeReportingConfiguration: ReportingConfiguration,
     properties:                 List[NodeProperty],
     policyMode:                 Option[PolicyMode],
-    securityTag:                Option[SecurityTag]
+    security:                   Option[SecurityTag]
 )
 
 case object Node {
@@ -86,7 +86,7 @@ case object Node {
       nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = Nil,
       policyMode = None,
-      securityTag = None
+      security = None
     )
   }
 }

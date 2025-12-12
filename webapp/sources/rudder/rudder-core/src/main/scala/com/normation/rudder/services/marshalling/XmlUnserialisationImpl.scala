@@ -71,10 +71,10 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
@@ -155,6 +155,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       isSystem         <- getAndParseChild(directive, "isSystem", s => s.text.toBooleanOption)
       policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toOption)
       tags              = TagsXml.getTags(directive \ "tags")
+      security          = SecurityXml.getSecurity(directive)
     } yield {
       (
         TechniqueName(ptName),
@@ -169,7 +170,8 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
           priority = priority,
           _isEnabled = isEnabled,
           isSystem = isSystem,
-          tags = tags
+          tags = tags,
+          security = security
         ),
         sectionVal
       )
@@ -191,6 +193,7 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
       name        <- getAndTransformChild(category, "displayName", _.text.trim)
       description <- getAndTransformChild(category, "description", _.text)
       isSystem    <- getAndParseChild(category, "isSystem", _.text.toBooleanOption)
+      security     = SecurityXml.getSecurity(category)
     } yield {
       NodeGroupCategory(
         id = NodeGroupCategoryId(id),
@@ -198,7 +201,8 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
         description = description,
         items = Nil,
         children = Nil,
-        isSystem = isSystem
+        isSystem = isSystem,
+        security = security
       )
     }).chainError(s"${entryType} unserialisation failed")
   }
@@ -249,6 +253,8 @@ class NodeGroupUnserialisationImpl(
                            )
                        }
                      }
+      security     = SecurityXml.getSecurity(group)
+
     } yield {
       NodeGroup(
         id = id,
@@ -259,7 +265,8 @@ class NodeGroupUnserialisationImpl(
         isDynamic = isDynamic,
         serverList = serverList,
         _isEnabled = isEnabled,
-        isSystem = isSystem
+        isSystem = isSystem,
+        security = security
       )
     }).chainError(s"${entryType} unserialisation failed")
   }
@@ -289,7 +296,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                             DirectiveId(DirectiveUid(n.text), ParseRev((n \ "@revision").text))
                           }.toSet
       tags              = TagsXml.getTags(rule \ "tags")
-
+      security          = SecurityXml.getSecurity(entry)
     } yield {
       Rule(
         id,
@@ -301,7 +308,8 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
         longDescription,
         isEnabled,
         isSystem,
-        tags
+        tags,
+        security = security
       )
     }).chainError(s"${entryType} unserialisation failed")
   }
@@ -320,13 +328,15 @@ class RuleCategoryUnserialisationImpl extends RuleCategoryUnserialisation {
       name        <- getAndTransformChild(category, "displayName", _.text.trim)
       description <- getAndTransformChild(category, "description", _.text)
       isSystem    <- getAndParseChild(category, "isSystem", s => s.text.toBooleanOption)
+      security     = SecurityXml.getSecurity(entry)
     } yield {
       RuleCategory(
         id = RuleCategoryId(id),
         name = name,
         description = description,
         childs = Nil,
-        isSystem = isSystem
+        isSystem = isSystem,
+        security = security
       )
     }).chainError(s"${entryType} unserialisation failed")
   }
@@ -351,6 +361,7 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
       isSystem    <- (uptc \ "isSystem").headOption.flatMap(s =>
                        tryo(s.text.toBoolean)
                      ) ?~! s"Missing attribute 'isSystem' in entry type policyLibraryCategory : ${entry}"
+      security     = SecurityXml.getSecurity(entry)
     } yield {
       ActiveTechniqueCategory(
         id = ActiveTechniqueCategoryId(id),
@@ -358,7 +369,8 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
         description = description,
         items = Nil,
         children = Nil,
-        isSystem = isSystem
+        isSystem = isSystem,
+        security = security
       )
     }
   }
@@ -415,6 +427,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
           )
         } else Full(map)
       }
+      security          = SecurityXml.getSecurity(entry)
     } yield {
       ActiveTechnique(
         id = ActiveTechniqueId(id),
@@ -422,7 +435,8 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
         acceptationDatetimes = AcceptationDateTime(acceptationMap),
         directives = Nil,
         _isEnabled = isEnabled,
-        policyTypes = policyTypes
+        policyTypes = policyTypes,
+        security = security
       )
     }
   }
@@ -773,8 +787,9 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
       visibility   = (globalParam \ "visibility").headOption
                        .flatMap(x => Visibility.withNameInsensitiveOption(x.text))
                        .getOrElse(Visibility.default)
+      security     = SecurityXml.getSecurity(entry)
       // TODO: no version in param for now
-      g           <- GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider, visibility)
+      g           <- GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider, visibility, security)
     } yield {
       g // TODO: no version in param for now
     }).chainError(s"${entryType} unserialisation failed")

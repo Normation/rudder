@@ -60,6 +60,7 @@ import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.ActiveTechniqueCategoryOrdering
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.EventLogRepository
@@ -576,7 +577,8 @@ class RoLDAPDirectiveRepository(
         acceptationDatetimes = SortedMap(at.acceptationDatetimes.versions.toSeq*),
         directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil),
         isEnabled = at.isEnabled,
-        policyTypes = at.policyTypes
+        policyTypes = at.policyTypes,
+        security = at.security
       )
     }
 
@@ -605,7 +607,8 @@ class RoLDAPDirectiveRepository(
             )
           )
         },
-        isSystem = atc.isSystem
+        isSystem = atc.isSystem,
+        security = atc.security
       )
     }
 
@@ -973,14 +976,10 @@ class WoLDAPDirectiveRepository(
    *
    * return the modified parent category.
    */
-  def addActiveTechniqueCategory(
+  override def addActiveTechniqueCategory(
       that: ActiveTechniqueCategory,
-      into: ActiveTechniqueCategoryId, // parent category
-
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[ActiveTechniqueCategory] = {
+      into: ActiveTechniqueCategoryId // parent category
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = {
     userLibMutex.writeLock(for {
       con                 <- ldap
       parentCategoryEntry <-
@@ -996,9 +995,9 @@ class WoLDAPDirectiveRepository(
       autoArchive         <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
                                  parents  <- getParentsForActiveTechniqueCategory(that.id)
-                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                 commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                  archive  <-
-                                   gitCatArchiver.archiveActiveTechniqueCategory(that, parents.map(_.id), Some((modId, commiter, reason)))
+                                   gitCatArchiver.archiveActiveTechniqueCategory(that, parents.map(_.id), Some((cc.modId, commiter, cc.message)))
                                } yield archive
                              }
       parentEntry         <- getCategoryEntry(con, into).chainError(s"Entry with ID '${into.value}' was not found")
@@ -1015,12 +1014,9 @@ class WoLDAPDirectiveRepository(
    * Update an existing technique category
    * Return the updated policy category
    */
-  def saveActiveTechniqueCategory(
-      category: ActiveTechniqueCategory,
-      modId:    ModificationId,
-      actor:    EventActor,
-      reason:   Option[String]
-  ): IOResult[ActiveTechniqueCategory] = {
+  override def saveActiveTechniqueCategory(
+      category: ActiveTechniqueCategory
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = {
     userLibMutex.writeLock(for {
       con              <- ldap
       oldCategoryEntry <-
@@ -1040,11 +1036,11 @@ class WoLDAPDirectiveRepository(
       autoArchive      <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                             for {
                               parents  <- getParentsForActiveTechniqueCategory(category.id)
-                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                               archive  <- gitCatArchiver.archiveActiveTechniqueCategory(
                                             updated,
                                             parents.map(_.id),
-                                            Some((modId, commiter, reason))
+                                            Some((cc.modId, commiter, cc.message))
                                           )
                             } yield archive
                           }
@@ -1053,13 +1049,10 @@ class WoLDAPDirectiveRepository(
     })
   }
 
-  def deleteCategory(
+  override def deleteCategory(
       id:         ActiveTechniqueCategoryId,
-      modId:      ModificationId,
-      actor:      EventActor,
-      reason:     Option[String],
       checkEmpty: Boolean = true
-  ): IOResult[ActiveTechniqueCategoryId] = {
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = {
     userLibMutex.writeLock(for {
       con     <- ldap
       deleted <- getCategoryEntry(con, id).flatMap {
@@ -1075,11 +1068,11 @@ class WoLDAPDirectiveRepository(
                        autoArchive <- ZIO
                                         .when(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                           for {
-                                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                             archive  <- gitCatArchiver.deleteActiveTechniqueCategory(
                                                           id,
                                                           parents.map(_.id),
-                                                          Some((modId, commiter, reason))
+                                                          Some((cc.modId, commiter, cc.message))
                                                         )
                                           } yield {
                                             archive
@@ -1102,14 +1095,11 @@ class WoLDAPDirectiveRepository(
    * Both category to move and destination have to exists, else it is a.fail.
    * The destination category can not be a child of the category to move.
    */
-  def move(
+  override def move(
       categoryId:    ActiveTechniqueCategoryId,
       intoParent:    ActiveTechniqueCategoryId,
-      optionNewName: Option[ActiveTechniqueCategoryId],
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): IOResult[ActiveTechniqueCategoryId] = {
+      optionNewName: Option[ActiveTechniqueCategoryId]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = {
     userLibMutex.writeLock(for {
       con            <- ldap
       oldParents     <- if (autoExportOnModify) {
@@ -1144,12 +1134,12 @@ class WoLDAPDirectiveRepository(
                           .when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !newCat.isSystem) {
                             for {
                               parents  <- getParentsForActiveTechniqueCategory(newCat.id)
-                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                               moved    <- gitCatArchiver.moveActiveTechniqueCategory(
                                             newCat,
                                             oldParents.map(_.id),
                                             parents.map(_.id),
-                                            Some((modId, commiter, reason))
+                                            Some((cc.modId, commiter, cc.message))
                                           )
                             } yield {
                               moved
@@ -1161,15 +1151,12 @@ class WoLDAPDirectiveRepository(
     })
   }
 
-  def addTechniqueInUserLibrary(
+  override def addTechniqueInUserLibrary(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      policyTypes:   PolicyTypes,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): IOResult[ActiveTechnique] = {
+      policyTypes:   PolicyTypes
+  )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
     // check if the technique is already in user lib, and if the category exists
     userLibMutex.writeLock(for {
       con               <- ldap
@@ -1186,7 +1173,8 @@ class WoLDAPDirectiveRepository(
                              ActiveTechniqueId(techniqueName.value),
                              techniqueName,
                              AcceptationDateTime(versions.map(x => x -> DateTime.now(DateTimeZone.UTC)).toMap),
-                             policyTypes = policyTypes
+                             policyTypes = policyTypes,
+                             security = cc.nodePerms.toSecurityTag
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
       result            <- con.save(uptEntry, removeMissingAttributes = true)
@@ -1195,11 +1183,11 @@ class WoLDAPDirectiveRepository(
       autoArchive       <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                              for {
                                parents  <- activeTechniqueBreadCrump(newActiveTechnique.id)
-                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                               commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                archive  <- gitATArchiver.archiveActiveTechnique(
                                              newActiveTechnique,
                                              parents.map(_.id),
-                                             Some((modId, commiter, reason))
+                                             Some((cc.modId, commiter, cc.message))
                                            )
                              } yield archive
                            }
@@ -1214,13 +1202,10 @@ class WoLDAPDirectiveRepository(
    * does not exist.
    *
    */
-  def move(
+  override def move(
       uactiveTechniqueId: ActiveTechniqueId,
-      newCategoryId:      ActiveTechniqueCategoryId,
-      modId:              ModificationId,
-      actor:              EventActor,
-      reason:             Option[String]
-  ): IOResult[ActiveTechniqueId] = {
+      newCategoryId:      ActiveTechniqueCategoryId
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = {
     userLibMutex.writeLock(for {
       con                  <- ldap
       oldParents           <- if (autoExportOnModify) {
@@ -1245,12 +1230,12 @@ class WoLDAPDirectiveRepository(
           ) {
             for {
               parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
               moved    <- gitATArchiver.moveActiveTechnique(
                             movedActiveTechnique,
                             oldParents.map(_.id),
                             parents.map(_.id),
-                            Some((modId, commiter, reason))
+                            Some((cc.modId, commiter, cc.message))
                           )
             } yield {
               moved
@@ -1265,13 +1250,10 @@ class WoLDAPDirectiveRepository(
   /**
    * Set the status of the technique to the new value
    */
-  def changeStatus(
+  override def changeStatus(
       uactiveTechniqueId: ActiveTechniqueId,
-      status:             Boolean,
-      modId:              ModificationId,
-      actor:              EventActor,
-      reason:             Option[String]
-  ): IOResult[ActiveTechniqueId] = {
+      status:             Boolean
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = {
     userLibMutex.writeLock(for {
       con                <- ldap
       oldTechnique       <-
@@ -1290,7 +1272,7 @@ class WoLDAPDirectiveRepository(
       loggedAction       <- optDiff match {
                               case None       => ZIO.unit
                               case Some(diff) =>
-                                actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
+                                actionLogger.saveModifyTechnique(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
                             }
       newactiveTechnique <- getActiveTechniqueByActiveTechnique(uactiveTechniqueId).notOptional(
                               s"Technique with id '${uactiveTechniqueId.value}' can't be find back after status change"
@@ -1299,11 +1281,11 @@ class WoLDAPDirectiveRepository(
         ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newactiveTechnique.policyTypes.isSystem) {
           for {
             parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
             archive  <- gitATArchiver.archiveActiveTechnique(
                           newactiveTechnique,
                           parents.map(_.id),
-                          Some((modId, commiter, reason))
+                          Some((cc.modId, commiter, cc.message))
                         )
           } yield archive
         }
@@ -1312,13 +1294,10 @@ class WoLDAPDirectiveRepository(
     })
   }
 
-  def setAcceptationDatetimes(
+  override def setAcceptationDatetimes(
       uactiveTechniqueId: ActiveTechniqueId,
-      datetimes:          Map[TechniqueVersion, DateTime],
-      modId:              ModificationId,
-      actor:              EventActor,
-      reason:             Option[String]
-  ): IOResult[ActiveTechniqueId] = {
+      datetimes:          Map[TechniqueVersion, DateTime]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = {
     userLibMutex.writeLock(for {
       con                <- ldap
       activeTechnique    <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME).notOptional(
@@ -1339,11 +1318,11 @@ class WoLDAPDirectiveRepository(
         ZIO.when(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.policyTypes.isSystem) {
           for {
             parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
-            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
             archive  <- gitATArchiver.archiveActiveTechnique(
                           newActiveTechnique,
                           parents.map(_.id),
-                          Some((modId, commiter, reason))
+                          Some((cc.modId, commiter, cc.message))
                         )
           } yield archive
         }
@@ -1356,7 +1335,7 @@ class WoLDAPDirectiveRepository(
    * Delete the technique in user library.
    * If no such element exists, it is a.succeed.
    */
-  def deleteActiveTechnique(
+  override def deleteActiveTechnique(
       uactiveTechniqueId: ActiveTechniqueId,
       modId:              ModificationId,
       actor:              EventActor,

@@ -90,7 +90,6 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
@@ -178,6 +177,7 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.users.*
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.model.LinkUtil
@@ -911,7 +911,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   val parameterApiService14 = new ParameterApiService14(
     mockParameters.paramsRepo,
-    uuidGen,
     workflowLevelService
   )
 

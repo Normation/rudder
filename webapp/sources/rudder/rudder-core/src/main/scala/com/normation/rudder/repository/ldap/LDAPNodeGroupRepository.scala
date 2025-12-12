@@ -564,7 +564,8 @@ class RoLDAPNodeGroupRepository(
         description = cat.description,
         subCategories = maps.categoriesByCategory.getOrElse(catId, Nil).map(id => fromCategory(id, maps)).sortBy(_.name),
         targetInfos = maps.targetByCategory.getOrElse(catId, Nil).sortBy(_.name),
-        isSystem = cat.isSystem
+        isSystem = cat.isSystem,
+        security = cat.security
       )
     }
 

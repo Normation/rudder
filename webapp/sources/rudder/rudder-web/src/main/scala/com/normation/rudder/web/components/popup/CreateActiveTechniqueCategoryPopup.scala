@@ -148,7 +148,9 @@ class CreateActiveTechniqueCategoryPopup(
             name = categoryName.get,
             description = categoryDescription.get,
             children = Nil,
-            items = Nil
+            items = Nil,
+            isSystem = false,
+            security = CurrentUser.nodePerms.toSecurityTag
           ),
           ActiveTechniqueCategoryId(categoryContainer.get),
           ModificationId(uuidGen.newUuid),

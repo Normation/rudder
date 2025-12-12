@@ -172,7 +172,8 @@ class RuleInternalApiService(
                              missingCatId,
                              "Rules with a missing/deleted category",
                              "Category that regroup all the missing categories",
-                             missingCatContent.toList
+                             missingCatContent.toList,
+                             security = None
                            )
       newChilds          = if (missingCatContent.isEmpty) root.childs else root.childs :+ missingCategory
       rootAndMissingCat  = root.copy(childs = newChilds)

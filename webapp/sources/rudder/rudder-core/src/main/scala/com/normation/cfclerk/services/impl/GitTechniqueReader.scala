@@ -962,7 +962,7 @@ class GitTechniqueReader(
           TechniqueCategoryMetadata.parseXML(xml, catId.name.value)
         }
       } else {
-        TechniqueCategoryMetadata(catId.name.value, "", false).succeed
+        TechniqueCategoryMetadata(catId.name.value, "", false, None).succeed
       }
     }
 
@@ -971,12 +971,12 @@ class GitTechniqueReader(
     val catId = TechniqueCategoryId.buildId(catPath)
     // built the category
     for {
-      triple <- parse(db, parseDescriptor, catId)
+      metadata <- parse(db, parseDescriptor, catId)
     } yield {
-      val TechniqueCategoryMetadata(name, desc, system) = triple
+      val TechniqueCategoryMetadata(name, desc, system, security) = metadata
       catId match {
-        case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system)
-        case sId: SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system)
+        case RootTechniqueCategoryId => RootTechniqueCategory(name, desc, isSystem = system, security = security)
+        case sId: SubTechniqueCategoryId => SubTechniqueCategory(sId, name, desc, isSystem = system, security = security)
       }
     }
   }

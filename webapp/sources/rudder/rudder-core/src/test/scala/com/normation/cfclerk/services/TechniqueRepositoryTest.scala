@@ -53,6 +53,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyTypes
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -151,13 +152,10 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechnique] = {
+        policyTypes:   PolicyTypes
+    )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
-      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty).succeed
+      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty, security = None).succeed
     }
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = {
@@ -167,7 +165,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         description = "",
         subCategories = Nil,
         activeTechniques = Nil,
-        isSystem = true
+        isSystem = true,
+        None
       ).succeed
     }
     override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???

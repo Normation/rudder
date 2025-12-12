@@ -45,6 +45,8 @@ import com.normation.rudder.domain.queries.CriterionComposition.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
+import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 
 /**
  * UUId type for Node Groups, so that they
@@ -135,8 +137,9 @@ final case class NodeGroup(
     isDynamic:   Boolean = true,
     serverList:  Set[NodeId],
     _isEnabled:  Boolean,
-    isSystem:    Boolean = false
-) {
+    isSystem:    Boolean = false,
+    security:    Option[SecurityTag]
+) extends HasSecurityContext {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || isSystem
 }

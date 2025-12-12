@@ -130,8 +130,20 @@ class TestPendingNodePolicies extends Specification {
   val dummyQuery0: Query = Query(null, And, Identity, List(cl)) // will return 0 node
   val dummyQuery1: Query = Query(null, Or, Identity, List(cl))  // will return 1 node
 
-  def ng(id: String, q: Query, dyn: Boolean = true): NodeGroup =
-    NodeGroup(NodeGroupId(NodeGroupUid(id)), id, id, Nil, Some(q), dyn, Set(), _isEnabled = true, isSystem = false)
+  def ng(id: String, q: Query, dyn: Boolean = true): NodeGroup = {
+    NodeGroup(
+      NodeGroupId(NodeGroupUid(id)),
+      id,
+      id,
+      Nil,
+      Some(q),
+      dyn,
+      Set(),
+      _isEnabled = true,
+      isSystem = false,
+      security = None
+    )
+  }
 
   // groups
   val c: NodeGroup = ng("c", dummyQuery1) // ok

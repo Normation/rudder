@@ -129,7 +129,9 @@ class CreateCloneGroupPopup(
                   savedGroup.name,
                   savedGroup.description,
                   Nil,
-                  Nil
+                  Nil,
+                  isSystem = false,
+                  security = CurrentUser.nodePerms.toSecurityTag
                 ),
                 NodeGroupCategoryId(groupContainer.get),
                 ModificationId(uuidGen.newUuid),
@@ -162,7 +164,8 @@ class CreateCloneGroupPopup(
               query,
               isDynamic,
               srvList,
-              _isEnabled = true
+              _isEnabled = true,
+              security = CurrentUser.nodePerms.toSecurityTag
             )
 
             woNodeGroupRepository
