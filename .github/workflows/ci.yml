@@ -10,12 +10,12 @@ jobs:
       RUSTFLAGS: -D warnings
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: dtolnay/rust-toolchain@1.91.0
+      - uses: dtolnay/rust-toolchain@1.92.0
 
-    - name: Run tests
-      run: cd policies\module-types\template && cargo test --locked
+      - name: Run tests
+        run: cd policies\module-types\template && cargo test --locked
 
     permissions:
       contents: read

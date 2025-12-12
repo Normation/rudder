@@ -1,5 +1,5 @@
 # Debian trixie has a broken PowerShell dependency
-FROM rust:1.91.0-bookworm
+FROM rust:1.92.0-bookworm
 LABEL ci=rudder/policies/Dockerfile
 
 ARG USER_ID=1000
