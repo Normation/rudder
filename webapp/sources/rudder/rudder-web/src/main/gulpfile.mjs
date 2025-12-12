@@ -1,5 +1,5 @@
 import gulp from 'gulp';
-const { task, watch, series, parallel, src, dest } = gulp;
+const { task, watch, series, parallel, src, dest, exports } = gulp;
 import fs from 'fs';
 import path from 'path';
 import rename from 'gulp-rename';
@@ -15,6 +15,7 @@ import gulpSass from 'gulp-sass';
 const sass = gulpSass(dartSass);
 import sourcemaps from 'gulp-sourcemaps';
 import svgmin from 'gulp-svgmin';
+import sassdoc from 'sassdoc';
 
 const paths = {
     'svg': {
@@ -210,6 +211,12 @@ function scss(cb) {
     cb();
 };
 
+function graphicCharter(cb){
+    src(paths.scss.src)
+    .pipe(sassdoc());
+    cb();
+}
+
 task('elm', series(clean, elm));
 
 task('watch', series(clean, function() {
@@ -223,4 +230,9 @@ task('watch', series(clean, function() {
     watch(paths.vendor_css.src, { ignoreInitial: false }, vendor_css);
 }));
 
-task('default', series(clean, parallel(svg, elm, css, scss, js, vendor_css, vendor_js, vendor_esm)));
+task('scss', series(clean, function() {
+    watch(paths.scss.src, { ignoreInitial: false }, scss);
+    watch(paths.scss.src, { ignoreInitial: false }, graphicCharter)
+}));
+
+task('default', series(clean, parallel(svg, elm, css, scss, graphicCharter, js, vendor_css, vendor_js, vendor_esm)));
