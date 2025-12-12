@@ -107,7 +107,6 @@ class SettingsApi(
     RestRelaySynchronizePolicies ::
     RestRelaySynchronizeSharedFiles ::
     RestReportingMode ::
-    RestHeartbeat ::
     RestChangeMessageEnabled ::
     RestChangeMessageManadatory ::
     RestChangeMessagePrompt ::
@@ -468,12 +467,6 @@ class SettingsApi(
       ComplianceModeName.parse(param).toBox
     }
     def toJson(value: ComplianceModeName): JValue = value.name
-  }
-  case object RestHeartbeat                   extends RestIntSetting                          {
-    val startPolicyGeneration = true
-    val key                   = "heartbeat_frequency"
-    def get: IOResult[Int]                                       = configService.rudder_compliance_heartbeatPeriod()
-    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_compliance_heartbeatPeriod
   }
   case object RestChangeMessageEnabled        extends RestBooleanSetting                      {
     val startPolicyGeneration = false

@@ -47,8 +47,8 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.ComplianceModeName.ReportsDisabled
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.ReportsDisabled
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository

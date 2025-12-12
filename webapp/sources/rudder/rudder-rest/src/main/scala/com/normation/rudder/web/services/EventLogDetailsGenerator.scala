@@ -55,7 +55,6 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategory
@@ -1012,14 +1011,6 @@ class EventLogDetailsGenerator(
                         case Some(ar) => agentRunDetails(ar)
                       }
                     }
-                  }{
-                    mapComplexDiff(modDiff.modHeartbeat, <b>Heartbeat</b>) { (optHb: Option[HeartbeatConfiguration]) =>
-                      optHb match {
-                        case None     =>
-                          <span>No value</span>
-                        case Some(hb) => heartbeatDetails(hb)
-                      }
-                    }
                   }<div id={"nodepropertiesdiff-" + event.id.getOrElse("unknown")}></div>{
                     mapComplexDiff(modDiff.modPolicyMode, <b>Policy Mode</b>) { (optMode: Option[PolicyMode]) =>
                       optMode match {
@@ -1146,7 +1137,7 @@ class EventLogDetailsGenerator(
 
   }
 
-  private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
+  private def agentRunDetails(ar: AgentRunInterval):                                             NodeSeq = {
     (
       "#override" #> ar.overrides.map(_.toString()).getOrElse("false")
       & "#interval" #> ar.interval
@@ -1160,18 +1151,6 @@ class EventLogDetailsGenerator(
         <li><b>Start at minute: </b><value id="startMinute"/></li>
         <li><b>Start at hour: </b><value id="startHour"/></li>
         <li><b>Splay time: </b><value id="splaytime"/></li>
-      </ul>
-    )
-  }
-
-  private def heartbeatDetails(hb: HeartbeatConfiguration):                                      NodeSeq = {
-    (
-      "#override" #> hb.overrides
-      & "#interval" #> hb.heartbeatPeriod
-    ).apply(
-      <ul class="evlogviewpad">
-        <li><b>Override global value: </b><value id="override"/></li>
-        <li><b>Period: </b><value id="interval"/></li>
       </ul>
     )
   }

@@ -252,7 +252,7 @@ case object ModifyNodeEventType extends RollbackEventLogType {
   // for node, we have more "is defined at", because till 3.2,
   // we had several node events that we merged together in 4.0
   override def isDefinedAt(x: String): Boolean = {
-    "NodeHeartbeatModified" == x || "NodePropertiesModified" == x ||
+    "NodePropertiesModified" == x ||
     "NodeAgentRunPeriodModified" == x || "NodeModified" == x
   }
 }
@@ -277,11 +277,6 @@ case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventTy
 case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
   def serialize    = "ComplianceModeModified"
   val propertyName = "Compliance mode"
-}
-
-case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
-  def serialize    = "HeartbeatPeriodModified"
-  val propertyName = "Heartbeat period"
 }
 
 case object ModifyAgentRunIntervalEventType extends ModifyGlobalPropertyEventType {

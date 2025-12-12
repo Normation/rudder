@@ -655,7 +655,7 @@ object NodeFact {
   def defaultRudderSettings(status: InventoryStatus): RudderSettings = {
     RudderSettings(
       UndefinedKey,
-      ReportingConfiguration(None, None, None),
+      ReportingConfiguration(None, None),
       NodeKind.Node,
       status,
       NodeState.Enabled,
@@ -1866,7 +1866,6 @@ object NodeFactSerialisation {
         _.value
       )
     }
-    implicit val codecHeartbeatConfiguration: JsonCodec[HeartbeatConfiguration] = DeriveJsonCodec.gen
     implicit val codecReportingConfiguration: JsonCodec[ReportingConfiguration] = DeriveJsonCodec.gen
 
     implicit val codecNodeKind: JsonCodec[NodeKind] = JsonCodec.string.transformOrFail[NodeKind](NodeKind.parse, _.name)

@@ -72,10 +72,6 @@ bundle common g
       # We would like to use date's "--rfc-3339=second" option here, but it is not available on older OSes (RHEL 3/4, AIX 5...)
       "execRun"                    string => execresult("/bin/date -u \"+%Y-%m-%d %T+00:00\"", "noshell");
 
-      # Heartbeat interval, in minutes. Only used when in "changes-only" compliance mode
-      # In this mode, we should only send a "start"/"end" message pair if changes occur,
-      # or if this interval has elapsed since we last sent one
-      "heartbeat_interval" string => "${system_common.heartbeat_interval}";
       "agent_run_interval" string => "${system_common.agent_run_interval}";
 
       "rudder_node_config_id" string => "${system_common.rudder_node_config_id}";

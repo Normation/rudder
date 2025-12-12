@@ -68,7 +68,7 @@ import com.normation.rudder.domain.reports.NodeStatusReport.*
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.ports.InventoryFileWatcherPort
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ComplianceModeName.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -706,7 +706,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeGroupsRepo(customNodeGroups),
       reportingService(statusesReports),
       mockDirectives.directiveRepo,
-      GlobalComplianceMode(FullCompliance, 0).succeed,
+      GlobalComplianceMode(FullCompliance).succeed,
       GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always).succeed
     )
   }
@@ -764,8 +764,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
             DateTime.parse("2023-01-01T00:00:00.000Z"),
             None,
             NodeModeConfig(
-              GlobalComplianceMode(FullCompliance, 0),
-              None,
+              GlobalComplianceMode(FullCompliance),
               AgentRunInterval(None, 1, 0, 0, 0),
               None,
               GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Unoverridable),
