@@ -59,6 +59,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.common.*
 import zio.*
 import zio.syntax.*
@@ -180,12 +181,7 @@ trait DependencyAndDeletionService {
    * be: delete item, make the item no more use that directive, etc.
    * Return the list of items actually modified.
    */
-  def cascadeDeleteTarget(
-      target: RuleTarget,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): Box[TargetDependencies]
+  def cascadeDeleteTarget(target: RuleTarget)(implicit cc: ChangeContext): IOResult[TargetDependencies]
 
 }
 
@@ -487,11 +483,8 @@ class DependencyAndDeletionServiceImpl(
    * Return the list of items actually deleted.
    */
   override def cascadeDeleteTarget(
-      targetToDelete: RuleTarget,
-      modId:          ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
-  ): Box[TargetDependencies] = {
+      targetToDelete: RuleTarget
+  )(implicit cc: ChangeContext): IOResult[TargetDependencies] = {
     // Update Rule to remove the target
     def updateRule(rule: Rule) = {
       // Target directly removed
@@ -504,9 +497,9 @@ class DependencyAndDeletionServiceImpl(
       // Update the Rule and save it
       val updatedRule    = rule.copy(targets = updatedTargets)
       val updatedRuleRes = if (rule.isSystem) {
-        woRuleRepository.updateSystem(updatedRule, modId, actor, reason)
+        woRuleRepository.updateSystem(updatedRule, cc.modId, cc.actor, cc.message)
       } else {
-        woRuleRepository.update(updatedRule, modId, actor, reason)
+        woRuleRepository.update(updatedRule, cc.modId, cc.actor, cc.message)
       }
       updatedRuleRes.chainError(s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.serialize}'.")
     }
@@ -517,7 +510,7 @@ class DependencyAndDeletionServiceImpl(
           configRules   <- findDependencies.findRulesForTarget(targetToDelete)
           updatedRules  <- ZIO.foreach(configRules)(updateRule)
           deletedTarget <- woGroupRepository
-                             .delete(groupId, modId, actor, reason)
+                             .delete(groupId)
                              .chainError(
                                "Error when deleting target %s. All dependent rules where updated %s"
                                  .format(targetToDelete, configRules.map(_.id.serialize).mkString("(", ", ", ")"))
@@ -528,6 +521,6 @@ class DependencyAndDeletionServiceImpl(
 
       case _ => "Can not delete the special target: %s ; abort".format(targetToDelete).fail
     }
-  }.toBox
+  }
 
 }

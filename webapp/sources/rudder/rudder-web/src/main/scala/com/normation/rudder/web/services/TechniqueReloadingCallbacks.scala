@@ -43,10 +43,9 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueCategoryModType
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.Control.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -72,11 +71,8 @@ class SaveDirectivesOnTechniqueCallback(
   override def updatedTechniques(
       gitRRev:           String,
       techniqueIds:      Map[TechniqueName, TechniquesLibraryUpdateType],
-      updatedCategories: Set[TechniqueCategoryModType],
-      modId:             ModificationId,
-      actor:             EventActor,
-      reason:            Option[String]
-  ): Box[Unit] = {
+      updatedCategories: Set[TechniqueCategoryModType]
+  )(implicit cc: ChangeContext): Box[Unit] = {
 
     for {
       techLib <- roDirectiveRepo.getFullDirectiveLibrary().toBox
@@ -93,11 +89,11 @@ class SaveDirectivesOnTechniqueCallback(
                            newDirective = directive.copy(parameters = paramEditor.mapValueSeq)
                            saved       <- if (directive.isSystem) {
                                             woDirectiveRepo
-                                              .saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                              .saveSystemDirective(inActiveTechnique.id, newDirective, cc.modId, cc.actor, cc.message)
                                               .toBox
                                           } else {
                                             woDirectiveRepo
-                                              .saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                              .saveDirective(inActiveTechnique.id, newDirective, cc.modId, cc.actor, cc.message)
                                               .toBox
                                           }
                          } yield {

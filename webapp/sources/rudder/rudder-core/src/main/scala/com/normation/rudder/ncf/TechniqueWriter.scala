@@ -47,9 +47,10 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.FileUtils
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
@@ -72,10 +73,8 @@ trait TechniqueWriter {
   ): IOResult[Unit]
 
   def writeTechniqueAndUpdateLib(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
-  ): IOResult[EditorTechnique]
+      technique: EditorTechnique
+  )(implicit cc: ChangeContext): IOResult[EditorTechnique]
 
   // Write and commit all techniques files
   def writeTechnique(
@@ -116,17 +115,15 @@ class TechniqueWriterImpl(
   }
 
   def writeTechniqueAndUpdateLib(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
-  ): IOResult[EditorTechnique] = {
+      technique: EditorTechnique
+  )(implicit cc: ChangeContext): IOResult[EditorTechnique] = {
     for {
       updated              <-
-        compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already done in library update
+        compileArchiveTechnique(technique, cc.modId, cc.actor, syncStatus = false) // sync is already done in library update
       (updatedTechnique, _) = updated
       _                    <-
         techLibUpdate
-          .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
+          .update()
           .toIO
           .chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
     } yield {

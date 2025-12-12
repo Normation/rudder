@@ -48,10 +48,10 @@ import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup

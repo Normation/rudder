@@ -22,7 +22,7 @@
 #       - one directive
 
 ##
-## system categories and policies - jsut a directive
+## system categories and policies - just a directive
 ##
 
 dn: directiveId=server-common-root,activeTechniqueId=server-common,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
@@ -118,8 +118,9 @@ objectClass: top
 acceptationTimestamp: {"1.0":"20231202174901.013Z"}
 activeTechniqueId: user_defined_tech1
 techniqueId: user_defined_tech1
-isEnabled: FALSE
+isEnabled: TRUE
 isSystem: FALSE
+securityTag: {"tenants": ["zoneA"]}
 
 dn: directiveId=ce8aec6f-d371-4047-96d1-6b69ccdef9ae,activeTechniqueId=user_defined_tech1,techniqueCategoryId=ncf_techniques,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: directive
@@ -132,6 +133,20 @@ directiveVariable: BD16C074-DEBC-433A-ADFC-3CB74FFFAD3F[0]:
 isEnabled: TRUE
 isSystem: FALSE
 serializedTags: []
+securityTag: {"tenants": ["zoneA"]}
+
+dn: ruleId=34323555-6b6b-4d07-b3bd-043df1239797,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: top
+objectClass: rule
+ruleId: 34323555-6b6b-4d07-b3bd-043df1239797
+ruleTarget: {"include":{"or":["special:all"]},"exclude":{"or":[]}}
+directiveId: ce8aec6f-d371-4047-96d1-6b69ccdef9ae
+cn: User rule
+isEnabled: TRUE
+isSystem: FALSE
+tag: rootRuleCategory
+serial: 0
+securityTag: {"tenants": ["zoneA"]}
 
 ##
 ## benchmarks policies

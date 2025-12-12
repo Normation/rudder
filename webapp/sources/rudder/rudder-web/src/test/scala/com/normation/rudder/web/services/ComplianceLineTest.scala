@@ -48,8 +48,8 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*

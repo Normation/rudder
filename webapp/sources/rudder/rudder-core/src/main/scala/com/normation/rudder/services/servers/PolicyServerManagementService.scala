@@ -561,7 +561,8 @@ object PolicyServerConfigurationObjects {
       0,
       _isEnabled = true,
       isSystem = true,
-      Tags(Set.empty)
+      Tags(Set.empty),
+      None
     )
   }
 
@@ -668,7 +669,8 @@ object PolicyServerConfigurationObjects {
       isDynamic = true,
       Set(),
       _isEnabled = true,
-      isSystem = true
+      isSystem = true,
+      security = None
     )
   }
 
@@ -682,7 +684,8 @@ object PolicyServerConfigurationObjects {
       "Common - Technical",
       "This is the basic system rule which all nodes must have.",
       isEnabledStatus = true,
-      isSystem = true
+      isSystem = true,
+      security = None
     )
   }
 
@@ -696,7 +699,8 @@ object PolicyServerConfigurationObjects {
       "Server components configuration - Technical",
       s"This rule allows to configure the rudder ${nodeId.value} server",
       isEnabledStatus = true,
-      isSystem = true
+      isSystem = true,
+      security = None
     )
   }
 

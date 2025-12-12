@@ -42,8 +42,8 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.DateFormaterService
 import enumeratum.*
 import io.scalaland.chimney.Transformer
@@ -83,11 +83,12 @@ trait AuthenticatedUser {
   }
   def login: String = name
 
+  def actorIp:     Option[String]
   def authz:       Rights
   def apiAuthz:    ApiAuthorization
-  def nodePerms:   NodeSecurityContext
+  def accessGrant: TenantAccessGrant
   implicit def qc: QueryContext = {
-    QueryContext(EventActor(name), nodePerms)
+    QueryContext(EventActor(name), accessGrant, actorIp)
   }
 
   def checkRights(auth: AuthorizationType): Boolean

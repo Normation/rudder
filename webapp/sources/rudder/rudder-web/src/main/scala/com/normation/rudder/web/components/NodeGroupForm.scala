@@ -50,10 +50,10 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup

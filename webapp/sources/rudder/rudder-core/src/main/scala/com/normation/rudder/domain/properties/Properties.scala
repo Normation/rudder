@@ -44,6 +44,8 @@ import com.normation.errors.*
 import com.normation.inventory.domain.CustomProperty
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.services.policies.ParameterEntry
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.*
 import enumeratum.*
 import net.liftweb.json.*
@@ -184,7 +186,8 @@ final case class PatchProperty(
     provider:    Option[PropertyProvider] = None,
     description: Option[String] = None,
     inheritMode: Option[InheritMode] = None,
-    visibility:  Option[Visibility] = None
+    visibility:  Option[Visibility] = None,
+    security:    Option[Option[SecurityTag]] = None
 )
 
 /*
@@ -202,12 +205,18 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
   def config: Config
   def fromConfig(v: Config): P
 
-  final def name:  String           = config.getString(NAME)
-  final def rev:   Option[Revision] = {
+  final def name: String           = config.getString(NAME)
+  final def rev:  Option[Revision] = {
     if (config.hasPath(REV_ID)) Some(Revision(config.getString(REV_ID)))
     else None
   }
-  final def value: ConfigValue      = {
+
+  def debugId: String = rev match {
+    case None | Some(GitVersion.DEFAULT_REV) => name
+    case Some(r)                             => s"${name}+${r.value}"
+  }
+
+  final def value: ConfigValue = {
     if (config.hasPath(VALUE)) config.getValue(VALUE)
     else ConfigValueFactory.fromAnyRef("")
   }
@@ -237,6 +246,11 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
     else Visibility.default
   }
 
+  final def security: Option[SecurityTag] = {
+    if (config.hasPath(SECURITY)) config.getString(SECURITY).fromJson[SecurityTag].toOption
+    else None
+  }
+
   final def withName(name:     String):           P = patch(PatchProperty(name = Some(name)))
   final def withValue(value:   ConfigValue):      P = patch(PatchProperty(value = Some(value)))
   final def withValue(value:   String):           P = patch(PatchProperty(value = Some(value.toConfigValue)))
@@ -246,6 +260,10 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
 
   final def withVisibility(v: Visibility): P = {
     fromConfig(patchVisibility(config, Some(v)))
+  }
+
+  final def withSecurity(s: Option[SecurityTag]): P = {
+    fromConfig(patchSecurity(config, Some(s)))
   }
 
   final def patch(p: PatchProperty): P = {
@@ -263,7 +281,8 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
         patchOne[PropertyProvider](GenericProperty.PROVIDER, p.provider, _.value.toConfigValue)(_),
         patchOne[String](GenericProperty.DESCRIPTION, p.description, _.toConfigValue)(_),
         patchOne[InheritMode](GenericProperty.INHERIT_MODE, p.inheritMode, _.value.toConfigValue)(_),
-        (c: Config) => patchVisibility(c, p.visibility)
+        (c: Config) => patchVisibility(c, p.visibility),
+        (c: Config) => patchSecurity(c, p.security)
       ).foldLeft(config) { case (c, patchStep) => patchStep(c) }
     )
   }
@@ -281,6 +300,7 @@ object GenericProperty {
   val DESCRIPTION  = "description"
   val INHERIT_MODE = "inheritMode" // options: inheritance mode
   val VISIBILITY   = "visibility"  // optional, if missing Visibility.default
+  val SECURITY     = "security"    // optional, if missing None
 
   def getMode(config: Config):                            Option[InheritMode] = {
     if (config.hasPath(INHERIT_MODE)) {
@@ -424,10 +444,21 @@ object GenericProperty {
     case Some(v)                            => c.withValue(GenericProperty.VISIBILITY, v.entryName.toConfigValue)
   }
 
-  /**
-   * Merge two properties. newProp values will win.
-   * You should have checked before that "name" and "provider" are OK.
+  /*
+   * Patch security tags, with the semantic that Some(None) remove it
    */
+  final private def patchSecurity(c: Config, s: Option[Option[SecurityTag]]): Config = {
+    s match {
+      case None          => c
+      case Some(None)    => c.withoutPath(GenericProperty.SECURITY)
+      case Some(Some(v)) => c.withValue(GenericProperty.SECURITY, ConfigFactory.parseString(v.toJson).root())
+    }
+  }
+
+  /**
+     * Merge two properties. newProp values will win.
+     * You should have checked before that "name" and "provider" are OK.
+     */
   def mergeConfig(oldProp: Config, newProp: Config)(implicit defaultInheritMode: Option[InheritMode]): Config = {
     val mode           = ((GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
       case (mode, None) => mode
@@ -652,9 +683,10 @@ object GenericProperty {
       provider:    Option[PropertyProvider],
       description: Option[String],
       visibility:  Option[Visibility],
+      security:    Option[SecurityTag],
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): PureResult[Config] = {
-    parseValue(value).map(v => toConfig(name, rev, v, mode, provider, description, visibility, options))
+    parseValue(value).map(v => toConfig(name, rev, v, mode, provider, description, visibility, security, options))
   }
 
   /**
@@ -668,6 +700,8 @@ object GenericProperty {
       provider:    Option[PropertyProvider],
       description: Option[String],
       visibility:  Option[Visibility],
+      // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
+      security:    Option[SecurityTag], // optional for backward compat. None means "no tenant"
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): Config = {
     val m = new java.util.HashMap[String, ConfigValue]()
@@ -777,6 +811,14 @@ final case class NodeProperty(config: Config) extends GenericProperty[NodeProper
 
 object NodeProperty {
 
+  given HasSecurityTag[NodeProperty] with {
+    extension (a: NodeProperty) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.debugId
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeProperty = a.withSecurity(security)
+    }
+  }
+
   // the provider that manages inventory custom properties
   val customPropertyProvider: PropertyProvider = PropertyProvider("inventory")
 
@@ -794,10 +836,12 @@ object NodeProperty {
       mode:     Option[InheritMode],
       provider: Option[PropertyProvider]
   ): PureResult[NodeProperty] = {
-    GenericProperty.parseConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None, None).map(c => new NodeProperty(c))
+    GenericProperty
+      .parseConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None, None, None)
+      .map(c => new NodeProperty(c))
   }
   def apply(name: String, value: ConfigValue, mode: Option[InheritMode], provider: Option[PropertyProvider]): NodeProperty = {
-    new NodeProperty(GenericProperty.toConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None, None))
+    new NodeProperty(GenericProperty.toConfig(name, GitVersion.DEFAULT_REV, value, mode, provider, None, None, None))
   }
 
   def unserializeLdapNodeProperty(json: String): PureResult[NodeProperty] = {
@@ -813,6 +857,13 @@ final case class GroupProperty(config: Config) extends GenericProperty[GroupProp
 }
 
 object GroupProperty {
+  given HasSecurityTag[GroupProperty] with {
+    extension (a: GroupProperty) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.debugId
+      override def updateSecurityContext(security: Option[SecurityTag]): GroupProperty = a.withSecurity(security)
+    }
+  }
 
   /**
    * A builder with the logic to handle the value part.
@@ -829,7 +880,7 @@ object GroupProperty {
       mode:     Option[InheritMode],
       provider: Option[PropertyProvider]
   ): PureResult[GroupProperty] = {
-    GenericProperty.parseConfig(name, rev, value, mode, provider, None, None).map(c => new GroupProperty(c))
+    GenericProperty.parseConfig(name, rev, value, mode, provider, None, None, None).map(c => new GroupProperty(c))
   }
   def apply(
       name:     String,
@@ -838,7 +889,7 @@ object GroupProperty {
       mode:     Option[InheritMode],
       provider: Option[PropertyProvider]
   ): GroupProperty = {
-    new GroupProperty(GenericProperty.toConfig(name, rev, value, mode, provider, None, None))
+    new GroupProperty(GenericProperty.toConfig(name, rev, value, mode, provider, None, None, None))
   }
 
   def unserializeLdapGroupProperty(json: String): PureResult[GroupProperty] = {
@@ -954,6 +1005,14 @@ final case class GlobalParameter(config: Config) extends GenericProperty[GlobalP
 
 object GlobalParameter {
 
+  given HasSecurityTag[GlobalParameter] with {
+    extension (a: GlobalParameter) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.debugId
+      override def updateSecurityContext(security: Option[SecurityTag]): GlobalParameter = a.withSecurity(security)
+    }
+  }
+
   /**
    * A builder with the logic to handle the value part.
    *,
@@ -969,10 +1028,11 @@ object GlobalParameter {
       mode:        Option[InheritMode],
       description: String,
       provider:    Option[PropertyProvider],
-      visibility:  Visibility
+      visibility:  Visibility,
+      security:    Option[SecurityTag]
   ): PureResult[GlobalParameter] = {
     GenericProperty
-      .parseConfig(name, rev, value, mode, provider, Some(description), Some(visibility))
+      .parseConfig(name, rev, value, mode, provider, Some(description), Some(visibility), security)
       .map(c => new GlobalParameter(c))
   }
   def apply(
@@ -982,9 +1042,11 @@ object GlobalParameter {
       mode:        Option[InheritMode],
       description: String,
       provider:    Option[PropertyProvider],
-      visibility:  Visibility
+      visibility:  Visibility,
+      // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
+      security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
   ): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), Some(visibility)))
+    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), Some(visibility), security))
   }
 
 }

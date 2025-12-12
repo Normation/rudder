@@ -235,7 +235,8 @@ class RuleCategoryPopup(
             categoryName.get,
             categoryDescription.get,
             Nil,
-            isSystem = false
+            isSystem = false,
+            security = CurrentUser.nodePerms.toSecurityTag
           )
 
           val parent = RuleCategoryId(categoryParent.get)

@@ -39,7 +39,6 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
@@ -253,18 +252,21 @@ class CreateCategoryOrGroupPopup(
       }
       if (createCategory) {
         woNodeGroupRepository
-          .addGroupCategorytoCategory(
+          .addGroupCategoryToCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
               piName.get,
               piDescription.get,
               Nil,
-              Nil
+              Nil,
+              isSystem = false,
+              security = CurrentUser.nodePerms.toSecurityTag
             ),
-            NodeGroupCategoryId(piContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            piReasons.map(_.get)
+            NodeGroupCategoryId(piContainer.get)
+          )(using
+            CurrentUser.changeContext(
+              piReasons.map(_.get)
+            )
           )
           .toBox match {
           case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -282,14 +284,22 @@ class CreateCategoryOrGroupPopup(
         val isDynamic = piStatic.get match { case "dynamic" => true; case _ => false }
         val srvList   = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
         val nodeId    = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
-        val nodeGroup = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, _isEnabled = true)
+        val nodeGroup = NodeGroup(
+          nodeId,
+          piName.get,
+          piDescription.get,
+          Nil,
+          query,
+          isDynamic,
+          srvList,
+          _isEnabled = true,
+          security = CurrentUser.nodePerms.toSecurityTag
+        )
         woNodeGroupRepository
-          .create(
-            nodeGroup,
-            NodeGroupCategoryId(piContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            piReasons.map(_.get)
+          .create(nodeGroup, NodeGroupCategoryId(piContainer.get))(using
+            CurrentUser.changeContext(
+              piReasons.map(_.get)
+            )
           )
           .tap(_ => propertiesService.updateAll())
           .toBox match {

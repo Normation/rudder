@@ -61,6 +61,7 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.tenants.SecurityTag
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.ADD
@@ -72,6 +73,7 @@ import com.unboundid.ldif.LDIFModifyChangeRecord
 import com.unboundid.ldif.LDIFModifyDNChangeRecord
 import net.liftweb.common.*
 import scala.util.control.NonFatal
+import zio.json.*
 
 class LDAPDiffMapper(
     mapper:          LDAPEntityMapper,
@@ -83,6 +85,13 @@ class LDAPDiffMapper(
     b match {
       case null  => a
       case value => a.map(x => f(x, b))
+    }
+  }
+
+  private def updateSecurityTag[A](a: PureResult[A], b: String)(f: (A, Option[SecurityTag]) => A): PureResult[A] = {
+    b match {
+      case null  => a.map(x => f(x, None))
+      case value => value.fromJson[SecurityTag].left.map(Inconsistency(_)).flatMap(tag => a.map(x => f(x, Some(tag))))
     }
   }
 
@@ -179,6 +188,10 @@ class LDAPDiffMapper(
                            } yield {
                              d.copy(modTags = Some(SimpleDiff(oldCr.tags.tags, tags.tags)))
                            }
+                         case A_SECURITY_TAG     =>
+                           updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>
+                             d.copy(modSecurityTag = Some(SimpleDiff(oldCr.security, t)))
+                           }
                          case x                  => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                        }
                      }
@@ -213,12 +226,16 @@ class LDAPDiffMapper(
                 .getModifications()
                 .foldLeft(ModifyTechniqueDiff(oldTechnique.id, oldTechnique.techniqueName).asRight[RudderError]) { (diff, mod) =>
                   mod.getAttributeName() match {
-                    case A_IS_ENABLED =>
+                    case A_IS_ENABLED   =>
                       mod.getAttribute().getValueAsBoolean match {
                         case null  => diff
                         case value => diff.map(_.copy(modIsEnabled = Some(SimpleDiff(oldTechnique.isEnabled, value))))
                       }
-                    case x            => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
+                    case A_SECURITY_TAG =>
+                      updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>
+                        d.copy(modSecurityTag = Some(SimpleDiff(oldTechnique.security, t)))
+                      }
+                    case x              => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                   }
                 }
           } yield {
@@ -338,6 +355,10 @@ class LDAPDiffMapper(
                              } yield {
                                d.copy(modTags = Some(SimpleDiff(oldPi.tags, tags)))
                              }
+                           case A_SECURITY_TAG        =>
+                             updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>
+                               d.copy(modSecurityTag = Some(SimpleDiff(oldPi.security, t)))
+                             }
                            case x                     => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                          }
                        }
@@ -426,7 +447,7 @@ class LDAPDiffMapper(
                             case A_JSON_PROPERTY    =>
                               for {
                                 d    <- diff
-                                // ignore invalide properties, don't make group unusable
+                                // ignore invalid properties, don't make group unusable
                                 props = mod
                                           .getAttribute()
                                           .getValues
@@ -442,6 +463,10 @@ class LDAPDiffMapper(
                                           })
                               } yield {
                                 d.copy(modProperties = Some(SimpleDiff(oldGroup.properties, props)))
+                              }
+                            case A_SECURITY_TAG     =>
+                              updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>
+                                d.copy(modSecurityTag = Some(SimpleDiff(oldGroup.security, t)))
                               }
                             case x                  => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                           }
@@ -537,6 +562,10 @@ class LDAPDiffMapper(
                       )
                     }
                   case "overridable"       => diff // ignore, it's for cleaning
+                  case A_SECURITY_TAG      =>
+                    updateSecurityTag(diff, mod.getAttribute.getValue) { (d, t) =>
+                      d.copy(modSecurityTag = Some(SimpleDiff(oldParam.security, t)))
+                    }
                   case x                   => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                 }
               }

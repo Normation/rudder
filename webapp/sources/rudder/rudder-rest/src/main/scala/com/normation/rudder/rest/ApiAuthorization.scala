@@ -48,7 +48,7 @@ import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.AuthenticatedUser
 import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService

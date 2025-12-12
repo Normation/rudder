@@ -116,6 +116,7 @@ val globalParameter = GlobalParameter(config = {
     description = Some(
       "This parameter defines important properties for Rudder and must always be defined. You can't modify them directly, but you can override them by setting a group or node property named \"rudder\" with updated values."
     ),
+    security = None,
     visibility = Some(Visibility.Displayed)
   )
 })
@@ -137,6 +138,7 @@ val globalInconsistentParameter = GlobalParameter(config = {
     description = Some(
       "rudder system config"
     ),
+    security = None,
     visibility = Some(Visibility.Displayed)
   )
 })

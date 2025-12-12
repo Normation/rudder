@@ -496,7 +496,8 @@ object NodeConfigData {
       query = None,
       isDynamic = false,
       serverList = Set(rootId, node1.id, node2.id),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val g1:     NodeGroup                     = NodeGroup(
@@ -507,7 +508,8 @@ object NodeConfigData {
     query = None,
     isDynamic = false,
     serverList = Set(),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g2:     NodeGroup                     = {
     NodeGroup(
@@ -518,7 +520,8 @@ object NodeConfigData {
       query = None,
       isDynamic = false,
       serverList = Set(NodeId("root")),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val g3:     NodeGroup                     = {
@@ -530,7 +533,8 @@ object NodeConfigData {
       query = None,
       isDynamic = false,
       serverList = nodeIds.filter(_.value.toInt == 2),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val g4:     NodeGroup                     = {
@@ -542,7 +546,8 @@ object NodeConfigData {
       query = None,
       isDynamic = false,
       serverList = nodeIds.filter(_.value.toInt != 2),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val g5:     NodeGroup                     = NodeGroup(
@@ -553,7 +558,8 @@ object NodeConfigData {
     query = None,
     isDynamic = false,
     serverList = nodeIds.filter(_.value.toInt == 3),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g6:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("6")),
@@ -563,7 +569,8 @@ object NodeConfigData {
     query = None,
     isDynamic = false,
     serverList = nodeIds.filter(_.value.toInt == 5),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val groups: Set[(NodeGroupId, NodeGroup)] = Set(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
@@ -578,7 +585,8 @@ object NodeConfigData {
           name = "",
           description = "",
           isEnabled = true,
-          isSystem = false
+          isSystem = false,
+          security = None
         )
       )
     }))
@@ -589,7 +597,9 @@ object NodeConfigData {
     "",
     "",
     Nil,
-    fullRuleTargetInfos.values.toList
+    fullRuleTargetInfos.values.toList,
+    isSystem = false,
+    None
   )
 
   /**
@@ -605,19 +615,31 @@ object NodeConfigData {
   implicit def toRID(id:  String):           RuleId            = RuleId(RuleUid(id))
   implicit def toRCID(id: String):           RuleCategoryId    = RuleCategoryId(id)
   val t1:   Technique           = Technique(("t1", "1.0"), "t1", "t1", Nil, TrackerVariableSpec(None, None), SectionSpec("root"), None)
-  val d1:   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None, _isEnabled = true)
-  val d2:   Directive           = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce), _isEnabled = true)
-  val d3:   Directive           = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit), _isEnabled = true)
+  val d1:   Directive           = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None, _isEnabled = true, security = None)
+  val d2:   Directive           =
+    Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce), _isEnabled = true, security = None)
+  val d3:   Directive           =
+    Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit), _isEnabled = true, security = None)
   val fat1: FullActiveTechnique = FullActiveTechnique(
     "d1",
     "t1",
     SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00")),
     SortedMap(toTV("1.0") -> t1),
-    d1 :: d2 :: Nil
+    d1 :: d2 :: Nil,
+    security = None
   )
 
-  val directives: FullActiveTechniqueCategory =
-    FullActiveTechniqueCategory(ActiveTechniqueCategoryId("root"), "root", "root", Nil, fat1 :: Nil)
+  val directives: FullActiveTechniqueCategory = {
+    FullActiveTechniqueCategory(
+      ActiveTechniqueCategoryId("root"),
+      "root",
+      "root",
+      Nil,
+      fat1 :: Nil,
+      isSystem = false,
+      security = None
+    )
+  }
 
   /**
    *   ************************************************************************
@@ -625,8 +647,8 @@ object NodeConfigData {
    *   ************************************************************************
    */
 
-  val r1: Rule = Rule("r1", "r1", "cat1")
-  val r2: Rule = Rule("r2", "r2", "cat1")
+  val r1: Rule = Rule("r1", "r1", "cat1", security = None)
+  val r2: Rule = Rule("r2", "r2", "cat1", security = None)
 
 }
 
@@ -843,7 +865,8 @@ class TestNodeConfiguration(
     description = "root of group categories",
     subCategories = List(),
     targetInfos = List(),
-    isSystem = true
+    isSystem = true,
+    security = None
   )
 
   val groupLib: FullNodeGroupCategory = emptyGroupLib.copy(
@@ -860,34 +883,39 @@ class TestNodeConfiguration(
             isDynamic = true,
             serverList = Set(NodeId("root")),
             _isEnabled = true,
-            isSystem = false
+            isSystem = false,
+            security = None
           )
         ),
         name = "Serveurs [€ðŋ] cassés",
         description = "Liste de l'ensemble de serveurs cassés à réparer",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),
         name = "special:policyServer_root",
         description = "The root policy server",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTargetExceptPolicyServers),
         name = "special:all_exceptPolicyServers",
         description = "All groups without policy servers",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTarget),
         name = "special:all",
         description = "All nodes",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       )
     )
   )
@@ -973,7 +1001,8 @@ class TestNodeConfiguration(
     longDescription = "",
     priority = 5,
     _isEnabled = true,
-    isSystem = true
+    isSystem = true,
+    security = None
   )
 
   def common(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): BoundPolicyDraft = {
@@ -999,7 +1028,8 @@ class TestNodeConfiguration(
     longDescription = "",
     priority = 5,
     _isEnabled = true,
-    isSystem = false
+    isSystem = false,
+    security = None
   )
 
   // we have one rule with several system technique for root server config
@@ -1167,7 +1197,8 @@ class TestNodeConfiguration(
     "",
     None,
     "",
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   lazy val rpm:                              BoundPolicyDraft           = {
     val id = PolicyId(RuleId("rule2"), DirectiveId(DirectiveUid("directive2")), TechniqueVersionHelper("1.0"))

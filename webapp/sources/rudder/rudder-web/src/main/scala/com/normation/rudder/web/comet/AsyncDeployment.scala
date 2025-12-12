@@ -49,11 +49,11 @@ import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.CompilationStatus
 import com.normation.rudder.ncf.CompilationStatusAllSuccess
 import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.ncf.EditorTechniqueError
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService

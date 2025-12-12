@@ -45,6 +45,8 @@ import com.normation.rudder.domain.queries.CriterionComposition.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 
 /**
  * UUId type for Node Groups, so that they
@@ -66,7 +68,7 @@ final case class NodeGroupId(uid: NodeGroupUid, rev: Revision = GitVersion.DEFAU
 }
 object NodeGroupId {
 
-  // parse a directiveId which was serialize by "id.serialize"
+  // parse a directiveId which was serialized by "id.serialize"
   def parse(s: String): Either[String, NodeGroupId] = {
     GitVersion.parseUidRev(s).map {
       case (id, rev) =>
@@ -105,7 +107,7 @@ object NodeGroup {
   }
 
   /*
-   * Check if one criteria is a "subgroup" one and id matches
+   * Check if one criterion is a "subgroup" one and id matches
    */
   def isSubgroupByCriterion(subgroup: Seq[CriterionLine], group: NodeGroupId): Boolean = {
     subgroup.exists(line => {
@@ -113,7 +115,13 @@ object NodeGroup {
       line.value == group.serialize
     })
   }
-
+  given HasSecurityTag[NodeGroup] with {
+    extension (a: NodeGroup) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.debugString
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeGroup = a.copy(security = security)
+    }
+  }
 }
 
 /**
@@ -135,7 +143,8 @@ final case class NodeGroup(
     isDynamic:   Boolean = true,
     serverList:  Set[NodeId],
     _isEnabled:  Boolean,
-    isSystem:    Boolean = false
+    isSystem:    Boolean = false,
+    security:    Option[SecurityTag]
 ) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || isSystem

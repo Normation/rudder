@@ -42,14 +42,13 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueCategoryModType
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLogDetails
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.common.*
 
 class DeployOnTechniqueCallback(
@@ -61,15 +60,12 @@ class DeployOnTechniqueCallback(
   override def updatedTechniques(
       gitRev:            String,
       techniqueIds:      Map[TechniqueName, TechniquesLibraryUpdateType],
-      updatedCategories: Set[TechniqueCategoryModType],
-      modId:             ModificationId,
-      actor:             EventActor,
-      reason:            Option[String]
-  ): Box[Unit] = {
-    reason.foreach(msg => logger.info(msg))
+      updatedCategories: Set[TechniqueCategoryModType]
+  )(implicit cc: ChangeContext): Box[Unit] = {
+    cc.message.foreach(msg => logger.info(msg))
     if (techniqueIds.nonEmpty) {
       logger.debug(s"Ask for a policy update since technique library was reloaded (git revision tree: ${gitRev}")
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
     }
     Full({})
   }
@@ -84,20 +80,17 @@ class LogEventOnTechniqueReloadCallback(
   override def updatedTechniques(
       gitRev:            String,
       techniqueMods:     Map[TechniqueName, TechniquesLibraryUpdateType],
-      updatedCategories: Set[TechniqueCategoryModType],
-      modId:             ModificationId,
-      actor:             EventActor,
-      reason:            Option[String]
-  ): Box[Unit] = {
+      updatedCategories: Set[TechniqueCategoryModType]
+  )(implicit cc: ChangeContext): Box[Unit] = {
     eventLogRepos
       .saveEventLog(
-        modId,
+        cc.modId,
         ReloadTechniqueLibrary(
           EventLogDetails(
             modificationId = None,
-            principal = actor,
+            principal = cc.actor,
             details = ReloadTechniqueLibrary.buildDetails(gitRev, techniqueMods),
-            reason = reason
+            reason = cc.message
           )
         )
       )
@@ -115,11 +108,8 @@ class SyncCompilationStatusOnTechniqueCallback(
   override def updatedTechniques(
       gitRev:            String,
       techniqueIds:      Map[TechniqueName, TechniquesLibraryUpdateType],
-      updatedCategories: Set[TechniqueCategoryModType],
-      modId:             ModificationId,
-      actor:             EventActor,
-      reason:            Option[String]
-  ): Box[Unit] = {
+      updatedCategories: Set[TechniqueCategoryModType]
+  )(implicit cc: ChangeContext): Box[Unit] = {
     techniqueCompilationStatusService.getUpdateAndSync().toBox
   }
 }

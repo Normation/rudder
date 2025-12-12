@@ -73,7 +73,6 @@ import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.reports.ValueExpectedReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
@@ -95,6 +94,7 @@ import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import com.normation.rudder.services.servers.PolicyServerConfigurationObjects
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.Control.*
 import com.softwaremill.quicklens.*
@@ -1023,7 +1023,8 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
     configurationRepository.getDirectiveLibrary(ids).toBox
   }
-  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       = roNodeGroupRepository.getFullGroupLibrary().toBox
+  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       =
+    roNodeGroupRepository.getFullGroupLibrary()(using QueryContext.systemQC).toBox
   override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]        = parameterService.getAllGlobalParameters()
   override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode.toBox
   override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()

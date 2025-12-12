@@ -46,12 +46,12 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import net.liftweb.actor.*
 import net.liftweb.common.*

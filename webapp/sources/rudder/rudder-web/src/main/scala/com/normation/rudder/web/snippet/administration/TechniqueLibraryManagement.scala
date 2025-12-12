@@ -40,11 +40,10 @@ package com.normation.rudder.web.snippet.administration
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.config.ReasonBehavior.*
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.*
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
@@ -86,7 +85,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private val updatePTLibService          = RudderConfig.updateTechniqueLibrary
   private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
   private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
-  private val uuidGen                     = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
   private val treeUtilService             = RudderConfig.jsTreeUtilService
   private val userPropertyService         = RudderConfig.userPropertyService
@@ -412,12 +410,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                                  sourceactiveTechniqueId
                                )
             result          <- rwActiveTechniqueRepository
-                                 .move(
-                                   activeTechnique.id,
-                                   ActiveTechniqueCategoryId(destCatId),
-                                   ModificationId(uuidGen.newUuid),
-                                   CurrentUser.actor,
-                                   Some("User moved active technique from UI")
+                                 .move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId))(using
+                                   CurrentUser.changeContext(Some("User moved active technique from UI"))
                                  )
                                  .toBox ?~! "Error while trying to move active technique with requested id '%s' to category id '%s'"
                                  .format(sourceactiveTechniqueId, destCatId)
@@ -457,13 +451,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case (sourceCatId, destCatId) :: Nil =>
           (for {
             result <- rwActiveTechniqueRepository
-                        .move(
-                          ActiveTechniqueCategoryId(sourceCatId),
-                          ActiveTechniqueCategoryId(destCatId),
-                          None,
-                          ModificationId(uuidGen.newUuid),
-                          CurrentUser.actor,
-                          Some("User moved active technique category from UI")
+                        .move(ActiveTechniqueCategoryId(sourceCatId), ActiveTechniqueCategoryId(destCatId), None)(using
+                          CurrentUser.changeContext(Some("User moved active technique category from UI"))
                         )
                         .toBox ?~! "Error while trying to move category with requested id %s into new parent: %s".format(
                         sourceCatId,
@@ -519,11 +508,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                             ActiveTechniqueCategoryId(destCatId),
                             ptName,
                             techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                            policyTypes = PolicyTypes.rudderBase,
-                            modId = ModificationId(uuidGen.newUuid),
-                            actor = CurrentUser.actor,
-                            reason = Some("Active technique added by user from UI")
-                          )
+                            policyTypes = PolicyTypes.rudderBase
+                          )(using CurrentUser.changeContext(Some("Active technique added by user from UI")))
                           .toBox
                         ?~! errorMess.format(sourceactiveTechniqueId, destCatId))
             } yield {
@@ -756,13 +742,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             val msg =
               s"Disabling active technique '${activeTechnique.id.value}' because its technique '${activeTechnique.techniqueName.value}' was not found in the repository"
             rwActiveTechniqueRepository
-              .changeStatus(
-                activeTechnique.id,
-                status = false,
-                modId = ModificationId(uuidGen.newUuid),
-                actor = RudderEventActor,
-                reason = Some(msg)
-              )
+              .changeStatus(activeTechnique.id, status = false)(using ChangeContext.newForRudder(Some(msg)))
               .toBox match {
               case eb: EmptyBox =>
                 val e = eb ?~! s"Error when trying to disable active technique '${activeTechnique.id.value}'"
@@ -867,10 +847,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
     def initJs    = SetHtml("techniqueLibraryUpdateInterval", <span>{updateTecLibInterval}</span>)
     def process() = {
-      val createNotification = updatePTLibService.update(
-        ModificationId(uuidGen.newUuid),
-        CurrentUser.actor,
-        Some("Technique library reloaded by user")
+      val createNotification = updatePTLibService.update()(using
+        CurrentUser.changeContext(Some("Technique library reloaded by user"))
       ) match {
         case Full(x) =>
           JsRaw("""createSuccessNotification("The technique library was successfully reloaded")""") // JsRaw ok, const

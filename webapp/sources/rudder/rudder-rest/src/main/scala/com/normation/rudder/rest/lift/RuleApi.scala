@@ -59,10 +59,10 @@ import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*
+import com.normation.rudder.tenants.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.StringUuidGenerator
-import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import scala.collection.MapView
@@ -126,7 +126,7 @@ class RuleApi(
     val schema: API.CreateRule.type = API.CreateRule
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         restRule <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract rule parameters from request").toIO
         result   <- service.createRule(
@@ -209,6 +209,7 @@ class RuleApi(
   object CreateRuleCategory extends LiftApiModule0 {
     val schema:                                                                                                API.CreateRuleCategory.type = API.CreateRuleCategory
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
         res <- service.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
@@ -331,17 +332,7 @@ class RuleApiService14(
                         actor,
                         params.reason
                       )
-      id           <- workflow
-                        .startWorkflow(cr)(using
-                          ChangeContext(
-                            ModificationId(uuidGen.newUuid),
-                            actor,
-                            Instant.now(),
-                            params.reason,
-                            None,
-                            qc.nodePerms
-                          )
-                        )
+      id           <- workflow.startWorkflow(cr)(using qc.newCC(params.reason))
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()
       nodesLib     <- nodeFactRepos.getAll()
@@ -401,7 +392,7 @@ class RuleApiService14(
       clone:    Option[RuleId],
       params:   DefaultParams,
       actor:    EventActor
-  )(implicit qc: QueryContext): IOResult[JRRule] = {
+  )(implicit cc: ChangeContext): IOResult[JRRule] = {
     // decide if we should create a new rule or clone an existing one
     // Return the source rule to use in each case.
     def createOrClone(
@@ -411,7 +402,7 @@ class RuleApiService14(
         clone:    Option[RuleId],
         params:   DefaultParams,
         actor:    EventActor
-    ): IOResult[RuleChangeRequest] = {
+    )(implicit cc: ChangeContext): IOResult[RuleChangeRequest] = {
       clone match {
         case Some(sourceId) =>
           // clone existing rule
@@ -427,7 +418,7 @@ class RuleApiService14(
         case None =>
           // create from scratch - base rule is the same with default values
           val category       = restRule.categoryId.getOrElse("rootRuleCategory")
-          val baseRule       = Rule(ruleId, name, RuleCategoryId(category))
+          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.accessGrant.toSecurityTag)
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -462,8 +453,8 @@ class RuleApiService14(
       _      <- writeRule.create(change.newRule, modId, actor, params.reason)
 
       directiveLib <- readDirectives.getFullDirectiveLibrary()
-      groupLib     <- readGroup.getFullGroupLibrary()
-      nodesLib     <- nodeFactRepos.getAll()
+      groupLib     <- readGroup.getFullGroupLibrary()(using cc.toQC)
+      nodesLib     <- nodeFactRepos.getAll()(using cc.toQC)
       globalMode   <- getGlobalPolicyMode()
     } yield {
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
@@ -595,7 +586,8 @@ class RuleApiService14(
           s"<${rId.value}>",
           s"Category ${rId.value} has been deleted, please move rules to available categories",
           List(),
-          isSystem = false
+          isSystem = false,
+          security = None
         )
       })
   }
@@ -619,7 +611,8 @@ class RuleApiService14(
                             MISSING_RULE_CAT_ID,
                             "Rules with a missing/deleted category",
                             "Category that regroup all the missing categories",
-                            missingCatContent.toList
+                            missingCatContent.toList,
+                            security = None
                           )
       newChilds         = if (missingCatContent.isEmpty) root.childs else root.childs :+ missingCategory
       rootAndMissingCat = root.copy(childs = newChilds)
@@ -656,7 +649,8 @@ class RuleApiService14(
                                MISSING_RULE_CAT_ID,
                                "Rules with a missing/deleted category",
                                "Category that regroup all the missing categories",
-                               List.empty
+                               List.empty,
+                               security = None
                              )
                              Some((root, missingCategory))
                            } else {
@@ -725,10 +719,16 @@ class RuleApiService14(
       defaultId: () => String,
       params:    DefaultParams,
       actor:     EventActor
-  ): IOResult[JRCategoriesRootEntrySimple] = {
+  )(implicit cc: ChangeContext): IOResult[JRCategoriesRootEntrySimple] = {
     for {
       name     <- restData.name.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
-      update    = RuleCategory(RuleCategoryId(restData.id.getOrElse(defaultId())), name, restData.description.getOrElse(""), Nil)
+      update    = RuleCategory(
+                    RuleCategoryId(restData.id.getOrElse(defaultId())),
+                    name,
+                    restData.description.getOrElse(""),
+                    Nil,
+                    security = cc.accessGrant.toSecurityTag
+                  )
       parent    = restData.parent.getOrElse("rootRuleCategory")
       modId     = ModificationId(uuidGen.newUuid)
       _        <- writeRuleCategory.create(update, RuleCategoryId(parent), modId, actor, params.reason)

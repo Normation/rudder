@@ -43,15 +43,14 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.utils.DateFormaterService
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -125,17 +124,8 @@ class AcceptNode extends DispatchSnippet with Loggable {
     val modId = ModificationId(uuidGen.newUuid)
     // TODO : manage error message
     S.clearCurrentNotices
+    implicit val cc: ChangeContext = CurrentUser.changeContext().copy(modId = modId)
     listNode.foreach { id =>
-      implicit val cc: ChangeContext = {
-        ChangeContext(
-          modId,
-          CurrentUser.actor,
-          Instant.now(),
-          None,
-          S.request.map(_.remoteAddr).toOption,
-          CurrentUser.nodePerms
-        )
-      }
       val now    = System.currentTimeMillis
       val accept =
         newNodeManager.accept(id).toBox
@@ -168,16 +158,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
     val modId = ModificationId(uuidGen.newUuid)
     listNode.foreach { id =>
       newNodeManager
-        .refuse(id)(using
-          ChangeContext(
-            modId,
-            CurrentUser.actor,
-            Instant.now(),
-            None,
-            S.request.map(_.remoteAddr).toOption,
-            CurrentUser.nodePerms
-          )
-        )
+        .refuse(id)(using CurrentUser.changeContext().copy(modId = modId))
         .toBox match {
         case empty: EmptyBox =>
           val errorMsg = s"Refuse node '${id.value}' lead to Failure."

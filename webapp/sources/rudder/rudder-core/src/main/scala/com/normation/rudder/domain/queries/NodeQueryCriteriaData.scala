@@ -59,9 +59,9 @@ import com.normation.rudder.domain.queries.KeyValueComparator.HasKey
 import com.normation.rudder.domain.queries.KeyValueComparator as KVC
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.services.servers.InstanceIdService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService
 import java.time.LocalDate
 import java.time.ZonedDateTime

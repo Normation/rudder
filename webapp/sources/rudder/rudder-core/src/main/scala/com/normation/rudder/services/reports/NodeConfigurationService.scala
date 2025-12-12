@@ -45,9 +45,9 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.FindExpectedReportRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import zio.*
 import zio.syntax.*

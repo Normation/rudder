@@ -198,7 +198,8 @@ class CreateCloneDirectivePopup(
           name = directiveName.get,
           shortDescription = directiveShortDescription.get,
           _isEnabled = directive.isEnabled,
-          policyMode = directive.policyMode
+          policyMode = directive.policyMode,
+          security = CurrentUser.nodePerms.toSecurityTag
         )
       }
       roDirectiveRepository

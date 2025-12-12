@@ -38,11 +38,11 @@
 package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategoryService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full

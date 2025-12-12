@@ -43,6 +43,8 @@ import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import io.scalaland.chimney.Iso
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
@@ -520,7 +522,8 @@ final case class FullRuleTargetInfo(
     name:        String,
     description: String,
     isEnabled:   Boolean,
-    isSystem:    Boolean
+    isSystem:    Boolean,
+    security:    Option[SecurityTag]
 ) {
 
   def toTargetInfo: RuleTargetInfo = RuleTargetInfo(
@@ -530,4 +533,14 @@ final case class FullRuleTargetInfo(
     isEnabled = isEnabled,
     isSystem = isSystem
   )
+}
+
+object FullRuleTargetInfo {
+  given HasSecurityTag[FullRuleTargetInfo] with {
+    extension (a: FullRuleTargetInfo) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.target.target.target
+      override def updateSecurityContext(security: Option[SecurityTag]): FullRuleTargetInfo = a.copy(security = security)
+    }
+  }
 }

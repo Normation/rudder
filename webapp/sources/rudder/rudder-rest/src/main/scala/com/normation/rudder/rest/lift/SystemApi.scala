@@ -49,8 +49,6 @@ import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain.archives.ArchiveType
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
@@ -79,10 +77,11 @@ import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -650,11 +649,7 @@ class SystemApiService11(
 
   private def reloadTechniquesWrapper(req: Req)(implicit qc: QueryContext): Either[String, JField] = {
     ApiLogger.info(s"Trigger technique reload")
-    updatePTLibService.update(
-      ModificationId(uuidGen.newUuid),
-      qc.actor,
-      Some("Technique library reloaded from REST API")
-    ) match {
+    updatePTLibService.update()(using qc.newCC(Some("Technique library reloaded from REST API"))) match {
       case Full(_) => Right(JField("techniques", "Started"))
       case eb: EmptyBox =>
         val e = eb ?~! "An error occurred when updating the Technique library from file system"
@@ -900,14 +895,7 @@ class SystemApiService11(
   def archiveGroupDateRestore(req: Req, params: DefaultParams, dateTime: String)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveGroupDateRestore"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some(s"Restore archive for date time ${dateTime} requested from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Restore archive for date time ${dateTime} requested from REST API"))
 
     restoreByDatetime(
       req,
@@ -924,14 +912,7 @@ class SystemApiService11(
   def archiveDirectiveDateRestore(req: Req, params: DefaultParams, dateTime: String)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveDirectiveDateRestore"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some(s"Restore archive for date time ${dateTime} requested from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Restore archive for date time ${dateTime} requested from REST API"))
 
     restoreByDatetime(
       req,
@@ -948,14 +929,7 @@ class SystemApiService11(
   def archiveRuleDateRestore(req: Req, params: DefaultParams, dateTime: String)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveRuleDateRestore"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some(s"Restore archive for date time ${dateTime} requested from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Restore archive for date time ${dateTime} requested from REST API"))
 
     restoreByDatetime(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, dateTime, "rule") match {
       case Left(error)  => toJsonError(None, error)
@@ -966,14 +940,7 @@ class SystemApiService11(
   def archiveParameterDateRestore(req: Req, params: DefaultParams, dateTime: String)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveParameterDateRestore"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some(s"Restore archive for date time ${dateTime} requested from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Restore archive for date time ${dateTime} requested from REST API"))
 
     restoreByDatetime(
       req,
@@ -990,14 +957,7 @@ class SystemApiService11(
   def archiveFullDateRestore(req: Req, params: DefaultParams, dateTime: String)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveFullDateRestore"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some(s"Restore archive for date time ${dateTime} requested from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Restore archive for date time ${dateTime} requested from REST API"))
 
     restoreByDatetime(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, dateTime, "full") match {
       case Left(error)  => toJsonError(None, error)
@@ -1061,14 +1021,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreGroupsLatestArchive"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
     restoreLatestArchive(
       req,
       () => itemArchiveManager.getGroupLibraryTags,
@@ -1084,14 +1037,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreDirectivesLatestArchive"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestArchive(
       req,
@@ -1107,14 +1053,7 @@ class SystemApiService11(
   def restoreRulesLatestArchive(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "restoreRulesLatestArchive"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestArchive(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, "rules") match {
       case Left(error)  => toJsonError(None, error)
@@ -1125,14 +1064,7 @@ class SystemApiService11(
   def restoreParametersLatestArchive(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "restoreParametersLatestArchive"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestArchive(
       req,
@@ -1149,14 +1081,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreFullLatestArchive"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestArchive(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, "full") match {
       case Left(error)  => toJsonError(None, error)
@@ -1168,14 +1093,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreGroupsLatestCommit"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore archive from latest commit on HEAD required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore archive from latest commit on HEAD required from REST API"))
 
     restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups") match {
       case Left(error)  => toJsonError(None, error)
@@ -1187,14 +1105,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreDirectivesLatestCommit"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore archive from latest commit on HEAD required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore archive from latest commit on HEAD required from REST API"))
 
     restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "directives") match {
       case Left(error)  => toJsonError(None, error)
@@ -1206,14 +1117,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreRulesLatestCommit"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules") match {
       case Left(error)  => toJsonError(None, error)
@@ -1225,14 +1129,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreParametersLatestCommit"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestCommit(req, itemArchiveManager.importHeadParameters, "parameters") match {
       case Left(error)  => toJsonError(None, error)
@@ -1243,14 +1140,7 @@ class SystemApiService11(
 
     implicit val action   = "restoreFullLatestCommit"
     implicit val prettify = params.prettify
-    implicit val cc: ChangeContext = ChangeContext(
-      newModId,
-      qc.actor,
-      Instant.now(),
-      Some("Restore latest archive required from REST API"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some("Restore latest archive required from REST API"))
 
     restoreLatestCommit(req, itemArchiveManager.importHeadAll, "full") match {
       case Left(error)  => toJsonError(None, error)

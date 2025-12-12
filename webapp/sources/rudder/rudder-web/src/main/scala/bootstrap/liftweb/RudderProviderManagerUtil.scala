@@ -32,7 +32,7 @@ object RudderProviderManagerUtil {
           .authorizationTypes
           .toList
           .map(_.id),
-        details.nodePerms.value,
+        details.accessGrant.value,
         sessionId,
         provider,
         DateTime.now
