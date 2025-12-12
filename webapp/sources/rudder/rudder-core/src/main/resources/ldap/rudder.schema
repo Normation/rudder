@@ -402,13 +402,6 @@ attributetype ( RudderAttributes:352
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
 
-attributetype ( RudderAttributes:353
-  NAME 'serializedHeartbeatRunConfiguration'
-  DESC 'Serialization of the defined heartbeat configuration defined for that node'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
-  EQUALITY caseExactMatch
-  SUBSTR caseIgnoreSubstringsMatch )
-
 attributetype ( RudderAttributes:354
   NAME 'agentReportingProtocol'
   DESC 'Protocol used by agent for reporting'
@@ -449,7 +442,7 @@ objectclass ( RudderObjectClasses:1
   STRUCTURAL
   MUST ( nodeId $ cn $ isSystem )
   MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval $ securityTag $
-        serializedHeartbeatRunConfiguration $ agentReportingProtocol $ policyMode $ state $ isBroken) )
+        agentReportingProtocol $ policyMode $ state $ isBroken) )
 
 objectclass ( RudderObjectClasses:2
   NAME 'rudderPolicyServer'

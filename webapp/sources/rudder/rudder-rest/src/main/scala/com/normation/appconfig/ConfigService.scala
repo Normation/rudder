@@ -49,7 +49,6 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
-import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -130,15 +129,12 @@ trait ReadConfigService {
     for {
       name     <- rudder_compliance_mode_name()
       modeName <- ComplianceModeName.parse(name).toIO
-      period   <- rudder_compliance_heartbeatPeriod()
     } yield {
-      GlobalComplianceMode(modeName, period)
+      GlobalComplianceMode(modeName)
     }
   }
 
   def rudder_compliance_mode_name(): IOResult[String]
-
-  def rudder_compliance_heartbeatPeriod(): IOResult[Int]
 
   /**
    * Policy mode: See PolicyMode class for more details
@@ -261,21 +257,10 @@ trait UpdateConfigService {
    * Set the compliance mode
    */
   def set_rudder_compliance_mode(mode: ComplianceMode, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
-    for {
-      _ <- set_rudder_compliance_mode_name(mode.name, actor, reason)
-      u <- mode.name match {
-             case ChangesOnly.name => set_rudder_compliance_heartbeatPeriod(mode.heartbeatPeriod, actor, reason)
-             case _                => ZIO.unit
-           }
-    } yield {
-      u
-    }
-
+    set_rudder_compliance_mode_name(mode.name, actor, reason)
   }
 
   def set_rudder_compliance_mode_name(name: String, actor: EventActor, reason: Option[String]): IOResult[Unit]
-
-  def set_rudder_compliance_heartbeatPeriod(frequency: Int, actor: EventActor, reason: Option[String]): IOResult[Unit]
 
   /**
    * Report protocol
@@ -379,8 +364,7 @@ class GenericConfigService(
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
        send.server.metrics=none
-       rudder.compliance.mode=${FullCompliance.name}
-       rudder.compliance.heartbeatPeriod=1
+       rudder.compliance.mode=${ComplianceModeName.FullCompliance.name}
        rudder.syslog.protocol.disabled=false
        rudder.report.protocol.default=SYSLOG
        rudder.syslog.protocol.transport=UDP
@@ -625,15 +609,6 @@ class GenericConfigService(
   def set_rudder_compliance_mode_name(value: String, actor: EventActor, reason: Option[String]): IOResult[Unit]   = {
     val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType, actor, reason)
     save("rudder_compliance_mode", value, Some(info))
-  }
-
-  /**
-   * Heartbeat frequency mode
-   */
-  def rudder_compliance_heartbeatPeriod():                                                          IOResult[Int]  = getIO("rudder_compliance_heartbeatPeriod")
-  def set_rudder_compliance_heartbeatPeriod(value: Int, actor: EventActor, reason: Option[String]): IOResult[Unit] = {
-    val info = ModifyGlobalPropertyInfo(ModifyHeartbeatPeriodEventType, actor, reason)
-    save("rudder_compliance_heartbeatPeriod", value, Some(info))
   }
 
   def rudder_policy_mode_name():                                                                IOResult[PolicyMode] = get[String]("rudder_policy_mode_name").flatMap(PolicyMode.parse(_).toIO)

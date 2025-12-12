@@ -45,7 +45,6 @@ import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -66,27 +65,6 @@ class NodeEventLogFormatV6Test extends Specification {
 
   // we only want to unserialize node properties - all these null, a piece of beauty
   val eventDetails = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val event_32_NodeHeartbeatModified: Elem = <entry><node changeType="modify" fileFormat="6">
-    <id>59e66fe7-7f0e-497d-8055-a103116b4a08</id>
-    <heartbeat><from/><to><override>true</override><period>20</period></to></heartbeat>
-  </node></entry>
-
-  val nodeHeartbeatModified: ModifyNodeDiff = ModifyNodeDiff(
-    NodeId("59e66fe7-7f0e-497d-8055-a103116b4a08"),
-    modHeartbeat = Some(
-      SimpleDiff(
-        None,
-        Some(HeartbeatConfiguration(overrides = true, heartbeatPeriod = 20))
-      )
-    ),
-    modAgentRun = None,
-    modProperties = None,
-    modPolicyMode = None,
-    modKeyValue = None,
-    modKeyStatus = None,
-    modNodeState = None,
-    modDocumentation = None
-  )
 
   val event_32_NodePropertiesModified: Elem = <entry><node changeType="modify" fileFormat="6">
     <id>root</id>
@@ -101,7 +79,6 @@ class NodeEventLogFormatV6Test extends Specification {
 
   val nodePropertiesModified: ModifyNodeDiff = ModifyNodeDiff(
     NodeId("root"),
-    modHeartbeat = None,
     modAgentRun = None,
     modProperties = Some(
       SimpleDiff(
@@ -138,7 +115,6 @@ class NodeEventLogFormatV6Test extends Specification {
 
   val nodeAgentRunPeriodModified: ModifyNodeDiff = ModifyNodeDiff(
     NodeId("dd702a09-6cf9-4d22-9f2d-a6e1f1df63ea"),
-    modHeartbeat = None,
     modAgentRun = Some(
       SimpleDiff(
         Some(AgentRunInterval(None, 15, 1, 0, 5)),
@@ -154,9 +130,6 @@ class NodeEventLogFormatV6Test extends Specification {
   )
 
   "Current EventTypeFactory" should {
-    "identify NodeHeartbeatModified as NodeModified event" in {
-      EventTypeFactory("NodeHeartbeatModified") must beEqualTo(ModifyNodeEventType)
-    }
     "identify NodePropertiesModified as NodeModified event" in {
       EventTypeFactory("NodePropertiesModified") must beEqualTo(ModifyNodeEventType)
     }
@@ -172,12 +145,6 @@ class NodeEventLogFormatV6Test extends Specification {
     "correctly read past agent run modification" in {
       eventDetails.getModifyNodeDetails(event_32_NodeAgentRunPeriodModified) must beEqualTo(
         Full(nodeAgentRunPeriodModified)
-      )
-    }
-
-    "correctly read past heartbeat modification" in {
-      eventDetails.getModifyNodeDetails(event_32_NodeHeartbeatModified) must beEqualTo(
-        Full(nodeHeartbeatModified)
       )
     }
 

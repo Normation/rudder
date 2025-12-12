@@ -146,11 +146,6 @@ class LDAPEntityMapper(
       node.properties.collect { case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData }*
     )
 
-    node.nodeReportingConfiguration.heartbeatConfiguration match {
-      case Some(heatbeatConfiguration) =>
-        entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, heatbeatConfiguration.toJson)
-      case _                           => // Save nothing if missing
-    }
     entry.addValues(A_POLICY_MODE, node.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue))
 
     node.securityTag.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
@@ -165,7 +160,6 @@ class LDAPEntityMapper(
         id                     <- nodeDit.NODES.NODE.idFromDn(e.dn).toRight(Inconsistency(s"Bad DN found for a Node: ${e.dn}"))
         date                   <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_OBJECT_CREATION_DATE)
         agentRunInterval        = e(A_SERIALIZED_AGENT_RUN_INTERVAL).flatMap(_.fromJson[AgentRunInterval].toOption)
-        heartbeatConf           = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).flatMap(_.fromJson[HeartbeatConfiguration].toOption)
         agentReportingProtocol <- e(A_AGENT_REPORTING_PROTOCOL) match {
                                     case None        => Right(None)
                                     case Some(value) => AgentReportingProtocol.parse(value).map(Some(_))
@@ -194,7 +188,6 @@ class LDAPEntityMapper(
           date.instant,
           ReportingConfiguration(
             agentRunInterval,
-            heartbeatConf,
             agentReportingProtocol
           ),
           properties,
@@ -260,7 +253,7 @@ class LDAPEntityMapper(
 
                     creationDate = Instant.ofEpochMilli(0), // we don't know anymore the acceptation date
 
-                    ReportingConfiguration(None, None, None), // we don't know anymore agent run frequency
+                    ReportingConfiguration(None, None), // we don't know anymore agent run frequency
 
                     properties = Nil, // we forgot node properties
 

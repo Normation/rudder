@@ -240,8 +240,7 @@ bundle agent startup
   methods:
     # Should we send a message stating this agent is starting up?
     # Always do it in "full_compliance" mode
-    # In other modes, only do it here if we need to send it as a "heartbeat", that is if it hasn't already been sent recently enough
-    full_compliance|!heartbeat_sent::
+    full_compliance::
       "Send start message"
         usebundle => startExecution,
         action    => immediate;

@@ -1,19 +1,16 @@
-module ComplianceMode.View exposing (..)
+module ReportingMode.View exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (class, type_, value, checked, id, disabled, for)
 import Html.Events exposing (onClick, onCheck)
-import List
-import String
-
-import ComplianceMode.DataTypes exposing (..)
+import ReportingMode.DataTypes exposing (..)
 
 
 view : Model -> Html Msg
 view model =
   let
     disableSave =
-      ( model.newMode == model.complianceMode || case model.newMode of
+      ( model.newMode == model.reportingMode || case model.newMode of
         ErrorMode s -> True
         _ -> False
       )
@@ -41,7 +38,7 @@ view model =
           ]
         ]
       ]
-    , ( case model.complianceMode of
+    , ( case model.reportingMode of
       ErrorMode m ->
         div [ class "alert alert-danger"]
         [ i[class "fa fa-exclamation-triangle"][]

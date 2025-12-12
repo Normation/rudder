@@ -61,7 +61,6 @@ object NodeInfoService {
       A_STATE,
       A_IS_SYSTEM,
       A_SERIALIZED_AGENT_RUN_INTERVAL,
-      A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION,
       A_NODE_PROPERTY,
       A_POLICY_MODE, // machine inventory
       // MachineUuid

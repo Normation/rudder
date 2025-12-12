@@ -880,8 +880,7 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
             "modesConfig": {
               "globalComplianceMode": {
                 "GlobalComplianceMode": {
-                  "mode": "full-compliance",
-                  "heartbeatPeriod": 30
+                  "mode": "full-compliance"
                 }
               },
               "globalAgentRun": {
