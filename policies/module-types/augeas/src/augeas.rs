@@ -3,16 +3,14 @@
 
 use crate::{
     AugeasParameters, RUDDER_LENS_LIB,
-    dsl::{
-        error::format_report,
-        interpreter::{
-            CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
-        },
+    dsl::interpreter::{
+        CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
     },
 };
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
+use rudder_module_type::cli::{FileError, FileRange};
 use rudder_module_type::{
     CheckApplyResult, Outcome, PolicyMode, backup::Backup, diff::diff, rudder_debug, rudder_error,
     rudder_info,
@@ -164,10 +162,11 @@ impl Augeas {
         // We have loaded the target, let's check for parsing errors.
         if let Some(e) = aug.tree_error(format!("/augeas/{path_str}"))? {
             if let (Some(pos), Some(content)) = (&e.position, current_content.as_ref()) {
-                let report = format_report(
-                    &format!("Load error: {}", e.kind),
+                let message = format!("Load error: {}", e.kind);
+                let report = FileError::new(
+                    &message,
                     &e.message,
-                    pos.position..(pos.position + 1),
+                    FileRange::Char(pos.position..(pos.position + 1)),
                     &path_str,
                     content,
                     None,
@@ -560,7 +559,7 @@ mod tests {
                 None,
             )
             .err().unwrap();
-        assert!(r.to_string().starts_with("Error: Load error: parse_failed"));
+        assert!(r.to_string().contains("Load error: parse_failed"));
         fs::remove_dir_all(d).unwrap();
     }
 }
