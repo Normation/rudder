@@ -38,6 +38,8 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.rudder.domain.categories.ItemCategory
+import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 
 final case class ActiveTechniqueCategoryId(value: String) extends AnyVal
 
@@ -47,5 +49,7 @@ final case class ActiveTechniqueCategory(
     description: String,
     children:    List[ActiveTechniqueCategoryId],
     items:       List[ActiveTechniqueId],
-    isSystem:    Boolean = false // by default, we can't create system Category
-) extends ItemCategory[ActiveTechniqueCategoryId, ActiveTechniqueId] {}
+    isSystem:    Boolean,            // by default, we can't create system Category
+    // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
+    security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
+) extends ItemCategory[ActiveTechniqueCategoryId, ActiveTechniqueId] with HasSecurityContext {}

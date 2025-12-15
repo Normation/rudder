@@ -36,11 +36,11 @@
  */
 package com.normation.rudder.api
 
+import com.normation.rudder.tenants.NodeSecurityContext
 import cats.data.*
 import cats.implicits.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest

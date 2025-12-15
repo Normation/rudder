@@ -248,7 +248,7 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       cc:               ChangeContext,
       availableTenants: Set[TenantId]
   ): Either[RudderError, CoreNodeFact] = {
-    if (cc.nodePerms.canSee(existing.rudderSettings.security)(using availableTenants)) {
+    if (cc.nodePerms.canSee(existing.security)(using availableTenants)) {
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case

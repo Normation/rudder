@@ -49,10 +49,10 @@ import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.api.HttpAction.POST
 import com.normation.rudder.api.HttpAction.PUT
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.EndpointSchema.syntax.*
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider

@@ -57,29 +57,29 @@ class TestCheckMergeDivergence extends Specification {
   implicit def toDirectiveId(s: String): DirectiveId = DirectiveId(DirectiveUid(s))
 
   "We should avoid merge divergence with same directive" >> {
-    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
-    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
+    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None, security = None)
+    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None, security = None)
     implicit val changeRequestId = 1
 
     CheckDivergenceForMerge.compareDirectives(d1_orig, d1_div) must beTrue
   }
   "We should have a merge divergence with a difference in parameter" >> {
-    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
-    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("foo2")), "d1", "d1", None)
+    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None, security = None)
+    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("foo2")), "d1", "d1", None, security = None)
     implicit val changeRequestId = 1
 
     CheckDivergenceForMerge.compareDirectives(d1_orig, d1_div) must beFalse
   }
   "We should have avoid divergence with space differences in parameters" >> {
-    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1 bar2")), "d1", "d1", None)
-    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1   bar2")), "d1", "d1", None)
+    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1 bar2")), "d1", "d1", None, security = None)
+    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1   bar2")), "d1", "d1", None, security = None)
     implicit val changeRequestId = 1
 
     CheckDivergenceForMerge.compareDirectives(d1_orig, d1_div) must beTrue
   }
   "We should have avoid divergence with line feed differences in parameters" >> {
-    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1\n\rbar2")), "d1", "d1", None)
-    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1\nbar2")), "d1", "d1", None)
+    val d1_orig                  = Directive("d1", "1.0", Map("foo1" -> Seq("bar1\n\rbar2")), "d1", "d1", None, security = None)
+    val d1_div                   = Directive("d1", "1.0", Map("foo1" -> Seq("bar1\nbar2")), "d1", "d1", None, security = None)
     implicit val changeRequestId = 1
 
     CheckDivergenceForMerge.compareDirectives(d1_orig, d1_div) must beTrue

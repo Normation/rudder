@@ -43,6 +43,7 @@ import com.normation.appconfig.ConfigRepository
 import com.normation.appconfig.GenericConfigService
 import com.normation.appconfig.ModifyGlobalPropertyInfo
 import com.normation.cfclerk.domain.TechniqueVersionHelper
+
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -95,6 +96,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.Argon2EncoderParams
@@ -113,15 +115,19 @@ import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
+
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.syntax.*
+
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
+
 import zio.*
 import zio.System as _
 import zio.Tag as _

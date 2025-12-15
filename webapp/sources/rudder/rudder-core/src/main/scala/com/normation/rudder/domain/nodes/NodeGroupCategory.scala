@@ -39,6 +39,8 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.rudder.domain.policies.RuleTargetInfo
+import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 
 /**
  * The Id for the server group category
@@ -59,5 +61,6 @@ final case class NodeGroupCategory(
     description: String,
     children:    List[NodeGroupCategoryId],
     items:       List[RuleTargetInfo],
-    isSystem:    Boolean = false
-) extends ItemCategory[NodeGroupCategoryId, RuleTargetInfo]
+    isSystem:    Boolean,
+    security:    Option[SecurityTag]
+) extends ItemCategory[NodeGroupCategoryId, RuleTargetInfo] with HasSecurityContext

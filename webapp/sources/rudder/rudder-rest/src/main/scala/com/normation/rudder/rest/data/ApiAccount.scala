@@ -50,9 +50,9 @@ import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.TokenGenerator
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.ldap.JsonApiAcl
 import com.normation.rudder.rest.data.NewRestApiAccount.transformNewRestApiAccount
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*

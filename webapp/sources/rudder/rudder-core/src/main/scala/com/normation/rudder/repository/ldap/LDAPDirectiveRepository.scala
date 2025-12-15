@@ -60,6 +60,7 @@ import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.ActiveTechniqueCategoryOrdering
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.EventLogRepository
@@ -576,7 +577,8 @@ class RoLDAPDirectiveRepository(
         acceptationDatetimes = SortedMap(at.acceptationDatetimes.versions.toSeq*),
         directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil),
         isEnabled = at.isEnabled,
-        policyTypes = at.policyTypes
+        policyTypes = at.policyTypes,
+        security = at.security
       )
     }
 
@@ -605,7 +607,8 @@ class RoLDAPDirectiveRepository(
             )
           )
         },
-        isSystem = atc.isSystem
+        isSystem = atc.isSystem,
+        security = atc.security
       )
     }
 
@@ -1169,7 +1172,7 @@ class WoLDAPDirectiveRepository(
       modId:         ModificationId,
       actor:         EventActor,
       reason:        Option[String]
-  ): IOResult[ActiveTechnique] = {
+  )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
     // check if the technique is already in user lib, and if the category exists
     userLibMutex.writeLock(for {
       con               <- ldap
@@ -1186,7 +1189,8 @@ class WoLDAPDirectiveRepository(
                              ActiveTechniqueId(techniqueName.value),
                              techniqueName,
                              AcceptationDateTime(versions.map(x => x -> DateTime.now(DateTimeZone.UTC)).toMap),
-                             policyTypes = policyTypes
+                             policyTypes = policyTypes,
+                             security = cc.nodePerms.toSecurityTag
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
       result            <- con.save(uptEntry, removeMissingAttributes = true)

@@ -51,9 +51,11 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.PolicyTypes
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import net.liftweb.common.Box
@@ -97,7 +99,7 @@ class TechniqueAcceptationUpdater(
   ): Box[Unit] = {
 
     // id is the directory name, name is the display name in xml
-    final case class CategoryInfo(id: String, name: String, description: String)
+    final case class CategoryInfo(id: String, name: String, description: String, isSystem: Boolean, security: Option[SecurityTag])
 
     /*
      * return the category id in which we want to create the technique
@@ -121,7 +123,7 @@ class TechniqueAcceptationUpdater(
                 case None      =>
                   // create and go deeper
                   createCategories(
-                    sourcesCatNames.map(x => CategoryInfo(x.id, x.name, x.description)),
+                    sourcesCatNames.map(x => CategoryInfo(x.id, x.name, x.description, x.isSystem, x.security)),
                     (existings.id, existings.name)
                   )
                 case Some(cat) =>
@@ -149,7 +151,15 @@ class TechniqueAcceptationUpdater(
         case Nil          => parentCategory
         case info :: tail =>
           // to maintain sync, active techniques categories have the same ID than the corresponding technique category
-          val cat = ActiveTechniqueCategory(ActiveTechniqueCategoryId(info.id), info.name, info.description, List(), List())
+          val cat = ActiveTechniqueCategory(
+            ActiveTechniqueCategoryId(info.id),
+            info.name,
+            info.description,
+            List(),
+            List(),
+            isSystem = false,
+            security = ???
+          )
 
           rwActiveTechniqueRepo.addActiveTechniqueCategory(cat, parentCategory._1, modId, actor, reason).either.runNow match {
             case Left(err) =>
@@ -220,7 +230,8 @@ class TechniqueAcceptationUpdater(
                   cat.description,
                   Nil,
                   Nil,
-                  cat.isSystem
+                  cat.isSystem,
+                  cat.security
                 ),
                 toActiveCatId(parentId),
                 modId,
@@ -260,7 +271,8 @@ class TechniqueAcceptationUpdater(
                             cat.description,
                             Nil,
                             Nil,
-                            cat.isSystem
+                            cat.isSystem,
+                            cat.security
                           ),
                           toActiveCatId(i.parentId),
                           modId,
@@ -378,7 +390,9 @@ class TechniqueAcceptationUpdater(
                                            // now, for each category in reference library, look if it exists in target library, and recurse on children
                                            // tail of cats, because if root, we want an empty list to return immediatly in findCategory
                                            findCategory(
-                                             referenceCats.tail.map(x => CategoryInfo(x.id.name.value, x.name, x.description)),
+                                             referenceCats.tail.map(x =>
+                                               CategoryInfo(x.id.name.value, x.name, x.description, x.isSystem, x.security)
+                                             ),
                                              techLib
                                            )
                                          }
@@ -394,7 +408,7 @@ class TechniqueAcceptationUpdater(
                                              modId,
                                              actor,
                                              reason
-                                           )
+                                           )(using ChangeContext.newForRudder(None, None))
                                            .chainError(
                                              s"Error when automatically activating technique '${name.value}'"
                                            )

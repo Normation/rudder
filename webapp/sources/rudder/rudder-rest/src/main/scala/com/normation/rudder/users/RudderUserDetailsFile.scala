@@ -46,8 +46,8 @@ import com.normation.errors.Unexpected
 import com.normation.rudder.*
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.users.*
 import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.utils.XmlSafe

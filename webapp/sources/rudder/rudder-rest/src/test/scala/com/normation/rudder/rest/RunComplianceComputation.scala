@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import better.files.File
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.errors
+
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -69,10 +70,14 @@ import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.reports.ReportingServiceImpl2
+import com.normation.rudder.tenants.SecurityTag
+
 import com.normation.zio.*
 import org.joda.time.DateTime
+
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
+
 import zio.*
 import zio.syntax.*
 

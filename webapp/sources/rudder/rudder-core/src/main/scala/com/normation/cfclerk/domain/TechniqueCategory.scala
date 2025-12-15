@@ -38,12 +38,17 @@
 package com.normation.cfclerk.domain
 
 import better.files.File
+
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.XmlSafe
+
 import scala.collection.SortedSet
 import scala.xml.Elem
+
 import zio.json.*
 
 /**
@@ -58,7 +63,7 @@ final case class TechniqueCategoryName(value: String) extends AnyVal
  * Just the name / description of a technique category without all the
  * parent / subcategories / techniques stuff.
  */
-final case class TechniqueCategoryMetadata(name: String, description: String, isSystem: Boolean)
+final case class TechniqueCategoryMetadata(name: String, description: String, isSystem: Boolean, security: Option[SecurityTag]) extends HasSecurityContext
 
 object TechniqueCategoryMetadata {
   implicit val codecTechniqueCategoryMetadata: JsonCodec[TechniqueCategoryMetadata] = DeriveJsonCodec.gen
@@ -69,7 +74,9 @@ object TechniqueCategoryMetadata {
       metadata.name,
       metadata.description,
       Nil,
-      Nil
+      Nil,
+      metadata.isSystem,
+      metadata.security
     )
 
     def toXml: Elem = {
@@ -77,6 +84,7 @@ object TechniqueCategoryMetadata {
         <name>{metadata.name}</name>
         <description>{metadata.description}</description>
         {if (metadata.isSystem) <system>true</system> else xml.NodeSeq.Empty}
+        {SecurityTag.toXml(metadata.security)}
       </xml>
     }
   }
@@ -98,8 +106,9 @@ object TechniqueCategoryMetadata {
     val name        = nonEmpty((xml \\ "name").text).getOrElse(defaultName)
     val description = nonEmpty((xml \\ "description").text).getOrElse("")
     val isSystem    = (nonEmpty((xml \\ "system").text).getOrElse("false")).equalsIgnoreCase("true")
+    val security    = SecurityTag.fromXml(xml)
 
-    TechniqueCategoryMetadata(name, description, isSystem = isSystem)
+    TechniqueCategoryMetadata(name, description, isSystem = isSystem, security)
   }
 
   // the default file name for category metadata.
@@ -203,7 +212,7 @@ object TechniqueCategoryId {
  * It's a code representation of the file system  hierarchy.
  *
  */
-sealed trait TechniqueCategory {
+sealed trait TechniqueCategory extends HasSecurityContext {
   type A <: TechniqueCategoryId
   def id: A
   val name:           String
@@ -211,6 +220,7 @@ sealed trait TechniqueCategory {
   val subCategoryIds: Set[SubTechniqueCategoryId]
   val techniqueIds:   SortedSet[TechniqueId]
   val isSystem:       Boolean
+  val security:       Option[SecurityTag]
 
   require(
     subCategoryIds.forall(sc => sc.parentId == id),
@@ -227,7 +237,8 @@ final case class RootTechniqueCategory(
     description:    String,
     subCategoryIds: Set[SubTechniqueCategoryId] = Set(),
     techniqueIds:   SortedSet[TechniqueId] = SortedSet(),
-    isSystem:       Boolean = false
+    isSystem:       Boolean,
+    security:       Option[SecurityTag]
 ) extends TechniqueCategory {
   type A = RootTechniqueCategoryId.type
   override lazy val id: A = RootTechniqueCategoryId
@@ -239,7 +250,8 @@ final case class SubTechniqueCategory(
     description:     String,
     subCategoryIds:  Set[SubTechniqueCategoryId] = Set(),
     techniqueIds:    SortedSet[TechniqueId] = SortedSet(),
-    isSystem:        Boolean = false
+    isSystem:        Boolean,
+    security:        Option[SecurityTag]
 ) extends TechniqueCategory {
   type A = SubTechniqueCategoryId
 }

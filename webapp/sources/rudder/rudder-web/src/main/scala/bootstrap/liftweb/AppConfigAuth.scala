@@ -44,8 +44,8 @@ import com.normation.rudder.Role
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.ProviderRoleExtension
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.users.*
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*

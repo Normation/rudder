@@ -49,6 +49,9 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.softwaremill.quicklens.*
@@ -90,15 +93,17 @@ final case class FullActiveTechnique(
     techniques:           SortedMap[TechniqueVersion, Technique],
     directives:           List[Directive],
     isEnabled:            Boolean = true,
-    policyTypes:          PolicyTypes = PolicyTypes.rudderBase
-) {
+    policyTypes:          PolicyTypes = PolicyTypes.rudderBase,
+    security:             Option[SecurityTag]
+) extends HasSecurityContext {
   def toActiveTechnique(): ActiveTechnique = ActiveTechnique(
     id = id,
     techniqueName = techniqueName,
     acceptationDatetimes = AcceptationDateTime(acceptationDatetimes.toMap),
     directives = directives.map(_.id.uid),
     _isEnabled = isEnabled,
-    policyTypes = policyTypes
+    policyTypes = policyTypes,
+    security
   )
 
   val newestAvailableTechnique: Option[Technique] = techniques.toSeq.sortBy(_._1).reverse.map(_._2).headOption
@@ -144,8 +149,9 @@ final case class FullActiveTechniqueCategory(
     description:      String,
     subCategories:    List[FullActiveTechniqueCategory],
     activeTechniques: List[FullActiveTechnique],
-    isSystem:         Boolean = false // by default, we can't create system Category
-) {
+    isSystem:         Boolean,
+    security:         Option[SecurityTag]
+) extends HasSecurityContext {
 
   val allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)] = (
     subCategories.flatMap(_.allDirectives).toMap
@@ -231,7 +237,8 @@ final case class FullActiveTechniqueCategory(
       description,
       subCategories.map(_.id),
       activeTechniques.map(_.id),
-      isSystem
+      isSystem,
+      security
     )
   }
 
@@ -275,7 +282,7 @@ final case class FullActiveTechniqueCategory(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       techniques:    Seq[Technique]
-  ): FullActiveTechniqueCategory = {
+  )(implicit cc: ChangeContext): FullActiveTechniqueCategory = {
     if (this.id == categoryId) {
       // only keep technique with the good name
       val techs    = techniques.filter(_.id.name == techniqueName)
@@ -291,7 +298,8 @@ final case class FullActiveTechniqueCategory(
             SortedMap[TechniqueVersion, Technique]() ++ newTechs,
             Nil,
             isEnabled = true,
-            policyTypes = PolicyTypes.rudderBase
+            policyTypes = PolicyTypes.rudderBase,
+            security = cc.nodePerms.toSecurityTag // inherit user tenant creating that technique
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
@@ -532,7 +540,7 @@ trait WoDirectiveRepository {
       modId:         ModificationId,
       actor:         EventActor,
       reason:        Option[String]
-  ): IOResult[ActiveTechnique]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechnique]
 
   /**
    * Move an active technique to a new category.
@@ -680,7 +688,8 @@ class InitDirectivesTree(
                          description = fromCat.description,
                          children = Nil,
                          items = Nil,
-                         isSystem = fromCat.isSystem
+                         isSystem = fromCat.isSystem,
+                         security = fromCat.security
                        )
         res         <- if (fromCat.isSystem && !includeSystem) { // Rudder internal Technique category are handle elsewhere
                          Full(newUserPTCat)
@@ -715,7 +724,7 @@ class InitDirectivesTree(
                                                                               ModificationId(uuidGen.newUuid),
                                                                               RudderEventActor,
                                                                               reason = Some("Initialize active templates library")
-                                                                            )
+                                                                            )(using ChangeContext.newForRudder(None, None))
                                                                             .toBox ?~!
                                                                           "Error when adding Technique '%s' into user library category '%s'"
                                                                             .format(name.value, newUserPTCat.id.value)

@@ -74,7 +74,8 @@ class TestGetConsistentNodesAndGroups extends Specification {
     isDynamic = false,
     serverList = nodeIds,
     _isEnabled = true,
-    isSystem = isSystem
+    isSystem = isSystem,
+    security = None
   )
 
   /*
@@ -121,7 +122,7 @@ class TestGetConsistentNodesAndGroups extends Specification {
   }.toMap
 
   private def category(name: String, subCats: List[FullNodeGroupCategory], targets: List[FullRuleTargetInfo]) =
-    FullNodeGroupCategory(NodeGroupCategoryId(name), "", "", subCats, targets)
+    FullNodeGroupCategory(NodeGroupCategoryId(name), "", "", subCats, targets, isSystem = false, security = None)
 
   private val groupLib = category(
     "test_root",

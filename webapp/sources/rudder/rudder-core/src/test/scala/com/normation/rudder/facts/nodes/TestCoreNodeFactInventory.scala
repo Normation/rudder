@@ -52,6 +52,8 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*

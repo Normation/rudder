@@ -50,9 +50,9 @@ import com.normation.rudder.Role.NamedCustom
 import com.normation.rudder.RudderRoles
 import com.normation.rudder.UncheckedCustomRole
 import com.normation.rudder.api.ApiAclElement
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.users.Argon2EncoderParams
 import com.normation.rudder.users.Argon2Iterations

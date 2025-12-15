@@ -158,7 +158,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         reason:        Option[String]
     ): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
-      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty).succeed
+      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty, security = None).succeed
     }
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = {
@@ -168,7 +168,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         description = "",
         subCategories = Nil,
         activeTechniques = Nil,
-        isSystem = true
+        isSystem = true,
+        None
       ).succeed
     }
     override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
