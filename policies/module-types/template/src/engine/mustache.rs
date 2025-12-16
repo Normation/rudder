@@ -4,6 +4,7 @@
 use crate::engine::TemplateEngine;
 use anyhow::{Context, Result};
 use serde_json::Value;
+use std::fs;
 use std::path::Path;
 
 pub(crate) struct MustacheEngine;
@@ -15,15 +16,16 @@ impl TemplateEngine for MustacheEngine {
         template_src: Option<&str>,
         data: &Value,
     ) -> Result<String> {
-        let template =
-            match (&template_path, template_src) {
-                (Some(p), _) => mustache::compile_path(p)
-                    .with_context(|| "Failed to compile mustache template")?,
-                (_, Some(s)) => mustache::compile_str(s)
-                    .with_context(|| "Failed to compile mustache template")?,
-                _ => unreachable!(),
-            };
-        template
+        let template = match (template_path, template_src) {
+            // The lib has a `compile_path` method, but it requires a mustache file extension.
+            (Some(p), _) => &fs::read_to_string(p)
+                .with_context(|| format!("Failed to read template {}", p.display()))?,
+            (_, Some(s)) => s,
+            _ => unreachable!(),
+        };
+        let compiled = mustache::compile_str(template)
+            .with_context(|| "Failed to compile mustache template")?;
+        compiled
             .render_to_string(data)
             .with_context(|| "Rendering mustache template")
     }
@@ -33,6 +35,8 @@ impl TemplateEngine for MustacheEngine {
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::fs;
+    use tempfile::tempdir;
 
     #[test]
     fn test_mustache_rendering() {
@@ -43,6 +47,25 @@ mod tests {
 
         let result = engine
             .render(None, Some(template), &data)
+            .expect("Rendering failed");
+
+        assert_eq!(result, r#"Hello, World!"#);
+    }
+
+    #[test]
+    fn test_mustache_rendering_from_file() {
+        let engine = MustacheEngine;
+
+        let tmp_dir = tempdir().unwrap();
+        let tmp_file = tmp_dir.path().join("template");
+
+        let template = "Hello, {{ name }}!";
+        fs::write(&tmp_file, template).unwrap();
+
+        let data = json!({ "name": "World" });
+
+        let result = engine
+            .render(Some(tmp_file.as_path()), None, &data)
             .expect("Rendering failed");
 
         assert_eq!(result, r#"Hello, World!"#);
