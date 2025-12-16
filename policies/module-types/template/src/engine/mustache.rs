@@ -62,4 +62,16 @@ mod tests {
             "{\n  \"items\": [\n    \"A\",\n    \"B\",\n    \"C\"\n  ]\n}"
         );
     }
+
+    #[test]
+    fn test_mustache_empty_line_end() {
+        let engine = MustacheEngine;
+
+        let template = "test\n";
+        let data = json!({ "items": ["A", "B", "C"] });
+        let result = engine
+            .render(None, Some(template), &data)
+            .expect("Rendering failed");
+        assert_eq!(result, "test\n");
+    }
 }

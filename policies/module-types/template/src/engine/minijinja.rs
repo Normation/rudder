@@ -44,6 +44,7 @@ impl TemplateEngine for MiniJinjaEngine {
         env.set_undefined_behavior(UndefinedBehavior::Strict);
         // Remove line breaks after blocks. Ansible's default.
         env.set_trim_blocks(true);
+        env.set_keep_trailing_newline(true);
         minijinja_contrib::add_to_environment(&mut env);
         // To get detailed error messages on template compilation
         env.set_debug(true);
@@ -106,5 +107,17 @@ Item: {{ item }}
             .render(None, Some(template), &data)
             .expect("Rendering failed");
         assert_eq!(result, "Item: A\nItem: B\nItem: C\n");
+    }
+
+    #[test]
+    fn test_minijinja_empty_line_end() {
+        let engine = MiniJinjaEngine;
+
+        let template = "test\n";
+        let data = json!({ "items": ["A", "B", "C"] });
+        let result = engine
+            .render(None, Some(template), &data)
+            .expect("Rendering failed");
+        assert_eq!(result, "test\n");
     }
 }
