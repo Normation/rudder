@@ -37,7 +37,7 @@ impl TemplateEngine for Jinja2Engine {
         &self,
         template_path: Option<&Path>,
         template_src: Option<&str>,
-        data: Value,
+        data: &Value,
     ) -> Result<String> {
         let named: TempPath;
         let template_path = match (&template_path, template_src) {

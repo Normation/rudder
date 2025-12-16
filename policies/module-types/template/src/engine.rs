@@ -22,6 +22,17 @@ pub enum Engine {
     Jinja2,
 }
 
+impl std::fmt::Display for Engine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let engine = match self {
+            Engine::Mustache => "mustache".to_string(),
+            Engine::Minijinja => "minijinja".to_string(),
+            Engine::Jinja2 => "jinja2".to_string(),
+        };
+        write!(f, "{engine}")
+    }
+}
+
 impl Engine {
     pub fn renderer(
         &self,
@@ -44,6 +55,6 @@ pub trait TemplateEngine {
         &self,
         template_path: Option<&Path>,
         template_src: Option<&str>,
-        data: Value,
+        data: &Value,
     ) -> Result<String>;
 }

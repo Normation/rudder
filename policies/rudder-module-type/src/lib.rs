@@ -17,6 +17,8 @@ pub mod os_release;
 pub mod parameters;
 pub mod runner;
 
+pub use rudder_cli as cli;
+
 /// Information about the module type to pass to the library
 ///
 /// These fields are the fields required by the library and need to be

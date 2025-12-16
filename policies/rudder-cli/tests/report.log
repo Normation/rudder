@@ -1,0 +1,5 @@
+Error: Check error
+   ╭─[ /etc/hosts:1:1 ]
+ 1 │192.168.215.135 lists.normation.com
+   │       ╰──────── IP is not in allowed range: 10.0.0.0/16
+   │Note: This is a note
