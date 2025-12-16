@@ -82,7 +82,7 @@ valueCompliance complianceFilters =
     (\ _ _ _ -> [])
     (\_ i -> i)
     [ ("Value"   , .value   >> (\v -> div[class "value-container font-monospace"][text v]), (\d1 d2 -> N.compare d1.value  d2.value))
-    , ("Messages", .reports >> List.filter (filterReports complianceFilters) >> List.map (\r -> Maybe.withDefault "" r.message) >> List.map (\t -> text t) >> List.intersperse (br [] []) >> (\ls -> div[class "value-container font-monospace"] ls ), (\d1 d2 -> N.compare d1.value d2.value) )
+    , ("Messages", .reports >> List.filter (filterReports complianceFilters) >> List.map (\r -> Maybe.withDefault "" r.message) >> List.map (\t -> text t) >> List.intersperse (br [] []) >> (\ls -> pre[class "font-monospace"] ls ), (\d1 d2 -> N.compare d1.value d2.value) )
     , ("Status"  , .reports >> List.filter (filterReports complianceFilters) >> buildComplianceReport, (\d1 d2 -> Basics.compare d1.value d2.value))
     ]
     .value
