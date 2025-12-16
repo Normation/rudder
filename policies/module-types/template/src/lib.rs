@@ -12,7 +12,8 @@ use anyhow::{Context, Result, anyhow, bail};
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
-    backup::Backup, parameters::Parameters, rudder_debug, run_module,
+    atomic_file_write::atomic_write, backup::Backup, parameters::Parameters, rudder_debug,
+    run_module,
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
@@ -234,7 +235,7 @@ impl Template {
                 }
 
                 // Write the file
-                fs::write(output_file, output.as_bytes())
+                atomic_write(output_file, output.as_bytes())
                     .with_context(|| format!("Failed to write file {output_file_d}"))?;
 
                 let source_file = p
