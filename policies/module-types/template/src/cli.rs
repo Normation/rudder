@@ -11,17 +11,6 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use tempfile::tempdir;
 
-impl std::fmt::Display for Engine {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let engine = match self {
-            Engine::Mustache => "mustache".to_string(),
-            Engine::Minijinja => "minijinja".to_string(),
-            Engine::Jinja2 => "jinja2".to_string(),
-        };
-        write!(f, "{engine}")
-    }
-}
-
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
@@ -63,7 +52,7 @@ impl Cli {
         let tmp = tempdir()?;
         let temporary_dir = tmp.path();
         let renderer = cli.engine.renderer(temporary_dir, None)?;
-        let output = renderer.render(Some(cli.template.as_path()), None, value)?;
+        let output = renderer.render(Some(cli.template.as_path()), None, &value)?;
 
         let already_present = cli.out.exists();
 

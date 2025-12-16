@@ -13,7 +13,7 @@ impl TemplateEngine for MustacheEngine {
         &self,
         template_path: Option<&Path>,
         template_src: Option<&str>,
-        data: Value,
+        data: &Value,
     ) -> Result<String> {
         let template =
             match (&template_path, template_src) {
@@ -24,7 +24,7 @@ impl TemplateEngine for MustacheEngine {
                 _ => unreachable!(),
             };
         template
-            .render_to_string(&data)
+            .render_to_string(data)
             .with_context(|| "Rendering mustache template")
     }
 }
@@ -42,7 +42,7 @@ mod tests {
         let data = json!({ "name": "World" });
 
         let result = engine
-            .render(None, Some(template), data)
+            .render(None, Some(template), &data)
             .expect("Rendering failed");
 
         assert_eq!(result, r#"Hello, World!"#);
@@ -55,7 +55,7 @@ mod tests {
         let template = "{{%-top-}}";
         let data = json!({ "items": ["A", "B", "C"] });
         let result = engine
-            .render(None, Some(template), data)
+            .render(None, Some(template), &data)
             .expect("Rendering failed");
         assert_eq!(
             result,
