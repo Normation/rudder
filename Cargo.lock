@@ -584,7 +584,6 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
- "terminal_size 0.4.3",
 ]
 
 [[package]]
@@ -2356,28 +2355,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mdbook"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "380f0dd1c54930692986cfe33221a2d34dbfb39c9e9325923c0f6bf7aee119a5"
-dependencies = [
- "anyhow",
- "clap",
- "clap_complete",
- "mdbook-core",
- "mdbook-driver",
- "mdbook-html",
- "mdbook-markdown",
- "mdbook-preprocessor",
- "mdbook-renderer",
- "mdbook-summary",
- "opener",
- "toml 0.9.8",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "mdbook-core"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2684,15 +2661,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61807f77802ff30975e01f4f071c8ba10c022052f98b3294119f3e615d13e5be"
 
 [[package]]
-name = "normpath"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf23ab2b905654b4cb177e30b629937b3868311d4e1cba859f899c041046e69b"
-dependencies = [
- "windows-sys 0.61.2",
-]
-
-[[package]]
 name = "ntapi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2776,17 +2744,6 @@ name = "oorandom"
 version = "11.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
-
-[[package]]
-name = "opener"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb9024962ab91e00c89d2a14352a8d0fc1a64346bf96f1839b45c09149564e47"
-dependencies = [
- "bstr",
- "normpath",
- "windows-sys 0.60.2",
-]
 
 [[package]]
 name = "openssl"
@@ -3878,7 +3835,7 @@ dependencies = [
  "format_serde_error",
  "include_dir",
  "indexmap 2.12.1",
- "mdbook",
+ "mdbook-driver",
  "nom 8.0.0",
  "pretty_assertions",
  "quick-xml",
@@ -3920,7 +3877,7 @@ dependencies = [
  "cxx",
  "cxx-build",
  "paste",
- "terminal_size 0.3.0",
+ "terminal_size",
 ]
 
 [[package]]
@@ -3931,7 +3888,7 @@ dependencies = [
  "cxx",
  "cxx-build",
  "paste",
- "terminal_size 0.3.0",
+ "terminal_size",
 ]
 
 [[package]]
@@ -4639,16 +4596,6 @@ checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
 dependencies = [
  "rustix 0.38.44",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "terminal_size"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60b8cb979cb11c32ce1603f8137b22262a9d131aaa5c37b5678025f22b8becd0"
-dependencies = [
- "rustix 1.1.2",
- "windows-sys 0.60.2",
 ]
 
 [[package]]

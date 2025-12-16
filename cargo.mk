@@ -17,10 +17,6 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 
-
-# TODO distribution des sbom vs precision, version de nos crates dans cargo
-
-
 CARGO_AUDITABLE_VER := 0.7.2
 CARGO_CYCLONEDX_VER := 0.5.7
 CARGO_NEXTEST_VER := 0.9.115
@@ -101,7 +97,7 @@ cargo-sbom: rust-version cargo-cyclonedx
 install-release: cargo-release
 	install -m 755 target/release/$(BIN) $(DESTDIR)/bin/$(BIN)
 
-cargo-test: rust-version
+cargo-test: rust-version cargo-nextest
 ifdef PACKAGE
 	cargo nextest run --package $(PACKAGE) $(FEATURES_OPT) --locked --jobs $(JOBS)
 else

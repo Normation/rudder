@@ -16,7 +16,7 @@ boon = "0.6.0"
 clap = { version = "4", features = ["derive"] }
 quick-xml = { version = "0.38.0", features = ["serialize"] }
 regex = "1"
-mdbook = { version = "0.5.2", default-features = false, features = ["search"] }
+mdbook-driver = { version = "0.5.2", default-features = false, features = ["search"] }
 nom = "8"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
