@@ -35,6 +35,7 @@ export CARGO_INCREMENTAL=0
 export CARGO_NET_RETRY=10
 export RUSTUP_MAX_RETRIES=10
 export NEXTEST_RETRIES=3
+# single thread to avoid test interference for now
 export NEXTEST_TEST_THREADS=1
 # limit jobs on CI
 JOBS := 2
