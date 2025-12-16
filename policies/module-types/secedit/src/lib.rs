@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use clap::Parser;
-use ini::Ini;
+use ini::{Ini, ParseOption};
 use serde_json::Value;
 use std::{
     fs::{File, read_to_string},
@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tempdir::TempDir;
+use utf16string::{LittleEndian, WString};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -48,7 +49,12 @@ impl Cli {
             )?;
 
             let x = read_utf16_file(&template_file)?;
-            let mut template = Ini::load_from_str(&x).with_context(|| {
+
+            let opt = ParseOption {
+                enabled_escape: false,
+                ..Default::default()
+            };
+            let mut template = Ini::load_from_str_opt(&x, opt).with_context(|| {
                 format!(
                     "Failed to read template file '{}'",
                     template_file.as_path().display()
@@ -70,6 +76,7 @@ impl Cli {
             template.write_to_file(&config)?;
 
             let data = read_to_string(&config)?;
+            let data = data.replace(r"\\", r"\");
             // let config = tmp_dir.path().join("config.ini");
             let config = "config.ini";
             write_utf16_file(config, &data)?;
@@ -129,19 +136,15 @@ mod secedit {
 
 fn read_utf16_file<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut file = File::open(path)?;
-    let mut buffer: Vec<u8> = Vec::new();
+    let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer)?;
-    let data: Vec<u16> = buffer
-        .chunks_exact(2)
-        .map(|a| u16::from_le_bytes([a[0], a[1]]))
-        .collect();
-
-    Ok(String::from_utf16(data.as_slice())?)
+    let data: WString<LittleEndian> = WString::from_utf16le(buffer)?;
+    Ok(data.to_utf8())
 }
 
-fn write_utf16_file<P: AsRef<Path>>(path: P, buffer: &str) -> Result<()> {
-    let mut file = File::open(path)?;
+fn write_utf16_file<P: AsRef<Path> + std::fmt::Debug>(path: P, buffer: &str) -> Result<()> {
+    let mut file = File::create(path)?;
     for b in buffer.encode_utf16() {
         file.write_all(&b.to_le_bytes())?;
     }
