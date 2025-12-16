@@ -60,6 +60,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.score.ScoreValue
+import com.normation.rudder.score.ScoreValue.NoScore
 import com.normation.rudder.users.CurrentUser
 import com.normation.zio.*
 import net.liftweb.common.*
@@ -249,22 +250,25 @@ class HomePage extends StatefulSnippet {
       val complianceDiagram: List[ScoreChart] =
         scores.values.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size, None)).toList.sortBy(_.scoreValue.value).reverse
 
-      val detailsScore = scores.values.flatMap(_.details).toList.groupBy(_.scoreId).map { c =>
-        (
-          c._1,
-          c._2
-            .groupBy(_.value)
-            .map(v => {
-              ScoreChart(
-                v._1,
-                v._2.size,
-                existingScore.find(_._1 == c._1).map { case (_, scoreName) => s"No score" }
-              )
-            })
-            .toList
-            .sortBy(_.scoreValue.value)
-            .reverse
-        )
+      val detailsScore = {
+        // Filter score if all score are "No score"
+        scores.values.flatMap(_.details).toList.groupBy(_.scoreId).filter(_._2.exists(_.value != NoScore)).map { c =>
+          (
+            c._1,
+            c._2
+              .groupBy(_.value)
+              .map(v => {
+                ScoreChart(
+                  v._1,
+                  v._2.size,
+                  existingScore.find(_._1 == c._1).map { case (_, scoreName) => s"No score" }
+                )
+              })
+              .toList
+              .sortBy(_.scoreValue.value)
+              .reverse
+          )
+        }
       }
 
       val numberOfNodes = compliancePerNodes.values.size
