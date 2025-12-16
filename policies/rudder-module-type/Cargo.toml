@@ -24,6 +24,7 @@ chrono = { version = "0.4", optional = true, default-features = false, features 
 pretty_assertions = "1"
 # Fix for workspace not merged yet
 test-generator = { git = "https://github.com/JamesGuthrie/test-generator", rev = "82e7999" }
+tempfile = "3"
 
 [features]
 default = ["backup"]
