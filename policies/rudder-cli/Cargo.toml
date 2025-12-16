@@ -10,6 +10,7 @@ license.workspace = true
 
 [dependencies]
 anyhow = "1"
+ariadne = "0.6.0"
 colored = "3"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }

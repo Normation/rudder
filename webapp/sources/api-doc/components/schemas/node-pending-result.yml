@@ -47,11 +47,8 @@ properties:
     enum:
       - physical
       - vm
-      - aixlpar
-      - bsdjail
       - hyperv
       - qemu
-      - solariszone
       - vbox
       - vmware
       - xen

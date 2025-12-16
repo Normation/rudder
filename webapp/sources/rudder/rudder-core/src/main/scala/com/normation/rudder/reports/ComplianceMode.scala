@@ -38,6 +38,10 @@
 package com.normation.rudder.reports
 
 import com.normation.errors.*
+import zio.json.DeriveJsonCodec
+import zio.json.JsonCodec
+import zio.json.JsonDecoder
+import zio.json.JsonEncoder
 
 /**
  * Define level of compliance:
@@ -46,23 +50,21 @@ import com.normation.errors.*
  * - error_only: only report for repaired and error reports.
  */
 
-sealed trait ComplianceModeName {
-  val name: String
-}
-
-case object FullCompliance extends ComplianceModeName {
-  val name = "full-compliance"
-}
-
-case object ChangesOnly extends ComplianceModeName {
-  val name = "changes-only"
-}
-
-case object ReportsDisabled extends ComplianceModeName {
-  val name = "reports-disabled"
-}
+sealed trait ComplianceModeName(val name: String)
 
 object ComplianceModeName {
+  case object FullCompliance  extends ComplianceModeName("full-compliance")
+  case object ChangesOnly     extends ComplianceModeName("changes-only")
+  case object ReportsDisabled extends ComplianceModeName("reports-disabled")
+
+  implicit val codecComplianceModeName: JsonCodec[ComplianceModeName] = {
+    implicit val encoderComplianceModeName: JsonEncoder[ComplianceModeName] =
+      JsonEncoder[String].contramap[ComplianceModeName](_.name)
+    implicit val decoderComplianceModeName: JsonDecoder[ComplianceModeName] =
+      JsonDecoder[String].mapOrFail(s => ComplianceModeName.parse(s).left.map(_.fullMsg))
+    JsonCodec(encoderComplianceModeName, decoderComplianceModeName)
+  }
+
   val allModes: List[ComplianceModeName] = FullCompliance :: ChangesOnly :: ReportsDisabled :: Nil
 
   def parse(value: String): PureResult[ComplianceModeName] = {
@@ -80,41 +82,41 @@ object ComplianceModeName {
 }
 
 sealed trait ComplianceMode {
-  def mode:            ComplianceModeName
-  def heartbeatPeriod: Int
-  val name = mode.name
+  def mode: ComplianceModeName
+  val name: String = mode.name
 }
 
 final case class GlobalComplianceMode(
-    mode:            ComplianceModeName,
-    heartbeatPeriod: Int
+    override val mode: ComplianceModeName
 ) extends ComplianceMode
 
+object GlobalComplianceMode {
+  implicit val codecGlobalComplianceMode: JsonCodec[GlobalComplianceMode] = DeriveJsonCodec.gen
+}
+
 final case class NodeComplianceMode(
-    mode:            ComplianceModeName,
-    heartbeatPeriod: Int,
-    overrideGlobal:  Boolean
+    override val mode: ComplianceModeName,
+    overrides:         Boolean
 ) extends ComplianceMode
+
+object NodeComplianceMode {
+  implicit val codecNodeComplianceMode: JsonCodec[NodeComplianceMode] = DeriveJsonCodec.gen
+}
 
 trait ComplianceModeService {
   def getGlobalComplianceMode: IOResult[GlobalComplianceMode]
 }
 
 class ComplianceModeServiceImpl(
-    readComplianceMode: () => IOResult[String],
-    readHeartbeatFreq:  () => IOResult[Int]
+    readComplianceMode: () => IOResult[String]
 ) extends ComplianceModeService {
 
-  def getGlobalComplianceMode: IOResult[GlobalComplianceMode] = {
+  override def getGlobalComplianceMode: IOResult[GlobalComplianceMode] = {
     for {
-      modeName  <- readComplianceMode()
-      mode      <- ComplianceModeName.parse(modeName).toIO
-      heartbeat <- readHeartbeatFreq()
+      modeName <- readComplianceMode()
+      mode     <- ComplianceModeName.parse(modeName).toIO
     } yield {
-      GlobalComplianceMode(
-        mode,
-        heartbeat
-      )
+      GlobalComplianceMode(mode)
     }
   }
 }

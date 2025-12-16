@@ -1,22 +1,10 @@
-module Compliancemode exposing (..)
+module ReportingMode exposing (..)
 
 import Browser
-import Dict
-import Dict.Extra
-import Http exposing (..)
-import Http.Detailed as Detailed
-import Result
-import List.Extra
-import Random
-import UUID
-import Json.Encode exposing (..)
-import Task
-
-
-import ComplianceMode.DataTypes exposing (..)
-import ComplianceMode.Init exposing (..)
-import ComplianceMode.View exposing (view)
-import ComplianceMode.JsonEncoder exposing (..)
+import ReportingMode.DataTypes exposing (..)
+import ReportingMode.Init exposing (..)
+import ReportingMode.View exposing (view)
+import ReportingMode.JsonEncoder exposing (..)
 
 main = Browser.element
   { init          = init
@@ -44,7 +32,7 @@ update msg model =
 
     SaveChanges ->
       let
-        complianceMode = case model.newMode of
+        reportingMode = case model.newMode of
           FullCompliance  -> "full-compliance"
           ChangesOnly     -> "changes-only"
           ReportsDisabled -> "reports-disabled"
@@ -52,6 +40,6 @@ update msg model =
 
         cmd = case model.newMode of
           ErrorMode m -> (errorNotification ("Error while saving reporting mode. Reason : Unknown mode '" ++ m ++ "'"))
-          _ -> (saveMode (encodeMode complianceMode))
+          _ -> (saveMode (encodeMode reportingMode))
       in
-      ( {model | complianceMode = model.newMode} , cmd)
+      ( {model | reportingMode = model.newMode} , cmd)

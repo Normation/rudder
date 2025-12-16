@@ -3,6 +3,6 @@ description: Simple test of api/status - just "ok"
 method: GET
 url: /api/status
 response:
-  type: text #optionnal, by default json
-  code: 200 #optionnal
+  type: text #optional, by default json
+  code: 200
   content: "OK\n"

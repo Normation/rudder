@@ -113,7 +113,7 @@ Rudder has adopted an _open-core_ model:
 
     - Additional plugins that add major features
     - Support for older versions on Linux distributions
-    - Support for additional architectures (ARM & Power)
+    - Support for additional architectures (ARM32 & ARM64)
     - Support for Windows
     - Extended support for Rudder releases
     - Professional support, user assistance

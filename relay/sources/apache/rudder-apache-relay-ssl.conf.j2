@@ -73,12 +73,36 @@ SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
 #   -> final path is generated from the rule pattern
 RewriteEngine On
 
+{% if cert_validation %}
+# Allow customization of the node certificate ACL depending on the used certificate.
+# If the file exist it must contain the rewrite cond to apply, after having optionally set the SSLUserName.
+#
+# For example, for SAN based uuids, the file could contain:
+#
+# # Not used by the auth process, only for logging purpose. Optional.
+# SSLUserName SSL_CLIENT_SAN_DNS_1
+#
+# RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_1}=$1.example.com" "^(.+)=\1$" [OR]
+# RewriteCond "%{SSL:SSL_CLIENT_SAN_DNS_2}=$1.example.com" "^(.+)=\1$"
+#
+<IfFile  /opt/rudder/etc/rudder-apache-nodes-auth.conf>
+Include /opt/rudder/etc/rudder-apache-nodes-auth.conf
+</IfFile>
+<IfFile !/opt/rudder/etc/rudder-apache-nodes-auth.conf>
+SSLUserName SSL_CLIENT_S_DN_UID
+# Same as below
 RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
+</IfFile>
+{% else %}
+RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.+)=\1$"
+{% endif %}
 RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 
 # This is the basic configuration for sub-directories of /var/rudder/share
 <Directory /var/rudder/share>
+{% if not cert_validation %}
   SSLUserName SSL_CLIENT_S_DN_UID
+{% endif %}
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>
@@ -92,8 +116,10 @@ RewriteRule /policies/([a-zA-Z0-9-_]+)/(.*) /var/rudder/share/$1/$2
 # expose common archives publicly
 Alias /common /var/rudder/share/common
 <Directory /var/rudder/share/common>
+{% if not cert_validation %}
   # avoid repetitive warning in the logs caused by upper directory configuration
   SSLUserName SSL_SESSION_ID
+{% endif %}
   <RequireAll>
 {% if cert_validation %}
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
@@ -215,8 +241,9 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 </Location>
 
 <Location /rudder/relay-api/shared-folder>
+{% if not cert_validation %}
   SSLUserName SSL_CLIENT_S_DN_UID
-
+{% endif %}
   <RequireAll>
     Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
     <RequireAny>

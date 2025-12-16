@@ -376,10 +376,11 @@ object TraitTestApiFromYamlFiles {
 
                     restTest.execRequestResponseZioTest(mockReq) { response =>
                       (for {
-                        clean        <- response.map(cleanResponse).toPureResult.left.map(_.fullMsg)
-                        expectedJson <- cleanJson(test.responseContent)
-                        responseJson <- cleanJson(clean._2)
-                      } yield (clean._1, expectedJson, responseJson)) match {
+                        clean           <- response.map(cleanResponse).toPureResult.left.map(_.fullMsg)
+                        (code, response) = clean
+                        expectedContent <- cleanContent(test.responseContent, test.responseType)
+                        responseContent <- cleanContent(response, test.responseType)
+                      } yield (code, expectedContent, responseContent)) match {
                         case Left(s)                         =>
                           assert(s)(Assertion(TestArrow.make[String, Boolean](s => TestTrace.fail(s))))
                         case Right((code, expJson, resJons)) =>
@@ -399,18 +400,26 @@ object TraitTestApiFromYamlFiles {
     }
   }
 
-  def cleanJson(json: String): Either[String, String] = {
-    import zio.json.*
-    import zio.json.ast.*
-    json.fromJson[Json].map(_.toJsonPretty) match {
-      case Left(err)   =>
-        // here, we need to take care of the case of a pure string. Rule of thumb: if the first char is not json-ok, fallback
-        // we are not able to rely on response type / headers unfortunately
-        err match {
-          case t if t.contains("(unexpected '") => Right(json)
-          case x                                => Left(x)
+  private def cleanContent(content: String, responseType: ResponseType): Either[String, String] = {
+    responseType match {
+      case ResponseType.Text => {
+        // when matching text, we don't want to match leading/trailing spaces,
+        // but whitespaces within the text may be important
+        Right(content.strip())
+      }
+      case ResponseType.Json => {
+        import zio.json.*
+        import zio.json.ast.*
+        content.fromJson[Json].map(_.toJsonPretty) match {
+          case Left(err)   =>
+            // here, we need to take care of the case of a pure string. Rule of thumb: if the first char is not json-ok, fallback
+            err match {
+              case t if t.contains("(unexpected '") => Right(content)
+              case x                                => Left(x)
+            }
+          case Right(json) => Right(json)
         }
-      case Right(json) => Right(json)
+      }
     }
   }
 }

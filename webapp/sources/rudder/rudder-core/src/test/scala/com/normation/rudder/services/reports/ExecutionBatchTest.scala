@@ -52,7 +52,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ComplianceModeName.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
@@ -92,8 +92,7 @@ class ExecutionBatchTest extends Specification {
 
   val globalPolicyMode: GlobalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
   val mode:             NodeModeConfig   = NodeModeConfig(
-    GlobalComplianceMode(FullCompliance, 30),
-    None,
+    GlobalComplianceMode(FullCompliance),
     AgentRunInterval(None, 5, 14, 5, 4),
     None,
     globalPolicyMode,
@@ -189,8 +188,7 @@ class ExecutionBatchTest extends Specification {
     val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
     val now              = DateTime.now
     val mode             = NodeModeConfig(
-      GlobalComplianceMode(FullCompliance, 30),
-      None,
+      GlobalComplianceMode(FullCompliance),
       AgentRunInterval(None, 5, 14, 5, 4),
       None,
       globalPolicyMode,
@@ -3593,7 +3591,7 @@ class ExecutionBatchTest extends Specification {
     )
   }
 
-  val fullCompliance: GlobalComplianceMode = GlobalComplianceMode(FullCompliance, 1)
+  val fullCompliance: GlobalComplianceMode = GlobalComplianceMode(FullCompliance)
 
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 

@@ -10,9 +10,9 @@ jobs:
       RUSTFLAGS: -D warnings
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: dtolnay/rust-toolchain@1.91.0
+      - uses: dtolnay/rust-toolchain@1.92.0
 
     - name: rudder-module-template tests
       run: cd policies\module-types\template && cargo test --locked

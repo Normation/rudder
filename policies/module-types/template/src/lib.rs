@@ -2,167 +2,27 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 mod cli;
-pub mod minijinja_filters;
+mod engine;
 use crate::cli::Cli;
-use clap::ValueEnum;
-use core::panic;
+use engine::Engine;
 use rudder_module_type::ProtocolResult;
 use rudder_module_type::diff::diff;
-use std::collections::HashMap;
-use std::io::Write;
-use std::process::{Command, Stdio};
-use tempfile::{NamedTempFile, TempPath};
 
+use anyhow::{Context, Result, anyhow, bail};
+use rudder_module_type::cfengine::called_from_agent;
+use rudder_module_type::{
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    atomic_file_write::atomic_write, backup::Backup, parameters::Parameters, rudder_debug,
+    run_module,
+};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
+use std::fmt::Display;
 use std::{
     fs,
     fs::read_to_string,
     path::{Path, PathBuf},
 };
-
-use anyhow::{Context, Result, bail};
-use minijinja::UndefinedBehavior;
-use rudder_module_type::cfengine::called_from_agent;
-use rudder_module_type::{
-    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
-    backup::Backup, parameters::Parameters, rudder_debug, run_module,
-};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Value;
-// Configuration
-
-#[derive(
-    Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, ValueEnum,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum Engine {
-    Mustache,
-    #[default]
-    Minijinja,
-    Jinja2,
-}
-
-impl Engine {
-    fn minijinja(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-    ) -> Result<String> {
-        let (template, template_name) = match (&template_path, template_src) {
-            (Some(p), _) => (
-                read_to_string(p)
-                    .with_context(|| format!("Failed to read template {}", p.display()))?,
-                p.file_name().unwrap().to_string_lossy().into_owned(),
-            ),
-            (_, Some(s)) => (s, "template".to_string()),
-            _ => unreachable!(),
-        };
-        // We need to create the Environment even for one template
-        let mut env = minijinja::Environment::new();
-        // Fail on non-defined values, even in iteration
-        env.set_undefined_behavior(UndefinedBehavior::Strict);
-        minijinja_contrib::add_to_environment(&mut env);
-        env.add_template(&template_name, &template)?;
-        env.add_filter("b64encode", minijinja_filters::b64encode);
-        env.add_filter("b64decode", minijinja_filters::b64decode);
-        env.add_filter("basename", minijinja_filters::basename);
-        env.add_filter("dirname", minijinja_filters::dirname);
-        env.add_filter("urldecode", minijinja_filters::urldecode);
-        env.add_filter("hash", minijinja_filters::hash);
-        env.add_filter("quote", minijinja_filters::quote);
-        env.add_filter("regex_escape", minijinja_filters::regex_escape);
-        env.add_filter("regex_replace", minijinja_filters::regex_replace);
-        let tmpl = env.get_template(&template_name).unwrap();
-        Ok(tmpl.render(data)?)
-    }
-
-    fn jinja2(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-        temporary_dir: &Path,
-        python: &str,
-    ) -> Result<String> {
-        let named: TempPath;
-        let template_path = match (&template_path, template_src) {
-            (Some(p), _) => p.to_str().unwrap(),
-            (_, Some(s)) => {
-                let mut tmp_file = NamedTempFile::new().expect("Failed to create tempfile");
-                tmp_file
-                    .write_all(s.to_string().as_bytes())
-                    .expect("Failed to write template in tempfile");
-                named = tmp_file.into_temp_path();
-                named.to_str().unwrap()
-            }
-            _ => unreachable!(),
-        };
-
-        let templating_script_content = include_str!("../jinja2-templating.py");
-        let script_name = "jinja2-templating.py";
-
-        let mut path = PathBuf::from(temporary_dir);
-        path.push(script_name);
-        let templating_script_path = path.to_str().unwrap();
-
-        if !fs::exists(templating_script_path)? {
-            fs::write(templating_script_path, templating_script_content)?;
-            #[cfg(target_family = "unix")]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let perms = fs::Permissions::from_mode(0o755);
-                fs::set_permissions(templating_script_path, perms)?;
-            }
-            #[cfg(target_family = "windows")]
-            {
-                let mut perms = fs::metadata(templating_script_path)?.permissions();
-                perms.set_readonly(false);
-                fs::set_permissions(templating_script_path, perms)?;
-            }
-        }
-
-        let output = if cfg!(target_os = "linux") {
-            let mut child = Command::new(python)
-                .args([templating_script_path, template_path])
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap_or_else(|_| panic!("Failed to execute {}", templating_script_path));
-
-            let stdin = child.stdin.as_mut().unwrap();
-            stdin
-                .write_all(data.to_string().as_bytes())
-                .expect("Failed to write to stdin");
-
-            let output_info = child.wait_with_output()?;
-            if !output_info.status.success() {
-                let output = String::from_utf8_lossy(&output_info.stderr).to_string();
-                bail!("Error {} failed with : {}", script_name, output);
-            }
-            String::from_utf8_lossy(&output_info.stdout).to_string()
-        } else {
-            bail!("Jinja2 templating engine is not supported on Windows")
-        };
-        Ok(output)
-    }
-
-    fn mustache(
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-    ) -> Result<String> {
-        let template =
-            match (&template_path, template_src) {
-                (Some(p), _) => mustache::compile_path(p)
-                    .with_context(|| "Failed to compile mustache template")?,
-                (_, Some(ref s)) => mustache::compile_str(s)
-                    .with_context(|| "Failed to compile mustache template")?,
-                _ => unreachable!(),
-            };
-        template
-            .render_to_string(&data)
-            .with_context(|| "Rendering mustache template")
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -243,10 +103,157 @@ where
     }))
 }
 
+/// Success cases for reporting
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum TemplateOutcome {
+    Success,
+    Repaired,
+    NonCompliant,
+}
+
+/// For now, until we have structured reporting.
+struct TemplateReport {
+    outcome: TemplateOutcome,
+    message: String,
+    diff: Option<String>,
+}
+
+impl TemplateReport {
+    fn new(outcome: TemplateOutcome, message: String, diff: Option<String>) -> Self {
+        TemplateReport {
+            outcome,
+            message,
+            diff,
+        }
+    }
+}
+
+impl Display for TemplateReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)?;
+        if let Some(diff) = &self.diff {
+            write!(f, "\nFile diff:\n{}", diff)?;
+        }
+        Ok(())
+    }
+}
+
+impl From<TemplateReport> for CheckApplyResult {
+    fn from(t: TemplateReport) -> Self {
+        match t.outcome {
+            TemplateOutcome::Success => Ok(Outcome::success()),
+            TemplateOutcome::Repaired => Ok(Outcome::repaired(t.to_string())),
+            TemplateOutcome::NonCompliant => Err(anyhow!(t.to_string())),
+        }
+    }
+}
+
 // Module
 
-struct Template {
-    python_version: Option<Result<String>>,
+struct Template {}
+
+impl Template {
+    fn new() -> Self {
+        Template {}
+    }
+
+    fn check_apply_inner(
+        mode: PolicyMode,
+        p: &TemplateParameters,
+        temporary_dir: &Path,
+        backup_dir: &Path,
+    ) -> Result<TemplateReport> {
+        let output_file = &p.path;
+        let output_file_d = output_file.display();
+
+        let template_data = if let Some(ref v) = p.data {
+            v
+        } else if let Some(ref datastate_path) = p.datastate_path {
+            let data = read_to_string(datastate_path).with_context(|| {
+                format!(
+                    "Failed to read datastate file: '{}'",
+                    datastate_path.to_string_lossy()
+                )
+            })?;
+            &serde_json::from_str(&data)?
+        } else {
+            bail!("Could not get datastate file")
+        };
+
+        let renderer = p.engine.renderer(temporary_dir, None)?;
+        let output = renderer.render(
+            p.template_path.as_deref(),
+            p.template_string.as_deref(),
+            template_data,
+        )?;
+
+        let already_present = output_file.exists();
+
+        // Check if already correct
+        let mut content = String::new();
+        let already_correct = if already_present {
+            content = read_to_string(output_file)
+                .with_context(|| format!("Failed to read file {output_file_d}"))?;
+            if content == output {
+                true
+            } else {
+                rudder_debug!(
+                    "Output file {} exists but has outdated content",
+                    output_file_d
+                );
+                false
+            }
+        } else {
+            rudder_debug!("Output file {output_file_d} does not exist");
+            false
+        };
+
+        let reported_diff = compute_diff_or_warning(
+            &content,
+            &output,
+            &output_file_d.to_string(),
+            p.show_content,
+        );
+
+        let outcome = match (already_correct, mode) {
+            (true, _) => {
+                let report = format!("File '{output_file_d}' was already correct");
+                TemplateReport::new(TemplateOutcome::Success, report, None)
+            }
+            (false, PolicyMode::Audit) => {
+                let report = if already_present {
+                    format!("File '{output_file_d}' is present but content is not up to date.")
+                } else {
+                    format!("Output file {output_file_d} does not exist")
+                };
+                TemplateReport::new(TemplateOutcome::NonCompliant, report, Some(reported_diff))
+            }
+            (false, PolicyMode::Enforce) => {
+                // Backup current file
+                if already_present {
+                    backup_file(output_file, backup_dir)?;
+                }
+
+                // Write the file
+                atomic_write(output_file, output.as_bytes())
+                    .with_context(|| format!("Failed to write file {output_file_d}"))?;
+
+                let source_desc = if let Some(p) = &p.template_path {
+                    &format!("template '{}'", p.display())
+                } else {
+                    "inline template"
+                };
+
+                let report = if already_present {
+                    format!("Replaced '{output_file_d}' content from {source_desc}")
+                } else {
+                    format!("Written new '{output_file_d}' from {source_desc}")
+                };
+                TemplateReport::new(TemplateOutcome::Repaired, report, Some(reported_diff))
+            }
+        };
+        Ok(outcome)
+    }
 }
 
 impl ModuleType0 for Template {
@@ -288,140 +295,40 @@ impl ModuleType0 for Template {
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         assert!(self.validate(parameters).is_ok());
         let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        let output_file = &p.path;
-        let output_file_d = output_file.display();
 
-        let template_data = if let Some(v) = p.data {
-            v
-        } else if let Some(datastate_path) = p.datastate_path {
-            let data = read_to_string(&datastate_path).with_context(|| {
-                format!(
-                    "Failed to read datastate file: '{}'",
-                    datastate_path.to_string_lossy()
-                )
-            })?;
-            serde_json::from_str(&data)?
-        } else {
-            bail!("Could not get datastate file")
-        };
+        let res =
+            Self::check_apply_inner(mode, &p, &parameters.temporary_dir, &parameters.backup_dir);
+        if let Some(r) = p.report_file {
+            fs::write(
+                r,
+                match &res {
+                    Ok(report) => report.to_string(),
+                    Err(e) => e.to_string(),
+                },
+            )?;
+        }
+        res.and_then(|r| r.into())
+    }
+}
+fn compute_diff_or_warning(
+    content: &str,
+    output: &str,
+    output_file_d: &str,
+    show_content: bool,
+) -> String {
+    if show_content {
+        let reported_diff = diff(content, output);
+        let max_reported_diff = 10_000;
 
-        let output = match p.engine {
-            Engine::Mustache => {
-                Engine::mustache(p.template_path.as_deref(), p.template_string, template_data)?
-            }
-            Engine::Minijinja => {
-                Engine::minijinja(p.template_path.as_deref(), p.template_string, template_data)?
-            }
-            Engine::Jinja2 => {
-                // Only detect if necessary
-                if self.python_version.is_none() {
-                    self.python_version = Some(get_python_version());
-                }
-
-                let python_bin = match self.python_version {
-                    Some(Ok(ref v)) => v,
-                    Some(Err(ref e)) => bail!("Could not get python version: {}", e),
-                    None => unreachable!(),
-                };
-                Engine::jinja2(
-                    p.template_path.as_deref(),
-                    p.template_string,
-                    template_data,
-                    parameters.temporary_dir.as_path(),
-                    python_bin,
-                )?
-            }
-        };
-
-        let already_present = output_file.exists();
-
-        // Check if already correct
-        let mut content = String::new();
-        let already_correct = if already_present {
-            content = read_to_string(output_file)
-                .with_context(|| format!("Failed to read file {output_file_d}"))?;
-            if content == output {
-                true
-            } else {
-                rudder_debug!(
-                    "Output file {} exists but has outdated content",
-                    output_file_d
-                );
-                false
-            }
-        } else {
-            rudder_debug!("Output file {output_file_d} does not exist");
-            false
-        };
-
-        let reported_diff = if p.show_content {
-            let reported_diff = diff(&content, &output);
-            let max_reported_diff = 10_000;
-
-            if reported_diff.len() > max_reported_diff {
-                format!(
-                    "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
-                )
-            } else {
-                reported_diff
-            }
-        } else {
+        if reported_diff.len() > max_reported_diff {
             format!(
-                "Changes to {output_file_d} could not be reported. The diff output is disabled."
+                "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
             )
-        };
-
-        let mut report = String::new();
-
-        let outcome = match (already_correct, mode) {
-            (true, _) => {
-                let report = format!("File '{output_file_d}' was already correct");
-                if let Some(r) = p.report_file {
-                    fs::write(r, &report)?;
-                }
-                Outcome::success()
-            }
-            (false, PolicyMode::Audit) => {
-                if already_present {
-                    report.push_str(format!(
-                        "File '{output_file_d}' is present but content is not up to date.\nFile diff:\n{reported_diff}"
-                    ).as_str());
-                } else {
-                    report.push_str(format!("Output file {output_file_d} does not exist").as_str());
-                }
-                if let Some(r) = p.report_file {
-                    fs::write(r, &report)?;
-                }
-                bail!("{report}");
-            }
-            (false, PolicyMode::Enforce) => {
-                // Backup current file
-                if already_present {
-                    backup_file(output_file, &parameters.backup_dir)?;
-                }
-
-                // Write file
-                fs::write(output_file, output.as_bytes())
-                    .with_context(|| format!("Failed to write file {output_file_d}"))?;
-
-                let source_file = p
-                    .template_path
-                    .as_ref()
-                    .map(|p| format!(" (from {})", p.display()))
-                    .unwrap_or_default();
-
-                if already_present {
-                    report.push_str(format!("Replaced '{output_file_d}' content from template '{source_file}'\nFile diff:\n{reported_diff}").as_str());
-                } else {
-                    report.push_str(format!("Written new '{output_file_d}' from template '{source_file}'\nFile diff:\n{reported_diff}").as_str());
-                }
-                if let Some(r) = p.report_file {
-                    fs::write(r, &report)?;
-                }
-                Outcome::repaired(report)
-            }
-        };
-        Ok(outcome)
+        } else {
+            reported_diff
+        }
+    } else {
+        format!("The diff output is disabled. Changes to {output_file_d} are not being reported.")
     }
 }
 
@@ -434,36 +341,13 @@ fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Erro
 }
 
 pub fn entry() -> Result<(), anyhow::Error> {
-    let promise_type = Template {
-        python_version: None,
-    };
+    let promise_type = Template::new();
 
     if called_from_agent() {
         run_module(promise_type)
     } else {
         Cli::run()
     }
-}
-
-fn get_python_version() -> Result<String> {
-    let args = ["-c", "import jinja2"];
-    let python_versions = HashMap::from([
-        ("python3", "- python3 -c import jinja2"),
-        ("python2", "- python2 -c import jinja2"),
-        ("python", "- python -c import jinja2"),
-    ]);
-    let mut used_cmd: Vec<&str> = vec![];
-    for (version, cmd) in python_versions {
-        let status = Command::new(version).args(args).status();
-        if status.is_ok() && status?.success() {
-            return Ok(version.to_string());
-        }
-        used_cmd.push(cmd);
-    }
-    bail!(
-        "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n{}",
-        used_cmd.join("\n")
-    )
 }
 
 #[cfg(test)]

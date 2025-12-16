@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 import com.normation.rudder.reports.*
+import com.normation.rudder.reports.ComplianceModeName.*
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.softwaremill.quicklens.*
@@ -630,15 +631,9 @@ object ExecutionBatch extends Loggable {
      * How long a run is valid before receiving any report (but not after an update)
      */
     def runValidityDuration(runIntervalInfo: ResolvedAgentRunInterval, complianceMode: ComplianceMode) = {
-      complianceMode.mode match {
-        case ChangesOnly                      =>
-          // expires after run*heartbeat period - we need an other run before that.
-          val heartbeat =
-            Duration.standardMinutes((runIntervalInfo.interval.getStandardMinutes * runIntervalInfo.heartbeatPeriod))
-          heartbeat.plus(GRACE_TIME_PENDING)
-        case FullCompliance | ReportsDisabled =>
-          updateValidityDuration(runIntervalInfo)
-      }
+      // since a long time ago (6.0), heartbeat is sent at each run time even in ChangesOnly mode,
+      // so the runValidityDuration is the same in all cases
+      updateValidityDuration(runIntervalInfo)
     }
 
     /**

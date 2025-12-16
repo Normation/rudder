@@ -798,6 +798,12 @@ object JsonResponseObjects {
       value: Option[String]
   )
 
+  /**
+   * Directive as used in techniques/directives API.
+   * 
+   * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
+   * so, BE CAREFUL about compatibility for deserialization 
+   */
   final case class JRDirective(
       changeRequestId: Option[String],
       id:              String, // id is in format uid+rev
@@ -841,7 +847,7 @@ object JsonResponseObjects {
       }
     }
   }
-  object JRDirective          {
+  object JRDirective {
     def empty(id: String): JRDirective =
       JRDirective(None, id, "", "", "", "", "", Map(), 5, enabled = false, system = false, policyMode = "", tags = List())
 
@@ -908,6 +914,13 @@ object JsonResponseObjects {
       value:   String,
       details: Option[String]
   )
+
+  /**
+   * Rules as used in rules API.
+   *
+   * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
+   * so, BE CAREFUL about compatibility for deserialization
+   */
   final case class JRRule(
       changeRequestId: Option[String] = None,
       id:              String, // id is in format uid+rev
@@ -1763,20 +1776,26 @@ object JsonResponseObjects {
       system:          Boolean
   )
 
+  /**
+   * Group as used in groups API.
+   *
+   * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
+   * so, BE CAREFUL about compatibility for deserialization 
+   */
   final case class JRGroup(
-      changeRequestId: Option[String] = None,
-      id:              String,
-      displayName:     String,
-      description:     String,
-      categoryId:      String,
-      query:           Option[JRQuery],
-      nodeIds:         List[String],
-      dynamic:         Boolean,
-      enabled:         Boolean,
-      groupClass:      List[String],
-      properties:      List[JRProperty],
-      target:          String,
-      system:          Boolean
+      changeRequestId:                     Option[String] = None,
+      id:                                  String,
+      displayName:                         String,
+      description:                         String,
+      @jsonAliases("category") categoryId: String,
+      query:                               Option[JRQuery],
+      nodeIds:                             List[String],
+      dynamic:                             Boolean,
+      enabled:                             Boolean,
+      groupClass:                          List[String],
+      properties:                          List[JRProperty],
+      target:                              String,
+      system:                              Boolean
   ) {
     def toGroup(queryParser: CmdbQueryParser): IOResult[(NodeGroupCategoryId, NodeGroup)] = {
       for {
@@ -2241,29 +2260,4 @@ trait RudderJsonEncoders {
   implicit lazy val policyModeSerializer:    JsonEncoder[PolicyMode]        = JsonEncoder[String].contramap(_.name)
   implicit lazy val jrGlobalScoreEncoder:    JsonEncoder[JRGlobalScore]     = DeriveJsonEncoder.gen
   implicit lazy val nodeDetailTableEncoder:  JsonEncoder[JRNodeDetailTable] = DeriveJsonEncoder.gen
-}
-
-/*
- * Decoders for JsonResponse object, when you need to read back something that they serialized.
- */
-object JsonResponseObjectDecodes extends RudderJsonDecoders {
-  import JsonResponseObjects.*
-
-  implicit lazy val decodeJRParentProperty:          JsonDecoder[JRParentProperty]          = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRPropertyHierarchy:       JsonDecoder[JRPropertyHierarchy]       = DeriveJsonDecoder.gen
-  implicit lazy val decodePropertyProvider:          JsonDecoder[PropertyProvider]          = JsonDecoder.string.map(s => PropertyProvider(s))
-  implicit lazy val decodeJRParentPropertyDetails:   JsonDecoder[JRParentPropertyDetails]   = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRPropertyHierarchyStatus: JsonDecoder[JRPropertyHierarchyStatus] = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRProperty:                JsonDecoder[JRProperty]                = DeriveJsonDecoder.gen
-
-  implicit lazy val decodeJRCriterium:           JsonDecoder[JRCriterium]           = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRDirectiveSectionVar: JsonDecoder[JRDirectiveSectionVar] = DeriveJsonDecoder.gen
-
-  implicit lazy val decodeJRApplicationStatus: JsonDecoder[JRApplicationStatus] = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRQuery:             JsonDecoder[JRQuery]             = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRDirectiveSection:  JsonDecoder[JRDirectiveSection]  = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRRule:              JsonDecoder[JRRule]              = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRGroup:             JsonDecoder[JRGroup]             = DeriveJsonDecoder.gen
-  implicit lazy val decodeJRDirective:         JsonDecoder[JRDirective]         = DeriveJsonDecoder.gen
-
 }

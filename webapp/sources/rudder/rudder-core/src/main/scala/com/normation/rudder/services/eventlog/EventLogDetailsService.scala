@@ -996,23 +996,6 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  private def extractHeartbeatConfiguration(xml: NodeSeq)(details: NodeSeq) = {
-    if ((details \ "_").isEmpty) { // no children
-      Full(None)
-    } else {
-      for {
-        overrides <- (details \ "override").headOption.flatMap(x =>
-                       tryo(x.text.toBoolean)
-                     ) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
-        period    <- (details \ "period").headOption.flatMap(x =>
-                       tryo(x.text.toInt)
-                     ) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
-      } yield {
-        Some(HeartbeatConfiguration(overrides, period))
-      }
-    }
-  }
-
   private def extractNodeProperties(xml: NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
     if (details.isEmpty) Full(Seq())
     else {
@@ -1084,8 +1067,6 @@ class EventLogDetailsServiceImpl(
       id            <- (node \ "id").headOption.map(x => NodeId(x.text)) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
       policyMode    <- getFromTo[Option[PolicyMode]]((node \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
       agentRun      <- getFromTo[Option[AgentRunInterval]]((node \ "agentRun").headOption, x => extractAgentRun(xml)(x))
-      heartbeat     <-
-        getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption, x => extractHeartbeatConfiguration(xml)(x))
       properties    <-
         getFromTo[List[NodeProperty]]((node \ "properties").headOption, x => extractNodeProperties(xml)(x).map(_.toList))
       agentKey      <- getFromTo[SecurityToken](
@@ -1104,7 +1085,6 @@ class EventLogDetailsServiceImpl(
     } yield {
       ModifyNodeDiff(
         id,
-        heartbeat,
         agentRun,
         properties,
         policyMode,

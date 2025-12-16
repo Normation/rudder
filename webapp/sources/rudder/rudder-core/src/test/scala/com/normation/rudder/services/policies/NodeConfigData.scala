@@ -235,7 +235,7 @@ object NodeConfigData {
                |ootapja6lKOaIpqp0kmmYN7gFIhp
                |-----END CERTIFICATE-----""".stripMargin
 
-  val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None, None)
+  val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None)
 
   val id1: NodeId = NodeId("node1")
   val hostname1 = "node1.localhost"
@@ -408,8 +408,7 @@ object NodeConfigData {
   val allNodesInfo: Map[NodeId, NodeInfo]     = Map(rootId -> root, node1.id -> node1, node2.id -> node2)
 
   val defaultModesConfig: NodeModeConfig = NodeModeConfig(
-    globalComplianceMode = GlobalComplianceMode(FullCompliance, 30),
-    nodeHeartbeatPeriod = None,
+    globalComplianceMode = GlobalComplianceMode(ComplianceModeName.FullCompliance),
     globalAgentRun = AgentRunInterval(None, 5, 0, 0, 0),
     nodeAgentRun = None,
     globalPolicyMode = GlobalPolicyMode(Enforce, PolicyModeOverrides.Always),
@@ -894,7 +893,7 @@ class TestNodeConfiguration(
   )
 
   val globalAgentRun:       AgentRunInterval     = AgentRunInterval(None, 5, 1, 0, 4)
-  val globalComplianceMode: GlobalComplianceMode = GlobalComplianceMode(FullCompliance, 15)
+  val globalComplianceMode: GlobalComplianceMode = GlobalComplianceMode(ComplianceModeName.FullCompliance)
 
   val globalSystemVariables: Map[String, Variable] = systemVariableService
     .getGlobalSystemVariables(globalAgentRun)

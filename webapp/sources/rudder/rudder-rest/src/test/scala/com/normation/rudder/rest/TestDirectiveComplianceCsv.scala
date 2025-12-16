@@ -50,7 +50,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComponentValueStatusReport
 import com.normation.rudder.domain.reports.MessageStatusReport
 import com.normation.rudder.domain.reports.ReportType
-import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ComplianceModeName.FullCompliance
 import com.normation.rudder.rest.data.ByDirectiveByRuleCompliance
 import com.normation.rudder.rest.data.ByDirectiveCompliance
 import com.normation.rudder.rest.data.ByRuleBlockCompliance

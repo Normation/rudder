@@ -66,10 +66,8 @@ import zio.json.internal.Write
 
 final case class NodeModeConfig(
     globalComplianceMode: ComplianceMode,
-    nodeHeartbeatPeriod:  Option[Int], // if it is defined, then it does override (ie if override = false => None)
-
-    globalAgentRun: AgentRunInterval,
-    nodeAgentRun:   Option[AgentRunInterval], // if Some and overrides = false, behave like none.
+    globalAgentRun:       AgentRunInterval,
+    nodeAgentRun:         Option[AgentRunInterval], // if Some and overrides = false, behave like none.
 
     globalPolicyMode: GlobalPolicyMode,
     nodePolicyMode:   Option[PolicyMode]
@@ -104,15 +102,13 @@ final case class NodeExpectedReports(
   def agentRun: ResolvedAgentRunInterval = {
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID) {
       // special case. The root policy server always run each 5 minutes
-      ResolvedAgentRunInterval(Duration.standardMinutes(5), 1)
+      ResolvedAgentRunInterval(Duration.standardMinutes(5))
     } else {
       val run: Int = modes.nodeAgentRun
         .flatMap(x => if (x.overrides.getOrElse(false)) Some(x.interval) else None)
         .getOrElse(modes.globalAgentRun.interval)
 
-      val heartbeat = modes.nodeHeartbeatPeriod.getOrElse(modes.globalComplianceMode.heartbeatPeriod)
-
-      ResolvedAgentRunInterval(Duration.standardMinutes(run.toLong), heartbeat)
+      ResolvedAgentRunInterval(Duration.standardMinutes(run.toLong))
     }
   }
 }
@@ -218,13 +214,6 @@ object ExpectedReportsSerialisation {
     .getOrElse(throw new IllegalArgumentException(s"Initialisation error for default technique version in overrides"))
 
   // common json codec
-  implicit val codecComplianceModeName:  JsonCodec[ComplianceModeName]  = {
-    implicit val encoderComplianceModeName: JsonEncoder[ComplianceModeName] =
-      JsonEncoder[String].contramap[ComplianceModeName](_.name)
-    implicit val decoderComplianceModeName: JsonDecoder[ComplianceModeName] =
-      JsonDecoder[String].mapOrFail(s => ComplianceModeName.parse(s).left.map(_.fullMsg))
-    JsonCodec(encoderComplianceModeName, decoderComplianceModeName)
-  }
   implicit val codecPolicyMode:          JsonCodec[PolicyMode]          = {
     val encoderPolicyMode = JsonEncoder[String].contramap[PolicyMode](_.name)
     val decoderPolicyMode = JsonDecoder[String].mapOrFail(PolicyMode.parse(_).left.map(_.fullMsg))
@@ -279,7 +268,6 @@ object ExpectedReportsSerialisation {
      *    },
      *    "npm": "audit"             // node policy mode
      *    "gcm": "full-compliance",  // global compliance mode
-     *    "ghp": 1,                  // global heartbeat period
      *    "gar": {                   // global agent run (interval)
      *      "i": 15,                 // interval
      *      "sm": 0,                 // start minute
@@ -364,10 +352,6 @@ object ExpectedReportsSerialisation {
 
         gcm: ComplianceModeName, // global compliance mode
 
-        ghp: Int, // global heartbeat period
-
-        nhp: Option[Int], // node heartbeat period
-
         gar: JsonAgentRun7_1, // global agent run (interval)
 
         nar: Option[JsonAgentRun7_1] // node agent run (interval)
@@ -375,8 +359,7 @@ object ExpectedReportsSerialisation {
       def transform: NodeModeConfig = {
         val overrideAgentRun = if (nar.isDefined) Some(true) else None
         NodeModeConfig(
-          GlobalComplianceMode(gcm, ghp),
-          nhp,
+          GlobalComplianceMode(gcm),
           gar.transform(),
           nar.map(_.transform(overrideAgentRun)),
           gpm.transform,
@@ -390,8 +373,6 @@ object ExpectedReportsSerialisation {
         x.globalPolicyMode.transform,
         x.nodePolicyMode,
         x.globalComplianceMode.mode,
-        x.globalComplianceMode.heartbeatPeriod,
-        x.nodeHeartbeatPeriod,
         x.globalAgentRun.transform,
         x.nodeAgentRun.map(_.transform)
       )

@@ -45,7 +45,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigIdInfo
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.RunAnalysis
-import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.services.reports.*
@@ -219,11 +218,7 @@ object ComplianceDebugLogger extends Logger {
   implicit class AgentRunConfigurationToLog(val info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) extends AnyVal {
 
     private def log(c: ComplianceMode, r: ResolvedAgentRunInterval): String = {
-      val h = c.mode match {
-        case ChangesOnly => s", hearbeat every ${r.heartbeatPeriod} run(s)"
-        case _           => ""
-      }
-      s"run interval: ${r.interval.toStandardMinutes.getMinutes} min${h}"
+      s"run interval: ${r.interval.toStandardMinutes.getMinutes} min"
     }
 
     def toLog: String = {

@@ -34,7 +34,6 @@ response:
           "first_run_minute":0,
           "global_policy_mode":"enforce",
           "global_policy_mode_overridable":true,
-          "heartbeat_frequency":1,
           "mandatory_change_message":false,
           "modified_file_ttl":30,
           "node_accept_duplicated_hostname":false,

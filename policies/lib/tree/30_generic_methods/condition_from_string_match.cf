@@ -86,8 +86,8 @@ bundle agent condition_from_string_match(condition, value, regex)
                                  scope => "namespace";
 
       # Local classes for reporting as the global ones may be defined multiple times
-      "${report_data.report_id}_${c_condition}_true" expression => regcmp("${regex}", "${value}");
-      "${report_data.report_id}_${c_condition}_false"       not => regcmp("${regex}", "${value}");
+      "${report_data.method_id}_${c_condition}_true" expression => regcmp("${regex}", "${value}");
+      "${report_data.method_id}_${c_condition}_false"       not => regcmp("${regex}", "${value}");
 
   methods:
     pass3::
@@ -95,8 +95,8 @@ bundle agent condition_from_string_match(condition, value, regex)
       "${report_data.method_id}" usebundle => _classes_success("${old_class_prefix}");
 
       "${report_data.method_id}"  usebundle => log_rudder_v4("${condition}", "The condition '${c_condition}_true' was created.'", "${condition}"),
-                       if => "${report_data.method_id}_${c_condition}_true";
+                                         if => "${report_data.method_id}_${c_condition}_true";
 
       "${report_data.method_id}"  usebundle => log_rudder_v4("${condition}", "The condition '${c_condition}_false' was created.'", "${condition}"),
-                       if => "${report_data.method_id}_${c_condition}_false";
+                                         if => "${report_data.method_id}_${c_condition}_false";
 }

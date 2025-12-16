@@ -16,6 +16,7 @@
 
 package bootstrap.liftweb;
 
+import bootstrap.liftweb.LogFailedLogin.DisabledUserException;
 import com.normation.rudder.users.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,6 +140,10 @@ public class RudderProviderManager implements org.springframework.security.authe
 			}
 			catch (AccountStatusException e) {
 				prepareException(e, authentication);
+				// in case of OIDC login, we need to intercept the principal for further logging, see https://issues.rudder.io/issues/27860
+				if (e instanceof DisabledUserException) {
+					lastException = e;
+				}
 				// SEC-546: Avoid polling additional providers if auth failure is due to
 				// invalid account status
 				throw cleanException(e);
@@ -203,12 +208,21 @@ public class RudderProviderManager implements org.springframework.security.authe
                     }
 
                     if(logger.isInfoEnabled()) {
+						final String loggedUser;
+						if (lastException instanceof DisabledUserException) {
+							loggedUser = ((DisabledUserException) lastException).username();
+						} else {
+							loggedUser = principal;
+						}
+
+						final String exceptionMsg = lastException == null ? "" : ": " + lastException.getMessage();
+						final String failureMsg = authenticated ? "success" : "failure" + exceptionMsg;
                         StringBuilder msg = new StringBuilder("Rudder authentication attempt for principal '")
-                                .append(principal)
+                                .append(loggedUser)
                                 .append("' with backend '")
                                 .append(p.name())
                                 .append("': ")
-                                .append(authenticated? "success":"failure" + ((lastException==null)?"":": "+lastException.getMessage()));
+                                .append(failureMsg);
 
                         // we don't want to log info about "rootAdmin" backend
                         if(p.name() == "rootAdmin") {

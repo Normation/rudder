@@ -50,7 +50,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ComplianceModeName.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -105,8 +105,7 @@ class ExpectedReportTest extends Specification {
       val jsonMin     = Resource.getAsString("expectedReports/7.1/root_min.json")
       val expected    = JsonNodeExpectedReports(
         NodeModeConfig(
-          GlobalComplianceMode(FullCompliance, 1),
-          None,
+          GlobalComplianceMode(FullCompliance),
           AgentRunInterval(None, 5, 0, 0, 4),
           None,
           GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always),

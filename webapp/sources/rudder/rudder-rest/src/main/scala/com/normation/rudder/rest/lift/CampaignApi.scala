@@ -9,7 +9,7 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.CampaignApi as API
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.EmptyBox

@@ -13,10 +13,9 @@ bundle common system_common {
     "davpw"                 string => "rudder";
     "rudder_configuration_repository"
                             string => "/tmp/test-rudder-config-repo-2022-07-26T00:12:24.487+02:00/configuration-repository";
-    "heartbeat_interval"    string => "4";
     "rudder_node_config_id" string => "cfe-node-cfg-id-500";
     "agent_run_interval"    string => "5";
-    
+
     "cf_serverd_service_name" string => "rudder-cf-serverd";
 
   classes:

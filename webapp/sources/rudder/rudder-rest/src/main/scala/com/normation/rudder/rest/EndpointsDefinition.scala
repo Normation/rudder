@@ -1477,13 +1477,6 @@ sealed trait InventoryApi extends EnumEntry with EndpointSchema with GeneralApi 
 }
 object InventoryApi       extends Enum[InventoryApi] with ApiModuleProvider[InventoryApi]      {
 
-  case object QueueInformation extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex {
-    val z: Int = implicitly[Line].value
-    val description    = "Get information about inventory current processing status"
-    val (action, path) = GET / "inventories" / "info"
-    val authz: List[AuthorizationType] = AuthorizationType.Node.Read :: Nil
-  }
-
   case object UploadInventory extends InventoryApi with ZeroParam with StartsAtVersion12 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    =

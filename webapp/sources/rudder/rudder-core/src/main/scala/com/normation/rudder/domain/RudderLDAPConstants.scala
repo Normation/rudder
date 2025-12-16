@@ -87,9 +87,8 @@ object RudderLDAPConstants extends Loggable {
   val A_STATE              = "state"
   val A_IS_POLICY_SERVER   = "isPolicyServer"
 
-  val A_SERIALIZED_AGENT_RUN_INTERVAL          = "serializedAgentRunInterval"
-  val A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION = "serializedHeartbeatRunConfiguration"
-  val A_AGENT_REPORTING_PROTOCOL               = "agentReportingProtocol"
+  val A_SERIALIZED_AGENT_RUN_INTERVAL = "serializedAgentRunInterval"
+  val A_AGENT_REPORTING_PROTOCOL      = "agentReportingProtocol"
 
   val A_SECURITY_TAG = "securityTag"
   val A_POLICY_MODE  = "policyMode"
@@ -178,7 +177,7 @@ object RudderLDAPConstants extends Loggable {
   OC.createObjectClass(
     OC_RUDDER_NODE,
     must = Set(A_NODE_UUID, A_NAME, A_STATE, A_IS_SYSTEM),
-    may = Set(A_DESCRIPTION, A_SERIALIZED_AGENT_RUN_INTERVAL, A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, A_NODE_PROPERTY)
+    may = Set(A_DESCRIPTION, A_SERIALIZED_AGENT_RUN_INTERVAL, A_NODE_PROPERTY)
   )
 
   OC.createObjectClass(

@@ -111,7 +111,7 @@ class CachedReportsExecutionRepository(
   override def clearCache(): Unit = cacheRef.set(Map()).runNow
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = cacheRef
-    .modifyZIO(f = cache => {
+    .updateAndGetZIO(f = cache => {
       for {
         n1   <- currentTimeMillis
         _    <- ComplianceDebugLoggerPure.trace(s"cache last run ; $cache")
@@ -119,8 +119,11 @@ class CachedReportsExecutionRepository(
         runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
         n2   <- currentTimeMillis
         _    <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
-      } yield (runs, cache ++ runs)
+      } yield {
+        cache ++ runs
+      }
     })
+    .map(_.view.filterKeys(x => nodeIds.contains(x)).toMap)
     .chainError(s"Error when trying to update the cache of Agent Runs information")
 
   def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = readBackend.getUnprocessedRuns()
@@ -128,6 +131,12 @@ class CachedReportsExecutionRepository(
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] =
-    cacheRef.modifyZIO(cache => readBackend.getNodesAndUncomputedCompliance().map(runs => (runs, cache ++ runs)))
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+    for {
+      runs         <- readBackend.getNodesAndUncomputedCompliance()
+      updatedCache <- cacheRef.updateAndGet(cache => cache ++ runs)
+    } yield {
+      updatedCache.view.filterKeys(x => runs.contains(x)).toMap
+    }
+  }
 }

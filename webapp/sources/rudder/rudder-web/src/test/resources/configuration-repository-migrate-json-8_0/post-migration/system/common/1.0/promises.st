@@ -248,8 +248,7 @@ bundle agent startup
   methods:
     # Should we send a message stating this agent is starting up?
     # Always do it in "full_compliance" mode
-    # In other modes, only do it here if we need to send it as a "heartbeat", that is if it hasn't already been sent recently enough
-    full_compliance|!heartbeat_sent::
+    full_compliance::
       "Send start message"
         usebundle => startExecution,
         action    => immediate;
@@ -330,7 +329,7 @@ bundle agent configure_rudder_reporting_system {
   reports:
     !agent_capability_http_reporting.!reports_disabled::
       "******************************************************************
-       * This version of rudder-agent does not support https reporting. * 
+       * This version of rudder-agent does not support https reporting. *
        * Please upgrade rudder-agent to version 6.0 or more.            *
        ******************************************************************";
 }

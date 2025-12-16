@@ -49,7 +49,6 @@ import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface.toNode
 import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
 import enumeratum.*
 import java.time.Instant
@@ -84,7 +83,7 @@ case object Node {
       isSystem = false,
       isPolicyServer = false,
       creationDate = inventory.node.inventoryDate.getOrElse(Instant.ofEpochMilli(0)),
-      nodeReportingConfiguration = ReportingConfiguration(None, None, None),
+      nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = Nil,
       policyMode = None,
       securityTag = None
@@ -129,7 +128,6 @@ object NodeState extends Enum[NodeState] {
 /**
  * Node diff for event logs:
  * Change
- * - heartbeat frequency
  * - run interval
  * - properties
  * - key status and value
@@ -140,7 +138,6 @@ object NodeState extends Enum[NodeState] {
  */
 final case class ModifyNodeDiff(
     id:               NodeId,
-    modHeartbeat:     Option[SimpleDiff[Option[HeartbeatConfiguration]]],
     modAgentRun:      Option[SimpleDiff[Option[AgentRunInterval]]],
     modProperties:    Option[SimpleDiff[List[NodeProperty]]],
     modPolicyMode:    Option[SimpleDiff[Option[PolicyMode]]],
@@ -181,27 +178,12 @@ object ModifyNodeDiff {
         Some(SimpleDiff(oldNode.nodeReportingConfiguration.agentRunInterval, newNode.nodeReportingConfiguration.agentRunInterval))
     }
 
-    val heartbeat = {
-      if (
-        oldNode.nodeReportingConfiguration.heartbeatConfiguration == newNode.nodeReportingConfiguration.heartbeatConfiguration
-      ) {
-        None
-      } else {
-        Some(
-          SimpleDiff(
-            oldNode.nodeReportingConfiguration.heartbeatConfiguration,
-            newNode.nodeReportingConfiguration.heartbeatConfiguration
-          )
-        )
-      }
-    }
-
     val state = if (oldNode.state == newNode.state) None else Some(SimpleDiff(oldNode.state, newNode.state))
 
     val documentation =
       if (oldNode.description == newNode.description) None else Some(SimpleDiff(oldNode.description, newNode.description))
 
-    ModifyNodeDiff(newNode.id, heartbeat, agentRun, properties, policyMode, keyValue, keyStatus, state, documentation)
+    ModifyNodeDiff(newNode.id, agentRun, properties, policyMode, keyValue, keyStatus, state, documentation)
   }
 
   def keyInfo(
@@ -224,6 +206,6 @@ object ModifyNodeDiff {
       case Some(s) => if (s == oldStatus) None else Some(SimpleDiff(oldStatus, s))
     }
 
-    ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus, None, None)
+    ModifyNodeDiff(nodeId, None, None, None, keyInfo, keyStatus, None, None)
   }
 }

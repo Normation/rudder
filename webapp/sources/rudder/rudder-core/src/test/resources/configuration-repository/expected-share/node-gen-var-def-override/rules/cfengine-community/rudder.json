@@ -28,7 +28,6 @@
     "\"genericVariableDefinition/2.0/genericVariableDefinition.cf\","
   ],
   "RUDDER_DIRECTIVES_SEQUENCE":"      \"10. Global configuration for all nodes/00. Generic Variable Def #2\" usebundle => set_dry_run_mode(\"false\");\n      \"10. Global configuration for all nodes/00. Generic Variable Def #2\" usebundle => run_directive2;",
-  "RUDDER_HEARTBEAT_INTERVAL":"4",
   "RUDDER_NODE_CONFIG_ID":"cfe-node-cfg-id",
   "RUDDER_NODE_GROUPS_CLASSES":"\"group_special_all_exceptpolicyservers\"  expression => \"any\",\n                                               meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all_exceptpolicyservers\"  expression => \"any\",\n                                               meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                      expression => \"any\",\n                                               meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                      expression => \"any\",\n                                               meta => { \"inventory\", \"attribute_name=rudder_groups\" };",
   "RUDDER_NODE_GROUPS_VARS":"\"by_uuid[special:all_exceptPolicyServers]\"  string => \"special:all_exceptPolicyServers\",\n                                              meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"by_uuid[special:all]\"                      string => \"special:all\",\n                                              meta => { \"inventory\", \"attribute_name=rudder_groups\" };",

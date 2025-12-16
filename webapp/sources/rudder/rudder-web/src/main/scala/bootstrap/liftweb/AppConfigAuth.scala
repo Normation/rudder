@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import bootstrap.liftweb.LogFailedLogin.DisabledUserException
 import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
@@ -456,9 +457,18 @@ class RudderUrlAuthenticationFailureHandler(failureUrl: String) extends SimpleUr
 
 object LogFailedLogin {
 
+  /**
+   * Custom "disabled" exception to recover with the authenticated username
+   */
+  case class DisabledUserException(username: String, msg: String) extends DisabledException(msg)
+
   def warn(ex: AuthenticationException, request: HttpServletRequest): Unit = {
+    val user = ex match {
+      case DisabledUserException(username, _) => username
+      case _                                  => getUser(request)
+    }
     ApplicationLoggerPure.Auth.logEffect.warn(
-      s"Login authentication failed for user '${getUser(request)}' from IP '${getRemoteAddr(request)}': ${ex.getMessage}"
+      s"Login authentication failed for user '${user}' from IP '${getRemoteAddr(request)}': ${ex.getMessage}"
     )
   }
 
@@ -545,7 +555,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
       }
       .runNow match {
       case None                                            => throw new UsernameNotFoundException(s"User '${username}' was not found in Rudder base")
-      case Some((u, _)) if u.status == UserStatus.Disabled => throw new DisabledException("User is disabled")
+      case Some((u, _)) if u.status == UserStatus.Disabled => throw new DisabledUserException(username, "User is disabled")
       case Some(u)                                         => u
     }
   }

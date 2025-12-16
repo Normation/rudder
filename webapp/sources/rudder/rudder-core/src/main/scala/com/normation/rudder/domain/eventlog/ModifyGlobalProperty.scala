@@ -22,7 +22,6 @@ object ModifyGlobalPropertyEventLogsFilter {
   val eventTypes: List[ModifyGlobalPropertyEventType] = {
     ModifySendServerMetricsEventType ::
     ModifyComplianceModeEventType ::
-    ModifyHeartbeatPeriodEventType ::
     ModifyAgentRunIntervalEventType ::
     ModifyAgentRunSplaytimeEventType ::
     ModifyAgentRunStartHourEventType ::

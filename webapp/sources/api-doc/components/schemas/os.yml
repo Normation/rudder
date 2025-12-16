@@ -13,9 +13,6 @@ properties:
     enum:
       - linux
       - windows
-      - solaris
-      - aix
-      - freebsd
       - unknown
   name:
     type: string

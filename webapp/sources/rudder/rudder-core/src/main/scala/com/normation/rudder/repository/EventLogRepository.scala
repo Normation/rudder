@@ -431,7 +431,7 @@ trait EventLogRepository {
   }
 
   /**
-   * Node properties: heartbeat, agent run, properties
+   * Node properties: agent run, properties
    */
   def saveModifyNode(
       modId:      ModificationId,
