@@ -2,5 +2,5 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 fn main() -> Result<(), anyhow::Error> {
-    rudder_module_secedit::entry()
+    rudder_module_secedit::Cli::run()
 }
