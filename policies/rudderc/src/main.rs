@@ -9,18 +9,6 @@ use rudderc::{cli::MainArgs, compiler::is_exit_on_user_error};
 use tracing::{debug, error, trace};
 
 fn main() {
-    // https://www.reddit.com/r/rust/comments/bnqina/why_does_not_rust_give_a_backtrace_by_default/
-    // https://internals.rust-lang.org/t/rust-backtrace-in-production-use/5609/2
-    // May be expensive only when backtraces are actually produced
-    // and can be helpful to troubleshoot production crashes
-    if env::var_os("RUST_BACKTRACE").is_none() {
-        // Set default value, others are "0" and "full"
-        // SAFETY: single-threaded
-        unsafe {
-            env::set_var("RUST_BACKTRACE", "1");
-        }
-    }
-
     let args = MainArgs::parse();
     let _guard = logs::init(args.verbose, args.quiet, args.message_format, None);
     debug!(
