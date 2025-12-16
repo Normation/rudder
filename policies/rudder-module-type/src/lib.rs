@@ -377,3 +377,51 @@ pub mod diff {
         }
     }
 }
+
+/// We could use https://crates.io/crates/atomic-write-file for more advanced use-cases
+/// (larger files, std-like interface, etc.), but this is enough for our current needs.
+pub mod atomic_file_write {
+    use std::fs;
+    use std::fs::OpenOptions;
+    use std::io::Write;
+    use std::path::Path;
+    use std::path::PathBuf;
+
+    pub fn atomic_write(dst: &Path, content: &[u8]) -> Result<(), std::io::Error> {
+        // Write to a temporary file first
+        let mut tmp_path = PathBuf::from(dst);
+        tmp_path.set_extension("rudder_tmp");
+        {
+            let mut tmp_file = fs::File::create(&tmp_path)?;
+            tmp_file.write_all(content)?;
+            tmp_file.sync_all()?;
+        }
+
+        // Rename the temporary file to the destination
+        fs::rename(&tmp_path, dst)?;
+
+        // Ensure the directory entry is flushed to disk
+        if let Some(parent) = dst.parent() {
+            let dir = OpenOptions::new().read(true).open(parent)?;
+            dir.sync_all()?;
+        }
+
+        Ok(())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use std::fs;
+
+        #[test]
+        fn test_diff() {
+            let temp_dir = tempfile::tempdir().unwrap();
+            let file_path = temp_dir.path().join("test_file.txt");
+            let content = b"Hello, world!";
+            atomic_write(&file_path, content).unwrap();
+            let read_content = fs::read(&file_path).unwrap();
+            assert_eq!(read_content, content);
+        }
+    }
+}
