@@ -13,3 +13,4 @@ clap = { version = "4.5.53", features = ["derive"] }
 rust-ini = "0.21.3"
 serde_json = "1.0.145"
 tempdir = "0.3.7"
+utf16string = "0.2.0"
