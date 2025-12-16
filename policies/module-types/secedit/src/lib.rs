@@ -77,17 +77,15 @@ impl Cli {
 
             let data = read_to_string(&config)?;
             let data = data.replace(r"\\", r"\");
-            // let config = tmp_dir.path().join("config.ini");
-            let config = "config.ini";
-            write_utf16_file(config, &data)?;
+            let config = tmp_dir.path().join("config.ini");
+            write_utf16_file(&config, &data)?;
 
             let db = tmp_dir.path().join("tmp.db");
             secedit::invoke_with_args(
                 format!(
                     "/import /db {} /cfg {}",
                     db.as_path().display(),
-                    //config.as_path().display()
-                    config
+                    config.as_path().display()
                 )
                 .as_str(),
             )?;
