@@ -238,16 +238,16 @@ impl Template {
                 atomic_write(output_file, output.as_bytes())
                     .with_context(|| format!("Failed to write file {output_file_d}"))?;
 
-                let source_file = p
-                    .template_path
-                    .as_ref()
-                    .map(|p| format!(" (from {})", p.display()))
-                    .unwrap_or_default();
+                let source_desc = if let Some(p) = &p.template_path {
+                    &format!("template '{}'", p.display())
+                } else {
+                    "inline template"
+                };
 
                 let report = if already_present {
-                    format!("Replaced '{output_file_d}' content from template '{source_file}'")
+                    format!("Replaced '{output_file_d}' content from {source_desc}")
                 } else {
-                    format!("Written new '{output_file_d}' from template '{source_file}'")
+                    format!("Written new '{output_file_d}' from {source_desc}")
                 };
                 TemplateReport::new(TemplateOutcome::Repaired, report, Some(reported_diff))
             }
