@@ -56,7 +56,7 @@ impl TemplateEngine for MiniJinjaEngine {
                 let template_name = p.file_name().unwrap().to_string_lossy().into_owned();
                 (template_name, template)
             }
-            (_, Some(s)) => ("template".to_string(), s.to_string()),
+            (_, Some(s)) => ("inline".to_string(), s.to_string()),
             _ => unreachable!(),
         };
 
@@ -80,6 +80,8 @@ impl TemplateEngine for MiniJinjaEngine {
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::fs;
+    use tempfile::tempdir;
 
     #[test]
     fn test_minijinja_rendering() {
@@ -90,6 +92,25 @@ mod tests {
 
         let result = engine
             .render(None, Some(template), &data)
+            .expect("Rendering failed");
+
+        assert_eq!(result, r#"Hello, World!"#);
+    }
+
+    #[test]
+    fn test_minijinja_rendering_from_file() {
+        let engine = MiniJinjaEngine;
+
+        let tmp_dir = tempdir().unwrap();
+        let tmp_file = tmp_dir.path().join("template");
+
+        let template = "Hello, {{ name }}!";
+        fs::write(&tmp_file, template).unwrap();
+
+        let data = json!({ "name": "World" });
+
+        let result = engine
+            .render(Some(tmp_file.as_path()), None, &data)
             .expect("Rendering failed");
 
         assert_eq!(result, r#"Hello, World!"#);
