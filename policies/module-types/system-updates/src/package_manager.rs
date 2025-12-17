@@ -14,14 +14,19 @@ use crate::{
     output::ResultOutput,
     package_manager::{yum::YumPackageManager, zypper::ZypperPackageManager},
 };
+#[cfg(unix)]
 use rudder_module_type::os_release::OsRelease;
 use std::str::FromStr;
 
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 mod apt;
 mod rpm;
+#[cfg(windows)]
+mod windows_update_agent;
 mod yum;
 mod zypper;
+#[cfg(windows)]
+use crate::package_manager::windows_update_agent::WindowsUpdateAgent as WUAPackageManager;
 
 /// Packages indexed by (name, arch).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -36,6 +41,7 @@ pub struct PackageInfo {
     pub(crate) version: String,
     pub(crate) from: String,
     pub(crate) source: PackageManager,
+    pub(crate) details: Option<String>,
 }
 
 impl PackageList {
@@ -53,6 +59,7 @@ impl PackageList {
                     old_version: Some(info.version.clone()),
                     new_version: None,
                     action: PackageAction::Removed,
+                    details: None,
                 };
                 changes.push(action);
             }
@@ -66,6 +73,7 @@ impl PackageList {
                         new_version: Some(info.version),
                         old_version: None,
                         action: PackageAction::Added,
+                        details: info.details,
                     };
                     changes.push(action);
                 }
@@ -76,6 +84,7 @@ impl PackageList {
                         new_version: Some(info.version),
                         old_version: Some(i.version.clone()),
                         action: PackageAction::Updated,
+                        details: info.details,
                     };
                     changes.push(action);
                 }
@@ -84,18 +93,41 @@ impl PackageList {
 
         changes
     }
+
+    pub fn augment_with_details(self, details: &Option<HashMap<PackageId, String>>) -> Self {
+        match details {
+            None => self,
+            Some(d) => {
+                let mut inner: HashMap<PackageId, PackageInfo> = HashMap::new();
+                for (k, v) in self.inner {
+                    let info = if let Some(x) = d.get(&k) {
+                        PackageInfo {
+                            details: Some(x.clone()),
+                            ..v
+                        }
+                    } else {
+                        v
+                    };
+                    let _ = inner.insert(k, info);
+                }
+                Self { inner }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PackageDiff {
     #[serde(flatten)]
-    id: PackageId,
+    pub id: PackageId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    old_version: Option<String>,
+    pub old_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_version: Option<String>,
-    action: PackageAction,
+    pub new_version: Option<String>,
+    pub action: PackageAction,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -155,6 +187,7 @@ pub enum PackageManager {
     Apt,
     Zypper,
     Rpm,
+    WindowsUpdateAgent,
 }
 
 impl FromStr for PackageManager {
@@ -166,36 +199,59 @@ impl FromStr for PackageManager {
             "apt" | "apt_get" => PackageManager::Apt,
             "zypper" => PackageManager::Zypper,
             "rpm" => PackageManager::Rpm,
+            "windows_update_agent" | "windows-update-agent" => PackageManager::WindowsUpdateAgent,
             _ => bail!("Unknown package manager: {}", s),
         })
     }
 }
 
 impl PackageManager {
-    pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
+    pub fn get(self) -> Result<Box<dyn UpdateManager>> {
         Ok(match self {
             PackageManager::Yum => Box::new(YumPackageManager::new()?),
-            #[cfg(any(feature = "apt", feature = "apt-compat"))]
             PackageManager::Apt => {
-                let os_release = OsRelease::new()?;
-                Box::new(AptPackageManager::new(&os_release)?)
+                #[cfg(any(feature = "apt", feature = "apt-compat"))]
+                {
+                    let os_release = OsRelease::new()?;
+                    Box::new(AptPackageManager::new(&os_release)?)
+                }
+                #[cfg(not(any(feature = "apt", feature = "apt-compat")))]
+                {
+                    bail!("This module was not build with APT support")
+                }
             }
-            #[cfg(not(any(feature = "apt", feature = "apt-compat")))]
-            PackageManager::Apt => bail!("This module was not build with APT support"),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()?),
+            PackageManager::WindowsUpdateAgent => {
+                #[cfg(target_os = "windows")]
+                {
+                    Box::new(WUAPackageManager::new()?)
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    bail!("This module was not build with windows support")
+                }
+            }
             _ => bail!("This package manager does not provide patch management features"),
         })
     }
 
     /// Only used in CLI mode
-    pub fn detect(os_release: &OsRelease) -> Result<Self> {
-        let id = os_release.id.as_str();
-        Ok(match id {
-            "debian" | "ubuntu" => Self::Apt,
-            "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => Self::Yum,
-            "sles" | "sled" => Self::Zypper,
-            _ => bail!("Unknown package manager for OS: '{}'", id),
-        })
+    pub fn detect() -> Result<Self> {
+        #[cfg(target_os = "windows")]
+        {
+            Ok(Self::WindowsUpdateAgent)
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let os_release = OsRelease::new()?;
+            let id = os_release.id.as_str();
+            Ok(match id {
+                "debian" | "ubuntu" => Self::Apt,
+                "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => Self::Yum,
+                "sles" | "sled" => Self::Zypper,
+                _ => bail!("Unknown package manager for OS: '{}'", id),
+            })
+        }
     }
 
     /// Split by line and null char, remove empty lines.
@@ -213,8 +269,8 @@ impl PackageManager {
     }
 }
 
-/// A generic interface of a Linux package manager
-pub trait LinuxPackageManager {
+/// A generic interface of a package manager
+pub trait UpdateManager {
     /// Update the package cache
     fn update_cache(&mut self) -> ResultOutput<()> {
         ResultOutput::new(Ok(()))
@@ -226,7 +282,10 @@ pub trait LinuxPackageManager {
     fn list_installed(&mut self) -> ResultOutput<PackageList>;
 
     /// Upgrade specific packages
-    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()>;
+    fn upgrade(
+        &mut self,
+        update_type: &FullCampaignType,
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>>;
 
     /// Is a reboot pending?
     fn reboot_pending(&self) -> ResultOutput<bool>;
@@ -250,6 +309,7 @@ mod tests {
                 version: "22.1.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -258,6 +318,7 @@ mod tests {
                 version: "22.1.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -266,6 +327,7 @@ mod tests {
                 version: "5.4.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -274,6 +336,7 @@ mod tests {
                 version: "42.2-4.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -282,6 +345,7 @@ mod tests {
                 version: "103.0.5060.53-1".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
 
@@ -292,6 +356,7 @@ mod tests {
                 version: "1.1.35-2.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -300,6 +365,7 @@ mod tests {
                 version: "22.1.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -308,6 +374,7 @@ mod tests {
                 version: "5.5.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -316,6 +383,7 @@ mod tests {
                 version: "42.2-4.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -324,6 +392,7 @@ mod tests {
                 version: "103.0.5060.53-1".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
 
@@ -336,18 +405,21 @@ mod tests {
                 old_version: Some("22.1.2-1.fc36".to_string()),
                 new_version: None,
                 action: PackageAction::Removed,
+                details: None,
             },
             PackageDiff {
                 id: PackageId::new("gtksourceview5".to_string(), "x86_64".to_string()),
                 old_version: Some("5.4.2-1.fc36".to_string()),
                 new_version: Some("5.5.2-1.fc36".to_string()),
                 action: PackageAction::Updated,
+                details: None,
             },
             PackageDiff {
                 id: PackageId::new("libxslt".to_string(), "x86_64".to_string()),
                 old_version: None,
                 new_version: Some("1.1.35-2.fc36".to_string()),
                 action: PackageAction::Added,
+                details: None,
             },
         ];
 

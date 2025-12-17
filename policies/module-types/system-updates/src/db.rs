@@ -10,11 +10,13 @@ use crate::{output::Report, state::UpdateStatus};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
 use rusqlite::{self, Connection, Row};
+#[cfg(unix)]
+use std::fs::Permissions;
+#[cfg(unix)]
+use std::os::unix::prelude::PermissionsExt;
 use std::{
     fmt::{Display, Formatter},
     fs,
-    fs::Permissions,
-    os::unix::prelude::PermissionsExt,
     path::{Path, PathBuf},
 };
 
@@ -86,6 +88,7 @@ impl PackageDatabase {
             );
             let conn = Connection::open(full_path.as_path());
             // Set lowest permissions
+            #[cfg(unix)]
             fs::set_permissions(full_path.as_path(), Permissions::from_mode(0o600))?;
             conn
         } else {
@@ -358,7 +361,9 @@ mod tests {
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
     use rusqlite::Connection;
-    use std::{ops::Add, os::unix::prelude::PermissionsExt};
+    use std::ops::Add;
+    #[cfg(unix)]
+    use std::os::unix::prelude::PermissionsExt;
 
     #[test]
     fn new_creates_new_database() {
@@ -367,6 +372,7 @@ mod tests {
         let db_name = PackageDatabase::db_name();
         let p = t.path().join(db_name);
         assert!(p.exists());
+        #[cfg(unix)]
         assert_eq!(p.metadata().unwrap().permissions().mode(), 0o100600);
     }
 
