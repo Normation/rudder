@@ -36,16 +36,28 @@ impl Secedit {
     }
 
     fn template_search_and_replace(template: &mut Ini, data: Map<String, Value>) -> Result<()> {
-        for (k, v) in data {
-            for (_, prop) in template.iter_mut() {
-                for (t, _) in prop.clone().iter_mut() {
-                    if k == t {
-                        prop.remove(&k);
-                        prop.insert(&k, v.to_string());
+        for (section, section_data) in data {
+            for (sec, prop) in template.iter_mut() {
+                if let Some(sec) = sec
+                    && sec == section
+                {
+                    let data = match section_data {
+                        Value::Object(ref o) => o,
+                        _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
+                    };
+
+                    for (k, v) in data {
+                        for (t, _) in prop.clone().iter_mut() {
+                            if k == t {
+                                prop.remove(k);
+                                prop.insert(k, v.to_string());
+                            }
+                        }
                     }
                 }
             }
         }
+
         Ok(())
     }
 
@@ -142,4 +154,33 @@ fn write_utf16_file<P: AsRef<Path> + std::fmt::Debug>(path: P, buffer: &str) -> 
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_template_search_and_replace() {
+        let mut template = Ini::load_from_str(
+            "[User]
+            name = Ferris
+            value = Pi",
+        )
+        .unwrap();
+
+        let data = r#"
+        {
+            "User": {
+                "name": "Ferris",
+                "value": "42"
+            }
+        }"#;
+        let data = serde_json::from_str(data).unwrap();
+
+        let res = Secedit::template_search_and_replace(&mut template, data);
+
+        assert!(res.is_ok());
+        assert_eq!(template.get_from(Some("User"), "value"), Some("\"42\""));
+    }
 }
