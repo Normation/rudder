@@ -71,7 +71,24 @@ object UserManagementIO {
 
   private val logger = ApplicationLoggerPure.Auth
 
-  private val semaphore = Semaphore.make(1).runNow
+  /*
+   * Anything touching the user file must be protected by a semaphore
+   */
+  private val userFileSemaphore: Semaphore = Semaphore.make(1).runNow
+  private val semaphoreTimeout:  Duration  = Duration.fromMillis(5 * 1000)
+
+  // define a scope that will be protected by the semaphore
+  def inUserFileSemaphore[A](zio: ZIO[Any & Scope, RudderError, A]): ZIO[Any, RudderError, A] = {
+    ZIO
+      .scoped[Any](for {
+        _     <- userFileSemaphore.withPermitScoped
+        scope <- ZIO.scope
+        res   <- scope.extend[Any](zio)
+      } yield res)
+      .timeoutFail(Unexpected(s"Acquiring semaphore for user management base timed out after ${semaphoreTimeout.render}"))(
+        semaphoreTimeout
+      )
+  }
 
   // name of the root element in our root file
   val AUTHENTICATION_ROOT_ELT = "authentication"
@@ -89,8 +106,9 @@ object UserManagementIO {
    * - only one can be executed in parallel,
    * - in case of error, a back-up (the original file) is written back.
    */
-  def transformUserFile(xmlFile: File, transformer: Elem => PureResult[RewriteRule]): IOResult[Unit] = {
-    semaphore.withPermit(for {
+  def transformUserFile(xmlFile: File, transformer: Elem => PureResult[RewriteRule]): ZIO[Scope, RudderError, Unit] = {
+    for {
+      _          <- ZIO.scope
       readable   <- IOResult.attempt(xmlFile.isReadable)
       _          <- ZIO.when(!readable)(Unexpected(s"${xmlFile.path} is not readable").fail)
       writable   <- IOResult.attempt(xmlFile.isWritable)
@@ -101,7 +119,7 @@ object UserManagementIO {
       p           = new RudderPrettyPrinter(300, 4)
       xmlString   = p.formatNodes(toReplace)
       _          <- withBackup(xmlFile)(IOResult.attempt(xmlFile.overwrite(xmlString)))
-    } yield ())
+    } yield ()
   }
 
   /*
@@ -358,11 +376,11 @@ class UserManagementService(
 ) {
 
   /*
-   * For now, when we add an user, we always add it in the XML file (and not only in database).
+   * For now, when we add a user, we always add it in the XML file (and not only in database).
    * So we let the callback on file reload does what it needs.
    */
   def add(newUser: JsonUserFormData): IOResult[Unit] = {
-    for {
+    UserManagementIO.inUserFileSemaphore(for {
       file <- getUserResourceFile.map(getUserFilePath(_))
       _    <- UserManagementIO.transformUserFile(
                 file,
@@ -372,7 +390,7 @@ class UserManagementService(
                 )
               )
       _    <- userService.reloadPure()
-    } yield ()
+    } yield ())
   }
 
   /*
@@ -380,14 +398,14 @@ class UserManagementService(
    * So we let the callback on file reload do the deletion for file users
    */
   def remove(toDelete: String, actor: EventActor, reason: String): IOResult[Unit] = {
-    for {
+    UserManagementIO.inUserFileSemaphore(for {
       file <- getUserResourceFile.map(getUserFilePath(_))
       _    <- UserManagementIO.transformUserFile(
                 file,
                 deleteUserXmlRewriteRule(toDelete)
               )
       _    <- userService.reloadPure()
-    } yield ()
+    } yield ())
   }
 
   /*
@@ -409,7 +427,7 @@ class UserManagementService(
       })
       .map(_.toList)
 
-    for {
+    UserManagementIO.inUserFileSemaphore(for {
       // this is only to check user exists
       _     <- userRepository
                  .get(id)
@@ -437,7 +455,7 @@ class UserManagementService(
       res   <- users.parsedUsers.get(id).notOptional(s"User '${id}' was not found after updated")
     } yield {
       res
-    }
+    })
   }
 
   /**

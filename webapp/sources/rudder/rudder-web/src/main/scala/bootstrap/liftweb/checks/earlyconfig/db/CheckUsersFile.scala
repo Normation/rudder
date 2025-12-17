@@ -62,6 +62,6 @@ class CheckUsersFile(migration: UserFileHashTypeMigration) extends BootstrapChec
     } yield {}
   }
 
-  private def userFile = UserManagementIO.getUserFilePath(migration.file)
+  private def userFile = UserManagementIO.getUserFilePath(migration.userFile)
 
 }
