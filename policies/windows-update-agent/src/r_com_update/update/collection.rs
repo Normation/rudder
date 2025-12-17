@@ -9,7 +9,7 @@ pub struct Collection {
     #[serde(skip)]
     pub com_ptr: Option<IUpdateCollection>,
     #[serde(flatten)]
-    updates: Vec<Info>,
+    pub updates: Vec<Info>,
 }
 impl Collection {
     pub fn new() -> Self {

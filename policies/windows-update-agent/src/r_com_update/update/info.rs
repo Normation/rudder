@@ -10,9 +10,9 @@ use windows::Win32::System::UpdateAgent::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Info {
     #[serde(skip)]
-    com_ptr: Option<IUpdate>,
+    pub com_ptr: Option<IUpdate>,
     #[serde(flatten)]
-    data: InfoData,
+    pub data: InfoData,
 }
 impl Info {
     pub fn try_from_com(u: IUpdate) -> Result<Self, Error> {
@@ -24,12 +24,6 @@ impl Info {
     }
 }
 
-impl fmt::Display for Info {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.data)
-    }
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InfoData {
     update_id: String,
@@ -38,6 +32,9 @@ pub struct InfoData {
     kbs: ArticleCollection,
     msrc_severity: String,
     categories: CategoryCollection,
+    #[serde(skip)]
+    is_downloaded: bool,
+    #[serde(skip)]
     is_installed: bool,
     is_mandatory: bool,
     superseded_update_ids: Vec<String>,
@@ -53,27 +50,11 @@ impl InfoData {
                 kbs: ArticleCollection::try_from_com(&u.KBArticleIDs()?)?,
                 msrc_severity: u.MsrcSeverity()?.to_string(),
                 categories: CategoryCollection::try_from_com(&u.Categories()?)?,
+                is_downloaded: u.IsDownloaded()?.as_bool(),
                 is_installed: u.IsInstalled()?.as_bool(),
                 is_mandatory: u.IsMandatory()?.as_bool(),
                 superseded_update_ids: vec![],
             })
         }
-    }
-}
-
-impl fmt::Display for InfoData {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}: {} - {} ([{}])",
-            self.title,
-            self.update_id,
-            self.revision_number,
-            self.kbs
-                .iter()
-                .map(|k| k.to_string())
-                .collect::<Vec<String>>()
-                .join(",")
-        )
     }
 }
