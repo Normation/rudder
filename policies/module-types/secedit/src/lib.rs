@@ -31,6 +31,7 @@ impl Cli {
                 cli.data.display()
             ),
         };
-        secedit::run(data, cli.audit)
+
+        secedit::Secedit::default().run(data, cli.audit)
     }
 }
