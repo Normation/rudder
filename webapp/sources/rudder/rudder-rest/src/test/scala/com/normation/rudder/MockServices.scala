@@ -96,20 +96,7 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
-import com.normation.rudder.users.Argon2EncoderParams
-import com.normation.rudder.users.Argon2Iterations
-import com.normation.rudder.users.Argon2Memory
-import com.normation.rudder.users.Argon2Parallelism
-import com.normation.rudder.users.EventTrace
-import com.normation.rudder.users.FileUserDetailListProvider
-import com.normation.rudder.users.PasswordEncoderDispatcher
-import com.normation.rudder.users.SessionId
-import com.normation.rudder.users.UserFile
-import com.normation.rudder.users.UserInfo
-import com.normation.rudder.users.UserManagementService
-import com.normation.rudder.users.UserRepository
-import com.normation.rudder.users.UserSession
-import com.normation.rudder.users.UserStatus
+import com.normation.rudder.users.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
@@ -880,7 +867,8 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     val roleApiMapping = new RoleApiMapping(new ExtensibleAuthorizationApiMapping(Nil))
 
-    val res = new FileUserDetailListProvider(roleApiMapping, usersFile, passwordEncoderDispatcher)
+    val res =
+      new FileUserDetailListProvider(roleApiMapping, usersFile, passwordEncoderDispatcher)
     res.reload()
     res
   }

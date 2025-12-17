@@ -75,6 +75,7 @@ import com.normation.rudder.users.JsonUserFormData
 import com.normation.rudder.users.Serialisation.*
 import com.normation.rudder.users.UpdateUserInfo
 import com.normation.rudder.users.UserInfo
+import com.normation.rudder.users.UserManagementIO
 import com.normation.rudder.users.UserManagementService
 import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserSession
@@ -381,16 +382,18 @@ class UserManagementApiImpl(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        _ <- reload()
+        _ <- UserManagementIO
+               .inUserFileSemaphore(
+                 userService
+                   .reloadPure()
+               )
+               .unit
+               .chainError("Error when trying to reload the list of users from '/opt/rudder/etc/rudder-users.xml' file")
       } yield {
         JsonReloadResult.Done
       }).chainError("Could not reload user's configuration")
         .toLiftResponseOne(params, schema, _ => None)
     }
-  }
-
-  private def reload(): IOResult[Unit] = {
-    userService.reloadPure().unit.chainError("Error when trying to reload the list of users from 'rudder-users.xml' file")
   }
 
   object AddUser extends LiftApiModule0 {
@@ -495,25 +498,28 @@ class UserManagementApiImpl(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      (for {
-        user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be activated")
-        jsonStatus <- user.status match {
-                        case UserStatus.Active   => JsonStatus(UserStatus.Active).succeed
-                        case UserStatus.Disabled => {
-                          val eventTrace = EventTrace(
-                            authzToken.qc.actor,
-                            DateTime.now(DateTimeZone.UTC),
-                            "User current disabled status set to 'active' by user management API"
-                          )
-                          (userRepo.setActive(List(user.id), eventTrace) *> userService.reloadPure())
-                            .as(JsonStatus(UserStatus.Active))
+      UserManagementIO
+        .inUserFileSemaphore(for {
+          user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be activated")
+          jsonStatus <- user.status match {
+                          case UserStatus.Active   => JsonStatus(UserStatus.Active).succeed
+                          case UserStatus.Disabled => {
+                            val eventTrace = EventTrace(
+                              authzToken.qc.actor,
+                              DateTime.now(DateTimeZone.UTC),
+                              "User current disabled status set to 'active' by user management API"
+                            )
+                            (userRepo.setActive(List(user.id), eventTrace) *> userService.reloadPure())
+                              .as(JsonStatus(UserStatus.Active))
+                          }
+                          case UserStatus.Deleted  =>
+                            Inconsistency(s"User '$id' cannot be activated because the user is currently deleted").fail
                         }
-                        case UserStatus.Deleted  =>
-                          Inconsistency(s"User '$id' cannot be activated because the user is currently deleted").fail
-                      }
-      } yield {
-        jsonStatus
-      }).chainError(s"Could not activate user '$id'").toLiftResponseOne(params, schema, _ => Some(id))
+        } yield {
+          jsonStatus
+        })
+        .chainError(s"Could not activate user '$id'")
+        .toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -528,25 +534,28 @@ class UserManagementApiImpl(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      (for {
-        user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be disabled")
-        jsonStatus <- user.status match {
-                        case UserStatus.Disabled => JsonStatus(UserStatus.Disabled).succeed
-                        case UserStatus.Active   => {
-                          val eventTrace = EventTrace(
-                            authzToken.qc.actor,
-                            DateTime.now(DateTimeZone.UTC),
-                            "User current active status set to 'disabled' by user management API"
-                          )
-                          (userRepo.disable(List(user.id), None, List.empty, eventTrace) *> userService.reloadPure())
-                            .as(JsonStatus(UserStatus.Disabled))
+      UserManagementIO
+        .inUserFileSemaphore(for {
+          user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be disabled")
+          jsonStatus <- user.status match {
+                          case UserStatus.Disabled => JsonStatus(UserStatus.Disabled).succeed
+                          case UserStatus.Active   => {
+                            val eventTrace = EventTrace(
+                              authzToken.qc.actor,
+                              DateTime.now(DateTimeZone.UTC),
+                              "User current active status set to 'disabled' by user management API"
+                            )
+                            (userRepo.disable(List(user.id), None, List.empty, eventTrace) *> userService.reloadPure())
+                              .as(JsonStatus(UserStatus.Disabled))
+                          }
+                          case UserStatus.Deleted  =>
+                            Inconsistency(s"User '$id' cannot be disabled because the user is currently deleted").fail
                         }
-                        case UserStatus.Deleted  =>
-                          Inconsistency(s"User '$id' cannot be disabled because the user is currently deleted").fail
-                      }
-      } yield {
-        jsonStatus
-      }).chainError(s"Could not disable user '$id'").toLiftResponseOne(params, schema, _ => Some(id))
+        } yield {
+          jsonStatus
+        })
+        .chainError(s"Could not disable user '$id'")
+        .toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
