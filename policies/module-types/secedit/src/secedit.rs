@@ -39,35 +39,45 @@ impl Secedit {
                 }
             }
 
-            let config = self.tmp_dir.path().join("tmp.ini");
-            template.write_to_file(&config)?;
-
-            let data = read_to_string(&config)?;
-            let data = data.replace(r"\\", r"\");
-            let config = self.tmp_dir.path().join("config.ini");
-            write_utf16_file(&config, &data)?;
-
-            let db = self.tmp_dir.path().join("tmp.db");
-            self.invoke_with_args(
-                format!(
-                    "/import /db {} /cfg {}",
-                    db.as_path().display(),
-                    config.as_path().display()
-                )
-                .as_str(),
-            )?;
-
-            self.invoke_with_args(format!("/configure /db {}", db.as_path().display()).as_str())?;
+            self.import(template).and_then(Self::configure)?;
         }
 
         println!("DONE");
         Ok(())
     }
 
+    fn configure(db: String) -> Result<()> {
+        Self::invoke_with_args(format!("/configure /db {}", db).as_str())
+    }
+
+    fn import(&self, template: Ini) -> Result<String> {
+        let config = self.tmp_dir.path().join("tmp.ini");
+        template.write_to_file(&config)?;
+
+        let data = read_to_string(&config)?;
+        let data = data.replace(r"\\", r"\");
+        let config = self.tmp_dir.path().join("config.ini");
+        write_utf16_file(&config, &data)?;
+
+        let db = self
+            .tmp_dir
+            .path()
+            .join("tmp.db")
+            .as_path()
+            .display()
+            .to_string();
+
+        Self::invoke_with_args(
+            format!("/import /db {} /cfg {}", db, config.as_path().display()).as_str(),
+        )?;
+
+        Ok(db.to_string())
+    }
+
     fn export(&self) -> Result<Ini> {
         let template_file = self.tmp_dir.path().join("template.ini");
 
-        self.invoke_with_args(
+        Self::invoke_with_args(
             format!("/export /cfg {}", template_file.as_path().display()).as_str(),
         )?;
 
@@ -86,7 +96,7 @@ impl Secedit {
         Ok(template)
     }
 
-    fn invoke_with_args(&self, args: &str) -> Result<()> {
+    fn invoke_with_args(args: &str) -> Result<()> {
         const COMMAND: &str = "secedit.exe";
         let mut cmd = Command::new(COMMAND);
         cmd.stdin(Stdio::piped());
