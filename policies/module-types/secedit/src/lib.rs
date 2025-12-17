@@ -25,7 +25,14 @@ impl Cli {
             bail!("The data file '{}' is empty.", cli.data.display());
         }
         let data = match serde_json::from_str(&data)? {
-            Value::Object(o) => o,
+            Value::Object(o) => {
+                for (_, v) in &o {
+                    if !v.is_object() {
+                        bail!("Invalid data: '{v}' expected a JSON object");
+                    }
+                }
+                o
+            }
             _ => bail!(
                 "The data file '{}' contains invalid data",
                 cli.data.display()
