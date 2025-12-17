@@ -8,89 +8,108 @@ use std::process::{Command, Stdio};
 use tempdir::TempDir;
 use utf16string::{LittleEndian, WString};
 
-pub fn run(data: Map<String, Value>, audit: bool) -> Result<()> {
-    if audit {
-        unimplemented!("Audit mode not yet implemented!");
-    } else {
-        let tmp_dir = TempDir::new("rudder-module-secedit")?;
-        let template_file = tmp_dir.path().join("template.ini");
+pub struct Secedit {
+    tmp_dir: TempDir,
+}
 
-        invoke_with_args(format!("/export /cfg {}", template_file.as_path().display()).as_str())?;
+impl Default for Secedit {
+    fn default() -> Self {
+        Self {
+            tmp_dir: TempDir::new("rudder-module-secedit")
+                .expect("Could not create temporary directory"),
+        }
+    }
+}
 
-        let x = read_utf16_file(&template_file)?;
+impl Secedit {
+    pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
+        if audit {
+            unimplemented!("Audit mode not yet implemented!");
+        } else {
+            let mut template = self.export()?;
 
+            for (k, v) in data {
+                for (_, prop) in template.iter_mut() {
+                    for (t, _) in prop.clone().iter_mut() {
+                        if k == t {
+                            prop.remove(&k);
+                            prop.insert(&k, v.to_string());
+                        }
+                    }
+                }
+            }
+
+            let config = self.tmp_dir.path().join("tmp.ini");
+            template.write_to_file(&config)?;
+
+            let data = read_to_string(&config)?;
+            let data = data.replace(r"\\", r"\");
+            let config = self.tmp_dir.path().join("config.ini");
+            write_utf16_file(&config, &data)?;
+
+            let db = self.tmp_dir.path().join("tmp.db");
+            self.invoke_with_args(
+                format!(
+                    "/import /db {} /cfg {}",
+                    db.as_path().display(),
+                    config.as_path().display()
+                )
+                .as_str(),
+            )?;
+
+            self.invoke_with_args(format!("/configure /db {}", db.as_path().display()).as_str())?;
+        }
+
+        println!("DONE");
+        Ok(())
+    }
+
+    fn export(&self) -> Result<Ini> {
+        let template_file = self.tmp_dir.path().join("template.ini");
+
+        self.invoke_with_args(
+            format!("/export /cfg {}", template_file.as_path().display()).as_str(),
+        )?;
+
+        let data = read_utf16_file(&template_file)?;
         let opt = ParseOption {
             enabled_escape: false,
             ..Default::default()
         };
-        let mut template = Ini::load_from_str_opt(&x, opt).with_context(|| {
+        let template = Ini::load_from_str_opt(&data, opt).with_context(|| {
             format!(
                 "Failed to read template file '{}'",
                 template_file.as_path().display()
             )
         })?;
 
-        for (k, v) in data {
-            for (_, prop) in template.iter_mut() {
-                for (t, _) in prop.clone().iter_mut() {
-                    if k == t {
-                        prop.remove(&k);
-                        prop.insert(&k, v.to_string());
-                    }
-                }
-            }
+        Ok(template)
+    }
+
+    fn invoke_with_args(&self, args: &str) -> Result<()> {
+        const COMMAND: &str = "secedit.exe";
+        let mut cmd = Command::new(COMMAND);
+        cmd.stdin(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        if !args.is_empty() {
+            cmd.args(args.split_whitespace());
         }
 
-        let config = tmp_dir.path().join("tmp.ini");
-        template.write_to_file(&config)?;
+        let output = match cmd.spawn() {
+            Ok(task) => task,
+            Err(e) => bail!("Failed to execute command '{COMMAND} {args}' {e}"),
+        }
+        .wait_with_output()?;
 
-        let data = read_to_string(&config)?;
-        let data = data.replace(r"\\", r"\");
-        let config = tmp_dir.path().join("config.ini");
-        write_utf16_file(&config, &data)?;
+        if !output.status.success() {
+            let msg = String::from_utf8(output.stdout)?.to_string();
+            bail!("{msg}");
+        }
 
-        let db = tmp_dir.path().join("tmp.db");
-        invoke_with_args(
-            format!(
-                "/import /db {} /cfg {}",
-                db.as_path().display(),
-                config.as_path().display()
-            )
-            .as_str(),
-        )?;
-
-        invoke_with_args(format!("/configure /db {}", db.as_path().display(),).as_str())?;
-
-        tmp_dir.close()?;
+        Ok(())
     }
-
-    println!("DONE");
-    Ok(())
-}
-
-fn invoke_with_args(args: &str) -> Result<()> {
-    const COMMAND: &str = "secedit.exe";
-    let mut cmd = Command::new(COMMAND);
-    cmd.stdin(Stdio::piped());
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-
-    if !args.is_empty() {
-        cmd.args(args.split_whitespace());
-    }
-
-    let output = match cmd.spawn() {
-        Ok(task) => task,
-        Err(e) => bail!("Failed to execute command '{COMMAND} {args}' {e}"),
-    }
-    .wait_with_output()?;
-
-    if !output.status.success() {
-        let msg = String::from_utf8(output.stdout)?.to_string();
-        bail!("{msg}");
-    }
-
-    Ok(())
 }
 
 fn read_utf16_file<P: AsRef<Path>>(path: P) -> Result<String> {
