@@ -40,18 +40,15 @@ package com.normation.rudder.domain.properties
 import cats.syntax.either.*
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
-
 import com.normation.errors.*
 import com.normation.inventory.domain.CustomProperty
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.tenants.HasSecurityContext
 import com.normation.rudder.tenants.SecurityTag
-
 import com.typesafe.config.*
 import enumeratum.*
 import net.liftweb.json.*
-
 import zio.json.*
 import zio.json.ast.*
 

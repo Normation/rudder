@@ -74,6 +74,7 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -244,11 +245,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechnique] = ???
+        policyTypes:   PolicyTypes
+    )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = ???
     def move(
         id:            ActiveTechniqueId,
         newCategoryId: ActiveTechniqueCategoryId,

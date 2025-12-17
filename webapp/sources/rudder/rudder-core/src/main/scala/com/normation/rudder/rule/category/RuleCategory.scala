@@ -40,7 +40,6 @@ package com.normation.rudder.rule.category
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.tenants.HasSecurityContext
 import com.normation.rudder.tenants.SecurityTag
-
 import net.liftweb.common.*
 
 /**
@@ -64,7 +63,7 @@ final case class RuleCategory(
     isSystem:    Boolean = false,
     // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
     security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
-) extends HasSecurityContext{
+) extends HasSecurityContext {
   def findParent(category: RuleCategory): Box[RuleCategory] = {
     if (childs.contains(category)) {
       Full(this)

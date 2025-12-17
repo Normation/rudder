@@ -1087,17 +1087,14 @@ class MockDirectives(mockTechniques: MockTechniques) {
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechnique] = {
+        policyTypes:   PolicyTypes
+    )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       val techs = techniqueRepos.getByName(techniqueName)
       for {
         all <-
           ZIO.foreach(versions)(v => techs.get(v).notOptional(s"Missing version '${v}' for technique '${techniqueName.value}'"))
         res <- rootActiveTechniqueCategory.modifyZIO { r =>
-                 val root = r.addActiveTechnique(categoryId, techniqueName, all)(using ChangeContext.newForRudder(None, None))
+                 val root = r.addActiveTechnique(categoryId, techniqueName, all)
                  root.allCategories
                    .get(categoryId)
                    .flatMap(_.activeTechniques.find(_.id.value == techniqueName.value))

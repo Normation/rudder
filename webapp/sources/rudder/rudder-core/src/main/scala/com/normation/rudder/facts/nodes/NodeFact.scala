@@ -38,7 +38,6 @@
 package com.normation.rudder.facts.nodes
 
 import cats.syntax.traverse.*
-
 import com.normation.box.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -66,7 +65,6 @@ import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
-
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
@@ -77,12 +75,10 @@ import io.scalaland.chimney.PartialTransformer
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
-
 import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -123,7 +119,6 @@ final case class RudderAgent(
 ) {
   def toAgentInfo: AgentInfo = AgentInfo(agentType, Some(version), securityToken, capabilities.toSet)
 }
-
 
 // rudder settings for that node
 final case class RudderSettings(
@@ -907,8 +902,6 @@ object NodeFact {
   }
 }
 
-
-
 trait MinimalNodeFactInterface extends HasSecurityContext {
   def id:                NodeId
   def documentation:     Option[String]
@@ -1650,6 +1643,18 @@ object ChangeContext {
     def toQuery: QueryContext = QueryContext(cc.actor, cc.nodePerms)
   }
 
+  def newFromQC(qc: QueryContext, reason: Option[String] = None, ip: Option[String] = None): ChangeContext = {
+    ChangeContext(
+      ModificationId(java.util.UUID.randomUUID.toString),
+      qc.actor,
+      Instant.now(),
+      reason,
+      ip,
+      qc.nodePerms
+    )
+
+  }
+
   def newForRudder(msg: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
     ChangeContext(
       ModificationId(java.util.UUID.randomUUID.toString),
@@ -1683,9 +1688,6 @@ object QueryContext {
   // for system queries (when rudder needs to look-up things)
   implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
 }
-
-
-
 
 final case class NodeFactChangeEventCC(
     event: NodeFactChangeEvent,

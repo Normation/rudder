@@ -43,7 +43,6 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.tenants.HasSecurityContext
 import com.normation.rudder.tenants.SecurityTag
-
 import scala.xml.*
 
 /*

@@ -45,8 +45,6 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.*
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -56,7 +54,6 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.tenants.SecurityTag
-import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import net.liftweb.common.Box
 import org.joda.time.DateTime
@@ -83,8 +80,7 @@ class TechniqueAcceptationUpdater(
     override val order:    Int,
     roActiveTechniqueRepo: RoDirectiveRepository,
     rwActiveTechniqueRepo: WoDirectiveRepository,
-    techniqueRepo:         TechniqueRepository,
-    uuidGen:               StringUuidGenerator
+    techniqueRepo:         TechniqueRepository
 ) extends TechniquesLibraryUpdateNotification with NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName
@@ -92,11 +88,8 @@ class TechniqueAcceptationUpdater(
   override def updatedTechniques(
       gitRev:            String,
       techniqueMods:     Map[TechniqueName, TechniquesLibraryUpdateType],
-      updatedCategories: Set[TechniqueCategoryModType],
-      modId:             ModificationId,
-      actor:             EventActor,
-      reason:            Option[String]
-  ): Box[Unit] = {
+      updatedCategories: Set[TechniqueCategoryModType]
+  )(implicit cc: ChangeContext): Box[Unit] = {
 
     // id is the directory name, name is the display name in xml
     final case class CategoryInfo(id: String, name: String, description: String, isSystem: Boolean, security: Option[SecurityTag])
@@ -146,7 +139,7 @@ class TechniqueAcceptationUpdater(
     def createCategories(
         names:          List[CategoryInfo],
         parentCategory: (ActiveTechniqueCategoryId, String)
-    ): (ActiveTechniqueCategoryId, String) = {
+    )(implicit cc: ChangeContext): (ActiveTechniqueCategoryId, String) = {
       names match {
         case Nil          => parentCategory
         case info :: tail =>
@@ -158,10 +151,13 @@ class TechniqueAcceptationUpdater(
             List(),
             List(),
             isSystem = false,
-            security = ???
+            security = cc.nodePerms.toSecurityTag
           )
 
-          rwActiveTechniqueRepo.addActiveTechniqueCategory(cat, parentCategory._1, modId, actor, reason).either.runNow match {
+          rwActiveTechniqueRepo
+            .addActiveTechniqueCategory(cat, parentCategory._1)
+            .either
+            .runNow match {
             case Left(err) =>
               val msg =
                 s"Error when trying to create to hierarchy of categories into which the new technique should be added: ${err.fullMsg}"
@@ -207,12 +203,7 @@ class TechniqueAcceptationUpdater(
                                                                                       cat.subCategoryIds.isEmpty && cat.techniqueIds.isEmpty
                                                                                     ) {
                                                                                       rwActiveTechniqueRepo
-                                                                                        .deleteCategory(
-                                                                                          toActiveCatId(cat.id),
-                                                                                          modId,
-                                                                                          actor,
-                                                                                          reason
-                                                                                        )
+                                                                                        .deleteCategory(toActiveCatId(cat.id))
                                                                                         .map(_ => ())
                                                                                     } else {
                                                                                       logPure.info(
@@ -233,10 +224,7 @@ class TechniqueAcceptationUpdater(
                   cat.isSystem,
                   cat.security
                 ),
-                toActiveCatId(parentId),
-                modId,
-                actor,
-                reason
+                toActiveCatId(parentId)
               )
               .unit
           case TechniqueCategoryModType.Moved(from, to)      =>
@@ -251,7 +239,7 @@ class TechniqueAcceptationUpdater(
                   // if rdn changed, we need to issue a modrdn
                   val newName = if (from.name == to.name) None else Some(ActiveTechniqueCategoryId(to.name.value))
                   rwActiveTechniqueRepo
-                    .move(ActiveTechniqueCategoryId(from.name.value), toActiveCatId(parentId), newName, modId, actor, reason)
+                    .move(ActiveTechniqueCategoryId(from.name.value), toActiveCatId(parentId), newName)
                     .unit
                 }
             }
@@ -274,16 +262,13 @@ class TechniqueAcceptationUpdater(
                             cat.isSystem,
                             cat.security
                           ),
-                          toActiveCatId(i.parentId),
-                          modId,
-                          actor,
-                          reason
+                          toActiveCatId(i.parentId)
                         )
                         .unit
                   }
                 case Some(existing) =>
                   val updated = existing.copy(name = cat.name, description = cat.description)
-                  rwActiveTechniqueRepo.saveActiveTechniqueCategory(updated, modId, actor, reason).unit
+                  rwActiveTechniqueRepo.saveActiveTechniqueCategory(updated).unit
               }
             }
         }
@@ -329,10 +314,7 @@ class TechniqueAcceptationUpdater(
                                    ) *>
                                    rwActiveTechniqueRepo.changeStatus(
                                      activeTechnique.id,
-                                     status = false,
-                                     modId = modId,
-                                     actor = actor,
-                                     reason = reason
+                                     status = false
                                    )
                                  }
 
@@ -340,7 +322,7 @@ class TechniqueAcceptationUpdater(
                                  val versionsMap = mods.keySet.map(v => (v, acceptationDatetime)).toMap
                                  logPure.debug("Update acceptation datetime for: " + activeTechnique.techniqueName) *>
                                  rwActiveTechniqueRepo
-                                   .setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason)
+                                   .setAcceptationDatetimes(activeTechnique.id, versionsMap)
                                    .chainError(
                                      s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"
                                    )
@@ -404,11 +386,8 @@ class TechniqueAcceptationUpdater(
                                              parentCat._1,
                                              name,
                                              mods.keys.toSeq,
-                                             policyTypes,
-                                             modId,
-                                             actor,
-                                             reason
-                                           )(using ChangeContext.newForRudder(None, None))
+                                             policyTypes
+                                           )
                                            .chainError(
                                              s"Error when automatically activating technique '${name.value}'"
                                            )

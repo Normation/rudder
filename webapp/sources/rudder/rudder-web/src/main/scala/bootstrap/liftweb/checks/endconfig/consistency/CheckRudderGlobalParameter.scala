@@ -150,7 +150,8 @@ final private[checks] case class JsonParam(
       inheritMode.flatMap(InheritMode.parseString(_).toOption),
       description,
       provider.map(PropertyProvider.apply),
-      visibility.flatMap(Visibility.withNameInsensitiveOption).getOrElse(Visibility.default)
+      visibility.flatMap(Visibility.withNameInsensitiveOption).getOrElse(Visibility.default),
+      security = None // for backward compat
     )
   }
 }

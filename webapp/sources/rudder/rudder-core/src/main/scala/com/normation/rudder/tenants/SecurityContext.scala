@@ -37,13 +37,11 @@
 package com.normation.rudder.tenants
 
 import scala.xml.Node as XNode
-
 import zio.json.*
 
 trait HasSecurityContext {
   def security: Option[SecurityTag]
 }
-
 
 import zio.Chunk
 

@@ -315,7 +315,8 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       Some(Query(QueryReturnType.NodeReturnType, CriterionComposition.And, Identity, List())),
       isDynamic = true,
       serverList = Set(),
-      _isEnabled = true, security = None
+      _isEnabled = true,
+      security = None
     )
 
     val xml    = nodeGroupSerialisation.serialise(group)

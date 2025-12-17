@@ -326,7 +326,8 @@ class NodeGroupCategoryForm(
         description.get,
         _nodeGroupCategory.children,
         _nodeGroupCategory.items,
-        _nodeGroupCategory.isSystem
+        _nodeGroupCategory.isSystem,
+        security = CurrentUser.nodePerms.toSecurityTag
       )
 
       woGroupCategoryRepository

@@ -71,7 +71,7 @@ final case class Node(
     nodeReportingConfiguration: ReportingConfiguration,
     properties:                 List[NodeProperty],
     policyMode:                 Option[PolicyMode],
-    security:                Option[SecurityTag]
+    security:                   Option[SecurityTag]
 )
 
 case object Node {

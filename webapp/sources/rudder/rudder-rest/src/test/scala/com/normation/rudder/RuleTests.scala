@@ -55,7 +55,7 @@ class RuleTest extends Specification with Loggable {
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest      = new RestTest(restTestSetUp.liftRules)
 
-  val cat1:   RuleCategory       = RuleCategory(RuleCategoryId("cat1"), "", "", List.empty)
+  val cat1:   RuleCategory       = RuleCategory(RuleCategoryId("cat1"), "", "", List.empty, security = None)
   val cat4:   RuleCategory       = RuleCategory(
     RuleCategoryId("cat4"),
     "",
@@ -66,10 +66,12 @@ class RuleTest extends Specification with Loggable {
         "",
         "",
         List(
-          RuleCategory(RuleCategoryId("subsubcat4"), "", "", List.empty)
-        )
+          RuleCategory(RuleCategoryId("subsubcat4"), "", "", List.empty, security = None)
+        ),
+        security = None
       )
-    )
+    ),
+    security = None
   )
   val subCat: List[RuleCategory] = {
     List(
@@ -79,9 +81,10 @@ class RuleTest extends Specification with Loggable {
         "",
         "",
         List(
-          RuleCategory(RuleCategoryId("cat3"), "", "", List.empty),
+          RuleCategory(RuleCategoryId("cat3"), "", "", List.empty, security = None),
           cat4
-        )
+        ),
+        security = None
       )
     )
   }
@@ -91,7 +94,8 @@ class RuleTest extends Specification with Loggable {
     name = "Root category",
     description = "base root category",
     childs = subCat,
-    isSystem = true
+    isSystem = true,
+    security = None
   )
 
   "Testing rule utility tools" should {
@@ -124,38 +128,40 @@ class RuleTest extends Specification with Loggable {
 
     "Find missing categories" in {
       val rules = List(
-        Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("missing-cat1")),
-        Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("missing-cat2")),
-        Rule(RuleId(RuleUid("rule3")), "", RuleCategoryId("cat3")),
-        Rule(RuleId(RuleUid("rule4")), "", RuleCategoryId("cat4")),
-        Rule(RuleId(RuleUid("rule5")), "", RuleCategoryId("cat1"))
+        Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("missing-cat1"), security = None),
+        Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("missing-cat2"), security = None),
+        Rule(RuleId(RuleUid("rule3")), "", RuleCategoryId("cat3"), security = None),
+        Rule(RuleId(RuleUid("rule4")), "", RuleCategoryId("cat4"), security = None),
+        Rule(RuleId(RuleUid("rule5")), "", RuleCategoryId("cat1"), security = None)
       )
       val cat1  = RuleCategory(
         RuleCategoryId("missing-cat1"),
         name = "<missing-cat1>",
         description = s"Category missing-cat1 has been deleted, please move rules to available categories",
         childs = List(),
-        isSystem = false
+        isSystem = false,
+        security = None
       )
       val cat2  = RuleCategory(
         RuleCategoryId("missing-cat2"),
         name = "<missing-cat2>",
         description = s"Category missing-cat2 has been deleted, please move rules to available categories",
         childs = List(),
-        isSystem = false
+        isSystem = false,
+        security = None
       )
       restTestSetUp.ruleApiService14.getMissingCategories(root, rules) shouldEqual (Set(cat1, cat2))
     }
 
     "Find no missing categories" in {
       val rules = List(
-        Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("rootRuleCategory")),
-        Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("cat1")),
-        Rule(RuleId(RuleUid("rule3")), "", RuleCategoryId("cat3")),
-        Rule(RuleId(RuleUid("rule4")), "", RuleCategoryId("cat4")),
-        Rule(RuleId(RuleUid("rule5")), "", RuleCategoryId("cat1")),
-        Rule(RuleId(RuleUid("rule6")), "", RuleCategoryId("subcat4")),
-        Rule(RuleId(RuleUid("rule7")), "", RuleCategoryId("subsubcat4"))
+        Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("rootRuleCategory"), security = None),
+        Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("cat1"), security = None),
+        Rule(RuleId(RuleUid("rule3")), "", RuleCategoryId("cat3"), security = None),
+        Rule(RuleId(RuleUid("rule4")), "", RuleCategoryId("cat4"), security = None),
+        Rule(RuleId(RuleUid("rule5")), "", RuleCategoryId("cat1"), security = None),
+        Rule(RuleId(RuleUid("rule6")), "", RuleCategoryId("subcat4"), security = None),
+        Rule(RuleId(RuleUid("rule7")), "", RuleCategoryId("subsubcat4"), security = None)
       )
       restTestSetUp.ruleApiService14.getMissingCategories(root, rules) shouldEqual (Set.empty)
     }

@@ -43,9 +43,7 @@ import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.rudder.tenants.HasSecurityContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.DateFormaterService
-
 import org.joda.time.DateTime
-
 import zio.json.*
 
 final case class ActiveTechniqueId(value: String) extends AnyVal
@@ -72,7 +70,7 @@ final case class ActiveTechnique(
     _isEnabled:           Boolean = true,
     policyTypes:          PolicyTypes = PolicyTypes.rudderBase,
     // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
-    security:         Option[SecurityTag] // optional for backward compat. None means "no tenant"
+    security:             Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) extends HasSecurityContext {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || policyTypes.isSystem

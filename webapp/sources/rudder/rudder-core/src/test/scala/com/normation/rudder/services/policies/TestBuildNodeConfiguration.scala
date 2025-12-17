@@ -165,7 +165,8 @@ class TestBuildNodeConfiguration extends Specification {
         security = None
       )
     ),
-    isSystem = true, security = None
+    isSystem = true,
+    security = None
   )
 
   val rule: Rule = Rule(

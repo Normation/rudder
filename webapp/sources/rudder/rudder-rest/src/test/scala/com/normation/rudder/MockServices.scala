@@ -43,7 +43,6 @@ import com.normation.appconfig.ConfigRepository
 import com.normation.appconfig.GenericConfigService
 import com.normation.appconfig.ModifyGlobalPropertyInfo
 import com.normation.cfclerk.domain.TechniqueVersionHelper
-
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -96,6 +95,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
@@ -115,19 +115,15 @@ import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.syntax.*
-
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
-
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
-
 import zio.*
 import zio.System as _
 import zio.Tag as _
@@ -223,7 +219,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
         targetInfos = nodeGroups.map(g => {
           FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
         }),
-        isSystem = true
+        isSystem = true,
+        security = None
       ).succeed
     }
 
@@ -407,7 +404,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = (1 to 2).map(nodeId).toSet,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val g2: NodeGroup = NodeGroup(
@@ -418,7 +416,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(2)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val g3: NodeGroup = NodeGroup(
@@ -429,7 +428,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(1)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val r1: Rule = Rule(
@@ -437,7 +437,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R1",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id)),
-      Set(directives.techniqueWithBlocksDirective.id)
+      Set(directives.techniqueWithBlocksDirective.id),
+      security = None
     )
 
     val r2: Rule = Rule(
@@ -447,7 +448,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
       ), // include G1 but not G2, ie only node1
-      Set(directives.fileTemplateVariables2.id)
+      Set(directives.fileTemplateVariables2.id),
+      security = None
     )
 
     val r3: Rule = Rule(
@@ -455,7 +457,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R3",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id), GroupTarget(g3.id)),
-      Set(directives.rpmDirective.id)
+      Set(directives.rpmDirective.id),
+      security = None
     )
 
     val simpleCustomRules: List[Rule] = List(r1, r2, r3)
@@ -494,7 +497,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(1), nodeId(2)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g2: NodeGroup = NodeGroup(
       nodeGroupId(2),
@@ -504,7 +508,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(2)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g3: NodeGroup = NodeGroup(
       nodeGroupId(3),
@@ -514,7 +519,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(1)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g4: NodeGroup = NodeGroup(
       nodeGroupId(4),
@@ -524,7 +530,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(3), nodeId(4), nodeId(5)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g5: NodeGroup = NodeGroup(
       nodeGroupId(5),
@@ -534,7 +541,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(2), nodeId(3)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g6: NodeGroup = NodeGroup(
       nodeGroupId(6),
@@ -544,7 +552,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(4), nodeId(5)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val d1 = directives.fileTemplateDirecive1
@@ -559,7 +568,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R1",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id)),
-      Set(d1.id)
+      Set(d1.id),
+      security = None
     )
 
     val r2: Rule = Rule(
@@ -569,7 +579,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
       ), // include G1 but not G2
-      Set(d2.id)
+      Set(d2.id),
+      security = None
     )
 
     val r3: Rule = Rule(
@@ -577,7 +588,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R3",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g2.id), GroupTarget(g3.id)),
-      Set(d3.id)
+      Set(d3.id),
+      security = None
     )
 
     val r4: Rule = Rule(
@@ -585,7 +597,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R4",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g4.id), GroupTarget(g5.id)),
-      Set(d4.id)
+      Set(d4.id),
+      security = None
     )
 
     val r5: Rule = Rule(
@@ -595,7 +608,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g6.id))), TargetIntersection(Set(GroupTarget(g4.id))))
       ), // include G6 but not G4 (no node at all)
-      Set(d5.id)
+      Set(d5.id),
+      security = None
     )
 
     val r6: Rule = Rule(
@@ -603,7 +617,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R6",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g6.id)),
-      Set(d4.id, d6.id)
+      Set(d4.id, d6.id),
+      security = None
     )
 
     val complexStatusReports: Map[NodeId, NodeStatusReport] = Map(

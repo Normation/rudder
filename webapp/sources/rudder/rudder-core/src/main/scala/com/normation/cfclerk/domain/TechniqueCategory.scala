@@ -38,17 +38,14 @@
 package com.normation.cfclerk.domain
 
 import better.files.File
-
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.tenants.HasSecurityContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.XmlSafe
-
 import scala.collection.SortedSet
 import scala.xml.Elem
-
 import zio.json.*
 
 /**
@@ -63,7 +60,8 @@ final case class TechniqueCategoryName(value: String) extends AnyVal
  * Just the name / description of a technique category without all the
  * parent / subcategories / techniques stuff.
  */
-final case class TechniqueCategoryMetadata(name: String, description: String, isSystem: Boolean, security: Option[SecurityTag]) extends HasSecurityContext
+final case class TechniqueCategoryMetadata(name: String, description: String, isSystem: Boolean, security: Option[SecurityTag])
+    extends HasSecurityContext
 
 object TechniqueCategoryMetadata {
   implicit val codecTechniqueCategoryMetadata: JsonCodec[TechniqueCategoryMetadata] = DeriveJsonCodec.gen

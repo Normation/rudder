@@ -911,7 +911,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   val parameterApiService14 = new ParameterApiService14(
     mockParameters.paramsRepo,
-    uuidGen,
     workflowLevelService
   )
 

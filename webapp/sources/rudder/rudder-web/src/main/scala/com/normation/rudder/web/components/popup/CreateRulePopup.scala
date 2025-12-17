@@ -218,7 +218,8 @@ class CreateOrCloneRulePopup(
           directiveIds = clonedRule.map(_.directiveIds).getOrElse(Set()),
           shortDescription = ruleShortDescription.get,
           longDescription = clonedRule.map(_.longDescription).getOrElse(""),
-          isEnabledStatus = !clonedRule.isDefined
+          isEnabledStatus = !clonedRule.isDefined,
+          security = CurrentUser.nodePerms.toSecurityTag
         )
       }
 

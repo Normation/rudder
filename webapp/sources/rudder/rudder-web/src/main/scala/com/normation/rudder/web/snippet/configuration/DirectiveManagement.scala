@@ -725,7 +725,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             None,
             "",
             5,
-            _isEnabled = true
+            _isEnabled = true,
+            security = CurrentUser.nodePerms.toSecurityTag
           )
         }
         updateDirectiveSettingForm(

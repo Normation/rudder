@@ -109,6 +109,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.WoRuleCategoryRepository
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
@@ -376,7 +377,8 @@ final case class JRuleCategories(
     id:          RuleCategoryId,
     name:        String,
     description: String,
-    children:    List[JRuleCategories]
+    children:    List[JRuleCategories],
+    security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) {
   def keepInHierarchy(ids: Set[RuleCategoryId]): JRuleCategories = {
     copy(children = children.filter(_.hasDescendantIn(ids)).map(_.keepInHierarchy(ids)))
@@ -930,14 +932,12 @@ final case class GroupArchive(
     category: NodeGroupCategoryId
 )
 
-/**
- * The root of the rule categories, there is only a single root
- */
 final case class RuleCategoryArchive(
     id:          RuleCategoryId,
     name:        String,
     description: String,
-    children:    List[RuleCategoryArchive]
+    children:    List[RuleCategoryArchive],
+    security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) {
   import RuleCategoryArchive.*
 
@@ -1643,7 +1643,7 @@ class SaveArchiveServicebyRepo(
       eventMetadata: EventMetadata,
       cat:           GroupCategoryArchive,
       catMap:        Map[String, NodeGroupCategoryId]
-  ): IOResult[Unit] = {
+  )(implicit cc: ChangeContext): IOResult[Unit] = {
     for {
       _       <- ApplicationLoggerPure.Archive.debug(s"Adding group category from archive: '${cat.category.name}' (${cat.category.id})")
       /*
@@ -1656,7 +1656,15 @@ class SaveArchiveServicebyRepo(
                    case Some(p) => p
                    case None    => GroupRootId
                  }
-      category = NodeGroupCategory(id, cat.category.name, cat.category.description, Nil, Nil)
+      category = NodeGroupCategory(
+                   id,
+                   cat.category.name,
+                   cat.category.description,
+                   Nil,
+                   Nil,
+                   isSystem = false,
+                   security = cc.nodePerms.toSecurityTag
+                 )
       _       <- if (exists) {
                    woGroupRepos.saveGroupCategory(category, parentId, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
                  } else {
@@ -1680,7 +1688,15 @@ class SaveArchiveServicebyRepo(
       c <- roGroupRepos.categoryExists(g.category)
       _ <- ZIO.when(!c) {
              woGroupRepos.addGroupCategorytoCategory(
-               NodeGroupCategory(g.category, g.category.value, "", Nil, Nil),
+               NodeGroupCategory(
+                 g.category,
+                 g.category.value,
+                 "",
+                 Nil,
+                 Nil,
+                 isSystem = false,
+                 security = cc.nodePerms.toSecurityTag
+               ),
                GroupRootId,
                modId,
                actor,
