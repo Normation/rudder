@@ -27,22 +27,25 @@ impl Secedit {
             unimplemented!("Audit mode not yet implemented!");
         } else {
             let mut template = self.export()?;
+            Self::template_search_and_replace(&mut template, data)?;
+            self.import(template).and_then(Self::configure)?;
+            println!("DONE");
+        }
 
-            for (k, v) in data {
-                for (_, prop) in template.iter_mut() {
-                    for (t, _) in prop.clone().iter_mut() {
-                        if k == t {
-                            prop.remove(&k);
-                            prop.insert(&k, v.to_string());
-                        }
+        Ok(())
+    }
+
+    fn template_search_and_replace(template: &mut Ini, data: Map<String, Value>) -> Result<()> {
+        for (k, v) in data {
+            for (_, prop) in template.iter_mut() {
+                for (t, _) in prop.clone().iter_mut() {
+                    if k == t {
+                        prop.remove(&k);
+                        prop.insert(&k, v.to_string());
                     }
                 }
             }
-
-            self.import(template).and_then(Self::configure)?;
         }
-
-        println!("DONE");
         Ok(())
     }
 
