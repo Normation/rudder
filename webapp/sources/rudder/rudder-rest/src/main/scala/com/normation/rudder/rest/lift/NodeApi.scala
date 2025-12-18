@@ -925,7 +925,7 @@ class NodeApiService(
         nodeReportingConfiguration = ReportingConfiguration(None, None),
         properties = Nil,
         policyMode = None,
-        securityTag = None
+        security = None
       )
     }
 

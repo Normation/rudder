@@ -54,10 +54,10 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.servers.DeleteMode
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.snippet.RegisterToasts
@@ -645,7 +645,7 @@ object DisplayNode extends Loggable {
         .getOrElse("none available")
     }
           </div>
-          
+
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>

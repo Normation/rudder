@@ -39,8 +39,8 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
@@ -68,7 +68,6 @@ class TechniqueCategoryEditForm(
   private val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
   private val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
-  private val uuidGen                           = RudderConfig.stringUuidGenerator
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
@@ -109,11 +108,8 @@ class TechniqueCategoryEditForm(
 
   private def deleteCategory(): JsCmd = {
     activeTechniqueCategoryRepository
-      .deleteCategory(
-        currentCategory.id,
-        ModificationId(uuidGen.newUuid),
-        CurrentUser.actor,
-        Some("User deleted technique category from UI")
+      .deleteCategory(currentCategory.id)(using
+        ChangeContext.newFromQC(CurrentUser.queryContext, Some("User deleted technique category from UI"))
       )
       .toBox match {
       case Full(id) =>
@@ -204,11 +200,8 @@ class TechniqueCategoryEditForm(
                 description = categoryDescription.get
               )
               activeTechniqueCategoryRepository
-                .saveActiveTechniqueCategory(
-                  updatedCategory,
-                  ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
-                  Some("User updated category from UI")
+                .saveActiveTechniqueCategory(updatedCategory)(using
+                  ChangeContext.newFromQC(CurrentUser.queryContext, Some("User updated category from UI"))
                 )
                 .toBox match {
                 case Failure(m, _, _) =>

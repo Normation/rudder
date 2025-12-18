@@ -80,7 +80,8 @@ class TestInheritedProperties extends ZIOSpecDefault {
       None,
       "a string at first",
       None,
-      Visibility.default
+      Visibility.default,
+      security = None
     )
   }
   restTestSetUp.mockParameters.paramsRepo.paramsMap.update(m => m + (badOverrideType.name -> badOverrideType)).runNow

@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -34,14 +34,49 @@
  *
  *************************************************************************************
  */
-package com.normation.cfclerk
+package com.normation.rudder.tenants
 
-package object domain {
+import scala.xml.Node as XNode
+import zio.json.*
 
-  // The name of the special Variable that holds all the
-  // parameters
-  val PARAMETER_VARIABLE = "RUDDER_PARAMETERS"
+trait HasSecurityContext {
+  def security: Option[SecurityTag]
+}
 
-  def reportKeysVariableName(sectionName: String): String = "expectedReportKey " + sectionName
+import zio.Chunk
 
+// A security token for now is just a a list of tags denoting tenants
+// That security tag is not exposed in proxy service
+final case class SecurityTag(tenants: Chunk[TenantId])
+
+// default serialization for security tag. Be careful, changing that impacts external APIs.
+object SecurityTag {
+
+  def empty: SecurityTag = SecurityTag(Chunk.empty)
+
+  implicit val codecSecurityTag: JsonCodec[SecurityTag] = DeriveJsonCodec.gen
+
+  // XML serialization / deserialisation for events
+  import scala.xml.*
+
+  def toXml(opt: Option[SecurityTag]): NodeSeq = {
+    opt match {
+      case None    => NodeSeq.Empty
+      case Some(s) => <security><tenants>{s.tenants.map(t => <tenant id={t.value}/>)}</tenants></security>
+    }
+  }
+
+  // Parse the parent element of SecurityTag to see if there is one
+  def fromXml(xml: NodeSeq): Option[SecurityTag] = {
+    def tenant(t: XNode): Option[TenantId] = {
+      (t \ "@id").text.trim match {
+        case "" => None
+        case t  => Some(TenantId(t))
+      }
+    }
+    (xml \ "security" \ "tenants") match {
+      case NodeSeq.Empty => None
+      case ns            => Some(SecurityTag(Chunk.fromIterable((ns \ "tenant").flatMap(tenant))))
+    }
+  }
 }

@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
@@ -224,15 +223,14 @@ class GroupsApi(
   object Create extends LiftApiModule0 {
     val schema:                                                                                                API.CreateGroup.type = API.CreateGroup
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse         = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
       val schemaGroup = for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract group parameters from request").toIO
         result    <- service.createGroup(
                        restGroup,
                        restGroup.id.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid))),
                        restGroup.source,
-                       params,
-                       authzToken.qc.actor
+                       params
                      )
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
@@ -490,21 +488,20 @@ class GroupApiService14(
       restGroup:   JQGroup,
       nodeGroupId: NodeGroupId,
       clone:       Option[NodeGroupId],
-      params:      DefaultParams,
-      actor:       EventActor
-  )(implicit qc: QueryContext): ZIO[Any, RudderError, JRGroup] = {
+      params:      DefaultParams
+  )(implicit cc: ChangeContext): ZIO[Any, RudderError, JRGroup] = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       val modId = ModificationId(uuidGen.newUuid)
       (for {
         rootCat  <- readGroup.getRootCategoryPure()
         cat       = change.category.getOrElse(rootCat.id)
-        saveDiff <- writeGroup.create(change.newGroup, cat, modId, actor, params.reason)
+        saveDiff <- writeGroup.create(change.newGroup, cat, modId, cc.actor, params.reason)
         // after group creation, its properties should be computed and resolved
         _        <- propertiesService.updateAll()
       } yield {
         if (saveDiff.needDeployment) {
           // Trigger a deployment only if it is needed
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(modId, cc.actor)
         }
         JRGroup.fromGroup(saveDiff.group, cat, None)
       }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
@@ -517,9 +514,10 @@ class GroupApiService14(
         groupId:   NodeGroupId,
         name:      String,
         clone:     Option[NodeGroupId],
-        params:    DefaultParams,
-        actor:     EventActor
-    ): IOResult[NodeGroupChangeRequest] = {
+        params:    DefaultParams
+    )(implicit cc: ChangeContext): IOResult[NodeGroupChangeRequest] = {
+      implicit val qc: QueryContext = cc.toQuery
+
       clone match {
         case Some(sourceId) =>
           // clone existing group
@@ -542,8 +540,19 @@ class GroupApiService14(
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup      =
-            NodeGroup(groupId, name, "", Nil, None, isDynamic = true, serverList = Set(), _isEnabled = defaultEnabled)
+          val baseGroup      = {
+            NodeGroup(
+              groupId,
+              name,
+              "",
+              Nil,
+              None,
+              isDynamic = true,
+              serverList = Set(),
+              _isEnabled = defaultEnabled,
+              security = cc.nodePerms.toSecurityTag
+            )
+          }
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled
@@ -558,7 +567,7 @@ class GroupApiService14(
             updated  <- restGroup.updateGroup(baseGroup, queryParser).toIO
             change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.categoryId, Some(baseGroup))
             workflow <- workflowLevelService
-                          .getForNodeGroup(actor, change)
+                          .getForNodeGroup(cc.actor, change)
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the group if a workflow should be
@@ -572,7 +581,7 @@ class GroupApiService14(
 
     (for {
       name    <- restGroup.displayName.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
-      change  <- createOrClone(restGroup, nodeGroupId, name, clone, params, actor)
+      change  <- createOrClone(restGroup, nodeGroupId, name, clone, params)
       created <- actualGroupCreation(change, nodeGroupId)
     } yield {
       created

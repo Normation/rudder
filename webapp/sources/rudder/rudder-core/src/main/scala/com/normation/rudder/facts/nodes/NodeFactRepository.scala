@@ -44,6 +44,8 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*

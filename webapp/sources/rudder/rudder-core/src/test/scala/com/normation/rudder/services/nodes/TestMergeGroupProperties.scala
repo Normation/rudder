@@ -153,11 +153,11 @@ class TestMergeGroupProperties extends Specification {
     def toG(name: String, mode: Option[InheritMode], nodeId: NodeId): PropertyHierarchy = {
       NodePropertyHierarchy(
         nodeId,
-        ParentProperty.Global(GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default))
+        ParentProperty.Global(GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default, None))
       )
     }
     def toGP(name: String, mode: Option[InheritMode]):                GlobalParameter   = {
-      GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default)
+      GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default, None)
     }
   }
   implicit class ToConfigValue(s: String)                     {
@@ -190,7 +190,8 @@ class TestMergeGroupProperties extends Specification {
     query = Some(Query(NodeReturnType, And, Identity, List())),
     isDynamic = true,
     serverList = Set(),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val parent2Prop = GroupProperty("foo", GitVersion.DEFAULT_REV, "bar2".toConfigValue, None, None)
   val parent2: NodeGroup = NodeGroup(
@@ -201,7 +202,8 @@ class TestMergeGroupProperties extends Specification {
     query = Some(Query(NodeReturnType, And, Identity, List())),
     isDynamic = true,
     serverList = Set(),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val childProp = GroupProperty("foo", GitVersion.DEFAULT_REV, "baz".toConfigValue, None, None)
   val query: Query     = Query(NodeReturnType, And, Identity, List(parent1.toCriterion))
@@ -214,7 +216,8 @@ class TestMergeGroupProperties extends Specification {
       query = Some(query),
       isDynamic = true,
       serverList = Set(),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val nodeInfo =
@@ -319,7 +322,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val parent2 = NodeGroup(
         NodeGroupId(NodeGroupUid("parent2")),
@@ -329,7 +333,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
 
       val merged = {
@@ -358,7 +363,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val parent2    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent2")),
@@ -368,7 +374,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val prioritize = NodeGroup(
         NodeGroupId(NodeGroupUid("parent3")),
@@ -378,7 +385,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion))),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
 
       val merged   = {
@@ -409,7 +417,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val parent2    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent2")),
@@ -419,7 +428,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val prioritize = NodeGroup(
         NodeGroupId(NodeGroupUid("parent3")),
@@ -429,7 +439,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion, parent2.toCriterion))),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val parent4    = NodeGroup(
         NodeGroupId(NodeGroupUid("parent4")),
@@ -439,7 +450,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion))),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
 
       val merged   = MergeNodeProperties
@@ -575,7 +587,8 @@ class TestMergeGroupProperties extends Specification {
               maaInheritMode,
               "",
               None,
-              Visibility.default
+              Visibility.default,
+              security = None
             )
           )
         )
@@ -601,7 +614,8 @@ class TestMergeGroupProperties extends Specification {
               mpaInheritMode,
               "",
               None,
-              Visibility.default
+              Visibility.default,
+              security = None
             )
           )
         )
@@ -655,7 +669,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List())),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       val child                             = NodeGroup(
         NodeGroupId(NodeGroupUid("child")),
@@ -665,7 +680,8 @@ class TestMergeGroupProperties extends Specification {
         query = Some(Query(NodeReturnType, And, Identity, List(parent1.toCriterion))),
         isDynamic = true,
         serverList = Set(),
-        _isEnabled = true
+        _isEnabled = true,
+        security = None
       )
       parent :: child :: Nil
     }
@@ -714,7 +730,8 @@ class TestMergeGroupProperties extends Specification {
           None,
           "",
           None,
-          Visibility.default
+          Visibility.default,
+          security = None
         ))
       )
       val parent        = parent1

@@ -206,7 +206,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
     "save a category" should {
 
-      val category = TechniqueCategoryMetadata("My new category", "A new category", isSystem = false)
+      val category = TechniqueCategoryMetadata("My new category", "A new category", isSystem = false, None)
       val catPath  = List("systemSettings", "myNewCategory")
 
       val modId = new ModificationId("add-technique-cat")

@@ -2184,7 +2184,6 @@ object RudderConfigInit {
       lazy val parameterApiService14 = {
         new ParameterApiService14(
           roLDAPParameterRepository,
-          stringUuidGenerator,
           workflowLevelService
         )
       }
@@ -3118,8 +3117,7 @@ object RudderConfigInit {
         50,
         roLdapDirectiveRepository,
         woLdapDirectiveRepository,
-        techniqueRepository,
-        stringUuidGenerator
+        techniqueRepository
       )
     )
 

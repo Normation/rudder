@@ -506,7 +506,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       5,
       _isEnabled = true,
-      isSystem = true // short desc / policyMode / long desc / prio / enabled / system
+      isSystem = true,
+      security = None
     )
 
     val archiveTechnique: Technique =
@@ -521,7 +522,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       5,
       _isEnabled = true,
-      isSystem = false
+      isSystem = false,
+      security = None
     )
 
     // we have one rule with several system technique for root server config
@@ -538,7 +540,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
         "",
         5,
         _isEnabled = true,
-        isSystem = true // short desc / policyMode / long desc / prio / enabled / system
+        isSystem = true,
+        security = None
       )
       (technique, directive)
     }
@@ -561,7 +564,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       5,
       _isEnabled = true,
-      isSystem = true // short desc / policyMode / long desc / prio / enabled / system
+      isSystem = true,
+      security = None
     )
 
     //
@@ -584,7 +588,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       5,
       _isEnabled = true,
-      isSystem = false // short desc / policyMode / long desc / prio / enabled / system
+      isSystem = false,
+      security = None
     )
 
     /*
@@ -610,7 +615,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "directive2",
       "",
       None,
-      ""
+      "",
+      security = None
     )
 
     // a directive with two iterations
@@ -631,7 +637,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "directive 16617aa8-1f02-4e4a-87b6-d0bcdfb4019f",
       "",
       None,
-      ""
+      "",
+      security = None
     )
 
     val fileTemplateTechnique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("fileTemplate"), TV("1.0")))
@@ -653,7 +660,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
       "",
       None,
-      ""
+      "",
+      security = None
     )
     val fileTemplateVariables2: Directive = Directive(
       DirectiveId(DirectiveUid("99f4ef91-537b-4e03-97bc-e65b447514cc"), GitVersion.DEFAULT_REV),
@@ -674,7 +682,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       None,
       "",
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val ncf1Technique = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("Create_file"), TV("1.0")))
@@ -689,7 +698,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9",
       "",
       None,
-      ""
+      "",
+      security = None
     )
 
     /**
@@ -720,7 +730,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "directive-copyGitFile",
       "",
       None,
-      ""
+      "",
+      security = None
     )
 
     /*
@@ -749,7 +760,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       None,
       "",
-      0
+      0,
+      security = None
     )
     val gvdDirective2: Directive = Directive(
       DirectiveId(DirectiveUid("gvd-directive2"), GitVersion.DEFAULT_REV),
@@ -762,7 +774,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       "",
       None,
       "",
-      10
+      10,
+      security = None
     )
 
     /*
@@ -783,7 +796,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       Some(Audit),
       "a documentation *with markdown*",
       _isEnabled = true,
-      tags = Tags.fromMaps(List(Map("aTagName" -> "the tagName value")))
+      tags = Tags.fromMaps(List(Map("aTagName" -> "the tagName value"))),
+      security = None
     )
 
     val all = Map(
@@ -823,7 +837,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
           "This is the root category for active techniques. It contains subcategories, actives techniques and directives",
         subCategories = Nil,
         activeTechniques = Nil,
-        isSystem = true
+        isSystem = true,
+        security = None
       )
     )
     .runNow
@@ -1072,11 +1087,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechnique] = {
+        policyTypes:   PolicyTypes
+    )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       val techs = techniqueRepos.getByName(techniqueName)
       for {
         all <-
@@ -1096,27 +1108,18 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     override def move(
         id:            ActiveTechniqueId,
-        newCategoryId: ActiveTechniqueCategoryId,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        newCategoryId: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def changeStatus(
         id:     ActiveTechniqueId,
-        status: Boolean,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        status: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        datetimes: Map[TechniqueVersion, DateTime]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def deleteActiveTechnique(
         id:     ActiveTechniqueId,
@@ -1126,12 +1129,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
     ): IOResult[ActiveTechniqueId] = ???
 
     override def addActiveTechniqueCategory(
-        that:           ActiveTechniqueCategory,
-        into:           ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = {
+        that: ActiveTechniqueCategory,
+        into: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.updateAndGetZIO { root =>
         val full = FullActiveTechniqueCategory(
           that.id,
@@ -1139,35 +1139,27 @@ class MockDirectives(mockTechniques: MockTechniques) {
           that.description,
           that.children.flatMap(root.allCategories.get(_)),
           that.items.flatMap(root.allActiveTechniques.get(_)),
-          that.isSystem
+          that.isSystem,
+          security = None
         )
         root.addActiveTechniqueCategory(into, full).succeed
       }.map(_.toActiveTechniqueCategory())
     }
 
     override def saveActiveTechniqueCategory(
-        category:       ActiveTechniqueCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = ???
+        category: ActiveTechniqueCategory
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
 
     override def deleteCategory(
-        id:             ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+        id:         ActiveTechniqueCategoryId,
+        checkEmpty: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
 
     override def move(
-        categoryId:     ActiveTechniqueCategoryId,
-        intoParent:     ActiveTechniqueCategoryId,
-        optionNewName:  Option[ActiveTechniqueCategoryId],
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+        categoryId:    ActiveTechniqueCategoryId,
+        intoParent:    ActiveTechniqueCategoryId,
+        optionNewName: Option[ActiveTechniqueCategoryId]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
 
   }
 
@@ -1201,8 +1193,9 @@ class MockRules() {
     RuleCategoryId("rootRuleCategory"),
     "Rules",
     "This is the main category of Rules",
-    RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil) :: Nil,
-    isSystem = true
+    RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil, security = None) :: Nil,
+    isSystem = true,
+    security = None
   )
 
   object ruleCategoryRepo extends RoRuleCategoryRepository with WoRuleCategoryRepository {
@@ -1324,7 +1317,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = true,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val serverRoleRule: Rule = Rule(
@@ -1337,7 +1331,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = true,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val distributeRule: Rule = Rule(
@@ -1350,7 +1345,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = true,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val inventoryAllRule: Rule = Rule(
@@ -1363,7 +1359,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = true,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val clockRule: Rule = Rule(
@@ -1376,7 +1373,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = false,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val rpmRule: Rule = Rule(
@@ -1389,7 +1387,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = false,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val defaultRule: Rule = Rule(
@@ -1408,7 +1407,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = false,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val copyDefaultRule: Rule = Rule(
@@ -1423,7 +1423,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = false,
-      NoTags()                                                            // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val ncfTechniqueRule: Rule = Rule(
@@ -1437,7 +1438,8 @@ class MockRules() {
       isEnabledStatus = true,
       isSystem = false, // long desc / enabled / system
 
-      MkTags(("datacenter", "Paris"), ("serverType", "webserver"))
+      MkTags(("datacenter", "Paris"), ("serverType", "webserver")),
+      security = None
     )
 
     val copyGitFileRule: Rule = Rule(
@@ -1450,7 +1452,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = false,
-      NoTags()                                                                             // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val gvd1Rule: Rule = Rule(
@@ -1463,7 +1466,8 @@ class MockRules() {
       "",
       isEnabledStatus = true,
       isSystem = false,
-      NoTags() // long desc / enabled / system / tags
+      NoTags(),
+      security = None
     )
 
     val all: List[Rule] = List(
@@ -1669,7 +1673,8 @@ class MockGlobalParam() {
       None,
       "a simple string param",
       None,
-      Visibility.default
+      Visibility.default,
+      None
     )
   }
 
@@ -1682,7 +1687,8 @@ class MockGlobalParam() {
       None,
       "a hidden param",
       None,
-      Visibility.Hidden
+      Visibility.Hidden,
+      None
     )
   }
 
@@ -1695,7 +1701,8 @@ class MockGlobalParam() {
       None,
       "a simple string param",
       None,
-      Visibility.default
+      Visibility.default,
+      None
     )
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
 
@@ -1707,7 +1714,8 @@ class MockGlobalParam() {
       Some(mode),
       "a simple string param",
       None,
-      Visibility.default
+      Visibility.default,
+      None
     )
   }
 
@@ -1718,7 +1726,8 @@ class MockGlobalParam() {
     None,
     "a simple string param",
     Some(PropertyProvider.systemPropertyProvider),
-    Visibility.default
+    Visibility.default,
+    None
   )
 
   val rudderConfig: GlobalParameter = GlobalParameter
@@ -1731,7 +1740,8 @@ class MockGlobalParam() {
       None,
       "rudder system config",
       Some(PropertyProvider.systemPropertyProvider),
-      Visibility.default
+      Visibility.default,
+      None
     )
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
 
@@ -1977,7 +1987,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
-    securityTag = None
+    security = None
   )
   val root:     NodeInfo = NodeInfo(
     rootNode,
@@ -2056,7 +2066,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
-    securityTag = None
+    security = None
   )
 
   val node1: NodeInfo = NodeInfo(
@@ -2150,7 +2160,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = None,
-    securityTag = None
+    security = None
   )
 
   val pendingNode1Node:      Node          = node1Node.copy(id = pendingId1, name = pendingId1.value)
@@ -2281,7 +2291,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
       nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = Nil,
       policyMode = None,
-      securityTag = None
+      security = None
     )
   }
 
@@ -2616,7 +2626,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
           description = "root of group categories",
           subCategories = Nil,
           targetInfos = Nil,
-          isSystem = true
+          isSystem = true,
+          security = None
         )
       )
       .runNow
@@ -2958,7 +2969,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
           for {
             cat <- root.allCategories.get(into).notOptional(s"Missing target parent category '${into.value}'")
           } yield {
-            val t = FullNodeGroupCategory(that.id, that.name, that.description, Nil, Nil, that.isSystem)
+            val t = FullNodeGroupCategory(that.id, that.name, that.description, Nil, Nil, that.isSystem, that.security)
             updateCategory(t, cat, root)
           }
         })
@@ -2976,7 +2987,15 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
           for {
             cat <- root.parentCategories.get(category.id).notOptional(s"Missing target parent category of '${category.id.value}'")
           } yield {
-            val t = FullNodeGroupCategory(category.id, category.name, category.description, Nil, Nil, category.isSystem)
+            val t = FullNodeGroupCategory(
+              category.id,
+              category.name,
+              category.description,
+              Nil,
+              Nil,
+              category.isSystem,
+              category.security
+            )
             updateCategory(t, cat, root)
           }
         })
@@ -2995,7 +3014,15 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
           for {
             cat <- root.allCategories.get(containerId).notOptional(s"Missing target parent category '${containerId.value}'")
           } yield {
-            val t = FullNodeGroupCategory(category.id, category.name, category.description, Nil, Nil, category.isSystem)
+            val t = FullNodeGroupCategory(
+              category.id,
+              category.name,
+              category.description,
+              Nil,
+              Nil,
+              category.isSystem,
+              category.security
+            )
             updateCategory(t, cat, root)
           }
         })
@@ -3033,7 +3060,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     query = None,
     isDynamic = false,
     serverList = Set(MockNodes.rootId, MockNodes.node1.id, MockNodes.node2.id),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g1:     NodeGroup                     = {
     NodeGroup(
@@ -3044,7 +3072,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       query = None,
       isDynamic = false,
       serverList = Set(),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val g2:     NodeGroup                     = NodeGroup(
@@ -3055,7 +3084,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     query = None,
     isDynamic = false,
     serverList = Set(NodeId("root")),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g3:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("3333f5d3-8c61-4d20-88a7-bb947705ba8a")),
@@ -3065,7 +3095,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     query = None,
     isDynamic = false,
     serverList = MockNodes.nodeIds.filter(_.value.toInt % 2 == 0),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g4:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("4444f5d3-8c61-4d20-88a7-bb947705ba8a")),
@@ -3075,7 +3106,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     query = None,
     isDynamic = false,
     serverList = MockNodes.nodeIds.filter(_.value.toInt % 2 != 0),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g5:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("5555f5d3-8c61-4d20-88a7-bb947705ba8a")),
@@ -3085,7 +3117,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     query = None,
     isDynamic = false,
     serverList = MockNodes.nodeIds.filter(_.value.toInt % 3 == 0),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val g6:     NodeGroup                     = NodeGroup(
     NodeGroupId(NodeGroupUid("6666f5d3-8c61-4d20-88a7-bb947705ba8a")),
@@ -3095,7 +3128,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     query = None,
     isDynamic = false,
     serverList = MockNodes.nodeIds.filter(_.value.toInt % 5 == 0),
-    _isEnabled = true
+    _isEnabled = true,
+    security = None
   )
   val groups: Seq[(NodeGroupId, NodeGroup)] = List(g0, g1, g2, g3, g4, g5, g6).map(g => (g.id, g))
 
@@ -3122,7 +3156,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         description = "the first category",
         subCategories = Nil,
         targetInfos = List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
-        isSystem = false
+        isSystem = false,
+        security = None
       ),
       FullNodeGroupCategory(
         NodeGroupCategoryId("system-category1"),
@@ -3130,7 +3165,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         description = "a system group category",
         subCategories = Nil,
         targetInfos = List.empty,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullNodeGroupCategory(
         NodeGroupCategoryId("category-to-be-deleted"),
@@ -3138,7 +3174,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         description = "no life",
         subCategories = Nil,
         targetInfos = List.empty,
-        isSystem = false
+        isSystem = false,
+        security = None
       )
     ),
     List(
@@ -3154,7 +3191,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
             isDynamic = true,
             serverList = Set(NodeId("root")),
             _isEnabled = true,
-            isSystem = false
+            isSystem = false,
+            security = None
           )
         ),
         name = "Serveurs [€ðŋ] cassés",
@@ -3174,7 +3212,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
             isDynamic = false,
             serverList = MockNodes.nodeIds,
             _isEnabled = true,
-            isSystem = true
+            isSystem = true,
+            security = None
           )
         ),
         name = "System groups",
@@ -3204,7 +3243,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         isSystem = true
       )
     ) ++ groupsTargetInfos.drop(1),
-    isSystem = true
+    isSystem = true,
+    security = None
   )
 
   // init with full lib

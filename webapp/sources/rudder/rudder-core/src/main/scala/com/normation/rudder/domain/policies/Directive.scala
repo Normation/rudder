@@ -41,6 +41,8 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.SecurityTag
 import scala.xml.*
 
 /*
@@ -204,8 +206,10 @@ final case class Directive(
      * Optionally, Directive can have Tags
      */
 
-    tags:             Tags = Tags(Set())
-) {
+    tags:             Tags = Tags(Set()),
+    // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
+    security:         Option[SecurityTag] // optional for backward compat. None means "no tenant"
+) extends HasSecurityContext {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || isSystem
 }

@@ -42,8 +42,9 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.users.UserPassword.HashedUserPassword
 import com.normation.rudder.users.UserPassword.RandomHexaPassword
 import java.util.Collection
@@ -161,6 +162,10 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
   //  This is used only in snippets. It could be a more generic query context, which could be empty, which impacts snippets
   def queryContext: QueryContext =
     getCurrentUser.map(_.qc).getOrElse(QueryContext(EventActor("unknown"), NodeSecurityContext.None))
+
+  // it's a "new" each time, because we want different change context for different user
+  // action even for a same request if called several times.
+  def changeContext(reason: Option[String] = None): ChangeContext = ChangeContext.newFromQC(queryContext, reason)
 
   def nodePerms: NodeSecurityContext = getCurrentUser.map(_.nodePerms).getOrElse(NodeSecurityContext.None)
 

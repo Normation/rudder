@@ -144,7 +144,8 @@ class SearchNodes extends StatefulSnippet with Loggable {
               isDynamic = true,
               serverList = serverList.openOr(Seq[CoreNodeFact]()).map(_.id).toSet,
               _isEnabled = true,
-              isSystem = false
+              isSystem = false,
+              security = CurrentUser.nodePerms.toSecurityTag
             )
           ),
           rootCategory = groupLibrary,

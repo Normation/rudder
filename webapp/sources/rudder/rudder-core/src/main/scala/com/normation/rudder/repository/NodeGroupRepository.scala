@@ -46,6 +46,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord
 import scala.collection.MapView
@@ -90,7 +91,8 @@ final case class FullNodeGroupCategory(
     description:   String,
     subCategories: List[FullNodeGroupCategory],
     targetInfos:   List[FullRuleTargetInfo],
-    isSystem:      Boolean = false
+    isSystem:      Boolean,
+    security:      Option[SecurityTag]
 ) {
 
   def toNodeGroupCategory: NodeGroupCategory = NodeGroupCategory(
@@ -99,7 +101,8 @@ final case class FullNodeGroupCategory(
     description = description,
     children = subCategories.map(_.id),
     items = targetInfos.map(_.toTargetInfo),
-    isSystem = isSystem
+    isSystem = isSystem,
+    security = security
   )
 
   /**

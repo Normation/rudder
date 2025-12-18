@@ -162,7 +162,8 @@ class CreateOrUpdateGlobalParameterPopup(
                                InheritMode.parseString(parameterInheritMode.get).toOption,
                                parameterDescription.get,
                                None,
-                               Visibility.default
+                               Visibility.default,
+                               security = CurrentUser.nodePerms.toSecurityTag
                              )
           diff            <- globalParamDiffFromAction(param)
           cr               = ChangeRequestService.createChangeRequestFromGlobalParameter(
