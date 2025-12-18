@@ -195,7 +195,7 @@ object revisionRepo {
     revisionsMap.get.map(_.get(revision))
 
   def getAll: IOResult[Seq[RevisionInfo]] = {
-    revisionsMap.get.map(_.valuesIterator.toList.sortBy(_.date.getMillis).toSeq)
+    revisionsMap.get.map(_.valuesIterator.toList.sortBy(_.date).toSeq)
   }
 
   def add(revisionInfo: RevisionInfo): IOResult[Unit] = {
