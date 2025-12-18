@@ -649,7 +649,7 @@ object NodeConfigIdSerializer {
 
     // be careful, we can have several time the same id with different creation date
     // we want an array of { begin : id }
-    val m: JValue = JArray(ids.toList.sortBy(_.creation.getMillis).map {
+    val m: JValue = JArray(ids.toList.sortBy(_.creation).map {
       case NodeConfigIdInfo(NodeConfigId(id), creation, _) =>
         (creation.toString(isoDateTime) -> id): JObject
     })
@@ -679,7 +679,7 @@ object NodeConfigIdSerializer {
             }
         }
         .flatten
-        .sortBy(_._2.getMillis): @nowarn("cat=deprecation")
+        .sortBy(_._2): @nowarn("cat=deprecation")
 
       // build interval
       configs match {

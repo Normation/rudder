@@ -69,7 +69,7 @@ class RecentChangesAPI(
     changesByRules.map {
       case (ruleId, changes) =>
         val serializedChanges = {
-          changes.toList.sortBy(_._1.getStart.getMillis).map {
+          changes.toList.sortBy(_._1.getStart).map {
             case (interval, number) =>
               (("start"    -> DateFormaterService.serialize(interval.getStart))
               ~ ("end"     -> DateFormaterService.serialize(interval.getEnd))
