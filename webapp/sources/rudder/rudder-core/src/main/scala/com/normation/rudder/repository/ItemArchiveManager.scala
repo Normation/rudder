@@ -64,7 +64,6 @@ import com.normation.rudder.git.GitPath
 import java.io.File
 import java.time.Instant
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 
 final case class ActiveTechniqueNotArchived(
     activeTechniqueId: ActiveTechniqueId,

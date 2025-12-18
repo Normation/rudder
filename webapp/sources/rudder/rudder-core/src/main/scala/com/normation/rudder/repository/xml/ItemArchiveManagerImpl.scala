@@ -64,7 +64,6 @@ import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.*
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 

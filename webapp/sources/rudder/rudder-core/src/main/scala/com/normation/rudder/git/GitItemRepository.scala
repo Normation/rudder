@@ -49,7 +49,6 @@ import java.io.File
 import java.time.Instant
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
-import org.joda.time.DateTime
 import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 import zio.*

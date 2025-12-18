@@ -22,6 +22,7 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import java.time.Instant
+import zio.Clock
 import zio.Ref
 import zio.ZIO
 import zio.ZIO.*
@@ -120,10 +121,8 @@ class EditorTechniqueReaderImpl(
             for {
               jsonLib       <- IOResult.attempt(s"error while reading ${methodsFile.pathAsString}")(methodsFile.contentAsString)
               parsedMethods <- GenericMethodSerialization.decodeGenericMethodLib(parameterTypeService, jsonLib)
-              now           <- currentTimeMillis
-            } yield {
-              (Instant.ofEpochMilli(now), parsedMethods)
-            }
+              now           <- Clock.instant
+            } yield (now, parsedMethods)
           } else {
             cache.succeed
           }
