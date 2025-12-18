@@ -24,7 +24,9 @@ impl Default for Secedit {
 impl Secedit {
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
         if audit {
-            unimplemented!("Audit mode not yet implemented!");
+            let template = self.export()?;
+            Self::template_audit(template, data)?;
+            println!("DONE");
         } else {
             let mut template = self.export()?;
             Self::template_search_and_replace(&mut template, data)?;
@@ -32,6 +34,32 @@ impl Secedit {
             println!("DONE");
         }
 
+        Ok(())
+    }
+
+    fn template_audit(template: Ini, data: Map<String, Value>) -> Result<()> {
+        for (section, section_data) in data {
+            for (sec, prop) in template.iter() {
+                if let Some(sec) = sec
+                    && sec == section
+                {
+                    let data = match section_data {
+                        Value::Object(ref o) => o,
+                        _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
+                    };
+                    for (k, v) in data {
+                        for (t, vv) in prop.iter() {
+                            if k == t
+                                && let Some(v) = v.as_str()
+                                && v != vv
+                            {
+                                bail!("{v} != {vv}\n");
+                            }
+                        }
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -191,5 +219,35 @@ mod test {
         assert!(res.is_ok());
         assert_eq!(template.get_from(Some("User"), "value"), Some("42"));
         assert_eq!(template.get_from(Some("Settings"), "abc"), Some("12"));
+    }
+
+    #[test]
+    fn test_template_audit() {
+        let template = Ini::load_from_str(
+            "[User]
+            name = Ferris
+            value = Pi
+            [Settings]
+            abc = 21",
+        )
+        .unwrap();
+
+        let data = serde_json::from_str(
+            r#"
+        {
+            "User": {
+                "name": "Ferris",
+                "value": "Pi"
+            },
+            "Settings": {
+                "abc": 21
+            }
+        }"#,
+        )
+        .unwrap();
+
+        let res = Secedit::template_audit(template.clone(), data);
+
+        assert_eq!(res.unwrap(), ());
     }
 }
