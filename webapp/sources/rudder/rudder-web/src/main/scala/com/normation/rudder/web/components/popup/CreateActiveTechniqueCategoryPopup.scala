@@ -39,9 +39,9 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
@@ -152,11 +152,8 @@ class CreateActiveTechniqueCategoryPopup(
             isSystem = false,
             security = CurrentUser.nodePerms.toSecurityTag
           ),
-          ActiveTechniqueCategoryId(categoryContainer.get),
-          ModificationId(uuidGen.newUuid),
-          CurrentUser.actor,
-          Some("user created a new category")
-        )
+          ActiveTechniqueCategoryId(categoryContainer.get)
+        )(using ChangeContext.newFromQC(CurrentUser.queryContext, Some("user created a new category")))
         .toBox match {
         case Failure(m, _, _)    =>
           logger.error("An error occurred while saving the category:" + m)

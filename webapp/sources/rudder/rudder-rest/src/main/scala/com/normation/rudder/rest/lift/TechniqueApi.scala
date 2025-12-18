@@ -49,6 +49,7 @@ import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -263,7 +264,6 @@ class TechniqueApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val modId = ModificationId(uuidGen.newUuid)
       import techniqueSerializer.*
 
       def charset: String = RestUtils.getCharset(req)
@@ -276,7 +276,12 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           _                <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using
+                                ChangeContext.newFromQC(
+                                  authzToken.user.qc,
+                                  Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")
+                                )
+                              )
           json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
           json
@@ -417,7 +422,6 @@ class TechniqueApi(
     val schema: API.CreateTechnique.type = API.CreateTechnique
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
 
       def charset: String = RestUtils.getCharset(req)
 
@@ -449,7 +453,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using ChangeContext.newFromQC(authzToken.qc))
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json

@@ -174,11 +174,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
-    def update(
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = Full(Map())
+    def update()(implicit cc: ChangeContext): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = Full(Map())
+
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = ()
   }
 
@@ -249,25 +246,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = ???
     def move(
         id:            ActiveTechniqueId,
-        newCategoryId: ActiveTechniqueCategoryId,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        newCategoryId: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def changeStatus(
         id:     ActiveTechniqueId,
-        status: Boolean,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        status: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        datetimes: Map[TechniqueVersion, DateTime]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def deleteActiveTechnique(
         id:     ActiveTechniqueId,
         modId:  ModificationId,
@@ -275,33 +263,21 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         reason: Option[String]
     ): IOResult[ActiveTechniqueId] = ???
     def addActiveTechniqueCategory(
-        that:           ActiveTechniqueCategory,
-        into:           ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = ???
+        that: ActiveTechniqueCategory,
+        into: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
     def saveActiveTechniqueCategory(
-        category:       ActiveTechniqueCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = ???
+        category: ActiveTechniqueCategory
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
     def deleteCategory(
-        id:             ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+        id:         ActiveTechniqueCategoryId,
+        checkEmpty: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
     def move(
-        categoryId:     ActiveTechniqueCategoryId,
-        intoParent:     ActiveTechniqueCategoryId,
-        optionNewName:  Option[ActiveTechniqueCategoryId],
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+        categoryId:    ActiveTechniqueCategoryId,
+        intoParent:    ActiveTechniqueCategoryId,
+        optionNewName: Option[ActiveTechniqueCategoryId]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
     override def deleteSystemDirective(
         id:     DirectiveUid,
         modId:  ModificationId,

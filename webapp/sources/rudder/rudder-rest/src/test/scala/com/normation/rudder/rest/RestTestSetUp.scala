@@ -270,11 +270,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   // Instantiate Service needed to feed System API constructor
 
   val fakeUpdatePTLibService: UpdateTechniqueLibrary = new UpdateTechniqueLibrary() {
-    def update(
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+    def update()(implicit cc: ChangeContext): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
       Full(Map())
     }
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}

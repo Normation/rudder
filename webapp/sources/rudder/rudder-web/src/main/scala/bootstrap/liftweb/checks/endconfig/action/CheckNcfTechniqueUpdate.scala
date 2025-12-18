@@ -45,11 +45,13 @@ import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import zio.*
@@ -129,10 +131,12 @@ class CheckNcfTechniqueUpdate(
           )
         // Update technique library once all technique are updated
         libUpdate <- techLibUpdate
-                       .update(
-                         ModificationId(uuidGen.newUuid),
-                         EventActor(systemApiToken.name.value),
-                         Some(s"Update Technique library after updating all techniques at start up")
+                       .update()(using
+                         ChangeContext.newFor(
+                           EventActor(systemApiToken.name.value),
+                           NodeSecurityContext.All,
+                           Some(s"Update Technique library after updating all techniques at start up")
+                         )
                        )
                        .toIO
                        .chainError(s"An error occurred during techniques update after update of all techniques from the editor")

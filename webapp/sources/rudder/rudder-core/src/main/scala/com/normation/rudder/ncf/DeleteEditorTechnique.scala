@@ -96,7 +96,7 @@ class DeleteEditorTechniqueImpl(
       techniqueVersion: String,
       deleteDirective:  Boolean,
       modId:            ModificationId,
-      committer:        QueryContext
+      qc:               QueryContext
   ): IOResult[Unit] = {
 
     def createCr(directive: Directive, rootSection: SectionSpec) = {
@@ -109,7 +109,7 @@ class DeleteEditorTechniqueImpl(
         directive.id,
         Some(directive),
         diff,
-        committer.actor,
+        qc.actor,
         None
       )
     }
@@ -143,11 +143,11 @@ class DeleteEditorTechniqueImpl(
                               _  <- wf.startWorkflow(cr)(using
                                       ChangeContext(
                                         modId,
-                                        committer.actor,
+                                        qc.actor,
                                         Instant.now(),
                                         Some(s"Deleting technique '${techniqueId.serialize}'"),
                                         None,
-                                        committer.nodePerms
+                                        qc.nodePerms
                                       )
                                     )
                             } yield ()
@@ -166,7 +166,7 @@ class DeleteEditorTechniqueImpl(
                           writeDirectives.deleteActiveTechnique(
                             activeTechnique.id,
                             modId,
-                            committer.actor,
+                            qc.actor,
                             Some(s"Deleting active technique '${techniqueId.name.value}'")
                           )
                       }
@@ -175,11 +175,13 @@ class DeleteEditorTechniqueImpl(
                         techniqueId,
                         categories.map(_.id.name.value),
                         modId,
-                        committer.actor,
+                        qc.actor,
                         s"Deleting technique '${techniqueId}'"
                       )
         _          <- techLibUpdate
-                        .update(modId, committer.actor, Some(s"Update Technique library after deletion of technique '${technique.name}'"))
+                        .update()(using
+                          ChangeContext.newFromQC(qc, Some(s"Update Technique library after deletion of technique '${technique.name}'"))
+                        )
                         .toIO
                         .chainError(
                           s"An error occurred during technique update after deletion of Technique ${technique.name}"
@@ -208,7 +210,7 @@ class DeleteEditorTechniqueImpl(
                            techniqueId,
                            cat,
                            modId,
-                           committer.actor,
+                           qc.actor,
                            s"Deleting invalid technique ${techniqueName}/${techniqueVersion}"
                          )
                          .chainError(
@@ -216,10 +218,11 @@ class DeleteEditorTechniqueImpl(
                            s"${techniquesDir.pathAsString}: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
                          )
                      _ <- techLibUpdate
-                            .update(
-                              modId,
-                              committer.actor,
-                              Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")
+                            .update()(using
+                              ChangeContext.newFromQC(
+                                qc,
+                                Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")
+                              )
                             )
                             .toIO
                             .chainError(

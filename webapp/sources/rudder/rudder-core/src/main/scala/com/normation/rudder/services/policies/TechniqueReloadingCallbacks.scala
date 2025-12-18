@@ -49,7 +49,6 @@ import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
 import com.normation.rudder.repository.EventLogRepository
-
 import net.liftweb.common.*
 
 class DeployOnTechniqueCallback(
