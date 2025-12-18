@@ -1643,27 +1643,29 @@ object ChangeContext {
     def toQuery: QueryContext = QueryContext(cc.actor, cc.nodePerms)
   }
 
-  def newFromQC(qc: QueryContext, reason: Option[String] = None, ip: Option[String] = None): ChangeContext = {
+  def newFor(
+      actor:     EventActor,
+      nodePerms: NodeSecurityContext,
+      message:   Option[String] = None,
+      actorIp:   Option[String] = None
+  ): ChangeContext = {
     ChangeContext(
       ModificationId(java.util.UUID.randomUUID.toString),
-      qc.actor,
+      actor,
       Instant.now(),
-      reason,
-      ip,
-      qc.nodePerms
+      message,
+      actorIp,
+      nodePerms
     )
 
   }
 
-  def newForRudder(msg: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
-    ChangeContext(
-      ModificationId(java.util.UUID.randomUUID.toString),
-      eventlog.RudderEventActor,
-      Instant.now(),
-      msg,
-      actorIp,
-      NodeSecurityContext.All
-    )
+  def newFromQC(qc: QueryContext, message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
+    newFor(qc.actor, qc.nodePerms, message, actorIp)
+  }
+
+  def newForRudder(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
+    newFor(eventlog.RudderEventActor, NodeSecurityContext.All, message, actorIp)
   }
 }
 

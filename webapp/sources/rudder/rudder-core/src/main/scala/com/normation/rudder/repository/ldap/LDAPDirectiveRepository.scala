@@ -997,7 +997,11 @@ class WoLDAPDirectiveRepository(
                                  parents  <- getParentsForActiveTechniqueCategory(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                  archive  <-
-                                   gitCatArchiver.archiveActiveTechniqueCategory(that, parents.map(_.id), Some((cc.modId, commiter, cc.message)))
+                                   gitCatArchiver.archiveActiveTechniqueCategory(
+                                     that,
+                                     parents.map(_.id),
+                                     Some((cc.modId, commiter, cc.message))
+                                   )
                                } yield archive
                              }
       parentEntry         <- getCategoryEntry(con, into).chainError(s"Entry with ID '${into.value}' was not found")

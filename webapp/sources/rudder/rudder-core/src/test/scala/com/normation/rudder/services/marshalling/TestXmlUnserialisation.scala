@@ -86,6 +86,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     <isSystem>false</isSystem>
     <policyMode>default</policyMode>
     <tags/>
+    <security><tenants><tenant id="zoneA"/></tenants></security>
   </directive>
 
   val directive: Directive = Directive(

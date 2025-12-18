@@ -1816,7 +1816,7 @@ class SaveArchiveServicebyRepo(
       // update technique lib, regenerate policies
       _ <- ZIO.when(archive.techniques.nonEmpty) {
              techLibUpdate
-               .update(cc.modId, cc.actor, Some(s"Update Technique library after import of and archive"))
+               .update()
                .toIO
                .chainError(
                  s"An error occurred during technique update after import of archive"

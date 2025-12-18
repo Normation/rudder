@@ -45,6 +45,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
 import com.normation.rudder.users.CurrentUser
@@ -561,14 +562,13 @@ class TechniqueEditForm(
   private def error(msg: String) = <span class="error">{msg}</span>
 
   private def statusAndDeployTechnique(activeTechnique: ActiveTechnique, status: Boolean): JsCmd = {
-    val modId = ModificationId(uuidGen.newUuid)
+    implicit val cc: ChangeContext = ChangeContext.newFromQC(CurrentUser.queryContext, crReasonsDisablePopup.map(_.get))
     (for {
       save   <-
-        (rwActiveTechniqueRepository
-          .changeStatus(activeTechnique.id, status, modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
+        (rwActiveTechniqueRepository.changeStatus(activeTechnique.id, status)
         <* techniqueCompilationStatusService.syncTechniqueActiveStatus(BundleName(activeTechnique.techniqueName.value))).toBox
       deploy <- {
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
         Full("Policy update request sent")
       }
     } yield {

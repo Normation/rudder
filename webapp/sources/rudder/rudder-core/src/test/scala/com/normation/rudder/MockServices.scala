@@ -1108,27 +1108,18 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     override def move(
         id:            ActiveTechniqueId,
-        newCategoryId: ActiveTechniqueCategoryId,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        newCategoryId: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def changeStatus(
         id:     ActiveTechniqueId,
-        status: Boolean,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        status: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        datetimes: Map[TechniqueVersion, DateTime]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def deleteActiveTechnique(
         id:     ActiveTechniqueId,
@@ -1138,12 +1129,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
     ): IOResult[ActiveTechniqueId] = ???
 
     override def addActiveTechniqueCategory(
-        that:           ActiveTechniqueCategory,
-        into:           ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = {
+        that: ActiveTechniqueCategory,
+        into: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.updateAndGetZIO { root =>
         val full = FullActiveTechniqueCategory(
           that.id,
@@ -1159,28 +1147,19 @@ class MockDirectives(mockTechniques: MockTechniques) {
     }
 
     override def saveActiveTechniqueCategory(
-        category:       ActiveTechniqueCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = ???
+        category: ActiveTechniqueCategory
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
 
     override def deleteCategory(
-        id:             ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+        id:         ActiveTechniqueCategoryId,
+        checkEmpty: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
 
     override def move(
-        categoryId:     ActiveTechniqueCategoryId,
-        intoParent:     ActiveTechniqueCategoryId,
-        optionNewName:  Option[ActiveTechniqueCategoryId],
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategoryId] = ???
+        categoryId:    ActiveTechniqueCategoryId,
+        intoParent:    ActiveTechniqueCategoryId,
+        optionNewName: Option[ActiveTechniqueCategoryId]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
 
   }
 

@@ -42,7 +42,6 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.facts.nodes.ChangeContext
-
 import net.liftweb.common.Box
 
 sealed trait TechniqueCategoryModType
@@ -112,7 +111,7 @@ trait TechniquesLibraryUpdateNotification {
   def updatedTechniques(
       gitRev:            String,
       techniqueIds:      Map[TechniqueName, TechniquesLibraryUpdateType],
-      updatedCategories: Set[TechniqueCategoryModType],
+      updatedCategories: Set[TechniqueCategoryModType]
   )(implicit cc: ChangeContext): Box[Unit]
 
 }
