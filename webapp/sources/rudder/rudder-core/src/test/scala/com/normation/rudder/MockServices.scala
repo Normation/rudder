@@ -1865,7 +1865,7 @@ object MockNodes {
   )
 
   val softwareUpdates: List[SoftwareUpdate] = {
-    val d0  = "2022-01-01-00:00:00Z"
+    val d0  = "2022-01-01T00:00:00Z"
     val id0 = "RHSA-2020-4566"
     val id1 = "CVE-2021-4034"
     List(
@@ -1974,7 +1974,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = true,
     isPolicyServer = true,
-    creationDate = parseInstant("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20:00+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
@@ -1986,7 +1986,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Stretch", new Version("9.4"), None, new Version("4.5")),
     List("127.0.0.1", "192.168.0.100"),
-    parseInstant("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20:00+01:00"),
     UndefinedKey,
     Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
@@ -2053,7 +2053,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = false,
     isPolicyServer = false,
-    creationDate = parseInstant("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20:00+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
@@ -2066,7 +2066,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Buster", new Version("10.6"), None, new Version("4.19")),
     List("192.168.0.10"),
-    parseInstant("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20:00+01:00"),
     UndefinedKey,
     Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
@@ -2147,7 +2147,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = true,
     isPolicyServer = true, // is relay server
-    creationDate = parseInstant("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20:00+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = None,
@@ -2172,7 +2172,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012")),
     List("192.168.0.5"),
-    parseInstant("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20:00+01:00"),
     UndefinedKey,
     Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set())),
     rootId,
