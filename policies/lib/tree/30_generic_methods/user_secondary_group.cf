@@ -125,9 +125,9 @@ bundle agent run_user_group(login, group, inner_result) {
 
   methods:
     pass3::
-      "${report_data.method_id}" usebundle => call_method("user_group_${group}");
+      "${report_data.method_id}" usebundle => call_method("user_group_${group}_${login}");
       "${report_data.method_id}" usebundle => user_group("${login}","${group}");
       "${report_data.method_id}" usebundle => call_method_classes("${inner_result}");
-      "${report_data.method_id}" usebundle => call_method_end("user_group_${group}");
+      "${report_data.method_id}" usebundle => call_method_end("user_group_${group}_${login}");
 
 }
