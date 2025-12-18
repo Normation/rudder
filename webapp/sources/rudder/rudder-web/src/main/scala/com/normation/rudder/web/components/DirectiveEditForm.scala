@@ -356,7 +356,7 @@ class DirectiveEditForm(
                         } else {
                           NodeSeq.Empty ++
                           parameterEditor.toFormNodeSeq
-                        }) & 
+                        }) &
       "#rulesNav *" #> updateRuleDisplayer() &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> displayNotifications() &
