@@ -125,8 +125,8 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
     },
     test("joda Duration and java.time Duration should toString the same thing") {
       check(
-        nearEnoughInstant,
-        nearEnoughInstant
+        nearEnoughInstant.map(_.`with`(ChronoField.MILLI_OF_SECOND, 123)), // avoid differences due to reduced milliseconds
+        nearEnoughInstant.map(_.`with`(ChronoField.MILLI_OF_SECOND, 258))
       ) { (start, end) =>
         val jodaValue     = new joda.Duration(end.toEpochMilli - start.toEpochMilli).toPeriod.toString
         val javatimeValue =
