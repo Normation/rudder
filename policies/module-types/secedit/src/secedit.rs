@@ -26,7 +26,7 @@ impl Secedit {
         if audit {
             let template = self.export()?;
             Self::template_audit(template, data)?;
-            println!("DONE");
+            println!("Audit DONE");
         } else {
             let mut template = self.export()?;
             Self::template_search_and_replace(&mut template, data)?;
@@ -47,13 +47,14 @@ impl Secedit {
                         Value::Object(ref o) => o,
                         _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
                     };
+
                     for (k, v) in data {
                         for (t, vv) in prop.iter() {
                             if k == t
-                                && let Some(v) = v.as_str()
-                                && v != vv
+                                && let x = v.to_string()
+                                && x != vv
                             {
-                                bail!("{v} != {vv}\n");
+                                println!("{x} != {vv}");
                             }
                         }
                     }
