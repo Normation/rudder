@@ -58,6 +58,7 @@ import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.policies.PromiseGenerationService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.zio.*
 import enumeratum.*
 import enumeratum.EnumEntry.*
@@ -426,7 +427,7 @@ final class AsyncDeploymentActor(
                   principal = actor,
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
-                  creationDate = java.time.Instant.ofEpochMilli(startTime.getMillis),
+                  creationDate = startTime.toJavaInstant,
                   reason = None
                 )
               )
@@ -449,7 +450,7 @@ final class AsyncDeploymentActor(
                   principal = actor,
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
-                  creationDate = java.time.Instant.ofEpochMilli(startTime.getMillis),
+                  creationDate = startTime.toJavaInstant,
                   reason = None
                 )
               )

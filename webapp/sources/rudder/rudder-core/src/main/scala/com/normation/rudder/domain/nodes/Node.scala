@@ -82,7 +82,7 @@ case object Node {
       NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = inventory.node.inventoryDate.getOrElse(Instant.ofEpochMilli(0)),
+      creationDate = inventory.node.inventoryDate.getOrElse(Instant.EPOCH),
       nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = Nil,
       policyMode = None,
