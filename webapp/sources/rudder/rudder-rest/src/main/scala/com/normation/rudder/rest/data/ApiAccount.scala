@@ -61,6 +61,7 @@ import enumeratum.EnumEntry
 import io.scalaland.chimney.*
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
+import java.time.Instant
 import java.time.ZonedDateTime
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -148,11 +149,11 @@ sealed trait ApiAccountDetails {
   def name:                ApiAccountName               // used in event log to know who did actions.
   def description:         String
   def status:              ApiAccountStatus
-  def creationDate:        ZonedDateTime                // this is the account creation date, mapped to creationTimestamp
+  def creationDate:        Instant                      // this is the account creation date, mapped to creationTimestamp
   def expirationPolicy:    ApiAccountExpirationPolicy   // this is expiration for the whole account
-  def expirationDate:      Option[ZonedDateTime]        // this is expiration for the whole account
+  def expirationDate:      Option[Instant]              // this is expiration for the whole account
   def tokenState:          ApiTokenState
-  def tokenGenerationDate: Option[ZonedDateTime]        // this is the token generation date, mapped to apiTokenCreationTimestamp
+  def tokenGenerationDate: Option[Instant]              // this is the token generation date, mapped to apiTokenCreationTimestamp
   def tenants:             NodeSecurityContext
   def authorizationType:   Option[ApiAuthorizationKind] // ApiAuthorization.kind
   def acl:                 Option[JsonApiAcl]
@@ -182,11 +183,11 @@ object ApiAccountDetails extends ApiAccountCodecs {
       name:                ApiAccountName,
       description:         String,
       status:              ApiAccountStatus,
-      creationDate:        ZonedDateTime,
+      creationDate:        Instant,
       expirationPolicy:    ApiAccountExpirationPolicy,
-      expirationDate:      Option[ZonedDateTime],
+      expirationDate:      Option[Instant],
       tokenState:          ApiTokenState,
-      tokenGenerationDate: Option[ZonedDateTime],
+      tokenGenerationDate: Option[Instant],
       tenants:             NodeSecurityContext,
       authorizationType:   Option[ApiAuthorizationKind],
       acl:                 Option[JsonApiAcl]
@@ -197,11 +198,11 @@ object ApiAccountDetails extends ApiAccountCodecs {
       name:                ApiAccountName,
       description:         String,
       status:              ApiAccountStatus,
-      creationDate:        ZonedDateTime,
+      creationDate:        Instant,
       expirationPolicy:    ApiAccountExpirationPolicy,
-      expirationDate:      Option[ZonedDateTime],
+      expirationDate:      Option[Instant],
       tokenState:          ApiTokenState,
-      tokenGenerationDate: Option[ZonedDateTime],
+      tokenGenerationDate: Option[Instant],
       token:               ClearTextSecret,
       tenants:             NodeSecurityContext,
       authorizationType:   Option[ApiAuthorizationKind],
@@ -247,7 +248,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
     .define[ApiAccount, A]
     .withFieldComputed(_.status, x => if (x.isEnabled) ApiAccountStatus.Enabled else ApiAccountStatus.Disabled)
     .withFieldComputed(_.expirationPolicy, _.kind.transformInto[ApiAccountExpirationPolicy])
-    .withFieldComputed(_.expirationDate, _.kind.transformInto[Option[ZonedDateTime]])
+    .withFieldComputed(_.expirationDate, _.kind.transformInto[Option[ZonedDateTime]].map(_.toInstant))
     .withFieldComputed(
       _.tokenState,
       x => {
@@ -263,7 +264,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
 
   implicit val transformPublicApi: Transformer[ApiAccount, ApiAccountDetails.Public] = {
     transformApiAccountDetails[ApiAccountDetails.Public]
-      .withFieldComputed(_.tokenGenerationDate, x => x.token.map(_ => x.tokenGenerationDate.transformInto[ZonedDateTime]))
+      .withFieldComputed(_.tokenGenerationDate, x => x.token.map(_ => x.tokenGenerationDate.transformInto[Instant]))
       .buildTransformer
   }
 
