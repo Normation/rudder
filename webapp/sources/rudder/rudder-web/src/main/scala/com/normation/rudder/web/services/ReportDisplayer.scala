@@ -419,7 +419,7 @@ class ReportDisplayer(
             <button id={"triggerBtn" + defaultOrInventory} class="btn btn-primary btn-trigger"  onclick={
                             s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd}, '$defaultOrInventory');"
                           }>
-                              <span>Trigger agent {defaultOrInventory}</span>
+                              <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
                               &nbsp;
                               <i class="fa fa-play"></i>
                             </button>
@@ -443,7 +443,7 @@ class ReportDisplayer(
             <button id={
                             "triggerBtn" + defaultOrInventory
                           } class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
-                              <span>Trigger Agent {defaultOrInventory}</span>
+                              <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
                               &nbsp;
                               <i class="fa fa-play"></i>
                             </button>
