@@ -43,6 +43,7 @@ import com.normation.rudder.rest.lift.SystemApi
 import com.normation.rudder.rest.v1.RestStatus
 import java.io.File
 import java.nio.file.Files
+import java.time.Instant
 import java.util.zip.ZipFile
 import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
@@ -51,8 +52,6 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.*
 import net.liftweb.json.JsonDSL.*
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -473,10 +472,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   private val commit = restTestSetUp.mockGitRepo.gitRepo.db.resolve("master")
   private val commitId: String = commit.getName
 
-  private val commitDate: DateTime = new DateTime(
-    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhenAsInstant.toEpochMilli,
-    DateTimeZone.UTC
-  )
+  private val commitDate: Instant =
+    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhenAsInstant
 
   // Init directory needed to temporary store archive data that zip API returns.
   // It will be cleared at the end of the test in "afterAll"

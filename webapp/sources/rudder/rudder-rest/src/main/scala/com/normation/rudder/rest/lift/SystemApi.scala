@@ -80,10 +80,17 @@ import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.SignStyle
+import java.time.temporal.ChronoField.DAY_OF_MONTH
+import java.time.temporal.ChronoField.HOUR_OF_DAY
+import java.time.temporal.ChronoField.MINUTE_OF_HOUR
+import java.time.temporal.ChronoField.MONTH_OF_YEAR
+import java.time.temporal.ChronoField.SECOND_OF_MINUTE
+import java.time.temporal.ChronoField.YEAR
 import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -95,11 +102,6 @@ import net.liftweb.json.JsonDSL.*
 import net.liftweb.json.JValue
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevWalk
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.format.ISODateTimeFormat.basicTimeNoMillis
 import zio.*
 
 class SystemApi(
@@ -678,14 +680,14 @@ class SystemApiService11(
     * (the most recent is the first in the array)
     * { "archiveType" : [ { "id" : "datetimeID", "date": "human readable date" , "commiter": "name", "gitPath": "path" }, ... ]
     */
-  private def formatList(archiveType: String, availableArchives: Map[DateTime, GitArchiveId]): JField = {
+  private def formatList(archiveType: String, availableArchives: Map[Instant, GitArchiveId]): JField = {
     val ordered = availableArchives.toList.sortWith { case ((d1, _), (d2, _)) => d1.isAfter(d2) }.map {
       case (date, tag) =>
         // archiveId is contained in gitPath, archive is archives/<kind>/archiveId
         // splitting on last an getting back last part, falling back to full Id
         val id = tag.path.value.split("/").lastOption.getOrElse(tag.path.value)
 
-        val datetime = archiveDateFormat.print(date)
+        val datetime = dateAsArchiveFormat(date)
         // json
         ("id" -> id) ~ ("date" -> datetime) ~ ("committer" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
     }
@@ -695,7 +697,7 @@ class SystemApiService11(
   private def listTags(list: () => IOResult[Map[Instant, GitArchiveId]], archiveType: String): Either[String, JField] = {
     list().either.runNow.fold(
       err => Left(s"Error when trying to list available archives for ${archiveType}. Error was: ${err.fullMsg}"),
-      map => Right(formatList(archiveType, map.map { case (instant, id) => instant.toJodaDateTime -> id }))
+      map => Right(formatList(archiveType, map))
     )
   }
 
@@ -813,7 +815,7 @@ class SystemApiService11(
                        }
           treeId    <- IOResult.attempt(revCommit.getTree.getId)
           bytes     <- GitFindUtils.getZip(repo.db, treeId, archiveType.directories)
-          date       = new DateTime(revCommit.getCommitTime.toLong * 1000, DateTimeZone.UTC)
+          date       = Instant.ofEpochSecond(revCommit.getCommitTime)
         } yield {
           (bytes, date)
         }
@@ -1381,19 +1383,28 @@ class SystemApiService11(
 
 private[rest] object SystemApi {
 
-  /**
-    * Public format to display archive tagged at date
-    */
-  val archiveDateFormat = {
-    new DateTimeFormatterBuilder()
-      .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
+  private val archiveFormat = {
+    new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(YEAR, 4, 10, SignStyle.NEVER)
+      .appendLiteral('-')
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendLiteral('-')
+      .appendValue(DAY_OF_MONTH, 2)
       .appendLiteral('T')
-      .append(basicTimeNoMillis())
-      .toFormatter
-      .withZoneUTC()
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .appendValue(SECOND_OF_MINUTE, 2)
+      .appendOffsetId()
+      .toFormatter()
   }
 
-  def getArchiveName(archiveType: ArchiveType, date: DateTime): String =
-    s"rudder-conf-${archiveType.entryName}-${archiveDateFormat.print(date.toDateTime(DateTimeZone.UTC))}.zip"
+  /**
+   * Public format to display archive tagged at date
+   */
+  def dateAsArchiveFormat(instant: Instant): String =
+    archiveFormat.format(instant.atOffset(ZoneOffset.UTC))
+
+  def getArchiveName(archiveType: ArchiveType, date: Instant): String =
+    s"rudder-conf-${archiveType.entryName}-${dateAsArchiveFormat(date)}.zip"
 
 }

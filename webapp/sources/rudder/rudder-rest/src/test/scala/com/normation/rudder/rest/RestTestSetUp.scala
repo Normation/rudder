@@ -216,7 +216,6 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.annotation.nowarn
 import scala.collection.MapView
