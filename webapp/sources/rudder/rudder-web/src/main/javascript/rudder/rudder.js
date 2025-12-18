@@ -614,7 +614,7 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
     $iconButton.children().remove(".svg-loading");
     $iconButton.addClass("fa fa-play");
     $("#triggerBtn" + defaultOrInventory).prop('disabled', null).blur();
-    $textAction.html("Trigger agent " + defaultOrInventory)
+    $textAction.html("Trigger agent " + defaultOrInventory.toLowerCase())
   }
 
   $iconButton.removeClass("fa fa-play").append(spinner)
@@ -663,7 +663,7 @@ function callRemoteRun(nodeId, refreshCompliance, defaultOrInventory) {
         $iconButton.children().remove(".svg-loading");
         $iconButton.addClass("fa fa-play");
         $("#triggerBtn" + defaultOrInventory).prop('disabled', null).blur();
-        $textAction.html("Trigger agent " + defaultOrInventory);
+        $textAction.html("Trigger agent " + defaultOrInventory.toLowerCase());
         $("#visibilityOutput" + defaultOrInventory).addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-times-custom"></i>');
         $("#report" + defaultOrInventory).remove("pre" + "#response" + defaultOrInventory).html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
         $("#report" + defaultOrInventory).addClass("border-fail");
