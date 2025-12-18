@@ -61,8 +61,6 @@ import java.security.Security
 import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -184,7 +182,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}"
+  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.formatAsGitTag(Instant.now)}"
 
   override def beforeAll(): Unit = {}
 

@@ -44,7 +44,6 @@ import com.normation.utils.CronParser.*
 import com.normation.zio.*
 import cron4s.CronExpr
 import org.eclipse.jgit.lib.ProgressMonitor
-import org.joda.time.Duration
 import zio.*
 
 /**

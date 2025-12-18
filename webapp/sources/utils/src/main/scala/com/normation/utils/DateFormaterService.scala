@@ -49,7 +49,6 @@ import java.time.format.SignStyle
 import java.time.temporal.ChronoField.*
 import java.util.TimeZone
 import org.joda.time.DateTime
-import org.joda.time.DateTimeFieldType
 import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
@@ -284,23 +283,27 @@ object DateFormaterService {
   /**
    * For git tags or branches, we can't use ISO8601 valid format since ":" is forbidden.
    * So we use a:
-   * YYYY-MM-dd_HH_mm_ss.SSS
+   * YYYY-MM-dd_HH-mm-ss.SSS
    */
-  val gitTagFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
-    .appendYear(4, 4)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.monthOfYear(), 2)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.dayOfMonth(), 2)
-    .appendLiteral('_')
-    .appendFixedDecimal(DateTimeFieldType.hourOfDay(), 2)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.minuteOfHour(), 2)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.secondOfMinute(), 2)
-    .appendLiteral('.')
-    .appendFractionOfSecond(3, 9)
-    .toFormatter()
-    .withZoneUTC()
+  private val gitFormat = {
+    new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(YEAR, 4, 10, SignStyle.NEVER)
+      .appendLiteral('-')
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendLiteral('-')
+      .appendValue(DAY_OF_MONTH, 2)
+      .appendLiteral('_')
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendLiteral('-')
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .appendLiteral('-')
+      .appendValue(SECOND_OF_MINUTE, 2)
+      .appendFraction(MILLI_OF_SECOND, 3, 3, true)
+      .toFormatter()
+  }
+
+  def formatAsGitTag(instant: Instant): String = gitFormat.format(instant.atOffset(ZoneOffset.UTC))
+
+  def parseAsGitTag(input: String): Instant = gitFormat.withZone(ZoneOffset.UTC).parse(input).query(Instant.from)
 
 }

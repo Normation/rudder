@@ -61,7 +61,6 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.Text
@@ -244,7 +243,7 @@ class Archives extends DispatchSnippet with Loggable {
       archiveSuccessDebugMessage: String => String, // debug log - the string param is the archive id
 
       archiveDateSelectId: String,
-      archiveListFunction: () => IOResult[Map[DateTime, GitArchiveId]],
+      archiveListFunction: () => IOResult[Map[Instant, GitArchiveId]],
       restoreButtonId:     String, // input button id to restore an archive
 
       restoreButtonName: String, // what is displayed on the button to the user
