@@ -50,6 +50,7 @@ import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.*
 import com.normation.rudder.services.marshalling.RuleCategorySerialisation
 import java.io.File
+import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
@@ -84,7 +85,7 @@ trait GitRuleCategoryArchiver {
       reason:   Option[String]
   ): IOResult[GitArchiveId]
 
-  def getTags(): IOResult[Map[DateTime, GitArchiveId]]
+  def getTags(): IOResult[Map[Instant, GitArchiveId]]
 
   /**
    * Delete an archived Rule category.

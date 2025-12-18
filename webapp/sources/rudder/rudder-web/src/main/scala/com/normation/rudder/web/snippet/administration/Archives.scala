@@ -244,7 +244,7 @@ class Archives extends DispatchSnippet with Loggable {
       archiveSuccessDebugMessage: String => String, // debug log - the string param is the archive id
 
       archiveDateSelectId: String,
-      archiveListFunction: () => IOResult[Map[DateTime, GitArchiveId]],
+      archiveListFunction: () => IOResult[Map[Instant, GitArchiveId]],
       restoreButtonId:     String, // input button id to restore an archive
 
       restoreButtonName: String, // what is displayed on the button to the user

@@ -46,6 +46,7 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.xml.ArchiveMode
 import com.normation.utils.DateFormaterService
 import java.io.File
+import java.time.Instant
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevTag
 import org.joda.time.DateTime
@@ -288,7 +289,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
       // also add new one
       gitRepo.git.add.addFilepattern(relativePath).call
       val commit = gitRepo.git.commit.setCommitter(commiter).setMessage(commitMessage).call
-      val path   = GitPath(tagPrefix + DateTime.now.toString(DateFormaterService.gitTagFormat))
+      val path   = GitPath(tagPrefix + DateFormaterService.formatAsGitTag(Instant.now))
       logEffect.info("Create a new archive: " + path.value)
       gitRepo.git.tag.setMessage(commitMessage).setName(path.value).setTagger(commiter).setObjectId(commit).call
       GitArchiveId(path, GitCommitId(commit.getName), commiter)
@@ -338,7 +339,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
    * The DateTime is the one from the name, which may differ from the
    * date of the tag.
    */
-  def getTags(): IOResult[Map[DateTime, GitArchiveId]] = {
+  def getTags(): IOResult[Map[Instant, GitArchiveId]] = {
     for {
       revTags <- listTagWorkaround
       res     <- IOResult.attempt {
@@ -349,7 +350,7 @@ trait GitArchiverFullCommitUtils extends NamedZioLogger {
                          try {
                            Some(
                              (
-                               DateFormaterService.gitTagFormat.parseDateTime(name.substring(tagPrefix.size, name.size)),
+                               DateFormaterService.parseAsGitTag(name.substring(tagPrefix.size, name.size)),
                                GitArchiveId(GitPath(name), GitCommitId(revTag.getName), revTag.getTaggerIdent)
                              )
                            )

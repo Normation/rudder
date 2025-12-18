@@ -80,6 +80,7 @@ import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import java.time.Instant
@@ -691,10 +692,10 @@ class SystemApiService11(
     JField(archiveType, ordered)
   }
 
-  private def listTags(list: () => IOResult[Map[DateTime, GitArchiveId]], archiveType: String): Either[String, JField] = {
+  private def listTags(list: () => IOResult[Map[Instant, GitArchiveId]], archiveType: String): Either[String, JField] = {
     list().either.runNow.fold(
       err => Left(s"Error when trying to list available archives for ${archiveType}. Error was: ${err.fullMsg}"),
-      map => Right(formatList(archiveType, map))
+      map => Right(formatList(archiveType, map.map { case (instant, id) => instant.toJodaDateTime -> id }))
     )
   }
 
@@ -702,7 +703,7 @@ class SystemApiService11(
 
   private def restoreLatestArchive(
       req:         Req,
-      list:        () => IOResult[Map[DateTime, GitArchiveId]],
+      list:        () => IOResult[Map[Instant, GitArchiveId]],
       restore:     (GitCommitId, PersonIdent) => IOResult[GitCommitId],
       archiveType: String
   )(implicit qc: QueryContext): Either[String, JField] = {
@@ -744,14 +745,14 @@ class SystemApiService11(
 
   private def restoreByDatetime(
       req:         Req,
-      list:        () => IOResult[Map[DateTime, GitArchiveId]],
+      list:        () => IOResult[Map[Instant, GitArchiveId]],
       restore:     (GitCommitId, PersonIdent) => IOResult[GitCommitId],
       datetime:    String,
       archiveType: String
   )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
       valideDate <- IOResult.attempt(s"The given archive id is not a valid archive tag: ${datetime}")(
-                      DateFormaterService.gitTagFormat.parseDateTime(datetime)
+                      DateFormaterService.parseAsGitTag(datetime)
                     )
       archives   <- list()
       commiter   <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
@@ -759,7 +760,7 @@ class SystemApiService11(
         archives
           .get(valideDate)
           .notOptional(
-            s"The archive with tag '${datetime}' is not available. Available archives: ${archives.keySet.map(_.toString(DateFormaterService.gitTagFormat)).mkString(", ")}"
+            s"The archive with tag '${datetime}' is not available. Available archives: ${archives.keySet.map(DateFormaterService.formatAsGitTag).mkString(", ")}"
           )
       restored   <- restore(
                       tag.commit,

@@ -184,7 +184,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}"
+  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.formatAsGitTag(Instant.now)}"
 
   override def beforeAll(): Unit = {}
 

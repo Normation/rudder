@@ -62,6 +62,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import java.io.File
+import java.time.Instant
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 
@@ -222,15 +223,15 @@ trait ItemArchiveManager {
   /**
    * Get the list of tags for the archive type
    */
-  def getFullArchiveTags: IOResult[Map[DateTime, GitArchiveId]]
+  def getFullArchiveTags: IOResult[Map[Instant, GitArchiveId]]
 
-  def getGroupLibraryTags: IOResult[Map[DateTime, GitArchiveId]]
+  def getGroupLibraryTags: IOResult[Map[Instant, GitArchiveId]]
 
-  def getTechniqueLibraryTags: IOResult[Map[DateTime, GitArchiveId]]
+  def getTechniqueLibraryTags: IOResult[Map[Instant, GitArchiveId]]
 
-  def getRulesTags: IOResult[Map[DateTime, GitArchiveId]]
+  def getRulesTags: IOResult[Map[Instant, GitArchiveId]]
 
-  def getParametersTags: IOResult[Map[DateTime, GitArchiveId]]
+  def getParametersTags: IOResult[Map[Instant, GitArchiveId]]
 }
 
 /**
@@ -259,7 +260,7 @@ trait GitRuleArchiver {
    */
   def commitRules(modId: ModificationId, commiter: PersonIdent, reason: Option[String]): IOResult[GitArchiveId]
 
-  def getTags(): IOResult[Map[DateTime, GitArchiveId]]
+  def getTags(): IOResult[Map[Instant, GitArchiveId]]
 
   /**
    * Delete an archived rule.
@@ -336,7 +337,7 @@ trait GitActiveTechniqueCategoryArchiver {
    */
   def commitActiveTechniqueLibrary(modId: ModificationId, commiter: PersonIdent, reason: Option[String]): IOResult[GitArchiveId]
 
-  def getTags(): IOResult[Map[DateTime, GitArchiveId]]
+  def getTags(): IOResult[Map[Instant, GitArchiveId]]
 }
 
 /**
@@ -484,7 +485,7 @@ trait GitNodeGroupArchiver {
    */
   def commitGroupLibrary(modId: ModificationId, commiter: PersonIdent, reason: Option[String]): IOResult[GitArchiveId]
 
-  def getTags(): IOResult[Map[DateTime, GitArchiveId]]
+  def getTags(): IOResult[Map[Instant, GitArchiveId]]
 
   /**
    * Archive an active technique in a file system
@@ -550,7 +551,7 @@ trait GitParameterArchiver {
    */
   def commitParameters(modId: ModificationId, commiter: PersonIdent, reason: Option[String]): IOResult[GitArchiveId]
 
-  def getTags(): IOResult[Map[DateTime, GitArchiveId]]
+  def getTags(): IOResult[Map[Instant, GitArchiveId]]
 
   /**
    * Delete an archived parameter.
