@@ -54,7 +54,6 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import net.liftweb.common.Box
 import org.joda.time.DateTime
@@ -80,8 +79,7 @@ class TechniqueAcceptationUpdater(
     override val order:    Int,
     roActiveTechniqueRepo: RoDirectiveRepository,
     rwActiveTechniqueRepo: WoDirectiveRepository,
-    techniqueRepo:         TechniqueRepository,
-    uuidGen:               StringUuidGenerator
+    techniqueRepo:         TechniqueRepository
 ) extends TechniquesLibraryUpdateNotification with NamedZioLogger {
 
   override def loggerName: String = this.getClass.getName

@@ -1785,15 +1785,8 @@ class SaveArchiveServicebyRepo(
     for {
       _ <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))
       _ <- ZIO.foreach(archive.techniques)(saveTechnique(eventMetadata, _))
-      _ <- IOResult.attempt(techniqueReader.readTechniques)
-      _ <- ZIO.foreach(archive.directives)(saveDirective(eventMetadata, _))
-      // we need the map of all (categoryPath -> id) in the archive
-      m  = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
-      _ <- ZIO.foreach(archive.groupCats)(saveGroupCat(eventMetadata, _, m))
-      _ <- ZIO.foreach(archive.groups)(saveGroup(_))
-      _ <- ZIO.foreach(archive.ruleCats)(saveRuleCategory(eventMetadata, _))
-      _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
-      // update technique lib, regenerate policies
+      // update technique lib, regenerate policies now since we need to have the possible new techniques available
+      // for directives below
       _ <- ZIO.when(archive.techniques.nonEmpty) {
              techLibUpdate
                .update(cc.modId, cc.actor, Some(s"Update Technique library after import of and archive"))
@@ -1802,6 +1795,13 @@ class SaveArchiveServicebyRepo(
                  s"An error occurred during technique update after import of archive"
                )
            }
+      _ <- ZIO.foreach(archive.directives)(saveDirective(eventMetadata, _))
+      // we need the map of all (categoryPath -> id) in the archive
+      m  = archive.groupCats.map(c => (c.catPath, NodeGroupCategoryId(c.category.id))).toMap
+      _ <- ZIO.foreach(archive.groupCats)(saveGroupCat(eventMetadata, _, m))
+      _ <- ZIO.foreach(archive.groups)(saveGroup(_))
+      _ <- ZIO.foreach(archive.ruleCats)(saveRuleCategory(eventMetadata, _))
+      _ <- ZIO.foreach(archive.rules)(saveRule(eventMetadata, mergePolicy, _))
       _ <- IOResult.attempt(asyncDeploy ! AutomaticStartDeployment(cc.modId, cc.actor))
     } yield ()
   }

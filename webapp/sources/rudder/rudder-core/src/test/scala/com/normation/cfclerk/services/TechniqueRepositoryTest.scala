@@ -59,7 +59,6 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.utils.StringUuidGeneratorImpl
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.*
@@ -252,7 +251,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ): IOResult[ActiveTechniqueId] = ???
   }
 
-  val ldapCallBack = new TechniqueAcceptationUpdater("update", 0, ldapRepo, ldapRepo, fsRepos, new StringUuidGeneratorImpl())
+  val ldapCallBack = new TechniqueAcceptationUpdater("update", 0, ldapRepo, ldapRepo, fsRepos)
 
   fsRepos.registerCallback(testCallback)
   fsRepos.registerCallback(ldapCallBack)
