@@ -40,8 +40,8 @@ class PluginDataTest extends Specification {
 
   "GlobalPluginLicense" should {
     "aggregate plugins license" in {
-      val startDate = Instant.parse("2025-02-05T17:40:00")
-      val endDate   = Instant.parse("2025-02-05T19:40:00")
+      val startDate = Instant.parse("2025-02-05T17:40:00Z")
+      val endDate   = Instant.parse("2025-02-05T19:40:00Z")
       val license   = {
         PluginLicense(
           Licensee("test"),
@@ -57,8 +57,8 @@ class PluginDataTest extends Specification {
 
       "with maximum start date and minimum end date" in {
         import GlobalPluginsLicense.EndDateImplicits.minInstant
-        val maxStart = Instant.parse("2025-02-06T17:40:00")
-        val minEnd   = Instant.parse("2025-02-04T19:40:00")
+        val maxStart = Instant.parse("2025-02-06T17:40:00Z")
+        val minEnd   = Instant.parse("2025-02-04T19:40:00Z")
         val a        = GlobalPluginsLicense.fromLicense[Instant](license)
         val b        = GlobalPluginsLicense.fromLicense[Instant](license.copy(startDate = maxStart, endDate = minEnd))
 
