@@ -654,7 +654,7 @@ object DisplayNode extends Loggable {
       DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
     }
           </div>
-          <div><label>Agent last run:</label>
+          <div><label>Agent run log received:</label>
             {
       agentRun
         .map(agentRunWithNodeConfig => { DateFormaterService.getDisplayDate(agentRunWithNodeConfig.agentRunId.date) })
