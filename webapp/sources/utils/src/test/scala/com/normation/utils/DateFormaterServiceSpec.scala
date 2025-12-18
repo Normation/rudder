@@ -9,10 +9,17 @@ import java.time.temporal.ChronoField
 import java.time.temporal.ChronoUnit
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
+import org.joda.time as joda
 import zio.test.*
 import zio.test.Assertion.*
 
 object DateFormaterServiceSpec extends ZIOSpecDefault {
+
+  val nearEnoughInstant = Gen.instant(
+    min = Instant.EPOCH,
+    max = Instant.parse("9999-01-01T00:00:00Z")
+  )
+
   def spec = suite("DateFormaterService")(
     test("basicDateTimeFormatter should behave like jodatime ISODateTimeFormat.basicDateTime()") {
       check(Gen.instant(min = Instant.EPOCH, max = Instant.parse("9999-01-01T00:00:00Z"))) { input =>
@@ -97,6 +104,17 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
         )(
           equalTo(input)
         )
+      }
+    },
+    test("joda Duration and java.time Duration should toString the same thing") {
+      check(
+        nearEnoughInstant,
+        nearEnoughInstant
+      ) { (start, end) =>
+        val jodaValue     = new joda.Duration(end.toEpochMilli - start.toEpochMilli).toPeriod.toString
+        val javatimeValue =
+          java.time.Duration.between(start.truncatedTo(ChronoUnit.MILLIS), end.truncatedTo(ChronoUnit.MILLIS)).toString
+        assert(jodaValue)(equalTo(javatimeValue))
       }
     }
   ) @@ TestAspect.shrinks(0)

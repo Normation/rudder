@@ -74,35 +74,34 @@ class PurgeOldInventoryData(
 
   // must not fail, will be in a cron
   val cleanOldFiles: UIO[Unit] = for {
-    t0 <- currentTimeMillis
-    now = Instant.ofEpochMilli(t0)
-    _  <- ZIO
-            .foreachDiscard(cleanDirectories) { dir =>
-              ZIO.foreachDiscard(dir.list.to(Iterable)) { f =>
-                isOlderThanMaxAge(f, maxAge.toSeconds, now).flatMap { older =>
-                  if (older) {
-                    InventoryProcessingLogger.info(
-                      s"Deleting inventory file '${f.pathAsString}' (older than ${maxAge.toString})"
-                    ) *>
-                    IOResult
-                      .attempt(f.delete())
-                      .unit
-                      .catchAll(err => {
-                        InventoryProcessingLogger
-                          .error(s"Error while trying to clean old inventory file '${f.pathAsString}': ${err.fullMsg}")
-                      })
-                  } else {
-                    InventoryProcessingLogger.trace(
-                      s"Keeping inventory file '${f.pathAsString}' (younger than ${maxAge.toString})"
-                    )
-                  }
-                }
-              }
-            }
-            .catchAll(err => logger.error(s"Error when cleaning-up old inventory files: ${err.fullMsg}"))
+    now <- Clock.instant
+    _   <- ZIO
+             .foreachDiscard(cleanDirectories) { dir =>
+               ZIO.foreachDiscard(dir.list.to(Iterable)) { f =>
+                 isOlderThanMaxAge(f, maxAge.toSeconds, now).flatMap { older =>
+                   if (older) {
+                     InventoryProcessingLogger.info(
+                       s"Deleting inventory file '${f.pathAsString}' (older than ${maxAge.toString})"
+                     ) *>
+                     IOResult
+                       .attempt(f.delete())
+                       .unit
+                       .catchAll(err => {
+                         InventoryProcessingLogger
+                           .error(s"Error while trying to clean old inventory file '${f.pathAsString}': ${err.fullMsg}")
+                       })
+                   } else {
+                     InventoryProcessingLogger.trace(
+                       s"Keeping inventory file '${f.pathAsString}' (younger than ${maxAge.toString})"
+                     )
+                   }
+                 }
+               }
+             }
+             .catchAll(err => logger.error(s"Error when cleaning-up old inventory files: ${err.fullMsg}"))
 
-    t1 <- currentTimeMillis
-    _  <- logger.debug(s"Cleaned-up old inventory files in ${Duration.fromMillis(t1 - t0).toString}")
+    after <- Clock.instant
+    _     <- logger.debug(s"Cleaned-up old inventory files in ${Duration.fromInterval(now, after).toString}")
   } yield ()
 
   // the part for inventory data in jdbc
