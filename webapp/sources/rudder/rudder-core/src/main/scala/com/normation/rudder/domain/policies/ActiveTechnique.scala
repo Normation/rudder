@@ -83,15 +83,13 @@ object AcceptationDateTime {
     JsonFieldDecoder.string.mapOrFail(TechniqueVersion.parse)
   implicit val encoderTechniqueVersion: JsonFieldEncoder[TechniqueVersion] = JsonFieldEncoder.string.contramap(_.serialize)
 
-  implicit val instantCodec: JsonCodec[Instant] = new JsonCodec(
-    JsonEncoder.string.contramap(s => GeneralizedTime(s).toString()),
-    JsonDecoder.string.mapOrFail(x => {
-      GeneralizedTime
-        .parse(x)
-        .map(_.instant)
-        .toRight(s"Error when parsing '${x}' as a generalized time'")
-    })
-  )
+  implicit val instantEncoder: JsonEncoder[Instant] = JsonEncoder.string.contramap(s => GeneralizedTime(s).toString())
+  implicit val instantDecoder: JsonDecoder[Instant] = JsonDecoder.string.mapOrFail(x => {
+    GeneralizedTime
+      .parse(x)
+      .map(_.instant)
+      .toRight(s"Error when parsing '${x}' as a generalized time'")
+  })
 
   // we're forced to spell it
   implicit val mapCodec: JsonCodec[Map[TechniqueVersion, Instant]] = JsonCodec.map
