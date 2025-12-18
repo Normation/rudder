@@ -165,22 +165,31 @@ mod test {
         let mut template = Ini::load_from_str(
             "[User]
             name = Ferris
-            value = Pi",
+            value = Pi
+            [Settings]
+            abc = 21",
         )
         .unwrap();
 
-        let data = r#"
+        let data = serde_json::from_str(
+            r#"
         {
             "User": {
                 "name": "Ferris",
-                "value": "42"
+                "value": 42,
+                "abc": 21
+            },
+            "Settings": {
+                "abc": 12
             }
-        }"#;
-        let data = serde_json::from_str(data).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let res = Secedit::template_search_and_replace(&mut template, data);
 
         assert!(res.is_ok());
-        assert_eq!(template.get_from(Some("User"), "value"), Some("\"42\""));
+        assert_eq!(template.get_from(Some("User"), "value"), Some("42"));
+        assert_eq!(template.get_from(Some("Settings"), "abc"), Some("12"));
     }
 }
