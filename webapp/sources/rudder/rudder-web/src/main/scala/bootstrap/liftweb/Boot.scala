@@ -80,7 +80,6 @@ import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
 import java.net.URI
 import java.time.Instant
-import java.time.ZonedDateTime
 import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
