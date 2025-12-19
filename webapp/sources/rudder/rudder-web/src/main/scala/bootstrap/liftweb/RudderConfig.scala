@@ -2310,7 +2310,8 @@ object RudderConfigInit {
             asyncDeploymentAgent,
             stringUuidGenerator,
             policyServerManagementService,
-            nodeFactRepository
+            nodeFactRepository,
+            zioJsonExtractor
           ),
           new TechniqueApi(
             new TechniqueAPIService14(

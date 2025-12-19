@@ -79,6 +79,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
@@ -93,6 +94,7 @@ import java.time.LocalTime
 import zio.*
 import zio.Tag as _
 import zio.json.*
+import zio.json.ast.Json
 import zio.json.internal.Write
 import zio.syntax.*
 
@@ -111,7 +113,7 @@ object RenderInheritedProperties {
   case object JSON extends RenderInheritedProperties
 }
 
-// to avoid ambiguity with corresponding business objects, we use "JR" as a prfix
+// to avoid ambiguity with corresponding business objects, we use "JR" as a prefix
 object JsonResponseObjects {
 
   sealed abstract class JRInventoryStatus(val name: String)
@@ -2084,6 +2086,17 @@ object JsonResponseObjects {
     }
   }
 
+  final case class JRAllowedNetworksNode(allowed_networks: Chunk[JRAllowedNetwork])
+  final case class JRAllowedNetwork(id: String, allowed_networks: Chunk[AllowedNetwork])
+
+  final case class JRAllowedNetworks(allowed_networks: Chunk[AllowedNetwork])
+
+  final case class JRSettings(settings: Json.Obj)
+  object JRSettings {
+    def apply(keyValue: (String, Json)):        JRSettings = JRSettings(Json.Obj(keyValue))
+    def apply(chunk:    Chunk[(String, Json)]): JRSettings = JRSettings(Json.Obj(chunk))
+  }
+
   implicit def seqToChunkTransformer[A, B](implicit transformer: Transformer[A, B]): Transformer[Seq[A], Chunk[B]] = {
     (a: Seq[A]) => Chunk.fromIterable(a.map(transformer.transform))
   }
@@ -2260,4 +2273,12 @@ trait RudderJsonEncoders {
   implicit lazy val policyModeSerializer:    JsonEncoder[PolicyMode]        = JsonEncoder[String].contramap(_.name)
   implicit lazy val jrGlobalScoreEncoder:    JsonEncoder[JRGlobalScore]     = DeriveJsonEncoder.gen
   implicit lazy val nodeDetailTableEncoder:  JsonEncoder[JRNodeDetailTable] = DeriveJsonEncoder.gen
+
+  implicit lazy val allowedNetworkEncoder:        JsonEncoder[AllowedNetwork]        = JsonEncoder[String].contramap(_.inet)
+  implicit lazy val allowedNetworkChunkEncoder:   JsonEncoder[Chunk[AllowedNetwork]] =
+    JsonEncoder.chunk[AllowedNetwork].contramap(_.sortBy(_.inet))
+  implicit lazy val jrAllowedNetworkEncoder:      JsonEncoder[JRAllowedNetwork]      = DeriveJsonEncoder.gen
+  implicit lazy val jrAllowedNetworksNodeEncoder: JsonEncoder[JRAllowedNetworksNode] = DeriveJsonEncoder.gen
+  implicit lazy val jrAllowedNetworksEncoder:     JsonEncoder[JRAllowedNetworks]     = DeriveJsonEncoder.gen
+  implicit lazy val jrSettingsEncoder:            JsonEncoder[JRSettings]            = DeriveJsonEncoder.gen
 }

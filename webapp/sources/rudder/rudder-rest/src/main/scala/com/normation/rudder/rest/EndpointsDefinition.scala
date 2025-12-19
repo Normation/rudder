@@ -644,46 +644,52 @@ object ParameterApi       extends Enum[ParameterApi] with ApiModuleProvider[Para
 }
 
 sealed trait SettingsApi extends EnumEntry with EndpointSchema with GeneralApi with SortIndex {
-  override def dataContainer: Some[String] = Some("settings")
+  override def dataContainer: Option[String] = Some("settings")
 }
 object SettingsApi       extends Enum[SettingsApi] with ApiModuleProvider[SettingsApi]        {
   case object GetAllSettings        extends SettingsApi with ZeroParam with StartsAtVersion6 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get information about all Rudder settings"
     val (action, path) = GET / "settings"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    override def dataContainer: Option[String]          = None
   }
   case object GetAllAllowedNetworks extends SettingsApi with ZeroParam with StartsAtVersion11 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "List all allowed networks"
     val (action, path) = GET / "settings" / "allowed_networks"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    override def dataContainer: Option[String]          = None
   }
   case object GetAllowedNetworks    extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "List all allowed networks for one relay"
     val (action, path) = GET / "settings" / "allowed_networks" / "{nodeId}"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    override def dataContainer: Option[String]          = None
   }
   case object ModifyAllowedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Update all allowed networks for one relay"
     val (action, path) = POST / "settings" / "allowed_networks" / "{nodeId}"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    override def dataContainer: Option[String]          = None
   }
 
   case object ModifyDiffAllowedNetworks extends SettingsApi with OneParam with StartsAtVersion11 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Modify some allowed networks for one relay with a diff structure"
     val (action, path) = POST / "settings" / "allowed_networks" / "{nodeId}" / "diff"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    override def dataContainer: Option[String]          = None
   }
 
   case object GetSetting     extends SettingsApi with OneParam with StartsAtVersion6 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get information about given Rudder setting"
     val (action, path) = GET / "settings" / "{key}"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    override def dataContainer: Option[String]          = None
 
     // with some authorization, we can have access to given keys, as a singleton segment
     override val otherAcls: Map[AuthorizationType, List[ApiAclElement]] = Map(
@@ -723,13 +729,15 @@ object SettingsApi       extends Enum[SettingsApi] with ApiModuleProvider[Settin
     val z: Int = implicitly[Line].value
     val description    = "Update Rudder settings"
     val (action, path) = POST / "settings"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    override def dataContainer: Option[String]          = None
   }
   case object ModifySetting  extends SettingsApi with OneParam with StartsAtVersion6 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Update given Rudder setting"
     val (action, path) = POST / "settings" / "{key}"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+    override def dataContainer: Option[String]          = None
   }
 
   def endpoints: List[SettingsApi] = values.toList.sortBy(_.z)

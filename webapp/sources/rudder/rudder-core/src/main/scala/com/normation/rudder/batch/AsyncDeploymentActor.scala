@@ -37,6 +37,7 @@
 
 package com.normation.rudder.batch
 
+import cats.syntax.bifunctor.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
@@ -58,6 +59,8 @@ import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.zio.*
+import enumeratum.*
+import enumeratum.EnumEntry.*
 import net.liftweb.actor.*
 import net.liftweb.common.*
 import net.liftweb.http.ListenerManager
@@ -77,28 +80,23 @@ final case class AutomaticStartDeployment(modId: ModificationId, actor: EventAct
 //actor: the actor who asked for the deployment
 final case class ManualStartDeployment(modId: ModificationId, actor: EventActor, reason: String) extends StartDeploymentMessage
 
-sealed trait PolicyGenerationTrigger
-object PolicyGenerationTrigger {
-  case object AllGeneration        extends PolicyGenerationTrigger
-  case object OnlyManualGeneration extends PolicyGenerationTrigger
-  case object NoGeneration         extends PolicyGenerationTrigger
+sealed trait PolicyGenerationTrigger extends EnumEntry with LowerCamelcase
+object PolicyGenerationTrigger       extends Enum[PolicyGenerationTrigger] {
+  case object All        extends PolicyGenerationTrigger
+  case object OnlyManual extends PolicyGenerationTrigger
+  case object None       extends PolicyGenerationTrigger
 
-  def apply(value: String): PureResult[PolicyGenerationTrigger] = {
+  override def values: IndexedSeq[PolicyGenerationTrigger] = findValues
 
-    value.toLowerCase() match {
-      case "all" | "allgeneration"                          => Right(AllGeneration)
-      case "none" | "nogeneration"                          => Right(NoGeneration)
-      case "manual" | "onlymanual" | "onlymanualgeneration" => Right(OnlyManualGeneration)
-      case _                                                => Left(Unexpected(s"'${value}' is not a valid generation policy"))
-    }
-  }
+  override def extraNamesToValuesMap: Map[String, PolicyGenerationTrigger] = Map(
+    "allGeneration"        -> All,
+    "noGeneration"         -> None,
+    "manual"               -> OnlyManual,
+    "onlyManualGeneration" -> OnlyManual
+  )
 
-  def serialize(generationPolicy: PolicyGenerationTrigger): String = {
-    generationPolicy match {
-      case AllGeneration        => "all"
-      case NoGeneration         => "none"
-      case OnlyManualGeneration => "onlyManual"
-    }
+  def parse(value: String): Either[String, PolicyGenerationTrigger] = {
+    withNameInsensitiveEither(value).leftMap(err => s"'${value}' is not a valid generation policy: ${err.getMessage}")
   }
 }
 
@@ -280,12 +278,12 @@ final class AsyncDeploymentActor(
       PolicyGenerationLogger.manager.trace("Policy updater: receive new automatic policy update request message")
 
       deploymentPolicy().either.runNow match {
-        case Right(PolicyGenerationTrigger.NoGeneration | PolicyGenerationTrigger.OnlyManualGeneration) =>
+        case Right(PolicyGenerationTrigger.None | PolicyGenerationTrigger.OnlyManual) =>
           PolicyGenerationLogger.manager.info(
             "Policy generation: Due to policy generation policy, no automatic policy generation was triggered "
           )
 
-        case v @ (Right(PolicyGenerationTrigger.AllGeneration) | Left(_)) =>
+        case v @ (Right(PolicyGenerationTrigger.All) | Left(_)) =>
           logTriggerError(v)
           currentDeployerState match {
             case IdleDeployer => // ok, start a new deployment
@@ -334,7 +332,7 @@ final class AsyncDeploymentActor(
       PolicyGenerationLogger.manager.trace("Policy updater: receive new manual policy update request message")
 
       deploymentPolicy().either.runNow match {
-        case Right(PolicyGenerationTrigger.NoGeneration) =>
+        case Right(PolicyGenerationTrigger.None) =>
           PolicyGenerationLogger.manager.debug(
             "Policy generation: Due to policy generation policy, no manual policy generation was triggered "
           )

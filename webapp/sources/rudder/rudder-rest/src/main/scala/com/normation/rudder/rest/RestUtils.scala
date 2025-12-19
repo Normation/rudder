@@ -173,21 +173,6 @@ object RestUtils {
     effectiveResponse(id, message, error, action, prettify)
   }
 
-  def response(
-      dataName: String,
-      id:       Option[String]
-  )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String, prettify: Boolean): LiftResponse = {
-    function match {
-      case Full(category: JValue) =>
-        toJsonResponse(id, (dataName -> category))
-      case eb: EmptyBox =>
-        val err = eb ?~! errorMessage
-        // we don't get DB error in message - add them in log
-        err.rootExceptionCause.foreach(ex => ApiLogger.ResponseError.info("Api error cause by exception: " + ex.getMessage))
-        toJsonError(id, err.messageChain, InternalError)
-    }
-  }
-
 }
 
 trait HttpStatus {

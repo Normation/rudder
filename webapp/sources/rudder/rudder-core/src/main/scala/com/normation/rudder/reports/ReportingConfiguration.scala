@@ -37,8 +37,6 @@
 
 package com.normation.rudder.reports
 
-import com.normation.errors.RudderError
-import com.normation.errors.Unexpected
 import enumeratum.*
 import net.liftweb.common.*
 import org.joda.time.Duration
@@ -111,21 +109,12 @@ case object AgentReportingHTTPS extends AgentReportingProtocol {
 }
 
 object AgentReportingProtocol extends Enum[AgentReportingProtocol] {
-  def apply(value: String): Box[AgentReportingProtocol] = {
-    value match {
-      case AgentReportingHTTPS.value => Full(AgentReportingHTTPS)
-      case _                         => Failure(s"Invalid reporting protocol: *{value}")
-    }
-  }
-
-  val values:               IndexedSeq[AgentReportingProtocol]          = findValues
-  def parse(value: String): Either[RudderError, AgentReportingProtocol] = {
+  val values:               IndexedSeq[AgentReportingProtocol]     = findValues
+  def parse(value: String): Either[String, AgentReportingProtocol] = {
     values.find(_.value == value.toUpperCase()) match {
       case None           =>
         Left(
-          Unexpected(
-            s"Unable to parse reporting protocol mame '${value}'. was expecting ${values.map(_.value).mkString("'", "' or '", "'")}."
-          )
+          s"Unable to parse reporting protocol mame '${value}'. was expecting ${values.map(_.value).mkString("'", "' or '", "'")}."
         )
       case Some(protocol) =>
         Right(protocol)
