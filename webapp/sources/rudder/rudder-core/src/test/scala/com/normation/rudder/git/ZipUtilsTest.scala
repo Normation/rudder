@@ -44,8 +44,6 @@ import com.normation.utils.DateFormaterService
 import com.normation.zio.ZioRuntime
 import java.time.Instant
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

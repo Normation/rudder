@@ -37,7 +37,6 @@
 
 package com.normation.rudder.campaigns
 
-import cats.implicits.*
 import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventState.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
