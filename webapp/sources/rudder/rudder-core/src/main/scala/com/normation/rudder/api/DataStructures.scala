@@ -42,10 +42,12 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
+
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import org.bouncycastle.util.encoders.Hex
-import org.joda.time.DateTime
+
+import java.time.Instant
 
 /**
  * ID of the Account.
@@ -449,7 +451,7 @@ object ApiAccountKind       {
       authorizations: ApiAuthorization,
       // this is an expiration date for the whole account, not a generated token. IE, we can
       // have it even without token, or even if we just generated the token.
-      expirationDate: Option[DateTime]
+      expirationDate: Option[Instant]
   ) extends ApiAccountKind {
     val kind: ApiAccountType.PublicApi.type = ApiAccountType.PublicApi
   }
@@ -467,8 +469,8 @@ final case class ApiAccount(
     token:               Option[ApiTokenHash], // if none, then the token can't be used for authentication
     description:         String,
     isEnabled:           Boolean,
-    creationDate:        DateTime,
-    tokenGenerationDate: DateTime,
+    creationDate:        Instant,
+    tokenGenerationDate: Instant,
     tenants:             NodeSecurityContext
 ) {
   def toNewApiAccount(secret: ApiTokenSecret): NewApiAccount = {
@@ -497,8 +499,8 @@ final case class NewApiAccount(
     token:               Option[ApiTokenSecret],
     description:         String,
     isEnabled:           Boolean,
-    creationDate:        DateTime,
-    tokenGenerationDate: DateTime,
+    creationDate:        Instant,
+    tokenGenerationDate: Instant,
     tenants:             NodeSecurityContext
 ) {
   def toApiAccount(): ApiAccount = {

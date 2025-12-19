@@ -46,9 +46,8 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.Control.bestEffort
+import java.time.Instant
 import net.liftweb.common.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.syntax.*
 
 trait RuleValService {
@@ -191,7 +190,7 @@ class RuleValServiceImpl(
               technique, // if the technique don't have an acceptation date time, this is bad. Use "now",
               // which mean that it will be considered as new every time.
 
-              fullActiveTechnique.acceptationDatetimes.get(technique.id.version).getOrElse(DateTime.now(DateTimeZone.UTC)),
+              fullActiveTechnique.acceptationDatetimes.get(technique.id.version).getOrElse(Instant.now()),
               directive.priority,
               directive.isSystem,
               directive.policyMode,

@@ -57,11 +57,14 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling.*
+import com.normation.utils.DateFormaterService
+
 import java.time.Instant
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.xml.*
 import zio.json.*
 
@@ -948,13 +951,13 @@ class EventLogFactoryImpl(
         diff.modDescription.map(x => SimpleDiff.stringToXml(<description/>, x)) ++
         diff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<enabled/>, x)) ++
         diff.modTokenGenerationDate.map(x =>
-          SimpleDiff.toXml[DateTime](<tokenGenerationDate/>, x)(x => Text(x.toString(ISODateTimeFormat.dateTime())))
+          SimpleDiff.toXml[Instant](<tokenGenerationDate/>, x)(x => Text(DateFormaterService.formatAsDateTime(x)))
         ) ++
         diff.modExpirationDate.map(x => {
-          SimpleDiff.toXml[Option[DateTime]](<expirationDate/>, x) { x =>
+          SimpleDiff.toXml[Option[Instant]](<expirationDate/>, x) { x =>
             x match {
               case None    => NodeSeq.Empty
-              case Some(d) => Text(d.toString(ISODateTimeFormat.dateTime()))
+              case Some(d) => Text(DateFormaterService.formatAsDateTime(d))
             }
           }
         }) ++

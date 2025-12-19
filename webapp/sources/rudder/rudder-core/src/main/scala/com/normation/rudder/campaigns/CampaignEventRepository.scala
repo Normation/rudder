@@ -42,7 +42,7 @@ import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.ScheduledType
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.json.implicits.*
-import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
@@ -236,8 +236,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       import com.normation.rudder.campaigns.CampaignEventState.*
       Transformer
         .define[CampaignEvent, CampaignEventHistoryInsert]
-        .withFieldComputed(_.start, x => DateFormaterService.toInstant(x.start))
-        .withFieldComputed(_.end, x => Some(DateFormaterService.toInstant(x.end)))
+        .withFieldComputed(_.start, x => x.start.toJavaInstant)
+        .withFieldComputed(_.end, x => Some(x.end.toJavaInstant))
         .withFieldComputed(_.state, _.state.value)
         .withFieldComputed(
           _.data,

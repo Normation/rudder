@@ -1010,7 +1010,7 @@ class LDAPEntityMapper(
             warnOnIgnoreAuthz()
             ApiAccountKind.User
           case ApiAccountType.PublicApi =>
-            ApiAccountKind.PublicApi(authz, expirationDate.map(x => DateFormaterService.toDateTime(x.instant)))
+            ApiAccountKind.PublicApi(authz, expirationDate.map(_.instant))
         }
 
         // as of 8.3, we disable an API account with token version < 2
@@ -1025,8 +1025,8 @@ class LDAPEntityMapper(
           token,
           description,
           isEnabledAndVersionOk,
-          DateFormaterService.toDateTime(creationDatetime.instant),
-          DateFormaterService.toDateTime(tokenCreationDatetime.instant),
+          creationDatetime.instant,
+          tokenCreationDatetime.instant,
           tenants
         )
       }

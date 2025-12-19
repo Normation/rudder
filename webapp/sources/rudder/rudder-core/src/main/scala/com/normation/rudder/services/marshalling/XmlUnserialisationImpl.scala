@@ -76,10 +76,14 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
+import com.normation.utils.DateFormaterService.toJavaInstant
+
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
@@ -366,9 +370,6 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
 
 class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation {
 
-  // we expect acceptation date to be in ISO-8601 format
-  private val dateFormatter = ISODateTimeFormat.dateTime
-
   def unserialise(entry: XNode): Box[ActiveTechnique] = {
     for {
       activeTechnique  <- {
@@ -402,7 +403,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                               ptVersion       <- TechniqueVersion
                                                    .parse(ptVersionName)
                                                    .toBox ?~! s"Error when trying to parse '${ptVersionName}' as a technique version."
-                              acceptationDate <- tryo(dateFormatter.parseDateTime(version.text))
+                              acceptationDate <- tryo(Instant.parse(version.text))
                             } yield {
                               (ptVersion, acceptationDate)
                             }
@@ -848,16 +849,16 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                           tryo(s.text.toBoolean)
                         ) ?~! (s"Missing attribute 'isEnabled' in entry type API Account : ${entry}")
       creationDate   <- (apiAccount \ "creationDate").headOption.flatMap(s =>
-                          tryo(dateFormatter.parseDateTime(s.text))
+                          tryo(dateFormatter.parseDateTime(s.text).toJavaInstant)
                         ) ?~! (s"Missing attribute 'creationDate' in entry type API Account : ${entry}")
       tokenGenDate   <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s =>
-                          tryo(dateFormatter.parseDateTime(s.text))
+                          tryo(dateFormatter.parseDateTime(s.text).toJavaInstant)
                         ) ?~! (s"Missing attribute 'tokenGenerationDate' in entry type API Account : ${entry}")
       expirationDate <- (apiAccount \ "expirationDate").headOption match {
                           case None    => Full(None)
                           case Some(s) =>
                             tryo {
-                              Some(dateFormatter.parseDateTime(s.text))
+                              Some(dateFormatter.parseDateTime(s.text).toJavaInstant)
                             } ?~! (s"Bad date format for field 'expirationDate' in entry type API Account : ${entry}")
                         }
       authz          <- (apiAccount \ "authorization").headOption match {

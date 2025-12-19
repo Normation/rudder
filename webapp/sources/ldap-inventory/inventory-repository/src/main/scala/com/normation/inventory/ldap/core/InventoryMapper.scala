@@ -51,7 +51,6 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.{Version as _, *}
 import java.net.InetAddress
 import java.time.Instant
-import org.joda.time.DateTime
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -127,7 +126,7 @@ class InventoryMapper(
     e.setOpt(soft.description, A_DESCRIPTION, (x: String) => x)
     e.setOpt(soft.version, A_SOFT_VERSION, (x: Version) => x.value)
     e.setOpt(soft.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
-    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(DateFormaterService.toInstant(x)).toString)
+    e.setOpt(soft.releaseDate, A_RELEASE_DATE, (x: Instant) => GeneralizedTime(x).toString)
     e.setOpt(soft.sourceName, A_SOURCE_NAME, (x: String) => x)
     e.setOpt(soft.sourceVersion, A_SOURCE_VERSION, (x: Version) => x.value)
     soft.license.foreach { lic =>
@@ -148,7 +147,7 @@ class InventoryMapper(
       name           = e(A_NAME)
       desc           = e(A_DESCRIPTION)
       version        = e(A_SOFT_VERSION).map(v => new Version(v))
-      releaseDate    = e.getAsGTime(A_RELEASE_DATE).map(x => DateFormaterService.toDateTime(x.instant))
+      releaseDate    = e.getAsGTime(A_RELEASE_DATE).map(_.instant)
       editor         = e(A_EDITOR) map { x => new SoftwareEditor(x) }
       source_name    = e(A_SOURCE_NAME)
       source_version = e(A_SOURCE_VERSION).map(v => new Version(v))

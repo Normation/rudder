@@ -74,13 +74,15 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
-import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.typesafe.config.ConfigValue
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
+import java.time.Instant
 import scala.xml.*
 
 /**
@@ -560,7 +562,7 @@ class EventLogDetailsServiceImpl(
     } yield {
       InventoryLogDetails(
         nodeId = NodeId(nodeId),
-        inventoryVersion = DateFormaterService.toInstant(ISODateTimeFormat.dateTimeParser.parseDateTime(version)),
+        inventoryVersion = ISODateTimeFormat.dateTimeParser.parseDateTime(version).toJavaInstant,
         hostname = hostname,
         fullOsName = os,
         actorIp = actorIp
@@ -902,13 +904,13 @@ class EventLogDetailsServiceImpl(
       modToken          <- getFromToString((apiAccount \ "token").headOption)
       modDescription    <- getFromToString((apiAccount \ "description").headOption)
       modIsEnabled      <- getFromTo[Boolean]((apiAccount \ "enabled").headOption, s => tryo(s.text.toBoolean))
-      modTokenGenDate   <- getFromTo[DateTime](
+      modTokenGenDate   <- getFromTo[Instant](
                              (apiAccount \ "tokenGenerationDate").headOption,
-                             s => tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text))
+                             s => tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text).toJavaInstant)
                            )
-      modExpirationDate <- getFromTo[Option[DateTime]](
+      modExpirationDate <- getFromTo[Option[Instant]](
                              (apiAccount \ "expirationDate").headOption,
-                             s => Full(tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text)).toOption)
+                             s => Full(tryo(ISODateTimeFormat.dateTimeParser().parseDateTime(s.text).toJavaInstant).toOption)
                            )
       modAccountKind    <- getFromToString((apiAccount \ "accountKind").headOption)
       modAcls           <- getFromTo[List[ApiAclElement]](

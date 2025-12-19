@@ -81,6 +81,7 @@ import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
@@ -308,7 +309,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.lastInventoryDate, levelField("lastInventoryDate")(nodeInfo.inventoryDate))
         .withFieldComputed(
           _.lastRunDate,
-          levelField(_)("lastRunDate")(agentRun.map(x => DateFormaterService.toInstant(x.agentRunId.date)))
+          levelField(_)("lastRunDate")(agentRun.map(_.agentRunId.date.toJavaInstant))
         )
         .withFieldComputed(_.policyServerId, levelField("policyServerId")(nodeInfo.policyServerId))
         .withFieldComputed(
@@ -2156,7 +2157,6 @@ trait RudderJsonEncoders {
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
   import com.normation.rudder.score.ScoreSerializer.*
-  import com.normation.utils.DateFormaterService.json.*
 
   implicit lazy val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
   implicit lazy val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
