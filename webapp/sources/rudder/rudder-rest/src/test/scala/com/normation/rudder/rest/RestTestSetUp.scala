@@ -62,7 +62,7 @@ import com.normation.rudder.api.{ApiAuthorization as ApiAuthz, *}
 import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
-import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
+import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.config.StatelessUserPropertyService
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -526,7 +526,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     eventLogger,
     deploymentStatusSerialisation,
     () => Duration("0s").succeed,
-    () => AllGeneration.succeed,
+    () => PolicyGenerationTrigger.All.succeed,
     bootGuard
   )
 
@@ -1176,7 +1176,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       asyncDeploymentAgent,
       uuidGen,
       settingsService.policyServerManagementService,
-      mockNodes.nodeFactRepo
+      mockNodes.nodeFactRepo,
+      zioJsonExtractor
     ),
     archiveAPIModule.api,
     campaignApiModule.api,

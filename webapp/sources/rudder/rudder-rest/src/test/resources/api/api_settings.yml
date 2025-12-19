@@ -62,6 +62,68 @@ response:
       }
     }
 ---
+description: Get information about given Rudder setting
+method: GET
+url: /api/latest/settings/output_file_ttl
+response:
+  code: 200
+  content: >-
+    {
+      "action": "getSetting",
+      "id": "output_file_ttl",
+      "result": "success",
+      "data": {
+        "settings": {
+          "output_file_ttl": 7
+        }
+      }
+    }
+---
+description: Update given Rudder setting
+method: POST
+url: /api/latest/settings/output_file_ttl
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {"value":8}
+response:
+  code: 200
+  content: >-
+    {
+      "action": "modifySetting",
+      "id": "output_file_ttl",
+      "result": "success",
+      "data": {
+        "settings": {
+          "output_file_ttl": 8
+        }
+      }
+    }
+---
+description: Update Rudder settings
+method: POST
+url: /api/latest/settings
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "output_file_ttl": 9,
+    "rudder_generation_policy": "none"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "modifySettings",
+      "result": "success",
+      "data": {
+        "settings": {
+          "output_file_ttl": 9,
+          "rudder_generation_policy": "none"
+        }
+      }
+    }
+---
 description: Get allowed networks
 method: GET
 url: /api/latest/settings/allowed_networks
@@ -128,6 +190,29 @@ response:
       "data":{
         "allowed_networks":["192.168.1.0/24","192.168.2.0/32"]
       }
+    }
+---
+description: Validate allowed networks ips
+method: POST
+url: /api/latest/settings/allowed_networks/root
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "allowed_networks": [
+      "192.168.1.256/24",
+      "192.168.1024.0/32",
+      "192.168.3.0/33"
+    ]
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action":"modifyAllowedNetworks",
+      "id":"root",
+      "result":"error",
+      "errorDetails":"Error when trying to modify allowed networks for policy server 'root'; cause was: Unexpected: .allowed_networks(Unexpected: 192.168.1.256/24 is not a valid allowed network ; Unexpected: 192.168.1024.0/32 is not a valid allowed network ; Unexpected: 192.168.3.0/33 is not a valid allowed network)"
     }
 ---
 description: Modify allowed networks for root

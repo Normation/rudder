@@ -373,13 +373,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     def setRelaySyncMethodJs(input: String): JsCmd = {
       RelaySynchronizationMethod.parse(input) match {
-        case Full(method) =>
+        case Right(method) =>
           relaySyncMethod = method
           method match {
             case Rsync              => JsRaw(""" $('#relayRsyncSynchronizeFiles').show(); """) // JsRaw ok, const
             case Classic | Disabled => JsRaw(""" $('#relayRsyncSynchronizeFiles').hide(); """) // JsRaw ok, const
           }
-        case eb: EmptyBox =>
+        case Left(_)       =>
           Noop
       }
     }

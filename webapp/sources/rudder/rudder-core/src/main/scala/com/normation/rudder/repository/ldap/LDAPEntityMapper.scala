@@ -162,7 +162,7 @@ class LDAPEntityMapper(
         agentRunInterval        = e(A_SERIALIZED_AGENT_RUN_INTERVAL).flatMap(_.fromJson[AgentRunInterval].toOption)
         agentReportingProtocol <- e(A_AGENT_REPORTING_PROTOCOL) match {
                                     case None        => Right(None)
-                                    case Some(value) => AgentReportingProtocol.parse(value).map(Some(_))
+                                    case Some(value) => AgentReportingProtocol.parse(value).bimap(Unexpected(_), Some(_))
                                   }
         policyMode             <- e(A_POLICY_MODE) match {
                                     case None        => Right(None)

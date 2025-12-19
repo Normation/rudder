@@ -917,7 +917,7 @@ object NodeStatusReportSerialization {
 object JsonPostgresqlSerialization {
 
   import com.normation.cfclerk.domain.TechniqueVersion
-  import com.normation.rudder.apidata.implicits.*
+  import com.normation.rudder.apidata.implicits.given
   import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
   import com.normation.rudder.domain.reports.RunComplianceInfo.PolicyModeError
   import com.normation.rudder.services.policies.PolicyId
@@ -986,17 +986,15 @@ object JsonPostgresqlSerialization {
       lastRunConfigId:     Option[NodeConfigId],
       @jsonField("rexp")
       lastRunExpiration:   Option[DateTime]
-  ) {
+  ) derives JsonCodec {
     def to: RunAnalysis = this.transformInto[RunAnalysis]
   }
 
   object JRunAnalysis {
-    implicit lazy val i: Iso[JRunAnalysis, RunAnalysis] = Iso.derive
+    given iso: Iso[JRunAnalysis, RunAnalysis] = Iso.derive
 
-    implicit lazy val decoderRunAnalysisKind: JsonDecoder[RunAnalysisKind] =
-      JsonDecoder.string.mapOrFail(x => RunAnalysisKind.withNameEither(x).left.map(_.getMessage()))
-
-    implicit lazy val codecRunAnalysis: JsonCodec[JRunAnalysis] = DeriveJsonCodec.gen
+    given JsonDecoder[RunAnalysisKind] =
+      JsonDecoder[String].mapOrFail(x => RunAnalysisKind.withNameEither(x).left.map(_.getMessage()))
 
     def from(r: RunAnalysis): JRunAnalysis = {
       r.transformInto[JRunAnalysis]
