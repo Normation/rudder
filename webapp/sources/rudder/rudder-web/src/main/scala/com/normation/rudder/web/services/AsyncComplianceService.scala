@@ -135,8 +135,9 @@ class AsyncComplianceService(
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
-        // flatMap on a Set is OK, since reports are different for different nodeIds
-        val found      = reports.flatMap(_._2.reports).map(_._2.reports).flatten.groupBy(_.ruleId).map {
+        // We need to take values before flatmap, because we are using a Map here and will lose values on first level because keys are policyTypes
+        // Using values at each level ensure that we still have all our data at the end
+        val found      = reports.values.flatMap(_.reports.values).flatMap(_.reports).groupBy(_.ruleId).map {
           case (ruleId, reports) =>
             toCompliance(ruleId, reports)
         }
