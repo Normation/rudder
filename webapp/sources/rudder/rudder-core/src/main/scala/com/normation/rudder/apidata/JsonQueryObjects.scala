@@ -37,6 +37,7 @@
 
 package com.normation.rudder.apidata
 
+import cats.syntax.bifunctor.*
 import cats.syntax.traverse.*
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
@@ -73,6 +74,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
+import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.DeleteMode
 import com.typesafe.config.ConfigValue
 import enumeratum.Enum
@@ -521,6 +523,33 @@ object JsonQueryObjects {
     implicit val transformer: Transformer[JQNodeDetailLevel, NodeDetailLevel] = (jq: JQNodeDetailLevel) =>
       CustomDetailLevel(jq.fields)
   }
+
+  final case class JQAllowedNetworks(
+      allowed_networks: Option[Chunk[AllowedNetwork]]
+  )
+  object JQAllowedNetworks {
+    def validate(v: String): PureResult[AllowedNetwork] = {
+      val netWithoutSpaces = v.replaceAll("""\s""", "")
+      if (netWithoutSpaces.nonEmpty) {
+        if (AllowedNetwork.isValid(netWithoutSpaces)) {
+          Right(AllowedNetwork(netWithoutSpaces, netWithoutSpaces))
+        } else {
+          Left(Unexpected(s"${netWithoutSpaces} is not a valid allowed network"))
+        }
+      } else {
+        Left(Unexpected("Cannot pass an empty allowed network"))
+      }
+    }
+  }
+
+  final case class JQAllowedNetworksDiff(
+      allowed_networks: Option[JQAllowedNetworkDiff]
+  )
+  final case class JQAllowedNetworkDiff(
+      add:    Chunk[AllowedNetwork],
+      delete: Chunk[AllowedNetwork]
+  )
+
 }
 
 trait RudderJsonDecoders {
@@ -641,6 +670,12 @@ trait RudderJsonDecoders {
     DeriveJsonDecoder.gen[JQGroupCategory].mapOrFail(JQGroupCategory.validate)
   implicit val groupDecoder:               JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen
 
+  // Settings
+  implicit val allowedNetworkChunkDecoder: JsonDecoder[Chunk[AllowedNetwork]] =
+    JsonDecoder.chunk[String].mapOrFail(_.accumulatePure(JQAllowedNetworks.validate).bimap(_.fullMsg, Chunk.from(_)))
+  implicit val allowedNetworksDecoder:     JsonDecoder[JQAllowedNetworks]     = DeriveJsonDecoder.gen
+  implicit val allowedNetworksDiffDecoder: JsonDecoder[JQAllowedNetworksDiff] = DeriveJsonDecoder.gen
+  implicit val allowedNetworkDiffDecoder:  JsonDecoder[JQAllowedNetworkDiff]  = DeriveJsonDecoder.gen
 }
 
 object ZioJsonExtractor {
@@ -649,7 +684,7 @@ object ZioJsonExtractor {
    * Parse request body as JSON, and decode it as type `A`.
    * This is the root method to transform a JSON query into a Rest object.
    */
-  def parseJson[A](req: Req)(implicit decoder: JsonDecoder[A]): PureResult[A] = {
+  def parseJson[A](req: Req)(using decoder: JsonDecoder[A]): PureResult[A] = {
     if (req.json_?) {
       // copied from `Req.forcedBodyAsJson`
       def r  = """; *charset=(.*)""".r
@@ -817,6 +852,22 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
       parseJson[JQIncludeSystem](req).map(_.includeSystem)
     } else {
       extractIncludeSystemFromParams(req.params)
+    }
+  }
+
+  def extractAllowedNetworks(req: Req): PureResult[Option[Chunk[AllowedNetwork]]] = {
+    if (req.json_?) {
+      parseJson[JQAllowedNetworks](req).map(_.allowed_networks)
+    } else {
+      extractAllowedNetworksFromParams(req.params)
+    }
+  }
+
+  def extractAllowedNetworksDiff(req: Req): PureResult[Option[JQAllowedNetworkDiff]] = {
+    if (req.json_?) {
+      parseJson[JQAllowedNetworksDiff](req).map(_.allowed_networks)
+    } else {
+      extractAllowedNetworksDiffFromParams(req.params)
     }
   }
 
@@ -1051,5 +1102,13 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
 
   def extractIncludeSystemFromParams(params: Map[String, List[String]]): PureResult[Option[Boolean]] = {
     params.parse("includeSystem", JsonDecoder[Boolean])
+  }
+
+  def extractAllowedNetworksFromParams(params: Map[String, List[String]]): PureResult[Option[Chunk[AllowedNetwork]]] = {
+    params.parse("allowed_networks", JsonDecoder[JQAllowedNetworks]).map(_.flatMap(_.allowed_networks))
+  }
+
+  def extractAllowedNetworksDiffFromParams(params: Map[String, List[String]]): PureResult[Option[JQAllowedNetworkDiff]] = {
+    params.parse("allowed_networks", JsonDecoder[JQAllowedNetworkDiff])
   }
 }

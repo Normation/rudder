@@ -53,6 +53,7 @@ import scala.collection.MapView
 import zio.*
 import zio.json.*
 import zio.json.ast.Json.*
+import zio.json.enumeratum.*
 
 /**
  * That file contains all the kind of status reports for:
@@ -231,7 +232,7 @@ object RunComplianceInfo {
 }
 
 sealed trait RunAnalysisKind extends EnumEntry
-object RunAnalysisKind       extends Enum[RunAnalysisKind] {
+object RunAnalysisKind       extends Enum[RunAnalysisKind] with EnumCodecCaseSensitive[RunAnalysisKind] {
 
   case object NoRunNoExpectedReport     extends RunAnalysisKind
   case object NoExpectedReport          extends RunAnalysisKind
@@ -917,7 +918,7 @@ object NodeStatusReportSerialization {
 object JsonPostgresqlSerialization {
 
   import com.normation.cfclerk.domain.TechniqueVersion
-  import com.normation.rudder.apidata.implicits.*
+  import com.normation.rudder.apidata.implicits.given
   import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
   import com.normation.rudder.domain.reports.RunComplianceInfo.PolicyModeError
   import com.normation.rudder.services.policies.PolicyId
@@ -986,17 +987,12 @@ object JsonPostgresqlSerialization {
       lastRunConfigId:     Option[NodeConfigId],
       @jsonField("rexp")
       lastRunExpiration:   Option[DateTime]
-  ) {
+  ) derives JsonCodec {
     def to: RunAnalysis = this.transformInto[RunAnalysis]
   }
 
   object JRunAnalysis {
-    implicit lazy val i: Iso[JRunAnalysis, RunAnalysis] = Iso.derive
-
-    implicit lazy val decoderRunAnalysisKind: JsonDecoder[RunAnalysisKind] =
-      JsonDecoder.string.mapOrFail(x => RunAnalysisKind.withNameEither(x).left.map(_.getMessage()))
-
-    implicit lazy val codecRunAnalysis: JsonCodec[JRunAnalysis] = DeriveJsonCodec.gen
+    given iso: Iso[JRunAnalysis, RunAnalysis] = Iso.derive
 
     def from(r: RunAnalysis): JRunAnalysis = {
       r.transformInto[JRunAnalysis]
