@@ -5,9 +5,9 @@ use windows::Win32::System::Com::INTERFACEINFO;
 use windows::Win32::System::UpdateAgent::{IDownloadResult, IUpdateDownloadResult};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UpdateDownloadResult {
-    h_result: i32,
-    result_code: OperationResultCode,
-    update: InfoData,
+    pub h_result: i32,
+    pub result_code: OperationResultCode,
+    pub update: InfoData,
 }
 
 impl UpdateDownloadResult {
@@ -27,9 +27,9 @@ impl UpdateDownloadResult {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DownloadResult {
-    h_result: i32,
-    result_code: OperationResultCode,
-    update_results: Vec<UpdateDownloadResult>,
+    pub h_result: i32,
+    pub result_code: OperationResultCode,
+    pub update_results: Vec<UpdateDownloadResult>,
 }
 
 impl DownloadResult {

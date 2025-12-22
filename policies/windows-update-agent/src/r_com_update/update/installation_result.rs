@@ -6,10 +6,10 @@ use windows::Win32::System::UpdateAgent::{IInstallationResult, IUpdateInstallati
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UpdateInstallationResult {
-    h_result: i32,
-    result_code: OperationResultCode,
-    reboot_required: bool,
-    update: InfoData,
+    pub h_result: i32,
+    pub result_code: OperationResultCode,
+    pub reboot_required: bool,
+    pub update: InfoData,
 }
 
 impl UpdateInstallationResult {
@@ -30,10 +30,10 @@ impl UpdateInstallationResult {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InstallationResult {
-    h_result: i32,
-    result_code: OperationResultCode,
-    reboot_required: bool,
-    update_results: Vec<UpdateInstallationResult>,
+    pub h_result: i32,
+    pub result_code: OperationResultCode,
+    pub reboot_required: bool,
+    pub update_results: Vec<UpdateInstallationResult>,
 }
 
 impl InstallationResult {

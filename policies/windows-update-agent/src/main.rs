@@ -1,8 +1,10 @@
-use crate::r_com_update::{Collection, DownloadResult, InstallationResult};
+use crate::r_com_update::{Collection, DownloadResult, InstallationResult, OperationResultCode};
 use anyhow::Context;
 use anyhow::{Result, bail};
 use windows::Win32::Foundation::VARIANT_BOOL;
 use windows::{Win32::System::Com::*, Win32::System::UpdateAgent::*, core::*};
+use tracing::info;
+use tracing-subscriber;
 
 pub mod r_com_update;
 
@@ -73,8 +75,12 @@ fn main() {
             "{}",
             serde_json::to_string_pretty(&download_result).unwrap()
         );
-        let install_result = install_updates(&session, availables_updates).unwrap();
-        println!("Installing available updates...");
-        println!("{}", serde_json::to_string_pretty(&install_result).unwrap());
+        if download_result.result_code != OperationResultCode::OrcSucceeded {
+            error("The downloaded operation result code is {}", download_result.h_result);
+        } else {
+            let install_result = install_updates(&session, availables_updates).unwrap();
+            println!("Installing available updates...");
+            println!("{}", serde_json::to_string_pretty(&install_result).unwrap());
+        }
     }
 }
