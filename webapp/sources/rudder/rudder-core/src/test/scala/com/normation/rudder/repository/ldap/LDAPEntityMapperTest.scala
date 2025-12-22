@@ -40,7 +40,6 @@ package com.normation.rudder.repository.ldap
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.ldap.sdk.GeneralizedTime
 import com.normation.rudder.domain.policies.AcceptationDateTime
-import com.normation.rudder.facts.nodes.MockLdapFactStorage
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
@@ -58,8 +57,6 @@ import zio.json.*
  */
 @RunWith(classOf[JUnitRunner])
 class LDAPEntityMapperTest extends Specification {
-
-  val mock = new MockLdapFactStorage()
 
   "Agent schedule regarding json serialisation" should {
 

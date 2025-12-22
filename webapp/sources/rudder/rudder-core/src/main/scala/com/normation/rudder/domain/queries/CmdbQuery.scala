@@ -893,8 +893,8 @@ final case class SubGroupComparator(subGroupComparatorRepo: () => SubGroupCompar
 
 /**
  * Create a new criterion for the given attribute `name`, and `cType` comparator.
- * Optionnaly, you can provide an override to signal that that criterion is not
- * on an inventory (or successlly on an inventory) property but on a RudderNode property.
+ * Optionally, you can provide an override to signal that that criterion is not
+ * on an inventory (or successfully on an inventory) property but on a RudderNode property.
  * In that case, give the predicat that the node must follows.
  */
 final case class Criterion(
