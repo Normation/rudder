@@ -46,7 +46,7 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
-import com.normation.rudder.rest.RudderJsonRequest.ReqToJson
+import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.data.JsonPluginSettings
 import com.normation.rudder.rest.syntax.*

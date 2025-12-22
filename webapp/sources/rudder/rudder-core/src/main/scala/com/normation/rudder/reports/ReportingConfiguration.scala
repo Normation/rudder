@@ -37,7 +37,7 @@
 
 package com.normation.rudder.reports
 
-import com.normation.errors.RudderError
+import com.normation.errors.PureResult
 import com.normation.errors.Unexpected
 import enumeratum.*
 import net.liftweb.common.*
@@ -111,15 +111,8 @@ case object AgentReportingHTTPS extends AgentReportingProtocol {
 }
 
 object AgentReportingProtocol extends Enum[AgentReportingProtocol] {
-  def apply(value: String): Box[AgentReportingProtocol] = {
-    value match {
-      case AgentReportingHTTPS.value => Full(AgentReportingHTTPS)
-      case _                         => Failure(s"Invalid reporting protocol: *{value}")
-    }
-  }
-
-  val values:               IndexedSeq[AgentReportingProtocol]          = findValues
-  def parse(value: String): Either[RudderError, AgentReportingProtocol] = {
+  val values:               IndexedSeq[AgentReportingProtocol] = findValues
+  def parse(value: String): PureResult[AgentReportingProtocol] = {
     values.find(_.value == value.toUpperCase()) match {
       case None           =>
         Left(

@@ -37,6 +37,9 @@
 
 package com.normation.rudder.rest.lift
 
+import cats.syntax.bifunctor.*
+import cats.syntax.either.*
+import cats.syntax.traverse.*
 import com.normation.appconfig.ReadConfigService
 import com.normation.appconfig.UpdateConfigService
 import com.normation.box.*
@@ -45,6 +48,9 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.JsonResponseObjects.*
+import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.batch.PolicyGenerationTrigger
@@ -61,7 +67,9 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestUtils
+import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.SettingsApi as API
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
@@ -82,6 +90,8 @@ import net.liftweb.json.JsonDSL.*
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 import zio.*
+import zio.json.*
+import zio.json.ast.Json
 import zio.syntax.*
 
 class SettingsApi(
@@ -89,7 +99,8 @@ class SettingsApi(
     val asyncDeploymentAgent:          AsyncDeploymentActor,
     val uuidGen:                       StringUuidGenerator,
     val policyServerManagementService: PolicyServerManagementService,
-    val nodeFactRepo:                  NodeFactRepository
+    val nodeFactRepo:                  NodeFactRepository,
+    zioJsonExtractor:                  ZioJsonExtractor
 ) extends LiftApiModuleProvider[API] {
 
   val allSettings: List[RestSetting[?]] = {
@@ -152,52 +163,41 @@ class SettingsApi(
   object GetAllSettings extends LiftApiModule0 {
     val schema:                                                                                                API.GetAllSettings.type = API.GetAllSettings
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
-      val settings = for {
-        setting <- allSettings
+      import authzToken.qc
+      val getSettings = ZIO
+        .foreach(allSettings)(setting =>
+          setting.getJson.chainError(s"Could not get parameter '${setting.key}'").map(value => (setting.key, value))
+        )
+        .map(values => Json.Obj(values*))
+      (for {
+        nets     <- GetAllAllowedNetworks.getAllowedNetworks().chainError("Could not get parameter 'allowed_networks'")
+        json     <- JRAllowedNetworksNode(nets).toJsonAST.toIO
+        settings <- getSettings
       } yield {
-        val result = setting.getJson match {
-          case Full(res) => res
-          case eb: EmptyBox =>
-            val fail = eb ?~! s"Could not get parameter '${setting.key}'"
-            JString(fail.messageChain)
-        }
-        JField(setting.key, result)
-      }
-      val data     = {
-        val networks = GetAllAllowedNetworks.getAllowedNetworks()(using authzToken.qc).either.runNow match {
-          case Right(nets) =>
-            nets
-          case Left(err)   =>
-            val fail = s"Could not get parameter 'allowed_networks': ${err.fullMsg}"
-            JString(fail)
-        }
-        JField("allowed_networks", networks) :: settings
-      }
+        JRSettings(json.merge(settings).mapObject(obj => Json.Obj(obj.fields.sortBy((name, _) => name))))
+      }).chainError("Could not get all settings")
+        .toLiftResponseOne(params, schema, None)
 
-      // sort settings alphanum
-      RestUtils.response("settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(using
-        "getAllSettings",
-        params.prettify
-      )
     }
   }
 
   object ModifySettings extends LiftApiModule0 {
     val schema:                                                                                                API.ModifySettings.type = API.ModifySettings
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
-      var generate = false
-      val data     = for {
-        setting <- allSettings
-        value   <- setting.setFromRequestOpt(req, authzToken.qc.actor)
+      (for {
+        data    <- ZIO.foreach(allSettings)(setting => {
+                     for {
+                       value <- setting.setFromRequestOpt(req, authzToken.qc.actor)
+                     } yield {
+                       (setting.startPolicyGeneration, (setting.key, value))
+                     }
+                   })
+        generate = data.forall { case (needsGeneration, (_, v)) => needsGeneration && v.isDefined }
+        result   = Json.Obj(Chunk.from(data.flatMap { case (_, (k, v)) => v.map(k -> _) }))
       } yield {
-        if (value.isDefined) generate = generate || setting.startPolicyGeneration
-        JField(setting.key, value)
-      }
-      startNewPolicyGeneration(authzToken.qc.actor)
-      RestUtils.response("settings", None)(Full(data), req, s"Could not modfiy settings")(using
-        "modifySettings",
-        params.prettify
-      )
+        if (generate) startNewPolicyGeneration(authzToken.qc.actor)
+        result
+      }).chainError(s"Could not modify settings").toLiftResponseOne(params, schema, None)
     }
   }
 
@@ -211,16 +211,13 @@ class SettingsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val data: Box[JValue] = for {
-        setting <- settingFromKey(key, allSettings)
+      (for {
+        setting <- settingFromKey(key, allSettings).toIO
         value   <- setting.getJson
       } yield {
-        (key -> value)
-      }
-      RestUtils.response("settings", Some(key))(data, req, s"Could not get parameter '${key}'")(using
-        "getSetting",
-        params.prettify
-      )
+        Json.Obj(key -> value)
+      }).chainError(s"Could not get parameter '${key}'")
+        .toLiftResponseOne(params, schema, Some(key))
     }
   }
 
@@ -234,16 +231,13 @@ class SettingsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val data: Box[JValue] = for {
-        setting <- settingFromKey(key, allSettings)
+      (for {
+        setting <- settingFromKey(key, allSettings).toIO
         value   <- setting.setFromRequest(req, authzToken.qc.actor)
       } yield {
-        (key -> value)
-      }
-      RestUtils.response("settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(using
-        "modifySetting",
-        params.prettify
-      )
+        Json.Obj(key -> value)
+      }).chainError(s"Could not modify parameter '${key}'")
+        .toLiftResponseOne(params, schema, Some(key))
     }
   }
 
@@ -251,83 +245,76 @@ class SettingsApi(
   /////////////// Utility function and definition for each setting
   ///////////////
 
-  def settingFromKey(key: String, modules: List[RestSetting[?]]): Box[RestSetting[?]] = {
+  def settingFromKey(key: String, modules: List[RestSetting[?]]): PureResult[RestSetting[?]] = {
     modules.find(_.key == key) match {
-      case Some(setting) => Full(setting)
-      case None          => Failure(s"'$key' is not a valid settings key")
+      case Some(setting) => Right(setting)
+      case None          => Left(Unexpected(s"'$key' is not a valid settings key"))
     }
   }
 
-  sealed trait RestSetting[T] {
-    def key: String
-    def get: IOResult[T]
-    def toJson(value: T): JValue
-    def getJson: Box[JValue] = {
-      for {
-        value <- get
-      } yield {
-        toJson(value)
-      }
-    }.toBox
-    def set:     (T, EventActor, Option[String]) => IOResult[Unit]
-    def parseJson(json:   JValue): Box[T]
-    def parseParam(param: String): Box[T]
-    type t = T
+  sealed trait RestSetting[T](using codec: JsonCodec[T]) {
+    def key:     String
+    def get:     IOResult[T]
+    def getJson: IOResult[Json] = {
+      get
+        .flatMap(_.toJsonAST.toIO)
+    }
 
-    def extractData(req: Req): Box[T] = {
-      req.json match {
-        case Full(json) => parseJson(json \ "value")
-        case _          =>
-          req.params.get("value") match {
-            case Some(value :: Nil) => parseParam(value)
-            case Some(_)            => Failure("Too much values defined, only need one")
-            case None               => Failure("No value defined in request")
-          }
+    def set: (T, EventActor, Option[String]) => IOResult[Unit]
+    def parseParam(param: String): PureResult[T]
+
+    private def extractData(req: Req): PureResult[T] = {
+      if (req.json_?) {
+        req.fromJson[T] // TODO: this was json \ "value"
+      } else {
+        req.params.get("value") match {
+          case Some(value :: Nil) => parseParam(value)
+          case Some(_)            => Left(Unexpected("Too much values defined, only need one"))
+          case None               => Left(Unexpected("No value defined in request"))
+        }
       }
     }
 
-    def extractDataOpt(req: Req): Box[Option[T]] = {
-      req.json match {
-        case Full(json) =>
-          json \ key match {
-            case JNothing => Full(None)
-            case value    => parseJson(value).map(Some(_))
-          }
-        case _          =>
-          req.params.get(key) match {
-            case Some(value :: Nil) => parseParam(value).map(Some(_))
-            // Not sure it can happen, but still treat it as empty value
-            case Some(Nil)          => Full(None)
-            case Some(_)            => Failure("Too much values defined, only need one")
-            case None               => Full(None)
-          }
+    private def extractDataOpt(req: Req): PureResult[Option[T]] = {
+      if (req.json_?) {
+        for {
+          data          <- req.fromJson[Json]
+          optSettingData = data.asObject.flatMap(_.get(key))
+          res           <- optSettingData.traverse(_.as[T].leftMap(Unexpected(_)))
+        } yield {
+          res
+        }
+      } else {
+        req.params.get(key) match {
+          case Some(value :: Nil) => parseParam(value).map(Some(_))
+          case Some(Nil) | None   => Right(None)
+          case Some(_)            => Left(Unexpected("Too much values defined, only need one"))
+        }
       }
     }
 
     def startPolicyGeneration: Boolean
 
-    def setFromRequest(req: Req, actor: EventActor): Box[JValue] = {
+    def setFromRequest(req: Req, actor: EventActor): IOResult[Json] = {
       for {
-        value  <- extractData(req)
-        result <- set(value, actor, None).toBox
+        value  <- extractData(req).toIO
+        result <- set(value, actor, None)
+        res    <- value.toJsonAST.toIO
       } yield {
         if (startPolicyGeneration) startNewPolicyGeneration(actor)
-        toJson(value)
+        res
       }
     }
 
-    def setFromRequestOpt(req: Req, actor: EventActor): Box[Option[JValue]] = {
+    def setFromRequestOpt(req: Req, actor: EventActor): IOResult[Option[Json]] = {
       for {
-        optValue <- extractDataOpt(req)
+        optValue <- extractDataOpt(req).toIO
         result   <-
           optValue match {
             case Some(value) =>
-              for {
-                result <- set(value, actor, None).toBox
-              } yield {
-                Some(toJson(value))
-              }
-            case None        => Full(None)
+              set(value, actor, None) *> value.toJsonAST.map(Some(_)).toIO
+            case None        =>
+              None.succeed
           }
       } yield {
         result
@@ -340,62 +327,32 @@ class SettingsApi(
     val startPolicyGeneration = true
     def get: IOResult[PolicyMode]                                       = configService.rudder_policy_mode_name()
     def set: (PolicyMode, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_mode_name
-    def toJson(value: PolicyMode): JValue = value.name
-    def parseJson(json: JValue):   Box[PolicyMode] = {
-      json match {
-        case JString(value) => PolicyMode.parse(value).toBox
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[PolicyMode] = {
-      PolicyMode.parse(param)
-    }.toBox
+    def parseParam(param: String): PureResult[PolicyMode] = PolicyMode.parse(param)
+  }
+  given JsonCodec[PolicyMode] = {
+    JsonCodec(
+      JsonEncoder[String].contramap(_.name),
+      JsonDecoder[String].mapOrFail(PolicyMode.parse(_).leftMap(_.fullMsg))
+    )
   }
 
   trait RestBooleanSetting extends RestSetting[Boolean] {
-    def toJson(value: Boolean): JValue = value
-    def parseJson(json: JValue):   Box[Boolean] = {
-      json match {
-        case JBool(value) => Full(value)
-        case x            => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[Boolean] = {
-      param match {
-        case "true"  => Full(true)
-        case "false" => Full(false)
-        case _       => Failure(s"value for boolean should be true or false instead of ${param}")
-      }
+    def parseParam(param: String): PureResult[Boolean] = {
+      Either
+        .catchOnly[IllegalArgumentException](param.toBoolean)
+        .leftMap(argErr => Inconsistency(s"value for boolean should be true or false : ${argErr.getMessage}"))
     }
   }
 
   trait RestStringSetting extends RestSetting[String] {
-    def toJson(value: String): JValue = value
-    def parseJson(json: JValue):   Box[String]  = {
-      json match {
-        case JString(value) => Full(value)
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Full[String] = {
-      Full(param)
-    }
+    def parseParam(param: String): PureResult[String] = Right(param)
   }
 
   trait RestIntSetting extends RestSetting[Int] {
-    def toJson(value: Int): JValue = value
-    def parseJson(json: JValue):   Box[Int] = {
-      json match {
-        case JInt(value) => Full(value.toInt)
-        case x           => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[Int] = {
-      try {
-        Full(param.toInt)
-      } catch {
-        case _: java.lang.NumberFormatException => Failure(s"value for integer should be an integer instead of ${param}")
-      }
+    def parseParam(param: String): PureResult[Int] = {
+      Either
+        .catchOnly[java.lang.NumberFormatException](param.toInt)
+        .leftMap(argErr => Inconsistency(s"value for integer should be an integer instead of ${param}"))
     }
   }
 
@@ -447,26 +404,17 @@ class SettingsApi(
   case object RestReportingMode               extends RestSetting[ComplianceModeName]         {
     val key                   = "reporting_mode"
     val startPolicyGeneration = true
-    def get:                       ZIO[Any, RudderError, ComplianceModeName]                          = for {
+    def get: ZIO[Any, RudderError, ComplianceModeName]                          = for {
       name <- configService.rudder_compliance_mode_name()
       mode <- ComplianceModeName.parse(name).toIO
     } yield {
       mode
     }
-    def set:                       (ComplianceModeName, EventActor, Option[String]) => IOResult[Unit] = {
+    def set: (ComplianceModeName, EventActor, Option[String]) => IOResult[Unit] = {
       (value: ComplianceModeName, actor: EventActor, reason: Option[String]) =>
         configService.set_rudder_compliance_mode_name(value.name, actor, reason)
     }
-    def parseJson(json: JValue):   Box[ComplianceModeName]                                            = {
-      json match {
-        case JString(value) => ComplianceModeName.parse(value).toBox
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[ComplianceModeName]                                            = {
-      ComplianceModeName.parse(param).toBox
-    }
-    def toJson(value: ComplianceModeName): JValue = value.name
+    def parseParam(param: String): PureResult[ComplianceModeName] = ComplianceModeName.parse(param)
   }
   case object RestChangeMessageEnabled        extends RestBooleanSetting                      {
     val startPolicyGeneration = false
@@ -527,24 +475,10 @@ class SettingsApi(
   case object RestRelaySyncMethod             extends RestSetting[RelaySynchronizationMethod] {
     val key                   = "relay_server_synchronization_method"
     val startPolicyGeneration = true
-    def get:                       IOResult[RelaySynchronizationMethod]                                       = configService.relay_server_sync_method()
-    def set:                       (RelaySynchronizationMethod, EventActor, Option[String]) => IOResult[Unit] =
+    def get: IOResult[RelaySynchronizationMethod]                                       = configService.relay_server_sync_method()
+    def set: (RelaySynchronizationMethod, EventActor, Option[String]) => IOResult[Unit] =
       (value: RelaySynchronizationMethod, _, _) => configService.set_relay_server_sync_method(value)
-    def toJson(value: RelaySynchronizationMethod): JValue = value.value
-    def parseJson(json: JValue):   Box[RelaySynchronizationMethod]                                            = {
-      json match {
-        case JString(value) => parseParam(value.toLowerCase())
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[RelaySynchronizationMethod]                                            = {
-      param.toLowerCase() match {
-        case Classic.value  => Full(Classic)
-        case Rsync.value    => Full(Rsync)
-        case Disabled.value => Full(Disabled)
-        case _              => Failure(s"Invalid value '${param}' for relay server synchronization method")
-      }
-    }
+    def parseParam(param: String): PureResult[RelaySynchronizationMethod] = RelaySynchronizationMethod.parse(param)
   }
   case object RestRelaySynchronizePolicies    extends RestBooleanSetting                      {
     val key                   = "relay_server_synchronize_policies"
@@ -567,20 +501,12 @@ class SettingsApi(
     def get: IOResult[AgentReportingProtocol]                                       = configService.rudder_report_protocol_default()
     def set: (AgentReportingProtocol, EventActor, Option[String]) => IOResult[Unit] = (value: AgentReportingProtocol, _, _) =>
       configService.set_rudder_report_protocol_default(value)
-    def toJson(value: AgentReportingProtocol): JValue = value.value
-    def parseJson(json: JValue):   Box[AgentReportingProtocol] = {
-      json match {
-        case JString(value) => parseParam(value.toUpperCase())
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[AgentReportingProtocol] = {
-      param.toUpperCase() match {
-        case AgentReportingHTTPS.value => Full(AgentReportingHTTPS)
-        case _                         => Failure(s"Invalid value '${param}' for default reporting method")
-      }
-    }
+    def parseParam(param: String): PureResult[AgentReportingProtocol] = RestReportProtocolDefault.parseParam(param)
   }
+  given JsonCodec[AgentReportingProtocol] = JsonCodec(
+    JsonEncoder[String].contramap(_.value),
+    JsonDecoder[String].mapOrFail(RestReportProtocolDefault.parseParam(_).leftMap(_.fullMsg))
+  )
 
   case object RestChangesGraphs extends RestBooleanSetting {
     val startPolicyGeneration = false
@@ -592,58 +518,48 @@ class SettingsApi(
 
   case object RestSendMetrics extends RestSetting[Option[SendMetrics]] {
     val startPolicyGeneration = true
-    def toJson(value: Option[SendMetrics]): JValue                                                              = JString(value match {
-      case None                              => "not_defined"
-      case Some(SendMetrics.NoMetrics)       => "no"
-      case Some(SendMetrics.MinimalMetrics)  => "minimal"
-      case Some(SendMetrics.CompleteMetrics) => "complete"
-    })
-    def parseJson(json: JValue):            Box[Option[SendMetrics]]                                            = {
-      json match {
-        case JString(s) => parseParam(s)
-        case x          =>
-          Failure(
-            s"Invalid value for 'send metrics' settings, should be a json string 'no'/'minimal'/'complete', but is instead: ${net.liftweb.json
-                .compactRender(x)}"
-          )
-      }
-    }
-    def parseParam(param: String):          Box[Option[SendMetrics]]                                            = {
-      param match {
-        case "complete" | "true" => Full(Some(SendMetrics.CompleteMetrics))
-        case "no" | "false"      => Full(Some(SendMetrics.NoMetrics))
-        case "minimal"           => Full(Some(SendMetrics.MinimalMetrics))
-        case "not_defined"       => Full(None)
-        case _                   => Failure(s"value for 'send metrics' settings should be 'no', 'minimal' or 'complete' instead of ${param}")
-      }
-    }
-    val key = "send_metrics"
-    def get:                                IOResult[Option[SendMetrics]]                                       = configService.send_server_metrics()
-    def set:                                (Option[SendMetrics], EventActor, Option[String]) => IOResult[Unit] = configService.set_send_server_metrics
+    val key                   = "send_metrics"
+    def get: IOResult[Option[SendMetrics]]                                       = configService.send_server_metrics()
+    def set: (Option[SendMetrics], EventActor, Option[String]) => IOResult[Unit] = configService.set_send_server_metrics
+    def parseParam(param: String): PureResult[Option[SendMetrics]] = parseSendMetrics(param)
   }
+  private def parseSendMetrics(value: String): PureResult[Option[SendMetrics]] = {
+    value match {
+      case "complete" | "true" => Right(Some(SendMetrics.CompleteMetrics))
+      case "no" | "false"      => Right(Some(SendMetrics.NoMetrics))
+      case "minimal"           => Right(Some(SendMetrics.MinimalMetrics))
+      case "not_defined"       => Right(None)
+      case _                   => Left(Unexpected(s"value for 'send metrics' settings should be 'no', 'minimal' or 'complete' instead of ${param}"))
+    }
+  }
+  private def serializeSendMetrics(opt: Option[SendMetrics]): String = opt match {
+    case None                              => "not_defined"
+    case Some(SendMetrics.NoMetrics)       => "no"
+    case Some(SendMetrics.MinimalMetrics)  => "minimal"
+    case Some(SendMetrics.CompleteMetrics) => "complete"
+  }
+  given JsonCodec[Option[SendMetrics]] = JsonCodec(
+    JsonEncoder[String].contramap(serializeSendMetrics),
+    JsonDecoder[String].mapOrFail(parseSendMetrics(_).leftMap(_.fullMsg))
+  )
 
   case object RestJSEngine extends RestSetting[FeatureSwitch] {
     val startPolicyGeneration = true
-    def toJson(value: FeatureSwitch): JValue = value.name
-    def parseJson(json: JValue):   Box[FeatureSwitch] = {
-      json match {
-        case JString(value) => FeatureSwitch.parse(value).toBox
-        case x              => Failure("Invalid value " + x)
-      }
-    }
-    def parseParam(param: String): Box[FeatureSwitch] = {
-      FeatureSwitch.parse(param).toBox
-    }
-    val key = "enable_javascript_directives"
+    val key                   = "enable_javascript_directives"
     def get: IOResult[FeatureSwitch]                                       = configService.rudder_featureSwitch_directiveScriptEngine()
     def set: (FeatureSwitch, EventActor, Option[String]) => IOResult[Unit] = (value: FeatureSwitch, _, _) =>
       configService.set_rudder_featureSwitch_directiveScriptEngine(value)
+    def parseParam(param: String): PureResult[FeatureSwitch] = FeatureSwitch.parse(param)
   }
+  given JsonCodec[FeatureSwitch] = JsonCodec(
+    JsonEncoder[String].contramap(_.name),
+    JsonDecoder[String].mapOrFail(FeatureSwitch.parse(_).leftMap(_.fullMsg))
+  )
 
   case object RestOnAcceptPolicyMode extends RestSetting[Option[PolicyMode]] {
     val startPolicyGeneration = false
-    def parseParam(value: String): Box[Option[PolicyMode]] = {
-      Full(PolicyMode.values.find(_.name == value))
+    def parseParam(value: String): PureResult[Option[PolicyMode]] = {
+      Right(PolicyMode.values.find(_.name == value))
     }
     def toJson(value: Option[PolicyMode]): JValue = JString(value.map(_.name).getOrElse("default"))
     def parseJson(json: JValue): Box[Option[PolicyMode]]                                            = {
@@ -660,8 +576,8 @@ class SettingsApi(
 
   case object RestOnAcceptNodeState extends RestSetting[NodeState] {
     val startPolicyGeneration = false
-    def parseParam(value: String): Box[NodeState] = {
-      Full(NodeState.values.find(_.name == value).getOrElse(NodeState.Enabled))
+    def parseParam(value: String): PureResult[NodeState] = {
+      Right(NodeState.values.find(_.name == value).getOrElse(NodeState.Enabled))
     }
     def toJson(value: NodeState): JValue = value.name
     def parseJson(json: JValue): Box[NodeState]                                            = {
@@ -719,11 +635,11 @@ class SettingsApi(
     def set: (Duration, EventActor, Option[String]) => IOResult[Unit] = (value: Duration, _, _) =>
       configService.set_rudder_generation_delay(value)
     def toJson(value: Duration): JValue = JString(value.toString)
-    def parseJson(json: JValue):   Box[Duration] = json match {
+    def parseJson(json: JValue):   Box[Duration]        = json match {
       case JString(jstring) => parseParam(jstring)
       case _                => Failure(s"Could not extract a valid duration from ${net.liftweb.json.compactRender(json)}")
     }
-    def parseParam(param: String): Box[Duration] = net.liftweb.util.ControlHelpers.tryo(Duration(param)) match {
+    def parseParam(param: String): PureResult[Duration] = net.liftweb.util.ControlHelpers.tryo(Duration(param)) match {
       case eb: EmptyBox => eb ?~! s"Could not extract a valid duration from ${param}"
       case res => res
     }
@@ -736,11 +652,11 @@ class SettingsApi(
     def set: (PolicyGenerationTrigger, EventActor, Option[String]) => IOResult[Unit] = (value: PolicyGenerationTrigger, _, _) =>
       configService.set_rudder_generation_trigger(value)
     def toJson(value: PolicyGenerationTrigger): JValue = JString(PolicyGenerationTrigger.serialize(value))
-    def parseJson(json: JValue):   Box[PolicyGenerationTrigger] = json match {
+    def parseJson(json: JValue):   Box[PolicyGenerationTrigger]        = json match {
       case JString(jstring) => parseParam(jstring)
       case _                => Failure(s"Could not extract a valid generation policy from ${net.liftweb.json.compactRender(json)}")
     }
-    def parseParam(value: String): Box[PolicyGenerationTrigger] = {
+    def parseParam(value: String): PureResult[PolicyGenerationTrigger] = {
       PolicyGenerationTrigger(value).toBox
     }
   }
@@ -787,8 +703,8 @@ class SettingsApi(
 
   // if the directive is missing for policy server, it may be because it misses dedicated allowed networks.
   // We don't want to fail on that, so we need to special case Empty
-  def getAllowedNetworksForServer(nodeId: NodeId): IOResult[Seq[String]] = {
-    policyServerManagementService.getAllowedNetworks(nodeId).map(_.map(_.inet))
+  private def getAllowedNetworksForServer(nodeId: NodeId): IOResult[Chunk[AllowedNetwork]] = {
+    policyServerManagementService.getAllowedNetworks(nodeId).map(Chunk.from(_))
   }
 
   def getRootNameForVersion(version: ApiVersion): String = {
@@ -796,36 +712,31 @@ class SettingsApi(
   }
 
   object GetAllAllowedNetworks extends LiftApiModule0 {
+    override val schema: API.GetAllAllowedNetworks.type = API.GetAllAllowedNetworks
 
-    def getAllowedNetworks()(implicit qc: QueryContext): ZIO[Any, RudderError, JArray] = {
+    def getAllowedNetworks()(using qc: QueryContext): IOResult[Chunk[JRAllowedNetwork]] = {
       for {
         servers         <- nodeFactRepo
                              .getAll()(using qc, SelectNodeStatus.Accepted)
-                             .map(_.collect { case (_, n) if (n.rudderSettings.kind != NodeKind.Node) => n.id }.toSeq)
+                             .map(_.collect { case (_, n) if (n.rudderSettings.kind != NodeKind.Node) => n.id })
         allowedNetworks <- policyServerManagementService.getAllAllowedNetworks()
       } yield {
-        val toKeep = servers.map(id => (id.value, allowedNetworks.getOrElse(id, Nil).map(_.inet))).sortWith {
-          case (("root", _), _) => true
-          case (_, ("root", _)) => false
-          case ((a, _), (b, _)) => a < b
-        }
-        import net.liftweb.json.JsonDSL.*
-        JArray(toKeep.toList.map {
-          case (nodeid, networks) =>
-            ("id" -> nodeid) ~ ("allowed_networks" -> networks.toList.sorted)
-        })
+        Chunk
+          .from(servers)
+          .map(id => JRAllowedNetwork(id.value, Chunk.from(allowedNetworks.getOrElse(id, Nil))))
+          .sortWith {
+            case (JRAllowedNetwork("root", _), _)                         => true
+            case (_, JRAllowedNetwork("root", _))                         => false
+            case (JRAllowedNetwork(a, _), JRAllowedNetwork(b: String, _)) => a < b
+          }
       }
     }
 
-    override val schema:                                                                                       API.GetAllAllowedNetworks.type = API.GetAllAllowedNetworks
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                   = {
-      implicit val action = "getAllAllowedNetworks"
-      implicit val prettify: Boolean = params.prettify
-      RestUtils.response(getRootNameForVersion(version), None)(
-        getAllowedNetworks()(using authzToken.qc).toBox,
-        req,
-        s"Could not get allowed networks"
-      )
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      getAllowedNetworks()(using authzToken.qc)
+        .chainError(s"Could not get allowed networks")
+        .map(JRAllowedNetworksNode(_))
+        .toLiftResponseOne(params, schema, None)
     }
   }
 
@@ -839,11 +750,9 @@ class SettingsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-
-      implicit val action = "getAllowedNetworks"
-      implicit val prettify: Boolean = params.prettify
-      val result = for {
-        nodeInfo <- nodeFactRepo.get(NodeId(id))(using authzToken.qc)
+      import authzToken.qc
+      (for {
+        nodeInfo <- nodeFactRepo.get(NodeId(id))
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
                         ZIO.unit
@@ -856,13 +765,10 @@ class SettingsApi(
                     }
         networks <- getAllowedNetworksForServer(NodeId(id))
       } yield {
-        JArray(networks.toList.sorted.map(JString))
-      }
-      RestUtils.response(getRootNameForVersion(version), Some(id))(
-        result.toBox,
-        req,
-        s"Could not get allowed networks for policy server '${id}'"
-      )
+        JRAllowedNetworks(networks)
+      })
+        .chainError(s"Could not get allowed networks for policy server '${id}'")
+        .toLiftResponseOne(params, schema, Some(id))
     }
   }
 
@@ -876,67 +782,31 @@ class SettingsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-
-      implicit val action = "modifyAllowedNetworks"
-      implicit val prettify: Boolean = params.prettify
-
-      def checkAllowedNetwork(v: String) = {
-        val netWithoutSpaces = v.replaceAll("""\s""", "")
-        if (netWithoutSpaces.length != 0) {
-          if (AllowedNetwork.isValid(netWithoutSpaces)) {
-            Full(netWithoutSpaces)
-          } else {
-            Failure(s"${netWithoutSpaces} is not a valid allowed network")
-          }
-        } else {
-          Failure("Cannot pass an empty allowed network")
-        }
-      }
-
+      import authzToken.qc
       val actor          = authzToken.qc.actor
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
-      val result         = for {
-        nodeInfo <- nodeFactRepo.get(nodeId)(using authzToken.qc).toBox
+
+      (for {
+        nodeInfo <- nodeFactRepo.get(nodeId)
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
-                        Full(())
+                        ZIO.unit
                       case Some(_)                                          =>
-                        Failure(
+                        Inconsistency(
                           s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)"
-                        )
+                        ).fail
                       case None                                             =>
-                        Failure(s"Could not find node information for id '${id}', this node does not exist")
+                        Inconsistency(s"Could not find node information for id '${id}', this node does not exist").fail
                     }
-        networks <- if (req.json_?) {
-                      req.json.getOrElse(JNothing) \ "allowed_networks" match {
-                        case JArray(values) =>
-                          traverse(values) {
-                            _ match {
-                              case JString(s) => checkAllowedNetwork(s)
-                              case x          => Failure(s"Error extracting a string from json: '${x}'")
-                            }
-                          }
-                        case _              => Failure(s"You must specify an array of IP for 'allowed_networks' parameter")
-                      }
-                    } else {
-                      req.params.get("allowed_networks") match {
-                        case None       => Failure(s"You must specify an array of IP for 'allowed_networks' parameter")
-                        case Some(list) => bestEffort(list)(checkAllowedNetwork(_))
-                      }
-                    }
-        // For now, we set name identical to inet
-        nets      = networks.map(inet => AllowedNetwork(inet, inet))
-        set      <- policyServerManagementService.setAllowedNetworks(nodeId, nets, modificationId, actor).toBox
+        networks <- zioJsonExtractor.extractAllowedNetworks(req).toIO
+        nets     <- networks.notOptional(s"You must specify an array of IP for 'allowed_networks' parameter")
+        set      <- policyServerManagementService.setAllowedNetworks(nodeId, nets, modificationId, actor)
       } yield {
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
-        JArray(networks.map(JString).toList)
-      }
-      RestUtils.response(getRootNameForVersion(version), Some(id))(
-        result,
-        req,
-        s"Error when trying to modify allowed networks for policy server '${id}'"
-      )
+        JRAllowedNetworks(networks)
+      }).chainError(s"Error when trying to modify allowed networks for policy server '${id}'")
+        .toLiftResponseOne(params, schema, Some(id))
     }
   }
   /*
@@ -959,71 +829,40 @@ class SettingsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-
-      implicit val action = "modifyDiffAllowedNetworks"
-      implicit val prettify: Boolean = params.prettify
-
-      def checkAllowedNetwork(v: String) = {
-        val netWithoutSpaces = v.replaceAll("""\s""", "")
-        if (netWithoutSpaces.length != 0) {
-          if (AllowedNetwork.isValid(netWithoutSpaces)) {
-            Full(netWithoutSpaces)
-          } else {
-            Failure(s"${netWithoutSpaces} is not a valid allowed network")
-          }
-        } else {
-          Failure("Cannot pass an empty allowed network")
-        }
-      }
+      import authzToken.qc
 
       val actor          = authzToken.qc.actor
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
 
-      implicit val formats = DefaultFormats
-
-      val result = for {
-        nodeInfo <- nodeFactRepo.get(nodeId)(using authzToken.qc).toBox
+      (for {
+        nodeInfo <- nodeFactRepo.get(nodeId)
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
-                        Full(())
+                        ZIO.unit
                       case Some(_)                                          =>
-                        Failure(
+                        Inconsistency(
                           s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)"
-                        )
+                        ).fail
                       case None                                             =>
-                        Failure(s"Could not find node information for id '${id}', this node does not exist")
+                        Inconsistency(s"Could not find node information for id '${id}', this node does not exist").fail
                     }
-        json      = if (req.json_?) {
-                      req.json.getOrElse(JNothing) \ "allowed_networks"
-                    } else {
-                      req.params.get("allowed_networks").flatMap(_.headOption.flatMap(parseOpt)).getOrElse(JNothing)
-                    }
-        // lift is dumb and have zero problem not erroring on extraction from JNothing
-        msg       = {
-          s"""Impossible to parse allowed networks diff json. Expected {"allowed_networks": {"add":["192.168.2.0/24", ...]",""" +
-          s""" "delete":["192.168.1.0/24", ...]"}}, got: ${if (json == JNothing) "nothing" else compactRender(json)}"""
-        }
-        _        <- if (json == JNothing) Failure(msg) else Full(())
-        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-        diff     <- try { Full(json.extract[AllowedNetDiff]): @annotation.nowarn("cat=deprecation") }
-                    catch { case NonFatal(ex) => Failure(msg) }
-        _        <- traverse(diff.add)(checkAllowedNetwork)
-        // for now, we use inet as the name, too
-        nets      = diff.add.map(inet => AllowedNetwork(inet, inet))
-        res      <- policyServerManagementService.updateAllowedNetworks(nodeId, nets, diff.delete, modificationId, actor).toBox
+        diff     <-
+          zioJsonExtractor
+            .extractAllowedNetworksDiff(req)
+            .toIO
+            .notOptional(
+              s"""Impossible to parse allowed networks diff json. Expected {"allowed_networks": {"add":["192.168.2.0/24", ...]",""" +
+              s""" "delete":["192.168.1.0/24", ...]"}}"""
+            )
+        res      <-
+          policyServerManagementService.updateAllowedNetworks(nodeId, diff.add, diff.delete.map(_.inet), modificationId, actor)
       } yield {
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
-        JArray(res.map(n => JString(n.inet)).toList)
-      }
-      RestUtils.response(getRootNameForVersion(version), Some(id))(
-        result,
-        req,
-        s"Error when trying to modify allowed networks for policy server '${id}'"
-      )
+        JRAllowedNetworks(Chunk.from(res))
+      })
+        .chainError(s"Error when trying to modify allowed networks for policy server '${id}'")
+        .toLiftResponseOne(params, schema, Some(id))
     }
   }
 }
-
-// for lift-json extraction, must be top-level
-final case class AllowedNetDiff(add: List[String], delete: List[String])
