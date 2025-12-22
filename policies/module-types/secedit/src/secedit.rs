@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use ini::{Ini, ParseOption};
 use serde_json::{Map, Value};
 use std::fs::{File, read_to_string};
@@ -12,91 +12,33 @@ pub struct Secedit {
     tmp_dir: TempDir,
 }
 
-impl Default for Secedit {
-    fn default() -> Self {
-        Self {
-            tmp_dir: TempDir::new("rudder-module-secedit")
-                .expect("Could not create temporary directory"),
-        }
-    }
-}
-
 impl Secedit {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            tmp_dir: TempDir::new("rudder-module-secedit")?,
+        })
+    }
+
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
+        let mut template = self.export()?;
         if audit {
-            let template = self.export()?;
-            Self::template_audit(&template, &data)?;
+            audit_section(&template, &data)?;
             println!("Audit DONE");
         } else {
-            let mut template = self.export()?;
-            Self::template_search_and_replace(&mut template, &data)?;
-            self.import(&template).and_then(Self::configure)?;
+            section_search_and_replace(&mut template, &data)?;
+            self.apply_template(&template)?;
             println!("DONE");
         }
 
         Ok(())
     }
 
-    fn template_audit(template: &Ini, data: &Map<String, Value>) -> Result<()> {
-        for (section, section_data) in data {
-            match template.section(Some(section)) {
-                Some(section_props) => {
-                    let data = match section_data {
-                        Value::Object(o) => o,
-                        _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
-                    };
-                    for (key, value) in data {
-                        if let Some(existing_value) = section_props.get(key) {
-                            let value_str = value.to_string();
-                            if value_str != existing_value {
-                                println!("{key} set to '{existing_value}' expected '{value_str}'");
-                            }
-                        } else {
-                            bail!("'{key}' in section '{section}' does not exists")
-                        }
-                    }
-                }
-                None => bail!("section '{section}' does not exists"),
-            }
-        }
-
-        Ok(())
-    }
-
-    fn template_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
-        for (section, section_data) in data {
-            match template.section_mut(Some(section)) {
-                Some(section_props) => {
-                    let data = match section_data {
-                        Value::Object(o) => o,
-                        _ => bail!("Invalid data '{section_data}' expected JSON object"),
-                    };
-                    for (key, value) in data {
-                        if section_props.get(key).is_some() {
-                            section_props.remove(key);
-                            section_props.insert(key, value.to_string());
-                        } else {
-                            bail!("'{key}' in section '{section}' does not exists");
-                        }
-                    }
-                }
-                None => bail!("section '{section}' does not exists"),
-            }
-        }
-
-        Ok(())
-    }
-
-    fn configure(db: String) -> Result<()> {
-        Self::invoke_with_args(format!("/configure /db {}", db).as_str())
-    }
-
-    fn import(&self, template: &Ini) -> Result<String> {
+    fn apply_template(&self, template: &Ini) -> Result<()> {
         let config = self.tmp_dir.path().join("tmp.ini");
         template.write_to_file(&config)?;
 
         let data = read_to_string(&config)?;
-        let data = data.replace(r"\\", r"\");
+        let data = data.replace(r"\\", r"\"); // FIXME: Escaping issue
         let config = self.tmp_dir.path().join("config.ini");
         write_utf16_file(&config, &data)?;
 
@@ -108,19 +50,20 @@ impl Secedit {
             .display()
             .to_string();
 
-        Self::invoke_with_args(
-            format!("/import /db {} /cfg {}", db, config.as_path().display()).as_str(),
-        )?;
+        let cmd = format!("/import /db {} /cfg {}", db, config.as_path().display());
+        invoke_with_args(&cmd)?;
 
-        Ok(db.to_string())
+        let cmd = format!("/configure /db {}", db);
+        invoke_with_args(&cmd)?;
+
+        Ok(())
     }
 
     fn export(&self) -> Result<Ini> {
         let template_file = self.tmp_dir.path().join("template.ini");
 
-        Self::invoke_with_args(
-            format!("/export /cfg {}", template_file.as_path().display()).as_str(),
-        )?;
+        let cmd = format!("/export /cfg {}", template_file.as_path().display());
+        invoke_with_args(&cmd)?;
 
         let data = read_utf16_file(&template_file)?;
         let opt = ParseOption {
@@ -136,31 +79,79 @@ impl Secedit {
 
         Ok(template)
     }
+}
 
-    fn invoke_with_args(args: &str) -> Result<()> {
-        const COMMAND: &str = "secedit.exe";
-        let mut cmd = Command::new(COMMAND);
-        cmd.stdin(Stdio::piped());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
+fn invoke_with_args(args: &str) -> Result<()> {
+    const COMMAND: &str = "secedit.exe";
+    let mut cmd = Command::new(COMMAND);
+    cmd.stdin(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
 
-        if !args.is_empty() {
-            cmd.args(args.split_whitespace());
+    if !args.is_empty() {
+        cmd.args(args.split_whitespace());
+    }
+
+    let output = match cmd.spawn() {
+        Ok(task) => task,
+        Err(e) => bail!("Failed to execute command '{COMMAND} {args}' {e}"),
+    }
+    .wait_with_output()?;
+
+    if !output.status.success() {
+        let msg = String::from_utf8_lossy(&output.stdout);
+        bail!("{msg}");
+    }
+
+    Ok(())
+}
+
+fn for_each_section<F>(template: &mut Ini, data: &Map<String, Value>, mut f: F) -> Result<()>
+where
+    F: FnMut(&mut ini::Properties, &str, &str) -> Result<()>,
+{
+    for (section, section_data) in data {
+        let props = template
+            .section_mut(Some(section))
+            .ok_or_else(|| anyhow!("section '{section}' does not exist"))?;
+
+        let entries = section_data
+            .as_object()
+            .ok_or_else(|| anyhow!("Invalid data '{section_data:?}', expected JSON object"))?;
+
+        for (key, value) in entries {
+            f(props, key, &value.to_string())?;
         }
+    }
 
-        let output = match cmd.spawn() {
-            Ok(task) => task,
-            Err(e) => bail!("Failed to execute command '{COMMAND} {args}' {e}"),
-        }
-        .wait_with_output()?;
+    Ok(())
+}
 
-        if !output.status.success() {
-            let msg = String::from_utf8(output.stdout)?.to_string();
-            bail!("{msg}");
+fn audit_section(template: &Ini, data: &Map<String, Value>) -> Result<()> {
+    let mut template = template.clone();
+
+    for_each_section(&mut template, data, |props, key, expected| {
+        let actual = props
+            .get(key)
+            .ok_or_else(|| anyhow!("'{key}' does not exist"))?;
+
+        if actual != expected {
+            println!("{key} set to '{actual}' expected '{expected}'");
         }
 
         Ok(())
-    }
+    })
+}
+
+fn section_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
+    for_each_section(template, data, |props, key, value| {
+        if props.contains_key(key) {
+            props.insert(key, value);
+            Ok(())
+        } else {
+            bail!("'{key}' does not exist");
+        }
+    })
 }
 
 fn read_utf16_file<P: AsRef<Path>>(path: P) -> Result<String> {
@@ -173,7 +164,7 @@ fn read_utf16_file<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(data.to_utf8())
 }
 
-fn write_utf16_file<P: AsRef<Path> + std::fmt::Debug>(path: P, buffer: &str) -> Result<()> {
+fn write_utf16_file<P: AsRef<Path>>(path: P, buffer: &str) -> Result<()> {
     let mut file = File::create(path)?;
     for b in buffer.encode_utf16() {
         file.write_all(&b.to_le_bytes())?;
@@ -211,7 +202,7 @@ mod test {
         )
         .unwrap();
 
-        let res = Secedit::template_search_and_replace(&mut template, &data);
+        let res = section_search_and_replace(&mut template, &data);
 
         assert!(res.is_ok());
         assert_eq!(template.get_from(Some("User"), "name"), Some("\"Ferris\""));
@@ -244,7 +235,7 @@ mod test {
         )
         .unwrap();
 
-        let res = Secedit::template_audit(&template, &data);
+        let res = audit_section(&template, &data);
 
         assert_eq!(res.unwrap(), ());
     }
