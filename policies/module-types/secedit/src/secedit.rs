@@ -25,24 +25,25 @@ impl Secedit {
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
         if audit {
             let template = self.export()?;
-            Self::template_audit(&template, data)?;
+            Self::template_audit(&template, &data)?;
             println!("Audit DONE");
         } else {
             let mut template = self.export()?;
-            Self::template_search_and_replace(&mut template, data)?;
-            self.import(template).and_then(Self::configure)?;
+            Self::template_search_and_replace(&mut template, &data)?;
+            self.import(&template).and_then(Self::configure)?;
+            Self::template_audit(&template, &data)?;
             println!("DONE");
         }
 
         Ok(())
     }
 
-    fn template_audit(template: &Ini, data: Map<String, Value>) -> Result<()> {
+    fn template_audit(template: &Ini, data: &Map<String, Value>) -> Result<()> {
         for (section, section_data) in data {
-            match template.section(Some(&section)) {
+            match template.section(Some(section)) {
                 Some(section_props) => {
                     let data = match section_data {
-                        Value::Object(ref o) => o,
+                        Value::Object(o) => o,
                         _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
                     };
                     for (key, value) in data {
@@ -63,12 +64,12 @@ impl Secedit {
         Ok(())
     }
 
-    fn template_search_and_replace(template: &mut Ini, data: Map<String, Value>) -> Result<()> {
+    fn template_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
         for (section, section_data) in data {
-            match template.section_mut(Some(&section)) {
+            match template.section_mut(Some(section)) {
                 Some(section_props) => {
                     let data = match section_data {
-                        Value::Object(ref o) => o,
+                        Value::Object(o) => o,
                         _ => bail!("Invalid data '{section_data}' expected JSON object"),
                     };
                     for (key, value) in data {
@@ -91,7 +92,7 @@ impl Secedit {
         Self::invoke_with_args(format!("/configure /db {}", db).as_str())
     }
 
-    fn import(&self, template: Ini) -> Result<String> {
+    fn import(&self, template: &Ini) -> Result<String> {
         let config = self.tmp_dir.path().join("tmp.ini");
         template.write_to_file(&config)?;
 
@@ -211,7 +212,7 @@ mod test {
         )
         .unwrap();
 
-        let res = Secedit::template_search_and_replace(&mut template, data);
+        let res = Secedit::template_search_and_replace(&mut template, &data);
 
         assert!(res.is_ok());
         assert_eq!(template.get_from(Some("User"), "name"), Some("\"Ferris\""));
@@ -244,7 +245,7 @@ mod test {
         )
         .unwrap();
 
-        let res = Secedit::template_audit(&template, data);
+        let res = Secedit::template_audit(&template, &data);
 
         assert_eq!(res.unwrap(), ());
     }
