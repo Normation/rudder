@@ -22,10 +22,10 @@ impl Secedit {
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
         let mut template = self.export()?;
         if audit {
-            audit_section(&template, &data)?;
+            audit_template(&template, &data)?;
             println!("Audit DONE");
         } else {
-            section_search_and_replace(&mut template, &data)?;
+            template_search_and_replace(&mut template, &data)?;
             self.apply_template(&template)?;
             println!("DONE");
         }
@@ -127,7 +127,7 @@ where
     Ok(())
 }
 
-fn audit_section(template: &Ini, data: &Map<String, Value>) -> Result<()> {
+fn audit_template(template: &Ini, data: &Map<String, Value>) -> Result<()> {
     let mut template = template.clone();
 
     for_each_section(&mut template, data, |props, key, expected| {
@@ -143,7 +143,7 @@ fn audit_section(template: &Ini, data: &Map<String, Value>) -> Result<()> {
     })
 }
 
-fn section_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
+fn template_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
     for_each_section(template, data, |props, key, value| {
         if props.contains_key(key) {
             props.insert(key, value);
@@ -202,7 +202,7 @@ mod test {
         )
         .unwrap();
 
-        let res = section_search_and_replace(&mut template, &data);
+        let res = template_search_and_replace(&mut template, &data);
 
         assert!(res.is_ok());
         assert_eq!(template.get_from(Some("User"), "name"), Some("\"Ferris\""));
@@ -235,7 +235,7 @@ mod test {
         )
         .unwrap();
 
-        let res = audit_section(&template, &data);
+        let res = audit_template(&template, &data);
 
         assert_eq!(res.unwrap(), ());
     }
