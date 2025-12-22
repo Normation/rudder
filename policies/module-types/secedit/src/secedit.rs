@@ -25,7 +25,7 @@ impl Secedit {
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
         if audit {
             let template = self.export()?;
-            Self::template_audit(template, data)?;
+            Self::template_audit(&template, data)?;
             println!("Audit DONE");
         } else {
             let mut template = self.export()?;
@@ -37,53 +37,50 @@ impl Secedit {
         Ok(())
     }
 
-    fn template_audit(template: Ini, data: Map<String, Value>) -> Result<()> {
+    fn template_audit(template: &Ini, data: Map<String, Value>) -> Result<()> {
         for (section, section_data) in data {
-            for (sec, prop) in template.iter() {
-                if let Some(sec) = sec
-                    && sec == section
-                {
+            match template.section(Some(&section)) {
+                Some(section_props) => {
                     let data = match section_data {
                         Value::Object(ref o) => o,
                         _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
                     };
-
-                    for (k, v) in data {
-                        for (t, vv) in prop.iter() {
-                            if k == t
-                                && let x = v.to_string()
-                                && x != vv
-                            {
-                                println!("{x} != {vv}");
+                    for (key, value) in data {
+                        if let Some(existing_value) = section_props.get(key) {
+                            let value_str = value.to_string();
+                            if value_str != existing_value {
+                                println!("{key} set to '{existing_value}' expected '{value_str}'");
                             }
+                        } else {
+                            bail!("'{key}' in section '{section}' does not exists")
                         }
                     }
                 }
+                None => bail!("section '{section}' does not exists"),
             }
         }
+
         Ok(())
     }
 
     fn template_search_and_replace(template: &mut Ini, data: Map<String, Value>) -> Result<()> {
         for (section, section_data) in data {
-            for (sec, prop) in template.iter_mut() {
-                if let Some(sec) = sec
-                    && sec == section
-                {
+            match template.section_mut(Some(&section)) {
+                Some(section_props) => {
                     let data = match section_data {
                         Value::Object(ref o) => o,
-                        _ => bail!("Invalid data '{section_data:?}' expected JSON object"),
+                        _ => bail!("Invalid data '{section_data}' expected JSON object"),
                     };
-
-                    for (k, v) in data {
-                        for (t, _) in prop.clone().iter_mut() {
-                            if k == t {
-                                prop.remove(k);
-                                prop.insert(k, v.to_string());
-                            }
+                    for (key, value) in data {
+                        if section_props.get(key).is_some() {
+                            section_props.remove(key);
+                            section_props.insert(key, value.to_string());
+                        } else {
+                            bail!("'{key}' in section '{section}' does not exists");
                         }
                     }
                 }
+                None => bail!("section '{section}' does not exists"),
             }
         }
 
@@ -205,8 +202,7 @@ mod test {
         {
             "User": {
                 "name": "Ferris",
-                "value": 42,
-                "abc": 21
+                "value": 42
             },
             "Settings": {
                 "abc": 12
@@ -218,6 +214,7 @@ mod test {
         let res = Secedit::template_search_and_replace(&mut template, data);
 
         assert!(res.is_ok());
+        assert_eq!(template.get_from(Some("User"), "name"), Some("\"Ferris\""));
         assert_eq!(template.get_from(Some("User"), "value"), Some("42"));
         assert_eq!(template.get_from(Some("Settings"), "abc"), Some("12"));
     }
@@ -247,7 +244,7 @@ mod test {
         )
         .unwrap();
 
-        let res = Secedit::template_audit(template.clone(), data);
+        let res = Secedit::template_audit(&template, data);
 
         assert_eq!(res.unwrap(), ());
     }
