@@ -23,6 +23,8 @@ mod rpm;
 mod yum;
 mod zypper;
 
+mod windows_update_agent;
+
 /// Packages indexed by (name, arch).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PackageList {

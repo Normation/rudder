@@ -1,4 +1,4 @@
-use crate::r_com_update::Category;
+use super::Category;
 use anyhow;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};

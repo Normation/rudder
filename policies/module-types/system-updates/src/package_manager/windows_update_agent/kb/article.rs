@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::fmt;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Article(String);
 impl Article {

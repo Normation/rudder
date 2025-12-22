@@ -6,7 +6,7 @@
 use crate::{
     CampaignType, PackageParameters, RebootType, Schedule,
     db::PackageDatabase,
-    hooks::Hooks,
+    hooks::{Hooks, RunHooks},
     output::{Report, ScheduleReport, Status},
     package_manager::{LinuxPackageManager, PackageSpec},
     system::System,

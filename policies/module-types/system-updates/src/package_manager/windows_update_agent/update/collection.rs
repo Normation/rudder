@@ -1,4 +1,4 @@
-use crate::r_com_update::Info;
+use super::Info;
 use anyhow::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;

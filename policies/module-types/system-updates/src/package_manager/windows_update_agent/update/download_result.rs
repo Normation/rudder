@@ -1,27 +1,23 @@
-use crate::r_com_update::{Collection, InfoData, OperationResultCode};
+use super::{Collection, InfoData, OperationResultCode};
 use anyhow::{Error, Result, bail};
 use serde::{Deserialize, Serialize};
-use windows::Win32::System::Com::INTERFACEINFO;
-use windows::Win32::System::UpdateAgent::{IInstallationResult, IUpdateInstallationResult};
-
+use windows::Win32::System::UpdateAgent::{IDownloadResult, IUpdateDownloadResult};
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct UpdateInstallationResult {
+pub struct UpdateDownloadResult {
     pub h_result: i32,
     pub result_code: OperationResultCode,
-    pub reboot_required: bool,
     pub update: InfoData,
 }
 
-impl UpdateInstallationResult {
+impl UpdateDownloadResult {
     pub fn try_from_com(
-        r: IUpdateInstallationResult,
+        r: IUpdateDownloadResult,
         u: InfoData,
-    ) -> Result<UpdateInstallationResult, Error> {
+    ) -> Result<UpdateDownloadResult, Error> {
         unsafe {
             Ok(Self {
                 h_result: r.HResult()?,
                 result_code: OperationResultCode::new(r.ResultCode()?.0)?,
-                reboot_required: r.RebootRequired()?.as_bool(),
                 update: u,
             })
         }
@@ -29,32 +25,30 @@ impl UpdateInstallationResult {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct InstallationResult {
+pub struct DownloadResult {
     pub h_result: i32,
     pub result_code: OperationResultCode,
-    pub reboot_required: bool,
-    pub update_results: Vec<UpdateInstallationResult>,
+    pub update_results: Vec<UpdateDownloadResult>,
 }
 
-impl InstallationResult {
+impl DownloadResult {
     pub fn try_from_com(
-        r: IInstallationResult,
+        r: IDownloadResult,
         collection: &Collection,
-    ) -> Result<InstallationResult, Error> {
+    ) -> Result<DownloadResult, Error> {
         unsafe {
             Ok(Self {
                 h_result: r.HResult()?,
                 result_code: OperationResultCode::new(r.ResultCode()?.0)?,
-                reboot_required: r.RebootRequired()?.as_bool(),
                 update_results: (0..collection.updates.len())
                     .map(|i| {
                         let info = match collection.updates.get(i) {
                             Some(info) => info.data.clone(),
                             None => bail!("Could not retrieve update info for index {}", i),
                         };
-                        UpdateInstallationResult::try_from_com(r.GetUpdateResult(i as i32)?, info)
+                        UpdateDownloadResult::try_from_com(r.GetUpdateResult(i as i32)?, info)
                     })
-                    .collect::<Result<Vec<UpdateInstallationResult>>>()?,
+                    .collect::<Result<Vec<UpdateDownloadResult>>>()?,
             })
         }
     }
