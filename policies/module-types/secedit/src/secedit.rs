@@ -237,6 +237,6 @@ mod test {
 
         let res = audit_template(&template, &data);
 
-        assert_eq!(res.unwrap(), ());
+        assert!(res.is_ok());
     }
 }
