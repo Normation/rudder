@@ -58,7 +58,7 @@ warp = { git = "https://github.com/amousset/warp", branch = "body-stream", defau
 zip = { version = "6.0.0", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-criterion = "0.7.0"
+criterion = "0.8.0"
 filetime = "0.2"
 proptest = "1"
 tempfile = "3"
