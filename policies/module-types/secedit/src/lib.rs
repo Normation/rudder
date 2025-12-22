@@ -1,6 +1,5 @@
 use anyhow::{Context, Result, bail};
 use clap::Parser;
-use serde_json::Value;
 use std::{fs::read_to_string, path::PathBuf};
 mod secedit;
 
@@ -24,21 +23,8 @@ impl Cli {
         if data.is_empty() {
             bail!("The data file '{}' is empty.", cli.data.display());
         }
-        let data = match serde_json::from_str(&data)? {
-            Value::Object(o) => {
-                for (_, v) in &o {
-                    if !v.is_object() {
-                        bail!("Invalid data: '{v}' expected a JSON object");
-                    }
-                }
-                o
-            }
-            _ => bail!(
-                "The data file '{}' contains invalid data",
-                cli.data.display()
-            ),
-        };
+        let data = serde_json::from_str(&data)?;
 
-        secedit::Secedit::default().run(data, cli.audit)
+        secedit::Secedit::new()?.run(data, cli.audit)
     }
 }
