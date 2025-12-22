@@ -19,6 +19,7 @@
 - [system-updates](./modules/system-updates.md)
 - [template](./modules/template.md)
 - [commands](./modules/commands.md)
+- [secedit](./modules/secedit.md)
 
 ---
 
