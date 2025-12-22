@@ -31,7 +31,6 @@ impl Secedit {
             let mut template = self.export()?;
             Self::template_search_and_replace(&mut template, &data)?;
             self.import(&template).and_then(Self::configure)?;
-            Self::template_audit(&template, &data)?;
             println!("DONE");
         }
 
