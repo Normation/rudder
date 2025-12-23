@@ -126,7 +126,7 @@ class RuleApi(
     val schema: API.CreateRule.type = API.CreateRule
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         restRule <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract rule parameters from request").toIO
         result   <- service.createRule(
@@ -209,7 +209,7 @@ class RuleApi(
   object CreateRuleCategory extends LiftApiModule0 {
     val schema:                                                                                                API.CreateRuleCategory.type = API.CreateRuleCategory
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
         res <- service.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
@@ -464,7 +464,7 @@ class RuleApiService14(
 
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()
-      nodesLib     <- nodeFactRepos.getAll()(using cc.toQuery)
+      nodesLib     <- nodeFactRepos.getAll()(using cc.toQC)
       globalMode   <- getGlobalPolicyMode()
     } yield {
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)

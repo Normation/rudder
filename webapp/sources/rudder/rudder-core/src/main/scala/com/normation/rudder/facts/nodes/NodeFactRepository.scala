@@ -501,7 +501,7 @@ class CoreNodeFactRepository(
       for {
         a    <- storage.getAccepted(nodeId)
         p    <- storage.getPending(nodeId)
-        c    <- get(nodeId)(using cc.toQuery, SelectNodeStatus.Any)
+        c    <- get(nodeId)(using cc.toQC, SelectNodeStatus.Any)
         diff <- (a, p, c) match {
                   case (None, None, _)    => delete(nodeId)
                   case (None, Some(x), _) =>
@@ -665,7 +665,7 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _                   <- lock.withLock
-        core                <- get(node.fold(_.id, _._1))(using cc.toQuery)
+        core                <- get(node.fold(_.id, _._1))(using cc.toQC)
         pair                <- (node, core) match {
                                  // first case: we are saving a new node fact, tenant can be set
                                  // we keep attrs from request
@@ -742,7 +742,7 @@ class CoreNodeFactRepository(
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID && into != AcceptedInventory) {
       Inconsistency(s"Rudder server (id='root' must be accepted").fail
     } else {
-      implicit val qc: QueryContext = cc.toQuery
+      implicit val qc: QueryContext = cc.toQC
       ZIO.scoped(
         for {
           _ <- lock.withLock
@@ -808,7 +808,7 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _   <- lock.withLock
-        cnf <- get(nodeId)(using cc.toQuery, SelectNodeStatus.Any)
+        cnf <- get(nodeId)(using cc.toQC, SelectNodeStatus.Any)
         s   <- storage.delete(nodeId)(using SelectFacts.all)
         e   <- cnf match {
                  case Some(n) =>
@@ -829,7 +829,7 @@ class CoreNodeFactRepository(
   ): IOResult[NodeFactChangeEventCC] = {
     val nodeId = inventory.node.main.id
     implicit val attrs: SelectFacts  = if (software.isEmpty) SelectFacts.noSoftware else SelectFacts.all
-    implicit val qc:    QueryContext = cc.toQuery
+    implicit val qc:    QueryContext = cc.toQC
     ZIO.scoped(
       for {
         _          <- lock.withLock

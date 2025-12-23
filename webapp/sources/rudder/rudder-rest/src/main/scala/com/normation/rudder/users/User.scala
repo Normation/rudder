@@ -165,7 +165,7 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
 
   // it's a "new" each time, because we want different change context for different user
   // action even for a same request if called several times.
-  def changeContext(reason: Option[String] = None): ChangeContext = ChangeContext.newFromQC(queryContext, reason)
+  def changeContext(reason: Option[String] = None): ChangeContext = queryContext.newCC(reason)
 
   def nodePerms: NodeSecurityContext = getCurrentUser.map(_.nodePerms).getOrElse(NodeSecurityContext.None)
 

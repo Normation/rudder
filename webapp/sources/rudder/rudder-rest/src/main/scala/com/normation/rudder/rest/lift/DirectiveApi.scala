@@ -195,7 +195,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
 
       (for {
         id            <- DirectiveId.parse(sid).toIO
@@ -217,7 +217,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       service.deleteDirective(DirectiveUid(id), params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }

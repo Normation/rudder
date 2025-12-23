@@ -428,7 +428,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib))._2.toJsCmd};
             } else if(  sourceCatId ) {
               var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
-              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib))._2.toJsCmd};
+              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib)(_)(using qc.newCC()))._2.toJsCmd};
             } else {
               alert("Can not move that kind of object");
               $$.jstree.rollback(data.rlbk);
@@ -514,7 +514,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
   }
 
-  private def moveCategory(lib: FullNodeGroupCategory)(arg: String)(implicit qc: QueryContext): JsCmd = {
+  private def moveCategory(lib: FullNodeGroupCategory)(arg: String)(implicit cc: ChangeContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -534,10 +534,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               woNodeGroupRepository
                 .saveGroupCategory(
                   category.toNodeGroupCategory,
-                  NodeGroupCategoryId(destCatId),
-                  ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
-                  reason = None
+                  NodeGroupCategoryId(destCatId)
                 )
                 .toBox ?~! "Error while trying to move category with requested id '%s' to category id '%s'"
                 .format(sourceCatId, destCatId)
@@ -547,11 +544,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             case Full((id, res)) =>
               refreshGroupLib()
               (
-                refreshTree(htmlTreeNodeId(id))
+                refreshTree(htmlTreeNodeId(id))(using cc.toQC)
                 & OnLoad(
                   JsRaw("""setTimeout(function() { $("[catid=%s]").attempt("highlight", {}, 2000);}, 100)""".format(sourceCatId))
                 ) // JsRaw ok, comes from json
-                & refreshRightPanel(CategoryForm(res))
+                & refreshRightPanel(CategoryForm(res))(using cc.toQC)
               )
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty           =>

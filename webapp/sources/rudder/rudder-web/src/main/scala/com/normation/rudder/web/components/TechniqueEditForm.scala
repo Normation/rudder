@@ -562,7 +562,7 @@ class TechniqueEditForm(
   private def error(msg: String) = <span class="error">{msg}</span>
 
   private def statusAndDeployTechnique(activeTechnique: ActiveTechnique, status: Boolean): JsCmd = {
-    implicit val cc: ChangeContext = ChangeContext.newFromQC(CurrentUser.queryContext, crReasonsDisablePopup.map(_.get))
+    implicit val cc: ChangeContext = CurrentUser.changeContext(crReasonsDisablePopup.map(_.get))
     (for {
       save   <-
         (rwActiveTechniqueRepository.changeStatus(activeTechnique.id, status)

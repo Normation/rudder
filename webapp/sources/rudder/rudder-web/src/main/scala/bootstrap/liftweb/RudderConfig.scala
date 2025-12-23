@@ -2977,7 +2977,6 @@ object RudderConfigInit {
       roLdapNodeGroupRepository,
       rwLdap,
       ldapDiffMapper,
-      stringUuidGenerator,
       logRepository,
       gitNodeGroupArchiver,
       personIdentServiceImpl,
@@ -3459,7 +3458,7 @@ object RudderConfigInit {
     lazy val postNodeDeleteActions = Ref
       .make(
         //      new RemoveNodeInfoFromCache(ldapNodeInfoServiceImpl)
-        new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository, stringUuidGenerator)
+        new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository)
         :: new CloseNodeConfiguration(updateExpectedRepo)
         :: new DeletePolicyServerPolicies(policyServerManagementService)
         :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)

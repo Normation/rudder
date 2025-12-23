@@ -39,7 +39,6 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
@@ -263,10 +262,11 @@ class CreateCategoryOrGroupPopup(
               isSystem = false,
               security = CurrentUser.nodePerms.toSecurityTag
             ),
-            NodeGroupCategoryId(piContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            piReasons.map(_.get)
+            NodeGroupCategoryId(piContainer.get)
+          )(using
+            CurrentUser.changeContext(
+              piReasons.map(_.get)
+            )
           )
           .toBox match {
           case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -296,12 +296,10 @@ class CreateCategoryOrGroupPopup(
           security = CurrentUser.nodePerms.toSecurityTag
         )
         woNodeGroupRepository
-          .create(
-            nodeGroup,
-            NodeGroupCategoryId(piContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            piReasons.map(_.get)
+          .create(nodeGroup, NodeGroupCategoryId(piContainer.get))(using
+            CurrentUser.changeContext(
+              piReasons.map(_.get)
+            )
           )
           .tap(_ => propertiesService.updateAll())
           .toBox match {

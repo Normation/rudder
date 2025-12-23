@@ -411,7 +411,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                                )
             result          <- rwActiveTechniqueRepository
                                  .move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId))(using
-                                   ChangeContext.newFromQC(CurrentUser.queryContext, Some("User moved active technique from UI"))
+                                   CurrentUser.changeContext(Some("User moved active technique from UI"))
                                  )
                                  .toBox ?~! "Error while trying to move active technique with requested id '%s' to category id '%s'"
                                  .format(sourceactiveTechniqueId, destCatId)
@@ -452,7 +452,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           (for {
             result <- rwActiveTechniqueRepository
                         .move(ActiveTechniqueCategoryId(sourceCatId), ActiveTechniqueCategoryId(destCatId), None)(using
-                          ChangeContext.newFromQC(CurrentUser.queryContext, Some("User moved active technique category from UI"))
+                          CurrentUser.changeContext(Some("User moved active technique category from UI"))
                         )
                         .toBox ?~! "Error while trying to move category with requested id %s into new parent: %s".format(
                         sourceCatId,
@@ -848,7 +848,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     def initJs    = SetHtml("techniqueLibraryUpdateInterval", <span>{updateTecLibInterval}</span>)
     def process() = {
       val createNotification = updatePTLibService.update()(using
-        ChangeContext.newFromQC(CurrentUser.queryContext, Some("Technique library reloaded by user"))
+        CurrentUser.changeContext(Some("Technique library reloaded by user"))
       ) match {
         case Full(x) =>
           JsRaw("""createSuccessNotification("The technique library was successfully reloaded")""") // JsRaw ok, const

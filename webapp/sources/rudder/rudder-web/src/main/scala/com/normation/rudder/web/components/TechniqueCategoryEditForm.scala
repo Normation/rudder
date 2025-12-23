@@ -40,7 +40,6 @@ package com.normation.rudder.web.components
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
@@ -109,7 +108,7 @@ class TechniqueCategoryEditForm(
   private def deleteCategory(): JsCmd = {
     activeTechniqueCategoryRepository
       .deleteCategory(currentCategory.id)(using
-        ChangeContext.newFromQC(CurrentUser.queryContext, Some("User deleted technique category from UI"))
+        CurrentUser.changeContext(Some("User deleted technique category from UI"))
       )
       .toBox match {
       case Full(id) =>
@@ -201,7 +200,7 @@ class TechniqueCategoryEditForm(
               )
               activeTechniqueCategoryRepository
                 .saveActiveTechniqueCategory(updatedCategory)(using
-                  ChangeContext.newFromQC(CurrentUser.queryContext, Some("User updated category from UI"))
+                  CurrentUser.changeContext(Some("User updated category from UI"))
                 )
                 .toBox match {
                 case Failure(m, _, _) =>

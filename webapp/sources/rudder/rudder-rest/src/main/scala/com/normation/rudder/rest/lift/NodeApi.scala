@@ -1130,7 +1130,7 @@ class NodeApiService(
       implicit val status: InventoryStatus = RemovedInventory
       for {
         nodeFact <- nodeFactRepository
-                      .get(id)(using cc.toQuery)
+                      .get(id)(using cc.toQC)
                       .notOptional(s"Can not removed the node with id '${id.value}' because it was not found")
         _        <- removeNodeService.removeNode(nodeFact.id)
       } yield {
@@ -1298,7 +1298,7 @@ class NodeApiService(
         .setToIfDefined(documentation)
     }
 
-    implicit val qc: QueryContext = cc.toQuery
+    implicit val qc: QueryContext = cc.toQC
 
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")

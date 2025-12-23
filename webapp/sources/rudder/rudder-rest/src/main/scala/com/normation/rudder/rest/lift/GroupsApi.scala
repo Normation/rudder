@@ -223,14 +223,13 @@ class GroupsApi(
   object Create extends LiftApiModule0 {
     val schema:                                                                                                API.CreateGroup.type = API.CreateGroup
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse         = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       val schemaGroup = for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract group parameters from request").toIO
         result    <- service.createGroup(
                        restGroup,
                        restGroup.id.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid))),
-                       restGroup.source,
-                       params
+                       restGroup.source
                      )
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
@@ -487,21 +486,19 @@ class GroupApiService14(
   def createGroup(
       restGroup:   JQGroup,
       nodeGroupId: NodeGroupId,
-      clone:       Option[NodeGroupId],
-      params:      DefaultParams
+      clone:       Option[NodeGroupId]
   )(implicit cc: ChangeContext): ZIO[Any, RudderError, JRGroup] = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
-      val modId = ModificationId(uuidGen.newUuid)
       (for {
         rootCat  <- readGroup.getRootCategoryPure()
         cat       = change.category.getOrElse(rootCat.id)
-        saveDiff <- writeGroup.create(change.newGroup, cat, modId, cc.actor, params.reason)
+        saveDiff <- writeGroup.create(change.newGroup, cat)
         // after group creation, its properties should be computed and resolved
         _        <- propertiesService.updateAll()
       } yield {
         if (saveDiff.needDeployment) {
           // Trigger a deployment only if it is needed
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId, cc.actor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         }
         JRGroup.fromGroup(saveDiff.group, cat, None)
       }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
@@ -513,10 +510,9 @@ class GroupApiService14(
         restGroup: JQGroup,
         groupId:   NodeGroupId,
         name:      String,
-        clone:     Option[NodeGroupId],
-        params:    DefaultParams
+        clone:     Option[NodeGroupId]
     )(implicit cc: ChangeContext): IOResult[NodeGroupChangeRequest] = {
-      implicit val qc: QueryContext = cc.toQuery
+      implicit val qc: QueryContext = cc.toQC
 
       clone match {
         case Some(sourceId) =>
@@ -581,7 +577,7 @@ class GroupApiService14(
 
     (for {
       name    <- restGroup.displayName.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
-      change  <- createOrClone(restGroup, nodeGroupId, name, clone, params)
+      change  <- createOrClone(restGroup, nodeGroupId, name, clone)
       created <- actualGroupCreation(change, nodeGroupId)
     } yield {
       created
@@ -694,7 +690,7 @@ class GroupApiService14(
                     Inconsistency(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.").fail
                   }
       parent   <- root.parentCategories.get(id).notOptional(s"Cannot find Groupl category '${id.value}' parent")
-      _        <- writeGroup.delete(id, cc.modId, cc.actor, cc.message)
+      _        <- writeGroup.delete(id)
     } yield {
       JRMinimalGroupCategory.fromCategory(category, parent.id)
     }
@@ -713,7 +709,7 @@ class GroupApiService14(
       oldParent <- root.parentCategories.get(id).notOptional(s"Cannot find Group category '${id.value}' parent")
       parent     = restData.parent.getOrElse(oldParent.id)
       update     = restData.update(category)
-      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent, cc.modId, cc.actor, cc.message)
+      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent)
     } yield {
       JRMinimalGroupCategory.fromCategory(update, parent)
     }
@@ -728,7 +724,7 @@ class GroupApiService14(
       update  <- restData.create(defaultId).toIO
       category = update.toNodeGroupCategory
       parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _       <- writeGroup.addGroupCategorytoCategory(category, parent, cc.modId, cc.actor, cc.message)
+      _       <- writeGroup.addGroupCategorytoCategory(category, parent)
     } yield {
       JRMinimalGroupCategory.fromCategory(update, parent)
     }

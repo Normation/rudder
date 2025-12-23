@@ -40,13 +40,12 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.GitVersion
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.Visibility
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio.*
 import org.junit.runner.RunWith
@@ -98,11 +97,14 @@ class TestInheritedProperties extends ZIOSpecDefault {
 
   import com.softwaremill.quicklens.*
 
+  implicit val qc: QueryContext  = QueryContext.testQC
+  implicit val cc: ChangeContext = qc.newCC()
+
   val g0Id: NodeGroupId = restTestSetUp.mockNodeGroups.g0.id
   (for {
-    g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id)(using QueryContext.testQC).notOptional("test")
+    g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id).notOptional("test")
     up = g._1.modify(_.properties).using(_.appended(gProp))
-    _ <- restTestSetUp.mockNodeGroups.groupsRepo.update(up, ModificationId("test"), eventlog.RudderEventActor, None)
+    _ <- restTestSetUp.mockNodeGroups.groupsRepo.update(up)
     _ <- restTestSetUp.mockNodeGroups.propService.updateAll() // the properties also need to be recomputed after group is updated
   } yield ()).runNow
 
