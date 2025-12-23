@@ -650,7 +650,7 @@ class SystemApiService11(
 
   private def reloadTechniquesWrapper(req: Req)(implicit qc: QueryContext): Either[String, JField] = {
     ApiLogger.info(s"Trigger technique reload")
-    updatePTLibService.update()(using ChangeContext.newFromQC(qc, Some("Technique library reloaded from REST API"))) match {
+    updatePTLibService.update()(using qc.newCC(Some("Technique library reloaded from REST API"))) match {
       case Full(_) => Right(JField("techniques", "Started"))
       case eb: EmptyBox =>
         val e = eb ?~! "An error occurred when updating the Technique library from file system"

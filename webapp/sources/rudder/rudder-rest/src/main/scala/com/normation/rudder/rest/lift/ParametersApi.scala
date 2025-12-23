@@ -102,7 +102,7 @@ class ParameterApi(
   object CreateParameter extends LiftApiModule0 {
     val schema:                                                                                                API.CreateParameter.type = API.CreateParameter
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         restParam <-
           zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract a global parameter from request").toIO
@@ -123,7 +123,7 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       service.deleteParameter(id, params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -138,7 +138,7 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc: ChangeContext = ChangeContext.newFromQC(authzToken.qc, params.reason)
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         restParam <- zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract parameter from request.").toIO
         result    <- service.updateParameter(restParam.copy(id = Some(id)), params, authzToken.qc.actor)

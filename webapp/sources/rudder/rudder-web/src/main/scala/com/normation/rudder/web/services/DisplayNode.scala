@@ -788,7 +788,7 @@ object DisplayNode extends Loggable {
 
     (for {
       node   <- RudderConfig.nodeFactRepository
-                  .get(nodeFact.id)(using cc.toQuery)
+                  .get(nodeFact.id)(using cc.toQC)
                   .notOptional(s"Cannot update node with id ${nodeFact.id.value}: there is no node with that id")
       newNode = node.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey)
       _      <- RudderConfig.nodeFactRepository.save(newNode)

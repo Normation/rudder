@@ -49,7 +49,6 @@ import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -277,8 +276,7 @@ class TechniqueApi(
             }
           _                <- techniqueReader.getMethodsMetadata
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using
-                                ChangeContext.newFromQC(
-                                  authzToken.user.qc,
+                                authzToken.user.qc.newCC(
                                   Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")
                                 )
                               )
@@ -453,7 +451,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using ChangeContext.newFromQC(authzToken.qc))
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using authzToken.qc.newCC())
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json

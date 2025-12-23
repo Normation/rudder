@@ -40,8 +40,6 @@ package com.normation.rudder.repository.ldap
 import cats.implicits.*
 import com.normation.NamedZioLogger
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.LDAPConstants.A_DESCRIPTION
@@ -82,7 +80,6 @@ import com.normation.rudder.repository.NodeGroupCategoryOrdering
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldif.LDIFChangeRecord
@@ -646,7 +643,6 @@ class WoLDAPNodeGroupRepository(
     roGroupRepo:        RoLDAPNodeGroupRepository,
     ldap:               LDAPConnectionProvider[RwLDAPConnection],
     diffMapper:         LDAPDiffMapper,
-    uuidGen:            StringUuidGenerator,
     actionlogEffect:    EventLogRepository,
     gitArchiver:        GitNodeGroupArchiver,
     personIdentService: PersonIdentService,
@@ -756,12 +752,8 @@ class WoLDAPNodeGroupRepository(
    *
    * return the new category.
    */
-  override def addGroupCategorytoCategory(
-      that:   NodeGroupCategory,
-      into:   NodeGroupCategoryId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
+  override def addGroupCategorytoCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
+      cc: ChangeContext
   ): IOResult[NodeGroupCategory] = {
     groupLibMutex.writeLock(for {
       con                 <- ldap
@@ -777,9 +769,9 @@ class WoLDAPNodeGroupRepository(
       autoArchive         <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                 for {
                                   parents  <- getParents_NodeGroupCategory(that.id)
-                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                  commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                   archive  <-
-                                    gitArchiver.archiveNodeGroupCategory(that, parents.map(_.id), Some((modId, commiter, reason)))
+                                    gitArchiver.archiveNodeGroupCategory(that, parents.map(_.id), Some((cc.modId, commiter, cc.message)))
                                 } yield archive
                               } else ZIO.unit)
       newCategory         <- getGroupCategory(that.id).chainError(s"The newly created category '${that.id.value}' was not found")
@@ -791,12 +783,7 @@ class WoLDAPNodeGroupRepository(
   /**
    * Update an existing group category
    */
-  override def saveGroupCategory(
-      category: NodeGroupCategory,
-      modId:    ModificationId,
-      actor:    EventActor,
-      reason:   Option[String]
-  ): IOResult[NodeGroupCategory] = {
+  override def saveGroupCategory(category: NodeGroupCategory)(implicit cc: ChangeContext): IOResult[NodeGroupCategory] = {
     groupLibMutex.writeLock(for {
       con              <- ldap
       oldCategoryEntry <-
@@ -813,9 +800,10 @@ class WoLDAPNodeGroupRepository(
       autoArchive      <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                              for {
                                parents  <- getParents_NodeGroupCategory(category.id)
-                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                               commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                archive  <-
-                                 gitArchiver.archiveNodeGroupCategory(updated, parents.map(_.id), Some((modId, commiter, reason)))
+                                 gitArchiver
+                                   .archiveNodeGroupCategory(updated, parents.map(_.id), Some((cc.modId, commiter, cc.message)))
                              } yield archive
                            } else ZIO.unit)
     } yield {
@@ -826,12 +814,8 @@ class WoLDAPNodeGroupRepository(
   /**
    * Update/move an existing group category
    */
-  override def saveGroupCategory(
-      category:    NodeGroupCategory,
-      containerId: NodeGroupCategoryId,
-      modId:       ModificationId,
-      actor:       EventActor,
-      reason:      Option[String]
+  override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId)(implicit
+      cc: ChangeContext
   ): IOResult[NodeGroupCategory] = {
     groupLibMutex.writeLock(for {
       con              <- ldap
@@ -860,12 +844,12 @@ class WoLDAPNodeGroupRepository(
                             case _ if (autoExportOnModify && !updated.isSystem)     =>
                               (for {
                                 parents  <- getParents_NodeGroupCategory(updated.id)
-                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                 moved    <- gitArchiver.moveNodeGroupCategory(
                                               updated,
                                               oldParents.map(_.id),
                                               parents.map(_.id),
-                                              Some((modId, commiter, reason))
+                                              Some((cc.modId, commiter, cc.message))
                                             )
                               } yield {
                                 moved
@@ -886,41 +870,42 @@ class WoLDAPNodeGroupRepository(
    *  - Full(category id) for a success
    *  - Failure(with error message) iif an error happened.
    */
-  override def delete(
-      id:         NodeGroupCategoryId,
-      modId:      ModificationId,
-      actor:      EventActor,
-      reason:     Option[String],
-      checkEmpty: Boolean = true
+  override def delete(id: NodeGroupCategoryId, checkEmpty: Boolean = true)(implicit
+      cc: ChangeContext
   ): IOResult[NodeGroupCategoryId] = {
     groupLibMutex.writeLock(for {
       con     <- ldap
-      deleted <- {
-        getCategoryEntry(con, id).flatMap {
-          case Some(entry) =>
-            for {
-              parents     <- if (autoExportOnModify) {
-                               getParents_NodeGroupCategory(id)
-                             } else Nil.succeed
-              ok          <- con
-                               .delete(entry.dn, recurse = !checkEmpty)
-                               .chainError(s"Error when trying to delete category with ID '${id.value}'")
-              category    <- mapper.entry2NodeGroupCategory(entry).toIO
-              autoArchive <- (if (autoExportOnModify && ok.size > 0 && !category.isSystem) {
-                                for {
-                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                  archive  <-
-                                    gitArchiver.deleteNodeGroupCategory(id, parents.map(_.id), Some((modId, commiter, reason)))
-                                } yield {
-                                  archive
-                                }
-                              } else ZIO.unit).chainError("Error when trying to archive automatically the category deletion")
-            } yield {
-              id
-            }
-          case None        => id.succeed
-        }
-      }
+      deleted <- getCategoryEntry(con, id).flatMap {
+                   case Some(entry) =>
+                     mapper.entry2NodeGroupCategory(entry).toIO.flatMap { category =>
+                       for {
+                         parents     <- if (autoExportOnModify) {
+                                          getParents_NodeGroupCategory(id)
+                                        } else Nil.succeed
+                         ok          <- con
+                                          .delete(entry.dn, recurse = !checkEmpty)
+                                          .chainError(s"Error when trying to delete category with ID '${id.value}'")
+                         autoArchive <- (if (autoExportOnModify && ok.size > 0 && !category.isSystem) {
+                                           for {
+                                             commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                                             archive  <-
+                                               gitArchiver.deleteNodeGroupCategory(
+                                                 id,
+                                                 parents.map(_.id),
+                                                 Some((cc.modId, commiter, cc.message))
+                                               )
+                                           } yield {
+                                             archive
+                                           }
+                                         } else
+                                           ZIO.unit)
+                                          .chainError("Error when trying to archive automatically the category deletion")
+                       } yield {
+                         id
+                       }
+                     }
+                   case None        => id.succeed
+                 }
     } yield {
       deleted
     })
@@ -930,13 +915,7 @@ class WoLDAPNodeGroupRepository(
    * Add the node group passed as parameter in the LDAP
    * The id used to save it will be the id provided by the nodeGroup
    */
-  override def create(
-      nodeGroup: NodeGroup,
-      into:      NodeGroupCategoryId,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[AddNodeGroupDiff] = {
+  override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff] = {
     groupLibMutex.writeLock(for {
       con           <- ldap
       exists        <- checkNodeGroupExists(con, nodeGroup)
@@ -949,14 +928,15 @@ class WoLDAPNodeGroupRepository(
       entry          = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
       result        <- con.save(entry, removeMissingAttributes = true)
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
-      loggedAction  <- actionlogEffect.saveAddNodeGroup(modId, principal = actor, addDiff = diff, reason = reason)
+      loggedAction  <- actionlogEffect.saveAddNodeGroup(cc.modId, principal = cc.actor, addDiff = diff, reason = cc.message)
       // We dont want to check if this is a system group or not, because new groups are not systems (see constructor)
       autoArchive   <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                           for {
                             parents  <- getParents_NodeGroupCategory(into)
-                            commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                             archived <-
-                              gitArchiver.archiveNodeGroup(nodeGroup, into :: (parents.map(_.id)), Some((modId, commiter, reason)))
+                              gitArchiver
+                                .archiveNodeGroup(nodeGroup, into :: (parents.map(_.id)), Some((cc.modId, commiter, cc.message)))
                           } yield archived
                         } else ZIO.unit)
     } yield {
@@ -965,11 +945,8 @@ class WoLDAPNodeGroupRepository(
   }
 
   override def createPolicyServerTarget(
-      policyServer: PolicyServerTarget,
-      modId:        ModificationId,
-      actor:        EventActor,
-      reason:       Option[String]
-  ): IOResult[LDIFChangeRecord] = {
+      policyServer: PolicyServerTarget
+  )(implicit cc: ChangeContext): IOResult[LDIFChangeRecord] = {
     groupLibMutex.writeLock(for {
       con           <- ldap
       categoryEntry <-
@@ -990,7 +967,9 @@ class WoLDAPNodeGroupRepository(
    * Delete the given policyServerTarget.
    * If no policyServerTarget has such id in the directory, return a success.
    */
-  override def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget] = {
+  override def deletePolicyServerTarget(
+      policyServer: PolicyServerTarget
+  )(implicit cc: ChangeContext): IOResult[PolicyServerTarget] = {
     val rdn = rudderDit.RULETARGET.ruleTargetDN(policyServer.target)
     groupLibMutex.writeLock(for {
       con <- ldap
@@ -1007,12 +986,9 @@ class WoLDAPNodeGroupRepository(
 
   private def internalUpdate(
       nodeGroup:       NodeGroup,
-      modId:           ModificationId,
-      actor:           EventActor,
-      reason:          Option[String],
       systemCall:      Boolean,
       onlyUpdateNodes: Boolean
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
+  )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     groupLibMutex.writeLock(
       for {
         con      <- ldap
@@ -1059,7 +1035,7 @@ class WoLDAPNodeGroupRepository(
                                            "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
                                          }
                                        }
-                        change      <- saveModifyNodeGroupDiff(existing, con, nodeGroup, modId, actor, reason)
+                        change      <- saveModifyNodeGroupDiff(existing, con, nodeGroup)
                       } yield {
                         change
                       }
@@ -1073,11 +1049,8 @@ class WoLDAPNodeGroupRepository(
   protected def saveModifyNodeGroupDiff(
       existing:  LDAPEntry,
       con:       RwLDAPConnection,
-      nodeGroup: NodeGroup,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
+      nodeGroup: NodeGroup
+  )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     val entry = mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
     // note: this is not protected by a lock because of the risk of calling it in a read lock
     // in a subclass. All callers must call it in a `writeLock`.
@@ -1091,7 +1064,7 @@ class WoLDAPNodeGroupRepository(
                         case None       => ZIO.unit
                         case Some(diff) =>
                           actionlogEffect
-                            .saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason)
+                            .saveModifyNodeGroup(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
                             .chainError("Error when logging modification as an event")
                       }
       autoArchive  <-
@@ -1100,8 +1073,9 @@ class WoLDAPNodeGroupRepository(
             for {
               parent   <- getNodeGroupCategory(nodeGroup.id)
               parents  <- getParents_NodeGroupCategory(parent.id)
-              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-              archived <- gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map(_.id), Some((modId, commiter, reason)))
+              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+              archived <-
+                gitArchiver.archiveNodeGroup(nodeGroup, (parent :: parents).map(_.id), Some((cc.modId, commiter, cc.message)))
             } yield archived
           })
           .chainError("Error when trying to archive automatically nodegroup change")
@@ -1110,42 +1084,24 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
-  override def updateDynGroupNodes(
-      group:  NodeGroup,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(group, modId, actor, reason, systemCall = true, onlyUpdateNodes = true)
+  override def updateDynGroupNodes(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(group, systemCall = true, onlyUpdateNodes = true)
   }
 
-  override def update(
-      nodeGroup: NodeGroup,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(nodeGroup, modId, actor, reason, systemCall = false, onlyUpdateNodes = false)
+  override def update(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(nodeGroup, systemCall = false, onlyUpdateNodes = false)
   }
 
-  override def updateSystemGroup(
-      nodeGroup: NodeGroup,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(nodeGroup, modId, actor, reason, systemCall = true, onlyUpdateNodes = false)
+  override def updateSystemGroup(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(nodeGroup, systemCall = true, onlyUpdateNodes = false)
   }
 
   // this one does not seem able to use internalUpdate
   override def updateDiffNodes(
       nodeGroupId: NodeGroupId,
       add:         List[NodeId],
-      delete:      List[NodeId],
-      modId:       ModificationId,
-      actor:       EventActor,
-      reason:      Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]] = {
+      delete:      List[NodeId]
+  )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     groupLibMutex.writeLock(
       for {
         con      <- ldap
@@ -1155,7 +1111,7 @@ class WoLDAPNodeGroupRepository(
         oldGroup <-
           mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.serialize}'")
         newGroup  = oldGroup.copy(serverList = (oldGroup.serverList -- delete) ++ add)
-        result   <- saveModifyNodeGroupDiff(existing, con, newGroup, modId, actor, reason)
+        result   <- saveModifyNodeGroupDiff(existing, con, newGroup)
       } yield {
         result
       }
@@ -1198,13 +1154,13 @@ class WoLDAPNodeGroupRepository(
                          case Some(diff) =>
                            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = message)
                        }
-      res           <- getNodeGroup(nodeGroupId)(using cc.toQuery)
+      res           <- getNodeGroup(nodeGroupId)(using cc.toQC)
       (nodeGroup, _) = res
       autoArchive   <-
         ZIO
           .when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { // only persists if that was a real move (not a move in the same category)
             for {
-              get      <- getNodeGroup(nodeGroupId)(using cc.toQuery)
+              get      <- getNodeGroup(nodeGroupId)(using cc.toQC)
               (ng, cId) = get
               parents  <- getParents_NodeGroupCategory(cId)
               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -1225,12 +1181,7 @@ class WoLDAPNodeGroupRepository(
    * @param id
    * @return
    */
-  override def delete(
-      id:     NodeGroupId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[DeleteNodeGroupDiff] = {
+  override def delete(id: NodeGroupId)(implicit cc: ChangeContext): IOResult[DeleteNodeGroupDiff] = {
     groupLibMutex.writeLock(for {
       con          <- ldap
       parents      <- if (autoExportOnModify) {
@@ -1258,12 +1209,12 @@ class WoLDAPNodeGroupRepository(
       }
       diff          = DeleteNodeGroupDiff(oldGroup)
       loggedAction <- actionlogEffect
-                        .saveDeleteNodeGroup(modId, principal = actor, deleteDiff = diff, reason = reason)
+                        .saveDeleteNodeGroup(cc.modId, principal = cc.actor, deleteDiff = diff, reason = cc.message)
                         .chainError("Error when saving user event log for node deletion")
       autoArchive  <- ZIO.when(autoExportOnModify && !oldGroup.isSystem) {
                         for {
-                          commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some((modId, commiter, reason)))
+                          commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                          archive  <- gitArchiver.deleteNodeGroup(id, parents, Some((cc.modId, commiter, cc.message)))
                         } yield {
                           archive
                         }

@@ -2,7 +2,6 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
@@ -133,10 +132,11 @@ class CreateCloneGroupPopup(
                   isSystem = false,
                   security = CurrentUser.nodePerms.toSecurityTag
                 ),
-                NodeGroupCategoryId(groupContainer.get),
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                Some("Node Group category created by user from UI")
+                NodeGroupCategoryId(groupContainer.get)
+              )(using
+                CurrentUser.changeContext(
+                  Some("Node Group category created by user from UI")
+                )
               )
               .toBox match {
               case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -169,12 +169,10 @@ class CreateCloneGroupPopup(
             )
 
             woNodeGroupRepository
-              .create(
-                clone,
-                parentCategoryId,
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                groupReasons.map(_.get)
+              .create(clone, parentCategoryId)(using
+                CurrentUser.changeContext(
+                  groupReasons.map(_.get)
+                )
               )
               .toBox match {
               case Full(x)          =>

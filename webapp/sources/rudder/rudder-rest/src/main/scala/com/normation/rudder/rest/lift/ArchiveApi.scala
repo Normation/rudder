@@ -1628,7 +1628,7 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
 
-  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive):          IOResult[Unit] = {
+  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
     for {
       at <-
         roDirectiveRepos
@@ -1666,20 +1666,14 @@ class SaveArchiveServicebyRepo(
                    security = cc.nodePerms.toSecurityTag
                  )
       _       <- if (exists) {
-                   woGroupRepos.saveGroupCategory(category, parentId, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+                   woGroupRepos.saveGroupCategory(category, parentId)
                  } else {
-                   woGroupRepos.addGroupCategorytoCategory(
-                     category,
-                     parentId,
-                     eventMetadata.modId,
-                     eventMetadata.actor,
-                     eventMetadata.msg
-                   )
+                   woGroupRepos.addGroupCategorytoCategory(category, parentId)
                  }
     } yield ()
   }
+
   def saveGroup(g: GroupArchive)(implicit cc: ChangeContext):                    IOResult[Unit] = {
-    import cc.*
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
       // normally, at that point the category of the group exists because we took care to create them before.
@@ -1697,24 +1691,21 @@ class SaveArchiveServicebyRepo(
                  isSystem = false,
                  security = cc.nodePerms.toSecurityTag
                ),
-               GroupRootId,
-               modId,
-               actor,
-               message
+               GroupRootId
              )
            }
       // now we can check if we create a new group or update one
-      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQuery)
+      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQC)
       _ <- x match {
              case Some((_, parentId)) =>
-               woGroupRepos.update(g.group, modId, actor, message) *>
+               woGroupRepos.update(g.group) *>
                // we need to check if the group moved
                ZIO.when(parentId != g.category) {
                  woGroupRepos.move(g.group.id, g.category)
                }
 
              case None =>
-               woGroupRepos.create(g.group, g.category, modId, actor, message)
+               woGroupRepos.create(g.group, g.category)
            }
     } yield ()
   }

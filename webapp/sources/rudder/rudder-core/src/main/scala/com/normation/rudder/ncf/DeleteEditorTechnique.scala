@@ -180,7 +180,7 @@ class DeleteEditorTechniqueImpl(
                       )
         _          <- techLibUpdate
                         .update()(using
-                          ChangeContext.newFromQC(qc, Some(s"Update Technique library after deletion of technique '${technique.name}'"))
+                          qc.newCC(Some(s"Update Technique library after deletion of technique '${technique.name}'"))
                         )
                         .toIO
                         .chainError(
@@ -219,8 +219,7 @@ class DeleteEditorTechniqueImpl(
                          )
                      _ <- techLibUpdate
                             .update()(using
-                              ChangeContext.newFromQC(
-                                qc,
+                              qc.newCC(
                                 Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")
                               )
                             )

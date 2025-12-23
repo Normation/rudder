@@ -1640,7 +1640,7 @@ final case class ChangeContext(
 
 object ChangeContext {
   implicit class ChangeContextImpl(cc: ChangeContext) {
-    def toQuery: QueryContext = QueryContext(cc.actor, cc.nodePerms)
+    def toQC: QueryContext = QueryContext(cc.actor, cc.nodePerms)
   }
 
   def newFor(
@@ -1660,10 +1660,6 @@ object ChangeContext {
 
   }
 
-  def newFromQC(qc: QueryContext, message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
-    newFor(qc.actor, qc.nodePerms, message, actorIp)
-  }
-
   def newForRudder(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
     newFor(eventlog.RudderEventActor, NodeSecurityContext.All, message, actorIp)
   }
@@ -1678,7 +1674,14 @@ object ChangeContext {
 final case class QueryContext(
     actor:     EventActor,
     nodePerms: NodeSecurityContext
-)
+) {
+  /*
+   * Create a fresh new ChangeContext, with a new modification ID, from that QueryContext
+   */
+  def newCC(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
+    ChangeContext.newFor(actor, nodePerms, message, actorIp)
+  }
+}
 
 object QueryContext {
   // for test

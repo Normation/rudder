@@ -56,7 +56,6 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -941,7 +940,7 @@ object DirectiveManagement {
   def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd): JsCmd = {
     val msg = (if (status) "Enable" else "Disable") ++ "technique from directive library screen"
     RudderConfig.woDirectiveRepository
-      .changeStatus(activeTechniqueId, status)(using ChangeContext.newFromQC(CurrentUser.queryContext, Some(msg)))
+      .changeStatus(activeTechniqueId, status)(using CurrentUser.changeContext(Some(msg)))
       .either
       .runNow match {
       case Left(err) =>

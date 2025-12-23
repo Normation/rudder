@@ -2789,12 +2789,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     }
 
     // only used in relay plugin
-    override def createPolicyServerTarget(
-        target: PolicyServerTarget,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[LDIFChangeRecord] = ???
+    override def createPolicyServerTarget(target: PolicyServerTarget)(implicit cc: ChangeContext): IOResult[LDIFChangeRecord] =
+      ???
 
     // create group into Some(cat) (group must not exists) or update group (into=None, group must exists)
     def createOrUpdate(group: NodeGroup, into: Option[NodeGroupCategoryId]): IOResult[Option[NodeGroup]] = {
@@ -2835,25 +2831,14 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       })
     }
 
-    override def create(
-        group: NodeGroup,
-        into:  NodeGroupCategoryId,
-        modId: ModificationId,
-        actor: EventActor,
-        why:   Option[String]
-    ): IOResult[AddNodeGroupDiff] = {
+    override def create(group: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff] = {
       createOrUpdate(group, Some(into)).flatMap {
         case None    => AddNodeGroupDiff(group).succeed
         case Some(_) => Inconsistency(s"Group '${group.id.serialize}' was present'").fail
       }
     }
 
-    override def update(
-        group:          NodeGroup,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = {
+    override def update(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
       createOrUpdate(group, None).flatMap {
         case None      => Inconsistency(s"Group '${group.id.serialize}' was missing").fail
         case Some(old) =>
@@ -2875,12 +2860,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       }
     }
 
-    override def delete(
-        id:             NodeGroupId,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[DeleteNodeGroupDiff] = {
+    override def delete(id: NodeGroupId)(implicit cc: ChangeContext): IOResult[DeleteNodeGroupDiff] = {
       def recDelete(id: NodeGroupId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
         current.copy(
           targetInfos = current.targetInfos.filterNot(_.toTargetInfo.target.target == s"group:${id.serialize}"),
@@ -2896,12 +2876,9 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         })
         .map(g => DeleteNodeGroupDiff(g.nodeGroup))
     }
-    override def delete(
-        id:             NodeGroupCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
+
+    override def delete(id: NodeGroupCategoryId, checkEmpty: Boolean)(implicit
+        cc: ChangeContext
     ): IOResult[NodeGroupCategoryId] = {
       def recDelete(id: NodeGroupCategoryId, current: FullNodeGroupCategory): FullNodeGroupCategory = {
         current.copy(subCategories = current.subCategories.filterNot(_.id == id).map(c => recDelete(id, c)))
@@ -2916,35 +2893,22 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         .map(_ => id)
     }
 
-    override def updateDiffNodes(
-        group:          NodeGroupId,
-        add:            List[NodeId],
-        delete:         List[NodeId],
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
+    override def updateDiffNodes(group: NodeGroupId, add: List[NodeId], delete: List[NodeId])(implicit
+        cc: ChangeContext
     ): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
-    override def updateSystemGroup(
-        group:  NodeGroup,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+    override def updateSystemGroup(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
-    override def updateDynGroupNodes(
-        group:          NodeGroup,
-        modId:          ModificationId,
-        actor:          EventActor,
-        whyDescription: Option[String]
-    ): IOResult[Option[ModifyNodeGroupDiff]] = ???
+    override def updateDynGroupNodes(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
     override def move(
         group:       NodeGroupId,
         containerId: NodeGroupCategoryId
     )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = ???
 
-    override def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget] = ???
+    override def deletePolicyServerTarget(policyServer: PolicyServerTarget)(implicit
+        cc: ChangeContext
+    ): IOResult[PolicyServerTarget] = ???
 
     def updateCategory(
         t:    FullNodeGroupCategory,
@@ -2957,12 +2921,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       recUpdateCat(c, parents)
     }
 
-    override def addGroupCategorytoCategory(
-        that:           NodeGroupCategory,
-        into:           NodeGroupCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
+    override def addGroupCategorytoCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
+        cc: ChangeContext
     ): IOResult[NodeGroupCategory] = {
       categories
         .updateZIO(root => {
@@ -2976,12 +2936,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         .map(_ => that)
     }
 
-    override def saveGroupCategory(
-        category:       NodeGroupCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[NodeGroupCategory] = {
+    override def saveGroupCategory(category: NodeGroupCategory)(implicit cc: ChangeContext): IOResult[NodeGroupCategory] = {
       categories
         .updateZIO(root => {
           for {
@@ -3002,12 +2957,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         .map(_ => category)
     }
 
-    override def saveGroupCategory(
-        category:       NodeGroupCategory,
-        containerId:    NodeGroupCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
+    override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId)(implicit
+        cc: ChangeContext
     ): IOResult[NodeGroupCategory] = {
       categories
         .updateZIO(root => {
@@ -3335,7 +3286,7 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
     (g0, cat) = res
     q        <- queryParser.apply(qs).toIO
     g         = g0.copy(query = Some(q))
-    _        <- mockNodeGroups.groupsRepo.update(g, ModificationId("init query of g0"), TestActor.get, None)
+    _        <- mockNodeGroups.groupsRepo.update(g)(using qc.newCC().copy(modId = ModificationId("init query of g0")))
   } yield ()).runNow
 
 }
