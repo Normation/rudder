@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
-use ini::{Ini, ParseOption};
+use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use serde_json::{Map, Value};
-use std::fs::{File, read_to_string};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -34,11 +34,14 @@ impl Secedit {
     }
 
     fn apply_template(&self, template: &Ini) -> Result<()> {
-        let config = self.tmp_dir.path().join("tmp.ini");
-        template.write_to_file(&config)?;
+        let opt = WriteOption {
+            escape_policy: EscapePolicy::Nothing,
+            ..Default::default()
+        };
+        let mut buf: Vec<u8> = Vec::new();
+        template.write_to_opt(&mut buf, opt)?;
+        let data = String::from_utf8(buf)?;
 
-        let data = read_to_string(&config)?;
-        let data = data.replace(r"\\", r"\"); // FIXME: Escaping issue
         let config = self.tmp_dir.path().join("config.ini");
         write_utf16_file(&config, &data)?;
 
@@ -179,12 +182,19 @@ mod test {
 
     #[test]
     fn test_template_search_and_replace() {
-        let mut template = Ini::load_from_str(
-            "[User]
+        let opt = ParseOption {
+            enabled_escape: false,
+            ..Default::default()
+        };
+        let mut template = Ini::load_from_str_opt(
+            r"[User]
             name = Ferris
             value = Pi
             [Settings]
-            abc = 21",
+            abc = 21
+            [Registry Values]
+            MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Setup\RecoveryConsole\SecurityLevel=4,0",
+            opt
         )
         .unwrap();
 
@@ -197,6 +207,9 @@ mod test {
             },
             "Settings": {
                 "abc": 12
+            },
+            "Registry Values": {
+                "MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Setup\\RecoveryConsole\\SecurityLevel": "4,0"
             }
         }"#,
         )
