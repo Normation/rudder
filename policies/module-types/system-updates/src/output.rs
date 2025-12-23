@@ -39,6 +39,17 @@ impl<T> ResultOutput<T> {
         }
     }
 
+    pub fn into_err<U>(self) -> ResultOutput<U>
+    where
+        T: std::fmt::Debug,
+    {
+        ResultOutput {
+            inner: self.inner.map(|_| unreachable!()).map_err(|e| e),
+            stdout: self.stdout,
+            stderr: self.stderr,
+        }
+    }
+
     /// Add logs to stdout
     pub fn stdout(&mut self, s: String) {
         self.stdout.push(s)
@@ -64,8 +75,8 @@ impl<T> ResultOutput<T> {
     }
 
     /// Chain a `ResultOutput` to another
-    pub fn step<S>(self, s: ResultOutput<S>) -> ResultOutput<S> {
-        let mut res = ResultOutput::new(s.inner);
+    pub fn step<S>(self, next: ResultOutput<S>) -> ResultOutput<S> {
+        let mut res = ResultOutput::new(next.inner);
 
         for l in self.stderr {
             res.stderr.push(l)
@@ -74,10 +85,10 @@ impl<T> ResultOutput<T> {
             res.stdout.push(l)
         }
 
-        for l in s.stderr {
+        for l in next.stderr {
             res.stderr.push(l)
         }
-        for l in s.stdout {
+        for l in next.stdout {
             res.stdout.push(l)
         }
         res
