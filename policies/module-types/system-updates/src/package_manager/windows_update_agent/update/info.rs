@@ -24,18 +24,18 @@ impl Info {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct InfoData {
-    update_id: String,
-    revision_number: i32,
-    title: String,
-    kbs: ArticleCollection,
-    msrc_severity: String,
-    categories: CategoryCollection,
+    pub update_id: String,
+    pub revision_number: i32,
+    pub title: String,
+    pub kbs: ArticleCollection,
+    pub msrc_severity: String,
+    pub categories: CategoryCollection,
     #[serde(skip)]
-    is_downloaded: bool,
+    pub is_downloaded: bool,
     #[serde(skip)]
-    is_installed: bool,
-    is_mandatory: bool,
-    superseded_update_ids: Vec<String>,
+    pub is_installed: bool,
+    pub is_mandatory: bool,
+    pub superseded_update_ids: Vec<String>,
 }
 impl InfoData {
     pub fn try_from_com(u: &IUpdate) -> Result<Self, Error> {

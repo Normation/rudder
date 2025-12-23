@@ -20,10 +20,9 @@ use std::str::FromStr;
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 mod apt;
 mod rpm;
+mod windows_update_agent;
 mod yum;
 mod zypper;
-
-mod windows_update_agent;
 
 /// Packages indexed by (name, arch).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -157,6 +156,7 @@ pub enum PackageManager {
     Apt,
     Zypper,
     Rpm,
+    WindowsUpdateAgent,
 }
 
 impl FromStr for PackageManager {
@@ -168,6 +168,7 @@ impl FromStr for PackageManager {
             "apt" | "apt_get" => PackageManager::Apt,
             "zypper" => PackageManager::Zypper,
             "rpm" => PackageManager::Rpm,
+            "windows_update-agent" => PackageManager::WindowsUpdateAgent,
             _ => bail!("Unknown package manager: {}", s),
         })
     }
