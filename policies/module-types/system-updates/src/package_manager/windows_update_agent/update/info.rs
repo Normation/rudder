@@ -22,7 +22,7 @@ impl Info {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct InfoData {
     pub update_id: String,
     pub revision_number: i32,

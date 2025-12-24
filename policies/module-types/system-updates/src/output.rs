@@ -94,6 +94,15 @@ impl<T> ResultOutput<T> {
         res
     }
 
+    pub fn log_step<S>(&mut self, next: &ResultOutput<S>) {
+        for l in &next.stderr {
+            self.stderr(l.clone())
+        }
+        for l in &next.stdout {
+            self.stdout(l.clone())
+        }
+    }
+
     pub fn clear_ok(self) -> ResultOutput<()> {
         let mut n = ResultOutput::new(Ok(()));
 

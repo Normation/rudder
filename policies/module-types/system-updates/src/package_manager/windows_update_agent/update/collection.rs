@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use windows::Win32::System::UpdateAgent::IUpdateCollection;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Collection {
     #[serde(skip)]
     pub com_ptr: Option<IUpdateCollection>,

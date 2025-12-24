@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use windows::Win32::System::UpdateAgent::ICategoryCollection;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct CategoryCollection(Vec<Category>);
 impl CategoryCollection {
     pub fn new() -> Self {
