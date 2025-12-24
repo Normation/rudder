@@ -193,12 +193,15 @@ impl PackageManager {
     /// Only used in CLI mode
     pub fn detect(os_release: &OsRelease) -> Result<Self> {
         let id = os_release.id.as_str();
+        #[cfgunix]
         Ok(match id {
             "debian" | "ubuntu" => Self::Apt,
             "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => Self::Yum,
             "sles" | "sled" => Self::Zypper,
             _ => bail!("Unknown package manager for OS: '{}'", id),
         })
+        #[cfg(not_unix)]
+        Ok(Self::WindowsUpdateAgent)
     }
 
     /// Split by line and null char, remove empty lines.
