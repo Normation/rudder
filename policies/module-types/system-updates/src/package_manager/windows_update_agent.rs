@@ -11,8 +11,8 @@ use windows::Win32::System::Com::{
     CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
 };
 use windows::Win32::System::UpdateAgent::{
-    IUpdate, IUpdateCollection, IUpdateDownloader, IUpdateInstallationResult, IUpdateInstaller,
-    IUpdateSession, UpdateCollection, UpdateSession,
+    ISystemInformation, IUpdate, IUpdateCollection, IUpdateDownloader, IUpdateInstallationResult,
+    IUpdateInstaller, IUpdateSession, SystemInformation, UpdateCollection, UpdateSession,
 };
 use windows::core::{BSTR, h};
 
@@ -20,7 +20,7 @@ mod kb;
 mod update;
 
 use crate::package_manager::windows_update_agent::update::{
-    Collection, InfoData, InstallationResult, UpdateDownloadResult,
+    Collection, InfoData, InstallationResult, UpdateDownloadResult, UpdateInstallationResult,
 };
 use crate::package_manager::windows_update_agent::update::{DownloadResult, OperationResultCode};
 
@@ -433,10 +433,39 @@ impl LinuxPackageManager for WindowsUpdateAgent {
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {
-        todo!()
+        let mut r = ResultOutput::new(Ok(true));
+        let raw_system_info =
+            unsafe { CoCreateInstance(&SystemInformation, None, CLSCTX_INPROC_SERVER) };
+        let system_info: ISystemInformation = match raw_system_info {
+            Err(e) => {
+                r.stderr(format!("Could not retrieve the SystemInformation object to detect if a reboot is required: {}", e));
+                return r.into_err();
+            }
+            Ok(s) => s,
+        };
+        let raw_reboot_required = unsafe { system_info.RebootRequired() };
+        match raw_reboot_required {
+            Err(e) => {
+                r.stderr(format!(
+                    "Could not detect if the system requires a reboot or not: {}",
+                    e
+                ));
+                return r.into_err();
+            }
+            Ok(b) => ResultOutput {
+                inner: Ok(b.as_bool()),
+                stderr: r.stderr,
+                stdout: r.stdout,
+            },
+        }
     }
 
     fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
-        todo!()
+        /// No support on Windows for now
+        ResultOutput {
+            inner: Ok(vec![]),
+            stderr: vec![],
+            stdout: vec![],
+        }
     }
 }
