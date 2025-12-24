@@ -1,6 +1,7 @@
 use super::{Collection, InfoData, OperationResultCode};
 use anyhow::{Error, Result, bail};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use windows::Win32::System::UpdateAgent::{IDownloadResult, IUpdateDownloadResult};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UpdateDownloadResult {
@@ -21,6 +22,16 @@ impl UpdateDownloadResult {
                 update: u,
             })
         }
+    }
+}
+
+impl Display for UpdateDownloadResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "h_result: {}, result_code: {}",
+            self.h_result, self.result_code
+        )
     }
 }
 

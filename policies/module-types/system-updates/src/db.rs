@@ -90,8 +90,6 @@ impl PackageDatabase {
             // Set lowest permissions
             #[cfg(unix)]
             fs::set_permissions(full_path.as_path(), Permissions::from_mode(0o600))?;
-            #[cfg(not(unix))]
-            todo!();
             conn
         } else {
             rudder_debug!(

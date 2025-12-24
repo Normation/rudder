@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::package_manager::{PackageDiff, PackageId};
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{
     fmt::Display,
     process::{Command, Output},
 };
-
-use crate::package_manager::PackageDiff;
 
 /// Outcome of each function
 ///
@@ -107,6 +107,17 @@ impl<T> ResultOutput<T> {
 
     pub fn clear_ok(self) -> ResultOutput<()> {
         let mut n = ResultOutput::new(Ok(()));
+
+        if let Err(e) = self.inner {
+            n.inner = Err(e)
+        }
+        n.stdout = self.stdout;
+        n.stderr = self.stderr;
+        n
+    }
+
+    pub fn clear_ok_with_details(self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+        let mut n = ResultOutput::new(Ok(HashMap::new()));
 
         if let Err(e) = self.inner {
             n.inner = Err(e)

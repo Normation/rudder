@@ -1,6 +1,7 @@
-use super::{Collection, InfoData, OperationResultCode};
+use super::{Collection, InfoData, OperationResultCode, UpdateDownloadResult};
 use anyhow::{Error, Result, bail};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use windows::Win32::System::UpdateAgent::{IInstallationResult, IUpdateInstallationResult};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -24,6 +25,15 @@ impl UpdateInstallationResult {
                 update: u,
             })
         }
+    }
+}
+impl Display for UpdateInstallationResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "h_result: {}, result_code: {}, reboot_required: {}",
+            self.h_result, self.result_code, self.reboot_required
+        )
     }
 }
 

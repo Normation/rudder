@@ -24,3 +24,16 @@ impl OperationResultCode {
         }
     }
 }
+
+impl std::fmt::Display for OperationResultCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::OrcNoStarted => write!(f, "0 (OrcNoStarted)"),
+            Self::OrcInProgress => write!(f, "1 (OrcInProgress)"),
+            Self::OrcSucceeded => write!(f, "2 (OrcSucceeded)"),
+            Self::OrcSucceededWithErrors => write!(f, "3 (OrcSucceededWithErrors)"),
+            Self::OrcFailed => write!(f, "4 (OrcFailed)"),
+            Self::OrcAborted => write!(f, "5 (OrcAborted)"),
+        }
+    }
+}

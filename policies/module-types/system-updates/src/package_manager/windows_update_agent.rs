@@ -5,7 +5,7 @@ use crate::package_manager::{
 };
 use anyhow::{Context, Result, bail};
 use std::collections::{HashMap, HashSet};
-use std::fmt::format;
+use std::hash::Hash;
 use windows::Win32::Foundation::VARIANT_BOOL;
 use windows::Win32::System::Com::{
     CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
@@ -116,6 +116,7 @@ fn updates_to_package_list(c: Collection) -> PackageList {
                     version: "none:none".to_string(),
                     from: "".to_string(),
                     source: PackageManager::WindowsUpdateAgent,
+                    details: None,
                 },
             )
         })
@@ -249,6 +250,11 @@ fn install_updates(
 }
 
 pub struct WindowsUpdateAgent {}
+impl WindowsUpdateAgent {
+    pub fn new() -> WindowsUpdateAgent {
+        WindowsUpdateAgent {}
+    }
+}
 
 impl LinuxPackageManager for WindowsUpdateAgent {
     fn list_installed(&mut self) -> ResultOutput<PackageList> {
@@ -286,8 +292,12 @@ impl LinuxPackageManager for WindowsUpdateAgent {
         }
     }
 
-    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()> {
-        let mut r = ResultOutput::new(Ok(()));
+    fn upgrade(
+        &mut self,
+        update_type: &FullCampaignType,
+    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+        let mut r = ResultOutput::new(Ok(HashMap::new()));
+        // Safely get mutable reference of the inner map or return early
         /// Get a COM session
         let result_session = initialize_com();
         let session = match result_session.inner {
@@ -319,6 +329,28 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             }
             Ok(x) => x,
         };
+        /// Update the return type to contain each package download details
+        {
+            let details = match &mut r.inner {
+                Ok(d) => d,
+                _ => {
+                    r.stderr("Internal error: install details map not available".to_string());
+                    return r.into_err();
+                }
+            };
+
+            update_download_result.update_results.iter().for_each(|ir| {
+                let extra = format!("\nInstall result:\n{}", ir.clone());
+                details
+                    .entry(ir.update.clone().into())
+                    .and_modify(|opt| match opt {
+                        Some(existing) => existing.push_str(&extra),
+                        None => *opt = Some(extra.clone()),
+                    })
+                    .or_insert(Some(extra));
+            });
+        }
+
         /// Log the download result
         let (d_succeeded, d_failed): (
             Vec<UpdateDownloadResult>,
@@ -391,10 +423,31 @@ impl LinuxPackageManager for WindowsUpdateAgent {
         let update_install_result = match raw_install_result.inner {
             Err(e) => {
                 r.stderr(format!("Failed to retrieve install status result: {}", e));
-                return r;
+                return r.into_err();
             }
             Ok(x) => x,
         };
+        /// Update the return type to contain each package install details
+        {
+            let details = match &mut r.inner {
+                Ok(d) => d,
+                _ => {
+                    r.stderr("Internal error: install details map not available".to_string());
+                    return r.into_err();
+                }
+            };
+
+            update_install_result.update_results.iter().for_each(|ir| {
+                let extra = format!("\nInstall result:\n{}", ir.clone());
+                details
+                    .entry(ir.update.clone().into())
+                    .and_modify(|opt| match opt {
+                        Some(existing) => existing.push_str(&extra),
+                        None => *opt = Some(extra.clone()),
+                    })
+                    .or_insert(Some(extra));
+            });
+        }
         /// Log the download result
         let (i_succeeded, i_failed): (
             Vec<UpdateInstallationResult>,
@@ -425,11 +478,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             i_failed.len(),
             updates_to_install.updates.len()
         ));
-        ResultOutput {
-            inner: Ok(()),
-            stdout: r.stdout,
-            stderr: r.stderr,
-        }
+        r
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {

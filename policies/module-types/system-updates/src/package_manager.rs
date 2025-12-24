@@ -7,8 +7,10 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::package_manager::PackageManager::WindowsUpdateAgent;
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
+use crate::package_manager::windows_update_agent::WindowsUpdateAgent as WUAPackageManager;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -37,6 +39,7 @@ pub struct PackageInfo {
     pub(crate) version: String,
     pub(crate) from: String,
     pub(crate) source: PackageManager,
+    pub(crate) details: Option<String>,
 }
 
 impl PackageList {
@@ -54,6 +57,7 @@ impl PackageList {
                     old_version: Some(info.version.clone()),
                     new_version: None,
                     action: PackageAction::Removed,
+                    details: None,
                 };
                 changes.push(action);
             }
@@ -67,6 +71,7 @@ impl PackageList {
                         new_version: Some(info.version),
                         old_version: None,
                         action: PackageAction::Added,
+                        details: info.details,
                     };
                     changes.push(action);
                 }
@@ -77,6 +82,7 @@ impl PackageList {
                         new_version: Some(info.version),
                         old_version: Some(i.version.clone()),
                         action: PackageAction::Updated,
+                        details: info.details,
                     };
                     changes.push(action);
                 }
@@ -84,6 +90,22 @@ impl PackageList {
         }
 
         changes
+    }
+
+    pub fn augment_with_details(self, details: &HashMap<PackageId, Option<String>>) -> Self {
+        let mut inner: HashMap<PackageId, PackageInfo> = HashMap::new();
+        for (k, v) in self.inner {
+            match details.get(&k).cloned() {
+                None => {
+                    inner.insert(k, v);
+                }
+                Some(i) => {
+                    let info = PackageInfo { details: i, ..v };
+                    inner.insert(k, info);
+                }
+            }
+        }
+        Self { inner }
     }
 }
 
@@ -97,6 +119,8 @@ pub struct PackageDiff {
     #[serde(skip_serializing_if = "Option::is_none")]
     new_version: Option<String>,
     action: PackageAction,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    details: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -185,14 +209,16 @@ impl PackageManager {
             }
             #[cfg(not(any(feature = "apt", feature = "apt-compat")))]
             PackageManager::Apt => bail!("This module was not build with APT support"),
+            PackageManager::WindowsUpdateAgent => Box::new(WUAPackageManager::new()),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()?),
             _ => bail!("This package manager does not provide patch management features"),
         })
     }
 
     /// Only used in CLI mode
-    pub fn detect(os_release: &OsRelease) -> Result<Self> {
-        let id = os_release.id.as_str();
+    pub fn detect() -> Result<Self> {
+        ///pub fn detect(os_release: &OsRelease) -> Result<Self> {
+        ///let id = os_release.id.as_str();
         #[cfg(unix)]
         {
             Ok(match id {
@@ -236,7 +262,10 @@ pub trait LinuxPackageManager {
     fn list_installed(&mut self) -> ResultOutput<PackageList>;
 
     /// Upgrade specific packages
-    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()>;
+    fn upgrade(
+        &mut self,
+        update_type: &FullCampaignType,
+    ) -> ResultOutput<HashMap<PackageId, Option<String>>>;
 
     /// Is a reboot pending?
     fn reboot_pending(&self) -> ResultOutput<bool>;
@@ -260,6 +289,7 @@ mod tests {
                 version: "22.1.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -268,6 +298,7 @@ mod tests {
                 version: "22.1.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -276,6 +307,7 @@ mod tests {
                 version: "5.4.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -284,6 +316,7 @@ mod tests {
                 version: "42.2-4.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         old.insert(
@@ -292,6 +325,7 @@ mod tests {
                 version: "103.0.5060.53-1".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
 
@@ -302,6 +336,7 @@ mod tests {
                 version: "1.1.35-2.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -310,6 +345,7 @@ mod tests {
                 version: "22.1.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -318,6 +354,7 @@ mod tests {
                 version: "5.5.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -326,6 +363,7 @@ mod tests {
                 version: "42.2-4.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
         new.insert(
@@ -334,6 +372,7 @@ mod tests {
                 version: "103.0.5060.53-1".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Yum,
+                details: None,
             },
         );
 
@@ -346,18 +385,21 @@ mod tests {
                 old_version: Some("22.1.2-1.fc36".to_string()),
                 new_version: None,
                 action: PackageAction::Removed,
+                details: None,
             },
             PackageDiff {
                 id: PackageId::new("gtksourceview5".to_string(), "x86_64".to_string()),
                 old_version: Some("5.4.2-1.fc36".to_string()),
                 new_version: Some("5.5.2-1.fc36".to_string()),
                 action: PackageAction::Updated,
+                details: None,
             },
             PackageDiff {
                 id: PackageId::new("libxslt".to_string(), "x86_64".to_string()),
                 old_version: None,
                 new_version: Some("1.1.35-2.fc36".to_string()),
                 action: PackageAction::Added,
+                details: None,
             },
         ];
 

@@ -1,5 +1,6 @@
 use super::super::kb::ArticleCollection;
 use super::CategoryCollection;
+use crate::package_manager::PackageId;
 use anyhow::Error;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -53,6 +54,15 @@ impl InfoData {
                 is_mandatory: u.IsMandatory()?.as_bool(),
                 superseded_update_ids: vec![],
             })
+        }
+    }
+}
+
+impl Into<PackageId> for InfoData {
+    fn into(self) -> PackageId {
+        PackageId {
+            name: self.title,
+            arch: "noarch".to_string(),
         }
     }
 }
