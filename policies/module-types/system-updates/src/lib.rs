@@ -34,7 +34,10 @@ use std::{env, path::PathBuf, str::FromStr};
 const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
 
 // Same as the python implementation
+#[cfg(unix)]
 pub const MODULE_DIR: &str = "/var/rudder/system-update";
+#[cfg(not(unix))]
+pub const MODULE_DIR: &str = "C:/Program Files/rudder/system-update";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy, Default)]
 #[serde(rename_all = "kebab-case")]

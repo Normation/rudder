@@ -56,6 +56,7 @@ impl RpmPackageManager {
                 // TODO?
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             };
             packages.insert(p, i);
         }

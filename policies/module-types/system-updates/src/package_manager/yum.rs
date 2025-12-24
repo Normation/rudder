@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use std::collections::HashMap;
 use std::process::Command;
 
 use anyhow::Result;
 
 use crate::output::{CommandBehavior, CommandCapture};
-use crate::package_manager::PackageManager;
+use crate::package_manager::{PackageId, PackageManager};
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -46,7 +47,7 @@ impl YumPackageManager {
         res
     }
 
-    fn full_upgrade(&mut self) -> ResultOutput<()> {
+    fn full_upgrade(&mut self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
         // https://serverfault.com/a/1075175
         let mut c = Command::new("yum");
         c.arg("--assumeyes").arg("update");
@@ -55,11 +56,11 @@ impl YumPackageManager {
             CommandBehavior::FailOnErrorCode,
             CommandCapture::StdoutStderr,
         )
-        .clear_ok()
+        .clear_ok_with_details()
     }
 
     /// `yum install yum-plugin-security` is only necessary on RHEL < 7, which are not supported.
-    fn security_upgrade(&mut self) -> ResultOutput<()> {
+    fn security_upgrade(&mut self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
         // See https://access.redhat.com/solutions/10021
         let mut c = Command::new("yum");
         c.arg("--assumeyes").arg("--security").arg("update");
@@ -68,10 +69,13 @@ impl YumPackageManager {
             CommandBehavior::FailOnErrorCode,
             CommandCapture::StdoutStderr,
         )
-        .clear_ok()
+        .clear_ok_with_details()
     }
 
-    fn software_upgrade(&mut self, packages: &[PackageSpec]) -> ResultOutput<()> {
+    fn software_upgrade(
+        &mut self,
+        packages: &[PackageSpec],
+    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
         let mut c = Command::new("yum");
         c.arg("--assumeyes")
             .arg("update")
@@ -81,7 +85,7 @@ impl YumPackageManager {
             CommandBehavior::FailOnErrorCode,
             CommandCapture::StdoutStderr,
         )
-        .clear_ok()
+        .clear_ok_with_details()
     }
 }
 
@@ -90,7 +94,10 @@ impl LinuxPackageManager for YumPackageManager {
         self.rpm.installed()
     }
 
-    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()> {
+    fn upgrade(
+        &mut self,
+        update_type: &FullCampaignType,
+    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
         match update_type {
             FullCampaignType::SystemUpdate => self.full_upgrade(),
             FullCampaignType::SecurityUpdate => self.security_upgrade(),

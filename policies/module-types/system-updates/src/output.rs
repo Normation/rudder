@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::package_manager::{PackageDiff, PackageId};
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{
     fmt::Display,
     process::{Command, Output},
 };
-
-use crate::package_manager::PackageDiff;
 
 /// Outcome of each function
 ///
@@ -39,6 +39,19 @@ impl<T> ResultOutput<T> {
         }
     }
 
+    pub fn into_err<U>(self) -> ResultOutput<U>
+    where
+        T: std::fmt::Debug,
+    {
+        /// This is fine as this method forces an error on the inner object,
+        /// its inner type will never be used
+        ResultOutput {
+            inner: self.inner.map(|_| unreachable!()).map_err(|e| e),
+            stdout: self.stdout,
+            stderr: self.stderr,
+        }
+    }
+
     /// Add logs to stdout
     pub fn stdout(&mut self, s: String) {
         self.stdout.push(s)
@@ -64,8 +77,8 @@ impl<T> ResultOutput<T> {
     }
 
     /// Chain a `ResultOutput` to another
-    pub fn step<S>(self, s: ResultOutput<S>) -> ResultOutput<S> {
-        let mut res = ResultOutput::new(s.inner);
+    pub fn step<S>(self, next: ResultOutput<S>) -> ResultOutput<S> {
+        let mut res = ResultOutput::new(next.inner);
 
         for l in self.stderr {
             res.stderr.push(l)
@@ -74,17 +87,37 @@ impl<T> ResultOutput<T> {
             res.stdout.push(l)
         }
 
-        for l in s.stderr {
+        for l in next.stderr {
             res.stderr.push(l)
         }
-        for l in s.stdout {
+        for l in next.stdout {
             res.stdout.push(l)
         }
         res
     }
 
+    pub fn log_step<S>(&mut self, next: &ResultOutput<S>) {
+        for l in &next.stderr {
+            self.stderr(l.clone())
+        }
+        for l in &next.stdout {
+            self.stdout(l.clone())
+        }
+    }
+
     pub fn clear_ok(self) -> ResultOutput<()> {
         let mut n = ResultOutput::new(Ok(()));
+
+        if let Err(e) = self.inner {
+            n.inner = Err(e)
+        }
+        n.stdout = self.stdout;
+        n.stderr = self.stderr;
+        n
+    }
+
+    pub fn clear_ok_with_details(self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+        let mut n = ResultOutput::new(Ok(HashMap::new()));
 
         if let Err(e) = self.inner {
             n.inner = Err(e)
