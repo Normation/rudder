@@ -46,9 +46,9 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
@@ -328,7 +328,7 @@ class UpdateDynamicGroups(
                                                       Instant.now(),
                                                       Some("Update group due to batch update of dynamic groups"),
                                                       None,
-                                                      QueryContext.systemQC.nodePerms
+                                                      QueryContext.systemQC.accessGrant
                                                     )
                                                   )
                                                   .toIO
@@ -350,7 +350,7 @@ class UpdateDynamicGroups(
                                                       Instant.now(),
                                                       Some("Update group due to batch update of dynamic groups"),
                                                       None,
-                                                      QueryContext.systemQC.nodePerms
+                                                      QueryContext.systemQC.accessGrant
                                                     )
                                                   )
                                                   .toIO

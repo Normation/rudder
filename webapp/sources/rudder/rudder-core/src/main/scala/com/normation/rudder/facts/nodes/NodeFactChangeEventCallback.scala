@@ -63,6 +63,7 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepo
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.InvalidateCache
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import java.time.Instant

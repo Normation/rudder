@@ -52,12 +52,12 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
@@ -185,7 +185,7 @@ class CreateOrUpdateGlobalParameterPopup(
                                    Instant.now(),
                                    paramReasons.map(_.get),
                                    None,
-                                   qc.nodePerms
+                                   qc.accessGrant
                                  )
                                )
 

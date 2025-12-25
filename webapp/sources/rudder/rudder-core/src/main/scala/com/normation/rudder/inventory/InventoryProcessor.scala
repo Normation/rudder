@@ -53,11 +53,11 @@ import com.normation.inventory.services.provisioning.PipelinedInventorySaver
 import com.normation.inventory.services.provisioning.PostCommit
 import com.normation.inventory.services.provisioning.PreCommit
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import java.io.InputStream

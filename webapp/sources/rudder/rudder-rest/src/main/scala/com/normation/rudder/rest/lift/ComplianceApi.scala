@@ -67,7 +67,6 @@ import com.normation.rudder.domain.reports.DirectiveStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.FullActiveTechnique
@@ -80,6 +79,7 @@ import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.CsvCompliance.*
 import com.normation.rudder.rest.data.JsonCompliance.*
 import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.zio.currentTimeMillis

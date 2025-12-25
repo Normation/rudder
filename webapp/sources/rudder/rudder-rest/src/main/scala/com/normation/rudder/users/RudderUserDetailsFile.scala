@@ -47,7 +47,7 @@ import com.normation.rudder.*
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.*
 import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.utils.XmlSafe
@@ -216,7 +216,7 @@ final case class UserDetailFileConfiguration(
     encoder:         RudderPasswordEncoder,
     isCaseSensitive: Boolean,
     customRoles:     List[Role],
-    users:           Map[String, (RudderAccount.User, Seq[Role], NodeSecurityContext)]
+    users:           Map[String, (RudderAccount.User, Seq[Role], TenantAccessGrant)]
 )
 object UserDetailFileConfiguration {
   def default(implicit passwordEncoder: RudderPasswordEncoder): UserDetailFileConfiguration = UserDetailFileConfiguration(
@@ -758,7 +758,7 @@ object UserFileProcessing {
   private def resolveUsers(
       users:         Iterable[ParsedUser],
       debugFileName: String
-  ): UIO[Iterable[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
+  ): UIO[Iterable[(RudderAccount.User, List[Role], TenantAccessGrant)]] = {
 
     val TODO_MODULE_TENANTS_ENABLED = true
 
@@ -766,18 +766,18 @@ object UserFileProcessing {
       val ParsedUser(name, pwd, roles, tenants) = u
 
       for {
-        nsc <- NodeSecurityContext
+        nsc <- TenantAccessGrant
                  .parseList(u.tenants)
                  .toIO
                  .flatMap { // check for adequate plugin
-                   case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
+                   case TenantAccessGrant.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
                      logger.warn(
                        s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
                        s"user '${name}' will be restricted to no tenants"
-                     ) *> NodeSecurityContext.None.succeed
-                   case x                                                                  => x.succeed
+                     ) *> TenantAccessGrant.None.succeed
+                   case x                                                                => x.succeed
                  }
-                 .catchAll(err => logger.warn(err.fullMsg) *> NodeSecurityContext.None.succeed)
+                 .catchAll(err => logger.warn(err.fullMsg) *> TenantAccessGrant.None.succeed)
         rs  <-
           RudderRoles
             .parseRoles(roles)

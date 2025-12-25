@@ -48,8 +48,8 @@ import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
@@ -94,7 +94,7 @@ final case class FullActiveTechnique(
     isEnabled:            Boolean = true,
     policyTypes:          PolicyTypes = PolicyTypes.rudderBase,
     security:             Option[SecurityTag]
-) extends HasSecurityContext {
+) {
   def toActiveTechnique(): ActiveTechnique = ActiveTechnique(
     id = id,
     techniqueName = techniqueName,
@@ -142,6 +142,16 @@ final case class FullActiveTechnique(
   }
 }
 
+object FullActiveTechnique {
+  given HasSecurityTag[FullActiveTechnique] with {
+    extension (a: FullActiveTechnique) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechnique = a.copy(security = security)
+    }
+  }
+}
+
 final case class FullActiveTechniqueCategory(
     id:               ActiveTechniqueCategoryId,
     name:             String,
@@ -150,8 +160,7 @@ final case class FullActiveTechniqueCategory(
     activeTechniques: List[FullActiveTechnique],
     isSystem:         Boolean,
     security:         Option[SecurityTag]
-) extends HasSecurityContext {
-
+) {
   val allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)] = (
     subCategories.flatMap(_.allDirectives).toMap
       ++ activeTechniques.flatMap(at => at.directives.map(d => (d.id, (at, d)))).toMap
@@ -298,7 +307,7 @@ final case class FullActiveTechniqueCategory(
             Nil,
             isEnabled = true,
             policyTypes = PolicyTypes.rudderBase,
-            security = cc.nodePerms.toSecurityTag // inherit user tenant creating that technique
+            security = cc.accessGrant.toSecurityTag // inherit user tenant creating that technique
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
@@ -320,6 +329,16 @@ final case class FullActiveTechniqueCategory(
       }
     } else {
       this.modify(_.subCategories).using(_.map(_.addActiveTechniqueCategory(categoryId, category)))
+    }
+  }
+}
+
+object FullActiveTechniqueCategory {
+  given HasSecurityTag[FullActiveTechniqueCategory] with {
+    extension (a: FullActiveTechniqueCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechniqueCategory = a.copy(security = security)
     }
   }
 }

@@ -40,7 +40,7 @@ import cats.data.*
 import cats.implicits.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import enumeratum.*
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -469,7 +469,7 @@ final case class ApiAccount(
     isEnabled:           Boolean,
     creationDate:        DateTime,
     tokenGenerationDate: DateTime,
-    tenants:             NodeSecurityContext
+    tenants:             TenantAccessGrant
 ) {
   def toNewApiAccount(secret: ApiTokenSecret): NewApiAccount = {
     NewApiAccount(
@@ -499,7 +499,7 @@ final case class NewApiAccount(
     isEnabled:           Boolean,
     creationDate:        DateTime,
     tokenGenerationDate: DateTime,
-    tenants:             NodeSecurityContext
+    tenants:             TenantAccessGrant
 ) {
   def toApiAccount(): ApiAccount = {
     ApiAccount(

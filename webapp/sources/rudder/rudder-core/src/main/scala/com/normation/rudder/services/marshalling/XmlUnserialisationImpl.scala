@@ -74,7 +74,7 @@ import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
@@ -894,7 +894,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                           case None    => ApiAccountType.PublicApi
                           case Some(s) => ApiAccountType.values.find(_.name == s).getOrElse(ApiAccountType.PublicApi)
                         }
-      tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
+      tenants        <- TenantAccessGrant.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
       val kind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System

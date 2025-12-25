@@ -3,12 +3,12 @@ package com.normation.rudder.score
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.MockNodes
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.score.ScoreValue.A
 import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
 import com.normation.rudder.score.ScoreValue.NoScore
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import org.specs2.mutable.Specification
 import zio.Chunk

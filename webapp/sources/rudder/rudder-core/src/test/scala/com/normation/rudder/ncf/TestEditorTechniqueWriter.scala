@@ -74,7 +74,6 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -89,6 +88,7 @@ import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.zio.*
 import java.io.File as JFile
 import java.io.InputStream

@@ -39,7 +39,7 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.rudder.domain.policies.RuleTargetInfo
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 
 /**
@@ -63,4 +63,14 @@ final case class NodeGroupCategory(
     items:       List[RuleTargetInfo],
     isSystem:    Boolean,
     security:    Option[SecurityTag]
-) extends ItemCategory[NodeGroupCategoryId, RuleTargetInfo] with HasSecurityContext
+) extends ItemCategory[NodeGroupCategoryId, RuleTargetInfo]
+
+object NodeGroupCategory {
+  given HasSecurityTag[NodeGroupCategory] with {
+    extension (a: NodeGroupCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeGroupCategory = a.copy(security = security)
+    }
+  }
+}

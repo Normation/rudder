@@ -46,10 +46,8 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
@@ -57,6 +55,8 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.score.ComplianceScore
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue.NoScore
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
@@ -130,7 +130,7 @@ class ShowNodeDetailsFromNode(
                    .toBox // we can't change the state of a missing node
       newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
       result  <- nodeFactRepo
-                   .save(newNode)(using ChangeContext(modId, qc.actor, Instant.now(), None, None, qc.nodePerms))
+                   .save(newNode)(using ChangeContext(modId, qc.actor, Instant.now(), None, None, qc.accessGrant))
                    .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)

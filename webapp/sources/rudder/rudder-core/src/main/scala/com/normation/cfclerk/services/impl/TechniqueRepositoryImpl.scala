@@ -41,7 +41,7 @@ import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.*
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
 import java.io.InputStream

@@ -38,7 +38,7 @@
 package com.normation.rudder.rest.data
 
 import com.normation.rudder.api.*
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -70,7 +70,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
       ApiAccountName("a1"),
       None,
       ApiAccountStatus.Disabled,
-      NodeSecurityContext.None,
+      TenantAccessGrant.None,
       None,
       None,
       None,
@@ -99,7 +99,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
       ApiAccountName("a2"),
       None,
       ApiAccountStatus.Disabled,
-      NodeSecurityContext.None,
+      TenantAccessGrant.None,
       None,
       None,
       Some(expiration),

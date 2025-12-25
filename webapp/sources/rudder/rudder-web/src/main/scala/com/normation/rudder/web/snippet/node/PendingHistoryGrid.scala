@@ -42,7 +42,7 @@ import com.normation.box.*
 import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.*
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.utils.DateFormaterService

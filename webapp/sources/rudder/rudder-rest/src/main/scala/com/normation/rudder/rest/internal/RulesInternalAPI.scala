@@ -45,7 +45,6 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.ApiModuleProvider
@@ -57,6 +56,7 @@ import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.currentTimeMillis
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req

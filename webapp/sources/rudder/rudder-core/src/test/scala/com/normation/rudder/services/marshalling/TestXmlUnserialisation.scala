@@ -29,8 +29,8 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
 import net.liftweb.common.Full
 import org.joda.time.format.ISODateTimeFormat
@@ -174,7 +174,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
           tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
-          tenants = NodeSecurityContext.All
+          tenants = TenantAccessGrant.All
         )
       )
     )
@@ -228,7 +228,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
           tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
-          tenants = NodeSecurityContext.All
+          tenants = TenantAccessGrant.All
         )
       )
     )
@@ -284,7 +284,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
           tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
-          tenants = NodeSecurityContext.All
+          tenants = TenantAccessGrant.All
         )
       )
     )

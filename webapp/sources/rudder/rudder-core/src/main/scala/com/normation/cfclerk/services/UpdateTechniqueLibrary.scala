@@ -38,7 +38,7 @@
 package com.normation.cfclerk.services
 
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.common.Box
 
 /**

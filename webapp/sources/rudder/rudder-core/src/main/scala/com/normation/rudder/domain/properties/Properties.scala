@@ -44,7 +44,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.CustomProperty
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.services.policies.ParameterEntry
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.*
 import enumeratum.*
@@ -197,18 +197,24 @@ final case class PatchProperty(
  * Provider, if not provided will return None
  * This trait provides update methods for generic processing (since we don't have case class compiler support).
  */
-sealed trait GenericProperty[P <: GenericProperty[?]] extends HasSecurityContext {
+sealed trait GenericProperty[P <: GenericProperty[?]] {
   import com.normation.rudder.domain.properties.GenericProperty.*
 
   def config: Config
   def fromConfig(v: Config): P
 
-  final def name:  String           = config.getString(NAME)
-  final def rev:   Option[Revision] = {
+  final def name: String           = config.getString(NAME)
+  final def rev:  Option[Revision] = {
     if (config.hasPath(REV_ID)) Some(Revision(config.getString(REV_ID)))
     else None
   }
-  final def value: ConfigValue      = {
+
+  def debugId: String = rev match {
+    case None | Some(GitVersion.DEFAULT_REV) => name
+    case Some(r)                             => s"${name}+${r.value}"
+  }
+
+  final def value: ConfigValue = {
     if (config.hasPath(VALUE)) config.getValue(VALUE)
     else ConfigValueFactory.fromAnyRef("")
   }
@@ -252,6 +258,10 @@ sealed trait GenericProperty[P <: GenericProperty[?]] extends HasSecurityContext
 
   final def withVisibility(v: Visibility): P = {
     fromConfig(patchVisibility(config, Some(v)))
+  }
+
+  final def withSecurity(s: Option[SecurityTag]): P = {
+    fromConfig(patchSecurity(config, Some(s)))
   }
 
   final def patch(p: PatchProperty): P = {
@@ -797,6 +807,14 @@ final case class NodeProperty(config: Config) extends GenericProperty[NodeProper
 
 object NodeProperty {
 
+  given HasSecurityTag[NodeProperty] with {
+    extension (a: NodeProperty) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.debugId
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeProperty = a.withSecurity(security)
+    }
+  }
+
   // the provider that manages inventory custom properties
   val customPropertyProvider: PropertyProvider = PropertyProvider("inventory")
 
@@ -835,6 +853,13 @@ final case class GroupProperty(config: Config) extends GenericProperty[GroupProp
 }
 
 object GroupProperty {
+  given HasSecurityTag[GroupProperty] with {
+    extension (a: GroupProperty) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.debugId
+      override def updateSecurityContext(security: Option[SecurityTag]): GroupProperty = a.withSecurity(security)
+    }
+  }
 
   /**
    * A builder with the logic to handle the value part.
@@ -975,6 +1000,14 @@ final case class GlobalParameter(config: Config) extends GenericProperty[GlobalP
 }
 
 object GlobalParameter {
+
+  given HasSecurityTag[GlobalParameter] with {
+    extension (a: GlobalParameter) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.debugId
+      override def updateSecurityContext(security: Option[SecurityTag]): GlobalParameter = a.withSecurity(security)
+    }
+  }
 
   /**
    * A builder with the logic to handle the value part.

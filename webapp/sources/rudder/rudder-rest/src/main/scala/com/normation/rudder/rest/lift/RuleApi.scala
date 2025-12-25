@@ -59,6 +59,7 @@ import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*
+import com.normation.rudder.tenants.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.StringUuidGenerator
@@ -340,7 +341,7 @@ class RuleApiService14(
                             Instant.now(),
                             params.reason,
                             None,
-                            qc.nodePerms
+                            qc.accessGrant
                           )
                         )
       directiveLib <- readDirectives.getFullDirectiveLibrary()
@@ -428,7 +429,7 @@ class RuleApiService14(
         case None =>
           // create from scratch - base rule is the same with default values
           val category       = restRule.categoryId.getOrElse("rootRuleCategory")
-          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.nodePerms.toSecurityTag)
+          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.accessGrant.toSecurityTag)
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -737,7 +738,7 @@ class RuleApiService14(
                     name,
                     restData.description.getOrElse(""),
                     Nil,
-                    security = cc.nodePerms.toSecurityTag
+                    security = cc.accessGrant.toSecurityTag
                   )
       parent    = restData.parent.getOrElse("rootRuleCategory")
       modId     = ModificationId(uuidGen.newUuid)

@@ -63,7 +63,7 @@ import com.normation.rudder.inventory.InventoryProcessStatus.Saved
 import com.normation.rudder.inventory.InventoryProcessStatus.SaveError
 import com.normation.rudder.inventory.NodeFactInventorySaver
 import com.normation.rudder.inventory.SaveInventoryInfo
-import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*

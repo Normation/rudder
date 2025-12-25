@@ -52,7 +52,7 @@ import com.normation.rudder.UncheckedCustomRole
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.users.Argon2EncoderParams
 import com.normation.rudder.users.Argon2Iterations
@@ -315,13 +315,13 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
         val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
 
         test("be able to define one tenants") {
-          assert(userDetailList.users("user_single").nodePerms)(equalTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))))
+          assert(userDetailList.users("user_single").nodePerms)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
         }
 
         test("be able to define a list of tenants") {
           assert(userDetailList.users("user_multi").nodePerms)(
             equalTo(
-              NodeSecurityContext.ByTenants(
+              TenantAccessGrant.ByTenants(
                 Chunk(TenantId("zoneA"), TenantId("zoneB"))
               )
             )
@@ -329,23 +329,23 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
         }
 
         test("have no tenants attribute means ALL for compat reason") {
-          assert(userDetailList.users("user_all_compat").nodePerms)(equalTo(NodeSecurityContext.All))
+          assert(userDetailList.users("user_all_compat").nodePerms)(equalTo(TenantAccessGrant.All))
         }
 
         test("have explicit '*' means ALL") {
-          assert(userDetailList.users("user_all_explicit").nodePerms)(equalTo(NodeSecurityContext.All))
+          assert(userDetailList.users("user_all_explicit").nodePerms)(equalTo(TenantAccessGrant.All))
         }
 
         test("have an empty list means NONE") {
-          assert(userDetailList.users("user_empty_list").nodePerms)(equalTo(NodeSecurityContext.None))
+          assert(userDetailList.users("user_empty_list").nodePerms)(equalTo(TenantAccessGrant.None))
         }
 
         test("have explicit '-' means NONE") {
-          assert(userDetailList.users("user_none_explicit").nodePerms)(equalTo(NodeSecurityContext.None))
+          assert(userDetailList.users("user_none_explicit").nodePerms)(equalTo(TenantAccessGrant.None))
         }
 
         test("only have access to sane ascii identifier") {
-          assert(userDetailList.users("user_ascii").nodePerms)(equalTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))))
+          assert(userDetailList.users("user_ascii").nodePerms)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
         }
       }
     }

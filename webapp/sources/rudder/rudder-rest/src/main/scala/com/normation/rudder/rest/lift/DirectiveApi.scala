@@ -62,7 +62,6 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -73,6 +72,7 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control.*
@@ -165,7 +165,7 @@ class DirectiveApi(
         Instant.now(),
         params.reason,
         None,
-        authzToken.qc.nodePerms
+        authzToken.qc.accessGrant
       )
 
       (for {
@@ -410,7 +410,7 @@ class DirectiveApiService14(
                                "",
                                None,
                                _isEnabled = true,
-                               security = cc.nodePerms.toSecurityTag
+                               security = cc.accessGrant.toSecurityTag
                              )
           result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params)
         } yield {

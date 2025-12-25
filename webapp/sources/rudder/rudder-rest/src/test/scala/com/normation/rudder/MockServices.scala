@@ -95,10 +95,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.rudder.tenants.NodeSecurityContext
-import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantId
-import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.tenants.*
 import com.normation.rudder.users.Argon2EncoderParams
 import com.normation.rudder.users.Argon2Iterations
 import com.normation.rudder.users.Argon2Memory
@@ -931,23 +928,25 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   object tenantsService extends TenantService {
     override def tenantsEnabled: Boolean            = false
     override def getTenants():   UIO[Set[TenantId]] = ???
-    override def updateTenants(ids:                             Set[TenantId]): IOResult[Unit] = ???
-    override def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc:          QueryContext): UIO[Option[A]]     = ???
-    override def nodeFilterStream(s:                            IOStream[NodeFact])(implicit qc: QueryContext): IOStream[NodeFact] = ???
-    override def nodeFilterMapView(nodes: Ref[Map[NodeId, CoreNodeFact]])(implicit
+    override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = ???
+    override def filter[A:       HasSecurityTag](opt: Option[A])(implicit qc:   QueryContext): UIO[Option[A]] = ???
+    override def filterStream[A: HasSecurityTag](s:   IOStream[A])(implicit qc: QueryContext): IOStream[A]    = ???
+    override def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(implicit
         qc: QueryContext
-    ): IOResult[MapView[NodeId, CoreNodeFact]] = ???
-    override def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
+    ): IOResult[MapView[ID, A]] = ???
+    override def getMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]], id: ID)(implicit
         qc: QueryContext
-    ): IOResult[Option[CoreNodeFact]] = ???
-    override def manageUpdate[A](existing: Option[CoreNodeFact], updated: NodeFact, cc: ChangeContext)(
-        action: NodeFact => IOResult[A]
-    ): IOResult[A] = ???
-    override def checkDelete(
-        existing:         CoreNodeFact,
+    ): IOResult[Option[A]] = ???
+    override def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
+        existing: Option[A],
+        updated:  B,
+        cc:       ChangeContext
+    )(action: B => IOResult[C]): IOResult[C] = ???
+    override def checkDelete[A: HasSecurityTag](
+        existing:         A,
         cc:               ChangeContext,
         availableTenants: Set[TenantId]
-    ): Either[RudderError, CoreNodeFact] = ???
+    ): Either[RudderError, A] = ???
   }
 }
 
@@ -1045,7 +1044,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         tokenGenerationDate = accountCreationDate,
-        NodeSecurityContext.All
+        TenantAccessGrant.All
       ),
       // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
       ApiAccount(
@@ -1057,7 +1056,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = false,     // done when reading account
         creationDate = accountCreationDate,
         tokenGenerationDate = accountCreationDate,
-        NodeSecurityContext.All
+        TenantAccessGrant.All
       ),
       // a standard admin account with rights on everything/all tenants
       ApiAccount(
@@ -1069,7 +1068,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         tokenGenerationDate = accountCreationDate,
-        NodeSecurityContext.All
+        TenantAccessGrant.All
       ),
       // limited account
       ApiAccount(
@@ -1084,7 +1083,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         tokenGenerationDate = accountCreationDate,
-        NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
+        TenantAccessGrant.ByTenants(Chunk(TenantId("zone1")))
       )
     ).map(a => (a.id, a)).toMap
   }

@@ -45,9 +45,9 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.NodeGroupCategoryForm
 import com.normation.rudder.web.components.NodeGroupForm
@@ -480,7 +480,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                     Instant.now(),
                     Some("Group moved by user"),
                     None,
-                    qc.nodePerms
+                    qc.accessGrant
                   )
                 )
                 .toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'"

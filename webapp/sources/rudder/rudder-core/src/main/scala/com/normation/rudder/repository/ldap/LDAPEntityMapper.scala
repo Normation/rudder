@@ -75,8 +75,8 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
-import com.normation.rudder.tenants.NodeSecurityContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
@@ -1018,7 +1018,7 @@ class LDAPEntityMapper(
                                      }
                                  }
         tenants               <-
-          NodeSecurityContext.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
+          TenantAccessGrant.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
       } yield {
 
         def warnOnIgnoreAuthz(): Unit = {

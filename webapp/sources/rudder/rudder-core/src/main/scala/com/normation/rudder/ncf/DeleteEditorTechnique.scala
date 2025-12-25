@@ -52,13 +52,13 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import java.time.Instant
 import zio.*
 import zio.syntax.*
@@ -147,7 +147,7 @@ class DeleteEditorTechniqueImpl(
                                         Instant.now(),
                                         Some(s"Deleting technique '${techniqueId.serialize}'"),
                                         None,
-                                        qc.nodePerms
+                                        qc.accessGrant
                                       )
                                     )
                             } yield ()

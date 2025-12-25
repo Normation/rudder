@@ -43,10 +43,7 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.rudder.tenants.NodeSecurityContext
-import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import scala.collection.MapView
@@ -424,7 +421,7 @@ class CoreNodeFactRepository(
 ) extends NodeFactRepository {
   import NodeFactChangeEvent.*
 
-  // number of accepted, enambled node
+  // number of accepted, enabled nodes
   private def coundEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
   private val enabledNodes:         Ref[Int]  = (for {
     n <- acceptedNodes.get
@@ -487,7 +484,7 @@ class CoreNodeFactRepository(
   private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       qc: QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
-    tenantService.nodeGetMapView(ref, nodeId)
+    tenantService.getMapView(ref, nodeId)
   }
 
   /*
@@ -496,7 +493,7 @@ class CoreNodeFactRepository(
    */
   def fetchAndSync(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
     implicit val attrs: SelectFacts = SelectFacts.default
-    if (cc.nodePerms.isNone) NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, attrs), cc).succeed
+    if (cc.accessGrant.isNone) NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, attrs), cc).succeed
     else {
       for {
         a    <- storage.getAccepted(nodeId)
@@ -571,14 +568,14 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-      sec    <- tenantService.nodeFilter(res)
+      sec    <- tenantService.filter(res)
     } yield sec
   }
 
   private[nodes] def getAllOnRef[A](
       ref: Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    tenantService.nodeFilterMapView(ref)
+    tenantService.filterMapView(ref)
   }
 
   override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
@@ -594,7 +591,7 @@ class CoreNodeFactRepository(
   }
 
   override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    tenantService.nodeFilterStream(
+    tenantService.filterStream(
       if (attrs == SelectFacts.none) {
         ZStream.fromIterableZIO(getAll()(using qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
@@ -843,7 +840,7 @@ class CoreNodeFactRepository(
                           Some(NodeFact.updateFullInventory(NodeFact.fromMinimal(f), inventory, software))
                         case None    =>
                           // only people with full node rights can create node for now
-                          if (cc.nodePerms == NodeSecurityContext.All) {
+                          if (cc.accessGrant == TenantAccessGrant.All) {
                             Some(NodeFact.newFromFullInventory(inventory, software))
                           } else {
                             None

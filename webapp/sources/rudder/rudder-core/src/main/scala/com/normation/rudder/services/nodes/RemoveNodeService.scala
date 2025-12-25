@@ -58,6 +58,7 @@ import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.servers.DeletionResult.*
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType

@@ -44,7 +44,7 @@ import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import zio.{System as _, *}
 
 object ReportingServiceUtils {

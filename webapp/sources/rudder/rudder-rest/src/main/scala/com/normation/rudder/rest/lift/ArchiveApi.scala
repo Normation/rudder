@@ -80,8 +80,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
@@ -109,6 +107,8 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.WoRuleCategoryRepository
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
@@ -1663,7 +1663,7 @@ class SaveArchiveServicebyRepo(
                    Nil,
                    Nil,
                    isSystem = false,
-                   security = cc.nodePerms.toSecurityTag
+                   security = cc.accessGrant.toSecurityTag
                  )
       _       <- if (exists) {
                    woGroupRepos.saveGroupCategory(category, parentId)
@@ -1689,7 +1689,7 @@ class SaveArchiveServicebyRepo(
                  Nil,
                  Nil,
                  isSystem = false,
-                 security = cc.nodePerms.toSecurityTag
+                 security = cc.accessGrant.toSecurityTag
                ),
                GroupRootId
              )
@@ -1790,7 +1790,7 @@ class SaveArchiveServicebyRepo(
       Instant.now(),
       Some(s"Importing archive '${archive.metadata.filename}'"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
     val eventMetadata = cc.transformInto[EventMetadata]
     for {

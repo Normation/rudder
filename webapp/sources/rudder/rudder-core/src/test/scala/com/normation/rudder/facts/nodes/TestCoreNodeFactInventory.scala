@@ -51,10 +51,7 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.rudder.tenants.NodeSecurityContext
-import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -269,7 +266,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       Instant.now(),
       None,
       None,
-      QueryContext.testQC.nodePerms
+      QueryContext.testQC.accessGrant
     )
   }
   implicit val qc:                QueryContext  = QueryContext.todoQC
@@ -427,15 +424,15 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
      */
     val ccA = ChangeContext
       .newForRudder()
-      .modify(_.nodePerms)
-      .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
+      .modify(_.accessGrant)
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
 
-    val qcNone = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.None)
-    val qcA    = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
-    val qcB    = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneB"))))
+    val qcNone = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.None)
+    val qcA    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
+    val qcB    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
     val qcAB   = QueryContext.testQC
-      .modify(_.nodePerms)
-      .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+      .modify(_.accessGrant)
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
     val nodeId = NodeId("node0")
 
     "allow to filter all nodes with no access" in {
@@ -537,8 +534,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         nodes  <- factRepo
                     .getAll()(using
                       QueryContext.testQC
-                        .modify(_.nodePerms)
-                        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
+                        .modify(_.accessGrant)
+                        .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
                       SelectNodeStatus.Accepted
                     )
         // restore tenants

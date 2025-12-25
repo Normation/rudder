@@ -49,8 +49,6 @@ import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain.archives.ArchiveType
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
@@ -79,6 +77,8 @@ import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
@@ -902,7 +902,7 @@ class SystemApiService11(
       Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreByDatetime(
@@ -926,7 +926,7 @@ class SystemApiService11(
       Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreByDatetime(
@@ -950,7 +950,7 @@ class SystemApiService11(
       Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreByDatetime(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, dateTime, "rule") match {
@@ -968,7 +968,7 @@ class SystemApiService11(
       Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreByDatetime(
@@ -992,7 +992,7 @@ class SystemApiService11(
       Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreByDatetime(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, dateTime, "full") match {
@@ -1063,7 +1063,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
     restoreLatestArchive(
       req,
@@ -1086,7 +1086,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestArchive(
@@ -1109,7 +1109,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestArchive(req, () => itemArchiveManager.getRulesTags, itemArchiveManager.importRules, "rules") match {
@@ -1127,7 +1127,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestArchive(
@@ -1151,7 +1151,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestArchive(req, () => itemArchiveManager.getFullArchiveTags, itemArchiveManager.importAll, "full") match {
@@ -1170,7 +1170,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore archive from latest commit on HEAD required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestCommit(req, itemArchiveManager.importHeadGroupLibrary, "groups") match {
@@ -1189,7 +1189,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore archive from latest commit on HEAD required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestCommit(req, itemArchiveManager.importHeadTechniqueLibrary, "directives") match {
@@ -1208,7 +1208,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestCommit(req, itemArchiveManager.importHeadRules, "rules") match {
@@ -1227,7 +1227,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestCommit(req, itemArchiveManager.importHeadParameters, "parameters") match {
@@ -1245,7 +1245,7 @@ class SystemApiService11(
       Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
-      qc.nodePerms
+      qc.accessGrant
     )
 
     restoreLatestCommit(req, itemArchiveManager.importHeadAll, "full") match {

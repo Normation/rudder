@@ -39,10 +39,10 @@ package com.normation.rudder.services.modification
 
 import com.normation.box.*
 import com.normation.eventlog.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import java.time.Instant
 import net.liftweb.common.*
@@ -87,7 +87,7 @@ class ModificationService(
                             Instant.now(),
                             None,
                             None,
-                            QueryContext.systemQC.nodePerms
+                            QueryContext.systemQC.accessGrant
                           )
                         )
                         .toBox
@@ -125,7 +125,7 @@ class ModificationService(
                             Instant.now(),
                             None,
                             None,
-                            QueryContext.systemQC.nodePerms
+                            QueryContext.systemQC.accessGrant
                           )
                         )
                         .toBox

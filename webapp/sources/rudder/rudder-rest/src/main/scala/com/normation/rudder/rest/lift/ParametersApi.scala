@@ -46,7 +46,6 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -57,6 +56,7 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.syntax.*

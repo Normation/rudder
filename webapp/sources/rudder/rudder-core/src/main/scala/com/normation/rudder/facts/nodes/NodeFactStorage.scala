@@ -65,6 +65,7 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
