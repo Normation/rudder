@@ -99,11 +99,11 @@ object RudderAuthType {
  * Don't make it final as SSO kind of authentication may need to extend it.
  */
 case class RudderUserDetail(
-    account:   RudderAccount,
-    status:    UserStatus,
-    roles:     Set[Role],
-    apiAuthz:  ApiAuthorization,
-    nodePerms: TenantAccessGrant
+    account:     RudderAccount,
+    status:      UserStatus,
+    roles:       Set[Role],
+    apiAuthz:    ApiAuthorization,
+    accessGrant: TenantAccessGrant
 ) extends UserDetails with AuthenticatedUser {
   // merge roles rights
   override val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
@@ -167,7 +167,7 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
   // action even for a same request if called several times.
   def changeContext(reason: Option[String] = None): ChangeContext = queryContext.newCC(reason)
 
-  def nodePerms: TenantAccessGrant = getCurrentUser.map(_.nodePerms).getOrElse(TenantAccessGrant.None)
+  def nodePerms: TenantAccessGrant = getCurrentUser.map(_.accessGrant).getOrElse(TenantAccessGrant.None)
 
   def actor: EventActor = getCurrentUser.map(_.qc.actor).getOrElse(EventActor("unknown"))
 

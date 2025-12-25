@@ -307,7 +307,7 @@ class UserManagementApiImpl(
                           transformUser(
                             currentUserDetails.getUsername,
                             currentUserDetails.status,
-                            currentUserDetails.nodePerms,
+                            currentUserDetails.accessGrant,
                             currentUserDetails.authz,
                             u,
                             Map(fileProviderInfo.provider -> fileProviderInfo),
@@ -318,11 +318,11 @@ class UserManagementApiImpl(
                           mainProviderRoleExtension match {
                             case Some(ProviderRoleExtension.WithOverride) =>
                               // Do not recompute roles nor roles coverage, because file roles are overridden by provider roles
-                              transformProvidedUser(u, currentUserDetails.nodePerms, lastSession)
+                              transformProvidedUser(u, currentUserDetails.accessGrant, lastSession)
                                 .addProviderInfo(fileProviderInfo)
                             case Some(ProviderRoleExtension.NoOverride)   =>
                               // Merge the previous session roles with the file roles and recompute role coverage over the merge result
-                              transformProvidedUser(u, currentUserDetails.nodePerms, lastSession)
+                              transformProvidedUser(u, currentUserDetails.accessGrant, lastSession)
                                 .merge(fileProviderInfo)
                                 .withRoleCoverage(currentUserDetails)
                             case Some(ProviderRoleExtension.None)         =>
@@ -333,7 +333,7 @@ class UserManagementApiImpl(
                               transformUser(
                                 currentUserDetails.getUsername,
                                 currentUserDetails.status,
-                                currentUserDetails.nodePerms,
+                                currentUserDetails.accessGrant,
                                 currentUserDetails.authz,
                                 u,
                                 Map(fileProviderInfo.provider -> fileProviderInfo),

@@ -248,10 +248,10 @@ import zio.test.*
  */
 class TestUserService extends UserService {
   val user:                    AuthenticatedUser         = new AuthenticatedUser {
-    override val account:   RudderAccount     = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
-    override val authz:     Rights            = Rights.AnyRights
-    override val apiAuthz:  ApiAuthz          = ApiAuthz.allAuthz
-    override val nodePerms: TenantAccessGrant = TenantAccessGrant.All
+    override val account:     RudderAccount     = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
+    override val authz:       Rights            = Rights.AnyRights
+    override val apiAuthz:    ApiAuthz          = ApiAuthz.allAuthz
+    override val accessGrant: TenantAccessGrant = TenantAccessGrant.All
 
     override def checkRights(auth: AuthorizationType): Boolean = true
   }

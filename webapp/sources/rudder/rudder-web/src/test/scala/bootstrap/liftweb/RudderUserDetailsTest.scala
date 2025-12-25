@@ -315,11 +315,11 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
         val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
 
         test("be able to define one tenants") {
-          assert(userDetailList.users("user_single").nodePerms)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
+          assert(userDetailList.users("user_single").accessGrant)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
         }
 
         test("be able to define a list of tenants") {
-          assert(userDetailList.users("user_multi").nodePerms)(
+          assert(userDetailList.users("user_multi").accessGrant)(
             equalTo(
               TenantAccessGrant.ByTenants(
                 Chunk(TenantId("zoneA"), TenantId("zoneB"))
@@ -329,23 +329,23 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
         }
 
         test("have no tenants attribute means ALL for compat reason") {
-          assert(userDetailList.users("user_all_compat").nodePerms)(equalTo(TenantAccessGrant.All))
+          assert(userDetailList.users("user_all_compat").accessGrant)(equalTo(TenantAccessGrant.All))
         }
 
         test("have explicit '*' means ALL") {
-          assert(userDetailList.users("user_all_explicit").nodePerms)(equalTo(TenantAccessGrant.All))
+          assert(userDetailList.users("user_all_explicit").accessGrant)(equalTo(TenantAccessGrant.All))
         }
 
         test("have an empty list means NONE") {
-          assert(userDetailList.users("user_empty_list").nodePerms)(equalTo(TenantAccessGrant.None))
+          assert(userDetailList.users("user_empty_list").accessGrant)(equalTo(TenantAccessGrant.None))
         }
 
         test("have explicit '-' means NONE") {
-          assert(userDetailList.users("user_none_explicit").nodePerms)(equalTo(TenantAccessGrant.None))
+          assert(userDetailList.users("user_none_explicit").accessGrant)(equalTo(TenantAccessGrant.None))
         }
 
         test("only have access to sane ascii identifier") {
-          assert(userDetailList.users("user_ascii").nodePerms)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
+          assert(userDetailList.users("user_ascii").accessGrant)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
         }
       }
     }

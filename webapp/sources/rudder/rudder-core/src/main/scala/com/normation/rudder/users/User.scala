@@ -85,9 +85,9 @@ trait AuthenticatedUser {
 
   def authz:       Rights
   def apiAuthz:    ApiAuthorization
-  def nodePerms:   TenantAccessGrant
+  def accessGrant: TenantAccessGrant
   implicit def qc: QueryContext = {
-    QueryContext(EventActor(name), nodePerms)
+    QueryContext(EventActor(name), accessGrant)
   }
 
   def checkRights(auth: AuthorizationType): Boolean

@@ -60,6 +60,24 @@ trait TenantService {
   def getTenants(): UIO[Set[TenantId]]
   def updateTenants(ids: Set[TenantId]): IOResult[Unit]
 
+  /*
+   * Logic to update a TenantAccessGrant based on the list of tenants and if the logic is
+   * enabled.
+   * `All` and `None` case are left as they are, but if the grant is by tenant, then only
+   * grant to existing tenants if the service is available, or `None` otherwise.
+   */
+  def refineTenantAccessGrant(tag: TenantAccessGrant): UIO[TenantAccessGrant] = {
+    tag match {
+      case TenantAccessGrant.All                => TenantAccessGrant.All.succeed
+      case TenantAccessGrant.None               => TenantAccessGrant.None.succeed
+      case TenantAccessGrant.ByTenants(tenants) =>
+        if (tenantsEnabled) {
+          getTenants().map(existingTenants => TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t))))
+        } else TenantAccessGrant.None.succeed
+    }
+
+  }
+
   // below, should be pure ?
 
   /*

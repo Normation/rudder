@@ -967,7 +967,7 @@ class RestAuthenticationFilter(
                                   u.status,
                                   u.roles,
                                   u.apiAuthz,
-                                  u.nodePerms
+                                  u.accessGrant
                                 )
                               )
                               chain.doFilter(request, response)
