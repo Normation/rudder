@@ -68,9 +68,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -80,6 +78,8 @@ import com.normation.rudder.repository.NodeGroupCategoryOrdering
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldif.LDIFChangeRecord

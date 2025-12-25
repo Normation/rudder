@@ -77,7 +77,7 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import net.liftweb.common.*
 import org.apache.commons.text.StringEscapeUtils
@@ -104,7 +104,7 @@ object TagsXml {
 }
 
 object SecurityXml {
-  def toXml(security: HasSecurityContext): NodeSeq = {
+  def toXml[A: HasSecurityTag](security: A): NodeSeq = {
     SecurityTag.toXml(security.security)
   }
 

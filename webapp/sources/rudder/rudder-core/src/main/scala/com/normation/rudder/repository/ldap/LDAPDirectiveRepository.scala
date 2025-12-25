@@ -60,7 +60,6 @@ import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.ActiveTechniqueCategoryOrdering
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.EventLogRepository
@@ -72,6 +71,7 @@ import com.normation.rudder.repository.GitDirectiveArchiver
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
@@ -1178,7 +1178,7 @@ class WoLDAPDirectiveRepository(
                              techniqueName,
                              AcceptationDateTime(versions.map(x => x -> DateTime.now(DateTimeZone.UTC)).toMap),
                              policyTypes = policyTypes,
-                             security = cc.nodePerms.toSecurityTag
+                             security = cc.accessGrant.toSecurityTag
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
       result            <- con.save(uptEntry, removeMissingAttributes = true)

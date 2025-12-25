@@ -41,7 +41,7 @@ import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.common.Box
 
 sealed trait TechniqueCategoryModType

@@ -39,11 +39,8 @@ package com.normation.rudder.facts.nodes
 
 import cats.syntax.traverse.*
 import com.normation.box.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.rudder.apidata.NodeDetailLevel
-import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.Node
@@ -58,10 +55,9 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports.*
-import com.normation.rudder.tenants.HasSecurityContext
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
@@ -308,6 +304,16 @@ object MinimalNodeFactInterface {
 }
 
 object NodeFact {
+  given HasSecurityTag[NodeFact] with {
+    extension (a: NodeFact) {
+      override def security: Option[SecurityTag] = a.rudderSettings.security
+
+      override def debugId: String = a.id.value
+
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeFact =
+        a.modify(_.rudderSettings.security).setTo(security)
+    }
+  }
 
   /*
    * Check if the node fact are the same.
@@ -902,7 +908,7 @@ object NodeFact {
   }
 }
 
-trait MinimalNodeFactInterface extends HasSecurityContext {
+trait MinimalNodeFactInterface {
   def id:                NodeId
   def documentation:     Option[String]
   def fqdn:              String
@@ -919,8 +925,6 @@ trait MinimalNodeFactInterface extends HasSecurityContext {
   def archDescription:   Option[String]
   def ram:               Option[MemorySize]
   def softwareUpdate:    Chunk[SoftwareUpdate]
-
-  override def security: Option[SecurityTag] = rudderSettings.security
 
   // this is copied from NodeInfo. Not sure if there is a better way for now.
   /**
@@ -1005,6 +1009,14 @@ final case class CoreNodeFact(
 ) extends MinimalNodeFactInterface
 
 object CoreNodeFact {
+  given HasSecurityTag[CoreNodeFact] with {
+    extension (a: CoreNodeFact) {
+      override def security:                                             Option[SecurityTag] = a.rudderSettings.security
+      override def debugId:                                              String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): CoreNodeFact        =
+        a.modify(_.rudderSettings.security).setTo(security)
+    }
+  }
 
   def updateNode(node: CoreNodeFact, n: Node): CoreNodeFact = {
     import com.softwaremill.quicklens.*
@@ -1624,74 +1636,6 @@ object NodeFactChangeEvent {
     override def debugString: String = s"[${name}] node '${nodeId.value}' "
     override def debugDiff:   String = debugString
   }
-}
-
-/*
- * A change context groups together information needed to track a change: who, when, why
- */
-final case class ChangeContext(
-    modId:     ModificationId,
-    actor:     EventActor,
-    eventDate: Instant,
-    message:   Option[String],
-    actorIp:   Option[String],
-    nodePerms: NodeSecurityContext
-)
-
-object ChangeContext {
-  implicit class ChangeContextImpl(cc: ChangeContext) {
-    def toQC: QueryContext = QueryContext(cc.actor, cc.nodePerms)
-  }
-
-  def newFor(
-      actor:     EventActor,
-      nodePerms: NodeSecurityContext,
-      message:   Option[String] = None,
-      actorIp:   Option[String] = None
-  ): ChangeContext = {
-    ChangeContext(
-      ModificationId(java.util.UUID.randomUUID.toString),
-      actor,
-      Instant.now(),
-      message,
-      actorIp,
-      nodePerms
-    )
-
-  }
-
-  def newForRudder(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
-    newFor(eventlog.RudderEventActor, NodeSecurityContext.All, message, actorIp)
-  }
-}
-
-/*
- * A query context groups together information that are needed to either filter out
- * some result regarding a security context, or to enhance query efficiency by limiting
- * the item to retrieve. It's granularity is at the item level, not attribute level. For that
- * latter need, by-item solution need to be used (see for ex: SelectFacts for nodes)
- */
-final case class QueryContext(
-    actor:     EventActor,
-    nodePerms: NodeSecurityContext
-) {
-  /*
-   * Create a fresh new ChangeContext, with a new modification ID, from that QueryContext
-   */
-  def newCC(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
-    ChangeContext.newFor(actor, nodePerms, message, actorIp)
-  }
-}
-
-object QueryContext {
-  // for test
-  implicit val testQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
-
-  // for place that didn't get a real node security context yet
-  implicit val todoQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
-
-  // for system queries (when rudder needs to look-up things)
-  implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
 }
 
 final case class NodeFactChangeEventCC(

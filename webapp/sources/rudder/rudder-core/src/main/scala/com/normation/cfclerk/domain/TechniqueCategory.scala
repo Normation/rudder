@@ -41,7 +41,7 @@ import better.files.File
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.XmlSafe
 import scala.collection.SortedSet
@@ -61,9 +61,16 @@ final case class TechniqueCategoryName(value: String) extends AnyVal
  * parent / subcategories / techniques stuff.
  */
 final case class TechniqueCategoryMetadata(name: String, description: String, isSystem: Boolean, security: Option[SecurityTag])
-    extends HasSecurityContext
 
 object TechniqueCategoryMetadata {
+  given HasSecurityTag[TechniqueCategoryMetadata] with {
+    extension (a: TechniqueCategoryMetadata) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.name
+      override def updateSecurityContext(security: Option[SecurityTag]): TechniqueCategoryMetadata = a.copy(security = security)
+    }
+  }
+
   implicit val codecTechniqueCategoryMetadata: JsonCodec[TechniqueCategoryMetadata] = DeriveJsonCodec.gen
 
   implicit class ToActiveTechniqueCategory(metadata: TechniqueCategoryMetadata) {
@@ -210,7 +217,7 @@ object TechniqueCategoryId {
  * It's a code representation of the file system  hierarchy.
  *
  */
-sealed trait TechniqueCategory extends HasSecurityContext {
+sealed trait TechniqueCategory {
   type A <: TechniqueCategoryId
   def id: A
   val name:           String
@@ -242,6 +249,16 @@ final case class RootTechniqueCategory(
   override lazy val id: A = RootTechniqueCategoryId
 }
 
+object RootTechniqueCategory {
+  given HasSecurityTag[RootTechniqueCategory] with {
+    extension (a: RootTechniqueCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.toString
+      override def updateSecurityContext(security: Option[SecurityTag]): RootTechniqueCategory = a.copy(security = security)
+    }
+  }
+}
+
 final case class SubTechniqueCategory(
     override val id: SubTechniqueCategoryId,
     name:            String,
@@ -252,4 +269,14 @@ final case class SubTechniqueCategory(
     security:        Option[SecurityTag]
 ) extends TechniqueCategory {
   type A = SubTechniqueCategoryId
+}
+
+object SubTechniqueCategory {
+  given HasSecurityTag[SubTechniqueCategory] with {
+    extension (a: SubTechniqueCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.toString
+      override def updateSecurityContext(security: Option[SecurityTag]): SubTechniqueCategory = a.copy(security = security)
+    }
+  }
 }

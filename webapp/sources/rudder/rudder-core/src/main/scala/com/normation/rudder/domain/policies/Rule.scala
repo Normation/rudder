@@ -39,7 +39,7 @@ package com.normation.rudder.domain.policies
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 
 final case class RuleUid(value: String) extends AnyVal {
@@ -95,7 +95,21 @@ final case class Rule(
     tags:             Tags = Tags(Set()),
     // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
     security:         Option[SecurityTag] // optional for backward compat. None means "no tenant"
-) extends HasSecurityContext {
+) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)
+
+}
+
+object Rule {
+  given HasSecurityTag[Rule] with {
+    extension (a: Rule) {
+      override def security: Option[SecurityTag] = a.security
+
+      override def debugId: String = a.id.debugString
+
+      override def updateSecurityContext(security: Option[SecurityTag]): Rule =
+        a.copy(security = security)
+    }
+  }
 }

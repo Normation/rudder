@@ -45,13 +45,13 @@ import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.ResourceFileState.Untouched
 import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import zio.*
@@ -134,7 +134,7 @@ class CheckNcfTechniqueUpdate(
                        .update()(using
                          ChangeContext.newFor(
                            EventActor(systemApiToken.name.value),
-                           NodeSecurityContext.All,
+                           TenantAccessGrant.All,
                            Some(s"Update Technique library after updating all techniques at start up")
                          )
                        )

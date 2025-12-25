@@ -40,7 +40,7 @@ package bootstrap.liftweb.checks.endconfig.action
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import java.io.File
 import net.liftweb.common.*

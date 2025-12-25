@@ -45,7 +45,6 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.errors.IOResult
 import com.normation.rudder.MockRules
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
@@ -54,6 +53,7 @@ import com.normation.rudder.rest.lift.SaveArchiveService
 import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
 import java.io.InputStream

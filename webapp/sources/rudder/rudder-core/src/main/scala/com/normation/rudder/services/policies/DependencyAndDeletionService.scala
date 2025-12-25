@@ -57,9 +57,9 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.common.*
 import zio.*
 import zio.syntax.*

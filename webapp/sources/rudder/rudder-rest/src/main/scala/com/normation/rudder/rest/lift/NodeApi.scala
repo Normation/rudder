@@ -76,11 +76,9 @@ import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.reports.RunAnalysisKind
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.properties.NodePropertiesService
@@ -114,6 +112,8 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -373,7 +373,7 @@ class NodeApi(
                         Instant.now(),
                         _,
                         Some(req.remoteAddr),
-                        authzToken.qc.nodePerms
+                        authzToken.qc.accessGrant
                       )
                     )
         result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(using
@@ -383,7 +383,7 @@ class NodeApi(
                         Instant.now(),
                         restNode.reason,
                         Some(req.remoteAddr),
-                        authzToken.qc.nodePerms
+                        authzToken.qc.accessGrant
                       )
                     )
         // await all properties update to guarantee that properties are resolved after node modification
@@ -814,7 +814,7 @@ class NodeApiService(
       Instant.now(),
       None,
       Some(actorIp),
-      qc.nodePerms
+      qc.accessGrant
     )
 
     for {
@@ -1165,7 +1165,7 @@ class NodeApiService(
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
       res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(using
-               ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms)
+               ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.accessGrant)
              )
     } yield {
       res
@@ -1477,7 +1477,7 @@ class NodeApiService(
     for {
       info <-
         removeNodeService
-          .removeNodePure(id, mode)(using ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms))
+          .removeNodePure(id, mode)(using ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.accessGrant))
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

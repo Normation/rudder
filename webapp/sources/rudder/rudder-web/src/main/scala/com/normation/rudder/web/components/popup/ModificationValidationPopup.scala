@@ -53,13 +53,13 @@ import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn

@@ -50,7 +50,7 @@ import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.services.queries.TestNodeFactAlgebra.*
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
-import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN

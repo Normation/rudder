@@ -38,7 +38,7 @@
 package com.normation.rudder.rule.category
 
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import net.liftweb.common.*
 
@@ -63,7 +63,7 @@ final case class RuleCategory(
     isSystem:    Boolean = false,
     // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
     security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
-) extends HasSecurityContext {
+) {
   def findParent(category: RuleCategory): Box[RuleCategory] = {
     if (childs.contains(category)) {
       Full(this)
@@ -167,5 +167,15 @@ final case class RuleCategory(
 
     // fold all maps together
     augmentedChildMap.foldLeft(baseMap)(mergeChildMaps)
+  }
+}
+
+object RuleCategory {
+  given HasSecurityTag[RuleCategory] with {
+    extension (a: RuleCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): RuleCategory = a.copy(security = security)
+    }
   }
 }

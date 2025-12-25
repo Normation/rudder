@@ -42,8 +42,8 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
 import net.liftweb.actor.LAPinger

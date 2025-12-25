@@ -47,12 +47,12 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.MigrationLoggerPure
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
 import com.normation.rudder.services.nodes.history.impl.FactLogData
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryDelete
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime

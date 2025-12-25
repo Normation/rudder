@@ -49,10 +49,10 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.PolicyTypes
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.zio.*
 import net.liftweb.common.Box
@@ -151,7 +151,7 @@ class TechniqueAcceptationUpdater(
             List(),
             List(),
             isSystem = false,
-            security = cc.nodePerms.toSecurityTag
+            security = cc.accessGrant.toSecurityTag
           )
 
           rwActiveTechniqueRepo

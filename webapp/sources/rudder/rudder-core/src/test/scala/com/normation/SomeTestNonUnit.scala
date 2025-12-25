@@ -27,8 +27,8 @@ package com.normation
 import _root_.zio.*
 import com.normation.box.*
 import com.normation.errors.IOResult
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.zio.*
 import java.io.File
 import net.liftweb.actor.LAScheduler

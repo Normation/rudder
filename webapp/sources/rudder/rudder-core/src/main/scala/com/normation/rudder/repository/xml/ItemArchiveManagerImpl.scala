@@ -47,8 +47,6 @@ import com.normation.rudder.domain.Constants.FULL_ARCHIVE_TAG
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitArchiverFullCommitUtils
 import com.normation.rudder.git.GitCommitId
@@ -58,6 +56,8 @@ import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.services.queries.DynGroupUpdaterService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import java.io.File
 import org.apache.commons.io.FileUtils

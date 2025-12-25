@@ -53,7 +53,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.zio.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -113,7 +113,7 @@ final class RoLDAPApiAccountRepository(
       isEnabled = true,
       creationDate = DateTime.now(DateTimeZone.UTC),
       tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
-      tenants = NodeSecurityContext.All
+      tenants = TenantAccessGrant.All
     )
   }
 

@@ -69,7 +69,7 @@ import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.reports.ReportingServiceImpl2
-import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.collection.MapView

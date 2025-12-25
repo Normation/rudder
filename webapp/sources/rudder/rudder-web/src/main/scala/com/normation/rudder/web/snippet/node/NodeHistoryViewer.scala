@@ -40,7 +40,7 @@ package com.normation.rudder.web.snippet.node
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode

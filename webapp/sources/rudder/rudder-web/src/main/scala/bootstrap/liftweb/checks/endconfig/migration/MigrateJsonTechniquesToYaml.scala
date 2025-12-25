@@ -45,10 +45,10 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import zio.*

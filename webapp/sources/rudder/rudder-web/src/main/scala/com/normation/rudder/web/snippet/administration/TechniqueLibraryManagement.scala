@@ -43,7 +43,7 @@ import com.normation.cfclerk.domain.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.*
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup

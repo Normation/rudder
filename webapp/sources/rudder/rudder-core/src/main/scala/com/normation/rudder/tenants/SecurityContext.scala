@@ -36,47 +36,219 @@
  */
 package com.normation.rudder.tenants
 
-import scala.xml.Node as XNode
+import com.normation.errors.*
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.eventlog
+import java.time.Instant
+import zio.*
 import zio.json.*
 
-trait HasSecurityContext {
-  def security: Option[SecurityTag]
+/*
+ * Business objects in Rudder can be separated in tenants, ie in arbitrary segment
+ * identified by a name. That name is used to tag objects that can be isolated in
+ * tenants.
+ * Object that can be put in tenants have a `HasSecurityTag[Object]` given instance.
+ *
+ * People can access nodes and other objects with a security tags based on a
+ * security context. For now, the security context is only a tenant access grant,
+ * ie a permit to access all, none, or some tenants and the object they contain.
+ *
+ * The security context is carried by a `QueryContext` - abbreviated `qc` - for read
+ * operations) or a `ChangeContext` - abbreviated `cc` - for change operation.
+ */
+
+/* `TenantAccessGrant` defines the list of tenants a user has access to.
+ * For now, there is only three cases:
+ * - access all or none objects in , whatever properties the node has
+ * - access nodes only if they belong to one of the listed tenants.
+ */
+sealed trait TenantAccessGrant {
+  def value:     String
+  // serialize into a string that can be parsed by parse `NodeSecurityContext.parse`
+  def serialize: String
+
+  def toSecurityTag: Option[SecurityTag]
 }
 
-import zio.Chunk
+object TenantAccessGrant {
 
-// A security token for now is just a a list of tags denoting tenants
-// That security tag is not exposed in proxy service
-final case class SecurityTag(tenants: Chunk[TenantId])
+  // a context that can see all nodes whatever their security tags
+  case object All                                      extends TenantAccessGrant {
+    override val value = "all"
+    override def serialize:     String              = "*"
+    override def toSecurityTag: Option[SecurityTag] = Option.empty
+  }
+  // a security context that can't see any node. Very good for performance.
+  case object None                                     extends TenantAccessGrant {
+    override val value     = "none"
+    override def serialize = "-"
+    override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.empty)
+  }
+  // a security context associated with a list of tenants. If the node share at least one of the
+  // tenants, if it can be seen. Be careful, it's really just non-empty interesting (so that adding
+  // more tag here leads to more nodes, not less).
+  final case class ByTenants(tenants: Chunk[TenantId]) extends TenantAccessGrant {
+    override val value: String = s"tags:[${tenants.map(_.value).mkString(", ")}]"
+    override def serialize = tenants.map(_.value).mkString(",")
+    override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag(tenants))
+  }
 
-// default serialization for security tag. Be careful, changing that impacts external APIs.
-object SecurityTag {
+  /*
+   * Tenants name are only alphanumeric (mandatory first) + '-' + '_' with two special cases:
+   * - '*' means "all"
+   * - '-' means "none"
+   * None means "all" for compat
+   */
+  def parse(tenantString: Option[String], ignoreMalformed: Boolean = true): PureResult[TenantAccessGrant] = {
+    parseList(tenantString.map(_.split(",").toList))
+  }
 
-  def empty: SecurityTag = SecurityTag(Chunk.empty)
-
-  implicit val codecSecurityTag: JsonCodec[SecurityTag] = DeriveJsonCodec.gen
-
-  // XML serialization / deserialisation for events
-  import scala.xml.*
-
-  def toXml(opt: Option[SecurityTag]): NodeSeq = {
-    opt match {
-      case None    => NodeSeq.Empty
-      case Some(s) => <security><tenants>{s.tenants.map(t => <tenant id={t.value}/>)}</tenants></security>
+  def parseList(tenants: Option[List[String]], ignoreMalformed: Boolean = true): PureResult[TenantAccessGrant] = {
+    tenants match {
+      case scala.None => Right(TenantAccessGrant.All) // for compatibility with previous versions
+      case Some(ts)   =>
+        (ts
+          .foldLeft(Right(TenantAccessGrant.ByTenants(Chunk.empty)): PureResult[TenantAccessGrant]) {
+            case (x: Left[RudderError, TenantAccessGrant], _) => x
+            case (Right(t1), t2)                              =>
+              t2.strip() match {
+                case "*"                       => Right(t1.plus(TenantAccessGrant.All))
+                case "-"                       => Right(TenantAccessGrant.None)
+                case TenantId.checkTenantId(v) => Right(t1.plus(TenantAccessGrant.ByTenants(Chunk(TenantId(v)))))
+                case x                         =>
+                  if (ignoreMalformed) Right(t1.plus(TenantAccessGrant.ByTenants(Chunk.empty)))
+                  else {
+                    Left(
+                      Inconsistency(
+                        s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
+                        s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
+                      )
+                    )
+                  }
+              }
+          })
+          .map {
+            case TenantAccessGrant.ByTenants(c) if (c.isEmpty) => TenantAccessGrant.None
+            case x                                             => x
+          }
     }
   }
 
-  // Parse the parent element of SecurityTag to see if there is one
-  def fromXml(xml: NodeSeq): Option[SecurityTag] = {
-    def tenant(t: XNode): Option[TenantId] = {
-      (t \ "@id").text.trim match {
-        case "" => None
-        case t  => Some(TenantId(t))
+  // json codec for `TenantAccessGrant`
+  implicit val encoderTenantAccessGrant: JsonEncoder[TenantAccessGrant] =
+    JsonEncoder.string.contramap(_.serialize)
+  implicit val decoderTenantAccessGrant: JsonDecoder[TenantAccessGrant] =
+    JsonDecoder.string.mapOrFail(s => TenantAccessGrant.parse(Some(s)).left.map(_.fullMsg))
+
+  /*
+   * check if the given security context allows to access items marked with a security tag
+   */
+  implicit class NodeSecurityContextExt(val nsc: TenantAccessGrant) extends AnyVal {
+    def isNone: Boolean = {
+      nsc == None
+    }
+
+    // can that security tag be seen in that context, given the set of known tenants?
+    def canSee(nodeTag: SecurityTag)(using tenants: Set[TenantId]): Boolean = {
+      nsc match {
+        case All           => true
+        case None          => false
+        case ByTenants(ts) => ts.exists(s => nodeTag.tenants.exists(_ == s) && tenants.contains(s))
       }
     }
-    (xml \ "security" \ "tenants") match {
-      case NodeSeq.Empty => None
-      case ns            => Some(SecurityTag(Chunk.fromIterable((ns \ "tenant").flatMap(tenant))))
+
+    def canSee(optTag: Option[SecurityTag])(using tenants: Set[TenantId]): Boolean = {
+      optTag match {
+        case Some(t)    => canSee(t)
+        case scala.None => nsc == TenantAccessGrant.All // only admin can see private nodes
+      }
     }
+
+    def canSee[A](n: A)(using hsc: HasSecurityTag[A], tenants: Set[TenantId]): Boolean = {
+      canSee(n.security)
+    }
+
+    // NodeSecurityContext is a lattice
+    def plus(nsc2: TenantAccessGrant): TenantAccessGrant = {
+      (nsc, nsc2) match {
+        case (None, _)                      => None
+        case (_, None)                      => None
+        case (All, _)                       => All
+        case (_, All)                       => All
+        case (ByTenants(c1), ByTenants(c2)) => ByTenants((c1 ++ c2).distinctBy(_.value))
+      }
+    }
+  }
+
+}
+
+/*
+ * A query context groups together information that are needed to either filter out
+ * some result regarding a security context, or to enhance query efficiency by limiting
+ * the item to retrieve. Its granularity is at the item level, not attribute level. For that
+ * latter need, by-item solution need to be used (see for ex: SelectFacts for nodes)
+ */
+final case class QueryContext(
+    actor:       EventActor,
+    accessGrant: TenantAccessGrant,
+    actorIp:     Option[String] = None
+) {
+  /*
+   * Create a fresh new ChangeContext, with a new modification ID, from that QueryContext
+   */
+  def newCC(message: Option[String] = None): ChangeContext = {
+    ChangeContext.newFor(actor, accessGrant, message, actorIp)
+  }
+}
+
+object QueryContext {
+  // for test
+  implicit val testQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+
+  // for place that didn't get a real node security context yet
+  implicit val todoQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+
+  // for system queries (when rudder needs to look-up things)
+  implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+}
+
+/*
+ * A change context groups together information needed to track a change: who, when, why.
+ * It's the same as `QueryContext`, but for updates.
+ */
+final case class ChangeContext(
+    actor:       EventActor,
+    accessGrant: TenantAccessGrant,
+    modId:       ModificationId,
+    eventDate:   Instant,
+    message:     Option[String],
+    actorIp:     Option[String]
+)
+
+object ChangeContext {
+  implicit class ChangeContextImpl(cc: ChangeContext) {
+    def toQC: QueryContext = QueryContext(cc.actor, cc.accessGrant)
+  }
+
+  def newFor(
+      actor:       EventActor,
+      accessGrant: TenantAccessGrant,
+      message:     Option[String] = None,
+      actorIp:     Option[String] = None
+  ): ChangeContext = {
+    ChangeContext(
+      actor,
+      accessGrant,
+      ModificationId(java.util.UUID.randomUUID.toString),
+      Instant.now(),
+      message,
+      actorIp
+    )
+
+  }
+
+  def newForRudder(message: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
+    newFor(eventlog.RudderEventActor, TenantAccessGrant.All, message, actorIp)
   }
 }

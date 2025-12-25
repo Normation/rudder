@@ -45,7 +45,7 @@ import com.normation.rudder.api.*
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.ProviderRoleExtension
-import com.normation.rudder.tenants.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.*
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
@@ -375,7 +375,7 @@ class AppConfigAuth extends ApplicationContextAware {
             UserStatus.Active,
             Set(Role.Administrator),
             SYSTEM_API_ACL,
-            NodeSecurityContext.All
+            TenantAccessGrant.All
           )
         )
       }
@@ -544,7 +544,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
                 user.status,
                 Set(),
                 ApiAuthorization.None,
-                NodeSecurityContext.None
+                TenantAccessGrant.None
               )
             case Right(d)  =>
               // update status, user can be disabled for ex
@@ -863,7 +863,7 @@ class RestAuthenticationFilter(
                   isEnabled = true,
                   creationDate = new DateTime(0, DateTimeZone.UTC),
                   tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
-                  tenants = NodeSecurityContext.None
+                  tenants = TenantAccessGrant.None
                 )
 
                 authenticate(
@@ -871,8 +871,8 @@ class RestAuthenticationFilter(
                     RudderAccount.Api(apiV1Account),
                     UserStatus.Active,
                     RudderAuthType.Api.apiRudderRole,
-                    ApiAuthorization.None,   // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
-                    NodeSecurityContext.None // ApiV1 should not have to deal with nodes
+                    ApiAuthorization.None, // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
+                    TenantAccessGrant.None // ApiV1 should not have to deal with nodes
                   )
                 )
                 chain.doFilter(request, response)
@@ -896,7 +896,7 @@ class RestAuthenticationFilter(
                     UserStatus.Active,
                     Set(Role.Administrator), // this token has "admin rights - use with care
                     systemApiAcl,
-                    NodeSecurityContext.All
+                    TenantAccessGrant.All
                   )
                 )
 
@@ -967,7 +967,7 @@ class RestAuthenticationFilter(
                                   u.status,
                                   u.roles,
                                   u.apiAuthz,
-                                  u.nodePerms
+                                  u.accessGrant
                                 )
                               )
                               chain.doFilter(request, response)

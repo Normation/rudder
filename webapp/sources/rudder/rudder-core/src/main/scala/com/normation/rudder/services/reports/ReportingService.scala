@@ -46,7 +46,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 
 /**
  * That service allows to retrieve status of nodes or

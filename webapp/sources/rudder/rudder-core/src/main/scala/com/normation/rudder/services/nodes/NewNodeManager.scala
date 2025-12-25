@@ -53,10 +53,8 @@ import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
@@ -67,6 +65,8 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.score.SystemUpdateScoreEvent
 import com.normation.rudder.services.queries.QueryProcessor
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import zio.{System as _, *}

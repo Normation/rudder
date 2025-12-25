@@ -43,9 +43,9 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueCategoryModType
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.Control.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full

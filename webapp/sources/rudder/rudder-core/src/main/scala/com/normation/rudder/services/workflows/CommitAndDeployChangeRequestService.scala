@@ -52,13 +52,13 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe

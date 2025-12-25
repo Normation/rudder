@@ -53,13 +53,13 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveSaveDiff
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyTypes
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.tenants.ChangeContext
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.*

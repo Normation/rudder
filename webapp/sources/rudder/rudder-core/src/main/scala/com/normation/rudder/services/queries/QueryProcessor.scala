@@ -40,7 +40,7 @@ package com.normation.rudder.services.queries
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.Box
 
 trait QueryProcessor {

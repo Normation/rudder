@@ -49,7 +49,6 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.NodeConfigData
@@ -57,6 +56,7 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction.Expected
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpiredCompliance
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime

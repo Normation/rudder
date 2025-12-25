@@ -41,9 +41,9 @@ import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord

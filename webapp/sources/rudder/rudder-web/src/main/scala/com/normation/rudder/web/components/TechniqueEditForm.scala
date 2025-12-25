@@ -45,9 +45,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*

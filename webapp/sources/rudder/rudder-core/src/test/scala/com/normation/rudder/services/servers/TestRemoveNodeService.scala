@@ -40,8 +40,8 @@ import better.files.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import java.time.Instant
 import org.joda.time.DateTime
@@ -105,7 +105,7 @@ class TestRemoveNodeService extends Specification with AfterAll {
       Instant.now(),
       None,
       None,
-      QueryContext.testQC.nodePerms
+      QueryContext.testQC.accessGrant
     )
   }
 

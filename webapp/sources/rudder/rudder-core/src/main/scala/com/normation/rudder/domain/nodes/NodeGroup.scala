@@ -45,7 +45,7 @@ import com.normation.rudder.domain.queries.CriterionComposition.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
-import com.normation.rudder.tenants.HasSecurityContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 
 /**
@@ -115,7 +115,13 @@ object NodeGroup {
       line.value == group.serialize
     })
   }
-
+  given HasSecurityTag[NodeGroup] with {
+    extension (a: NodeGroup) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.debugString
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeGroup = a.copy(security = security)
+    }
+  }
 }
 
 /**
@@ -139,7 +145,7 @@ final case class NodeGroup(
     _isEnabled:  Boolean,
     isSystem:    Boolean = false,
     security:    Option[SecurityTag]
-) extends HasSecurityContext {
+) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || isSystem
 }

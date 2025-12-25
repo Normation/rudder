@@ -51,7 +51,6 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.reports.AgentRunInterval
@@ -61,6 +60,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.modification.ModificationService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun

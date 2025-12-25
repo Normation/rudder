@@ -125,7 +125,7 @@ import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirati
 import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*

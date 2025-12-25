@@ -41,13 +41,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.IOStream
 import com.normation.errors.RudderError
-import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
-import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import scala.collection.MapView
 import zio.*
 import zio.stream.ZStream
@@ -59,7 +53,6 @@ import zio.syntax.*
  * informed decision based on that.
  */
 trait TenantService {
-
   def tenantsEnabled: Boolean
 
   // we use set because tenant list should be small (less than 100) and generally used
@@ -68,40 +61,64 @@ trait TenantService {
   def updateTenants(ids: Set[TenantId]): IOResult[Unit]
 
   /*
-   * Check if the node can be seen in the given query context. Return none if it can't.
+   * Logic to update a TenantAccessGrant based on the list of tenants and if the logic is
+   * enabled.
+   * `All` and `None` case are left as they are, but if the grant is by tenant, then only
+   * grant to existing tenants if the service is available, or `None` otherwise.
    */
-  def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc: QueryContext): UIO[Option[A]]
+  def refineTenantAccessGrant(tag: TenantAccessGrant): UIO[TenantAccessGrant] = {
+    tag match {
+      case TenantAccessGrant.All                => TenantAccessGrant.All.succeed
+      case TenantAccessGrant.None               => TenantAccessGrant.None.succeed
+      case TenantAccessGrant.ByTenants(tenants) =>
+        if (tenantsEnabled) {
+          getTenants().map(existingTenants => TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t))))
+        } else TenantAccessGrant.None.succeed
+    }
 
-  def nodeFilterStream(s: IOStream[NodeFact])(implicit qc: QueryContext): IOStream[NodeFact]
+  }
+
+  // below, should be pure ?
 
   /*
-   * Filter a map of nodes based on tenants
+   * Check if the node can be seen in the given query context. Return none if it can't.
    */
-  def nodeFilterMapView(nodes: Ref[Map[NodeId, CoreNodeFact]])(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]]
+  def filter[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): UIO[Option[A]]
+
+  def filterStream[A: HasSecurityTag](s: IOStream[A])(using qc: QueryContext): IOStream[A]
+
+  /*
+   * Filter a map of objects `A` based on tenants
+   */
+  def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(using qc: QueryContext): IOResult[MapView[ID, A]]
 
   /*
    * Get the node with ID if it exists on ref map and qc/tenants allows to get it
    */
-  def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
+  def getMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]], id: ID)(using
       qc: QueryContext
-  ): IOResult[Option[CoreNodeFact]]
+  ): IOResult[Option[A]]
 
   /*
-   * Check if the existing node can be updated with the new node given change context.
-   * In case it can, a possibly updated version of the security tag to set to node is provided. Else, it's an error.
+   * Check if the existing object `A` can be updated with the new object `B` given change context.
+   * In case it can, a possibly updated version of the security tag to set to `A` is provided. Else, it's an error.
    */
-  def manageUpdate[A](
-      existing: Option[CoreNodeFact],
-      updated:  NodeFact,
+  def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
+      existing: Option[A],
+      updated:  B,
       cc:       ChangeContext
   )(
-      action:   NodeFact => IOResult[A]
-  ): IOResult[A]
+      action:   B => IOResult[C]
+  ): IOResult[C]
 
   /*
    * Check if the node can be deleted given ChangeContext
    */
-  def checkDelete(existing: CoreNodeFact, cc: ChangeContext, availableTenants: Set[TenantId]): Either[RudderError, CoreNodeFact]
+  def checkDelete[A: HasSecurityTag](
+      existing:         A,
+      cc:               ChangeContext,
+      availableTenants: Set[TenantId]
+  ): Either[RudderError, A]
 
 }
 
@@ -117,7 +134,7 @@ object DefaultTenantService {
 }
 
 /*
- *  _tenantsEnabled is accessed in a lot of hot path, we prefer not to encapsulate it into a Ref.
+ * `tenantsEnabled` is accessed in a lot of hot path, we prefer not to encapsulate it into a Ref.
  * We still put its modification behind an eval.
  */
 class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
@@ -141,83 +158,87 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
     else Inconsistency(s"Error: tenants are not enabled").fail
   }
 
-  override def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc: QueryContext): UIO[Option[A]] = {
+  override def filter[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): UIO[Option[A]] = {
     opt match {
-      case Some(n) => getTenants().map(ids => if (qc.nodePerms.nsc.canSee(n)(using ids)) Some(n) else None)
+      case Some(n) =>
+        getTenants().map { ids =>
+          implicit val tenantIds: Set[TenantId] = ids
+          if (qc.accessGrant.nsc.canSee(n)) Some(n) else None
+        }
       case None    => None.succeed
     }
 
   }
 
-  override def nodeFilterMapView(
-      nodes: Ref[Map[NodeId, CoreNodeFact]]
-  )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    if (qc.nodePerms.isNone) {
+  override def filterMapView[ID, A: HasSecurityTag](
+      nodes: Ref[Map[ID, A]]
+  )(implicit qc: QueryContext): IOResult[MapView[ID, A]] = {
+    if (qc.accessGrant.isNone) {
       MapView().succeed
     } else {
       for {
         ts <- getTenants()
         ns <- nodes.get
-      } yield ns.view.filter { case (_, n) => qc.nodePerms.canSee(n)(using ts) }
+      } yield ns.view.filter { case (_, n) => qc.accessGrant.canSee(n.security)(using ts) }
     }
   }
 
-  override def nodeFilterStream(s: IOStream[NodeFact])(implicit qc: QueryContext): IOStream[NodeFact] = {
-    if (qc.nodePerms.isNone) ZStream.empty
+  override def filterStream[A: HasSecurityTag](s: IOStream[A])(implicit qc: QueryContext): IOStream[A] = {
+    if (qc.accessGrant.isNone) ZStream.empty
     else {
       ZStream
         .fromZIO(getTenants())
         .cross(s)
-        .collect { case (_tenantIds, n) if (qc.nodePerms.canSee(n)(using _tenantIds)) => n }
+        .collect { case (tenantIds, n) if (qc.accessGrant.canSee(n.security)(using tenantIds)) => n }
     }
   }
 
-  override def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
+  override def getMapView[ID, A: HasSecurityTag](cache: Ref[Map[ID, A]], id: ID)(implicit
       qc: QueryContext
-  ): IOResult[Option[CoreNodeFact]] = {
-    if (qc.nodePerms.isNone) None.succeed
+  ): IOResult[Option[A]] = {
+    if (qc.accessGrant.isNone) None.succeed
     else {
       for {
         ts <- getTenants()
-        ns <- nodes.get
-      } yield ns.get(nodeId).filter(qc.nodePerms.canSee(_)(using ts))
+        ns <- cache.get
+      } yield ns.get(id).filter(a => qc.accessGrant.canSee(a.security)(using ts))
     }
   }
 
-  override def manageUpdate[A](
-      existing: Option[CoreNodeFact],
-      updated:  NodeFact,
+  override def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
+      existing: Option[A],
+      updated:  B,
       cc:       ChangeContext
   )(
-      action:   NodeFact => IOResult[A]
-  ): IOResult[A] = {
+      action:   B => IOResult[C]
+  ): IOResult[C] = {
     // only id to avoid giving too much info in error in that case
-    def error(n: MinimalNodeFactInterface) = {
-      val tag = n.rudderSettings.security match {
+    def error[X: HasSecurityTag](x: X) = {
+      val tag = x.security match {
         case None    => '*'
         case Some(t) => t.tenants.map(_.value).mkString(",")
       }
-      Inconsistency(s"Node '${n.id.value}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.nodePerms.value})").fail
+      Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
     }
 
     getTenants().flatMap { availableTenants =>
       existing match {
         // in the case of creation, we just have to check if the user has actual access on update node fact
-        case None           =>
-          if (cc.nodePerms.canSee(updated.rudderSettings.security)(using availableTenants)) {
+        case None    =>
+          if (cc.accessGrant.canSee(updated.security)(using availableTenants)) {
             action(updated)
           } else {
             error(updated)
           }
-        case Some(existing) =>
-          (if (cc.nodePerms.canSee(existing.rudderSettings.security)(using availableTenants)) {
-             if (cc.nodePerms.canSee(updated.rudderSettings.security)(using availableTenants)) {
+        case Some(e) =>
+          (if (cc.accessGrant.canSee(e.security)(using availableTenants)) {
+             if (cc.accessGrant.canSee(updated.security)(using availableTenants)) {
                // here, if tenants are not enabled, we must keep the old ones in any case
                if (tenantsEnabled) {
                  // here, we also need to check if the tenant are changing, if the new tenant is in the list
                  // (we already know that the permission is ok, but "*" can see even non existing tenants)
                  // We also accept non modified tenant.
-                 (existing.rudderSettings.security, updated.rudderSettings.security) match {
+                 (e.security, updated.security) match {
                    case (_, None)                      => updated.succeed
                    case (Some(a), Some(b)) if (a == b) => updated.succeed
                    case (_, Some(b))                   =>
@@ -225,34 +246,33 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
                        updated.succeed
                      } else {
                        Inconsistency(
-                         s"Node '${updated.id.value}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
+                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
                        ).fail
                      }
                  }
                } else {
-                 import com.softwaremill.quicklens.*
-                 updated.modify(_.rudderSettings.security).setTo(existing.rudderSettings.security).succeed
+                 updated.updateSecurityContext(e.security).succeed
                }
              } else {
                error(updated)
              }
            } else {
-             error(existing)
+             error(e)
            }).flatMap(up => action(up))
       }
     }
   }
 
-  override def checkDelete(
-      existing:         CoreNodeFact,
+  override def checkDelete[A: HasSecurityTag](
+      existing:         A,
       cc:               ChangeContext,
       availableTenants: Set[TenantId]
-  ): Either[RudderError, CoreNodeFact] = {
-    if (cc.nodePerms.canSee(existing.security)(using availableTenants)) {
+  ): Either[RudderError, A] = {
+    if (cc.accessGrant.canSee(existing.security)(using availableTenants)) {
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case
-      Left(Inconsistency(s"Node '${existing.id.value}' can't be deleted by ${cc.actor.name}"))
+      Left(Inconsistency(s"Object '${existing.debugId}' can't be deleted by ${cc.actor.name}"))
     }
   }
 }

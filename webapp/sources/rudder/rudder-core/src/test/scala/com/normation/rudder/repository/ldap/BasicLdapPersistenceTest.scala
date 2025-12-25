@@ -56,7 +56,6 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.LdapNodeFactStorage
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -65,6 +64,7 @@ import com.normation.rudder.services.queries.RawStringQueryParser
 import com.normation.rudder.services.servers.InstanceIdGeneratorImpl
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.StringUuidGeneratorImpl
