@@ -912,28 +912,11 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val providerRoleExtension: Map[String, ProviderRoleExtension] = Map("file" -> ProviderRoleExtension.WithOverride)
   val authBackendProviders:  Set[String]                        = Set("file")
 
-  object tenantsService extends TenantService {
+  object tenantRepo extends TenantRepository {
     override def tenantsEnabled: Boolean            = false
+    override def getStatus:      UIO[TenantStatus]  = TenantStatus.Disabled.succeed
     override def getTenants():   UIO[Set[TenantId]] = ???
     override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = ???
-    override def filter[A:       HasSecurityTag](opt: Option[A])(implicit qc:   QueryContext): UIO[Option[A]] = ???
-    override def filterStream[A: HasSecurityTag](s:   IOStream[A])(implicit qc: QueryContext): IOStream[A]    = ???
-    override def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(implicit
-        qc: QueryContext
-    ): IOResult[MapView[ID, A]] = ???
-    override def getMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]], id: ID)(implicit
-        qc: QueryContext
-    ): IOResult[Option[A]] = ???
-    override def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
-        existing: Option[A],
-        updated:  B,
-        cc:       ChangeContext
-    )(action: B => IOResult[C]): IOResult[C] = ???
-    override def checkDelete[A: HasSecurityTag](
-        existing:         A,
-        cc:               ChangeContext,
-        availableTenants: Set[TenantId]
-    ): Either[RudderError, A] = ???
   }
 }
 

@@ -205,14 +205,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     )
   )
 
-  val tenantService = DefaultTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
+  val tenantRepository = InMemoryTenantRepository.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
   // enable tenants for these tests
-  tenantService.setTenantEnabled(true).runNow
+  tenantRepository.setTenantEnabled(true).runNow
+
+  val tenantService = new DefaultTenantService()
 
   val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))
 //   val logCB = CoreNodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
-    CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, tenantService, Chunk(trailCB)).runNow
+    CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, tenantRepository, tenantService, Chunk(trailCB)).runNow
   }
 
 //  org.slf4j.LoggerFactory
@@ -261,12 +263,12 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit val testChangeContext: ChangeContext = {
     ChangeContext(
-      ModificationId("test-mod-id"),
       EventActor("test"),
+      QueryContext.testQC.accessGrant,
+      ModificationId("test-mod-id"),
       Instant.now(),
       None,
-      None,
-      QueryContext.testQC.accessGrant
+      None
     )
   }
   implicit val qc:                QueryContext  = QueryContext.todoQC
@@ -496,7 +498,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       res must beLike {
         case Left(err) =>
-          err.fullMsg must beMatching(""".*\QNode 'node0' [zoneB] can't be modified by 'rudder' (perm:tags:[zoneA])\E.*""")
+          err.fullMsg must beMatching(""".*\QObject 'node0' [zoneB] can't be modified by 'rudder' (perm:tags:[zoneA])\E.*""")
       }
     }
 
@@ -512,16 +514,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
     }
 
-    "when the plugin is disabled, we don't change tenants on setSecurityContext, we just keep the existing one in storage" in {
+    "setSecurityContext keeps the existing one in storage even if admin change them" in {
       val nonExistingTenantId = TenantId("zoneXXX")
 
-      tenantService.setTenantEnabled(false).runNow
+      tenantRepository.setTenantEnabled(false).runNow
 
       val res = (for {
         e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
       } yield e).runNow
 
-      tenantService.setTenantEnabled(true).runNow
+      tenantRepository.setTenantEnabled(true).runNow
 
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
     }
@@ -530,16 +532,14 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val nodes = (for {
         // keep for restoration but remove all tenant
-        initTs <- tenantService.tenantIds.getAndSet(Set())
-        nodes  <- factRepo
-                    .getAll()(using
-                      QueryContext.testQC
-                        .modify(_.accessGrant)
-                        .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
-                      SelectNodeStatus.Accepted
-                    )
+        initTs  <- tenantRepository.tenantIds.getAndSet(Set())
+        qc       = QueryContext.testQC
+                     .modify(_.accessGrant)
+                     .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+        refined <- tenantRepository.refineTenantAccessGrant(qc.accessGrant)
+        nodes   <- factRepo.getAll()(using qc.copy(accessGrant = refined), SelectNodeStatus.Accepted)
         // restore tenants
-        _      <- tenantService.tenantIds.set(initTs)
+        _       <- tenantRepository.tenantIds.set(initTs)
       } yield nodes).runNow
 
       nodes must beEmpty

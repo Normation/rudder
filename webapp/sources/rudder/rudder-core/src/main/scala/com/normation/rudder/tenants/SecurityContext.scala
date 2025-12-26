@@ -142,30 +142,35 @@ object TenantAccessGrant {
     JsonDecoder.string.mapOrFail(s => TenantAccessGrant.parse(Some(s)).left.map(_.fullMsg))
 
   /*
-   * check if the given security context allows to access items marked with a security tag
+   * check if the given security context allows to access items marked with a security tag.
+   *
+   * Important: it is assumed here that all the tenants in a TenantAccessGrant are valid,
+   * we don't refine anymore with a set of valid tenants in a specific context.
+   * If that need happens, then you need to refine the `TenantAccessGrant`'s tenant list
+   * before checking for `canSee` or `canChange`.
    */
-  implicit class NodeSecurityContextExt(val nsc: TenantAccessGrant) extends AnyVal {
+  implicit class SecurityContextExt(val nsc: TenantAccessGrant) extends AnyVal {
     def isNone: Boolean = {
       nsc == None
     }
 
     // can that security tag be seen in that context, given the set of known tenants?
-    def canSee(nodeTag: SecurityTag)(using tenants: Set[TenantId]): Boolean = {
+    def canSee(tag: SecurityTag): Boolean = {
       nsc match {
         case All           => true
         case None          => false
-        case ByTenants(ts) => ts.exists(s => nodeTag.tenants.exists(_ == s) && tenants.contains(s))
+        case ByTenants(ts) => ts.exists(s => tag.tenants.exists(_ == s))
       }
     }
 
-    def canSee(optTag: Option[SecurityTag])(using tenants: Set[TenantId]): Boolean = {
+    def canSee(optTag: Option[SecurityTag]): Boolean = {
       optTag match {
         case Some(t)    => canSee(t)
         case scala.None => nsc == TenantAccessGrant.All // only admin can see private nodes
       }
     }
 
-    def canSee[A](n: A)(using hsc: HasSecurityTag[A], tenants: Set[TenantId]): Boolean = {
+    def canSee[A: HasSecurityTag](n: A): Boolean = {
       canSee(n.security)
     }
 

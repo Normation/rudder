@@ -477,22 +477,23 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   val factRepo: CoreNodeFactRepository = {
     for {
-      pending   <- Ref.make(Map[NodeId, CoreNodeFact]())
-      accepted  <- Ref.make(Map[NodeId, CoreNodeFact]())
-      callbacks <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
-      tenants   <- DefaultTenantService.make(Nil)
-      lock      <- ReentrantLock.make()
-      r          = new CoreNodeFactRepository(
-                     factStorage,
-                     noopNodeBySoftwareName,
-                     tenants,
-                     pending,
-                     accepted,
-                     callbacks,
-                     CoreNodeFactRepository.defaultSavePreChecks,
-                     lock
-                   )
-      _         <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
+      pending    <- Ref.make(Map[NodeId, CoreNodeFact]())
+      accepted   <- Ref.make(Map[NodeId, CoreNodeFact]())
+      callbacks  <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
+      tenantRepo <- InMemoryTenantRepository.make(Nil)
+      lock       <- ReentrantLock.make()
+      r           = new CoreNodeFactRepository(
+                      factStorage,
+                      noopNodeBySoftwareName,
+                      tenantRepo,
+                      new DefaultTenantService(),
+                      pending,
+                      accepted,
+                      callbacks,
+                      CoreNodeFactRepository.defaultSavePreChecks,
+                      lock
+                    )
+      _          <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
 //      _         <- r.registerChangeCallbackAction(new NodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     } yield {
       r

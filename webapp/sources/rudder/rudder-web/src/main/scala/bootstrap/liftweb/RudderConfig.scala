@@ -1440,6 +1440,7 @@ object RudderConfig extends Loggable {
   val techniqueRepository:                 TechniqueRepository                      = rci.techniqueRepository
   val techniqueArchiver:                   TechniqueArchiver & GitItemRepository    = rci.techniqueArchiver
   val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService    = rci.techniqueCompilationStatusService
+  val tenantRepository:                    TenantRepository                         = rci.tenantRepository
   val tenantService:                       TenantService                            = rci.tenantService
   val tokenGenerator:                      TokenGeneratorImpl                       = rci.tokenGenerator
   val updateDynamicGroups:                 UpdateDynamicGroups                      = rci.updateDynamicGroups
@@ -1625,6 +1626,7 @@ case class RudderServiceApi(
     nodeFactRepository:                  NodeFactRepository,
     scoreServiceManager:                 ScoreServiceManager,
     scoreService:                        ScoreService,
+    tenantRepository:                    TenantRepository,
     tenantService:                       TenantService,
     computeNodeStatusReportService:      ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook,
     scoreRepository:                     ScoreRepository,
@@ -1969,7 +1971,8 @@ object RudderConfigInit {
 
     lazy val getNodeBySoftwareName = new SoftDaoGetNodesBySoftwareName(deprecated.softwareInventoryDAO)
 
-    lazy val tenantService = DefaultTenantService.make(Nil).runNow
+    lazy val tenantRepository = InMemoryTenantRepository.make(Nil).runNow
+    lazy val tenantService    = new DefaultTenantService()
 
     lazy val nodeFactRepository = {
 
@@ -1984,7 +1987,8 @@ object RudderConfigInit {
         )
       )
 
-      val repo = CoreNodeFactRepository.make(ldapNodeFactStorage, getNodeBySoftwareName, tenantService, callbacks).runNow
+      val repo =
+        CoreNodeFactRepository.make(ldapNodeFactStorage, getNodeBySoftwareName, tenantRepository, tenantService, callbacks).runNow
       repo
     }
 
@@ -2347,7 +2351,7 @@ object RudderConfigInit {
               passwordEncoderDispatcher,
               UserFileProcessing.getUserResourceFile()
             ),
-            tenantService,
+            tenantRepository,
             () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
             () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
           ),
@@ -2809,7 +2813,7 @@ object RudderConfigInit {
     lazy val nodeGridImpl = new NodeGrid(roAgentRunsRepository, nodeFactRepository, configService)
 
     lazy val modificationService      =
-      new ModificationService(gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
+      new ModificationService(gitModificationRepository, itemArchiveManagerImpl)
     lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository, staticResourceRewrite)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
@@ -3973,6 +3977,7 @@ object RudderConfigInit {
       nodeFactRepository,
       scoreServiceManager,
       scoreService,
+      tenantRepository,
       tenantService,
       computeNodeStatusReportService,
       scoreRepository,
