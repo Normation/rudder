@@ -253,6 +253,8 @@ class TestUserService extends UserService {
     override val apiAuthz:    ApiAuthz          = ApiAuthz.allAuthz
     override val accessGrant: TenantAccessGrant = TenantAccessGrant.All
 
+    override def actorIp: Option[String] = None
+
     override def checkRights(auth: AuthorizationType): Boolean = true
   }
   override val getCurrentUser: Option[AuthenticatedUser] = Some(user)
@@ -390,7 +392,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   }
   val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val modificationService = new ModificationService(null, null, null) {
+  val modificationService = new ModificationService(null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
         commiter:         PersonIdent,
@@ -867,12 +869,12 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(
-        ModificationId(uuidGen.newUuid),
         EventActor("test"),
+        QueryContext.testQC.accessGrant,
+        ModificationId(uuidGen.newUuid),
         Instant.now(),
         None,
-        None,
-        QueryContext.testQC.accessGrant
+        None
       )
     }
     import QueryContext.testQC
@@ -1183,7 +1185,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       mockUserManagement.userRepo,
       mockUserManagement.userService,
       mockUserManagement.userManagementService,
-      mockUserManagement.tenantsService,
+      mockUserManagement.tenantRepo,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),

@@ -52,7 +52,6 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
 import com.normation.eventlog.EventMetadata
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
@@ -123,7 +122,6 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.NoSuchFileException
 import java.text.Normalizer
-import java.time.Instant
 import java.util.zip.ZipEntry
 import net.liftweb.common.SimpleActor
 import net.liftweb.http.FileParamHolder
@@ -1784,14 +1782,7 @@ class SaveArchiveServicebyRepo(
    * Starts with techniques then other things.
    */
   override def save(archive: PolicyArchive, mergePolicy: MergePolicy)(implicit qc: QueryContext): IOResult[Unit] = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      qc.actor,
-      Instant.now(),
-      Some(s"Importing archive '${archive.metadata.filename}'"),
-      None,
-      qc.accessGrant
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Importing archive '${archive.metadata.filename}'"))
     val eventMetadata = cc.transformInto[EventMetadata]
     for {
       _ <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))

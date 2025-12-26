@@ -41,7 +41,6 @@ import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.UUID_ENTRY
@@ -207,7 +206,7 @@ class NodeApi(
         _     <- NodeLoggerPure.info(s"API request for creating nodes: [${nodes.map(n => s"${n.id} (${n.status})").mkString("; ")}]")
         res   <- ZIO.foldLeft(nodes)(ResultHolder(Nil, Nil)) {
                    case (res, node) =>
-                     nodeApiService.saveNode(node, authzToken.qc, req.remoteAddr).either.map {
+                     nodeApiService.saveNode(node, authzToken.qc).either.map {
                        case Right(id) => res.modify(_.created).using(_ :+ id)
                        case Left(err) => res.modify(_.failed).using(_ :+ ((node.id, err)))
                      }
@@ -345,7 +344,7 @@ class NodeApi(
       (for {
         optDeleteMode <- restExtractor.extractDeleteMode(req).toIO
         deleteMode     = optDeleteMode.getOrElse(deleteDefaultMode)
-        deleted       <- nodeApiService.deleteNode(NodeId(id), deleteMode, Some(req.remoteAddr))
+        deleted       <- nodeApiService.deleteNode(NodeId(id), deleteMode)
       } yield {
         deleted
       }).chainError("Error when deleting Nodes").toLiftResponseList(params, schema)
@@ -366,26 +365,7 @@ class NodeApi(
 
       (for {
         restNode <- restExtractor.extractUpdateNode(req).toIO
-        cc       <- extractReason(restNode).map(
-                      ChangeContext(
-                        ModificationId(uuidGen.newUuid),
-                        authzToken.qc.actor,
-                        Instant.now(),
-                        _,
-                        Some(req.remoteAddr),
-                        authzToken.qc.accessGrant
-                      )
-                    )
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(using
-                      ChangeContext(
-                        ModificationId(uuidGen.newUuid),
-                        authzToken.qc.actor,
-                        Instant.now(),
-                        restNode.reason,
-                        Some(req.remoteAddr),
-                        authzToken.qc.accessGrant
-                      )
-                    )
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(using authzToken.qc.newCC(restNode.reason))
         // await all properties update to guarantee that properties are resolved after node modification
         _        <- nodePropertiesService.updateAll()
       } yield {
@@ -404,8 +384,7 @@ class NodeApi(
         nodeIdStatus <- restExtractor.extractNodeIdStatus(req).toIO.chainError("Node ID or status not correctly sent")
         res          <- nodeApiService.changeNodeStatus(
                           nodeIdStatus.nodeId,
-                          nodeIdStatus.status.transformInto[NodeStatusAction],
-                          Some(req.remoteAddr)
+                          nodeIdStatus.status.transformInto[NodeStatusAction]
                         )
       } yield {
         res
@@ -428,7 +407,7 @@ class NodeApi(
       (for {
         status <- restExtractor.extractNodeStatus(req).toIO.chainError("Node status not correctly sent")
         res    <-
-          nodeApiService.changeNodeStatus(List(NodeId(id)), status.status.transformInto[NodeStatusAction], Some(req.remoteAddr))
+          nodeApiService.changeNodeStatus(List(NodeId(id)), status.status.transformInto[NodeStatusAction])
       } yield {
         res
       }).chainError("Error when changing Node status").toLiftResponseList(params, schema)
@@ -705,25 +684,6 @@ class NodeApi(
       )
     }
   }
-
-  private def extractReason(restNode: JQUpdateNode): IOResult[Option[String]] = {
-    import com.normation.rudder.config.ReasonBehavior.*
-    (userPropertyService.reasonsFieldBehavior match {
-      case Disabled => ZIO.none
-      case mode     =>
-        val reason = restNode.reason
-        (mode: @unchecked) match {
-          case Mandatory =>
-            reason
-              .notOptional("Reason field is mandatory and should be at least 5 characters long")
-              .reject {
-                case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
-              }
-              .map(Some(_))
-          case Optional  => reason.succeed
-        }
-    }).chainError("There was an error while extracting reason message")
-  }
 }
 
 class NodeApiInheritedProperties(
@@ -800,7 +760,7 @@ class NodeApiService(
    * - if needed, accept
    * - now, setup node info (property, state, etc)
    */
-  def saveNode(nodeDetails: Rest.NodeDetails, qc: QueryContext, actorIp: String): IO[CreationError, NodeId] = {
+  def saveNode(nodeDetails: Rest.NodeDetails, qc: QueryContext): IO[CreationError, NodeId] = {
     def toCreationError(res: ValidatedNel[NodeValidationError, NodeTemplate]) = {
       res match {
         case Invalid(nel) => CreationError.OnValidation(nel).fail
@@ -808,14 +768,7 @@ class NodeApiService(
       }
     }
 
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      qc.actor,
-      Instant.now(),
-      None,
-      Some(actorIp),
-      qc.accessGrant
-    )
+    implicit val cc: ChangeContext = qc.newCC()
 
     for {
       _         <- NodeLoggerPure.debug(s"Create node API: validate node template for '${nodeDetails.id}''")
@@ -1157,16 +1110,11 @@ class NodeApiService(
 
   def changeNodeStatus(
       nodeIds:          List[NodeId],
-      nodeStatusAction: NodeStatusAction,
-      actorIp:          Option[String]
+      nodeStatusAction: NodeStatusAction
   )(implicit qc: QueryContext): IOResult[Chunk[JRNodeChangeStatus]] = {
-    val modId = ModificationId(uuidGen.newUuid)
     for {
-      _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
-
-      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(using
-               ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.accessGrant)
-             )
+      _   <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
+      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(using qc.newCC())
     } yield {
       res
     }
@@ -1468,16 +1416,11 @@ class NodeApiService(
     }
   }
 
-  def deleteNode(id: NodeId, mode: DeleteMode, actorIp: Option[String])(implicit
-      qc: QueryContext
-  ): IOResult[Chunk[JRNodeInfo]] = {
+  def deleteNode(id: NodeId, mode: DeleteMode)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
     implicit val status: InventoryStatus = RemovedInventory
-    val modId = ModificationId(uuidGen.newUuid)
 
     for {
-      info <-
-        removeNodeService
-          .removeNodePure(id, mode)(using ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.accessGrant))
+      info <- removeNodeService.removeNodePure(id, mode)(using qc.newCC())
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

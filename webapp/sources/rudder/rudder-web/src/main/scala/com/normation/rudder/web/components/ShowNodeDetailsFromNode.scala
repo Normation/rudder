@@ -65,7 +65,6 @@ import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -130,7 +129,7 @@ class ShowNodeDetailsFromNode(
                    .toBox // we can't change the state of a missing node
       newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
       result  <- nodeFactRepo
-                   .save(newNode)(using ChangeContext(modId, qc.actor, Instant.now(), None, None, qc.accessGrant))
+                   .save(newNode)(using qc.newCC().copy(modId = modId))
                    .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
@@ -164,7 +163,7 @@ class ShowNodeDetailsFromNode(
   def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval): Box[Unit] = {
     val newNodeFact = nodeFact.modify(_.rudderSettings.reportingConfiguration.agentRunInterval).setTo(Some(schedule))
     val modId       = ModificationId(uuidGen.newUuid)
-    val cc          = ChangeContext(modId, CurrentUser.actor, Instant.now(), None, None, CurrentUser.nodePerms)
+    val cc          = CurrentUser.changeContext().copy(modId = modId)
 
     (for {
       _ <- nodeFactRepo.save(newNodeFact)(using cc)

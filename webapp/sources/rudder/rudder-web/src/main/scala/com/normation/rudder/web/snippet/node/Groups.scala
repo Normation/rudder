@@ -39,7 +39,6 @@ package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.*
@@ -54,7 +53,6 @@ import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.web.snippet.WithNonce
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -83,7 +81,6 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
-  private val uuidGen               = RudderConfig.stringUuidGenerator
   private val linkUtil              = RudderConfig.linkUtil
 
   private var boxGroupLib = getFullGroupLibrary().toBox
@@ -473,16 +470,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 .move(
                   NodeGroupId(NodeGroupUid(sourceGroupId)),
                   NodeGroupCategoryId(destCatId)
-                )(using
-                  ChangeContext(
-                    ModificationId(uuidGen.newUuid),
-                    qc.actor,
-                    Instant.now(),
-                    Some("Group moved by user"),
-                    None,
-                    qc.accessGrant
-                  )
-                )
+                )(using qc.newCC(Some("Group moved by user")))
                 .toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'"
                 .format(sourceGroupId, destCatId)
             group  <- Box(lib.allGroups.get(NodeGroupId(NodeGroupUid(sourceGroupId)))) ?~! s"No such group: ${sourceGroupId}"

@@ -322,14 +322,9 @@ class UpdateDynamicGroups(
               results                      <- dynGroupIds.accumulateParN(maxParallelism) { dynGroupId =>
                                                 dynGroupUpdaterService
                                                   .update(dynGroupId)(using
-                                                    ChangeContext(
-                                                      modId,
-                                                      RudderEventActor,
-                                                      Instant.now(),
-                                                      Some("Update group due to batch update of dynamic groups"),
-                                                      None,
-                                                      QueryContext.systemQC.accessGrant
-                                                    )
+                                                    QueryContext.systemQC
+                                                      .newCC(Some("Update group due to batch update of dynamic groups"))
+                                                      .copy(modId = modId)
                                                   )
                                                   .toIO
                                                   .either
@@ -344,14 +339,9 @@ class UpdateDynamicGroups(
               results2                     <- dynGroupsWithDependencyIds.accumulateParN(1) { dynGroupId =>
                                                 dynGroupUpdaterService
                                                   .update(dynGroupId)(using
-                                                    ChangeContext(
-                                                      modId,
-                                                      RudderEventActor,
-                                                      Instant.now(),
-                                                      Some("Update group due to batch update of dynamic groups"),
-                                                      None,
-                                                      QueryContext.systemQC.accessGrant
-                                                    )
+                                                    QueryContext.systemQC
+                                                      .newCC(Some("Update group due to batch update of dynamic groups"))
+                                                      .copy(modId = modId)
                                                   )
                                                   .toIO
                                                   .either

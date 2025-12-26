@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
@@ -70,7 +69,6 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
-import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.Chunk
@@ -424,17 +422,10 @@ class GroupsApi(
   private def withChangeContext[A](req: Req, authzToken: AuthzToken)(
       block: ChangeContext => IOResult[A]
   ): IOResult[A] = {
-    extractReason(req).toIO.flatMap(reason => {
-      val cc = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        authzToken.qc.actor,
-        Instant.now(),
-        reason,
-        None,
-        authzToken.qc.accessGrant
-      )
+    extractReason(req).toIO.flatMap { reason =>
+      val cc = authzToken.qc.newCC(reason)
       block(cc)
-    })
+    }
   }
 }
 
@@ -604,8 +595,7 @@ class GroupApiService14(
                 val updatedGroup    = group.copy(serverList = nodeIds.toSet)
                 val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
                 val change          = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
-                implicit val cc: ChangeContext =
-                  ChangeContext(ModificationId(uuidGen.newUuid), qc.actor, Instant.now(), None, None, qc.accessGrant)
+                implicit val cc: ChangeContext = qc.newCC()
                 createChangeRequest(reloadGroupDiff, change, params)
               }
               .chainError(s"Could not reload Group ${sid} details")
@@ -628,8 +618,7 @@ class GroupApiService14(
         case Some((group, cat)) =>
           val deleteGroupDiff = DeleteNodeGroupDiff(group)
           val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
-          implicit val cc: ChangeContext =
-            ChangeContext(ModificationId(uuidGen.newUuid), qc.actor, Instant.now(), None, None, qc.accessGrant)
+          implicit val cc: ChangeContext = qc.newCC()
           createChangeRequest(deleteGroupDiff, change, params)
 
         case None =>
@@ -638,8 +627,7 @@ class GroupApiService14(
   }
 
   def updateGroup(restGroup: JQGroup, params: DefaultParams)(implicit qc: QueryContext): IOResult[JRGroup] = {
-    implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), qc.actor, Instant.now(), None, None, qc.accessGrant)
+    implicit val cc: ChangeContext = qc.newCC()
     for {
       id      <- restGroup.id.notOptional(s"You must specify the ID of the group that you want to update")
       pair    <- readGroup.getNodeGroup(id)

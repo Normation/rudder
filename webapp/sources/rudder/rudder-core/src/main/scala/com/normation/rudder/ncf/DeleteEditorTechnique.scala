@@ -59,7 +59,6 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
-import java.time.Instant
 import zio.*
 import zio.syntax.*
 
@@ -141,14 +140,7 @@ class DeleteEditorTechniqueImpl(
                                       .reduceOption(mergeCrs)
                                       .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
                               _  <- wf.startWorkflow(cr)(using
-                                      ChangeContext(
-                                        modId,
-                                        qc.actor,
-                                        Instant.now(),
-                                        Some(s"Deleting technique '${techniqueId.serialize}'"),
-                                        None,
-                                        qc.accessGrant
-                                      )
+                                      qc.newCC(Some(s"Deleting technique '${techniqueId.serialize}'")).copy(modId = modId)
                                     )
                             } yield ()
                           } else {

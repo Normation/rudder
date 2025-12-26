@@ -211,7 +211,7 @@ case class RudderPasswordEncoder(
 }
 
 /**
- * An user list is a parsed list of users with their resolved authorisations
+ * A user list is a parsed list of users with their resolved authorisations
  */
 final case class UserDetailFileConfiguration(
     encoder:         RudderPasswordEncoder,
@@ -326,9 +326,9 @@ object ValidatedUserList {
   )(implicit roleApiMapping: RoleApiMapping): Map[String, RudderUserDetail] = {
 
     val userDetails   = accountConfig.users.map {
-      case (_, (user, roles, nodeSecurityContext)) =>
+      case (_, (user, roles, accessGrant)) =>
         // for users, we don't have the possibility to order APIs. So we just sort them from most specific to less
-        // (ie from longest path to shorted)
+        // (ie from the longest path to the shorted)
         // but still group by first part so that we have all nodes together, etc.
         val acls = roleApiMapping
           .getApiAclFromRoles(roles)
@@ -338,8 +338,8 @@ object ValidatedUserList {
               seq.sortBy(_.path)(using AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
-        // init status to deleted, it will be set correctly latter on
-        RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
+        // init status to deleted, it will be set correctly later on
+        RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), accessGrant)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
     filteredUsers
