@@ -52,12 +52,16 @@ import zio.syntax.*
  * what tenants are currently known on that server so that they can take their
  * informed decision based on that.
  */
-trait TenantService {
+trait TenantRepository {
   def tenantsEnabled: Boolean
 
   // we use set because tenant list should be small (less than 100) and generally used
   // in a "contains" way.
   def getTenants(): UIO[Set[TenantId]]
+
+  // get feature status and available tenants in one go
+  def getStatus: UIO[TenantStatus]
+
   def updateTenants(ids: Set[TenantId]): IOResult[Unit]
 
   /*
@@ -75,22 +79,25 @@ trait TenantService {
           getTenants().map(existingTenants => TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t))))
         } else TenantAccessGrant.None.succeed
     }
-
   }
+}
 
-  // below, should be pure ?
-
+/*
+ * TenantService is the service in charge with the logic to check/filter items with security
+ * tag based on the security (query, change) context.
+ */
+trait TenantService {
   /*
    * Check if the node can be seen in the given query context. Return none if it can't.
    */
-  def filter[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): UIO[Option[A]]
+  def filter[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): Option[A]
 
   def filterStream[A: HasSecurityTag](s: IOStream[A])(using qc: QueryContext): IOStream[A]
 
   /*
    * Filter a map of objects `A` based on tenants
    */
-  def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(using qc: QueryContext): IOResult[MapView[ID, A]]
+  def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(using qc: QueryContext): UIO[MapView[ID, A]]
 
   /*
    * Get the node with ID if it exists on ref map and qc/tenants allows to get it
@@ -101,23 +108,26 @@ trait TenantService {
 
   /*
    * Check if the existing object `A` can be updated with the new object `B` given change context.
-   * In case it can, a possibly updated version of the security tag to set to `A` is provided. Else, it's an error.
+   * It the tenant feature is disabled, then we just don't change
+   *  In case it can, a possibly updated version of the security tag to set to `A` is provided. Else, it's an error.
+   *
+   *
    */
   def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
-      existing: Option[A],
-      updated:  B,
-      cc:       ChangeContext
+      existing:     Option[A],
+      updated:      B,
+      cc:           ChangeContext,
+      tenantStatus: TenantStatus
   )(
-      action:   B => IOResult[C]
+      action:       B => IOResult[C]
   ): IOResult[C]
 
   /*
    * Check if the node can be deleted given ChangeContext
    */
   def checkDelete[A: HasSecurityTag](
-      existing:         A,
-      cc:               ChangeContext,
-      availableTenants: Set[TenantId]
+      existing: A,
+      cc:       ChangeContext
   ): Either[RudderError, A]
 
 }
@@ -125,11 +135,11 @@ trait TenantService {
 /*
  * A default implementation that just use a global Ref to store the list of known tenants.
  */
-object DefaultTenantService {
-  def make(tenantIds: IterableOnce[TenantId]): UIO[DefaultTenantService] = {
+object InMemoryTenantRepository {
+  def make(tenantIds: IterableOnce[TenantId]): UIO[InMemoryTenantRepository] = {
     for {
       ref <- Ref.make(Set.from(tenantIds))
-    } yield new DefaultTenantService(_tenantsEnabled = false, tenantIds = ref)
+    } yield new InMemoryTenantRepository(_tenantsEnabled = false, tenantIds = ref)
   }
 }
 
@@ -137,7 +147,7 @@ object DefaultTenantService {
  * `tenantsEnabled` is accessed in a lot of hot path, we prefer not to encapsulate it into a Ref.
  * We still put its modification behind an eval.
  */
-class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+class InMemoryTenantRepository(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantRepository {
 
   def setTenantEnabled(isEnabled: Boolean): UIO[Unit] = {
     ApplicationLoggerPure.Plugin.info(s"Multi-tenants feature enabled: ${isEnabled}") *>
@@ -153,64 +163,56 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
     else Set().succeed
   }
 
+  override def getStatus: UIO[TenantStatus] = {
+    if (tenantsEnabled) tenantIds.get.map(TenantStatus.Enabled(_))
+    else TenantStatus.Disabled.succeed
+  }
+
   override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = {
     if (tenantsEnabled) tenantIds.set(ids)
     else Inconsistency(s"Error: tenants are not enabled").fail
   }
+}
 
-  override def filter[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): UIO[Option[A]] = {
+class DefaultTenantService extends TenantService {
+  override def filter[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): Option[A] = {
     opt match {
-      case Some(n) =>
-        getTenants().map { ids =>
-          implicit val tenantIds: Set[TenantId] = ids
-          if (qc.accessGrant.nsc.canSee(n)) Some(n) else None
-        }
-      case None    => None.succeed
+      case Some(n) => if (qc.accessGrant.nsc.canSee(n)) Some(n) else None
+      case None    => None
     }
-
   }
 
   override def filterMapView[ID, A: HasSecurityTag](
       nodes: Ref[Map[ID, A]]
-  )(implicit qc: QueryContext): IOResult[MapView[ID, A]] = {
+  )(implicit qc: QueryContext): UIO[MapView[ID, A]] = {
     if (qc.accessGrant.isNone) {
       MapView().succeed
     } else {
       for {
-        ts <- getTenants()
         ns <- nodes.get
-      } yield ns.view.filter { case (_, n) => qc.accessGrant.canSee(n.security)(using ts) }
+      } yield ns.view.filter { case (_, n) => qc.accessGrant.canSee(n) }
     }
   }
 
   override def filterStream[A: HasSecurityTag](s: IOStream[A])(implicit qc: QueryContext): IOStream[A] = {
     if (qc.accessGrant.isNone) ZStream.empty
-    else {
-      ZStream
-        .fromZIO(getTenants())
-        .cross(s)
-        .collect { case (tenantIds, n) if (qc.accessGrant.canSee(n.security)(using tenantIds)) => n }
-    }
+    else s.collect { case n if qc.accessGrant.canSee(n) => n }
   }
 
   override def getMapView[ID, A: HasSecurityTag](cache: Ref[Map[ID, A]], id: ID)(implicit
       qc: QueryContext
-  ): IOResult[Option[A]] = {
+  ): UIO[Option[A]] = {
     if (qc.accessGrant.isNone) None.succeed
-    else {
-      for {
-        ts <- getTenants()
-        ns <- cache.get
-      } yield ns.get(id).filter(a => qc.accessGrant.canSee(a.security)(using ts))
-    }
+    else cache.get.map(_.get(id).filter(qc.accessGrant.canSee))
   }
 
   override def manageUpdate[A: HasSecurityTag, B: HasSecurityTag, C](
-      existing: Option[A],
-      updated:  B,
-      cc:       ChangeContext
+      existing:     Option[A],
+      updated:      B,
+      cc:           ChangeContext,
+      tenantStatus: TenantStatus
   )(
-      action:   B => IOResult[C]
+      action:       B => IOResult[C]
   ): IOResult[C] = {
     // only id to avoid giving too much info in error in that case
     def error[X: HasSecurityTag](x: X) = {
@@ -221,28 +223,43 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
       Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
     }
 
-    getTenants().flatMap { availableTenants =>
-      existing match {
-        // in the case of creation, we just have to check if the user has actual access on update node fact
-        case None    =>
-          if (cc.accessGrant.canSee(updated.security)(using availableTenants)) {
-            action(updated)
-          } else {
-            error(updated)
-          }
-        case Some(e) =>
-          (if (cc.accessGrant.canSee(e.security)(using availableTenants)) {
-             if (cc.accessGrant.canSee(updated.security)(using availableTenants)) {
-               // here, if tenants are not enabled, we must keep the old ones in any case
-               if (tenantsEnabled) {
-                 // here, we also need to check if the tenant are changing, if the new tenant is in the list
-                 // (we already know that the permission is ok, but "*" can see even non existing tenants)
-                 // We also accept non modified tenant.
+    existing match {
+      // creation case
+      case None    =>
+        tenantStatus match {
+          // creation when feature disabled: set securityTag to "none".
+          case TenantStatus.Disabled         =>
+            action(updated.updateSecurityContext(None))
+          // in the case of creation, we just have to check if the user has actual access on updated item
+          case TenantStatus.Enabled(tenants) =>
+            if (cc.accessGrant.canSee(updated)) {
+              action(updated)
+            } else {
+              error(updated)
+            }
+        }
+
+      // when we update an existing item, we must also check that the user can see the previous item
+      case Some(e) =>
+        tenantStatus match {
+          // update when feature is disabled: keep existing security tag if any
+          case TenantStatus.Disabled         =>
+            action(updated.updateSecurityContext(e.security))
+          // update when feature enabled: check consistency
+          case TenantStatus.Enabled(tenants) =>
+            (if (cc.accessGrant.canSee(e)) {
+               if (cc.accessGrant.canSee(updated)) {
+
                  (e.security, updated.security) match {
+                   // no tenants in updated: existing security info is cleared
                    case (_, None)                      => updated.succeed
+                   // if both have identical tags, it's ok
                    case (Some(a), Some(b)) if (a == b) => updated.succeed
+                   // case where the tags are different: update only if the tenant exists.
+                   // We know that the user has the right to change the security tag because
+                   // his access grant is ok on both existing and updated items.
                    case (_, Some(b))                   =>
-                     if (b.tenants.forall(t => availableTenants.contains(t))) {
+                     if (b.tenants.forall(t => tenants.contains(t))) {
                        updated.succeed
                      } else {
                        Inconsistency(
@@ -251,24 +268,20 @@ class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: 
                      }
                  }
                } else {
-                 updated.updateSecurityContext(e.security).succeed
+                 error(updated)
                }
              } else {
-               error(updated)
-             }
-           } else {
-             error(e)
-           }).flatMap(up => action(up))
-      }
+               error(e)
+             }).flatMap(up => action(up))
+        }
     }
   }
 
   override def checkDelete[A: HasSecurityTag](
-      existing:         A,
-      cc:               ChangeContext,
-      availableTenants: Set[TenantId]
+      existing: A,
+      cc:       ChangeContext
   ): Either[RudderError, A] = {
-    if (cc.accessGrant.canSee(existing.security)(using availableTenants)) {
+    if (cc.accessGrant.canSee(existing)) {
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case

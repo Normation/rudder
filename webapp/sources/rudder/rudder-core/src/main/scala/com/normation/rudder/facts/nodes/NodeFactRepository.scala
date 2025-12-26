@@ -337,7 +337,8 @@ object CoreNodeFactRepository {
   def make(
       storage:       NodeFactStorage,
       softByName:    GetNodesBySoftwareName,
-      tenants:       TenantService,
+      tenantRepos:   TenantRepository,
+      tenantService: TenantService,
       callbacks:     Chunk[NodeFactChangeEventCallback],
       savePreChecks: Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
   ): IOResult[CoreNodeFactRepository] = for {
@@ -346,7 +347,7 @@ object CoreNodeFactRepository {
     _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
     accepted <- storage.getAllAccepted()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Creating node fact repos")
-    repo     <- make(storage, softByName, tenants, pending, accepted, callbacks, savePreChecks)
+    repo     <- make(storage, softByName, tenantRepos, tenantService, pending, accepted, callbacks, savePreChecks)
   } yield {
     repo
   }
@@ -354,7 +355,8 @@ object CoreNodeFactRepository {
   def make(
       storage:       NodeFactStorage,
       softByName:    GetNodesBySoftwareName,
-      tenants:       TenantService,
+      tenantRepo:    TenantRepository,
+      tenantService: TenantService,
       pending:       Map[NodeId, CoreNodeFact],
       accepted:      Map[NodeId, CoreNodeFact],
       callbacks:     Chunk[NodeFactChangeEventCallback],
@@ -365,7 +367,7 @@ object CoreNodeFactRepository {
     lock <- ReentrantLock.make()
     cbs  <- Ref.make(callbacks)
   } yield {
-    new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, savePreChecks, lock)
+    new CoreNodeFactRepository(storage, softByName, tenantRepo, tenantService, p, a, cbs, savePreChecks, lock)
   }
 
   // a version for tests
@@ -375,9 +377,18 @@ object CoreNodeFactRepository {
       callbacks:     Chunk[NodeFactChangeEventCallback] = Chunk.empty,
       savePreChecks: Chunk[NodeFact => IOResult[Unit]] = Chunk.empty
   ): UIO[CoreNodeFactRepository] = for {
-    t <- DefaultTenantService.make(Nil)
-    r <- make(NoopFactStorage, NoopGetNodesBySoftwareName, t, pending, accepted, callbacks, savePreChecks)
-  } yield r
+    tr   <- InMemoryTenantRepository.make(Nil)
+    repo <- make(
+              NoopFactStorage,
+              NoopGetNodesBySoftwareName,
+              tr,
+              new DefaultTenantService(),
+              pending,
+              accepted,
+              callbacks,
+              savePreChecks
+            )
+  } yield repo
 }
 
 // we have some specialized services / materialized view for complex queries. Implementation can manage cache and
@@ -409,15 +420,16 @@ class SoftDaoGetNodesBySoftwareName(val softwareDao: ReadOnlySoftwareDAO) extend
  * Rudder server (id=root) is special among nodes. It can be disabled, non system, deleted, etc.
  */
 class CoreNodeFactRepository(
-    storage:        NodeFactStorage,
-    softwareByName: GetNodesBySoftwareName,
-    tenantService:  TenantService,
-    pendingNodes:   Ref[Map[NodeId, CoreNodeFact]],
-    acceptedNodes:  Ref[Map[NodeId, CoreNodeFact]],
-    callbacks:      Ref[Chunk[NodeFactChangeEventCallback]],
-    savePreChecks:  Chunk[NodeFact => IOResult[Unit]],
-    lock:           ReentrantLock,
-    cbTimeout:      zio.Duration = 5.seconds
+    storage:          NodeFactStorage,
+    softwareByName:   GetNodesBySoftwareName,
+    tenantRepository: TenantRepository,
+    tenantService:    TenantService,
+    pendingNodes:     Ref[Map[NodeId, CoreNodeFact]],
+    acceptedNodes:    Ref[Map[NodeId, CoreNodeFact]],
+    callbacks:        Ref[Chunk[NodeFactChangeEventCallback]],
+    savePreChecks:    Chunk[NodeFact => IOResult[Unit]],
+    lock:             ReentrantLock,
+    cbTimeout:        zio.Duration = 5.seconds
 ) extends NodeFactRepository {
   import NodeFactChangeEvent.*
 
@@ -568,8 +580,7 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-      sec    <- tenantService.filter(res)
-    } yield sec
+    } yield tenantService.filter(res)
   }
 
   private[nodes] def getAllOnRef[A](
@@ -631,24 +642,20 @@ class CoreNodeFactRepository(
   private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       cc: ChangeContext
   ): IOResult[StorageChangeEventDelete] = {
-    tenantService
-      .getTenants()
-      .flatMap(tenants => {
-        ref
-          .modify(nodes => {
-            nodes.get(nodeId) match {
-              case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
-              case Some(existing) =>
-                tenantService.checkDelete(existing, cc, tenants) match {
-                  case Left(err) => (Left(err), nodes)
-                  case Right(n)  =>
-                    val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
-                    (Right(e), nodes.removed(nodeId))
-                }
+    ref
+      .modify(nodes => {
+        nodes.get(nodeId) match {
+          case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
+          case Some(existing) =>
+            tenantService.checkDelete(existing, cc) match {
+              case Left(err) => (Left(err), nodes)
+              case Right(n)  =>
+                val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
+                (Right(e), nodes.removed(nodeId))
             }
-          })
-          .flatMap(ZIO.fromEither(_))
+        }
       })
+      .flatMap(ZIO.fromEither(_))
   }
 
   /*
@@ -687,7 +694,8 @@ class CoreNodeFactRepository(
                                    Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
                                }
         (nodeFact, selected) = pair
-        es                  <- tenantService.manageUpdate(core, nodeFact, cc) { updated =>
+        tenantStatus        <- tenantRepository.getStatus
+        es                  <- tenantService.manageUpdate(core, nodeFact, cc, tenantStatus) { updated =>
                                  for {
                                    // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
                                    // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.

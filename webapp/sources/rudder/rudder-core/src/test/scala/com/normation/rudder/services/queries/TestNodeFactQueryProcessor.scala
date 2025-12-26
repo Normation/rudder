@@ -126,13 +126,15 @@ class TestNodeFactQueryProcessor {
       override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
     }
 
+    val tenantRepository: TenantRepository = InMemoryTenantRepository.make(Nil).runNow
+
     (for {
-      t <- DefaultTenantService.make(Nil)
       r <- CoreNodeFactRepository
              .make(
                mockLdapFactStorage.nodeFactStorage,
                NoopNodeBySoftware,
-               t,
+               tenantRepository,
+               new DefaultTenantService,
                Chunk.empty
              )
     } yield r).runNow

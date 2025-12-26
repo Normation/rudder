@@ -56,7 +56,7 @@ class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccou
   def render(xml: NodeSeq): NodeSeq = <head>{
     WithNonce.scriptWithNonce(
       Script(JsRaw(s"""const aclPluginEnabled = ${RudderConfig.apiAuthorizationLevelService.aclEnabled};
-                      |const tenantsPluginEnabled = ${RudderConfig.tenantService.tenantsEnabled};""".stripMargin))
+                      |const tenantsPluginEnabled = ${RudderConfig.tenantRepository.tenantsEnabled};""".stripMargin))
     )
   }</head> // JsRaw ok, const
 

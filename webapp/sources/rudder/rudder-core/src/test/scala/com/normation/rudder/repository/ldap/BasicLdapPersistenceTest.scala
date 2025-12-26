@@ -63,10 +63,7 @@ import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.queries.RawStringQueryParser
 import com.normation.rudder.services.servers.InstanceIdGeneratorImpl
 import com.normation.rudder.services.servers.InstanceIdService
-import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.*
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
@@ -166,10 +163,11 @@ class BasicLdapPersistenceTest extends Specification {
 
   lazy val getNodesBySoftwareName = new SoftDaoGetNodesBySoftwareName(softwareGet)
 
-  lazy val tenantService: DefaultTenantService = DefaultTenantService.make(Nil).runNow
+  val tenantRepo:         TenantRepository = InMemoryTenantRepository.make(Nil).runNow
+  lazy val tenantService: TenantService    = new DefaultTenantService()
 
   lazy val nodeFactRepo: CoreNodeFactRepository = {
-    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantService, Chunk(), Chunk()).runNow
+    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantRepo, tenantService, Chunk(), Chunk()).runNow
   }
 
   lazy val groupRepository =

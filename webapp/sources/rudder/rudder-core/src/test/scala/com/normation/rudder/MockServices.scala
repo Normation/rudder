@@ -2460,10 +2460,11 @@ class MockNodes() {
 
   val getNodesBySoftwareName = new SoftDaoGetNodesBySoftwareName(softwareDao)
 
-  val tenantService = DefaultTenantService.make(Nil).runNow
+  val tenantRepo: TenantRepository = InMemoryTenantRepository.make(Nil).runNow
+  val tenantService = new DefaultTenantService()
 
   val nodeFactRepo: CoreNodeFactRepository = {
-    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantService, Chunk(), Chunk()).runNow
+    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantRepo, tenantService, Chunk(), Chunk()).runNow
   }
 
   val propRepo: PropertiesRepository = {
