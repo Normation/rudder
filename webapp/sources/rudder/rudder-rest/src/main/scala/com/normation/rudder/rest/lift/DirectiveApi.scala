@@ -78,7 +78,6 @@ import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -159,14 +158,7 @@ class DirectiveApi(
     val schema:                                                                                                API.CreateDirective.type = API.CreateDirective
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
 
-      implicit val cc: ChangeContext = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        authzToken.qc.actor,
-        Instant.now(),
-        params.reason,
-        None,
-        authzToken.qc.accessGrant
-      )
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
 
       (for {
         restDirective <-

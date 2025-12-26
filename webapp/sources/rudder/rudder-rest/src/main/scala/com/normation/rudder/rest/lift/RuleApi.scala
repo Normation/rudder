@@ -63,7 +63,6 @@ import com.normation.rudder.tenants.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.StringUuidGenerator
-import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import scala.collection.MapView
@@ -333,17 +332,7 @@ class RuleApiService14(
                         actor,
                         params.reason
                       )
-      id           <- workflow
-                        .startWorkflow(cr)(using
-                          ChangeContext(
-                            ModificationId(uuidGen.newUuid),
-                            actor,
-                            Instant.now(),
-                            params.reason,
-                            None,
-                            qc.accessGrant
-                          )
-                        )
+      id           <- workflow.startWorkflow(cr)(using qc.newCC(params.reason))
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()
       nodesLib     <- nodeFactRepos.getAll()

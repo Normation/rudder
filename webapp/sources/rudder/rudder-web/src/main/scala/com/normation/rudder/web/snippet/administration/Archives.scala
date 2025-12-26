@@ -52,7 +52,6 @@ import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
-import java.time.Instant
 import java.util.Base64
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -92,14 +91,7 @@ class Archives extends DispatchSnippet with Loggable {
       importFunction: ImportFuncParams => ChangeContext => IOResult[GitCommitId]
   )(implicit qc: QueryContext): (GitCommitId, PersonIdent) => IOResult[GitCommitId] = { (commit, commiter) =>
     {
-      implicit val cc: ChangeContext = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        qc.actor,
-        Instant.now(),
-        Some("User requested backup restoration to commit %s".format(commit.value)),
-        None,
-        qc.accessGrant
-      )
+      implicit val cc: ChangeContext = qc.newCC(Some("User requested backup restoration to commit %s".format(commit.value)))
       importFunction((commit, commiter))(cc)
     }
   }

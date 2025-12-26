@@ -100,12 +100,12 @@ class TestRemoveNodeService extends Specification with AfterAll {
   val cleanUp = new CleanUpNodePolicyFiles(varRudderShare.pathAsString)
   implicit val testChangeContext: ChangeContext = {
     ChangeContext(
-      ModificationId("test-mod-id"),
       EventActor("test"),
+      QueryContext.testQC.accessGrant,
+      ModificationId("test-mod-id"),
       Instant.now(),
       None,
-      None,
-      QueryContext.testQC.accessGrant
+      None
     )
   }
 

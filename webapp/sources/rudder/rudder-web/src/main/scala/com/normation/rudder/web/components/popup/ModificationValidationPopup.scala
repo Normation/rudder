@@ -58,7 +58,6 @@ import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
@@ -66,7 +65,6 @@ import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
-import java.time.Instant
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
@@ -576,16 +574,7 @@ class ModificationValidationPopup(
             .move(
               nodeGroup.id,
               parentCategoryId
-            )(using
-              ChangeContext(
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                Instant.now(),
-                crReasons.map(_.get),
-                None,
-                CurrentUser.nodePerms
-              )
-            )
+            )(using CurrentUser.changeContext(crReasons.map(_.get)))
             .chainError("Error when moving the group (no change request was created)")
             .either
             .runNow match {
@@ -615,16 +604,7 @@ class ModificationValidationPopup(
     (for {
       cr <- purecr.toIO
       id <- workflowService
-              .startWorkflow(cr)(using
-                ChangeContext(
-                  ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
-                  Instant.now(),
-                  crReasons.map(_.get),
-                  None,
-                  CurrentUser.nodePerms
-                )
-              )
+              .startWorkflow(cr)(using CurrentUser.changeContext(crReasons.map(_.get)))
     } yield {
       id
     }).chainError("Error when trying to save your modification").either.runNow match {

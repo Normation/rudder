@@ -103,7 +103,8 @@ case class RudderUserDetail(
     status:      UserStatus,
     roles:       Set[Role],
     apiAuthz:    ApiAuthorization,
-    accessGrant: TenantAccessGrant
+    accessGrant: TenantAccessGrant,
+    actorIp:     Option[String] = None
 ) extends UserDetails with AuthenticatedUser {
   // merge roles rights
   override val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))

@@ -83,11 +83,12 @@ trait AuthenticatedUser {
   }
   def login: String = name
 
+  def actorIp:     Option[String]
   def authz:       Rights
   def apiAuthz:    ApiAuthorization
   def accessGrant: TenantAccessGrant
   implicit def qc: QueryContext = {
-    QueryContext(EventActor(name), accessGrant)
+    QueryContext(EventActor(name), accessGrant, actorIp)
   }
 
   def checkRights(auth: AuthorizationType): Boolean

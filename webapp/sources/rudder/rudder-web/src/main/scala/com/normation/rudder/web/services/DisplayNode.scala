@@ -41,7 +41,6 @@ package services
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -104,7 +103,6 @@ object DisplayNode extends Loggable {
   private val nodeFactRepository   = RudderConfig.nodeFactRepository
   private val removeNodeService    = RudderConfig.removeNodeService
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private val uuidGen              = RudderConfig.stringUuidGenerator
   private val linkUtil             = RudderConfig.linkUtil
 
   private def escapeJs(in:   String):         JsExp   = Str(StringEscapeUtils.escapeEcmaScript(in))
@@ -777,14 +775,8 @@ object DisplayNode extends Loggable {
    * Reset key status for given node and redisplay it's security <div>
    */
   private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-      CurrentUser.actor,
-      Instant.now(),
-      Some("Trusted key status reset to accept new key (first use)"),
-      None,
-      CurrentUser.nodePerms
-    )
+    implicit val cc: ChangeContext =
+      CurrentUser.changeContext(Some("Trusted key status reset to accept new key (first use)"))
 
     (for {
       node   <- RudderConfig.nodeFactRepository
@@ -1311,14 +1303,7 @@ object DisplayNode extends Loggable {
   }
 
   private def removeNode(node: MinimalNodeFactInterface): JsCmd = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      CurrentUser.actor,
-      Instant.now(),
-      None,
-      S.request.map(_.remoteAddr).toOption,
-      CurrentUser.nodePerms
-    )
+    implicit val cc: ChangeContext = CurrentUser.changeContext()
 
     // only erase for Rudder 8.0
     removeNodeService.removeNodePure(node.id, DeleteMode.Erase).toBox match {
