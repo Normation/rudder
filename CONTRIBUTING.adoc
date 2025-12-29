@@ -106,7 +106,7 @@ allowing you to test your changes.
 
 === Rust
 
-Follow the link:contributing/rust.adoc[dedicated doc].
+Follow the link:contributing/rust.md[dedicated doc].
 
 === F#
 

@@ -1,4 +1,3 @@
-
 def failedBuild = false
 def version = "9.2"
 
@@ -12,6 +11,7 @@ pipeline {
 
     environment {
         RUDDER_VERSION = "${version}"
+        CI             = 1
     }
     triggers {
         cron('@midnight')
@@ -49,8 +49,9 @@ pipeline {
                             }
                         }
                         sh script: 'cp target/debug/rudder-module-* /opt/rudder/bin/'
-                        dir("policies/lib") {
-                            sh script: 'cargo nextest run --no-default-features --features test-unix --retries 2 --no-capture', label: 'methods tests'
+                        sh script: ''
+                        dir("policies") {
+                            sh script: 'make check-methods-unix', label: 'methods tests'
                         }
                     }
                     post {
@@ -329,11 +330,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'relayd', name: 'cargo relayd', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'relay/sources/relayd/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'relayd', name: 'cargo relayd')
-                        }
                         failure {
                             script {
                                 failedBuild = true
@@ -365,22 +361,17 @@ pipeline {
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('relay/sources/rudder-package') {
-                                sh script: 'make check', label: 'language tests'
+                                sh script: 'make check', label: 'rudder-package tests'
                             }
                         }
                     }
                     post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'rudder-package', name: 'cargo rudder-package', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'relay/sources/rudder-package/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudder-package', name: 'cargo rudder-package')
-                        }
                         failure {
                             script {
                                 failedBuild = true
                                 errors.add("Tests - rudder-package")
                                 //notifier.notifyResult("rust-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackSend(channel: slackResponse.threadId, message: "Error during rudder-package tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
                             }
                         }
                         cleanup {
@@ -414,11 +405,7 @@ pipeline {
                                     }
                                 }
                                 sh script: 'make agent-windows', label: 'install local Windows agent'
-                                sh script: 'make check', label: 'rudderc tests'
                                 sh script: 'make docs', label: 'rudderc docs'
-                            }
-                            dir('policies/rudder-report') {
-                                sh script: 'make check', label: 'rudder-report tests'
                             }
                             dir('policies') {
                                 sh script: 'make check', label: 'policies test'
@@ -426,11 +413,6 @@ pipeline {
                         }
                     }
                     post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
-                        }
                         failure {
                             script {
                                 failedBuild = true

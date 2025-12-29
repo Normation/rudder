@@ -85,7 +85,7 @@ pub mod book {
 
     use anyhow::{Context, Result};
     use include_dir::{Dir, include_dir};
-    use mdbook::MDBook;
+    use mdbook_driver::MDBook;
     use rudder_commons::methods::Methods;
 
     use crate::doc::markdown;

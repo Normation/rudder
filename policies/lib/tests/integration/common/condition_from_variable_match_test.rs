@@ -64,6 +64,7 @@ fn it_should_be_in_error_if_the_variable_is_undefined() {
     end_test(workdir);
 }
 #[test]
+#[allow(unreachable_code)]
 #[should_panic(expected = "bug fix needed")]
 fn it_should_not_work_on_dict_variable() {
     todo!("bug fix needed");
