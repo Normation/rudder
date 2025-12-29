@@ -3,7 +3,7 @@ use crate::output::ResultOutput;
 use crate::package_manager::{
     LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::collections::HashMap;
 use windows::Win32::Foundation::VARIANT_BOOL;
 use windows::Win32::System::Com::{
@@ -18,6 +18,7 @@ use windows::core::BSTR;
 mod kb;
 mod update;
 
+use crate::package_manager::windows_update_agent::kb::Article;
 use crate::package_manager::windows_update_agent::update::{
     Collection, InfoData, InstallationResult, UpdateDownloadResult, UpdateInstallationResult,
 };
@@ -304,20 +305,115 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             Ok(session) => session,
         };
         // Compute the updates to install
-        let raw_updates_to_download = query_wua(&session, "IsInstalled=0");
-        r.log_step(&raw_updates_to_download);
-        let updates_to_download = match raw_updates_to_download.inner {
+        let raw_available_updates = query_wua(&session, "IsInstalled=0");
+        r.log_step(&raw_available_updates);
+        let available_updates = match raw_available_updates.inner {
             Err(ref e) => {
                 r.stderr(format!("Failed to retrieve available updates {}", e));
-                return r.step(raw_updates_to_download.into_err());
+                return r.step(raw_available_updates.into_err());
             }
             Ok(u) => u,
         };
-        // Early return if everything is up to date
-        if updates_to_download.updates.is_empty() {
-            r.stdout("No Updates found to install".to_string());
-            return r;
-        }
+        let updates_to_download = match update_type {
+            FullCampaignType::SystemUpdate => available_updates,
+            FullCampaignType::SecurityUpdate => {
+                let raw_utd: IUpdateCollection = match unsafe {
+                    CoCreateInstance(&UpdateCollection, None, CLSCTX_INPROC_SERVER).context("")
+                } {
+                    Err(e) => {
+                        r.stderr(format!(
+                            "Could not instanciate a new UpdateCollection to download: {}",
+                            e
+                        ));
+                        return r.into_err();
+                    }
+                    Ok(u) => u,
+                };
+                for update in available_updates.updates {
+                    let com_ptr: IUpdate = match update.com_ptr {
+                        None => {
+                            r.stderr(format!(
+                                "Empty COM reference for update {}",
+                                update.data.title
+                            ));
+                            return r.into_err(); // If one update fails, do not fail the whole update but
+                        }
+                        Some(p) => p,
+                    };
+                    match unsafe { raw_utd.Add(&com_ptr) } {
+                        Err(e) => {
+                            r.stderr(format!("Could not add update to collection: {}", e));
+                            return r.into_err(); // If one update fails, do not fail the whole update but
+                        }
+                        Ok(_) => {}
+                    }
+                }
+                match Collection::try_from(raw_utd) {
+                    Err(e) => {
+                        r.stderr(format!(
+                            "Could not create the UpdateCollection to download: {}",
+                            e
+                        ));
+                        return r.into_err();
+                    }
+                    Ok(c) => c,
+                }
+            }
+            FullCampaignType::SoftwareUpdate(v) => {
+                let raw_utd: IUpdateCollection = match unsafe {
+                    CoCreateInstance(&UpdateCollection, None, CLSCTX_INPROC_SERVER).context("")
+                } {
+                    Err(e) => {
+                        r.stderr(format!(
+                            "Could not instanciate a new UpdateCollection to download: {}",
+                            e
+                        ));
+                        return r.into_err();
+                    }
+                    Ok(u) => u,
+                };
+                for update in available_updates.updates {
+                    let com_ptr: IUpdate = match update.com_ptr {
+                        None => {
+                            r.stderr(format!(
+                                "Empty COM reference for update {}",
+                                update.data.title
+                            ));
+                            return r.into_err(); // If one update fails, do not fail the whole update but
+                        }
+                        Some(p) => p,
+                    };
+                    if v.iter().any(|x| match Article::new(x.name.clone()) {
+                        Err(e) => {
+                            r.stderr(format!(
+                                "Could not look for requested update {:?}: {}",
+                                x, e
+                            ));
+                            false
+                        }
+                        Ok(a) => update.data.kbs.contains(&a),
+                    }) {
+                        match unsafe { raw_utd.Add(&com_ptr) } {
+                            Err(e) => {
+                                r.stderr(format!("Could not add update to collection: {}", e));
+                                return r.into_err(); // If one update fails, do not fail the whole update but
+                            }
+                            Ok(_) => {}
+                        }
+                    }
+                }
+                match Collection::try_from(raw_utd) {
+                    Err(e) => {
+                        r.stderr(format!(
+                            "Could not create the UpdateCollection to download: {}",
+                            e
+                        ));
+                        return r.into_err();
+                    }
+                    Ok(c) => c,
+                }
+            }
+        };
         // Download the available updates
         let raw_update_download_result = download_updates(&session, &updates_to_download);
         r.log_step(&raw_update_download_result);

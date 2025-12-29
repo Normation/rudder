@@ -7,7 +7,6 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::package_manager::PackageManager::WindowsUpdateAgent;
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
 use crate::package_manager::windows_update_agent::WindowsUpdateAgent as WUAPackageManager;

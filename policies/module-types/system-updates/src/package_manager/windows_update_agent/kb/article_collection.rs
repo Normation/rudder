@@ -19,9 +19,9 @@ impl TryFrom<&IStringCollection> for ArticleCollection {
         let mut kbs = ArticleCollection::new();
         let count = unsafe { s.Count().context("Failed to get KB count")? };
         for i in 0..count {
-            kbs.0.push(Article::new(unsafe {
-                s.get_Item(i).context("Failed to get KB ID")?.to_string()
-            }));
+            let article =
+                Article::new(unsafe { s.get_Item(i).context("Failed to get KB ID")?.to_string() })?;
+            kbs.0.push(article);
         }
         Ok(kbs)
     }
