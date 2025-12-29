@@ -16,8 +16,7 @@ pub struct Info {
 impl TryFrom<IUpdate> for Info {
     type Error = Error;
     fn try_from(u: IUpdate) -> Result<Self, Error> {
-        let data =
-            InfoData::try_from(&u).context(format!("Could not convert IUpdate to InfoData"))?;
+        let data = InfoData::try_from(&u).context("Could not convert IUpdate to InfoData")?;
         Ok(Self {
             com_ptr: Some(u),
             data,
@@ -129,10 +128,10 @@ impl TryFrom<&IUpdate> for InfoData {
     }
 }
 
-impl Into<PackageId> for InfoData {
-    fn into(self) -> PackageId {
+impl From<InfoData> for PackageId {
+    fn from(val: InfoData) -> Self {
         PackageId {
-            name: self.title,
+            name: val.title,
             arch: "noarch".to_string(),
         }
     }

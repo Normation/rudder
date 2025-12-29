@@ -4,22 +4,22 @@ use serde::{Deserialize, Serialize};
 //https://learn.microsoft.com/en-us/windows/win32/api/wuapi/ne-wuapi-operationresultcode
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum OperationResultCode {
-    OrcNoStarted = 0,
-    OrcInProgress = 1,
-    OrcSucceeded = 2,
-    OrcSucceededWithErrors = 3,
-    OrcFailed = 4,
-    OrcAborted = 5,
+    NoStarted = 0,
+    InProgress = 1,
+    Succeeded = 2,
+    SucceededWithErrors = 3,
+    Failed = 4,
+    Aborted = 5,
 }
 
 impl OperationResultCode {
     pub fn new(code: i32) -> Result<OperationResultCode> {
         match code {
-            0 => Ok(OperationResultCode::OrcNoStarted),
-            1 => Ok(OperationResultCode::OrcInProgress),
-            2 => Ok(OperationResultCode::OrcSucceeded),
-            3 => Ok(OperationResultCode::OrcFailed),
-            4 => Ok(OperationResultCode::OrcAborted),
+            0 => Ok(OperationResultCode::NoStarted),
+            1 => Ok(OperationResultCode::InProgress),
+            2 => Ok(OperationResultCode::Succeeded),
+            3 => Ok(OperationResultCode::Failed),
+            4 => Ok(OperationResultCode::Aborted),
             _ => Err(Error::msg("unknown operation result code")),
         }
     }
@@ -28,12 +28,12 @@ impl OperationResultCode {
 impl std::fmt::Display for OperationResultCode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::OrcNoStarted => write!(f, "0 (OrcNoStarted)"),
-            Self::OrcInProgress => write!(f, "1 (OrcInProgress)"),
-            Self::OrcSucceeded => write!(f, "2 (OrcSucceeded)"),
-            Self::OrcSucceededWithErrors => write!(f, "3 (OrcSucceededWithErrors)"),
-            Self::OrcFailed => write!(f, "4 (OrcFailed)"),
-            Self::OrcAborted => write!(f, "5 (OrcAborted)"),
+            Self::NoStarted => write!(f, "0 (OrcNoStarted)"),
+            Self::InProgress => write!(f, "1 (OrcInProgress)"),
+            Self::Succeeded => write!(f, "2 (OrcSucceeded)"),
+            Self::SucceededWithErrors => write!(f, "3 (OrcSucceededWithErrors)"),
+            Self::Failed => write!(f, "4 (OrcFailed)"),
+            Self::Aborted => write!(f, "5 (OrcAborted)"),
         }
     }
 }

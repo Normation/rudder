@@ -130,7 +130,7 @@ fn download_updates(
 ) -> ResultOutput<DownloadResult> {
     let mut r = ResultOutput::new(Ok(DownloadResult {
         h_result: 1,
-        result_code: OperationResultCode::OrcNoStarted,
+        result_code: OperationResultCode::NoStarted,
         update_results: vec![],
     }));
     // Retrieve the update collection to dl
@@ -172,7 +172,7 @@ fn download_updates(
     match raw_download_result {
         Err(e) => {
             r.stderr(format!("Could not download the updates: {}", e));
-            return r.into_err();
+            r.into_err()
         }
         Ok(rdr) => ResultOutput {
             inner: DownloadResult::try_from_com(rdr, collection),
@@ -188,7 +188,7 @@ fn install_updates(
 ) -> ResultOutput<InstallationResult> {
     let mut r = ResultOutput::new(Ok(InstallationResult {
         h_result: 1,
-        result_code: OperationResultCode::OrcNoStarted,
+        result_code: OperationResultCode::NoStarted,
         reboot_required: false,
         update_results: vec![],
     }));
@@ -239,7 +239,7 @@ fn install_updates(
     match raw_install_result {
         Err(e) => {
             r.stderr(format!("Could not install the updates: {}", e));
-            return r.into_err();
+            r.into_err()
         }
         Ok(rir) => ResultOutput {
             inner: InstallationResult::try_from_com(rir, collection),
@@ -340,12 +340,9 @@ impl LinuxPackageManager for WindowsUpdateAgent {
                         }
                         Some(p) => p,
                     };
-                    match unsafe { raw_utd.Add(&com_ptr) } {
-                        Err(e) => {
-                            r.stderr(format!("Could not add update to collection: {}", e));
-                            return r.into_err(); // If one update fails, do not fail the whole update but
-                        }
-                        Ok(_) => {}
+                    if let Err(e) = unsafe { raw_utd.Add(&com_ptr) } {
+                        r.stderr(format!("Could not add update to collection: {}", e));
+                        return r.into_err(); // If one update fails, do not fail the whole update but
                     }
                 }
                 match Collection::try_from(raw_utd) {
@@ -392,14 +389,10 @@ impl LinuxPackageManager for WindowsUpdateAgent {
                             false
                         }
                         Ok(a) => update.data.kbs.contains(&a),
-                    }) {
-                        match unsafe { raw_utd.Add(&com_ptr) } {
-                            Err(e) => {
-                                r.stderr(format!("Could not add update to collection: {}", e));
-                                return r.into_err(); // If one update fails, do not fail the whole update but
-                            }
-                            Ok(_) => {}
-                        }
+                    }) && let Err(e) = unsafe { raw_utd.Add(&com_ptr) }
+                    {
+                        r.stderr(format!("Could not add update to collection: {}", e));
+                        return r.into_err();
                     }
                 }
                 match Collection::try_from(raw_utd) {
@@ -451,9 +444,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             update_download_result
                 .update_results
                 .into_iter()
-                .partition(|update| {
-                    matches!(update.result_code, OperationResultCode::OrcSucceeded)
-                });
+                .partition(|update| matches!(update.result_code, OperationResultCode::Succeeded));
         r.stdout("Successfully installed updates:".to_string());
         if d_succeeded.is_empty() {
             r.stdout(" - None".to_string());
@@ -493,8 +484,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
                 .updates
                 .iter()
                 .filter(|u| downloaded_data.contains(&u.data))
-                .map(|u| u.com_ptr.clone())
-                .flatten()
+                .filter_map(|u| u.com_ptr.clone())
                 .collect::<Vec<IUpdate>>(),
         );
 
@@ -550,7 +540,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
         ) = update_install_result
             .update_results
             .into_iter()
-            .partition(|update| matches!(update.result_code, OperationResultCode::OrcSucceeded));
+            .partition(|update| matches!(update.result_code, OperationResultCode::Succeeded));
         r.stdout("Successfully installed updates:".to_string());
         if i_succeeded.is_empty() {
             r.stdout(" - None".to_string());

@@ -104,7 +104,7 @@ mod tests {
     fn test_from_str() {
         assert_eq!(
             WellKnownCategories::from_str("5C9376AB-8CE6-464A-b136-22113dd69801"),
-            WellKnownCategories::Application
+            Some(WellKnownCategories::Application)
         );
         assert_eq!(WellKnownCategories::from_str("nothing"), None)
     }
