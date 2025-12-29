@@ -466,14 +466,15 @@ class SettingsApi(
   case object RestRelaySyncMethod             extends RestSetting[RelaySynchronizationMethod] {
     val key                   = "relay_server_synchronization_method"
     val startPolicyGeneration = true
-    def get: IOResult[RelaySynchronizationMethod]                                       = configService.relay_server_sync_method()
-    def set: (RelaySynchronizationMethod, EventActor, Option[String]) => IOResult[Unit] =
+    def get:                       IOResult[RelaySynchronizationMethod]                                       = configService.relay_server_sync_method()
+    def set:                       (RelaySynchronizationMethod, EventActor, Option[String]) => IOResult[Unit] =
       (value: RelaySynchronizationMethod, _, _) => configService.set_relay_server_sync_method(value)
-    def parseParam(param: String): PureResult[RelaySynchronizationMethod] = RelaySynchronizationMethod.parse(param)
+    def parseParam(param: String): PureResult[RelaySynchronizationMethod]                                     =
+      RelaySynchronizationMethod.parse(param).leftMap(Unexpected(_))
   }
   given JsonCodec[RelaySynchronizationMethod] = JsonCodec(
     JsonEncoder[String].contramap(_.value),
-    JsonDecoder[String].mapOrFail(RelaySynchronizationMethod.parse(_).leftMap(_.fullMsg))
+    JsonDecoder[String].mapOrFail(RelaySynchronizationMethod.parse)
   )
 
   case object RestRelaySynchronizePolicies    extends RestBooleanSetting {
