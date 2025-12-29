@@ -1,5 +1,5 @@
 use super::Info;
-use anyhow::{Error, Result};
+use anyhow::{Context, Error, Result};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use windows::Win32::System::UpdateAgent::IUpdateCollection;
@@ -18,19 +18,31 @@ impl Collection {
             updates: Vec::new(),
         }
     }
+}
 
-    pub fn try_from_com(c: IUpdateCollection) -> Result<Self, Error> {
-        unsafe {
-            let count = c.Count()?;
-            let mut updates = Vec::new();
-            for i in 0..count {
-                updates.push(Info::try_from_com(c.get_Item(i)?)?)
-            }
-            Ok(Self {
-                com_ptr: Some(c),
-                updates,
-            })
+impl TryFrom<IUpdateCollection> for Collection {
+    type Error = Error;
+    fn try_from(c: IUpdateCollection) -> Result<Self, Error> {
+        let mut updates = Vec::new();
+        let count = unsafe {
+            c.Count()
+                .context("Could not retrieve IUpdateCollection length")?
+        };
+        for i in 0..count {
+            let update = unsafe {
+                c.get_Item(i).context(format!(
+                    "Could not retrieve IUpdateCollection item with index {}",
+                    i
+                ))?
+            };
+            let info = Info::try_from(update)
+                .context("Could not convert IUpdateCollection to UpdateInfo")?;
+            updates.push(info)
         }
+        Ok(Self {
+            com_ptr: Some(c),
+            updates,
+        })
     }
 }
 

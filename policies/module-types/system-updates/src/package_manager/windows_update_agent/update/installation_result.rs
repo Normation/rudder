@@ -1,4 +1,4 @@
-use super::{Collection, InfoData, OperationResultCode, UpdateDownloadResult};
+use super::{Collection, InfoData, OperationResultCode};
 use anyhow::{Error, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

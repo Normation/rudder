@@ -8,27 +8,30 @@ use windows::Win32::System::UpdateAgent::ICategoryCollection;
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct CategoryCollection(Vec<Category>);
 impl CategoryCollection {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         CategoryCollection(Vec::new())
     }
+}
 
-    pub fn try_from_com(c: &ICategoryCollection) -> Result<Self, anyhow::Error> {
-        unsafe {
-            let count = c
-                .Count()
-                .context("Failed to get count from ICategoryCollection")?;
-            let mut categories = Vec::new();
-            for i in 0..count {
-                categories.push(
-                    Category::try_from_com(
-                        &c.get_Item(i)
-                            .context("Failed to get item from ICategoryCollection")?,
-                    )
-                    .context("Failed to translate ICategory to Category")?,
-                )
-            }
-            Ok(Self(categories))
+impl TryFrom<&ICategoryCollection> for CategoryCollection {
+    type Error = anyhow::Error;
+    fn try_from(c: &ICategoryCollection) -> Result<Self, Self::Error> {
+        let count = unsafe {
+            c.Count()
+                .context("Failed to get count from ICategoryCollection")?
+        };
+        let mut categories = Vec::new();
+        for i in 0..count {
+            let item = unsafe {
+                &c.get_Item(i)
+                    .context("Failed to get item from ICategoryCollection")?
+            };
+            categories.push(
+                Category::try_from(item).context("Failed to translate ICategory to Category")?,
+            )
         }
+        Ok(Self(categories))
     }
 }
 
@@ -50,6 +53,7 @@ pub enum WellKnownCategories {
 }
 
 impl WellKnownCategories {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Application => "5C9376AB-8CE6-464A-B136-22113DD69801",
@@ -67,6 +71,7 @@ impl WellKnownCategories {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "5C9376AB-8CE6-464A-B136-22113DD69801" => Some(Self::Application),

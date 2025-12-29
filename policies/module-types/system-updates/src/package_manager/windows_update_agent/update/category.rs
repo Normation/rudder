@@ -10,9 +10,9 @@ pub struct Category {
     name: String,
     id: String,
 }
-
-impl Category {
-    pub fn try_from_com(c: &ICategory) -> Result<Self, anyhow::Error> {
+impl TryFrom<&ICategory> for Category {
+    type Error = anyhow::Error;
+    fn try_from(c: &ICategory) -> Result<Self, Self::Error> {
         unsafe {
             Ok(Self {
                 category_type: c

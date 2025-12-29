@@ -213,7 +213,7 @@ fn update(
 
     let update_result = pm.upgrade(campaign_type);
     let update_details: HashMap<PackageId, Option<String>> = match update_result.inner {
-        Err(ref e) => HashMap::new(),
+        Err(_) => HashMap::new(),
         Ok(ref h) => h.clone(),
     };
     report.step(update_result);

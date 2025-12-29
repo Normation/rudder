@@ -1,8 +1,8 @@
 use super::super::kb::ArticleCollection;
 use super::CategoryCollection;
 use crate::package_manager::PackageId;
-use anyhow::Error;
 use anyhow::Result;
+use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use windows::Win32::System::UpdateAgent::*;
 
@@ -13,9 +13,11 @@ pub struct Info {
     #[serde(flatten)]
     pub data: InfoData,
 }
-impl Info {
-    pub fn try_from_com(u: IUpdate) -> Result<Self, Error> {
-        let data = InfoData::try_from_com(&u)?;
+impl TryFrom<IUpdate> for Info {
+    type Error = Error;
+    fn try_from(u: IUpdate) -> Result<Self, Error> {
+        let data =
+            InfoData::try_from(&u).context(format!("Could not convert IUpdate to InfoData"))?;
         Ok(Self {
             com_ptr: Some(u),
             data,
@@ -38,23 +40,92 @@ pub struct InfoData {
     pub is_mandatory: bool,
     pub superseded_update_ids: Vec<String>,
 }
-impl InfoData {
-    pub fn try_from_com(u: &IUpdate) -> Result<Self, Error> {
-        unsafe {
-            let update_identity: IUpdateIdentity = u.Identity()?;
-            Ok(Self {
-                update_id: update_identity.UpdateID()?.to_string(),
-                revision_number: update_identity.RevisionNumber()?,
-                title: u.Title()?.to_string(),
-                kbs: ArticleCollection::try_from_com(&u.KBArticleIDs()?)?,
-                msrc_severity: u.MsrcSeverity()?.to_string(),
-                categories: CategoryCollection::try_from_com(&u.Categories()?)?,
-                is_downloaded: u.IsDownloaded()?.as_bool(),
-                is_installed: u.IsInstalled()?.as_bool(),
-                is_mandatory: u.IsMandatory()?.as_bool(),
-                superseded_update_ids: vec![],
-            })
-        }
+impl TryFrom<&IUpdate> for InfoData {
+    type Error = Error;
+    fn try_from(u: &IUpdate) -> Result<Self, Error> {
+        let update_identity: IUpdateIdentity = unsafe {
+            u.Identity()
+                .context("Could not retrieve update identity from IUpdate")?
+        };
+        let update_id = unsafe {
+            update_identity
+                .UpdateID()
+                .context("Could not retrieve update identity")?
+                .to_string()
+        };
+        let revision_number = unsafe {
+            update_identity.RevisionNumber().context(format!(
+                "Could not retrieve revision number from update id {}",
+                update_id
+            ))?
+        };
+        let title = unsafe {
+            u.Title()
+                .context(format!(
+                    "Could not retrieve title from update id {}",
+                    update_id
+                ))?
+                .to_string()
+        };
+        let raw_kbs = unsafe {
+            u.KBArticleIDs().context(format!(
+                "Could not retrieve KBs from update id {}",
+                update_id
+            ))?
+        };
+        let kbs = ArticleCollection::try_from(&raw_kbs)?;
+        let msrc_severity = unsafe {
+            u.MsrcSeverity()
+                .context(format!(
+                    "Could not retrieve msrc Severity from update id {}",
+                    update_id
+                ))?
+                .to_string()
+        };
+        let raw_categories = unsafe {
+            u.Categories().context(format!(
+                "Could not retrieve categories from update id {}",
+                update_id
+            ))?
+        };
+        let categories = CategoryCollection::try_from(&raw_categories)?;
+        let is_downloaded = unsafe {
+            u.IsDownloaded()
+                .context(format!(
+                    "Could not retrieve is_downloaded from update id {}",
+                    update_id
+                ))?
+                .into()
+        };
+        let is_installed = unsafe {
+            u.IsInstalled()
+                .context(format!(
+                    "Could not retrieve is_installed from update id {}",
+                    update_id
+                ))?
+                .into()
+        };
+        let is_mandatory = unsafe {
+            u.IsInstalled()
+                .context(format!(
+                    "Could not retrieve is_installed from update id {}",
+                    update_id
+                ))?
+                .into()
+        };
+
+        Ok(InfoData {
+            update_id,
+            revision_number,
+            title,
+            kbs,
+            msrc_severity,
+            categories,
+            is_downloaded,
+            is_installed,
+            is_mandatory,
+            superseded_update_ids: vec![],
+        })
     }
 }
 

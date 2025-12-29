@@ -16,6 +16,7 @@ use crate::{
     output::ResultOutput,
     package_manager::{yum::YumPackageManager, zypper::ZypperPackageManager},
 };
+#[cfg(unix)]
 use rudder_module_type::os_release::OsRelease;
 use std::str::FromStr;
 

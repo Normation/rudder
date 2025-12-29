@@ -11,17 +11,19 @@ impl ArticleCollection {
     pub fn new() -> Self {
         ArticleCollection(Vec::new())
     }
-    pub fn try_from_com(c: &IStringCollection) -> Result<ArticleCollection, anyhow::Error> {
-        unsafe {
-            let count = c.Count().context("Failed to get KB count")?;
-            let mut kbs = ArticleCollection::new();
-            for i in 0..count {
-                kbs.0.push(Article::new(
-                    c.get_Item(i).context("Failed to get KB ID")?.to_string(),
-                ));
-            }
-            Ok(kbs)
+}
+
+impl TryFrom<&IStringCollection> for ArticleCollection {
+    type Error = anyhow::Error;
+    fn try_from(s: &IStringCollection) -> Result<ArticleCollection, Self::Error> {
+        let mut kbs = ArticleCollection::new();
+        let count = unsafe { s.Count().context("Failed to get KB count")? };
+        for i in 0..count {
+            kbs.0.push(Article::new(unsafe {
+                s.get_Item(i).context("Failed to get KB ID")?.to_string()
+            }));
         }
+        Ok(kbs)
     }
 }
 
