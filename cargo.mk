@@ -118,4 +118,5 @@ veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo
 
+# rustup does not support parallel installs
 .NOTPARALLEL: cargo-release cargo-test cargo-sbom
