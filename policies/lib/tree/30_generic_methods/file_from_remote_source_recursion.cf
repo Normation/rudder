@@ -31,7 +31,7 @@
 # @parameter path        Destination file (absolute path on the target node)
 # @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 #
-# 
+#
 # @parameter_rename destination path
 # @class_prefix file_from_remote_source
 # @class_parameter path
@@ -43,41 +43,18 @@ bundle agent file_from_remote_source_recursion(source, path, recursion)
       "class_prefix" string => canonify("file_from_remote_source_${path}");
 
   classes:
-      # depth_search prevents from copying file/symlink
-      # so we need to detect if we want to copy a folder or a file
-      # If we check if it is a file, the class will always be true
-      # event if was in fact a directory. Then, we test if it is a dir.
-      "is_dir_copy"  expression => isdir("${path}");
-      # We won't be able to know if it is really a directory
-      # or not before the first iteration
       "pass3"  expression => "pass2";
       "pass2"  expression => "pass1";
       "pass1"  expression => "any";
 
   files:
-   !is_dir_copy::
-      "${path}"
-        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
-        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
-
-   is_dir_copy::
+   pass3::
       "${path}"
         copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
         depth_search => recurse("${recursion}"),
         classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-    pass2::
-      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
-                                        if => "!${report_data.method_id}_reached";
-      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}"),
-                                        if => "!${report_data.method_id}_reached";
-
-    # The reports should only be made after we know if this is a
-    # directory (to apply recursion) or a file
-    pass3.!is_dir_copy::
-      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying file ${path} from ${source}", "");
-
-    pass3.is_dir_copy::
+    pass3::
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from ${source}, recursion level ${recursion}", "");
 }
