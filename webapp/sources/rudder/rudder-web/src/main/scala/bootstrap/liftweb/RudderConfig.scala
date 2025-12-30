@@ -3548,7 +3548,7 @@ object RudderConfigInit {
         asyncDeploymentAgentImpl
       ), // new CheckDirectiveBusinessRules()
 
-      new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, stringUuidGenerator),
+      new CheckRudderGlobalProperties(roLDAPParameterRepository, woLDAPParameterRepository, stringUuidGenerator),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, stringUuidGenerator),
       new MigrateDirectiveWithSelectInputBroken(
         ncfTechniqueReader,
