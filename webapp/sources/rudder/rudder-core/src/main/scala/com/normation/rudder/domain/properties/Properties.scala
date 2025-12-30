@@ -47,6 +47,8 @@ import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config.*
 import enumeratum.*
 import net.liftweb.json.*
+import scala.annotation.nowarn
+import zio.json
 import zio.json.*
 import zio.json.ast.*
 
@@ -541,6 +543,7 @@ object GenericProperty {
   /**
    * Parse a JSON JValue to ConfigValue. It always succeeds.
    */
+  @Deprecated(since = "8.0", forRemoval = true)
   def fromJsonValue(value: JValue):          ConfigValue = {
     import scala.jdk.CollectionConverters.*
     value match {
@@ -551,10 +554,10 @@ object GenericProperty {
       case JBool(b)         => ConfigValueFactory.fromAnyRef(b)
       case JObject(arr)     => {
         val m = new java.util.HashMap[String, ConfigValue]()
-        arr.foreach(f => m.put(f.name, fromJsonValue(f.value)))
+        arr.foreach(f => m.put(f.name, fromJsonValue(f.value): @nowarn("msg=deprecated")))
         ConfigValueFactory.fromMap(m)
       }
-      case JArray(arr)      => ConfigValueFactory.fromIterable(arr.map(x => fromJsonValue(x)).asJava)
+      case JArray(arr)      => ConfigValueFactory.fromIterable(arr.map(x => fromJsonValue(x): @nowarn("msg=deprecated")).asJava)
     }
   }
   def fromZioJson(value: zio.json.ast.Json): ConfigValue = {
