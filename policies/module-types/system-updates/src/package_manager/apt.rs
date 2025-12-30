@@ -250,6 +250,7 @@ impl LinuxPackageManager for AptPackageManager {
                     version: v.version().to_string(),
                     from: v.source_name().to_string(),
                     source: PackageManager::Apt,
+                    details: None,
                 };
                 let id = PackageId {
                     name: p.name().to_string(),
@@ -267,7 +268,10 @@ impl LinuxPackageManager for AptPackageManager {
         cache.step(step)
     }
 
-    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()> {
+    fn upgrade(
+        &mut self,
+        update_type: &FullCampaignType,
+    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
         let cache = self.cache();
         if let Ok(mut c) = cache.inner {
             //if c.get_changes(false).peekable().next().is_some() {
@@ -321,7 +325,7 @@ impl LinuxPackageManager for AptPackageManager {
 
             res_resolve.step(res_commit)
         } else {
-            cache.clear_ok()
+            cache.clear_ok_with_details()
         }
     }
 
