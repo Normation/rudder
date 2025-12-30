@@ -43,8 +43,8 @@ impl<T> ResultOutput<T> {
     where
         T: std::fmt::Debug,
     {
-        /// This is fine as this method forces an error on the inner object,
-        /// its inner type will never be used
+        // This is fine as this method forces an error on the inner object,
+        // its inner type will never be used
         ResultOutput {
             inner: self.inner.map(|_| unreachable!()),
             stdout: self.stdout,
