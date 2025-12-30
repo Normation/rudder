@@ -292,13 +292,13 @@ impl LinuxPackageManager for AptPackageManager {
                 FullCampaignType::SoftwareUpdate(p) => self.mark_package_upgrades(p, &mut c),
             });
             if mark_res.inner.is_err() {
-                return mark_res;
+                return mark_res.into_err();
             }
 
             // Resolve dependencies
             let res_resolve = Self::apt_errors_to_output(c.resolve(true));
             if res_resolve.inner.is_err() {
-                return res_resolve;
+                return res_resolve.into_err();
             }
 
             // Do the changes
@@ -323,7 +323,14 @@ impl LinuxPackageManager for AptPackageManager {
             let install_out = RudderAptAcquireProgress::read_mem_file(mem_file_install);
             res_commit.stdout(install_out);
 
-            res_resolve.step(res_commit)
+            let mut ro = ResultOutput {
+                inner: HashMap::new(),
+                stdout: vec![],
+                stderr: vec![],
+            };
+            ro.log_step(res_resolve);
+            ro.log_step(res_commit);
+            ro
         } else {
             cache.clear_ok_with_details()
         }
