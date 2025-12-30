@@ -103,7 +103,8 @@ fn invoke_with_args(args: &str) -> Result<()> {
 
     if !output.status.success() {
         let msg = String::from_utf8_lossy(&output.stdout);
-        bail!("{msg}");
+        let log = read_utf16_file("C:\\Windows\\security\\logs\\scesrv.log")?;
+        bail!("{msg}\nlog:\n{log}");
     }
 
     Ok(())
