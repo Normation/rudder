@@ -86,9 +86,6 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import enumeratum.*
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import scala.util.matching.Regex
 import zio.*
@@ -517,16 +514,19 @@ object RelaySynchronizationMethod       extends Enum[RelaySynchronizationMethod]
 
   final val values: IndexedSeq[RelaySynchronizationMethod] = findValues
 
-  def parse(value: String): Box[RelaySynchronizationMethod] = {
+  def parse(value: String): Either[String, RelaySynchronizationMethod] = {
     value match {
-      case null | "" => Failure("An empty or null string can not be parsed as a relay synchronization method")
+      case null | "" =>
+        Left(
+          s"An empty or null string can not be parsed as a relay synchronization method. Possible values are: '${values.map(_.value).mkString(", ")}'"
+        )
       case s         =>
         s.trim.toLowerCase match {
-          case Classic.value  => Full(Classic)
-          case Disabled.value => Full(Disabled)
-          case Rsync.value    => Full(Rsync)
+          case Classic.value  => Right(Classic)
+          case Disabled.value => Right(Disabled)
+          case Rsync.value    => Right(Rsync)
           case _              =>
-            Failure(
+            Left(
               s"Cannot parse the given value as a valid relay synchronization method: '${value}'. Authorised values are: '${values.map(_.value).mkString(", ")}'"
             )
         }

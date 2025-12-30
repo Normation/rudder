@@ -1862,7 +1862,7 @@ object NodeFactSerialisation {
 
     implicit val codecAgentReportingProtocol: JsonCodec[AgentReportingProtocol] = {
       JsonCodec.string.transformOrFail[AgentReportingProtocol](
-        s => AgentReportingProtocol.parse(s).left.map(_.fullMsg),
+        AgentReportingProtocol.parse,
         _.value
       )
     }
