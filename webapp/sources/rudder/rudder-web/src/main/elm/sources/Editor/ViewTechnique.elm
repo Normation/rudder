@@ -51,19 +51,111 @@ checkTechniqueUiState : TechniqueState -> TechniqueCheckState -> List TechniqueC
 checkTechniqueUiState origin technique techniques ui =
   { ui | idState = checkTechniqueId origin technique techniques, nameState = checkTechniqueName technique techniques }
 
-
-isValidState : ValidationState error -> Bool
-isValidState state =
+invalidBlockState : ValidationState BlockError -> (Bool, String)
+invalidBlockState state =
   case state of
-    Unchanged -> True
-    ValidState -> True
-    InvalidState _ -> False
+    InvalidState errors ->
+      let
+        invalidMsg = errors
+          |> List.map (\e ->
+            case e of
+              EmptyComponent -> "Block must have a name"
+              NoFocusError -> "A method must be selected if the reporting of the block is based on one child method report"
+              ConditionError -> "There are errors on block conditions"
+          )
+          |> String.join ".\n"
+      in
+        (True, invalidMsg)
+    _ -> (False, "")
+
+invalidMethodCallParamState : ValidationState MethodCallParamError -> (Bool, String)
+invalidMethodCallParamState state =
+  case state of
+    InvalidState errors ->
+      let
+        invalidMsg = errors
+          |> List.map (\e ->
+            case e of
+              ConstraintError c -> "Error on parameter '" ++ c.id.value ++ "': " ++ c.message
+          )
+          |> String.join ".\n"
+      in
+        (True, invalidMsg)
+    _ -> (False, "")
+
+invalidTechniqueIdState : ValidationState TechniqueIdError -> (Bool, String)
+invalidTechniqueIdState state =
+  case state of
+    InvalidState errors ->
+      let
+        invalidMsg = errors
+          |> List.map (\e ->
+            case e of
+              TooLongId -> "Technique ID is too long"
+              AlreadyTakenId -> "Technique ID is already taken"
+          )
+          |> String.join ".\n"
+      in
+        (True, invalidMsg)
+    _ -> (False, "")
+
+invalidTechniqueNameState : ValidationState TechniqueNameError -> (Bool, String)
+invalidTechniqueNameState state =
+  case state of
+    InvalidState errors ->
+      let
+        invalidMsg = errors
+          |> List.map (\e ->
+            case e of
+              EmptyName -> "Technique name is required"
+              AlreadyTakenName -> "Technique name is already taken"
+          )
+          |> String.join ".\n"
+      in
+        (True, invalidMsg)
+    _ -> (False, "")
 
 checkParameter param = (not (Maybe.Extra.isNothing param.description && String.isEmpty param.name )) && (not (Regex.contains ((Regex.fromString >> Maybe.withDefault Regex.never) "[^_a-zA-Z\\d]") param.name))
-isValid: Technique -> TechniqueUiInfo -> Bool
-isValid t ui =
-  (isValidState ui.idState )  && ( isValidState ui.nameState ) && (List.all (isValidState) (List.map .validation (Dict.values ui.callsUI)))
-  && (List.all (isValidState) (List.map (.validation) (Dict.values ui.blockUI))) && (List.all (checkParameter) t.parameters)
+
+checkInvalidStates: Technique -> TechniqueUiInfo -> List String
+checkInvalidStates t ui =
+  let
+    idState = invalidTechniqueIdState ui.idState
+    nameState = invalidTechniqueNameState ui.nameState
+    parametersState =
+      ( not (List.all checkParameter t.parameters)
+      , "Invalid parameters state"
+      )
+    callsUiState =
+      let
+        checks = (List.map .validation (Dict.values ui.callsUI))
+          |> List.filterMap (\c ->
+            let
+              check = (invalidMethodCallParamState c)
+            in
+              if Tuple.first check then Just (Tuple.second check) else Nothing)
+      in
+          ( not (List.isEmpty checks)
+          , String.join ".\n" checks
+          )
+    blocksUiState =
+      let
+        checks = (List.map .validation (Dict.values ui.blockUI))
+          |> List.filterMap (\c ->
+            let
+              check = (invalidBlockState c)
+            in
+              if Tuple.first check then Just (Tuple.second check) else Nothing)
+      in
+        ( not (List.isEmpty checks)
+        , String.join ".\n" checks
+        )
+
+    allStates = [idState, nameState, parametersState, callsUiState, blocksUiState]
+    invalidStates = allStates
+      |> List.filterMap (\check -> if Tuple.first check then Just (Tuple.second check) else Nothing)
+  in
+    invalidStates
 
 {- Contains methods with parameters error
 
@@ -322,17 +414,20 @@ showTechnique model technique origin ui editInfo =
 
     checkList : List (Bool, String)
     checkList =
-      [ (isUnchanged, "There are no modifications to save")
-      , (not (isValid technique ui), "Technique is invalid")
-      , (String.isEmpty technique.name, "Technique name cannot be empty")
-      , (isMethodListEmpty, "Technique must contain at least one method")
-      , (not areErrorOnMethodParameters, "There are errors on method parameters")
-      , (not areErrorOnMethodCondition, "There are errors on method conditions")
-      , (not areBlockOnError, "There are errors on blocks")
-      , (isEnumListIsEmpty, "Enum type parameters should contain at least one element")
-      , (isEnumWithEmptyName, "The display name of Enum type parameter values cannot be empty")
-      , (isEnumWithEmptyValue, "The value of Enum type parameter values cannot be empty")
-      ]
+      let
+        invalidStates = checkInvalidStates technique ui
+        invalidTechnique = not (List.isEmpty invalidStates)
+      in
+        [ (isUnchanged, "There are no modifications to save")
+        , (invalidTechnique, String.join ".\n" invalidStates)
+        , (isMethodListEmpty, "Technique must contain at least one method")
+        , (not areErrorOnMethodParameters, "There are errors on method parameters")
+        , (not areErrorOnMethodCondition, "There are errors on method conditions")
+        , (not areBlockOnError, "There are errors on blocks")
+        , (isEnumListIsEmpty, "Enum type parameters should contain at least one element")
+        , (isEnumWithEmptyName, "The display name of Enum type parameter values cannot be empty")
+        , (isEnumWithEmptyValue, "The value of Enum type parameter values cannot be empty")
+        ]
 
     btnSave : Bool -> List (Bool, String) -> Msg -> Html Msg
     btnSave saving disableChecks action =
