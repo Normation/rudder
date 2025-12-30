@@ -324,12 +324,12 @@ impl LinuxPackageManager for AptPackageManager {
             res_commit.stdout(install_out);
 
             let mut ro = ResultOutput {
-                inner: HashMap::new(),
+                inner: Ok(HashMap::new()),
                 stdout: vec![],
                 stderr: vec![],
             };
-            ro.log_step(res_resolve);
-            ro.log_step(res_commit);
+            ro.log_step(&res_resolve);
+            ro.log_step(&res_commit);
             ro
         } else {
             cache.clear_ok_with_details()

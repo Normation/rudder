@@ -36,7 +36,7 @@ fn initialize_com() -> ResultOutput<IUpdateSession> {
             let session: IUpdateSession =
                 CoCreateInstance(&UpdateSession, None, CLSCTX_INPROC_SERVER).map_err(|e| {
                     stderr.push(format!(
-                        "Failed to instanciate an IUpdateSession object: {}",
+                        "Failed to instantiate an IUpdateSession object: {}",
                         e
                     ));
                     e
@@ -322,7 +322,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
                 } {
                     Err(e) => {
                         r.stderr(format!(
-                            "Could not instanciate a new UpdateCollection to download: {}",
+                            "Could not instantiate a new UpdateCollection to download: {}",
                             e
                         ));
                         return r.into_err();
@@ -362,7 +362,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
                 } {
                     Err(e) => {
                         r.stderr(format!(
-                            "Could not instanciate a new UpdateCollection to download: {}",
+                            "Could not instantiate a new UpdateCollection to download: {}",
                             e
                         ));
                         return r.into_err();
@@ -473,7 +473,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             return r.into_err();
         }
 
-        // Else proceed to the installation of the successfull updates
+        // Else proceed to the installation of the successful updates
         // Build a collection of the successfully downloaded installs
         let downloaded_data = d_succeeded
             .iter()
