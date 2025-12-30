@@ -117,3 +117,5 @@ clean:
 veryclean: clean
 	rustup self uninstall
 	rm -rf ~/.rustup ~/.cargo
+
+.NOTPARALLEL: cargo-release cargo-test cargo-sbom
