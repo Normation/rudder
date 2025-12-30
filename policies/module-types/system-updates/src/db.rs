@@ -361,7 +361,9 @@ mod tests {
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
     use rusqlite::Connection;
-    use std::{ops::Add, os::unix::prelude::PermissionsExt};
+    use std::ops::Add;
+    #[cfg(unix)]
+    use std::os::unix::prelude::PermissionsExt;
 
     #[test]
     fn new_creates_new_database() {
@@ -370,6 +372,7 @@ mod tests {
         let db_name = PackageDatabase::db_name();
         let p = t.path().join(db_name);
         assert!(p.exists());
+        #[cfg(unix)]
         assert_eq!(p.metadata().unwrap().permissions().mode(), 0o100600);
     }
 

@@ -9,7 +9,6 @@ use std::collections::HashMap;
 
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
-use crate::package_manager::windows_update_agent::WindowsUpdateAgent as WUAPackageManager;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -22,9 +21,12 @@ use std::str::FromStr;
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 mod apt;
 mod rpm;
+#[cfg(windows)]
 mod windows_update_agent;
 mod yum;
 mod zypper;
+#[cfg(windows)]
+use crate::package_manager::windows_update_agent::WindowsUpdateAgent as WUAPackageManager;
 
 /// Packages indexed by (name, arch).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -202,35 +204,48 @@ impl PackageManager {
     pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
         Ok(match self {
             PackageManager::Yum => Box::new(YumPackageManager::new()?),
-            #[cfg(any(feature = "apt", feature = "apt-compat"))]
             PackageManager::Apt => {
-                let os_release = OsRelease::new()?;
-                Box::new(AptPackageManager::new(&os_release)?)
+                #[cfg(any(feature = "apt", feature = "apt-compat"))]
+                {
+                    let os_release = OsRelease::new()?;
+                    Box::new(AptPackageManager::new(&os_release)?)
+                }
+                #[cfg(not(any(feature = "apt", feature = "apt-compat")))]
+                {
+                    bail!("This module was not build with APT support")
+                }
             }
-            #[cfg(not(any(feature = "apt", feature = "apt-compat")))]
-            PackageManager::Apt => bail!("This module was not build with APT support"),
-            PackageManager::WindowsUpdateAgent => Box::new(WUAPackageManager::new()),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()?),
+            PackageManager::WindowsUpdateAgent => {
+                #[cfg(target_os = "windows")]
+                {
+                    Box::new(WUAPackageManager::new())
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    bail!("This module was not build with windows support")
+                }
+            }
             _ => bail!("This package manager does not provide patch management features"),
         })
     }
 
     /// Only used in CLI mode
     pub fn detect() -> Result<Self> {
-        ///pub fn detect(os_release: &OsRelease) -> Result<Self> {
-        ///let id = os_release.id.as_str();
-        #[cfg(unix)]
+        #[cfg(target_os = "windows")]
         {
+            Ok(Self::WindowsUpdateAgent)
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let os_release = OsRelease::new()?;
+            let id = os_release.id.as_str();
             Ok(match id {
                 "debian" | "ubuntu" => Self::Apt,
                 "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => Self::Yum,
                 "sles" | "sled" => Self::Zypper,
                 _ => bail!("Unknown package manager for OS: '{}'", id),
             })
-        }
-        #[cfg(not(unix))]
-        {
-            Ok(Self::WindowsUpdateAgent)
         }
     }
 

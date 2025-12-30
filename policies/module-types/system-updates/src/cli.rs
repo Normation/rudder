@@ -117,21 +117,10 @@ impl Cli {
                 }
             }
             Some(Command::Run(opts)) => {
-                #[cfg(unix)]
-                let os_release = OsRelease::new()?;
                 let state_dir = opts.state_dir.unwrap_or(PathBuf::from(MODULE_DIR));
                 let pm: Box<dyn LinuxPackageManager> = opts
                     .package_manager
-                    .unwrap_or_else(|| {
-                        #[cfg(unix)]
-                        {
-                            PackageManager::detect(&os_release).unwrap()
-                        }
-                        #[cfg(not(unix))]
-                        {
-                            PackageManager::detect().unwrap()
-                        }
-                    })
+                    .unwrap_or_else(|| PackageManager::detect().unwrap())
                     .get()?;
                 let package_parameters = RunnerParameters {
                     campaign_type: if opts.security {

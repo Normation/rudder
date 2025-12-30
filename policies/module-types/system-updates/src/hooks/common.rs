@@ -9,6 +9,11 @@ const PRE_UPGRADE_HOOK: &str = "pre-upgrade";
 const PRE_REBOOT_HOOK: &str = "pre-reboot";
 const POST_HOOK_DIR: &str = "post-upgrade";
 
+#[cfg(target_os = "windows")]
+pub const POWERSHELL_BIN: &str = "PowerShell.exe";
+#[cfg(target_os = "windows")]
+pub const POWERSHELL_OPTS: &[&str] = &["-NoProfile", "-NonInteractive"];
+
 #[derive(Clone, Debug, Copy)]
 pub enum Hooks {
     PreUpgrade,
@@ -56,13 +61,26 @@ pub trait RunHooks: ToString {
 
         for hook in hooks {
             let p = hook.path();
+            #[allow(unused_mut)]
+            let mut cmd;
+            #[cfg(target_os = "windows")]
+            {
+                cmd = Command::new(POWERSHELL_BIN);
+                cmd.args(POWERSHELL_OPTS)
+                    .arg("-Command")
+                    .arg(format!("&'{}'", p.display()));
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                cmd = Command::new(&p);
+            }
             match self.is_runnable(p.as_path()) {
                 Ok(()) => {
                     res.stdout(format!("Running hook '{}'", p.display()));
                     res.stderr(format!("Running hook '{}'", p.display()));
                     rudder_info!("Running hook '{}'", p.display());
                     let hook_res = ResultOutput::command(
-                        Command::new(&p),
+                        cmd,
                         CommandBehavior::FailOnErrorCode,
                         CommandCapture::StdoutStderr,
                     );

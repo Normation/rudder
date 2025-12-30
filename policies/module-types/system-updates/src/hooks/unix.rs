@@ -3,16 +3,13 @@
 
 use super::common::Hooks;
 use crate::hooks::common::RunHooks;
-use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
 use anyhow::{Result, bail};
 use log::{debug, info};
-use rudder_module_type::{rudder_debug, rudder_error, rudder_info};
 use std::path::PathBuf;
 use std::{
-    fmt, fs,
+    fs,
     os::unix::prelude::{MetadataExt, PermissionsExt},
     path::Path,
-    process::Command,
 };
 
 /// We only support pretty modern Linux systems, should work fine
@@ -64,13 +61,14 @@ impl RunHooks for Hooks {
 mod tests {
     use std::{fs::File, os::unix::fs::PermissionsExt};
 
-    use tempfile::tempdir;
-
     use super::*;
+    use crate::hooks::Hooks;
+    use Hooks::PreUpgrade;
+    use tempfile::tempdir;
 
     #[test]
     fn test_hook_is_runnable() {
-        let euid = geteuid();
+        let hook = PreUpgrade;
 
         let dir = tempdir().unwrap();
         let file_path = dir.path().join("tempfile");
@@ -80,52 +78,52 @@ mod tests {
 
         permissions.set_mode(0o700);
         file.set_permissions(permissions.clone()).unwrap();
-        assert!(hook_is_runnable(&file_path, euid).is_ok());
-
-        permissions.set_mode(0o700);
-        file.set_permissions(permissions.clone()).unwrap();
-        assert!(hook_is_runnable(&file_path, euid + 1).is_err());
+        assert!(hook.is_runnable(&file_path).is_ok());
 
         permissions.set_mode(0o777);
         file.set_permissions(permissions.clone()).unwrap();
-        assert!(hook_is_runnable(&file_path, euid).is_err());
+        assert!(hook.is_runnable(&file_path).is_err());
 
         permissions.set_mode(0o666);
         file.set_permissions(permissions).unwrap();
-        assert!(hook_is_runnable(&file_path, euid).is_err());
+        assert!(hook.is_runnable(&file_path).is_err());
     }
 
     #[test]
     fn test_run_hooks_on_nonexisting_directory() {
+        let hook = PreUpgrade;
         let dir = "/does/not/exist";
-        let result = Hooks::run_dir(Path::new(dir));
+        let result = hook.run_dir(Path::new(dir));
         assert!(result.inner.is_ok());
     }
 
     #[test]
     fn test_run_hooks_on_empty_directory() {
+        let hook = PreUpgrade;
         let dir = tempdir().unwrap();
         let dir_path = dir.path();
-        let result = Hooks::run_dir(dir_path);
+        let result = hook.run_dir(dir_path);
         assert!(result.inner.is_ok());
     }
 
     #[test]
     fn test_run_hooks_with_empty_script() {
+        let hook = PreUpgrade;
         let dir = tempdir().unwrap();
         let dir_path = dir.path();
         let file_path = dir_path.join("tempfile");
         File::create(file_path).unwrap();
 
-        let result = Hooks::run_dir(dir_path);
+        let result = hook.run_dir(dir_path);
         assert!(result.inner.is_ok());
     }
 
     #[test]
     fn test_run_hooks_with_multiple_succeeding_scripts() {
+        let hook = PreUpgrade;
         let dir = Path::new("tests/hooks/success");
         assert!(dir.exists());
-        let result = Hooks::run_dir(dir);
+        let result = hook.run_dir(dir);
         assert!(result.inner.is_ok());
         assert!(result.stdout.contains(&"success1\n".to_string()));
         assert!(result.stdout.contains(&"success2\n".to_string()));
@@ -134,9 +132,10 @@ mod tests {
 
     #[test]
     fn test_run_hooks_stops_on_failure() {
+        let hook = PreUpgrade;
         let dir = Path::new("tests/hooks/failure");
         assert!(dir.exists());
-        let result = Hooks::run_dir(dir);
+        let result = hook.run_dir(dir);
         assert!(result.inner.is_err());
         assert!(result.stdout.contains(&"success1\n".to_string()));
         assert!(result.stderr.contains(&"failure2\n".to_string()));
