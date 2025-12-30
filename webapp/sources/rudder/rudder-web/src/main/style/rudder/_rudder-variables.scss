@@ -35,13 +35,36 @@
 *************************************************************************************
 */
 
-// --- MAIN COLORS
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (_Create_ & Success in most cases)
+/// @group Main colors
+/// @type Color
 $rudder-success   : #13BEB7;
+
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// @group Main colors
+/// @type Color
 $rudder-primary   : #337AB7;
+
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// @group Main colors
+/// @type Color
 $rudder-warning   : #EF9600;
+
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// @group Main colors
+/// @type Color
 $rudder-danger    : #DA291C;
+
+/// Info color is applied on informative elements (e.g. icons, border, and text that provides info to user)
+/// @group Main colors
+/// @type Color
 $rudder-info      : #337AB7;
 
+
+// --- GRAY COLORS
+///
+/// @group Gray colors
+/// @type Color
 $rudder-gray-100 : #F8F9FC;
 $rudder-gray-200 : #EEF1F9;
 $rudder-gray-300 : #E1E5EB;
