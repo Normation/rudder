@@ -8,7 +8,6 @@ mod hooks;
 pub mod output;
 pub mod package_manager;
 mod runner;
-mod scheduler;
 pub mod state;
 pub mod system;
 
