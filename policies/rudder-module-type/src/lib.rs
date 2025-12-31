@@ -16,6 +16,8 @@ pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
 pub mod runner;
+#[cfg(feature = "splay")]
+pub mod splay;
 
 pub use rudder_cli as cli;
 
