@@ -158,7 +158,7 @@ pub fn do_schedule(
         // Write the report into the destination tmp file
         fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
     }
-    Ok(Outcome::Repaired("Schedule has been sent".to_string()))
+    Ok(Outcome::repaired("Schedule has been sent"))
 }
 
 pub fn do_update(
@@ -187,7 +187,7 @@ pub fn do_post_update(p: &RunnerParameters, db: &mut PackageDatabase) -> Result<
     db.completed(&p.event_id, now_finished, &report)?;
 
     // The repaired status is the trigger to read and send the report.
-    Ok(Outcome::Repaired("Update has run".to_string()))
+    Ok(Outcome::repaired("Update has run"))
 }
 
 /// Shortcut method to send an error report directly
@@ -199,7 +199,7 @@ pub fn fail_campaign(reason: &str, report_file: Option<&PathBuf>) -> Result<Outc
         // Write the report into the destination tmp file
         fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
     }
-    Ok(Outcome::Repaired("Send error".to_string()))
+    Ok(Outcome::repaired("Send error"))
 }
 
 /// Actually start the upgrade process immediately

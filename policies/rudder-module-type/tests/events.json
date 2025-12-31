@@ -1,0 +1,23 @@
+{
+  "events": [
+    {
+      "schedule": "once",
+      "id": "600abb6b-c294-4ba1-9014-944b67d59935",
+      "name": "CIS RHEL9 - 2025/12/01",
+      "type": "benchmark",
+      "not_before": "2025-12-01T11:23:05+01:00",
+      "not_after": "2025-12-01T23:23:05+01:00"
+    },
+    {
+      "schedule": "always",
+      "id": "b4f0e7e8-3767-4746-abf7-4a5e21f5dd47",
+      "name": "System update debug",
+      "not_after": "2025-12-01T23:23:05+01:00"
+    },
+    {
+      "schedule": "never",
+      "id": "d95ce924-6537-4b15-85ba-b58c3d49caf3",
+      "name": "System update debug"
+    }
+  ]
+}
