@@ -16,7 +16,10 @@ pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
 pub mod runner;
+#[cfg(feature = "splay")]
+pub mod splay;
 
+use crate::cfengine::protocol::Class;
 pub use rudder_cli as cli;
 
 /// Information about the module type to pass to the library.
@@ -121,12 +124,15 @@ pub type ValidateResult = Result<()>;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Outcome {
     Success(Option<String>),
-    Repaired(String),
+    Repaired(String, Vec<Class>),
 }
 
 impl Outcome {
     pub fn repaired<S: Into<String>>(message: S) -> Self {
-        Self::Repaired(message.into())
+        Self::Repaired(message.into(), vec![])
+    }
+    pub fn repaired_with<S: Into<String>>(message: S, classes: Vec<Class>) -> Self {
+        Self::Repaired(message.into(), classes)
     }
 
     pub fn success() -> Self {
