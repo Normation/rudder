@@ -179,6 +179,8 @@ fn write_utf16_file<P: AsRef<Path>>(path: P, buffer: &str) -> Result<()> {
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
+
     use super::*;
 
     #[test]
@@ -199,8 +201,7 @@ mod test {
         )
         .unwrap();
 
-        let data = serde_json::from_str(
-            r#"
+        let data = json!(
         {
             "User": {
                 "name": "Ferris",
@@ -212,9 +213,8 @@ mod test {
             "Registry Values": {
                 "MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Setup\\RecoveryConsole\\SecurityLevel": "4,0"
             }
-        }"#,
-        )
-        .unwrap();
+        });
+        let data = data.as_object().unwrap();
 
         let res = template_search_and_replace(&mut template, &data);
 
@@ -235,9 +235,7 @@ mod test {
         )
         .unwrap();
 
-        let data = serde_json::from_str(
-            r#"
-        {
+        let data = json!({
             "User": {
                 "name": "Ferris",
                 "value": "Pi"
@@ -245,11 +243,10 @@ mod test {
             "Settings": {
                 "abc": 21
             }
-        }"#,
-        )
-        .unwrap();
+        });
+        let data = data.as_object().unwrap();
 
-        let res = audit_template(&template, &data);
+        let res = audit_template(&template, data);
 
         assert!(res.is_ok());
     }
