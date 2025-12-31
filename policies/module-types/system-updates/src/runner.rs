@@ -5,13 +5,12 @@ use crate::{
     },
     db::PackageDatabase,
     package_manager::LinuxPackageManager,
-    scheduler,
     state::UpdateStatus,
     system::System,
 };
 use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
-use rudder_module_type::Outcome;
+use rudder_module_type::{Outcome, splay::splayed_start};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum Action {
@@ -111,7 +110,7 @@ impl Runner {
         let schedule_datetime = match self.parameters.schedule {
             FullSchedule::Immediate => now,
             FullSchedule::Scheduled(ref s) => {
-                scheduler::splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
+                splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
             }
         };
         let is_started = now >= schedule_datetime;
