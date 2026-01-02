@@ -12,6 +12,9 @@ pub struct Cli {
     /// Audit mode
     #[arg(short, long)]
     audit: bool,
+    /// Path for temporary files
+    #[arg(short, long)]
+    tmp: PathBuf,
 }
 
 impl Cli {
@@ -25,6 +28,7 @@ impl Cli {
         }
         let data = serde_json::from_str(&data)?;
 
-        secedit::Secedit::new()?.run(data, cli.audit)
+        let tmpdir = &cli.tmp.to_string_lossy().to_string();
+        secedit::Secedit::new(tmpdir)?.run(data, cli.audit)
     }
 }
