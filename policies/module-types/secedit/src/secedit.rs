@@ -13,9 +13,9 @@ pub struct Secedit {
 }
 
 impl Secedit {
-    pub fn new() -> Result<Self> {
+    pub fn new(tmpdir: &str) -> Result<Self> {
         Ok(Self {
-            tmp_dir: TempDir::new("rudder-module-secedit")?,
+            tmp_dir: TempDir::new_in(tmpdir, "rudder-module-secedit")?,
         })
     }
 
