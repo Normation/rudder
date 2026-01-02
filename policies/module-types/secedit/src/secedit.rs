@@ -6,7 +6,6 @@ use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use tempdir::TempDir;
-use utf16string::{LittleEndian, WString};
 
 pub struct Secedit {
     tmp_dir: TempDir,
@@ -163,9 +162,14 @@ fn read_utf16_file<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut buffer = Vec::new();
 
     file.read_to_end(&mut buffer)?;
-    let data: WString<LittleEndian> = WString::from_utf16le(buffer)?;
+    let data = String::from_utf16(
+        &buffer
+            .chunks(2)
+            .map(|chunk| u16::from_ne_bytes([chunk[0], chunk.get(1).copied().unwrap_or(0)]))
+            .collect::<Vec<u16>>(),
+    )?;
 
-    Ok(data.to_utf8())
+    Ok(data)
 }
 
 fn write_utf16_file<P: AsRef<Path>>(path: P, buffer: &str) -> Result<()> {
