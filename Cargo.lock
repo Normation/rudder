@@ -3747,6 +3747,7 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "clap",
+ "rudder_module_type",
  "rust-ini",
  "serde_json",
  "tempdir",
