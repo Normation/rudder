@@ -109,12 +109,12 @@ fn invoke_with_args(args: &str) -> Result<()> {
     Ok(())
 }
 
-fn for_each_section<F>(template: &mut Ini, data: &Map<String, Value>, mut f: F) -> Result<()>
+fn for_each_section<F>(config: &mut Ini, data: &Map<String, Value>, mut f: F) -> Result<()>
 where
     F: FnMut(&mut ini::Properties, &str, &str) -> Result<()>,
 {
     for (section, section_data) in data {
-        let props = template
+        let props = config
             .section_mut(Some(section))
             .ok_or_else(|| anyhow!("section '{section}' does not exist"))?;
 
@@ -130,10 +130,10 @@ where
     Ok(())
 }
 
-fn audit_config(template: &Ini, data: &Map<String, Value>) -> Result<()> {
-    let mut template = template.clone();
+fn audit_config(config: &Ini, data: &Map<String, Value>) -> Result<()> {
+    let mut config = config.clone();
 
-    for_each_section(&mut template, data, |props, key, expected| {
+    for_each_section(&mut config, data, |props, key, expected| {
         let actual = props
             .get(key)
             .ok_or_else(|| anyhow!("'{key}' does not exist"))?;
@@ -146,8 +146,8 @@ fn audit_config(template: &Ini, data: &Map<String, Value>) -> Result<()> {
     })
 }
 
-fn config_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
-    for_each_section(template, data, |props, key, value| {
+fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Result<()> {
+    for_each_section(config, data, |props, key, value| {
         if props.contains_key(key) {
             props.insert(key, value);
             Ok(())
@@ -188,12 +188,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_template_search_and_replace() {
+    fn test_config_search_and_replace() {
         let opt = ParseOption {
             enabled_escape: false,
             ..Default::default()
         };
-        let mut template = Ini::load_from_str_opt(
+        let mut config = Ini::load_from_str_opt(
             r"[User]
             name = Ferris
             value = Pi
@@ -220,17 +220,17 @@ mod test {
         });
         let data = data.as_object().unwrap();
 
-        let res = config_search_and_replace(&mut template, &data);
+        let res = config_search_and_replace(&mut config, &data);
 
         assert!(res.is_ok());
-        assert_eq!(template.get_from(Some("User"), "name"), Some("\"Ferris\""));
-        assert_eq!(template.get_from(Some("User"), "value"), Some("42"));
-        assert_eq!(template.get_from(Some("Settings"), "abc"), Some("12"));
+        assert_eq!(config.get_from(Some("User"), "name"), Some("\"Ferris\""));
+        assert_eq!(config.get_from(Some("User"), "value"), Some("42"));
+        assert_eq!(config.get_from(Some("Settings"), "abc"), Some("12"));
     }
 
     #[test]
-    fn test_template_audit() {
-        let template = Ini::load_from_str(
+    fn test_config_audit() {
+        let config = Ini::load_from_str(
             "[User]
             name = Ferris
             value = Pi
@@ -250,7 +250,7 @@ mod test {
         });
         let data = data.as_object().unwrap();
 
-        let res = audit_config(&template, data);
+        let res = audit_config(&config, data);
 
         assert!(res.is_ok());
     }
