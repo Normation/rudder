@@ -20,26 +20,26 @@ impl Secedit {
     }
 
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
-        let mut template = self.export()?;
+        let mut config = self.export()?;
         if audit {
-            audit_template(&template, &data)?;
+            audit_config(&config, &data)?;
             println!("Audit DONE");
         } else {
-            template_search_and_replace(&mut template, &data)?;
-            self.apply_template(&template)?;
+            config_search_and_replace(&mut config, &data)?;
+            self.apply_config(&config)?;
             println!("DONE");
         }
 
         Ok(())
     }
 
-    fn apply_template(&self, template: &Ini) -> Result<()> {
+    fn apply_config(&self, config: &Ini) -> Result<()> {
         let opt = WriteOption {
             escape_policy: EscapePolicy::Nothing,
             ..Default::default()
         };
         let mut buf: Vec<u8> = Vec::new();
-        template.write_to_opt(&mut buf, opt)?;
+        config.write_to_opt(&mut buf, opt)?;
         let data = String::from_utf8(buf)?;
 
         let config = self.tmp_dir.path().join("config.ini");
@@ -63,12 +63,12 @@ impl Secedit {
     }
 
     fn export(&self) -> Result<Ini> {
-        let template_file = self.tmp_dir.path().join("template.ini");
+        let template_config = self.tmp_dir.path().join("template.ini");
 
-        let cmd = format!("/export /cfg {}", template_file.as_path().display());
+        let cmd = format!("/export /cfg {}", template_config.as_path().display());
         invoke_with_args(&cmd)?;
 
-        let data = read_utf16_file(&template_file)?;
+        let data = read_utf16_file(&template_config)?;
         let opt = ParseOption {
             enabled_escape: false,
             ..Default::default()
@@ -76,7 +76,7 @@ impl Secedit {
         let template = Ini::load_from_str_opt(&data, opt).with_context(|| {
             format!(
                 "Failed to read template file '{}'",
-                template_file.as_path().display()
+                template_config.as_path().display()
             )
         })?;
 
@@ -131,7 +131,7 @@ where
     Ok(())
 }
 
-fn audit_template(template: &Ini, data: &Map<String, Value>) -> Result<()> {
+fn audit_config(template: &Ini, data: &Map<String, Value>) -> Result<()> {
     let mut template = template.clone();
 
     for_each_section(&mut template, data, |props, key, expected| {
@@ -147,7 +147,7 @@ fn audit_template(template: &Ini, data: &Map<String, Value>) -> Result<()> {
     })
 }
 
-fn template_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
+fn config_search_and_replace(template: &mut Ini, data: &Map<String, Value>) -> Result<()> {
     for_each_section(template, data, |props, key, value| {
         if props.contains_key(key) {
             props.insert(key, value);
@@ -216,7 +216,7 @@ mod test {
         });
         let data = data.as_object().unwrap();
 
-        let res = template_search_and_replace(&mut template, &data);
+        let res = config_search_and_replace(&mut template, &data);
 
         assert!(res.is_ok());
         assert_eq!(template.get_from(Some("User"), "name"), Some("\"Ferris\""));
@@ -246,7 +246,7 @@ mod test {
         });
         let data = data.as_object().unwrap();
 
-        let res = audit_template(&template, data);
+        let res = audit_config(&template, data);
 
         assert!(res.is_ok());
     }
