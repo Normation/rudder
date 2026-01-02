@@ -629,7 +629,7 @@ object DisplayNode extends Loggable {
         <div class="status-info col-xl-6 col-md-5 col-sm-12">
           <h3>Monitoring</h3>
           <div>
-            <label>Inventory created (node local time):</label> {
+            <label>Inventory created (node time in UTC):</label> {
       nodeFact.lastInventoryDate.map(DateFormaterService.getDisplayDate(_)).getOrElse("Unknown")
     }
           </div>
@@ -638,7 +638,7 @@ object DisplayNode extends Loggable {
       DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
     }
           </div>
-          <div><label>Agent last run:</label>
+          <div><label>Agent run log received:</label>
             {
       agentRun
         .map(agentRunWithNodeConfig => { DateFormaterService.getDisplayDate(agentRunWithNodeConfig.agentRunId.date) })

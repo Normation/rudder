@@ -1,10 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2020 Normation SAS
 
-include ../../rust.makefile
+include ../../cargo.mk
 
 DOC_EXAMPLES := $(wildcard rudderc/docs/examples/*/technique.yml)
 DOC_EXAMPLES_CF := $(DOC_EXAMPLES:.yml=.cf)
+export PACKAGE := rudderc
+
+build:
+	$(MAKE) cargo-release BIN=rudderc
 
 install: build
 	mkdir -p $(DESTDIR)/opt/rudder/bin
@@ -14,15 +18,15 @@ install: build
 test-docs: $(DOC_EXAMPLES_CF)
 
 test: libs
-	cargo test --locked --package rudderc
+	$(MAKE) cargo-test PACKAGE=rudderc
 	# Parse lib
 	cargo run --quiet --bin rudderc -- --quiet lib -f json --stdout -l target/repos/rudder/policies/lib/tree/30_generic_methods -l target/repos/dsc/plugin/src/ncf/30_generic_methods/ >/dev/null
 
 test-powershell:
 	pwsh -command 'Get-ChildItem -Recurse -Path tests/cases/general -Include "*.ps1" | ? { $$_.FullName -inotmatch "target" } | %{ echo $$_.Directory.FullName; Invoke-ScriptAnalyzer -Settings ./PSScriptAnalyzerSettings.psd1 -Path $$_.Directory.FullName -EnableExit -ReportSummary }'
 
-static: libs version
-	cargo auditable build --release --locked --features embedded-lib
+static: libs
+	$(MAKE) cargo-release BIN=rudderc FEATURES="embedded-lib"
 
 %.cf: %.yml libs
 	cd $(shell dirname $@) && cargo run --quiet --bin rudderc -- --quiet build -l ../../../../target/repos/rudder/policies/lib/tree/30_generic_methods/

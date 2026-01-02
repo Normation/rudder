@@ -100,7 +100,7 @@
 #
 # @parameter            command Command to be executed
 # @parameter_constraint command "allow_empty_string" : false
-# @parameter            args Arguments to the command
+# @parameter            args Arguments to the command, must be a valid JSON
 # @parameter_constraint args "allow_empty_string" : true
 # @parameter_constraint args "valid_format" : "json"
 # @parameter            run_in_audit_mode Specify if command must be run in audit mode, "true" or "false" (defaults to "false")

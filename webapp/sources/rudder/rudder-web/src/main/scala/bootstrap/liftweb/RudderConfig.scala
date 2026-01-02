@@ -3118,8 +3118,7 @@ object RudderConfigInit {
         50,
         roLdapDirectiveRepository,
         woLdapDirectiveRepository,
-        techniqueRepository,
-        stringUuidGenerator
+        techniqueRepository
       )
     )
 

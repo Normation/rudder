@@ -283,11 +283,57 @@ class NodeGroupForm(
   }
 
   private def showFormNodeGroup(nodeGroup: NodeGroup): CssSel = {
-    val nodesSel = "#gridResult" #> NodeSeq.Empty
-    val nodes    = nodesSel(searchNodeComponent.get match {
+    val nodesSel     = "#gridResult" #> NodeSeq.Empty
+    val nodes        = nodesSel(searchNodeComponent.get match {
       case Full(req) => req.buildQuery(true)
       case eb: EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
     })
+    val groupClone   = if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+      <li>
+        {
+        SHtml.ajaxButton(
+          <span>
+            <i class="fa fa-clone"></i>
+            Clone
+          </span>,
+          () => showCloneGroupPopup()
+        ) % ("class" -> "dropdown-item")
+      }
+      </li>
+    } else NodeSeq.Empty
+    val groupDisable = {
+      if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+        val btnText   = if (nodeGroup.isEnabled) { "Disable" }
+        else { "Enable" }
+        val btnIcon   = if (nodeGroup.isEnabled) { "fa fa-ban" }
+        else { "fa fa-check-circle" }
+        val btnAction = if (nodeGroup.isEnabled) { DGModAction.Disable }
+        else { DGModAction.Enable }
+        <li>
+          {
+          SHtml.ajaxButton(
+            <span>
+              <i class={btnIcon}></i>
+              {btnText}
+            </span>,
+            () => onSubmitDisable(btnAction)
+          ) % ("id" -> "groupDisableButtonId") % ("class" -> "dropdown-item")
+        }
+        </li>
+      } else NodeSeq.Empty
+    }
+    val groupDelete  = <li>
+      {
+      SHtml.ajaxButton(
+        <span>
+          <i class="fa fa-times-circle"></i>
+          Delete
+        </span>,
+        () => onSubmitDelete(),
+        ("class" -> "dropdown-item action-danger")
+      )
+    }
+    </li>
     (
       "#group-title [class]" #> (if (nodeGroup.isEnabled) "" else "item-disabled")
       & "#group-name *" #> {
@@ -328,42 +374,13 @@ class NodeGroupForm(
         Close
         <i class="fa fa-times"></i>
       </button>
-      & "group-clone" #> {
-        if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
-          <li>
-            {
-            SHtml.ajaxButton(
-              <span>
-              <i class="fa fa-clone"></i>
-              Clone
-            </span>,
-              () => showCloneGroupPopup()
-            ) % ("class" -> "dropdown-item")
-          }
-          </li>
-        } else NodeSeq.Empty
-      }
-      & "group-disable" #> {
-        if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
-          val btnText   = if (nodeGroup.isEnabled) { "Disable" }
-          else { "Enable" }
-          val btnIcon   = if (nodeGroup.isEnabled) { "fa fa-ban" }
-          else { "fa fa-check-circle" }
-          val btnAction = if (nodeGroup.isEnabled) { DGModAction.Disable }
-          else { DGModAction.Enable }
-          <li>
-            {
-            SHtml.ajaxButton(
-              <span>
-                  <i class={btnIcon}></i>
-                  {btnText}
-                </span>,
-              () => onSubmitDisable(btnAction)
-            ) % ("id" -> "groupDisableButtonId") % ("class" -> "dropdown-item")
-          }
-          </li>
-        } else NodeSeq.Empty
-      }
+      & "group-actions" #>
+      (<div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">Actions <i class="caret"></i></button>
+          <ul class="dropdown-menu">
+            {groupClone ++ groupDisable ++ groupDelete}
+          </ul>
+        </div>)
       & "group-save" #> {
         if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) {
           <span class="save-tooltip-container">
@@ -378,19 +395,6 @@ class NodeGroupForm(
                     </span>
         } else NodeSeq.Empty
       }
-      & "group-delete" #>
-      <li>
-          {
-        SHtml.ajaxButton(
-          <span>
-              <i class="fa fa-times-circle"></i>
-              Delete
-            </span>,
-          () => onSubmitDelete(),
-          ("class" -> "dropdown-item action-danger")
-        )
-      }
-        </li>
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)
       & "#group-shownodestable *" #> (searchNodeComponent.get match {
@@ -410,6 +414,9 @@ class NodeGroupForm(
   }
 
   private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None, allowCloning: Boolean = true): CssSel = {
+    val groupClone  = (if (allowCloning) systemGroupCloneButton() else NodeSeq.Empty)
+    val groupDelete = group.map(systemGroupDeleteButton).getOrElse(NodeSeq.Empty)
+
     ("group-pendingchangerequest" #> NodeSeq.Empty
     & "#group-name" #> <span>{groupNameString}<span class="group-system"></span></span>
     & "group-name" #> groupName.readOnlyValue
@@ -445,7 +452,6 @@ class NodeGroupForm(
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
-    & "group-clone" #> (if (allowCloning) systemGroupCloneButton() else NodeSeq.Empty)
     & "group-close" #>
     <button class="btn btn-default" onclick={
       s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
@@ -454,8 +460,17 @@ class NodeGroupForm(
       <i class="fa fa-times"></i>
     </button>
     & "group-save" #> NodeSeq.Empty
-    & "group-delete" #> group.map(systemGroupDeleteButton).getOrElse(NodeSeq.Empty)
     & "group-notifications" #> NodeSeq.Empty
+    & "group-actions" #>
+    (if (!allowCloning && group.map(systemGroupDeleteButton).isEmpty) {
+       NodeSeq.Empty
+     } else
+       <div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">Actions <i class="caret"></i></button>
+          <ul class="dropdown-menu">
+            {groupClone ++ groupDelete}
+          </ul>
+        </div>)
     & "#group-shownodestable *" #> (searchNodeComponent.get match {
       case Full(req) => req.displayNodesTable
       case eb: EmptyBox =>
@@ -476,14 +491,14 @@ class NodeGroupForm(
       val href           = s"/secure/patch/cveManagement/cve/${StringEscapeUtils.escapeHtml4(group.id.uid.value)}"
       val tooltipContent =
         "<h4 class='tags-tooltip-title'>CVE group not deletable from here</h4><div class='tooltip-inner-content'>This group can only be deleted from the CVE details page from where it has been created.</div>"
-      <a class="btn btn-default btn-icon" href={
+      <li><a class="dropdown-item" href={
         href
       } data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
         tooltipContent
       }>
-        Delete
         <i class="fa fa-arrow-right"></i>
-      </a>
+        Delete
+      </a></li>
     } else { // delete button not shown for all other system groups
       NodeSeq.Empty
     }
@@ -491,12 +506,17 @@ class NodeGroupForm(
 
   private def systemGroupCloneButton() = {
     if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
-      SHtml.ajaxButton(
-        <span>Clone
+      <li>
+        {
+        SHtml.ajaxButton(
+          <span>
             <i class="fa fa-clone"></i>
+            Clone
           </span>,
-        () => showCloneGroupPopup()
-      ) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default btn-icon")
+          () => showCloneGroupPopup()
+        ) % ("id" -> "groupCloneButtonId") % ("class" -> "dropdown-item")
+      }
+      </li>
     } else NodeSeq.Empty
   }
 

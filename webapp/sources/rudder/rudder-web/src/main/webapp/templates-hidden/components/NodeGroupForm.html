@@ -39,14 +39,7 @@
       <div class="header-buttons">
         <group-close></group-close>
         <lift:authz role="group_write">
-          <div class="btn-group">
-            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">Actions <i class="caret"></i></button>
-            <ul class="dropdown-menu">
-              <group-clone></group-clone>
-              <group-disable></group-disable>
-              <group-delete></group-delete>
-            </ul>
-          </div>
+          <group-actions></group-actions>
         </lift:authz>
         <lift:authz role="group_edit">
           <group-save></group-save>
