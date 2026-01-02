@@ -153,6 +153,7 @@ impl Runner {
 }
 #[cfg(test)]
 mod tests {
+    use crate::package_manager::PackageId;
     use crate::{
         RebootType, Schedule, ScheduleParameters,
         campaign::{FullCampaignType, FullSchedule, RunnerParameters},
@@ -190,8 +191,11 @@ mod tests {
             ResultOutput::new(Ok(PackageList::new(HashMap::new())))
         }
 
-        fn upgrade(&mut self, _update_type: &FullCampaignType) -> ResultOutput<()> {
-            ResultOutput::new(Ok(()))
+        fn upgrade(
+            &mut self,
+            _update_type: &FullCampaignType,
+        ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+            ResultOutput::new(Ok(None))
         }
 
         fn reboot_pending(&self) -> ResultOutput<bool> {

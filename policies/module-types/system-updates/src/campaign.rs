@@ -3,10 +3,11 @@
 
 #![allow(clippy::borrowed_box)]
 
+use crate::package_manager::{PackageId, PackageList};
 use crate::{
     CampaignType, PackageParameters, RebootType, Schedule,
     db::PackageDatabase,
-    hooks::Hooks,
+    hooks::{Hooks, RunHooks},
     output::{Report, ScheduleReport, Status},
     package_manager::{LinuxPackageManager, PackageSpec},
     system::System,
@@ -14,6 +15,7 @@ use crate::{
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use rudder_module_type::Outcome;
+use std::collections::HashMap;
 use std::{fs, path::PathBuf};
 
 /// How long to keep events in the database
@@ -210,6 +212,10 @@ fn update(
     report.step(cache_result);
 
     let update_result = pm.upgrade(campaign_type);
+    let update_details: Option<HashMap<PackageId, String>> = match update_result.inner {
+        Err(_) => None,
+        Ok(ref h) => h.clone(),
+    };
     report.step(update_result);
 
     let after = pm.list_installed();
@@ -225,10 +231,10 @@ fn update(
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok((report, false));
     }
-    let after_list = after_list.unwrap();
+    let after_list: PackageList = after_list.unwrap();
 
     // Compute package list diff
-    report.diff(before_list.diff(after_list));
+    report.diff(before_list.diff(after_list), update_details);
 
     // Now take system actions
     let pre_reboot_result = Hooks::PreReboot.run();
