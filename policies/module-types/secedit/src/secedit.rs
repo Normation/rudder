@@ -1,10 +1,11 @@
 use anyhow::{Context, Result, anyhow, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
+use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde_json::{Map, Value};
-use std::fs::File;
-use std::io::{Read, Write};
-use std::path::Path;
-use std::process::{Command, Stdio};
+use std::{
+    path::Path,
+    process::{Command, Stdio},
+};
 use tempdir::TempDir;
 
 pub struct Secedit {
@@ -102,7 +103,8 @@ fn invoke_with_args(args: &str) -> Result<()> {
 
     if !output.status.success() {
         let msg = String::from_utf8_lossy(&output.stdout);
-        let log = read_utf16_file("C:\\Windows\\security\\logs\\scesrv.log")?;
+        let log_file = Path::new("C:\\Windows\\security\\logs\\scesrv.log");
+        let log = read_utf16_file(log_file)?;
         bail!("{msg}\nlog:\n{log}");
     }
 
@@ -155,30 +157,6 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
             bail!("'{key}' does not exist");
         }
     })
-}
-
-fn read_utf16_file<P: AsRef<Path>>(path: P) -> Result<String> {
-    let mut file = File::open(path)?;
-    let mut buffer = Vec::new();
-
-    file.read_to_end(&mut buffer)?;
-    let data = String::from_utf16(
-        &buffer
-            .chunks(2)
-            .map(|chunk| u16::from_ne_bytes([chunk[0], chunk.get(1).copied().unwrap_or(0)]))
-            .collect::<Vec<u16>>(),
-    )?;
-
-    Ok(data)
-}
-
-fn write_utf16_file<P: AsRef<Path>>(path: P, buffer: &str) -> Result<()> {
-    let mut file = File::create(path)?;
-    for b in buffer.encode_utf16() {
-        file.write_all(&b.to_le_bytes())?;
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]
