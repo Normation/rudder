@@ -1,17 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Normation SAS
 use crate::campaign::FullCampaignType;
 use crate::output::ResultOutput;
 use crate::package_manager::{
     LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::HashMap;
 use windows::Win32::Foundation::VARIANT_BOOL;
 use windows::Win32::System::Com::{
     CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
 };
 use windows::Win32::System::UpdateAgent::{
-    ISystemInformation, IUpdate, IUpdateCollection, IUpdateDownloader, IUpdateSession,
-    SystemInformation, UpdateCollection, UpdateSession,
+    ISystemInformation, IUpdateCollection, IUpdateDownloader, IUpdateSession, SystemInformation,
+    UpdateSession,
 };
 use windows::core::BSTR;
 
@@ -51,18 +53,8 @@ fn initialize_com() -> ResultOutput<IUpdateSession> {
     }
 }
 
-fn try_iupdatecollection_from_vec(v: Vec<IUpdate>) -> Result<IUpdateCollection> {
-    unsafe {
-        let c: IUpdateCollection = CoCreateInstance(&UpdateCollection, None, CLSCTX_INPROC_SERVER)?;
-        for update in v {
-            let _ = c.Add(&update)?;
-        }
-        Ok(c)
-    }
-}
-
 fn query_wua(session: &IUpdateSession, query: &str) -> ResultOutput<Collection> {
-    let mut r = ResultOutput::new(Ok(Collection::new()));
+    let mut r = ResultOutput::new(Ok(Default::default()));
     r.stdout("Creating the UpdateSearcher".to_string());
     let raw_searcher = unsafe { session.CreateUpdateSearcher() };
     let searcher = match raw_searcher {
@@ -103,7 +95,6 @@ fn query_wua(session: &IUpdateSession, query: &str) -> ResultOutput<Collection> 
 }
 fn updates_to_package_list(c: Collection) -> PackageList {
     let h: HashMap<PackageId, PackageInfo> = c
-        .updates
         .iter()
         .map(|u| {
             let id = PackageId {
@@ -134,12 +125,15 @@ fn download_updates(
         update_results: vec![],
     }));
     // Retrieve the update collection to dl
-    let com_ptr: &IUpdateCollection = match &collection.com_ptr {
-        None => {
-            r.stderr("No IUpdateCollection found to download".to_string());
+    let com_ptr: IUpdateCollection = match IUpdateCollection::try_from(collection) {
+        Err(e) => {
+            r.stderr(format!(
+                "Could not convert the requested updates to an IUpdateCollection COM object: {}",
+                e
+            ));
             return r;
         }
-        Some(com_ptr) => com_ptr,
+        Ok(com_ptr) => com_ptr,
     };
     // Prepare the downloader
     let downloader_setup = unsafe { session.CreateUpdateDownloader() };
@@ -151,7 +145,7 @@ fn download_updates(
         Ok(d) => d,
     };
     // Set the collection to the downloader
-    let set_result = unsafe { downloader.SetUpdates(com_ptr) };
+    let set_result = unsafe { downloader.SetUpdates(&com_ptr) };
     if let Err(e) = set_result {
         r.stderr(format!(
             "Could not set the update collection to download: {}",
@@ -162,9 +156,9 @@ fn download_updates(
     // Log each ready to download package
     r.stdout.push(format!(
         "The following {} updates will be downloaded:",
-        collection.updates.len()
+        collection.len()
     ));
-    collection.updates.iter().for_each(|u| {
+    collection.iter().for_each(|u| {
         r.stdout(format!("{}, ", u.data.title));
     });
     // Download the updates
@@ -201,15 +195,18 @@ fn install_updates(
         Ok(d) => d,
     };
     // Retrieve the update collection to install
-    let com_ptr: &IUpdateCollection = match &collection.com_ptr {
-        None => {
-            r.stderr("No IUpdateCollection found to install".to_string());
+    let com_ptr: IUpdateCollection = match IUpdateCollection::try_from(collection) {
+        Err(e) => {
+            r.stderr(format!(
+                "Could not convert the requested updates to an IUpdateCollection COM object: {}",
+                e
+            ));
             return r;
         }
-        Some(com_ptr) => com_ptr,
+        Ok(com_ptr) => com_ptr,
     };
     // Set the collection to the downloader
-    let set_result = unsafe { installer.SetUpdates(com_ptr) };
+    let set_result = unsafe { installer.SetUpdates(&com_ptr) };
     if let Err(e) = set_result {
         r.stderr(format!(
             "Could not set the update collection to install: {}",
@@ -229,9 +226,9 @@ fn install_updates(
     // Log each ready to install update
     r.stdout.push(format!(
         "The following {} downloaded updates will be installed:",
-        collection.updates.len()
+        collection.len()
     ));
-    collection.updates.iter().for_each(|u| {
+    collection.iter().for_each(|u| {
         r.stdout(format!("{}, ", u.data.title));
     });
     // Install the updates
@@ -249,22 +246,22 @@ fn install_updates(
     }
 }
 
-pub struct WindowsUpdateAgent {}
+pub struct WindowsUpdateAgent {
+    session: IUpdateSession,
+}
 impl WindowsUpdateAgent {
-    pub fn new() -> WindowsUpdateAgent {
-        WindowsUpdateAgent {}
+    pub fn new() -> Result<WindowsUpdateAgent> {
+        let result_session = initialize_com();
+        Ok(WindowsUpdateAgent {
+            session: result_session.inner?,
+        })
     }
 }
 
 impl LinuxPackageManager for WindowsUpdateAgent {
     fn list_installed(&mut self) -> ResultOutput<PackageList> {
         let mut r = ResultOutput::new(Ok(PackageList::new(HashMap::new())));
-        let result_session = initialize_com();
-        let session = match result_session.inner {
-            Err(_) => return r.step(result_session.into_err()),
-            Ok(session) => session,
-        };
-        let updates = match query_wua(&session, "IsInstalled=1").inner {
+        let updates = match query_wua(&self.session, "IsInstalled=1").inner {
             Err(e) => {
                 r.stderr(format!("Failed to retrieve installed updates {}", e));
                 return r.into_err();
@@ -295,17 +292,10 @@ impl LinuxPackageManager for WindowsUpdateAgent {
     fn upgrade(
         &mut self,
         update_type: &FullCampaignType,
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
-        let mut r = ResultOutput::new(Ok(HashMap::new()));
-        // Safely get mutable reference of the inner map or return early
-        // Get a COM session
-        let result_session = initialize_com();
-        let session = match result_session.inner {
-            Err(_) => return r.step(result_session.into_err()),
-            Ok(session) => session,
-        };
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+        let mut r = ResultOutput::new(Ok(None));
         // Compute the updates to install
-        let raw_available_updates = query_wua(&session, "IsInstalled=0");
+        let raw_available_updates = query_wua(&self.session, "IsInstalled=0");
         r.log_step(&raw_available_updates);
         let available_updates = match raw_available_updates.inner {
             Err(ref e) => {
@@ -315,100 +305,32 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             Ok(u) => u,
         };
         let updates_to_download = match update_type {
-            FullCampaignType::SystemUpdate => available_updates,
+            FullCampaignType::SystemUpdate => available_updates.filter_collection(|_| true),
             FullCampaignType::SecurityUpdate => {
-                let raw_utd: IUpdateCollection = match unsafe {
-                    CoCreateInstance(&UpdateCollection, None, CLSCTX_INPROC_SERVER).context("")
-                } {
-                    Err(e) => {
-                        r.stderr(format!(
-                            "Could not instantiate a new UpdateCollection to download: {}",
-                            e
-                        ));
-                        return r.into_err();
-                    }
-                    Ok(u) => u,
-                };
-                for update in available_updates.updates {
-                    let com_ptr: IUpdate = match update.com_ptr {
-                        None => {
-                            r.stderr(format!(
-                                "Empty COM reference for update {}",
-                                update.data.title
-                            ));
-                            return r.into_err(); // If one update fails, do not fail the whole update but
-                        }
-                        Some(p) => p,
-                    };
-                    if let Err(e) = unsafe { raw_utd.Add(&com_ptr) } {
-                        r.stderr(format!("Could not add update to collection: {}", e));
-                        return r.into_err(); // If one update fails, do not fail the whole update but
-                    }
-                }
-                match Collection::try_from(raw_utd) {
-                    Err(e) => {
-                        r.stderr(format!(
-                            "Could not create the UpdateCollection to download: {}",
-                            e
-                        ));
-                        return r.into_err();
-                    }
-                    Ok(c) => c,
-                }
+                todo!()
             }
             FullCampaignType::SoftwareUpdate(v) => {
-                let raw_utd: IUpdateCollection = match unsafe {
-                    CoCreateInstance(&UpdateCollection, None, CLSCTX_INPROC_SERVER).context("")
-                } {
-                    Err(e) => {
-                        r.stderr(format!(
-                            "Could not instantiate a new UpdateCollection to download: {}",
-                            e
-                        ));
-                        return r.into_err();
-                    }
-                    Ok(u) => u,
-                };
-                for update in available_updates.updates {
-                    let com_ptr: IUpdate = match update.com_ptr {
-                        None => {
-                            r.stderr(format!(
-                                "Empty COM reference for update {}",
-                                update.data.title
-                            ));
-                            return r.into_err(); // If one update fails, do not fail the whole update but
-                        }
-                        Some(p) => p,
-                    };
-                    if v.iter().any(|x| match Article::new(x.name.clone()) {
+                let mut white_list = Vec::new();
+                for i in v {
+                    match Article::new(i.name.clone()) {
                         Err(e) => {
                             r.stderr(format!(
                                 "Could not look for requested update {:?}: {}",
-                                x, e
+                                i, e
                             ));
-                            false
+                            return r;
                         }
-                        Ok(a) => update.data.kbs.contains(&a),
-                    }) && let Err(e) = unsafe { raw_utd.Add(&com_ptr) }
-                    {
-                        r.stderr(format!("Could not add update to collection: {}", e));
-                        return r.into_err();
+                        Ok(article) => {
+                            white_list.push(article);
+                        }
                     }
                 }
-                match Collection::try_from(raw_utd) {
-                    Err(e) => {
-                        r.stderr(format!(
-                            "Could not create the UpdateCollection to download: {}",
-                            e
-                        ));
-                        return r.into_err();
-                    }
-                    Ok(c) => c,
-                }
+                available_updates
+                    .filter_collection(|i| i.data.kbs.iter().any(|x| white_list.contains(x)))
             }
         };
         // Download the available updates
-        let raw_update_download_result = download_updates(&session, &updates_to_download);
+        let raw_update_download_result = download_updates(&self.session, &updates_to_download);
         r.log_step(&raw_update_download_result);
         let update_download_result = match raw_update_download_result.inner {
             Err(e) => {
@@ -419,24 +341,17 @@ impl LinuxPackageManager for WindowsUpdateAgent {
         };
         // Update the return type to contain each package download details
         {
-            let details = match &mut r.inner {
-                Ok(d) => d,
-                _ => {
-                    r.stderr("Internal error: install details map not available".to_string());
-                    return r.into_err();
+            let details = match update_download_result.get_details(&updates_to_download) {
+                Err(e) => {
+                    r.stderr(format!(
+                        "Failed to retrieve download individual results: {}",
+                        e
+                    ));
+                    return r;
                 }
+                Ok(d) => d,
             };
-
-            update_download_result.update_results.iter().for_each(|ir| {
-                let extra = format!("\nInstall result:\n{}", ir.clone());
-                details
-                    .entry(ir.update.clone().into())
-                    .and_modify(|opt| match opt {
-                        Some(existing) => existing.push_str(&extra),
-                        None => *opt = Some(extra.clone()),
-                    })
-                    .or_insert(Some(extra));
-            });
+            r.inner = Ok(Some(details));
         }
 
         // Log the download result
@@ -465,7 +380,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             "Download summary: {} success, {} failed, {} total",
             d_succeeded.len(),
             d_failed.len(),
-            updates_to_download.updates.len()
+            updates_to_download.len()
         ));
         // Early return if 0 download succeeded
         if d_succeeded.is_empty() {
@@ -479,13 +394,8 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             .iter()
             .map(|r| r.update.clone())
             .collect::<Vec<InfoData>>();
-        let raw_to_install = try_iupdatecollection_from_vec(
-            updates_to_download
-                .updates
-                .iter()
-                .filter(|u| downloaded_data.contains(&u.data))
-                .filter_map(|u| u.com_ptr.clone())
-                .collect::<Vec<IUpdate>>(),
+        let raw_to_install = IUpdateCollection::try_from(
+            &updates_to_download.filter_collection(|u| downloaded_data.contains(&u.data)),
         );
 
         let com_to_install = match raw_to_install {
@@ -503,7 +413,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             }
             Ok(c) => c,
         };
-        let raw_install_result = install_updates(&session, &updates_to_install);
+        let raw_install_result = install_updates(&self.session, &updates_to_install);
         r.log_step(&raw_install_result);
         let update_install_result = match raw_install_result.inner {
             Err(e) => {
@@ -514,24 +424,26 @@ impl LinuxPackageManager for WindowsUpdateAgent {
         };
         // Update the return type to contain each package install details
         {
-            let details = match &mut r.inner {
+            let install_details = match update_install_result.get_details(&updates_to_install) {
+                Err(e) => {
+                    r.stderr(format!(
+                        "Failed to retrieve install individual results: {}",
+                        e
+                    ));
+                    return r;
+                }
                 Ok(d) => d,
+            };
+            let details = match &mut r.inner {
+                Ok(Some(d)) => d,
                 _ => {
                     r.stderr("Internal error: install details map not available".to_string());
                     return r.into_err();
                 }
             };
-
-            update_install_result.update_results.iter().for_each(|ir| {
-                let extra = format!("\nInstall result:\n{}", ir.clone());
-                details
-                    .entry(ir.update.clone().into())
-                    .and_modify(|opt| match opt {
-                        Some(existing) => existing.push_str(&extra),
-                        None => *opt = Some(extra.clone()),
-                    })
-                    .or_insert(Some(extra));
-            });
+            for (k, v) in install_details {
+                details.entry(k).and_modify(|s| s.push_str(&v)).or_insert(v);
+            }
         }
         // Log the download result
         let (i_succeeded, i_failed): (
@@ -561,7 +473,7 @@ impl LinuxPackageManager for WindowsUpdateAgent {
             "Install summary: {} success, {} failed, {} total",
             i_succeeded.len(),
             i_failed.len(),
-            updates_to_install.updates.len()
+            updates_to_install.len()
         ));
         r
     }

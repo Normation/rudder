@@ -47,7 +47,7 @@ impl YumPackageManager {
         res
     }
 
-    fn full_upgrade(&mut self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    fn full_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         // https://serverfault.com/a/1075175
         let mut c = Command::new("yum");
         c.arg("--assumeyes").arg("update");
@@ -60,7 +60,7 @@ impl YumPackageManager {
     }
 
     /// `yum install yum-plugin-security` is only necessary on RHEL < 7, which are not supported.
-    fn security_upgrade(&mut self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    fn security_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         // See https://access.redhat.com/solutions/10021
         let mut c = Command::new("yum");
         c.arg("--assumeyes").arg("--security").arg("update");
@@ -75,7 +75,7 @@ impl YumPackageManager {
     fn software_upgrade(
         &mut self,
         packages: &[PackageSpec],
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("yum");
         c.arg("--assumeyes")
             .arg("update")
@@ -97,7 +97,7 @@ impl LinuxPackageManager for YumPackageManager {
     fn upgrade(
         &mut self,
         update_type: &FullCampaignType,
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         match update_type {
             FullCampaignType::SystemUpdate => self.full_upgrade(),
             FullCampaignType::SecurityUpdate => self.security_upgrade(),

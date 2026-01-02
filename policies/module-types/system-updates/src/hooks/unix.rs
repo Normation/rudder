@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use super::common::Hooks;
-use crate::hooks::common::RunHooks;
+use crate::hooks::{Hooks, RunHooks};
 use anyhow::{Result, bail};
 use log::{debug, info};
 use std::path::PathBuf;
+use std::process::Command;
 use std::{
     fs,
     os::unix::prelude::{MetadataExt, PermissionsExt},
@@ -54,6 +54,10 @@ impl RunHooks for Hooks {
             bail!("Hook is not owned by current user, skipping");
         }
         Ok(())
+    }
+
+    fn create_command(&self, p: &Path) -> Command {
+        Command::new(p)
     }
 }
 

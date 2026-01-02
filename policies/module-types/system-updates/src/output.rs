@@ -116,9 +116,8 @@ impl<T> ResultOutput<T> {
         n
     }
 
-    pub fn clear_ok_with_details(self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
-        let mut n = ResultOutput::new(Ok(HashMap::new()));
-
+    pub fn clear_ok_with_details(self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+        let mut n = ResultOutput::new(Ok(None));
         if let Err(e) = self.inner {
             n.inner = Err(e)
         }
@@ -270,11 +269,22 @@ impl Report {
         self.errors.as_mut().unwrap().push_str(s.as_ref())
     }
 
-    pub fn diff(&mut self, diff: Vec<PackageDiff>) {
+    pub fn diff(&mut self, diff: Vec<PackageDiff>, details: Option<HashMap<PackageId, String>>) {
         if !self.is_err() && !diff.is_empty() {
             self.status = Status::Repaired
         }
-        self.software_updated = diff;
+        match details {
+            None => self.software_updated = diff,
+            Some(d) => {
+                self.software_updated = diff
+                    .into_iter()
+                    .map(|x| PackageDiff {
+                        details: d.get(&x.id).cloned(),
+                        ..x
+                    })
+                    .collect::<Vec<PackageDiff>>()
+            }
+        }
     }
 
     /// Chain a `ResultOutput` to the report

@@ -271,7 +271,7 @@ impl LinuxPackageManager for AptPackageManager {
     fn upgrade(
         &mut self,
         update_type: &FullCampaignType,
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let cache = self.cache();
         if let Ok(mut c) = cache.inner {
             //if c.get_changes(false).peekable().next().is_some() {

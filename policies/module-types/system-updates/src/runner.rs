@@ -194,8 +194,8 @@ mod tests {
         fn upgrade(
             &mut self,
             _update_type: &FullCampaignType,
-        ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
-            ResultOutput::new(Ok(HashMap::new()))
+        ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+            ResultOutput::new(Ok(None))
         }
 
         fn reboot_pending(&self) -> ResultOutput<bool> {

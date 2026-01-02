@@ -212,8 +212,8 @@ fn update(
     report.step(cache_result);
 
     let update_result = pm.upgrade(campaign_type);
-    let update_details: HashMap<PackageId, Option<String>> = match update_result.inner {
-        Err(_) => HashMap::new(),
+    let update_details: Option<HashMap<PackageId, String>> = match update_result.inner {
+        Err(_) => None,
         Ok(ref h) => h.clone(),
     };
     report.step(update_result);
@@ -233,11 +233,8 @@ fn update(
     }
     let after_list: PackageList = after_list.unwrap();
 
-    // Add per package details info based on the upgrade log
-    let augmented_list = after_list.augment_with_details(&update_details);
-
     // Compute package list diff
-    report.diff(before_list.diff(augmented_list));
+    report.diff(before_list.diff(after_list), update_details);
 
     // Now take system actions
     let pre_reboot_result = Hooks::PreReboot.run();

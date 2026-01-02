@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Normation SAS
 use super::{Collection, InfoData, OperationResultCode};
+use crate::package_manager::PackageId;
 use anyhow::{Error, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -27,6 +31,7 @@ impl UpdateInstallationResult {
         }
     }
 }
+
 impl Display for UpdateInstallationResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -46,6 +51,23 @@ pub struct InstallationResult {
 }
 
 impl InstallationResult {
+    pub fn get_details(&self, collection: &Collection) -> Result<HashMap<PackageId, String>> {
+        if self.update_results.len() != collection.len() {
+            bail!(
+                "Given input collection and install result length do not match: got {} input length and {} results",
+                self.update_results.len(),
+                collection.len()
+            )
+        }
+        let mut h = HashMap::new();
+        for i in 0..collection.len() {
+            h.insert(
+                PackageId::from(collection[i].data.clone()),
+                format!("\nInstall result:\n{}", self.update_results[i].clone()),
+            );
+        }
+        Ok(h)
+    }
     pub fn try_from_com(
         r: IInstallationResult,
         collection: &Collection,
@@ -55,9 +77,9 @@ impl InstallationResult {
                 h_result: r.HResult()?,
                 result_code: OperationResultCode::new(r.ResultCode()?.0)?,
                 reboot_required: r.RebootRequired()?.as_bool(),
-                update_results: (0..collection.updates.len())
+                update_results: (0..collection.len())
                     .map(|i| {
-                        let info = match collection.updates.get(i) {
+                        let info = match collection.get(i) {
                             Some(info) => info.data.clone(),
                             None => bail!("Could not retrieve update info for index {}", i),
                         };

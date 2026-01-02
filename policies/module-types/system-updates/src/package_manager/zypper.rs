@@ -46,7 +46,7 @@ impl ZypperPackageManager {
         res
     }
 
-    fn full_upgrade(&mut self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    fn full_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("update");
         let res_update = ResultOutput::command(
@@ -57,7 +57,7 @@ impl ZypperPackageManager {
         res_update.clear_ok_with_details()
     }
 
-    fn security_upgrade(&mut self) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    fn security_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive")
             .arg("--category")
@@ -74,7 +74,7 @@ impl ZypperPackageManager {
     fn software_upgrade(
         &mut self,
         packages: &[PackageSpec],
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("update");
         c.args(packages.iter().map(Self::package_spec_as_argument));
@@ -106,7 +106,7 @@ impl LinuxPackageManager for ZypperPackageManager {
     fn upgrade(
         &mut self,
         update_type: &FullCampaignType,
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>> {
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         match update_type {
             FullCampaignType::SystemUpdate => self.full_upgrade(),
             FullCampaignType::SecurityUpdate => self.security_upgrade(),

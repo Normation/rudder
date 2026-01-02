@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2026 Normation SAS
 use super::super::kb::ArticleCollection;
 use super::CategoryCollection;
 use crate::package_manager::PackageId;

@@ -94,20 +94,25 @@ impl PackageList {
         changes
     }
 
-    pub fn augment_with_details(self, details: &HashMap<PackageId, Option<String>>) -> Self {
-        let mut inner: HashMap<PackageId, PackageInfo> = HashMap::new();
-        for (k, v) in self.inner {
-            match details.get(&k).cloned() {
-                None => {
-                    inner.insert(k, v);
+    pub fn augment_with_details(self, details: &Option<HashMap<PackageId, String>>) -> Self {
+        match details {
+            None => self,
+            Some(d) => {
+                let mut inner: HashMap<PackageId, PackageInfo> = HashMap::new();
+                for (k, v) in self.inner {
+                    let info = if let Some(x) = d.get(&k) {
+                        PackageInfo {
+                            details: Some(x.clone()),
+                            ..v
+                        }
+                    } else {
+                        v
+                    };
+                    let _ = inner.insert(k, info);
                 }
-                Some(i) => {
-                    let info = PackageInfo { details: i, ..v };
-                    inner.insert(k, info);
-                }
+                Self { inner }
             }
         }
-        Self { inner }
     }
 }
 
@@ -115,14 +120,14 @@ impl PackageList {
 #[serde(rename_all = "kebab-case")]
 pub struct PackageDiff {
     #[serde(flatten)]
-    id: PackageId,
+    pub id: PackageId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    old_version: Option<String>,
+    pub old_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    new_version: Option<String>,
-    action: PackageAction,
+    pub new_version: Option<String>,
+    pub action: PackageAction,
     #[serde(skip_serializing_if = "Option::is_none")]
-    details: Option<String>,
+    pub details: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -194,7 +199,7 @@ impl FromStr for PackageManager {
             "apt" | "apt_get" => PackageManager::Apt,
             "zypper" => PackageManager::Zypper,
             "rpm" => PackageManager::Rpm,
-            "windows_update-agent" => PackageManager::WindowsUpdateAgent,
+            "windows_update_agent" | "windows-update-agent" => PackageManager::WindowsUpdateAgent,
             _ => bail!("Unknown package manager: {}", s),
         })
     }
@@ -219,7 +224,7 @@ impl PackageManager {
             PackageManager::WindowsUpdateAgent => {
                 #[cfg(target_os = "windows")]
                 {
-                    Box::new(WUAPackageManager::new())
+                    Box::new(WUAPackageManager::new()?)
                 }
                 #[cfg(not(target_os = "windows"))]
                 {
@@ -280,7 +285,7 @@ pub trait LinuxPackageManager {
     fn upgrade(
         &mut self,
         update_type: &FullCampaignType,
-    ) -> ResultOutput<HashMap<PackageId, Option<String>>>;
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>>;
 
     /// Is a reboot pending?
     fn reboot_pending(&self) -> ResultOutput<bool>;
