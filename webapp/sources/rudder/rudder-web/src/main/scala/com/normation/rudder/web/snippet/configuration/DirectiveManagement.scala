@@ -105,7 +105,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private val techniqueRepository = RudderConfig.techniqueRepository
   private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private val getRules            = () => RudderConfig.roRuleRepository.getAll()
-  private val getGroups           = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getGroups           = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val uuidGen             = RudderConfig.stringUuidGenerator
   private val linkUtil            = RudderConfig.linkUtil
   private val configService       = RudderConfig.configService

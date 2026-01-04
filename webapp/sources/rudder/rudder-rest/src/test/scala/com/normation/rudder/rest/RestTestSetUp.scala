@@ -317,7 +317,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   object dynGroupService extends DynGroupService {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
       mockNodeGroups.groupsRepo
-        .getFullGroupLibrary()
+        .getFullGroupLibrary()(using QueryContext.testQC)
         .map(_.allGroups.collect {
           case (id, t) if (t.nodeGroup.isDynamic) => t.nodeGroup
         }.toSeq)

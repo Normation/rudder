@@ -453,7 +453,7 @@ class RuleApiService14(
       _      <- writeRule.create(change.newRule, modId, actor, params.reason)
 
       directiveLib <- readDirectives.getFullDirectiveLibrary()
-      groupLib     <- readGroup.getFullGroupLibrary()
+      groupLib     <- readGroup.getFullGroupLibrary()(using cc.toQC)
       nodesLib     <- nodeFactRepos.getAll()(using cc.toQC)
       globalMode   <- getGlobalPolicyMode()
     } yield {

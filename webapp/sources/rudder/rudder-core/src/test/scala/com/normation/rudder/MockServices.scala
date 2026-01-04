@@ -2637,7 +2637,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       categories.get.map(_.allCategories.keySet.contains(id))
     }
 
-    override def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = categories.get
+    override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = categories.get
 
     override def getNodeGroupOpt(
         id: NodeGroupId
@@ -2821,7 +2821,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
             group.name,
             group.description,
             group.isEnabled,
-            group.isSystem
+            group.isSystem,
+            group.security
           )
           import com.softwaremill.quicklens.*
           val c       =
@@ -2922,7 +2923,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       recUpdateCat(c, parents)
     }
 
-    override def addGroupCategorytoCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
+    override def addGroupCategoryToCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
         cc: ChangeContext
     ): IOResult[NodeGroupCategory] = {
       categories
@@ -3093,7 +3094,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       name = "",
       description = "",
       isEnabled = true,
-      isSystem = false
+      isSystem = false,
+      security = None
     )
   }
 
@@ -3150,7 +3152,8 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         name = "Serveurs [€ðŋ] cassés",
         description = "Liste de l'ensemble de serveurs cassés à réparer",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       ),
       FullRuleTargetInfo(
         FullGroupTarget(
@@ -3171,28 +3174,32 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         name = "System groups",
         description = "system groups that cannot be deleted",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),
         name = "special:policyServer_root",
         description = "The root policy server",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTargetExceptPolicyServers),
         name = "special:all_exceptPolicyServers",
         description = "All groups without policy servers",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTarget),
         name = "special:all",
         description = "All nodes",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       )
     ) ++ groupsTargetInfos.drop(1),
     isSystem = true,

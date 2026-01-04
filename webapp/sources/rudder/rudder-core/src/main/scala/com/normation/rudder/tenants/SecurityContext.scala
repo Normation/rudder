@@ -43,6 +43,7 @@ import com.normation.rudder.domain.eventlog
 import java.time.Instant
 import zio.*
 import zio.json.*
+import zio.syntax.*
 
 /*
  * Business objects in Rudder can be separated in tenants, ie in arbitrary segment
@@ -73,19 +74,19 @@ sealed trait TenantAccessGrant {
 
 object TenantAccessGrant {
 
-  // a context that can see all nodes whatever their security tags
+  // a grant that can see all nodes whatever their security tags
   case object All                                      extends TenantAccessGrant {
     override val value = "all"
     override def serialize:     String              = "*"
     override def toSecurityTag: Option[SecurityTag] = Option.empty
   }
-  // a security context that can't see any node. Very good for performance.
+  // a grant that can't see any node. Very good for performance.
   case object None                                     extends TenantAccessGrant {
     override val value     = "none"
     override def serialize = "-"
     override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.empty)
   }
-  // a security context associated with a list of tenants. If the node share at least one of the
+  // a grant associated with a list of tenants. If the node share at least one of the
   // tenants, if it can be seen. Be careful, it's really just non-empty interesting (so that adding
   // more tag here leads to more nodes, not less).
   final case class ByTenants(tenants: Chunk[TenantId]) extends TenantAccessGrant {
@@ -172,6 +173,11 @@ object TenantAccessGrant {
 
     def canSee[A: HasSecurityTag](n: A): Boolean = {
       canSee(n.security)
+    }
+
+    // execute given action if canSee n or fail.
+    def canSeeOrFail[A: HasSecurityTag, B](n: A)(zio: IOResult[B]): IOResult[B] = {
+      if (canSee(n)) zio else Inconsistency(s"Object '${n.debugId}' can't be accessed in current security context'").fail
     }
 
     // NodeSecurityContext is a lattice

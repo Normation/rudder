@@ -713,7 +713,7 @@ class LDAPEntityMapper(
   def entry2RuleTargetInfo(e: LDAPEntry): InventoryMappingPure[FullRuleTargetInfo] = {
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       entry2NodeGroup(e).map(g =>
-        FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
+        FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
       )
 
     } else if (e.isA(OC_SPECIAL_TARGET)) {
@@ -741,7 +741,8 @@ class LDAPEntityMapper(
                             )
                         }
       } yield {
-        FullRuleTargetInfo(ruleTarget, name, description, isEnabled, isSystem)
+        // For compat with plugin tenant disabled: special targets have the "None" security tag
+        FullRuleTargetInfo(ruleTarget, name, description, isEnabled, isSystem, security = None)
       }
     } else {
       Left(

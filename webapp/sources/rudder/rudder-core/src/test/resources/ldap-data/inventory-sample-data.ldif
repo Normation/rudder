@@ -41,7 +41,7 @@ isDynamic: TRUE
 nodeGroupId: test-group-node12
 isEnabled: TRUE
 isSystem: FALSE
-jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node1"}},{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}]}
+jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node1"},{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node2"}]}
 nodeId: node1
 nodeId: node2
 
@@ -53,7 +53,7 @@ isDynamic: TRUE
 nodeGroupId: test-group-node23
 isEnabled: TRUE
 isSystem: FALSE
-jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node2"}},{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node3"}]}
+jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node2"},{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node3"}]}
 nodeId: node2
 nodeId: node3
 

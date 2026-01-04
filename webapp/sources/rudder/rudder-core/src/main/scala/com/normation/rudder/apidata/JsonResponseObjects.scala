@@ -1960,7 +1960,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.targetInfos,
           _.targetInfos.collect {
-            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
           }
         )
         .transform
@@ -2007,7 +2007,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.targetInfos,
           _.targetInfos.collect {
-            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
           }
         )
         .transform
@@ -2068,7 +2068,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.targetInfos,
           _.targetInfos.collect {
-            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
           }
         )
         .buildTransformer

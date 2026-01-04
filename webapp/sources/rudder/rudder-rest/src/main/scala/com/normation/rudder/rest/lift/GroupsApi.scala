@@ -310,7 +310,7 @@ class GroupsApi(
         includeSystem <- zioJsonExtractor.extractIncludeSystem(req).toIO
         res           <-
           service
-            .getCategoryTree(includeSystem.getOrElse(false))
+            .getCategoryTree(includeSystem.getOrElse(false))(using authzToken.qc)
             .map(JRGroupCategoriesFull(_))
             .chainError("Could not fetch Group tree")
       } yield {
@@ -338,7 +338,7 @@ class GroupsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       service
-        .getCategoryDetails(NodeGroupCategoryId(id))
+        .getCategoryDetails(NodeGroupCategoryId(id))(using authzToken.qc)
         .map(JRGroupCategoriesMinimal(_))
         .chainError(s"Could not fetch Group category '${id}' details")
         .toLiftResponseOne(
@@ -641,7 +641,7 @@ class GroupApiService14(
     }
   }
 
-  def getCategoryTree(includeSystem: Boolean): IOResult[JRFullGroupCategory] = {
+  def getCategoryTree(includeSystem: Boolean)(implicit qc: QueryContext): IOResult[JRFullGroupCategory] = {
     def filterSystem(cat: FullNodeGroupCategory): FullNodeGroupCategory = {
       if (includeSystem) {
         cat
@@ -658,7 +658,7 @@ class GroupApiService14(
       .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None))
   }
 
-  def getCategoryDetails(id: NodeGroupCategoryId): IOResult[JRMinimalGroupCategory] = {
+  def getCategoryDetails(id: NodeGroupCategoryId)(implicit qc: QueryContext): IOResult[JRMinimalGroupCategory] = {
     for {
       root     <- readGroup.getFullGroupLibrary()
       category <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
@@ -672,7 +672,7 @@ class GroupApiService14(
       id: NodeGroupCategoryId
   )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      root     <- readGroup.getFullGroupLibrary()
+      root     <- readGroup.getFullGroupLibrary()(using cc.toQC)
       category <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
       _        <- ZIO.when(category.isSystem) {
                     Inconsistency(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.").fail
@@ -689,7 +689,7 @@ class GroupApiService14(
       restData: JQGroupCategory
   )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      root      <- readGroup.getFullGroupLibrary()
+      root      <- readGroup.getFullGroupLibrary()(using cc.toQC)
       category  <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
       _         <- ZIO.when(category.isSystem) {
                      Inconsistency(s"Could not update group category '${id.value}', cause is: system categories cannot be updated.").fail
@@ -712,7 +712,7 @@ class GroupApiService14(
       update  <- restData.create(defaultId).toIO
       category = update.toNodeGroupCategory
       parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _       <- writeGroup.addGroupCategorytoCategory(category, parent)
+      _       <- writeGroup.addGroupCategoryToCategory(category, parent)
     } yield {
       JRMinimalGroupCategory.fromCategory(update, parent)
     }

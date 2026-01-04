@@ -122,7 +122,7 @@ class CreateCloneGroupPopup(
           // get the type of query :
           if (createContainer) {
             woNodeGroupRepository
-              .addGroupCategorytoCategory(
+              .addGroupCategoryToCategory(
                 new NodeGroupCategory(
                   NodeGroupCategoryId(uuidGen.newUuid),
                   savedGroup.name,

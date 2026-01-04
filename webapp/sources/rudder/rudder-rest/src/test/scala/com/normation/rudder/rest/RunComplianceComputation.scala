@@ -155,14 +155,14 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       nodeGroups.find(_.id == id).map((_, NodeGroupCategoryId("cat1"))).succeed
     }
 
-    def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = {
+    override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
       FullNodeGroupCategory(
         NodeGroupCategoryId("GroupRoot"),
         name = "GroupRoot",
         description = "root of group categories",
         subCategories = Nil,
         targetInfos = nodeGroups.map(g => {
-          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
+          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
         isSystem = true,
         security = None

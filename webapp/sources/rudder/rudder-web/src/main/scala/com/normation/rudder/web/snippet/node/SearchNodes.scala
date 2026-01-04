@@ -83,7 +83,7 @@ import zio.json.*
 class SearchNodes extends StatefulSnippet with Loggable {
 
   private val queryParser         = RudderConfig.cmdbQueryParser
-  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val linkUtil            = RudderConfig.linkUtil
 
   // the popup component to create the group

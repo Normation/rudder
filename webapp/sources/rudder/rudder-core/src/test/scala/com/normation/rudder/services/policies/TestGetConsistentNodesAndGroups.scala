@@ -116,7 +116,8 @@ class TestGetConsistentNodesAndGroups extends Specification {
         name = "",
         description = "",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       )
     )
   }.toMap

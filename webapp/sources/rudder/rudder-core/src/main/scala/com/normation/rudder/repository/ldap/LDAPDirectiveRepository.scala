@@ -72,7 +72,6 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import org.joda.time.DateTime
@@ -704,7 +703,6 @@ class WoLDAPDirectiveRepository(
     ldap:               LDAPConnectionProvider[RwLDAPConnection],
     diffMapper:         LDAPDiffMapper,
     actionLogger:       EventLogRepository,
-    uuidGen:            StringUuidGenerator,
     gitPiArchiver:      GitDirectiveArchiver,
     gitATArchiver:      GitActiveTechniqueArchiver,
     gitCatArchiver:     GitActiveTechniqueCategoryArchiver,

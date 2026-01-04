@@ -2924,7 +2924,6 @@ object RudderConfigInit {
         rwLdap,
         ldapDiffMapper,
         logRepository,
-        stringUuidGenerator,
         gitDirectiveArchiver,
         gitActiveTechniqueArchiver,
         gitActiveTechniqueCategoryArchiver,
@@ -2973,6 +2972,8 @@ object RudderConfigInit {
       roLdap,
       ldapEntityMapper,
       nodeFactRepository,
+      tenantService,
+      tenantRepository,
       groupLibReadWriteMutex
     )
     lazy val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
@@ -2984,6 +2985,8 @@ object RudderConfigInit {
       logRepository,
       gitNodeGroupArchiver,
       personIdentServiceImpl,
+      tenantService,
+      tenantRepository,
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woNodeGroupRepository: WoNodeGroupRepository = woLdapNodeGroupRepository

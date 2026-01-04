@@ -1022,7 +1022,8 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
     configurationRepository.getDirectiveLibrary(ids).toBox
   }
-  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       = roNodeGroupRepository.getFullGroupLibrary().toBox
+  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       =
+    roNodeGroupRepository.getFullGroupLibrary()(using QueryContext.systemQC).toBox
   override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]        = parameterService.getAllGlobalParameters()
   override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode.toBox
   override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()

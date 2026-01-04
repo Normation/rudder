@@ -47,6 +47,7 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.GroupInternalApi as API
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.tenants.QueryContext
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -69,7 +70,7 @@ class GroupsInternalApi(
     val schema: API.GetGroupCategoryTree.type = API.GetGroupCategoryTree
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      groupsInternalApiService.getGroupCategoryTree().toLiftResponseOne(params, schema, _ => None)
+      groupsInternalApiService.getGroupCategoryTree()(using authzToken.qc).toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -78,7 +79,7 @@ class GroupsInternalApi(
 class GroupInternalApiService(
     readGroup: RoNodeGroupRepository
 ) {
-  def getGroupCategoryTree(): IOResult[JRGroupCategoryInfo] = {
+  def getGroupCategoryTree()(implicit qc: QueryContext): IOResult[JRGroupCategoryInfo] = {
     readGroup.getFullGroupLibrary().map(_.transformInto[JRGroupCategoryInfo])
   }
 }

@@ -155,7 +155,8 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
         "",
         "",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       )
     }))
     .toList

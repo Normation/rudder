@@ -252,7 +252,7 @@ class CreateCategoryOrGroupPopup(
       }
       if (createCategory) {
         woNodeGroupRepository
-          .addGroupCategorytoCategory(
+          .addGroupCategoryToCategory(
             new NodeGroupCategory(
               NodeGroupCategoryId(uuidGen.newUuid),
               piName.get,

@@ -251,6 +251,8 @@ class ArchiveApi(
       // lift is not well suited for ZIO...
       val rootDirName = getArchiveName.runNow
 
+      implicit val qc = authzToken.qc
+
       // do zip
       val zippables = for {
         _             <- ApplicationLoggerPure.Archive.debug(s"Building archive '${rootDirName}'")
@@ -713,7 +715,7 @@ class ZipArchiveBuilderService(
                    } yield ()
                  }
         // we only archive non-system NodeGroups, other kind of special targets are ignored
-        groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false) => g }
+        groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false, _) => g }
         _     <- ZIO.foreach(groups) { g =>
                    val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
                    for {
@@ -759,7 +761,7 @@ class ZipArchiveBuilderService(
       groupIds:     Seq[NodeGroupId],
       ruleIds:      Seq[RuleId],
       scopes:       Set[ArchiveScope]
-  ): IOResult[Chunk[Zippable]] = {
+  )(implicit qc: QueryContext): IOResult[Chunk[Zippable]] = {
 
     // normalize to no slash at end
     val root                 = rootDirName.strip().replaceAll("""/$""", "")
@@ -1666,7 +1668,7 @@ class SaveArchiveServicebyRepo(
       _       <- if (exists) {
                    woGroupRepos.saveGroupCategory(category, parentId)
                  } else {
-                   woGroupRepos.addGroupCategorytoCategory(category, parentId)
+                   woGroupRepos.addGroupCategoryToCategory(category, parentId)
                  }
     } yield ()
   }
@@ -1679,7 +1681,7 @@ class SaveArchiveServicebyRepo(
       // if category of group doesn't exist, we need to create one using the UUID as name
       c <- roGroupRepos.categoryExists(g.category)
       _ <- ZIO.when(!c) {
-             woGroupRepos.addGroupCategorytoCategory(
+             woGroupRepos.addGroupCategoryToCategory(
                NodeGroupCategory(
                  g.category,
                  g.category.value,

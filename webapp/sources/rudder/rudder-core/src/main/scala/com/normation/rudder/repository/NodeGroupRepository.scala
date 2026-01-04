@@ -138,7 +138,7 @@ final case class FullNodeGroupCategory(
   }
 
   val ownGroups: Map[NodeGroupId, FullGroupTarget] = targetInfos.collect {
-    case FullRuleTargetInfo(g: FullGroupTarget, _, _, _, _) => (g.nodeGroup.id, g)
+    case FullRuleTargetInfo(g: FullGroupTarget, _, _, _, _, _) => (g.nodeGroup.id, g)
   }.toMap
 
   val allGroups: Map[NodeGroupId, FullGroupTarget] = (
@@ -205,7 +205,7 @@ final case class FullNodeGroupCategory(
    */
   def getGroupTarget(node: CoreNodeFact): Map[RuleTarget, FullGroupTarget] = {
     allTargets.collect {
-      case (t, FullRuleTargetInfo(groupTarget: FullGroupTarget, _, _, _, _))
+      case (t, FullRuleTargetInfo(groupTarget: FullGroupTarget, _, _, _, _, _))
           if groupTarget.nodeGroup.serverList.contains(node.id) =>
         t -> groupTarget
     }
@@ -220,7 +220,7 @@ trait RoNodeGroupRepository {
    * for categories and groups.
    * Returns the objects sorted by name within
    */
-  def getFullGroupLibrary(): IOResult[FullNodeGroupCategory]
+  def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory]
 
   def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean]
 
@@ -347,7 +347,7 @@ trait RoNodeGroupRepository {
   /**
    * Return the list of parents for that category, the nearest parent
    * first, until the root of the library.
-   * The the last parent is not the root of the library, return a Failure.
+   * The last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
   def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]]
@@ -471,7 +471,7 @@ trait WoNodeGroupRepository {
    *
    * return the new category.
    */
-  def addGroupCategorytoCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
+  def addGroupCategoryToCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategory]
 

@@ -78,7 +78,7 @@ trait EventLogRepository {
 
   /**
    * Save an eventLog
-   * Optionnal : the user. At least one of the eventLog user or user must be defined
+   * Optional : the user. At least one of the eventLog user or user must be defined
    * Return the unspecialized event log with its serialization number
    */
   def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog]

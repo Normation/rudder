@@ -219,7 +219,7 @@ class ModificationValidationPopup(
   private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   // function to read state of things
-  private val getGroupLib = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getGroupLib = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "popupContent" =>

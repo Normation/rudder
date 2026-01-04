@@ -126,7 +126,8 @@ class TestBuildNodeConfiguration extends Specification {
         name = "",
         description = "",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       )
     ),
     isSystem = false,

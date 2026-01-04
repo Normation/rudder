@@ -79,7 +79,7 @@ object Groups {
 class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with Loggable {
   import Groups.*
 
-  private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private val linkUtil              = RudderConfig.linkUtil
 

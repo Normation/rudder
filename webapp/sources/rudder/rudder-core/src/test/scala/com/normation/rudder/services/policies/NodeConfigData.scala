@@ -585,7 +585,8 @@ object NodeConfigData {
           name = "",
           description = "",
           isEnabled = true,
-          isSystem = false
+          isSystem = false,
+          security = None
         )
       )
     }))
@@ -889,28 +890,32 @@ class TestNodeConfiguration(
         name = "Serveurs [€ðŋ] cassés",
         description = "Liste de l'ensemble de serveurs cassés à réparer",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(PolicyServerTarget(NodeId("root"))),
         name = "special:policyServer_root",
         description = "The root policy server",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTargetExceptPolicyServers),
         name = "special:all_exceptPolicyServers",
         description = "All groups without policy servers",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       ),
       FullRuleTargetInfo(
         FullOtherTarget(AllTarget),
         name = "special:all",
         description = "All nodes",
         isEnabled = true,
-        isSystem = true
+        isSystem = true,
+        security = None
       )
     )
   )

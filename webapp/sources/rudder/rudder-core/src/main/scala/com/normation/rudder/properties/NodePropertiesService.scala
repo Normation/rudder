@@ -70,7 +70,7 @@ class NodePropertiesServiceImpl(
   override def updateAll(): IOResult[Unit] = {
     for {
       params      <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
-      groups      <- roNodeGroupRepository.getFullGroupLibrary()
+      groups      <- roNodeGroupRepository.getFullGroupLibrary()(using QueryContext.systemQC)
       nodes       <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.values)
       mergedGroups = {
         groups.allGroups.map {
