@@ -627,7 +627,7 @@ class RoLDAPNodeGroupRepository(
           mapper.entry2NodeGroupCategory(e) match {
             case Right(item) =>
               // check visibility for current QC
-              tenantService.filter(Some(item)) match {
+              tenantService.filter(item) match {
                 case None           => debugTenantFiltering(item).as(current)
                 case Some(category) =>
                   // for categories other than root, add it in the list
@@ -652,7 +652,7 @@ class RoLDAPNodeGroupRepository(
           mapper.entry2RuleTargetInfo(e) match {
             case Right(item) =>
               // check visibility for current QC
-              tenantService.filter(Some(item)) match {
+              tenantService.filter(item) match {
                 case None           => debugTenantFiltering(item).as(current)
                 case Some(fullInfo) =>
                   val catId         = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
@@ -1016,26 +1016,40 @@ class WoLDAPNodeGroupRepository(
     groupLibMutex.writeLock(for {
       con           <- ldap
       exists        <- checkNodeGroupExists(con, nodeGroup)
-      exists        <- if (exists) {
+      _             <- ZIO.when(exists) {
                          Inconsistency(
                            s"Cannot create a group '${nodeGroup.name}': a group with the same id (${nodeGroup.id.serialize}) or name already exists"
                          ).fail
-                       } else ZIO.unit
+                       }
       categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
-      entry          = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
-      result        <- con.save(entry, removeMissingAttributes = true)
-      diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
-      loggedAction  <- actionLogEffect.saveAddNodeGroup(cc.modId, principal = cc.actor, addDiff = diff, reason = cc.message)
-      // We don't want to check if this is a system group or not, because new groups are not systems (see constructor)
-      autoArchive   <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
-                          for {
-                            parents  <- getParents_NodeGroupCategory(into)
-                            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                            archived <-
-                              gitArchiver
-                                .archiveNodeGroup(nodeGroup, into :: (parents.map(_.id)), Some((cc.modId, commiter, cc.message)))
-                          } yield archived
-                        } else ZIO.unit)
+      category      <- mapper.entry2NodeGroupCategory(categoryEntry).toIO
+      diff          <- cc.accessGrant.canSeeOrFail(category) {
+                         for {
+                           status <- tenantRepo.getStatus
+                           diff   <- tenantService.manageCreate(nodeGroup, cc, status) { ng =>
+                                       val entry = mapper.nodeGroupToLdap(ng, categoryEntry.dn)
+                                       for {
+                                         result       <- con.save(entry, removeMissingAttributes = true)
+                                         diff         <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
+                                         loggedAction <- actionLogEffect.saveAddNodeGroup(diff)
+                                         // We don't want to check if this is a system group or not, because new groups are not systems (see constructor)
+                                         autoArchive  <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+                                                            for {
+                                                              parents  <- getParents_NodeGroupCategory(into)
+                                                              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                                                              archived <-
+                                                                gitArchiver
+                                                                  .archiveNodeGroup(
+                                                                    nodeGroup,
+                                                                    into :: (parents.map(_.id)),
+                                                                    Some((cc.modId, commiter, cc.message))
+                                                                  )
+                                                            } yield archived
+                                                          } else ZIO.unit)
+                                       } yield diff
+                                     }
+                         } yield diff
+                       }
     } yield {
       diff
     })
@@ -1090,7 +1104,7 @@ class WoLDAPNodeGroupRepository(
       for {
         con      <- ldap
         existing <- getSGEntry(con, nodeGroup.id).notOptional(
-                      "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
+                      s"Error when trying to check for existence of group with id '${nodeGroup.id.debugString}'. Can not update"
                     )
         oldGroup <- mapper
                       .entry2NodeGroup(existing)
@@ -1100,41 +1114,41 @@ class WoLDAPNodeGroupRepository(
         result   <- if (oldGroup.equals(nodeGroup)) {
                       None.succeed
                     } else {
-                      for {
-                        systemCheck <- if (onlyUpdateNodes) {
-                                         oldGroup.succeed
-                                       } else {
-                                         (oldGroup.isSystem, systemCall) match {
-                                           case (true, false) =>
-                                             "System group '%s' (%s) can not be modified"
-                                               .format(oldGroup.name, oldGroup.id.serialize)
-                                               .fail
-                                           case (false, true) =>
-                                             "You can not modify a non system group (%s) with that method"
-                                               .format(oldGroup.name)
-                                               .fail
-                                           case _             => oldGroup.succeed
-                                         }
-                                       }
-                        name        <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
-                        exists      <- ZIO.when(name && !onlyUpdateNodes) {
-                                         s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
-                                       }
-                        onlyNodes   <- if (!onlyUpdateNodes) {
-                                         ZIO.unit
-                                       } else { // check that nothing but the node list changed
-                                         if (nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
-                                           ZIO.unit
-                                         } else {
-                                           logPure.debug(
-                                             s"Inconsistency when modifying node lists for nodeGroup ${nodeGroup.name}: previous content was ${oldGroup}, new is ${nodeGroup} - only the node list should change"
-                                           ) *>
-                                           "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
-                                         }
-                                       }
-                        change      <- saveModifyNodeGroupDiff(existing, con, nodeGroup)
-                      } yield {
-                        change
+                      tenantRepo.getStatus.flatMap { status =>
+                        tenantService.manageUpdate(Some(oldGroup), nodeGroup, cc, status) { ng =>
+                          for {
+                            systemCheck <- if (onlyUpdateNodes) {
+                                             oldGroup.succeed
+                                           } else {
+                                             (oldGroup.isSystem, systemCall) match {
+                                               case (true, false) =>
+                                                 s"System group '${oldGroup.name}' (${oldGroup.id.serialize}) can not be modified".fail
+                                               case (false, true) =>
+                                                 s"You can not modify a non system group (${oldGroup.name}) with that method".fail
+                                               case _             => oldGroup.succeed
+                                             }
+                                           }
+                            name        <- checkNameAlreadyInUse(con, ng.name, ng.id)
+                            exists      <- ZIO.when(name && !onlyUpdateNodes) {
+                                             s"Cannot change the group name to ${ng.name} : there is already a group with the same name".fail
+                                           }
+                            onlyNodes   <- if (!onlyUpdateNodes) {
+                                             ZIO.unit
+                                           } else { // check that nothing but the node list changed
+                                             if (ng.copy(serverList = oldGroup.serverList) == oldGroup) {
+                                               ZIO.unit
+                                             } else {
+                                               logPure.debug(
+                                                 s"Inconsistency when modifying node lists for ng ${ng.name}: previous content was ${oldGroup}, new is ${ng} - only the node list should change"
+                                               ) *>
+                                               "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
+                                             }
+                                           }
+                            change      <- saveModifyNodeGroupDiff(existing, con, ng)
+                          } yield {
+                            change
+                          }
+                        }
                       }
                     }
       } yield {

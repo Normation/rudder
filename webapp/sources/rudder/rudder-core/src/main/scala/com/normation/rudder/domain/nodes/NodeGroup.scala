@@ -68,7 +68,7 @@ final case class NodeGroupId(uid: NodeGroupUid, rev: Revision = GitVersion.DEFAU
 }
 object NodeGroupId {
 
-  // parse a directiveId which was serialize by "id.serialize"
+  // parse a directiveId which was serialized by "id.serialize"
   def parse(s: String): Either[String, NodeGroupId] = {
     GitVersion.parseUidRev(s).map {
       case (id, rev) =>

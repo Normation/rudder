@@ -580,7 +580,7 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-    } yield tenantService.filter(res)
+    } yield tenantService.flatMap(res)
   }
 
   private[nodes] def getAllOnRef[A](
@@ -669,13 +669,16 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _                   <- lock.withLock
-        core                <- get(node.fold(_.id, _._1))(using cc.toQC)
+        // here we use system QueryContext to look up the node because we want to know if it exists for real, not
+        // get a "none" because it was filtered-out for visibility
+        core                <- get(node.fold(_.id, _._1))(using QueryContext.systemQC)
         pair                <- (node, core) match {
                                  // first case: we are saving a new node fact, tenant can be set
                                  // we keep attrs from request
                                  case (Left(x), None)          => (x, attrs).succeed
-                                 // second case: updating a node fact, we need to keep existing tenant
-                                 // we also keep status
+                                 // second case: updating a node fact,
+                                 // we can only do that without changing tenant (keep existing)
+                                 // we force also keep status
                                  // we keep attrs from request
                                  case (Left(x), Some(y))       =>
                                    (

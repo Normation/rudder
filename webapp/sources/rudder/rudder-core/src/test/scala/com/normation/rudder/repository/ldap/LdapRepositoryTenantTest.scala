@@ -38,7 +38,13 @@
 package com.normation.rudder.repository.ldap
 
 import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
 import com.normation.zio.*
@@ -58,12 +64,22 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.DEBUG)
 
-  val zoneA = QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
-  val zoneB = QueryContext(EventActor("zoneB user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
+  val zoneA   = QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
+  val zoneB   = QueryContext(EventActor("zoneB user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
+  val zoneC   = QueryContext(EventActor("zoneC user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneC"))))
+  val zoneABC = QueryContext(
+    EventActor("zoneA+B+C user"),
+    TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"), TenantId("zoneC")))
+  )
+
+  val groupWithTenantId = NodeGroupId(NodeGroupUid("test-group-node1"))
+
+  val rootCat = NodeGroupCategoryId("GroupRoot")
 
   sequential
 
-  "[Groups] When the tenant plugin is disabled, we" should {
+  // the tenant feature status does not matter for query. Perhaps it should?
+  "[Groups] Whichever tenant plugin status, we" should {
 
     val targetWithNoTenants = {
       Set(
@@ -92,9 +108,95 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
         targetWithTenantsA.toSeq
       )
     }
+
     "have an user with only tenant ZoneB see nothing" in {
       implicit val qc = zoneB
       roGroupRepo.getFullGroupLibrary().runNow.allTargets.values.map(_.debugId) must containTheSameElementsAs(Nil)
     }
+  }
+
+  def newGroup(id: String, tenant: Option[SecurityTag]): NodeGroup =
+    NodeGroup(NodeGroupId(NodeGroupUid(id)), id, id, Nil, None, serverList = Set(), _isEnabled = true, security = tenant)
+
+  "[Groups] Creating a group" should {
+    "put no security tag if it's a Grant '*', even if plugin disabled" in {
+      implicit val cc = ChangeContext.newForRudder()
+      val group       = newGroup("grantAll-feature-disabled", None)
+      (woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)(using cc.toQC)).runNow._1.security must beNone
+    }
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      implicit val cc = zoneA.newCC()
+      val group       = newGroup("grantZoneA-feature-disabled", None)
+      (woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)(using cc.toQC)).either.runNow.left
+        .map(_.msg) must beLeft(
+        beEqualTo("Object 'grantZoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      implicit val cc = zoneA.newCC()
+
+      val group = newGroup("grantZoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *> woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)(using
+        cc.toQC
+      )).runNow._1.security must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+  }
+  "[Groups] Updating a group" should {
+    "doesn't change the tag if the plugin is disabled" in {
+      implicit val cc = ChangeContext.newForRudder()
+
+      val res = for {
+        _ <- tenantRepo.setTenantEnabled(false)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+        h  = g.copy(security = None)
+        _ <- woGroupRepo.update(h)
+        i <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+      } yield i.security
+
+      res.runNow must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      implicit val cc = zoneA.newCC()
+      val group       = newGroup(groupWithTenantId.uid.value, None)
+      woGroupRepo
+        .update(group)
+        .either
+        .runNow
+        .left
+        .map(_.msg) must beLeft(
+        beEqualTo("Object 'test-group-node1' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+
+    "allow tenant update if the plugin is enabled and user as correct rights" in {
+      implicit val cc = zoneABC.newCC()
+
+      // groupWithTenantId is in zoneA
+      val res = for {
+        _ <- tenantRepo.setTenantEnabled(true)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+        h  = g.copy(security = zoneB.accessGrant.toSecurityTag)
+        _ <- woGroupRepo.update(h)
+        i <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+      } yield i.security
+
+      res.runNow must beEqualTo(zoneB.accessGrant.toSecurityTag)
+    }
+  }
+  "get an error if the destination tenant ID does not exist" in {
+    implicit val cc = zoneABC.newCC()
+
+    // groupWithTenantId is in zoneA
+    val res = for {
+      _ <- tenantRepo.setTenantEnabled(true)
+      g <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+      h  = g.copy(security = zoneC.accessGrant.toSecurityTag)
+      _ <- woGroupRepo.update(h)
+    } yield ()
+
+    res.either.runNow.left.map(_.msg) must beLeft(
+      beEqualTo("Object 'test-group-node1' security tag's tenant can not be updated to 'zoneC' because it does not exist")
+    )
   }
 }

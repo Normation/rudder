@@ -185,8 +185,9 @@ trait SetupLdapRepositories {
 
   lazy val getNodesBySoftwareName = new SoftDaoGetNodesBySoftwareName(softwareGet)
 
-  lazy val tenantRepo:    TenantRepository = InMemoryTenantRepository.make(Nil).runNow
-  lazy val tenantService: TenantService    = new DefaultTenantService()
+  lazy val tenantRepo:    InMemoryTenantRepository =
+    InMemoryTenantRepository.make(TenantId("zoneA") :: TenantId("zoneB") :: Nil).runNow
+  lazy val tenantService: TenantService            = new DefaultTenantService()
 
   lazy val nodeFactRepo: CoreNodeFactRepository = {
     CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantRepo, tenantService, Chunk(), Chunk()).runNow

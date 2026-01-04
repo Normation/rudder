@@ -70,6 +70,7 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
+import com.normation.rudder.tenants.ChangeContext
 import doobie.*
 import java.time.Instant
 
@@ -184,17 +185,14 @@ trait EventLogRepository {
   }
 
   def saveAddNodeGroup(
-      modId:     ModificationId,
-      principal: EventActor,
-      addDiff:   AddNodeGroupDiff,
-      reason:    Option[String]
-  ): IOResult[EventLog] = {
+      addDiff: AddNodeGroupDiff
+  )(implicit cc: ChangeContext): IOResult[EventLog] = {
     saveEventLog(
-      modId,
+      cc.modId,
       eventLogFactory.getAddNodeGroupFromDiff(
-        principal = principal,
+        principal = cc.actor,
         addDiff = addDiff,
-        reason = reason
+        reason = cc.message
       )
     )
   }

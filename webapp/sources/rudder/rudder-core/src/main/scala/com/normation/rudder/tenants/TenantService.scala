@@ -87,10 +87,16 @@ trait TenantRepository {
  * tag based on the security (query, change) context.
  */
 trait TenantService {
+
   /*
    * Check if the node can be seen in the given query context. Return none if it can't.
    */
-  def filter[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): Option[A]
+  def flatMap[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): Option[A]
+
+  /*
+   * Check if the node can be seen in the given query context. Return none if it can't.
+   */
+  def filter[A: HasSecurityTag](a: A)(using qc: QueryContext): Option[A] = flatMap(Some(a))
 
   def filterStream[A: HasSecurityTag](s: IOStream[A])(using qc: QueryContext): IOStream[A]
 
@@ -121,6 +127,14 @@ trait TenantService {
   )(
       action:       B => IOResult[C]
   ): IOResult[C]
+
+  def manageCreate[A: HasSecurityTag, B](
+      created:      A,
+      cc:           ChangeContext,
+      tenantStatus: TenantStatus
+  )(
+      action:       A => IOResult[B]
+  ): IOResult[B]
 
   /*
    * Check if the node can be deleted given ChangeContext
@@ -175,7 +189,7 @@ class InMemoryTenantRepository(private var _tenantsEnabled: Boolean, val tenantI
 }
 
 class DefaultTenantService extends TenantService {
-  override def filter[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): Option[A] = {
+  override def flatMap[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): Option[A] = {
     opt match {
       case Some(n) => if (qc.accessGrant.nsc.canSee(n)) Some(n) else None
       case None    => None
@@ -224,60 +238,72 @@ class DefaultTenantService extends TenantService {
       Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
     }
 
-    existing match {
-      // creation case
-      case None    =>
-        tenantStatus match {
-          // creation when feature disabled: set securityTag to "none".
-          case TenantStatus.Disabled         =>
-            action(updated.updateSecurityContext(None))
-          // in the case of creation, we just have to check if the user has actual access on updated item
-          case TenantStatus.Enabled(tenants) =>
-            if (cc.accessGrant.canSee(updated)) {
-              action(updated)
-            } else {
-              error(updated)
-            }
-        }
+    // whatever the status of "existing", if the plugin is disabled and there is a grant
+    // different from '*' for user, then return an error
+    if (tenantStatus == TenantStatus.Disabled && cc.accessGrant != TenantAccessGrant.All) {
+      error(updated)
+    } else {
+      existing match {
+        // creation case
+        case None    =>
+          tenantStatus match {
+            // creation when feature disabled: set securityTag to "none".
+            case TenantStatus.Disabled         =>
+              action(updated.updateSecurityContext(None))
+            // in the case of creation, we force the user tenant to its tenant
+            case TenantStatus.Enabled(tenants) =>
+              if (cc.accessGrant.canSee(updated)) {
+                action(updated)
+              } else {
+                action(updated.updateFromChangeContext(using cc))
+              }
+          }
 
-      // when we update an existing item, we must also check that the user can see the previous item
-      case Some(e) =>
-        tenantStatus match {
-          // update when feature is disabled: keep existing security tag if any
-          case TenantStatus.Disabled         =>
-            action(updated.updateSecurityContext(e.security))
-          // update when feature enabled: check consistency
-          case TenantStatus.Enabled(tenants) =>
-            (if (cc.accessGrant.canSee(e)) {
-               if (cc.accessGrant.canSee(updated)) {
+        // when we update an existing item, we must also check that the user can see the previous item
+        case Some(e) =>
+          tenantStatus match {
+            // update when feature is disabled: keep existing security tag if any
+            case TenantStatus.Disabled         =>
+              action(updated.updateSecurityContext(e.security))
+            // update when feature enabled: check consistency
+            case TenantStatus.Enabled(tenants) =>
+              (if (cc.accessGrant.canSee(e)) {
+                 if (cc.accessGrant.canSee(updated)) {
 
-                 (e.security, updated.security) match {
-                   // no tenants in updated: existing security info is cleared
-                   case (_, None)                            => updated.succeed
-                   // if b is open, it's ok
-                   case (_, Some(SecurityTag.Open))          => updated.succeed
-                   // if both have identical tags, it's ok
-                   case (Some(a), Some(b)) if (a == b)       => updated.succeed
-                   // case where the tags are different: update only if the tenant exists.
-                   // We know that the user has the right to change the security tag because
-                   // his access grant is ok on both existing and updated items.
-                   case (_, Some(SecurityTag.ByTenants(ts))) =>
-                     if (ts.forall(t => tenants.contains(t))) {
-                       updated.succeed
-                     } else {
-                       Inconsistency(
-                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
-                       ).fail
-                     }
+                   (e.security, updated.security) match {
+                     // no tenants in updated: existing security info is cleared
+                     case (_, None)                            => updated.succeed
+                     // if b is open, it's ok
+                     case (_, Some(SecurityTag.Open))          => updated.succeed
+                     // if both have identical tags, it's ok
+                     case (Some(a), Some(b)) if (a == b)       => updated.succeed
+                     // case where the tags are different: update only if the tenant exists.
+                     // We know that the user has the right to change the security tag because
+                     // his access grant is ok on both existing and updated items.
+                     case (_, Some(SecurityTag.ByTenants(ts))) =>
+                       if (ts.forall(t => tenants.contains(t))) {
+                         updated.succeed
+                       } else {
+                         Inconsistency(
+                           s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
+                         ).fail
+                       }
+                   }
+                 } else {
+                   error(updated)
                  }
                } else {
-                 error(updated)
-               }
-             } else {
-               error(e)
-             }).flatMap(up => action(up))
-        }
+                 error(e)
+               }).flatMap(up => action(up))
+          }
+      }
     }
+  }
+
+  override def manageCreate[A: HasSecurityTag, B](created: A, cc: ChangeContext, tenantStatus: TenantStatus)(
+      action: A => IOResult[B]
+  ): IOResult[B] = {
+    manageUpdate[A, A, B](None, created, cc, tenantStatus)(action)
   }
 
   override def checkDelete[A: HasSecurityTag](

@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.SecurityTag
 
 /**
  * That file define "diff" object between rules.
@@ -72,10 +73,12 @@ final case class ModifyRuleDiff(
     modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None,
     modIsSystem:          Option[SimpleDiff[Boolean]] = None,
     modCategory:          Option[SimpleDiff[RuleCategoryId]] = None,
-    modTags:              Option[SimpleDiff[Set[Tag]]] = None
+    modTags:              Option[SimpleDiff[Set[Tag]]] = None,
+    modSecurityTag:       Option[SimpleDiff[Option[SecurityTag]]] = None
 ) extends RuleDiff {
   def needDeployment: Boolean = {
-    modSerial.isDefined || modTarget.isDefined || modDirectiveIds.isDefined || modIsActivatedStatus.isDefined || modName.isDefined
+    modSerial.isDefined || modTarget.isDefined || modDirectiveIds.isDefined ||
+    modIsActivatedStatus.isDefined || modName.isDefined || modSecurityTag.isDefined
   }
 }
 
