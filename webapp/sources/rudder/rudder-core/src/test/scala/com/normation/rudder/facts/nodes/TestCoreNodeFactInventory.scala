@@ -464,7 +464,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "when the plugin is enable, we can change security tag for node" in {
 
       val (nodesA, nodesB) = (for {
-        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(TenantId("zoneB")))))(using
+        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag.ByTenants(Chunk(TenantId("zoneB")))))(using
                     ChangeContext.newForRudder()
                   ) // admin can change from zoneA to zoneB
         nodesA <- factRepo.getAll()(using qcA, SelectNodeStatus.Accepted)
@@ -480,7 +480,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val nonExistingTenantId = TenantId("zoneXXX")
 
       val res = (for {
-        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
+        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag.ByTenants(Chunk(nonExistingTenantId))))(using
+               ChangeContext.newForRudder()
+             )
       } yield ()).either.runNow
 
       res must beLike {
@@ -507,7 +509,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val res = (for {
         n      <- factRepo.get(nodeId)(using qcB).notOptional(s"node0 must be there for tests")
-        newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
+        newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag.ByTenants(Chunk(nonExistingTenantId))))
         e      <- factRepo.save(newNode)(using ChangeContext.newForRudder())
       } yield e).runNow
 
@@ -520,7 +522,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       tenantRepository.setTenantEnabled(false).runNow
 
       val res = (for {
-        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
+        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag.ByTenants(Chunk(nonExistingTenantId))))(using
+               ChangeContext.newForRudder()
+             )
       } yield e).runNow
 
       tenantRepository.setTenantEnabled(true).runNow

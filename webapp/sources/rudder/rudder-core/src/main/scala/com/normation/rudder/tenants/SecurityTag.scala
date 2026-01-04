@@ -39,6 +39,7 @@ package com.normation.rudder.tenants
 import scala.xml.Node as XNode
 import zio.Chunk
 import zio.json.*
+import zio.json.internal.Write
 
 /*
  * A trait that define an object that is tagged (can be viewed as tagged)
@@ -64,22 +65,59 @@ trait HasSecurityTag[A] {
 
 // A security token for now is just a list of tags denoting tenants
 // That security tag is not exposed in proxy service
-final case class SecurityTag(tenants: Chunk[TenantId])
+sealed trait SecurityTag
 
 // default serialization for security tag. Be careful, changing that impacts external APIs.
 object SecurityTag {
 
-  def empty: SecurityTag = SecurityTag(Chunk.empty)
+  // We have two kind of defined security tag:
+  // - ByTenant security tag, that explicitly list the tenants allowed to see it.
+  //   Note that an empty list of tenants means that only a grant "*" will see it.
+  // - Open security tag, that means that everyone can see it. This is used for
+  //   "library" kind of objects, that nobody can change but everybody should see
+  //   (things like the root categories of things, standard techniques, etc)
 
-  implicit val codecSecurityTag: JsonCodec[SecurityTag] = DeriveJsonCodec.gen
+  /*
+   * `ByTenants` is serialized: `{"tenants": ["tenantA", "tenantB"]}`
+   */
+  final case class ByTenants(tenants: Chunk[TenantId]) extends SecurityTag
+
+  /*
+   * `Open` is serialized: `open`
+   */
+  object Open extends SecurityTag
+
+  def empty: SecurityTag = SecurityTag.ByTenants(Chunk.empty)
+
+  implicit val codecByTenants: JsonCodec[ByTenants] = DeriveJsonCodec.gen
+  implicit val codecOpen:      JsonCodec[Open.type] = new JsonCodec[Open.type](
+    JsonEncoder.string.contramap(_ => "open"),
+    JsonDecoder.string.mapOrFail {
+      case "open" => Right(Open)
+      case x      => Left(s"Error decoding SecurityTag.Open: found '${x}'")
+    }
+  )
+
+  implicit val codecSecurityTag: JsonCodec[SecurityTag] = new JsonCodec[SecurityTag](
+    new JsonEncoder[SecurityTag] {
+      override def unsafeEncode(a: SecurityTag, indent: Option[Int], out: Write): Unit = {
+        a match {
+          case x: ByTenants => codecByTenants.encoder.unsafeEncode(x, indent, out)
+          case Open => codecOpen.encoder.unsafeEncode(Open, indent, out)
+        }
+      }
+    },
+    codecOpen.decoder.widen <> codecByTenants.decoder.widen
+  )
 
   // XML serialization / deserialisation for events
   import scala.xml.*
 
   def toXml(opt: Option[SecurityTag]): NodeSeq = {
     opt match {
-      case None    => NodeSeq.Empty
-      case Some(s) => <security><tenants>{s.tenants.map(t => <tenant id={t.value}/>)}</tenants></security>
+      case None                => NodeSeq.Empty
+      case Some(Open)          => <security><open /></security>
+      case Some(ByTenants(ts)) => <security><tenants>{ts.map(t => <tenant id={t.value}/>)}</tenants></security>
     }
   }
 
@@ -92,8 +130,12 @@ object SecurityTag {
       }
     }
     (xml \ "security" \ "tenants") match {
-      case NodeSeq.Empty => None
-      case ns            => Some(SecurityTag(Chunk.fromIterable((ns \ "tenant").flatMap(tenant))))
+      case NodeSeq.Empty =>
+        (xml \ "security" \ "open") match {
+          case NodeSeq.Empty => None
+          case _             => Some(SecurityTag.Open)
+        }
+      case ns            => Some(SecurityTag.ByTenants(Chunk.fromIterable((ns \ "tenant").flatMap(tenant))))
     }
   }
 }

@@ -217,8 +217,9 @@ class DefaultTenantService extends TenantService {
     // only id to avoid giving too much info in error in that case
     def error[X: HasSecurityTag](x: X) = {
       val tag = x.security match {
-        case None    => '*'
-        case Some(t) => t.tenants.map(_.value).mkString(",")
+        case None                            => '*'
+        case Some(SecurityTag.Open)          => "open"
+        case Some(SecurityTag.ByTenants(ts)) => ts.map(_.value).mkString(",")
       }
       Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
     }
@@ -252,18 +253,20 @@ class DefaultTenantService extends TenantService {
 
                  (e.security, updated.security) match {
                    // no tenants in updated: existing security info is cleared
-                   case (_, None)                      => updated.succeed
+                   case (_, None)                            => updated.succeed
+                   // if b is open, it's ok
+                   case (_, Some(SecurityTag.Open))          => updated.succeed
                    // if both have identical tags, it's ok
-                   case (Some(a), Some(b)) if (a == b) => updated.succeed
+                   case (Some(a), Some(b)) if (a == b)       => updated.succeed
                    // case where the tags are different: update only if the tenant exists.
                    // We know that the user has the right to change the security tag because
                    // his access grant is ok on both existing and updated items.
-                   case (_, Some(b))                   =>
-                     if (b.tenants.forall(t => tenants.contains(t))) {
+                   case (_, Some(SecurityTag.ByTenants(ts))) =>
+                     if (ts.forall(t => tenants.contains(t))) {
                        updated.succeed
                      } else {
                        Inconsistency(
-                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${b.tenants.map(_.value).mkString(",")}' because it does not exist"
+                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
                        ).fail
                      }
                  }

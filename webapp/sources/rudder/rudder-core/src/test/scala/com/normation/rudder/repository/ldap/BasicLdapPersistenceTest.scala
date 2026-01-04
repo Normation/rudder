@@ -82,7 +82,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
       serverList = Set(NodeId("node1")),
       _isEnabled = true,
       isSystem = false,
-      security = Some(SecurityTag(Chunk(TenantId("zoneA"))))
+      security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
     )
     implicit val qc = QueryContext.testQC
     val res         = roGroupRepo.getNodeGroupOpt(id).runNow.map(_._1)
@@ -94,8 +94,17 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
 
     val catId    = NodeGroupCategoryId("category1")
     val res      = roGroupRepo.getGroupCategory(catId).runNow
-    val expected =
-      NodeGroupCategory(catId, "A group category", "", List(), List(), false, Some(SecurityTag(Chunk(TenantId("zoneA")))))
+    val expected = {
+      NodeGroupCategory(
+        catId,
+        "A group category",
+        "",
+        List(),
+        List(),
+        false,
+        Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
+      )
+    }
 
     res must beEqualTo(expected)
   }
@@ -109,7 +118,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
       tech,
       AcceptationDateTime(Map(TechniqueVersion.V1_0 -> DateTime.parse("2023-12-02T17:49:01.013Z"))),
       List(DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae")),
-      security = Some(SecurityTag(Chunk(TenantId("zoneA"))))
+      security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
     )
 
     res must beSome(beEqualTo(expected))
@@ -132,7 +141,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
       priority = 5,
       _isEnabled = true,
       isSystem = false,
-      security = Some(SecurityTag(Chunk(TenantId("zoneA"))))
+      security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
     )
 
     res must beSome(beEqualTo(expected))
@@ -153,7 +162,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
       "",
       "",
       true,
-      security = Some(SecurityTag(Chunk(TenantId("zoneA"))))
+      security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
     )
 
     res must beEqualTo(expected)

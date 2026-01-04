@@ -101,7 +101,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     _isEnabled = true,
     isSystem = false,
     tags = Tags(Set()),
-    security = Some(SecurityTag(Chunk(TenantId("zoneA"))))
+    security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
   )
 
   "when unserializing, we" should {

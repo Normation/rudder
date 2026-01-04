@@ -574,7 +574,9 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        // we have a special case for root group category, that needs to be open
+        security    = if (e.dn == rudderDit.GROUP.dn) Some(SecurityTag.Open)
+                      else e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
         NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem, security)
       }

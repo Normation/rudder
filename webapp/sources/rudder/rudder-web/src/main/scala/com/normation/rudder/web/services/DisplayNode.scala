@@ -830,9 +830,9 @@ object DisplayNode extends Loggable {
   // Display the node tenant if defined (ie if different from "no tenant"
   private def displayTenant(nodeFact: NodeFact): NodeSeq = {
     nodeFact.rudderSettings.security match {
-      case Some(SecurityTag(tenants)) if (tenants.nonEmpty) =>
+      case Some(SecurityTag.ByTenants(tenants)) if (tenants.nonEmpty) =>
         <div><label>Tenant:</label> {tenants.map(_.value).mkString(", ")}</div>
-      case _                                                =>
+      case _                                                          =>
         NodeSeq.Empty
     }
   }

@@ -78,6 +78,8 @@ object TenantAccessGrant {
   case object All                                      extends TenantAccessGrant {
     override val value = "all"
     override def serialize:     String              = "*"
+    // Be careful here: having the right to see any tenants does mean that the security
+    // tag is `None`, not that it is `Some(Open)`, which means "viewable by anyone".
     override def toSecurityTag: Option[SecurityTag] = Option.empty
   }
   // a grant that can't see any node. Very good for performance.
@@ -92,7 +94,7 @@ object TenantAccessGrant {
   final case class ByTenants(tenants: Chunk[TenantId]) extends TenantAccessGrant {
     override val value: String = s"tags:[${tenants.map(_.value).mkString(", ")}]"
     override def serialize = tenants.map(_.value).mkString(",")
-    override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag(tenants))
+    override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.ByTenants(tenants))
   }
 
   /*
@@ -157,10 +159,14 @@ object TenantAccessGrant {
 
     // can that security tag be seen in that context, given the set of known tenants?
     def canSee(tag: SecurityTag): Boolean = {
-      nsc match {
-        case All           => true
-        case None          => false
-        case ByTenants(ts) => ts.exists(s => tag.tenants.exists(_ == s))
+      tag match {
+        case SecurityTag.ByTenants(tenants) =>
+          nsc match {
+            case All           => true
+            case None          => false
+            case ByTenants(ts) => ts.exists(s => tenants.exists(_ == s))
+          }
+        case SecurityTag.Open               => true
       }
     }
 

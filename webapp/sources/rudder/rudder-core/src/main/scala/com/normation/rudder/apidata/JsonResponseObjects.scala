@@ -323,7 +323,15 @@ object JsonResponseObjects {
         )
         .withFieldComputed(_.policyMode, levelField("policyMode")(nodeInfo.policyMode.map(_.name).getOrElse("default")))
         .withFieldComputed(_.timezone, levelField(_)("timezone")(nodeInfo.timezone))
-        .withFieldComputed(_.tenant, levelField(_)("tenant")(securityTag.flatMap(_.tenants.headOption)))
+        // here, we only know how to deal with a "byTenant" of size 1. Consider "open" as "none", and
+        // several tenants as only the first one.
+        .withFieldComputed(
+          _.tenant,
+          levelField(_)("tenant")(securityTag.flatMap {
+            case SecurityTag.Open          => None
+            case SecurityTag.ByTenants(ts) => ts.headOption
+          })
+        )
         // full
         .withFieldComputed(
           _.accounts,
