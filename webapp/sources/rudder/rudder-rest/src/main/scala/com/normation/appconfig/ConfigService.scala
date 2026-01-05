@@ -499,15 +499,11 @@ class GenericConfigService(
   }
 
   implicit private def toPolicyGenerationTrigger(p: RudderWebProperty): IOResult[PolicyGenerationTrigger] = {
-    PolicyGenerationTrigger(p).toIO
+    PolicyGenerationTrigger.parse(p).toIO
   }
 
   implicit private def serPolicyGenerationTrigger(x: PolicyGenerationTrigger): String = {
-    x match {
-      case PolicyGenerationTrigger.AllGeneration        => "all"
-      case PolicyGenerationTrigger.NoGeneration         => "none"
-      case PolicyGenerationTrigger.OnlyManualGeneration => "onlyManual"
-    }
+    x.entryName
   }
 
   /**

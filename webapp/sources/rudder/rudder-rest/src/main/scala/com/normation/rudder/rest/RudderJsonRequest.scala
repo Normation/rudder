@@ -55,12 +55,10 @@ import zio.json.*
   */
 object RudderJsonRequest {
 
-  implicit class ReqToJson(req: Req) {
-
-    def fromJson[A](implicit decoder: JsonDecoder[A]): PureResult[A] = {
+  extension (req: Req) {
+    def fromJson[A](using JsonDecoder[A]): PureResult[A] = {
       ZioJsonExtractor.parseJson(req)
     }
-
   }
 
   def extractReason(req: Req)(implicit reasonBehavior: ReasonBehavior): PureResult[Option[String]] = {
