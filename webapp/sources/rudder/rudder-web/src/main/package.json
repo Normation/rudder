@@ -1,4 +1,7 @@
 {
+  "scripts" : {
+    "elm-git-install" : "cd elm && elm-git-install"
+  },
   "dependencies": {
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
@@ -8,6 +11,7 @@
     "datatables.net-plugins": "^2.3.2",
     "datatables.net-rowgroup": "^1.6.0",
     "diff": "^8.0.2",
+    "elm-git-install": "^0.1.4",
     "elm-review": "^2.13.4",
     "gaugeJS": "^1.3.9",
     "gulp-svgmin": "^4.1.0",

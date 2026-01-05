@@ -26,64 +26,11 @@ getCategoryName model id =
       Just c -> c.name
       Nothing -> id
 
-getGroupCompliance : Model -> GroupId -> Maybe GroupComplianceSummary
-getGroupCompliance model rId =
-  Dict.get rId.value model.groupsCompliance
-
 searchFieldGroups : Group -> Model -> List String
 searchFieldGroups g model =
   [ g.id.value
   , g.name
   ] ++ Maybe.Extra.toList g.category ++ Maybe.Extra.toList (Maybe.map (getCategoryName model) g.category)
-
-getSortFunction : Model -> Group -> Group -> Order
-getSortFunction model g1 g2 =
-  let
-    getCompliance : Maybe ComplianceSummaryValue -> Float
-    getCompliance rc =
-      case rc of
-        Just c  ->
-          let
-            allComplianceValues = getAllComplianceValues c.complianceDetails
-          in
-            if ( allComplianceValues.okStatus.value + allComplianceValues.nonCompliant.value + allComplianceValues.error.value + allComplianceValues.unexpected.value + allComplianceValues.pending.value + allComplianceValues.reportsDisabled.value + allComplianceValues.noReport.value == 0 ) then
-              -- We always want "No data available" to be at the bottom. see https://issues.rudder.io/issues/24567
-              if model.ui.groupFilters.tableFilters.sortOrder == Asc then
-                101.0
-              else
-                -1.0
-            else
-              c.compliance
-        Nothing ->
-          if model.ui.groupFilters.tableFilters.sortOrder == Asc then
-            102.0
-          else
-            -2.0
-    groupGlobalCompliance g = getCompliance <| Maybe.map (.global) (getGroupCompliance model g.id)
-    groupTargetedCompliance g = getCompliance <| Maybe.map (.targeted) (getGroupCompliance model g.id)
-    order = case model.ui.groupFilters.tableFilters.sortBy of
-      Parent     ->
-        let
-          categoryOrEmpty g = Maybe.withDefault "" (Maybe.map (getCategoryName model) g.category)
-          o = NaturalOrdering.compare (categoryOrEmpty g1) (categoryOrEmpty g2)
-        in
-          case o of
-            EQ -> NaturalOrdering.compare g1.name g2.name
-            _  -> o
-
-      GlobalCompliance ->
-        compare (groupGlobalCompliance g1) (groupGlobalCompliance g2)
-      TargetedCompliance ->
-        compare (groupTargetedCompliance g1) (groupTargetedCompliance g2)
-      _ -> NaturalOrdering.compare g1.name g2.name
-  in
-    if model.ui.groupFilters.tableFilters.sortOrder == Asc then
-      order
-    else
-      case order of
-        LT -> GT
-        EQ -> EQ
-        GT -> LT
 
 generateLoadingList : Html Msg
 generateLoadingList =
