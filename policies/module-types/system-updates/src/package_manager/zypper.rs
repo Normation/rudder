@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use std::collections::HashMap;
 use std::process::Command;
 
 use anyhow::Result;
 
 use crate::output::{CommandBehavior, CommandCapture};
-use crate::package_manager::PackageManager;
+use crate::package_manager::{PackageId, PackageManager};
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
-    package_manager::{LinuxPackageManager, PackageList, PackageSpec, rpm::RpmPackageManager},
+    package_manager::{PackageList, PackageSpec, UpdateManager, rpm::RpmPackageManager},
 };
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;
@@ -45,7 +46,7 @@ impl ZypperPackageManager {
         res
     }
 
-    fn full_upgrade(&mut self) -> ResultOutput<()> {
+    fn full_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("update");
         let res_update = ResultOutput::command(
@@ -53,10 +54,10 @@ impl ZypperPackageManager {
             CommandBehavior::FailOnErrorCode,
             CommandCapture::StdoutStderr,
         );
-        res_update.clear_ok()
+        res_update.clear_ok_with_details()
     }
 
-    fn security_upgrade(&mut self) -> ResultOutput<()> {
+    fn security_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive")
             .arg("--category")
@@ -67,10 +68,13 @@ impl ZypperPackageManager {
             CommandBehavior::FailOnErrorCode,
             CommandCapture::StdoutStderr,
         );
-        res_update.clear_ok()
+        res_update.clear_ok_with_details()
     }
 
-    fn software_upgrade(&mut self, packages: &[PackageSpec]) -> ResultOutput<()> {
+    fn software_upgrade(
+        &mut self,
+        packages: &[PackageSpec],
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("update");
         c.args(packages.iter().map(Self::package_spec_as_argument));
@@ -79,11 +83,11 @@ impl ZypperPackageManager {
             CommandBehavior::FailOnErrorCode,
             CommandCapture::StdoutStderr,
         );
-        res_update.clear_ok()
+        res_update.clear_ok_with_details()
     }
 }
 
-impl LinuxPackageManager for ZypperPackageManager {
+impl UpdateManager for ZypperPackageManager {
     fn update_cache(&mut self) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("refresh");
@@ -99,7 +103,10 @@ impl LinuxPackageManager for ZypperPackageManager {
         self.rpm.installed()
     }
 
-    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()> {
+    fn upgrade(
+        &mut self,
+        update_type: &FullCampaignType,
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         match update_type {
             FullCampaignType::SystemUpdate => self.full_upgrade(),
             FullCampaignType::SecurityUpdate => self.security_upgrade(),

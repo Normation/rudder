@@ -7,7 +7,7 @@ use crate::{
     campaign::{FullCampaignType, FullSchedule, RunnerParameters},
     cli,
     db::{Event, PackageDatabase},
-    package_manager::{LinuxPackageManager, PackageManager},
+    package_manager::{PackageManager, UpdateManager},
     runner::Runner,
     system::{System, Systemd},
 };
@@ -118,10 +118,9 @@ impl Cli {
             }
             Some(Command::Run(opts)) => {
                 let state_dir = opts.state_dir.unwrap_or(PathBuf::from(MODULE_DIR));
-                let os_release = OsRelease::new()?;
-                let pm: Box<dyn LinuxPackageManager> = opts
+                let pm: Box<dyn UpdateManager> = opts
                     .package_manager
-                    .unwrap_or_else(|| PackageManager::detect(&os_release).unwrap())
+                    .unwrap_or_else(|| PackageManager::detect().unwrap())
                     .get()?;
                 let package_parameters = RunnerParameters {
                     campaign_type: if opts.security {

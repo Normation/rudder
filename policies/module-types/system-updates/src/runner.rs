@@ -4,7 +4,7 @@ use crate::{
         FullSchedule, RunnerParameters, do_post_update, do_schedule, do_update, fail_campaign,
     },
     db::PackageDatabase,
-    package_manager::LinuxPackageManager,
+    package_manager::UpdateManager,
     scheduler,
     state::UpdateStatus,
     system::System,
@@ -28,7 +28,7 @@ enum Continuation {
 
 pub struct Runner {
     db: PackageDatabase,
-    pm: Box<dyn LinuxPackageManager>,
+    pm: Box<dyn UpdateManager>,
     parameters: RunnerParameters,
     system: Box<dyn System>,
     pid: u32,
@@ -37,7 +37,7 @@ pub struct Runner {
 impl Runner {
     pub(crate) fn new(
         db: PackageDatabase,
-        pm: Box<dyn LinuxPackageManager>,
+        pm: Box<dyn UpdateManager>,
         parameters: RunnerParameters,
         system: Box<dyn System>,
         pid: u32,
@@ -153,12 +153,13 @@ impl Runner {
 }
 #[cfg(test)]
 mod tests {
+    use crate::package_manager::PackageId;
     use crate::{
         RebootType, Schedule, ScheduleParameters,
         campaign::{FullCampaignType, FullSchedule, RunnerParameters},
         db::PackageDatabase,
         output::ResultOutput,
-        package_manager::{LinuxPackageManager, PackageList},
+        package_manager::{PackageList, UpdateManager},
         runner::{Action, Runner},
         state::UpdateStatus,
         system::System,
@@ -185,13 +186,16 @@ mod tests {
         reboot_needed: bool,
     }
 
-    impl LinuxPackageManager for MockPackageManager {
+    impl UpdateManager for MockPackageManager {
         fn list_installed(&mut self) -> ResultOutput<PackageList> {
             ResultOutput::new(Ok(PackageList::new(HashMap::new())))
         }
 
-        fn upgrade(&mut self, _update_type: &FullCampaignType) -> ResultOutput<()> {
-            ResultOutput::new(Ok(()))
+        fn upgrade(
+            &mut self,
+            _update_type: &FullCampaignType,
+        ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+            ResultOutput::new(Ok(None))
         }
 
         fn reboot_pending(&self) -> ResultOutput<bool> {

@@ -56,6 +56,7 @@ impl RpmPackageManager {
                 // TODO?
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             };
             packages.insert(p, i);
         }
@@ -84,6 +85,7 @@ google-chrome-stable 0:103.0.5060.53-1 x86_64";
                 version: "2:41.2-2.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             },
         );
         l.insert(
@@ -92,6 +94,7 @@ google-chrome-stable 0:103.0.5060.53-1 x86_64";
                 version: "5.4.2-1.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             },
         );
         l.insert(
@@ -100,6 +103,7 @@ google-chrome-stable 0:103.0.5060.53-1 x86_64";
                 version: "42.2-4.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             },
         );
         l.insert(
@@ -108,6 +112,7 @@ google-chrome-stable 0:103.0.5060.53-1 x86_64";
                 version: "103.0.5060.53-1".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             },
         );
 

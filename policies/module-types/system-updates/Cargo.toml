@@ -26,6 +26,9 @@ chrono = { version = "0.4.38", features = ["serde"] }
 fnv = "1.0.7"
 log = "0.4.21"
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = [ "Win32_System_Com", "Win32_System_UpdateAgent" ] }
+
 [features]
 # Enable APT package management
 apt = ["dep:rust-apt", "dep:memfile"]
