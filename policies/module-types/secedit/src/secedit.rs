@@ -3,6 +3,7 @@ use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde_json::{Map, Value};
 use std::{
+    collections::HashMap,
     path::Path,
     process::{Command, Stdio},
 };
@@ -21,11 +22,11 @@ impl Secedit {
 
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
         let mut config = self.export()?;
+        let log = config_search_and_replace(&mut config, &data)?;
+        println!("{log:?}");
         if audit {
-            audit_config(&config, &data)?;
             println!("Audit DONE");
         } else {
-            config_search_and_replace(&mut config, &data)?;
             self.apply_config(&config)?;
             println!("DONE");
         }
@@ -111,10 +112,25 @@ fn invoke_with_args(args: &str) -> Result<()> {
     Ok(())
 }
 
-fn for_each_section<F>(config: &mut Ini, data: &Map<String, Value>, mut f: F) -> Result<()>
-where
-    F: FnMut(&mut ini::Properties, &str, &str) -> Result<()>,
-{
+#[derive(Debug)]
+#[allow(dead_code)]
+struct ConfigValue {
+    old: String,
+    new: String,
+}
+
+impl ConfigValue {
+    fn new(old: String, new: String) -> Self {
+        Self { old, new }
+    }
+}
+
+fn config_search_and_replace(
+    config: &mut Ini,
+    data: &Map<String, Value>,
+) -> Result<HashMap<String, ConfigValue>> {
+    let mut changes: HashMap<String, ConfigValue> = HashMap::new();
+
     for (section, section_data) in data {
         let props = config
             .section_mut(Some(section))
@@ -125,38 +141,19 @@ where
             .ok_or_else(|| anyhow!("Invalid data '{section_data:?}', expected JSON object"))?;
 
         for (key, value) in entries {
-            f(props, key, &value.to_string())?;
+            if let Some(old) = props.clone().get(key) {
+                props.insert(key, value.to_string());
+                changes.insert(
+                    key.to_string(),
+                    ConfigValue::new(old.to_string(), value.to_string()),
+                );
+            } else {
+                bail!("'{key}' does not exist");
+            }
         }
     }
 
-    Ok(())
-}
-
-fn audit_config(config: &Ini, data: &Map<String, Value>) -> Result<()> {
-    let mut config = config.clone();
-
-    for_each_section(&mut config, data, |props, key, expected| {
-        let actual = props
-            .get(key)
-            .ok_or_else(|| anyhow!("'{key}' does not exist"))?;
-
-        if actual != expected {
-            println!("{key} set to '{actual}' expected '{expected}'");
-        }
-
-        Ok(())
-    })
-}
-
-fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Result<()> {
-    for_each_section(config, data, |props, key, value| {
-        if props.contains_key(key) {
-            props.insert(key, value);
-            Ok(())
-        } else {
-            bail!("'{key}' does not exist");
-        }
-    })
+    Ok(changes)
 }
 
 #[cfg(test)]
@@ -206,30 +203,30 @@ mod test {
         assert_eq!(config.get_from(Some("Settings"), "abc"), Some("12"));
     }
 
-    #[test]
-    fn test_config_audit() {
-        let config = Ini::load_from_str(
-            "[User]
-            name = Ferris
-            value = Pi
-            [Settings]
-            abc = 21",
-        )
-        .unwrap();
-
-        let data = json!({
-            "User": {
-                "name": "Ferris",
-                "value": "Pi"
-            },
-            "Settings": {
-                "abc": 21
-            }
-        });
-        let data = data.as_object().unwrap();
-
-        let res = audit_config(&config, data);
-
-        assert!(res.is_ok());
-    }
+    // #[test]
+    // fn test_config_audit() {
+    //     let config = Ini::load_from_str(
+    //         "[User]
+    //         name = Ferris
+    //         value = Pi
+    //         [Settings]
+    //         abc = 21",
+    //     )
+    //     .unwrap();
+    //
+    //     let data = json!({
+    //         "User": {
+    //             "name": "Ferris",
+    //             "value": "Pi"
+    //         },
+    //         "Settings": {
+    //             "abc": 21
+    //         }
+    //     });
+    //     let data = data.as_object().unwrap();
+    //
+    //     let res = audit_config(&config, data);
+    //
+    //     assert!(res.is_ok());
+    // }
 }
