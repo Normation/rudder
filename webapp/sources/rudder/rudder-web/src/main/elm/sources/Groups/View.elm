@@ -1,24 +1,25 @@
 module Groups.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, href, id, placeholder, style, title, type_, value)
+import Html.Attributes exposing (attribute, class, href, id, placeholder, style, tabindex, title, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onClickPreventDefault)
 import NaturalOrdering as N
 import List
+import Rudder.Table
 import String
 
 import Groups.DataTypes exposing (..)
 import Groups.ViewGroupsTable exposing (..)
 import Groups.ViewUtils exposing (..)
 
+import Rudder.Filters
 import Ui.Datatable exposing (filterSearch, Category, generateLoadingTable)
 
 
 view : Model -> Html Msg
 view model = 
   let
-    groupsList = getElemsWithCompliance model
     groupTreeElem : Group -> Html Msg
     groupTreeElem item =
       let
@@ -105,6 +106,9 @@ view model =
       LoadingTable -> generateLoadingTable False 5
       GroupTable   ->
         div [class "main-table"]
+            [Html.map RudderTableMsg (Rudder.Table.view model.groupsTable) ]
+
+        {-
         [ div [class "table-container"]
           [ table [ class "no-footer dataTable"]
             [ thead [] [groupsTableHeader model.ui.groupFilters]
@@ -117,6 +121,7 @@ view model =
               else text ""
           ]
         ]
+        -}
       ExternalTemplate -> text ""
 
     modal = case model.ui.modal of
@@ -135,7 +140,8 @@ view model =
               --[ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add category"]
               --, button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewGroup (GroupId s) ))][text "Create", i[class "fa fa-plus-circle"][]]
               --]
-              [ button [id "newItem", class "btn btn-success", type_ "button", onClick OpenModal][text "Create", i[class "fa fa-plus-circle"][]]
+              [ viewCsvExportButton
+              , button [id "newItem", class "btn btn-success", type_ "button", onClick OpenModal][text "Create", i[class "fa fa-plus-circle"][]]
               ]
             else
               text ""
@@ -144,7 +150,12 @@ view model =
         , div [class "header-filter"]
           [ div [class "input-group flex-nowrap"]
             [ button [class "input-group-text btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.groupFilters) ][span [class "fa fa-folder fa-folder-open"][]]
-              , input[type_ "text", value model.ui.groupFilters.treeFilters.filter, placeholder "Filter", class "form-control", onInput (\s -> UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}})][]
+              , input
+                [ type_ "text"
+                , value model.ui.groupFilters.treeFilters.filter
+                , placeholder "Filter"
+                , class "form-control"
+                , onInput (\s -> UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = s}})][]
               , button [class "input-group-text btn btn-default", type_ "button", onClick (UpdateGroupFilters {groupFilters | treeFilters = {treeFilters | filter = ""}})] [span [class "fa fa-times"][]]
             ]
           ]
@@ -174,3 +185,18 @@ view model =
       ]
     , modal
     ]
+
+
+viewCsvExportButton : Html Msg
+viewCsvExportButton =
+    button
+        [ class "btn btn-primary"
+        , tabindex 0
+        , type_ "button"
+        , onClick ExportCsvMsg ]
+        [ span []
+            [ text "Export"
+            , text " "
+            , i [ class "fa fa-table" ] []
+            ]
+        ]

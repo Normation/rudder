@@ -9,7 +9,8 @@ import GroupRelatedRules.DataTypes exposing (GroupId)
 import Set
 
 import Ui.Datatable exposing (TableFilters, Category, SubCategories(..), getAllElems)
-
+import Rudder.Filters
+import Rudder.Table exposing (Model)
 
 type alias Model =
   { contextPath : String
@@ -17,6 +18,7 @@ type alias Model =
   , ui          : UI
   , groupsTree  : Category Group
   , groupsCompliance : Dict String GroupComplianceSummary
+  , groupsTable : Rudder.Table.Model GroupWithCompliance Msg
   }
 
 type Mode
@@ -46,6 +48,12 @@ type alias Group =
   , target      : String
   }
 
+type alias GroupWithCompliance =
+  { name : String
+  , category : Maybe String
+  , globalCompliance : Maybe ComplianceSummaryValue
+  , targetedCompliance : Maybe ComplianceSummaryValue
+  }
 
 -- Get all groups for which the compliance summary is defined
 getElemsWithCompliance: Model -> List Group
@@ -108,6 +116,8 @@ type Msg
   | GetGroupsTreeResult (Result Error (Category Group)) Bool
   | GetGroupsComplianceResult Bool (Result Error (List GroupComplianceSummary))
   | UpdateGroupFilters      Filters
+  | RudderTableMsg (Rudder.Table.Msg Msg)
+  | ExportCsvMsg
 
 groupTableBatchSize : number
 groupTableBatchSize = 50
