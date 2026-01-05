@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use clap::Parser;
-use std::{fs::read_to_string, path::PathBuf};
+use std::{fs::read_to_string, path::PathBuf, process};
 mod secedit;
 
 #[derive(Parser)]
@@ -29,6 +29,10 @@ impl Cli {
         let data = serde_json::from_str(&data)?;
 
         let tmpdir = &cli.tmp.to_string_lossy().to_string();
-        secedit::Secedit::new(tmpdir)?.run(data, cli.audit)
+        let exit_code = match secedit::Secedit::new(tmpdir)?.run(data, cli.audit)? {
+            secedit::Outcome::Success => 0,
+            secedit::Outcome::NonCompliant => 1,
+        };
+        process::exit(exit_code);
     }
 }

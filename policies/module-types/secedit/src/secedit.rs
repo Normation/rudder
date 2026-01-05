@@ -4,10 +4,25 @@ use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde_json::{Map, Value};
 use std::{
     collections::HashMap,
+    fmt::Display,
     path::Path,
     process::{Command, Stdio},
 };
 use tempdir::TempDir;
+
+pub enum Outcome {
+    Success,
+    NonCompliant,
+}
+
+impl Display for Outcome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Outcome::Success => write!(f, "Success"),
+            Outcome::NonCompliant => write!(f, "NonCompliant"),
+        }
+    }
+}
 
 pub struct Secedit {
     tmp_dir: TempDir,
@@ -20,7 +35,7 @@ impl Secedit {
         })
     }
 
-    pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<()> {
+    pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<Outcome> {
         let mut config = self.export()?;
         let log = config_search_and_replace(&mut config, &data)?;
         println!("{log:?}");
@@ -31,7 +46,7 @@ impl Secedit {
             println!("DONE");
         }
 
-        Ok(())
+        Ok(Outcome::Success)
     }
 
     fn apply_config(&self, config: &Ini) -> Result<()> {
@@ -202,31 +217,4 @@ mod test {
         assert_eq!(config.get_from(Some("User"), "value"), Some("42"));
         assert_eq!(config.get_from(Some("Settings"), "abc"), Some("12"));
     }
-
-    // #[test]
-    // fn test_config_audit() {
-    //     let config = Ini::load_from_str(
-    //         "[User]
-    //         name = Ferris
-    //         value = Pi
-    //         [Settings]
-    //         abc = 21",
-    //     )
-    //     .unwrap();
-    //
-    //     let data = json!({
-    //         "User": {
-    //             "name": "Ferris",
-    //             "value": "Pi"
-    //         },
-    //         "Settings": {
-    //             "abc": 21
-    //         }
-    //     });
-    //     let data = data.as_object().unwrap();
-    //
-    //     let res = audit_config(&config, data);
-    //
-    //     assert!(res.is_ok());
-    // }
 }
