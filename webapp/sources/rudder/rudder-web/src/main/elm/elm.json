@@ -1,11 +1,13 @@
 {
     "type": "application",
     "source-directories": [
+        "elm-stuff/gitdeps/github.com/Normation/rudder-elm-library.git/src",
         "sources"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
+            "BrianHicks/elm-csv": "4.0.1",
             "NoRedInk/elm-json-decode-pipeline": "1.0.1",
             "TSFoster/elm-tuple-extra": "2.0.0",
             "TSFoster/elm-uuid": "4.2.0",
@@ -39,6 +41,8 @@
             "matthewsj/elm-ordering": "2.0.0",
             "mcordova47/elm-natural-ordering": "1.1.0",
             "mercurymedia/elm-datetime-picker": "8.0.1",
+            "mgold/elm-nonempty-list": "4.2.0",
+            "myrho/elm-round": "1.0.5",
             "pablen/toasty": "1.2.0",
             "pablohirafuji/elm-markdown": "2.0.6",
             "pablohirafuji/elm-syntax-highlight": "3.7.1",

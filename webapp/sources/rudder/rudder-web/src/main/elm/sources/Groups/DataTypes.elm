@@ -6,10 +6,12 @@ import NaturalOrdering as N
 
 import Compliance.DataTypes exposing (ComplianceDetails)
 import GroupRelatedRules.DataTypes exposing (GroupId)
+import Rudder.Filters exposing (SearchFilterState)
 import Set
 
+import Time
 import Ui.Datatable exposing (TableFilters, Category, SubCategories(..), getAllElems)
-
+import Rudder.Table exposing (Model)
 
 type alias Model =
   { contextPath : String
@@ -17,6 +19,8 @@ type alias Model =
   , ui          : UI
   , groupsTree  : Category Group
   , groupsCompliance : Dict String GroupComplianceSummary
+  , groupsTable : Rudder.Table.Model GroupWithCompliance Msg
+  , csvExportOptions : Rudder.Table.CsvExportOptions GroupWithCompliance Msg
   }
 
 type Mode
@@ -46,6 +50,13 @@ type alias Group =
   , target      : String
   }
 
+type alias GroupWithCompliance =
+  { id : GroupId
+  , name : String
+  , category : Maybe String
+  , globalCompliance : Maybe ComplianceSummaryValue
+  , targetedCompliance : Maybe ComplianceSummaryValue
+  }
 
 -- Get all groups for which the compliance summary is defined
 getElemsWithCompliance: Model -> List Group
@@ -77,18 +88,10 @@ type alias UI =
 type ModalState = NoModal | ExternalModal
 
 type alias Filters =
-  { tableFilters : TableFilters SortBy
-  , treeFilters  : TreeFilters
-  }
-
-type SortBy
-  = Name
-  | Parent
-  | GlobalCompliance
-  | TargetedCompliance
+  { treeFilters  : TreeFilters }
 
 type alias TreeFilters =
-  { filter : String
+  { filter : SearchFilterState
   , folded : List String
   }
 
@@ -107,7 +110,10 @@ type Msg
   | FoldAllCategories Filters
   | GetGroupsTreeResult (Result Error (Category Group)) Bool
   | GetGroupsComplianceResult Bool (Result Error (List GroupComplianceSummary))
-  | UpdateGroupFilters      Filters
+  | UpdateGroupFoldedFilters Filters
+  | UpdateGroupSearchFilters SearchFilterState
+  | RudderTableMsg (Rudder.Table.Msg Msg)
+  | ExportCsvWithCurrentDate Time.Posix
 
 groupTableBatchSize : number
 groupTableBatchSize = 50
