@@ -47,8 +47,8 @@ import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.softwaremill.quicklens.*
 import doobie.*
 import doobie.implicits.*

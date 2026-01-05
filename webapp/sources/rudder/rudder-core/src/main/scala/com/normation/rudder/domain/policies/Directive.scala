@@ -41,6 +41,8 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import scala.xml.*
 
 /*
@@ -103,7 +105,7 @@ final case class DirectiveId(uid: DirectiveUid, rev: Revision = GitVersion.DEFAU
 
   def serialize: String = rev match {
     case GitVersion.DEFAULT_REV => uid.value
-    case rev                    => s"${uid.value}+${rev.value}"
+    case r                      => s"${uid.value}+${r.value}"
   }
 }
 
@@ -204,10 +206,22 @@ final case class Directive(
      * Optionally, Directive can have Tags
      */
 
-    tags:             Tags = Tags(Set())
+    tags:             Tags = Tags(Set()),
+    // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
+    security:         Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || isSystem
+}
+
+object Directive {
+  given HasSecurityTag[Directive] with {
+    extension (a: Directive) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.debugString
+      override def updateSecurityContext(security: Option[SecurityTag]): Directive = a.copy(security = security)
+    }
+  }
 }
 
 final case class SectionVal(

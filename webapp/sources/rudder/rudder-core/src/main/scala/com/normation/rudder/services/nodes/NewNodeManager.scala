@@ -53,10 +53,8 @@ import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
@@ -67,6 +65,8 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.score.SystemUpdateScoreEvent
 import com.normation.rudder.services.queries.QueryProcessor
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import zio.{System as _, *}
@@ -305,7 +305,7 @@ class ComposedNewNodeManager[A](
     for {
       cnf <-
         nodeFactRepo
-          .get(id)(using cc.toQuery, SelectNodeStatus.Pending)
+          .get(id)(using cc.toQC, SelectNodeStatus.Pending)
           .notOptional(s"Node with id '${id.value}' was not found in pending nodes")
       _   <- refuseOne(cnf)
       _   <- nodeFactRepo.delete(id)
@@ -340,7 +340,7 @@ class ComposedNewNodeManager[A](
     for {
       // Get inventory og the node
       cnf         <- nodeFactRepo
-                       .get(id)(using cc.toQuery, SelectNodeStatus.Pending)
+                       .get(id)(using cc.toQC, SelectNodeStatus.Pending)
                        .notOptional(s"Missing inventory for node with ID: '${id.value}'")
       // Pre accept it
       preAccept   <- passPreAccept(cnf)
@@ -348,7 +348,7 @@ class ComposedNewNodeManager[A](
       _           <- nodeFactRepo.changeStatus(id, AcceptedInventory)
       // Update hooks for the node
       _           <- hooksRunner
-                       .afterNodeAcceptedAsync(id)(using cc.toQuery)
+                       .afterNodeAcceptedAsync(id)(using cc.toQC)
                        .catchAll(err => {
                          NodeLoggerPure.PendingNode.error(
                            s"Error when executing post-acceptation hooks for node '${cnf.fqdn}' " +
@@ -358,7 +358,7 @@ class ComposedNewNodeManager[A](
       // Retrieve the cnf again to make sure that the data is up to date
       // since pre acceptance logic can modify the node data (like the policy mode and state)
       upToDateCnf <- nodeFactRepo
-                       .get(id)(using cc.toQuery, SelectNodeStatus.Accepted)
+                       .get(id)(using cc.toQC, SelectNodeStatus.Accepted)
                        .notOptional(s"Missing inventory for node with ID: '${id.value}'")
     } yield upToDateCnf
   }
@@ -384,14 +384,14 @@ class RefuseGroups(
       groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))
       _        <- ZIO.foreach(groupIds) { groupId =>
                     for {
-                      groupPair <- roGroupRepo.getNodeGroup(groupId)(using cc.toQuery)
+                      groupPair <- roGroupRepo.getNodeGroup(groupId)(using cc.toQC)
                       modGroup   = groupPair._1.copy(serverList = groupPair._1.serverList - cnf.id)
                       msg        = Some("Automatic update of groups due to refusal of node " + cnf.id.value)
                       saved     <- {
                         val res = if (modGroup.isSystem) {
-                          woGroupRepo.updateSystemGroup(modGroup, cc.modId, cc.actor, cc.message)
+                          woGroupRepo.updateSystemGroup(modGroup)
                         } else {
-                          woGroupRepo.update(modGroup, cc.modId, cc.actor, cc.message)
+                          woGroupRepo.update(modGroup)
                         }
                         res
                       }
@@ -459,7 +459,7 @@ class AcceptHostnameAndIp(
       acceptDuplicated <- acceptDuplicateHostnames
       _                <- ZIO.when(!acceptDuplicated) {
                             for {
-                              _ <- queryForDuplicateHostname(List(cnf.fqdn))(using cc.toQuery)
+                              _ <- queryForDuplicateHostname(List(cnf.fqdn))(using cc.toQC)
                             } yield ()
                           }
     } yield ()

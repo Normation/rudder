@@ -101,7 +101,7 @@ class GlobalParamMigration61Test extends Specification {
   }
 
   val baseParam: GlobalParameter =
-    GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None, Visibility.default).forceGet
+    GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None, Visibility.default, None).forceGet
 
   // attribute that used to be set in GlobalParameter entry before 6.1.
   def setIs6_0(e: LDAPEntry): Unit = {

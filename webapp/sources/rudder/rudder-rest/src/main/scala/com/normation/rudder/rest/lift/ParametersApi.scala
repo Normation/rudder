@@ -40,15 +40,12 @@ package com.normation.rudder.rest.lift
 import com.normation.GitVersion
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -59,8 +56,7 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.utils.StringUuidGenerator
-import java.time.Instant
+import com.normation.rudder.tenants.ChangeContext
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.syntax.*
@@ -106,7 +102,7 @@ class ParameterApi(
   object CreateParameter extends LiftApiModule0 {
     val schema:                                                                                                API.CreateParameter.type = API.CreateParameter
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         restParam <-
           zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract a global parameter from request").toIO
@@ -127,7 +123,7 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       service.deleteParameter(id, params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -142,7 +138,7 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         restParam <- zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract parameter from request.").toIO
         result    <- service.updateParameter(restParam.copy(id = Some(id)), params, authzToken.qc.actor)
@@ -156,7 +152,6 @@ class ParameterApi(
 
 class ParameterApiService14(
     readParameter:        RoParameterRepository,
-    uuidGen:              StringUuidGenerator,
     workflowLevelService: WorkflowLevelService
 ) {
 
@@ -164,20 +159,17 @@ class ParameterApiService14(
       diff:      ChangeRequestGlobalParameterDiff,
       parameter: GlobalParameter,
       change:    GlobalParamChangeRequest,
-      params:    DefaultParams,
-      actor:     EventActor
-  )(implicit qc: QueryContext): IOResult[JRGlobalParameter] = {
-    implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), actor, Instant.now(), params.reason, None, qc.nodePerms)
+      params:    DefaultParams
+  )(implicit cc: ChangeContext): IOResult[JRGlobalParameter] = {
     for {
-      workflow <- workflowLevelService.getForGlobalParam(actor, change)
+      workflow <- workflowLevelService.getForGlobalParam(cc.actor, change)
       cr        = ChangeRequestService.createChangeRequestFromGlobalParameter(
                     params.changeRequestName.getOrElse(s"${change.action.name} parameter '${parameter.name}' from API"),
                     params.changeRequestDescription.getOrElse(""),
                     parameter,
                     change.previousGlobalParam,
                     diff,
-                    actor,
+                    cc.actor,
                     params.reason
                   )
       id       <- workflow.startWorkflow(cr)
@@ -203,21 +195,22 @@ class ParameterApiService14(
   }
 
   def createParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor)(implicit
-      qc: QueryContext
+      cc: ChangeContext
   ): IOResult[JRGlobalParameter] = {
     import GenericProperty.*
-    val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None, Visibility.default)
+    val baseParameter =
+      GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None, Visibility.default, None)
     val parameter     = restParameter.updateParameter(baseParameter)
     val diff          = AddGlobalParameterDiff(parameter)
     for {
       _   <- restParameter.id.notOptional(s"'id' is mandatory but was empty")
       cr   = GlobalParamChangeRequest(GlobalParamModAction.Create, None)
-      res <- createChangeRequest(diff, parameter, cr, params, actor)
+      res <- createChangeRequest(diff, parameter, cr, params)
     } yield res
   }
 
   def updateParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor)(implicit
-      qc: QueryContext
+      cc: ChangeContext
   ): IOResult[JRGlobalParameter] = {
     for {
       id          <- restParameter.id.notOptional("Parameter name is mandatory for update")
@@ -225,14 +218,14 @@ class ParameterApiService14(
       updatedParam = restParameter.updateParameter(param)
       diff         = ModifyToGlobalParameterDiff(updatedParam)
       change       = GlobalParamChangeRequest(GlobalParamModAction.Update, Some(param))
-      result      <- createChangeRequest(diff, updatedParam, change, params, actor)
+      result      <- createChangeRequest(diff, updatedParam, change, params)
     } yield {
       result
     }
   }
 
   def deleteParameter(id: String, params: DefaultParams, actor: EventActor)(implicit
-      qc: QueryContext
+      cc: ChangeContext
   ): IOResult[JRGlobalParameter] = {
     readParameter.getGlobalParameter(id).flatMap {
       case None            => // already deleted
@@ -240,7 +233,7 @@ class ParameterApiService14(
       case Some(parameter) =>
         val diff   = DeleteGlobalParameterDiff(parameter)
         val change = GlobalParamChangeRequest(GlobalParamModAction.Delete, Some(parameter))
-        createChangeRequest(diff, parameter, change, params, actor)
+        createChangeRequest(diff, parameter, change, params)
     }
   }
 

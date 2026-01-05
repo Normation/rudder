@@ -41,7 +41,6 @@ import com.normation.GitVersion
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
@@ -52,18 +51,16 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.tenants.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -82,7 +79,6 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private val workflowLevelService = RudderConfig.workflowLevelService
   private val userPropertyService  = RudderConfig.userPropertyService
-  private val uuidGen              = RudderConfig.stringUuidGenerator
   implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
   private val actor:       EventActor   = CurrentUser.actor
   private val contextPath: String       = S.contextPath
@@ -162,7 +158,8 @@ class CreateOrUpdateGlobalParameterPopup(
                                InheritMode.parseString(parameterInheritMode.get).toOption,
                                parameterDescription.get,
                                None,
-                               Visibility.default
+                               Visibility.default,
+                               security = CurrentUser.nodePerms.toSecurityTag
                              )
           diff            <- globalParamDiffFromAction(param)
           cr               = ChangeRequestService.createChangeRequestFromGlobalParameter(
@@ -177,16 +174,7 @@ class CreateOrUpdateGlobalParameterPopup(
           workflowService <- workflowLevelService.getForGlobalParam(actor, change)
           id              <- workflowLevelService
                                .getWorkflowService()
-                               .startWorkflow(cr)(using
-                                 ChangeContext(
-                                   ModificationId(uuidGen.newUuid),
-                                   qc.actor,
-                                   Instant.now(),
-                                   paramReasons.map(_.get),
-                                   None,
-                                   qc.nodePerms
-                                 )
-                               )
+                               .startWorkflow(cr)(using qc.newCC(paramReasons.map(_.get)))
 
         } yield {
           if (workflowEnabled) {

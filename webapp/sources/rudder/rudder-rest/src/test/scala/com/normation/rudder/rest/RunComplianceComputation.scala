@@ -69,6 +69,7 @@ import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.reports.ReportingServiceImpl2
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.collection.MapView
@@ -154,16 +155,17 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       nodeGroups.find(_.id == id).map((_, NodeGroupCategoryId("cat1"))).succeed
     }
 
-    def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = {
+    override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
       FullNodeGroupCategory(
         NodeGroupCategoryId("GroupRoot"),
         name = "GroupRoot",
         description = "root of group categories",
         subCategories = Nil,
         targetInfos = nodeGroups.map(g => {
-          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
+          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
-        isSystem = true
+        isSystem = true,
+        security = None
       ).succeed
     }
 
@@ -307,7 +309,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       query = None,
       isDynamic = true,
       serverList = nodesG1,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val nodesG2 = nodeRange.flatMap(i => Seq(nodeId(i + 2))).toSet
@@ -320,7 +323,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       query = None,
       isDynamic = true,
       serverList = nodesG2,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val nodesG3 = nodeRange.flatMap(i => Seq(nodeId(i))).toSet
@@ -333,7 +337,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       query = None,
       isDynamic = true,
       serverList = nodesG3,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val nodesG4 = nodeRange.flatMap(i => Seq(nodeId(i + 3), nodeId(i + 4), nodeId(i + 5))).toSet
@@ -346,7 +351,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       query = None,
       isDynamic = true,
       serverList = nodesG4,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val nodesG5 = nodeRange.flatMap(i => Seq(nodeId(i + 2), nodeId(i + 3))).toSet
@@ -359,7 +365,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       query = None,
       isDynamic = true,
       serverList = nodesG5,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val nodesG6 = nodeRange.flatMap(i => Seq(nodeId(i + 4), nodeId(i + 5))).toSet
@@ -372,7 +379,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       query = None,
       isDynamic = true,
       serverList = nodesG6,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val d1 = directives.fileTemplateDirecive1
@@ -390,7 +398,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
             f"R1-${i}%03d",
             RuleCategoryId("rulecat1"),
             Set(GroupTarget(g1.id)),
-            Set(d1.id)
+            Set(d1.id),
+            security = None
           ),
           Rule( // br2 %6
             ruleId(i + 1),
@@ -399,21 +408,24 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
             Set(
               TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
             ),  // include G1 but not G2
-            Set(d2.id)
+            Set(d2.id),
+            security = None
           ),
           Rule( // br3 %6
             ruleId(i + 2),
             f"R3-${i + 2}%03d",
             RuleCategoryId("rulecat1"),
             Set(GroupTarget(g2.id), GroupTarget(g3.id)),
-            Set(d3.id)
+            Set(d3.id),
+            security = None
           ),
           Rule( // br4 %6
             ruleId(i + 3),
             f"R4-${i + 3}%03d",
             RuleCategoryId("rulecat1"),
             Set(GroupTarget(g4.id), GroupTarget(g5.id)),
-            Set(d4.id)
+            Set(d4.id),
+            security = None
           ),
           Rule( // br5 %6
             ruleId(i + 4),
@@ -422,14 +434,16 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
             Set(
               TargetExclusion(TargetIntersection(Set(GroupTarget(g6.id))), TargetIntersection(Set(GroupTarget(g4.id))))
             ),  // include G6 but not G4 (no node at all)
-            Set(d5.id)
+            Set(d5.id),
+            security = None
           ),
           Rule( // br6 %6
             ruleId(i + 5),
             f"R6-${i + 5}%03d",
             RuleCategoryId("rulecat1"),
             Set(GroupTarget(g6.id)),
-            Set(d4.id, d6.id)
+            Set(d4.id, d6.id),
+            security = None
           )
         )
       })

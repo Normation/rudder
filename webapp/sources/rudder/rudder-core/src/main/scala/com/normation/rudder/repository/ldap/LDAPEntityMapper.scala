@@ -71,12 +71,12 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.Visibility
-import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
@@ -148,7 +148,7 @@ class LDAPEntityMapper(
 
     entry.addValues(A_POLICY_MODE, node.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue))
 
-    node.securityTag.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+    node.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
 
     entry
   }
@@ -169,7 +169,7 @@ class LDAPEntityMapper(
                                     case Some(value) => PolicyMode.parseDefault(value)
                                   }
         properties             <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(NodeProperty.unserializeLdapNodeProperty)
-        securityTags            = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        security                = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
         val hostname = e(A_NAME).getOrElse("")
         Node(
@@ -192,7 +192,7 @@ class LDAPEntityMapper(
           ),
           properties,
           policyMode,
-          securityTags
+          security
         )
       }
     } else {
@@ -258,7 +258,7 @@ class LDAPEntityMapper(
                     properties = Nil, // we forgot node properties
 
                     policyMode = None,
-                    securityTag = None
+                    security = None
                   )
       nodeInfo <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
     } yield {
@@ -485,8 +485,9 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
-        ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), name, description, Nil, Nil, isSystem)
+        ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), name, description, Nil, Nil, isSystem, security)
       }
     } else {
       Left(
@@ -505,6 +506,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_NAME, category.name)
     entry.resetValuesTo(A_DESCRIPTION, category.description)
     entry.resetValuesTo(A_IS_SYSTEM, category.isSystem.toLDAPString)
+    category.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
     entry
   }
 
@@ -533,8 +535,9 @@ class LDAPEntityMapper(
                                       .leftMap(e => InventoryMappingRudderError.UnexpectedObject(e))
                                   case None    => Right(AcceptationDateTime.empty)
                                 }
+        security              = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
-        ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, policyTypes)
+        ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, policyTypes, security)
       }
     } else {
       Left(
@@ -552,7 +555,8 @@ class LDAPEntityMapper(
       activeTechnique.techniqueName,
       activeTechnique.acceptationDatetimes.toJson,
       activeTechnique.isEnabled,
-      activeTechnique.policyTypes
+      activeTechnique.policyTypes,
+      activeTechnique.security
     )
     entry
   }
@@ -570,8 +574,11 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        // we have a special case for root group category, that needs to be open
+        security    = if (e.dn == rudderDit.GROUP.dn) Some(SecurityTag.Open)
+                      else e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
-        NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem)
+        NodeGroupCategory(NodeGroupCategoryId(id), name, description, Nil, Nil, isSystem, security)
       }
     } else {
       Left(
@@ -590,6 +597,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_NAME, category.name)
     entry.resetValuesTo(A_DESCRIPTION, category.description)
     entry.resetValuesTo(A_IS_SYSTEM, category.isSystem.toLDAPString)
+    category.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
     entry
   }
 
@@ -632,8 +640,9 @@ class LDAPEntityMapper(
         isEnabled   = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         description = e(A_DESCRIPTION).getOrElse("")
+        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
-        NodeGroup(id, name, description, properties, query, isDynamic, nodeIds, isEnabled, isSystem)
+        NodeGroup(id, name, description, properties, query, isDynamic, nodeIds, isEnabled, isSystem, security)
       }
     } else {
       Thread.currentThread().getStackTrace.foreach(println)
@@ -687,7 +696,8 @@ class LDAPEntityMapper(
       group.isDynamic,
       group.serverList,
       group.isEnabled,
-      group.isSystem
+      group.isSystem,
+      group.security
     )
     // we never ever want to save a property with a blank name
     val props = group.properties.collect { case p if (!p.name.trim.isEmpty) => p.toData }
@@ -705,7 +715,7 @@ class LDAPEntityMapper(
   def entry2RuleTargetInfo(e: LDAPEntry): InventoryMappingPure[FullRuleTargetInfo] = {
     if (e.isA(OC_RUDDER_NODE_GROUP)) {
       entry2NodeGroup(e).map(g =>
-        FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
+        FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
       )
 
     } else if (e.isA(OC_SPECIAL_TARGET)) {
@@ -733,7 +743,8 @@ class LDAPEntityMapper(
                             )
                         }
       } yield {
-        FullRuleTargetInfo(ruleTarget, name, description, isEnabled, isSystem)
+        // For compat with plugin tenant disabled: special targets have the "None" security tag
+        FullRuleTargetInfo(ruleTarget, name, description, isEnabled, isSystem, security = None)
       }
     } else {
       Left(
@@ -766,6 +777,7 @@ class LDAPEntityMapper(
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags            <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
+        security         = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
         Directive(
           DirectiveId(DirectiveUid(id), ParseRev(e(A_REV_ID))),
@@ -778,7 +790,8 @@ class LDAPEntityMapper(
           priority,
           isEnabled,
           isSystem,
-          tags
+          tags,
+          security
         )
       }
     } else {
@@ -805,6 +818,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach(mode => entry.resetValuesTo(A_POLICY_MODE, mode.name))
     entry.resetValuesTo(A_SERIALIZED_TAGS, directive.tags.toJson)
+    directive.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
     entry
   }
 
@@ -821,8 +835,9 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
-        RuleCategory(RuleCategoryId(id), name, description, Nil, isSystem)
+        RuleCategory(RuleCategoryId(id), name, description, Nil, isSystem, security)
       }
     } else {
       Left(Err.UnexpectedObject(s"The given entry is not of the expected ObjectClass '${OC_RULE_CATEGORY}'. Entry details: ${e}"))
@@ -833,7 +848,14 @@ class LDAPEntityMapper(
    * children and items are ignored
    */
   def ruleCategory2ldap(category: RuleCategory, parentDN: DN): LDAPEntry = {
-    rudderDit.RULECATEGORY.ruleCategoryModel(category.id.value, parentDN, category.name, category.description, category.isSystem)
+    rudderDit.RULECATEGORY.ruleCategoryModel(
+      category.id.value,
+      parentDN,
+      category.name,
+      category.description,
+      category.isSystem,
+      category.security
+    )
   }
 
   //////////////////////////////    Rule    //////////////////////////////
@@ -877,6 +899,7 @@ class LDAPEntityMapper(
         val isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         val isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         val category         = e(A_RULE_CATEGORY).map(RuleCategoryId(_)).getOrElse(rudderDit.RULECATEGORY.rootCategoryId)
+        val security         = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
 
         Rule(
           RuleId(RuleUid(id), rev),
@@ -888,7 +911,8 @@ class LDAPEntityMapper(
           longDescription,
           isEnabled,
           isSystem,
-          tags
+          tags,
+          security
         )
       }
     } else {
@@ -914,6 +938,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry.resetValuesTo(A_SERIALIZED_TAGS, rule.tags.toJson)
+    rule.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
 
     entry
   }
@@ -989,7 +1014,7 @@ class LDAPEntityMapper(
                                      }
                                  }
         tenants               <-
-          NodeSecurityContext.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
+          TenantAccessGrant.parse(e(A_API_TENANT)).left.map(err => InventoryMappingRudderError.UnexpectedObject(err.fullMsg))
       } yield {
 
         def warnOnIgnoreAuthz(): Unit = {
@@ -1097,8 +1122,9 @@ class LDAPEntityMapper(
                             case Right(x)  => Right(x)
                           }
                       }
+        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
-        GlobalParameter(name, rev, parsed, mode, description, provider, visibility)
+        GlobalParameter(name, rev, parsed, mode, description, provider, visibility, security)
       }
     } else {
       Left(
@@ -1118,6 +1144,8 @@ class LDAPEntityMapper(
     parameter.provider.foreach(p => entry.resetValuesTo(A_PROPERTY_PROVIDER, p.value))
     parameter.inheritMode.foreach(m => entry.resetValuesTo(A_INHERIT_MODE, m.value))
     entry.resetValuesTo(A_VISIBILITY, parameter.visibility.entryName)
+    parameter.security.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
+
     entry
   }
 

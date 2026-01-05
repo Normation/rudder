@@ -2,11 +2,10 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
@@ -123,18 +122,21 @@ class CreateCloneGroupPopup(
           // get the type of query :
           if (createContainer) {
             woNodeGroupRepository
-              .addGroupCategorytoCategory(
+              .addGroupCategoryToCategory(
                 new NodeGroupCategory(
                   NodeGroupCategoryId(uuidGen.newUuid),
                   savedGroup.name,
                   savedGroup.description,
                   Nil,
-                  Nil
+                  Nil,
+                  isSystem = false,
+                  security = CurrentUser.nodePerms.toSecurityTag
                 ),
-                NodeGroupCategoryId(groupContainer.get),
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                Some("Node Group category created by user from UI")
+                NodeGroupCategoryId(groupContainer.get)
+              )(using
+                CurrentUser.changeContext(
+                  Some("Node Group category created by user from UI")
+                )
               )
               .toBox match {
               case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -162,16 +164,15 @@ class CreateCloneGroupPopup(
               query,
               isDynamic,
               srvList,
-              _isEnabled = true
+              _isEnabled = true,
+              security = CurrentUser.nodePerms.toSecurityTag
             )
 
             woNodeGroupRepository
-              .create(
-                clone,
-                parentCategoryId,
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                groupReasons.map(_.get)
+              .create(clone, parentCategoryId)(using
+                CurrentUser.changeContext(
+                  groupReasons.map(_.get)
+                )
               )
               .toBox match {
               case Full(x)          =>

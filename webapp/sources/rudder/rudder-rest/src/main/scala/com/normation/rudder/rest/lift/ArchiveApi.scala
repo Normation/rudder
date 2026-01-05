@@ -52,7 +52,6 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.errors.*
 import com.normation.eventlog.EventMetadata
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
 import com.normation.rudder.apidata.JsonResponseObjects.JRGroup
@@ -80,8 +79,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
@@ -109,6 +106,9 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.WoRuleCategoryRepository
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
@@ -122,7 +122,6 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.NoSuchFileException
 import java.text.Normalizer
-import java.time.Instant
 import java.util.zip.ZipEntry
 import net.liftweb.common.SimpleActor
 import net.liftweb.http.FileParamHolder
@@ -252,6 +251,8 @@ class ArchiveApi(
       // lift is not well suited for ZIO...
       val rootDirName = getArchiveName.runNow
 
+      implicit val qc = authzToken.qc
+
       // do zip
       val zippables = for {
         _             <- ApplicationLoggerPure.Archive.debug(s"Building archive '${rootDirName}'")
@@ -376,7 +377,8 @@ final case class JRuleCategories(
     id:          RuleCategoryId,
     name:        String,
     description: String,
-    children:    List[JRuleCategories]
+    children:    List[JRuleCategories],
+    security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) {
   def keepInHierarchy(ids: Set[RuleCategoryId]): JRuleCategories = {
     copy(children = children.filter(_.hasDescendantIn(ids)).map(_.keepInHierarchy(ids)))
@@ -713,7 +715,7 @@ class ZipArchiveBuilderService(
                    } yield ()
                  }
         // we only archive non-system NodeGroups, other kind of special targets are ignored
-        groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false) => g }
+        groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false, _) => g }
         _     <- ZIO.foreach(groups) { g =>
                    val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
                    for {
@@ -759,7 +761,7 @@ class ZipArchiveBuilderService(
       groupIds:     Seq[NodeGroupId],
       ruleIds:      Seq[RuleId],
       scopes:       Set[ArchiveScope]
-  ): IOResult[Chunk[Zippable]] = {
+  )(implicit qc: QueryContext): IOResult[Chunk[Zippable]] = {
 
     // normalize to no slash at end
     val root                 = rootDirName.strip().replaceAll("""/$""", "")
@@ -930,14 +932,12 @@ final case class GroupArchive(
     category: NodeGroupCategoryId
 )
 
-/**
- * The root of the rule categories, there is only a single root
- */
 final case class RuleCategoryArchive(
     id:          RuleCategoryId,
     name:        String,
     description: String,
-    children:    List[RuleCategoryArchive]
+    children:    List[RuleCategoryArchive],
+    security:    Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) {
   import RuleCategoryArchive.*
 
@@ -1628,7 +1628,7 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
 
-  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive):          IOResult[Unit] = {
+  def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
     for {
       at <-
         roDirectiveRepos
@@ -1643,7 +1643,7 @@ class SaveArchiveServicebyRepo(
       eventMetadata: EventMetadata,
       cat:           GroupCategoryArchive,
       catMap:        Map[String, NodeGroupCategoryId]
-  ): IOResult[Unit] = {
+  )(implicit cc: ChangeContext): IOResult[Unit] = {
     for {
       _       <- ApplicationLoggerPure.Archive.debug(s"Adding group category from archive: '${cat.category.name}' (${cat.category.id})")
       /*
@@ -1656,22 +1656,24 @@ class SaveArchiveServicebyRepo(
                    case Some(p) => p
                    case None    => GroupRootId
                  }
-      category = NodeGroupCategory(id, cat.category.name, cat.category.description, Nil, Nil)
+      category = NodeGroupCategory(
+                   id,
+                   cat.category.name,
+                   cat.category.description,
+                   Nil,
+                   Nil,
+                   isSystem = false,
+                   security = cc.accessGrant.toSecurityTag
+                 )
       _       <- if (exists) {
-                   woGroupRepos.saveGroupCategory(category, parentId, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+                   woGroupRepos.saveGroupCategory(category, parentId)
                  } else {
-                   woGroupRepos.addGroupCategorytoCategory(
-                     category,
-                     parentId,
-                     eventMetadata.modId,
-                     eventMetadata.actor,
-                     eventMetadata.msg
-                   )
+                   woGroupRepos.addGroupCategoryToCategory(category, parentId)
                  }
     } yield ()
   }
+
   def saveGroup(g: GroupArchive)(implicit cc: ChangeContext):                    IOResult[Unit] = {
-    import cc.*
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding group from archive: '${g.group.name}' (${g.group.id.serialize})")
       // normally, at that point the category of the group exists because we took care to create them before.
@@ -1679,26 +1681,31 @@ class SaveArchiveServicebyRepo(
       // if category of group doesn't exist, we need to create one using the UUID as name
       c <- roGroupRepos.categoryExists(g.category)
       _ <- ZIO.when(!c) {
-             woGroupRepos.addGroupCategorytoCategory(
-               NodeGroupCategory(g.category, g.category.value, "", Nil, Nil),
-               GroupRootId,
-               modId,
-               actor,
-               message
+             woGroupRepos.addGroupCategoryToCategory(
+               NodeGroupCategory(
+                 g.category,
+                 g.category.value,
+                 "",
+                 Nil,
+                 Nil,
+                 isSystem = false,
+                 security = cc.accessGrant.toSecurityTag
+               ),
+               GroupRootId
              )
            }
       // now we can check if we create a new group or update one
-      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQuery)
+      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQC)
       _ <- x match {
              case Some((_, parentId)) =>
-               woGroupRepos.update(g.group, modId, actor, message) *>
+               woGroupRepos.update(g.group) *>
                // we need to check if the group moved
                ZIO.when(parentId != g.category) {
                  woGroupRepos.move(g.group.id, g.category)
                }
 
              case None =>
-               woGroupRepos.create(g.group, g.category, modId, actor, message)
+               woGroupRepos.create(g.group, g.category)
            }
     } yield ()
   }
@@ -1777,14 +1784,7 @@ class SaveArchiveServicebyRepo(
    * Starts with techniques then other things.
    */
   override def save(archive: PolicyArchive, mergePolicy: MergePolicy)(implicit qc: QueryContext): IOResult[Unit] = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      qc.actor,
-      Instant.now(),
-      Some(s"Importing archive '${archive.metadata.filename}'"),
-      None,
-      qc.nodePerms
-    )
+    implicit val cc: ChangeContext = qc.newCC(Some(s"Importing archive '${archive.metadata.filename}'"))
     val eventMetadata = cc.transformInto[EventMetadata]
     for {
       _ <- ZIO.foreach(archive.techniqueCats)(saveTechniqueCat(eventMetadata, _))
@@ -1793,7 +1793,7 @@ class SaveArchiveServicebyRepo(
       // for directives below
       _ <- ZIO.when(archive.techniques.nonEmpty) {
              techLibUpdate
-               .update(cc.modId, cc.actor, Some(s"Update Technique library after import of and archive"))
+               .update()
                .toIO
                .chainError(
                  s"An error occurred during technique update after import of archive"

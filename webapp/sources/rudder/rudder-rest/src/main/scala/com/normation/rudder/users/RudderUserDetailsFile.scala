@@ -47,8 +47,8 @@ import com.normation.errors.Unexpected
 import com.normation.rudder.*
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.*
 import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.utils.XmlSafe
@@ -211,13 +211,13 @@ case class RudderPasswordEncoder(
 }
 
 /**
- * An user list is a parsed list of users with their resolved authorisations
+ * A user list is a parsed list of users with their resolved authorisations
  */
 final case class UserDetailFileConfiguration(
     encoder:         RudderPasswordEncoder,
     isCaseSensitive: Boolean,
     customRoles:     List[Role],
-    users:           Map[String, (RudderAccount.User, Seq[Role], NodeSecurityContext)]
+    users:           Map[String, (RudderAccount.User, Seq[Role], TenantAccessGrant)]
 )
 object UserDetailFileConfiguration {
   def default(implicit passwordEncoder: RudderPasswordEncoder): UserDetailFileConfiguration = UserDetailFileConfiguration(
@@ -326,9 +326,9 @@ object ValidatedUserList {
   )(implicit roleApiMapping: RoleApiMapping): Map[String, RudderUserDetail] = {
 
     val userDetails   = accountConfig.users.map {
-      case (_, (user, roles, nodeSecurityContext)) =>
+      case (_, (user, roles, accessGrant)) =>
         // for users, we don't have the possibility to order APIs. So we just sort them from most specific to less
-        // (ie from longest path to shorted)
+        // (ie from the longest path to the shorted)
         // but still group by first part so that we have all nodes together, etc.
         val acls = roleApiMapping
           .getApiAclFromRoles(roles)
@@ -338,8 +338,8 @@ object ValidatedUserList {
               seq.sortBy(_.path)(using AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
-        // init status to deleted, it will be set correctly latter on
-        RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
+        // init status to deleted, it will be set correctly later on
+        RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), accessGrant)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
     filteredUsers
@@ -766,7 +766,7 @@ object UserFileProcessing {
   private def resolveUsers(
       users:         Iterable[ParsedUser],
       debugFileName: String
-  ): UIO[Iterable[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
+  ): UIO[Iterable[(RudderAccount.User, List[Role], TenantAccessGrant)]] = {
 
     val TODO_MODULE_TENANTS_ENABLED = true
 
@@ -774,18 +774,18 @@ object UserFileProcessing {
       val ParsedUser(name, pwd, roles, tenants) = u
 
       for {
-        nsc <- NodeSecurityContext
+        nsc <- TenantAccessGrant
                  .parseList(u.tenants)
                  .toIO
                  .flatMap { // check for adequate plugin
-                   case NodeSecurityContext.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
+                   case TenantAccessGrant.ByTenants(_) if (!TODO_MODULE_TENANTS_ENABLED) =>
                      logger.warn(
                        s"Tenants definition are only available with the corresponding plugin. To prevent unwanted right escalation, " +
                        s"user '${name}' will be restricted to no tenants"
-                     ) *> NodeSecurityContext.None.succeed
-                   case x                                                                  => x.succeed
+                     ) *> TenantAccessGrant.None.succeed
+                   case x                                                                => x.succeed
                  }
-                 .catchAll(err => logger.warn(err.fullMsg) *> NodeSecurityContext.None.succeed)
+                 .catchAll(err => logger.warn(err.fullMsg) *> TenantAccessGrant.None.succeed)
         rs  <-
           RudderRoles
             .parseRoles(roles)

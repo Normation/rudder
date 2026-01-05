@@ -38,8 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
@@ -54,9 +52,7 @@ import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.properties.Visibility.Displayed
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.repository.CategoryAndNodeGroup
@@ -69,9 +65,10 @@ import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
-import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.Chunk
@@ -224,15 +221,13 @@ class GroupsApi(
   object Create extends LiftApiModule0 {
     val schema:                                                                                                API.CreateGroup.type = API.CreateGroup
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse         = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       val schemaGroup = for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract group parameters from request").toIO
         result    <- service.createGroup(
                        restGroup,
                        restGroup.id.getOrElse(NodeGroupId(NodeGroupUid(uuidGen.newUuid))),
-                       restGroup.source,
-                       params,
-                       authzToken.qc.actor
+                       restGroup.source
                      )
       } yield {
         val action = if (restGroup.source.nonEmpty) "cloneGroup" else schema.name
@@ -315,7 +310,7 @@ class GroupsApi(
         includeSystem <- zioJsonExtractor.extractIncludeSystem(req).toIO
         res           <-
           service
-            .getCategoryTree(includeSystem.getOrElse(false))
+            .getCategoryTree(includeSystem.getOrElse(false))(using authzToken.qc)
             .map(JRGroupCategoriesFull(_))
             .chainError("Could not fetch Group tree")
       } yield {
@@ -343,7 +338,7 @@ class GroupsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       service
-        .getCategoryDetails(NodeGroupCategoryId(id))
+        .getCategoryDetails(NodeGroupCategoryId(id))(using authzToken.qc)
         .map(JRGroupCategoriesMinimal(_))
         .chainError(s"Could not fetch Group category '${id}' details")
         .toLiftResponseOne(
@@ -427,17 +422,10 @@ class GroupsApi(
   private def withChangeContext[A](req: Req, authzToken: AuthzToken)(
       block: ChangeContext => IOResult[A]
   ): IOResult[A] = {
-    extractReason(req).toIO.flatMap(reason => {
-      val cc = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        authzToken.qc.actor,
-        Instant.now(),
-        reason,
-        None,
-        authzToken.qc.nodePerms
-      )
+    extractReason(req).toIO.flatMap { reason =>
+      val cc = authzToken.qc.newCC(reason)
       block(cc)
-    })
+    }
   }
 }
 
@@ -489,22 +477,19 @@ class GroupApiService14(
   def createGroup(
       restGroup:   JQGroup,
       nodeGroupId: NodeGroupId,
-      clone:       Option[NodeGroupId],
-      params:      DefaultParams,
-      actor:       EventActor
-  )(implicit qc: QueryContext): ZIO[Any, RudderError, JRGroup] = {
+      clone:       Option[NodeGroupId]
+  )(implicit cc: ChangeContext): ZIO[Any, RudderError, JRGroup] = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
-      val modId = ModificationId(uuidGen.newUuid)
       (for {
         rootCat  <- readGroup.getRootCategoryPure()
         cat       = change.category.getOrElse(rootCat.id)
-        saveDiff <- writeGroup.create(change.newGroup, cat, modId, actor, params.reason)
+        saveDiff <- writeGroup.create(change.newGroup, cat)
         // after group creation, its properties should be computed and resolved
         _        <- propertiesService.updateAll()
       } yield {
         if (saveDiff.needDeployment) {
           // Trigger a deployment only if it is needed
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+          asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         }
         JRGroup.fromGroup(saveDiff.group, cat, None)
       }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
@@ -516,10 +501,10 @@ class GroupApiService14(
         restGroup: JQGroup,
         groupId:   NodeGroupId,
         name:      String,
-        clone:     Option[NodeGroupId],
-        params:    DefaultParams,
-        actor:     EventActor
-    ): IOResult[NodeGroupChangeRequest] = {
+        clone:     Option[NodeGroupId]
+    )(implicit cc: ChangeContext): IOResult[NodeGroupChangeRequest] = {
+      implicit val qc: QueryContext = cc.toQC
+
       clone match {
         case Some(sourceId) =>
           // clone existing group
@@ -542,8 +527,19 @@ class GroupApiService14(
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restGroup.enabled.getOrElse(true)
           // create from scratch - base rule is the same with default values
-          val baseGroup      =
-            NodeGroup(groupId, name, "", Nil, None, isDynamic = true, serverList = Set(), _isEnabled = defaultEnabled)
+          val baseGroup      = {
+            NodeGroup(
+              groupId,
+              name,
+              "",
+              Nil,
+              None,
+              isDynamic = true,
+              serverList = Set(),
+              _isEnabled = defaultEnabled,
+              security = cc.accessGrant.toSecurityTag
+            )
+          }
 
           // if only the name parameter is set, consider it to be enabled
           // if not if workflow are enabled, consider it to be disabled
@@ -558,7 +554,7 @@ class GroupApiService14(
             updated  <- restGroup.updateGroup(baseGroup, queryParser).toIO
             change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.categoryId, Some(baseGroup))
             workflow <- workflowLevelService
-                          .getForNodeGroup(actor, change)
+                          .getForNodeGroup(cc.actor, change)
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the group if a workflow should be
@@ -572,7 +568,7 @@ class GroupApiService14(
 
     (for {
       name    <- restGroup.displayName.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
-      change  <- createOrClone(restGroup, nodeGroupId, name, clone, params, actor)
+      change  <- createOrClone(restGroup, nodeGroupId, name, clone)
       created <- actualGroupCreation(change, nodeGroupId)
     } yield {
       created
@@ -599,8 +595,7 @@ class GroupApiService14(
                 val updatedGroup    = group.copy(serverList = nodeIds.toSet)
                 val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
                 val change          = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
-                implicit val cc: ChangeContext =
-                  ChangeContext(ModificationId(uuidGen.newUuid), qc.actor, Instant.now(), None, None, qc.nodePerms)
+                implicit val cc: ChangeContext = qc.newCC()
                 createChangeRequest(reloadGroupDiff, change, params)
               }
               .chainError(s"Could not reload Group ${sid} details")
@@ -623,8 +618,7 @@ class GroupApiService14(
         case Some((group, cat)) =>
           val deleteGroupDiff = DeleteNodeGroupDiff(group)
           val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
-          implicit val cc: ChangeContext =
-            ChangeContext(ModificationId(uuidGen.newUuid), qc.actor, Instant.now(), None, None, qc.nodePerms)
+          implicit val cc: ChangeContext = qc.newCC()
           createChangeRequest(deleteGroupDiff, change, params)
 
         case None =>
@@ -633,8 +627,7 @@ class GroupApiService14(
   }
 
   def updateGroup(restGroup: JQGroup, params: DefaultParams)(implicit qc: QueryContext): IOResult[JRGroup] = {
-    implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), qc.actor, Instant.now(), None, None, qc.nodePerms)
+    implicit val cc: ChangeContext = qc.newCC()
     for {
       id      <- restGroup.id.notOptional(s"You must specify the ID of the group that you want to update")
       pair    <- readGroup.getNodeGroup(id)
@@ -648,7 +641,7 @@ class GroupApiService14(
     }
   }
 
-  def getCategoryTree(includeSystem: Boolean): IOResult[JRFullGroupCategory] = {
+  def getCategoryTree(includeSystem: Boolean)(implicit qc: QueryContext): IOResult[JRFullGroupCategory] = {
     def filterSystem(cat: FullNodeGroupCategory): FullNodeGroupCategory = {
       if (includeSystem) {
         cat
@@ -665,7 +658,7 @@ class GroupApiService14(
       .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None))
   }
 
-  def getCategoryDetails(id: NodeGroupCategoryId): IOResult[JRMinimalGroupCategory] = {
+  def getCategoryDetails(id: NodeGroupCategoryId)(implicit qc: QueryContext): IOResult[JRMinimalGroupCategory] = {
     for {
       root     <- readGroup.getFullGroupLibrary()
       category <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
@@ -679,13 +672,13 @@ class GroupApiService14(
       id: NodeGroupCategoryId
   )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      root     <- readGroup.getFullGroupLibrary()
+      root     <- readGroup.getFullGroupLibrary()(using cc.toQC)
       category <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
       _        <- ZIO.when(category.isSystem) {
                     Inconsistency(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.").fail
                   }
       parent   <- root.parentCategories.get(id).notOptional(s"Cannot find Groupl category '${id.value}' parent")
-      _        <- writeGroup.delete(id, cc.modId, cc.actor, cc.message)
+      _        <- writeGroup.delete(id)
     } yield {
       JRMinimalGroupCategory.fromCategory(category, parent.id)
     }
@@ -696,7 +689,7 @@ class GroupApiService14(
       restData: JQGroupCategory
   )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      root      <- readGroup.getFullGroupLibrary()
+      root      <- readGroup.getFullGroupLibrary()(using cc.toQC)
       category  <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
       _         <- ZIO.when(category.isSystem) {
                      Inconsistency(s"Could not update group category '${id.value}', cause is: system categories cannot be updated.").fail
@@ -704,7 +697,7 @@ class GroupApiService14(
       oldParent <- root.parentCategories.get(id).notOptional(s"Cannot find Group category '${id.value}' parent")
       parent     = restData.parent.getOrElse(oldParent.id)
       update     = restData.update(category)
-      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent, cc.modId, cc.actor, cc.message)
+      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent)
     } yield {
       JRMinimalGroupCategory.fromCategory(update, parent)
     }
@@ -719,7 +712,7 @@ class GroupApiService14(
       update  <- restData.create(defaultId).toIO
       category = update.toNodeGroupCategory
       parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _       <- writeGroup.addGroupCategorytoCategory(category, parent, cc.modId, cc.actor, cc.message)
+      _       <- writeGroup.addGroupCategoryToCategory(category, parent)
     } yield {
       JRMinimalGroupCategory.fromCategory(update, parent)
     }

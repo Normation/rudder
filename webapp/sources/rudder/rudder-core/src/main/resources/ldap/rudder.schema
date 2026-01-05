@@ -458,7 +458,7 @@ objectclass ( RudderObjectClasses:10
   SUP top
   STRUCTURAL
   MUST ( groupCategoryId $ cn )
-  MAY ( description $ isSystem ) )
+  MAY ( description $ isSystem $ securityTag) )
 
 objectclass ( RudderObjectClasses:11
   NAME 'nodeGroup'
@@ -468,7 +468,7 @@ objectclass ( RudderObjectClasses:11
   MUST ( nodeGroupId $
    cn $ isDynamic )
   MAY ( nodeId $ description $ jsonNodeGroupQuery $ revision $
-        isEnabled $ isSystem $ serializedProperty ) )
+        isEnabled $ isSystem $ serializedProperty $ securityTag) )
 
 objectclass ( RudderObjectClasses:12
   NAME 'specialRuleTarget'
@@ -476,7 +476,7 @@ objectclass ( RudderObjectClasses:12
   SUP top
   STRUCTURAL
   MUST ( ruleTarget $ cn )
-  MAY (  description $ isEnabled $ isSystem ) )
+  MAY (  description $ isEnabled $ isSystem $ securityTag) )
 
 ### active technique library ###
 
@@ -493,7 +493,7 @@ objectclass ( RudderObjectClasses:21
   SUP top
   STRUCTURAL
   MUST ( techniqueCategoryId $ cn )
-  MAY ( description $ isSystem ) )
+  MAY ( description $ isSystem $ securityTag) )
 
 objectclass ( RudderObjectClasses:22
   NAME 'activeTechnique'
@@ -501,7 +501,7 @@ objectclass ( RudderObjectClasses:22
   SUP top
   STRUCTURAL
   MUST ( activeTechniqueId $ techniqueId $ acceptationTimestamp)
-  MAY ( isEnabled $ isSystem $ policyTypes ) )
+  MAY ( isEnabled $ isSystem $ policyTypes $ securityTag) )
 
 objectclass ( RudderObjectClasses:23
   NAME 'directive'
@@ -510,7 +510,7 @@ objectclass ( RudderObjectClasses:23
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $ revision $
-        directivePriority $ directiveVariable $ policyMode $ serializedTags) )
+        directivePriority $ directiveVariable $ policyMode $ serializedTags $ securityTag) )
 
 ### rules ###
 
@@ -523,7 +523,7 @@ objectclass ( RudderObjectClasses:30
   MAY ( cn $ description $ longDescription $
         isEnabled $ isSystem $ revision $
         ruleTarget $ serial $
-        directiveId $ tag $ serializedTags ) )
+        directiveId $ tag $ serializedTags $ securityTag ) )
 
 objectclass ( RudderObjectClasses:31
   NAME 'ruleCategory'
@@ -531,7 +531,7 @@ objectclass ( RudderObjectClasses:31
   SUP top
   STRUCTURAL
   MUST ( ruleCategoryId $ cn )
-  MAY ( description $ isSystem ) )
+  MAY ( description $ isSystem $ securityTag) )
 
 
 #
@@ -571,7 +571,7 @@ objectclass ( RudderObjectClasses:120
   STRUCTURAL
   MUST ( parameterName )
   MAY ( parameterValue $ description $ propertyProvider $
-        overridable $ inheritMode $ revision $ visibility ) )
+        overridable $ inheritMode $ revision $ visibility $ securityTag) )
 
 #
 # Application properties

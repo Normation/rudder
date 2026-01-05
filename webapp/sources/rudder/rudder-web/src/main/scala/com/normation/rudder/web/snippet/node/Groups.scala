@@ -39,22 +39,20 @@ package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.NodeGroupCategoryForm
 import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.web.snippet.WithNonce
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -81,9 +79,8 @@ object Groups {
 class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with Loggable {
   import Groups.*
 
-  private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
-  private val uuidGen               = RudderConfig.stringUuidGenerator
   private val linkUtil              = RudderConfig.linkUtil
 
   private var boxGroupLib = getFullGroupLibrary().toBox
@@ -428,7 +425,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib))._2.toJsCmd};
             } else if(  sourceCatId ) {
               var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
-              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib))._2.toJsCmd};
+              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib)(_)(using qc.newCC()))._2.toJsCmd};
             } else {
               alert("Can not move that kind of object");
               $$.jstree.rollback(data.rlbk);
@@ -473,16 +470,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 .move(
                   NodeGroupId(NodeGroupUid(sourceGroupId)),
                   NodeGroupCategoryId(destCatId)
-                )(using
-                  ChangeContext(
-                    ModificationId(uuidGen.newUuid),
-                    qc.actor,
-                    Instant.now(),
-                    Some("Group moved by user"),
-                    None,
-                    qc.nodePerms
-                  )
-                )
+                )(using qc.newCC(Some("Group moved by user")))
                 .toBox ?~! "Error while trying to move group with requested id '%s' to category id '%s'"
                 .format(sourceGroupId, destCatId)
             group  <- Box(lib.allGroups.get(NodeGroupId(NodeGroupUid(sourceGroupId)))) ?~! s"No such group: ${sourceGroupId}"
@@ -514,7 +502,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     }
   }
 
-  private def moveCategory(lib: FullNodeGroupCategory)(arg: String)(implicit qc: QueryContext): JsCmd = {
+  private def moveCategory(lib: FullNodeGroupCategory)(arg: String)(implicit cc: ChangeContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -534,10 +522,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
               woNodeGroupRepository
                 .saveGroupCategory(
                   category.toNodeGroupCategory,
-                  NodeGroupCategoryId(destCatId),
-                  ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
-                  reason = None
+                  NodeGroupCategoryId(destCatId)
                 )
                 .toBox ?~! "Error while trying to move category with requested id '%s' to category id '%s'"
                 .format(sourceCatId, destCatId)
@@ -547,11 +532,11 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             case Full((id, res)) =>
               refreshGroupLib()
               (
-                refreshTree(htmlTreeNodeId(id))
+                refreshTree(htmlTreeNodeId(id))(using cc.toQC)
                 & OnLoad(
                   JsRaw("""setTimeout(function() { $("[catid=%s]").attempt("highlight", {}, 2000);}, 100)""".format(sourceCatId))
                 ) // JsRaw ok, comes from json
-                & refreshRightPanel(CategoryForm(res))
+                & refreshRightPanel(CategoryForm(res))(using cc.toQC)
               )
             case f: Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty           =>

@@ -65,7 +65,6 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.IpAddress
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeFact.ToCompat
-import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.TechniqueParameter
@@ -79,6 +78,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
@@ -323,7 +323,15 @@ object JsonResponseObjects {
         )
         .withFieldComputed(_.policyMode, levelField("policyMode")(nodeInfo.policyMode.map(_.name).getOrElse("default")))
         .withFieldComputed(_.timezone, levelField(_)("timezone")(nodeInfo.timezone))
-        .withFieldComputed(_.tenant, levelField(_)("tenant")(securityTag.flatMap(_.tenants.headOption)))
+        // here, we only know how to deal with a "byTenant" of size 1. Consider "open" as "none", and
+        // several tenants as only the first one.
+        .withFieldComputed(
+          _.tenant,
+          levelField(_)("tenant")(securityTag.flatMap {
+            case SecurityTag.Open          => None
+            case SecurityTag.ByTenants(ts) => ts.headOption
+          })
+        )
         // full
         .withFieldComputed(
           _.accounts,
@@ -800,9 +808,9 @@ object JsonResponseObjects {
 
   /**
    * Directive as used in techniques/directives API.
-   * 
+   *
    * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
-   * so, BE CAREFUL about compatibility for deserialization 
+   * so, BE CAREFUL about compatibility for deserialization
    */
   final case class JRDirective(
       changeRequestId: Option[String],
@@ -818,7 +826,8 @@ object JsonResponseObjects {
       enabled:          Boolean,
       system:           Boolean,
       policyMode:       String,
-      tags:             List[Map[String, String]]
+      tags:             List[Map[String, String]],
+      security:         Option[SecurityTag]
   ) {
     def toDirective(): IOResult[(TechniqueName, Directive)] = {
       for {
@@ -841,7 +850,8 @@ object JsonResponseObjects {
             priority,
             enabled,
             system,
-            Tags.fromMaps(tags)
+            Tags.fromMaps(tags),
+            security
           )
         )
       }
@@ -849,7 +859,7 @@ object JsonResponseObjects {
   }
   object JRDirective {
     def empty(id: String): JRDirective =
-      JRDirective(None, id, "", "", "", "", "", Map(), 5, enabled = false, system = false, policyMode = "", tags = List())
+      JRDirective(None, id, "", "", "", "", "", Map(), 5, enabled = false, system = false, policyMode = "", tags = List(), None)
 
     def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
       directive
@@ -936,7 +946,8 @@ object JsonResponseObjects {
       system:     Boolean,
       tags:       List[Map[String, String]],
       policyMode: Option[String],
-      status:     Option[JRApplicationStatus]
+      status:     Option[JRApplicationStatus],
+      security:   Option[SecurityTag]
   ) {
     def toRule(): IOResult[Rule] = {
       for {
@@ -952,15 +963,32 @@ object JsonResponseObjects {
         longDescription,
         enabled,
         system,
-        Tags.fromMaps(tags)
+        Tags.fromMaps(tags),
+        security
       )
     }
   }
 
   object JRRule {
     // create an empty json rule with just ID set
-    def empty(id: String): JRRule =
-      JRRule(None, id, "", "", "", "", Nil, Nil, enabled = false, system = false, tags = Nil, policyMode = None, status = None)
+    def empty(id: String): JRRule = {
+      JRRule(
+        None,
+        id,
+        "",
+        "",
+        "",
+        "",
+        Nil,
+        Nil,
+        enabled = false,
+        system = false,
+        tags = Nil,
+        policyMode = None,
+        status = None,
+        None
+      )
+    }
 
     // create from a rudder business rule
     def fromRule(
@@ -1780,7 +1808,7 @@ object JsonResponseObjects {
    * Group as used in groups API.
    *
    * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
-   * so, BE CAREFUL about compatibility for deserialization 
+   * so, BE CAREFUL about compatibility for deserialization
    */
   final case class JRGroup(
       changeRequestId:                     Option[String] = None,
@@ -1795,7 +1823,8 @@ object JsonResponseObjects {
       groupClass:                          List[String],
       properties:                          List[JRProperty],
       target:                              String,
-      system:                              Boolean
+      system:                              Boolean,
+      security:                            Option[SecurityTag]
   ) {
     def toGroup(queryParser: CmdbQueryParser): IOResult[(NodeGroupCategoryId, NodeGroup)] = {
       for {
@@ -1822,7 +1851,8 @@ object JsonResponseObjects {
             dynamic,
             nodeIds.map(NodeId(_)).toSet,
             enabled,
-            system
+            system,
+            security
           )
         )
       }
@@ -1843,7 +1873,8 @@ object JsonResponseObjects {
       groupClass = Nil,
       properties = Nil,
       target = "",
-      system = false
+      system = false,
+      security = None
     )
 
     def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]): JRGroup = {
@@ -1937,7 +1968,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.targetInfos,
           _.targetInfos.collect {
-            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
           }
         )
         .transform
@@ -1984,7 +2015,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.targetInfos,
           _.targetInfos.collect {
-            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
           }
         )
         .transform
@@ -2045,7 +2076,7 @@ object JsonResponseObjects {
         .withFieldComputed(
           _.targetInfos,
           _.targetInfos.collect {
-            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
           }
         )
         .buildTransformer

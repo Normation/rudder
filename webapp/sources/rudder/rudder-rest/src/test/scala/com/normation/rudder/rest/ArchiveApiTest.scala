@@ -57,7 +57,6 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.Visibility.Displayed
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
@@ -74,6 +73,7 @@ import com.normation.rudder.rest.lift.TechniqueInfo
 import com.normation.rudder.rest.lift.TechniqueType
 import com.normation.rudder.rest.lift.ZipArchiveBuilderService
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*

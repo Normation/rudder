@@ -44,6 +44,7 @@ import com.normation.errors
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.policies.*
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
@@ -71,7 +72,8 @@ class TechniqueTree(
   val activeTechniqueRepository = RudderConfig.roDirectiveRepository
   val dependencyService         = RudderConfig.dependencyAndDeletionService
   val ruleRepository            = RudderConfig.roRuleRepository
-  val getGrouLib: () => errors.IOResult[FullNodeGroupCategory] = RudderConfig.roNodeGroupRepository.getFullGroupLibrary
+  val getGrouLib: () => errors.IOResult[FullNodeGroupCategory] = () =>
+    RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
 

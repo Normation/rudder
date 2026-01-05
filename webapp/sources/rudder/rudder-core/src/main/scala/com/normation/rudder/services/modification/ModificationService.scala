@@ -39,19 +39,15 @@ package com.normation.rudder.services.modification
 
 import com.normation.box.*
 import com.normation.eventlog.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
-import com.normation.utils.StringUuidGenerator
-import java.time.Instant
+import com.normation.rudder.tenants.*
 import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent
 
 class ModificationService(
     gitModificationRepository: GitModificationRepository,
-    itemArchiveManager:        ItemArchiveManager,
-    uuidGen:                   StringUuidGenerator
+    itemArchiveManager:        ItemArchiveManager
 ) {
 
   def getCommitsfromEventLog(eventLog: EventLog): Box[Option[GitCommitId]] = {
@@ -80,16 +76,7 @@ class ModificationService(
                           rollbackedEvents,
                           target,
                           "after"
-                        )(using
-                          ChangeContext(
-                            ModificationId(uuidGen.newUuid),
-                            eventLog.principal,
-                            Instant.now(),
-                            None,
-                            None,
-                            QueryContext.systemQC.nodePerms
-                          )
-                        )
+                        )(using QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal))
                         .toBox
                   }
     } yield {
@@ -118,16 +105,7 @@ class ModificationService(
                           rollbackedEvents,
                           target,
                           "before"
-                        )(using
-                          ChangeContext(
-                            ModificationId(uuidGen.newUuid),
-                            eventLog.principal,
-                            Instant.now(),
-                            None,
-                            None,
-                            QueryContext.systemQC.nodePerms
-                          )
-                        )
+                        )(using QueryContext.systemQC.newCC(None).copy(actor = eventLog.principal))
                         .toBox
                   }
     } yield {

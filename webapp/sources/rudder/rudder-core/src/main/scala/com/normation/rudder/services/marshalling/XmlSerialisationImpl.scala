@@ -77,6 +77,8 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.marshalling.MarshallingUtil.createTrimedElem
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import net.liftweb.common.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
@@ -98,6 +100,17 @@ object TagsXml {
       }
     }
     Tags(((tags \ "tag").flatMap(untag)).toSet)
+  }
+}
+
+object SecurityXml {
+  def toXml[A: HasSecurityTag](security: A): NodeSeq = {
+    SecurityTag.toXml(security.security)
+  }
+
+  // xml given in parameter is the parent, because not present a valid case
+  def getSecurity(xml: NodeSeq): Option[SecurityTag] = {
+    SecurityTag.fromXml(xml)
   }
 }
 
@@ -134,7 +147,7 @@ class RuleSerialisationImpl(xmlVersion: String) extends RuleSerialisation {
         <isEnabled>{rule.isEnabledStatus}</isEnabled>
         <isSystem>{rule.isSystem}</isSystem> ++ {
         TagsXml.toXml(rule.tags)
-      }
+      } ++ SecurityXml.toXml(rule)
     )
   }
 }
@@ -148,9 +161,10 @@ class RuleCategorySerialisationImpl(xmlVersion: String) extends RuleCategorySeri
   def serialise(rc: RuleCategory): Elem = {
     createTrimedElem(XML_TAG_RULE_CATEGORY, xmlVersion)(
       <id>{rc.id.value}</id>
-        <displayName>{rc.name}</displayName>
-        <description>{rc.description}</description>
-        <isSystem>{rc.isSystem}</isSystem>
+      <displayName>{rc.name}</displayName>
+      <description>{rc.description}</description>
+      <isSystem>{rc.isSystem}</isSystem> ++
+      SecurityXml.toXml(rc)
     )
   }
 }
@@ -164,9 +178,10 @@ class ActiveTechniqueCategorySerialisationImpl(xmlVersion: String) extends Activ
   def serialise(uptc: ActiveTechniqueCategory): Elem = {
     createTrimedElem(XML_TAG_ACTIVE_TECHNIQUE_CATEGORY, xmlVersion)(
       <id>{uptc.id.value}</id>
-        <displayName>{uptc.name}</displayName>
-        <description>{uptc.description}</description>
-        <isSystem>{uptc.isSystem}</isSystem>
+      <displayName>{uptc.name}</displayName>
+      <description>{uptc.description}</description>
+      <isSystem>{uptc.isSystem}</isSystem> ++
+      SecurityXml.toXml(uptc)
     )
   }
 }
@@ -189,7 +204,8 @@ class ActiveTechniqueSerialisationImpl(xmlVersion: String) extends ActiveTechniq
             // we never serialize revision in xml
             <version name={version.version.toVersionString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
         }
-      }</versions>
+      }</versions> ++
+      SecurityXml.toXml(activeTechnique)
     )
   }
 }
@@ -206,7 +222,7 @@ class DirectiveSerialisationImpl(xmlVersion: String) extends DirectiveSerialisat
       directive:           Directive
   ): Elem = {
     createTrimedElem(XML_TAG_DIRECTIVE, xmlVersion)(
-      <id>{directive.id.serialize}</id>
+      (<id>{directive.id.serialize}</id>
       :: <displayName>{directive.name}</displayName>
       :: <techniqueName>{ptName.value}</techniqueName>
       :: <techniqueVersion>{directive.techniqueVersion.serialize}</techniqueVersion>
@@ -218,7 +234,7 @@ class DirectiveSerialisationImpl(xmlVersion: String) extends DirectiveSerialisat
       :: <isSystem>{directive.isSystem}</isSystem>
       :: <policyMode>{directive.policyMode.map(_.name).getOrElse("default")}</policyMode>
       :: TagsXml.toXml(directive.tags)
-      :: Nil
+      :: Nil) ++ SecurityXml.toXml(directive)
     )
   }
 }
@@ -232,9 +248,10 @@ class NodeGroupCategorySerialisationImpl(xmlVersion: String) extends NodeGroupCa
   def serialise(ngc: NodeGroupCategory): Elem = {
     createTrimedElem(XML_TAG_NODE_GROUP_CATEGORY, xmlVersion)(
       <id>{ngc.id.value}</id>
-        <displayName>{ngc.name}</displayName>
-        <description>{ngc.description}</description>
-        <isSystem>{ngc.isSystem}</isSystem>
+      <displayName>{ngc.name}</displayName>
+      <description>{ngc.description}</description>
+      <isSystem>{ngc.isSystem}</isSystem> ++
+      SecurityXml.toXml(ngc)
     )
   }
 }
@@ -263,7 +280,8 @@ class NodeGroupSerialisationImpl(xmlVersion: String) extends NodeGroupSerialisat
           // Parsing that back from xml would be tedious.
           <property><name>{p.name}</name><value>{StringEscapeUtils.escapeHtml4(p.valueAsString)}</value></property>
         }
-      }</properties>
+      }</properties> ++
+      SecurityXml.toXml(group)
     )
   }
 }
@@ -300,6 +318,7 @@ class GlobalParameterSerialisationImpl(xmlVersion: String) extends GlobalParamet
       ++ { param.inheritMode.map(m => <inheritMode>{m.value}</inheritMode>).getOrElse(NodeSeq.Empty) } ++
       <description>{param.description}</description>
       ++ { param.provider.map(p => <provider>{p.value}</provider>).getOrElse(NodeSeq.Empty) }
+      ++ { SecurityXml.toXml(param) }
     )
   }
 }

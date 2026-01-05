@@ -50,9 +50,9 @@ import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.TokenGenerator
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.ldap.JsonApiAcl
 import com.normation.rudder.rest.data.NewRestApiAccount.transformNewRestApiAccount
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
@@ -138,9 +138,6 @@ trait ApiAccountCodecs extends DateTimeCodecs {
   implicit val authorizationTypeEncoder:    JsonEncoder[ApiAuthorizationKind] = JsonEncoder.string.contramap(_.name)
   implicit val decoderApiAuthorizationKind: JsonDecoder[ApiAuthorizationKind] =
     JsonDecoder.string.mapOrFail(ApiAuthorizationKind.parse)
-  implicit val encoderNodeSecurityContext:  JsonEncoder[NodeSecurityContext]  = JsonEncoder.string.contramap(_.serialize)
-  implicit val decoderNodeSecurityContext:  JsonDecoder[NodeSecurityContext]  =
-    JsonDecoder.string.mapOrFail(s => NodeSecurityContext.parse(Some(s)).left.map(_.fullMsg))
 }
 
 sealed trait ApiAccountDetails {
@@ -153,7 +150,7 @@ sealed trait ApiAccountDetails {
   def expirationDate:      Option[ZonedDateTime]        // this is expiration for the whole account
   def tokenState:          ApiTokenState
   def tokenGenerationDate: Option[ZonedDateTime]        // this is the token generation date, mapped to apiTokenCreationTimestamp
-  def tenants:             NodeSecurityContext
+  def tenants:             TenantAccessGrant
   def authorizationType:   Option[ApiAuthorizationKind] // ApiAuthorization.kind
   def acl:                 Option[JsonApiAcl]
 }
@@ -187,7 +184,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       expirationDate:      Option[ZonedDateTime],
       tokenState:          ApiTokenState,
       tokenGenerationDate: Option[ZonedDateTime],
-      tenants:             NodeSecurityContext,
+      tenants:             TenantAccessGrant,
       authorizationType:   Option[ApiAuthorizationKind],
       acl:                 Option[JsonApiAcl]
   ) extends ApiAccountDetails
@@ -203,7 +200,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       tokenState:          ApiTokenState,
       tokenGenerationDate: Option[ZonedDateTime],
       token:               ClearTextSecret,
-      tenants:             NodeSecurityContext,
+      tenants:             TenantAccessGrant,
       authorizationType:   Option[ApiAuthorizationKind],
       acl:                 Option[JsonApiAcl]
   ) extends ApiAccountDetails
@@ -288,7 +285,7 @@ final case class NewRestApiAccount(
     name:              ApiAccountName, // used in event log to know who did actions.
     description:       Option[String],
     status:            ApiAccountStatus,
-    tenants:           NodeSecurityContext,
+    tenants:           TenantAccessGrant,
     generateToken:     Option[Boolean],
     expirationPolicy:  Option[ApiAccountExpirationPolicy],
     expirationDate:    Option[ZonedDateTime],
@@ -333,7 +330,7 @@ final case class UpdateApiAccount(
     name:              Option[ApiAccountName],
     description:       Option[String],
     status:            Option[ApiAccountStatus],
-    tenants:           Option[NodeSecurityContext],
+    tenants:           Option[TenantAccessGrant],
     expirationPolicy:  Option[ApiAccountExpirationPolicy],
     expirationDate:    Option[ZonedDateTime],
     authorizationType: Option[ApiAuthorizationKind],

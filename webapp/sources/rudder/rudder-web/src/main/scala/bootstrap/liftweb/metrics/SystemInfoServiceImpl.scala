@@ -46,7 +46,6 @@ import com.normation.plugins.GlobalPluginsLicenseLimits
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.metrics.FetchDataService
 import com.normation.rudder.metrics.JvmInfo
 import com.normation.rudder.metrics.PrivateSystemInfo
@@ -56,6 +55,7 @@ import com.normation.rudder.metrics.SystemInfo
 import com.normation.rudder.metrics.SystemInfoService
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.rudder.tenants.QueryContext
 import scala.collection.MapView
 
 class SystemInfoServiceImpl(

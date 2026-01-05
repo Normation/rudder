@@ -39,11 +39,11 @@ package com.normation.rudder.batch
 
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.Constants.TECHLIB_MINIMUM_UPDATE_INTERVAL
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
 import net.liftweb.actor.LAPinger
@@ -114,11 +114,13 @@ class CheckTechniqueLibrary(
         } // don't need an else part : we have to do nothing and the else return Unit
 
         logger.trace("***** Start a new update")
-        policyPackageUpdater.update(
-          ModificationId(uuidGen.newUuid),
-          actor,
-          Some(s"Automatic batch update at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime())}")
-        ) match {
+        // we have a system context, but we want to have the actor who triggered generation recorded
+        implicit val cc = ChangeContext
+          .newForRudder(
+            Some(s"Automatic batch update at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime())}")
+          )
+          .copy(actor = actor)
+        policyPackageUpdater.update() match {
           case Full(t) =>
             logger.trace(s"***** udpate successful for ${t.size} techniques")
             // Update techniques compilation status even if there are no updated techniques : compilation status may have been updated

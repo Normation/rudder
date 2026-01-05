@@ -42,9 +42,9 @@ import com.normation.rudder.domain.logger.NodePropertiesLoggerPure
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.tenants.QueryContext
 import com.typesafe.config.ConfigRenderOptions
 
 /*
@@ -70,7 +70,7 @@ class NodePropertiesServiceImpl(
   override def updateAll(): IOResult[Unit] = {
     for {
       params      <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
-      groups      <- roNodeGroupRepository.getFullGroupLibrary()
+      groups      <- roNodeGroupRepository.getFullGroupLibrary()(using QueryContext.systemQC)
       nodes       <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.values)
       mergedGroups = {
         groups.allGroups.map {

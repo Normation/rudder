@@ -38,11 +38,9 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.errors.IOResult
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
@@ -51,7 +49,6 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
@@ -108,7 +105,6 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup.*
 
   private val userPropertyService = RudderConfig.userPropertyService
-  private val uuidGen             = RudderConfig.stringUuidGenerator
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 
@@ -267,17 +263,7 @@ class RuleModificationValidationPopup(
                     CurrentUser.actor,
                     crReasons.map(_.get)
                   )
-          id   <- workflowService
-                    .startWorkflow(cr)(using
-                      ChangeContext(
-                        ModificationId(uuidGen.newUuid),
-                        CurrentUser.actor,
-                        Instant.now(),
-                        crReasons.map(_.get),
-                        None,
-                        CurrentUser.nodePerms
-                      )
-                    )
+          id   <- workflowService.startWorkflow(cr)(using CurrentUser.changeContext(crReasons.map(_.get)))
         } yield {
           id
         }

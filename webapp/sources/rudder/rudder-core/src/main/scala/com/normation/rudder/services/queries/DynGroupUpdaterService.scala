@@ -43,10 +43,10 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.*
 
 /**
@@ -129,10 +129,10 @@ class DynGroupUpdaterServiceImpl(
       dynGroups  = allGroups.filter(_.isDynamic)
       result    <- com.normation.utils.Control.traverse(dynGroups) { group =>
                      for {
-                       newGroup   <- computeDynGroup(group)(using cc.toQuery)
+                       newGroup   <- computeDynGroup(group)(using cc.toQC)
                        savedGroup <-
                          woNodeGroupRepository
-                           .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
+                           .updateDynGroupNodes(newGroup)
                            .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
                      } yield {
                        DynGroupDiff(newGroup, group)
@@ -148,10 +148,10 @@ class DynGroupUpdaterServiceImpl(
   )(implicit cc: ChangeContext): Box[DynGroupDiff] = {
     val timePreUpdate = System.currentTimeMillis
     for {
-      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(using cc.toQuery).toBox
-      newGroup       <- computeDynGroup(group)(using cc.toQuery)
+      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(using cc.toQC).toBox
+      newGroup       <- computeDynGroup(group)(using cc.toQC)
       savedGroup     <- woNodeGroupRepository
-                          .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
+                          .updateDynGroupNodes(newGroup)
                           .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"
       timeGroupUpdate = (System.currentTimeMillis - timePreUpdate)
       _               = DynamicGroupLoggerPure.Timing.logEffect.trace(

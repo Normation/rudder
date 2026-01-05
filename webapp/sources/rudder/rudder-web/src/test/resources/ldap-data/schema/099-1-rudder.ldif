@@ -200,6 +200,13 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.231
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch )
+### Policy types, used to replace and extends isSystem for technique
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.232
+  NAME 'policyTypes'
+  DESC 'What kind of compliance that policy checks'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 ### Tags key=value, stored in JSON
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.235
   NAME 'serializedTags'
@@ -343,7 +350,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.10
   SUP top
   STRUCTURAL
   MUST ( groupCategoryId $ cn )
-  MAY ( description $ isSystem ) )
+  MAY ( description $ isSystem $ securityTag) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.11
   NAME 'nodeGroup'
   DESC 'A node group representation'
@@ -352,14 +359,14 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.11
   MUST ( nodeGroupId $
   cn $ isDynamic )
   MAY ( nodeId $ description $ jsonNodeGroupQuery $
-  isEnabled $ isSystem $ serializedProperty ) )
+  isEnabled $ isSystem $ serializedProperty $ securityTag) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.12
   NAME 'specialRuleTarget'
   DESC 'A special target (other than a nodeGroup), for example: all servers'
   SUP top
   STRUCTURAL
   MUST ( ruleTarget $ cn )
-  MAY (  description $ isEnabled $ isSystem ) )
+  MAY (  description $ isEnabled $ isSystem $ securityTag) )
 ### active technique library ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.20
   NAME 'activeTechniqueLibraryVersion'
@@ -373,14 +380,14 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.21
   SUP top
   STRUCTURAL
   MUST ( techniqueCategoryId $ cn )
-  MAY ( description $ isSystem ) )
+  MAY ( description $ isSystem $ securityTag) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.22
   NAME 'activeTechnique'
   DESC 'The Rudder category'
   SUP top
   STRUCTURAL
   MUST ( activeTechniqueId $ techniqueId $ acceptationTimestamp)
-  MAY ( isEnabled $ isSystem ) )
+  MAY ( isEnabled $ isSystem $ policyTypes $ securityTag) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   NAME 'directive'
   DESC 'Rudder Directive (real)'
@@ -388,7 +395,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $
-  directivePriority $ directiveVariable $ policyMode $ serializedTags) )
+  directivePriority $ directiveVariable $ policyMode $ serializedTags $ securityTag) )
 ### rules ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   NAME 'rule'
@@ -399,14 +406,14 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   MAY ( cn $ description $ longDescription $
   isEnabled $ isSystem $
   ruleTarget $ serial $
-  directiveId $ tag $ serializedTags ) )
+  directiveId $ tag $ serializedTags $ securityTag) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.31
   NAME 'ruleCategory'
   DESC 'Rule categories'
   SUP top
   STRUCTURAL
   MUST ( ruleCategoryId $ cn )
-  MAY ( description $ isSystem ) )
+  MAY ( description $ isSystem $ securityTag) )
 #
 # Node configurations (structured hashes about node configuration)
 #
@@ -438,7 +445,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.120
   SUP top
   STRUCTURAL
   MUST ( parameterName )
-  MAY ( parameterValue $ description $ propertyProvider) )
+  MAY ( parameterValue $ description $ propertyProvider $ securityTag) )
 #
 # Application properties
 #

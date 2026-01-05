@@ -27,9 +27,8 @@ package com.normation
 import _root_.zio.*
 import com.normation.box.*
 import com.normation.errors.IOResult
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.zio.*
 import java.io.File
 import net.liftweb.actor.LAScheduler
@@ -48,7 +47,7 @@ object TestAccumulate {
     println(s"Test starts with PID ${pid} on ${java.lang.Runtime.getRuntime().availableProcessors()} cores")
     println("start")
 
-    LAScheduler.execute(() => data.techniqueRepository.update(ModificationId("plop"), EventActor("plop"), None))
+    LAScheduler.execute(() => data.techniqueRepository.update()(using ChangeContext.newForRudder()))
     // on ZIO blocking threadpool
     (1 to 10).foreach(i => prog(s"zio $i").runNow)
     // on Lift threadpool

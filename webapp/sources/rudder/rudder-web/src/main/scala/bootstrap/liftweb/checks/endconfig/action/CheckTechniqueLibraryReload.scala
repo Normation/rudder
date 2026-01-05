@@ -40,8 +40,7 @@ package bootstrap.liftweb.checks.endconfig.action
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import java.io.File
 import net.liftweb.common.*
@@ -68,11 +67,7 @@ class CheckTechniqueLibraryReload(
       if (file.exists) {
         // File exists, reload
         BootstrapLogger.logEffect.info(s"Flag file '${forceReloadFlagPath}' found, reload Technique library now")
-        techniqueLibUpdater.update(
-          ModificationId(uuidGen.newUuid),
-          RudderEventActor,
-          Some(s"Reload Technique library at start up")
-        ) match {
+        techniqueLibUpdater.update()(using ChangeContext.newForRudder(Some(s"Reload Technique library at start up"))) match {
           case Full(_) =>
             // Success! now try deleting the flag
             BootstrapLogger.logEffect.info(

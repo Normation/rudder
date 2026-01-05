@@ -43,7 +43,7 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
       nodeReportingConfiguration = ReportingConfiguration(None, None),
       properties = List(),
       policyMode = None,
-      securityTag = None
+      security = None
     )
   }
 
@@ -79,7 +79,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     None,
     isDynamic = false,
     serverList = Set(),
-    _isEnabled = true
+    _isEnabled = true,
+    isSystem = false,
+    security = None
   )
   val g2: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("2")),
@@ -89,7 +91,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     None,
     isDynamic = false,
     serverList = Set(NodeId("root")),
-    _isEnabled = true
+    _isEnabled = true,
+    isSystem = false,
+    security = None
   )
   val g3: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("3")),
@@ -99,7 +103,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     None,
     isDynamic = false,
     serverList = nodeIds.filter(_.value.toInt == 2),
-    _isEnabled = true
+    _isEnabled = true,
+    isSystem = false,
+    security = None
   )
   val g4: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("4")),
@@ -109,7 +115,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     None,
     isDynamic = false,
     serverList = nodeIds.filter(_.value.toInt != 2),
-    _isEnabled = true
+    _isEnabled = true,
+    isSystem = false,
+    security = None
   )
   val g5: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("5")),
@@ -119,7 +127,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     None,
     isDynamic = false,
     serverList = nodeIds.filter(_.value.toInt == 3),
-    _isEnabled = true
+    _isEnabled = true,
+    isSystem = false,
+    security = None
   )
   val g6: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("6")),
@@ -129,7 +139,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     None,
     isDynamic = false,
     serverList = nodeIds.filter(_.value.toInt == 5),
-    _isEnabled = true
+    _isEnabled = true,
+    isSystem = false,
+    security = None
   )
 
   val groups: Set[NodeGroup] = Set(g1, g2, g3, g4, g5, g6)
@@ -143,7 +155,8 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
         "",
         "",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       )
     }))
     .toList
@@ -182,7 +195,9 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     "",
     "",
     Nil,
-    fullRuleTargetInfos
+    fullRuleTargetInfos,
+    isSystem = false,
+    security = None
   )
 
   val allTargets: Set[RuleTarget] = (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))

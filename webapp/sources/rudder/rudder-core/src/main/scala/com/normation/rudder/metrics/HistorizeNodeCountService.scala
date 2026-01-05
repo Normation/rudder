@@ -43,11 +43,11 @@ import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.nodes.NodeState.Ignored
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit

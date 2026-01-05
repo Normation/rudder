@@ -40,9 +40,8 @@ package com.normation.cfclerk.services.impl
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.*
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
 import java.io.InputStream
@@ -83,7 +82,7 @@ class TechniqueRepositoryImpl(
         val msg =
           "Error when loading the previously saved policy template library. Trying to update to last library available to overcome the error"
         logger.error(msg)
-        this.update(ModificationId(uuidGen.newUuid), CfclerkEventActor, Some(msg))
+        this.update()(using ChangeContext.newForRudder(Some(msg)))
         techniqueReader.readTechniques
     }
   }
@@ -98,11 +97,7 @@ class TechniqueRepositoryImpl(
     callbacks = (callbacks :+ callback).sortBy(_.order)
   }
 
-  override def update(
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+  override def update()(implicit cc: ChangeContext): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
     import TechniqueCategoryModType.*
     try {
       val modifiedPackages = techniqueReader.getModifiedTechniques
@@ -193,7 +188,7 @@ class TechniqueRepositoryImpl(
 
         val res = Control.bestEffort(callbacks) { callback =>
           try {
-            callback.updatedTechniques(techniqueInfosCache.gitRev, modifiedPackages, updatedCategories, modId, actor, reason)
+            callback.updatedTechniques(techniqueInfosCache.gitRev, modifiedPackages, updatedCategories)
           } catch {
             case e: Exception =>
               Failure(

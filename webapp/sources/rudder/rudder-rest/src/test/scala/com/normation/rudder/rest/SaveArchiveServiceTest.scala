@@ -45,7 +45,6 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.errors.IOResult
 import com.normation.rudder.MockRules
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
@@ -54,6 +53,7 @@ import com.normation.rudder.rest.lift.SaveArchiveService
 import com.normation.rudder.rest.lift.SaveArchiveServicebyRepo
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
 import java.io.InputStream
@@ -74,7 +74,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
   val mockRules = new MockRules()
 
   val rootRuleCategory            = mockRules.rootRuleCategory
-  val ruleCategory2               = RuleCategory(RuleCategoryId("category2"), "Category 2", "", Nil)
+  val ruleCategory2               = RuleCategory(RuleCategoryId("category2"), "Category 2", "", Nil, security = None)
   val rootRuleCategoryWithCat2    = {
     rootRuleCategory.copy(childs = List(ruleCategory2))
   }
@@ -86,7 +86,8 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
       RuleCategoryId("parent-of-nested-category2"),
       "New parent for category 2",
       "",
-      List(ruleCategory2)
+      List(ruleCategory2),
+      security = None
     )
     rootRuleCategory.copy(childs = rootRuleCategory.childs :+ newCat)
   }
@@ -167,7 +168,7 @@ private object SaveArchiveServiceTest {
 
   private val dummyTechniqueReader = new TechniqueReader {
     override def readTechniques: TechniquesInfo = TechniquesInfo(
-      RootTechniqueCategory("name", "description", Set.empty, SortedSet.empty),
+      RootTechniqueCategory("name", "description", Set.empty, SortedSet.empty, isSystem = false, security = None),
       "rev",
       Map.empty,
       Map.empty,

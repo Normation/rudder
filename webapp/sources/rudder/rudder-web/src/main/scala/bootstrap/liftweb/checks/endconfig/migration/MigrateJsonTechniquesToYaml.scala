@@ -48,6 +48,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import zio.*
@@ -131,14 +132,11 @@ class MigrateJsonTechniquesToYaml(
                           }
                         }
       // Update technique library once all technique are updated
-      libUpdate      <- techLibUpdate
-                          .update(
-                            ModificationId(uuidGen.newUuid),
-                            RudderEventActor,
-                            Some(s"Update Technique library after updating all techniques at start up")
-                          )
-                          .toIO
-                          .chainError(s"An error occurred during techniques update after update of all techniques from the editor")
+      libUpdate      <-
+        techLibUpdate
+          .update()(using ChangeContext.newForRudder(Some(s"Update Technique library after updating all techniques at start up")))
+          .toIO
+          .chainError(s"An error occurred during techniques update after update of all techniques from the editor")
       // Update compilation status after every library change
       _              <- techniqueCompilationStatusService.get().unless(libUpdate.isEmpty)
 

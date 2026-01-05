@@ -40,6 +40,8 @@ package com.normation.rudder.domain.policies
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.ldap.sdk.GeneralizedTime
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import zio.json.*
@@ -66,10 +68,25 @@ final case class ActiveTechnique(
     acceptationDatetimes: AcceptationDateTime,
     directives:           List[DirectiveUid] = Nil,
     _isEnabled:           Boolean = true,
-    policyTypes:          PolicyTypes = PolicyTypes.rudderBase
+    policyTypes:          PolicyTypes = PolicyTypes.rudderBase,
+    // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
+    security:             Option[SecurityTag] // optional for backward compat. None means "no tenant"
 ) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || policyTypes.isSystem
+}
+
+object ActiveTechnique {
+  given HasSecurityTag[ActiveTechnique] with {
+    extension (a: ActiveTechnique) {
+      override def security: Option[SecurityTag] = a.security
+
+      override def debugId: String = a.id.value
+
+      override def updateSecurityContext(security: Option[SecurityTag]): ActiveTechnique =
+        a.copy(security = security)
+    }
+  }
 }
 
 final case class AcceptationDateTime(versions: Map[TechniqueVersion, DateTime]) {

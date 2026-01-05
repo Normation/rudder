@@ -38,9 +38,10 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.tenants.SecurityTag
 
 /**
- * That file define "diff" object between rules.
+ * That file defines "diff" object between techniques.
  */
 
 sealed trait TechniqueDiff
@@ -54,7 +55,8 @@ final case class DeleteTechniqueDiff(
 ) extends TechniqueDiff
 
 final case class ModifyTechniqueDiff(
-    id:           ActiveTechniqueId,
-    name:         TechniqueName,
-    modIsEnabled: Option[SimpleDiff[Boolean]] = None
+    id:             ActiveTechniqueId,
+    name:           TechniqueName,
+    modIsEnabled:   Option[SimpleDiff[Boolean]] = None,
+    modSecurityTag: Option[SimpleDiff[Option[SecurityTag]]] = None
 ) extends TechniqueDiff

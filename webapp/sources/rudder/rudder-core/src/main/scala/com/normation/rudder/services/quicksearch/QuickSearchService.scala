@@ -45,9 +45,9 @@ import com.normation.ldap.sdk.RoLDAPConnection
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.tenants.QueryContext
 import zio.ZIO
 
 /**

@@ -27,15 +27,18 @@ import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.TenantId
 import net.liftweb.common.Full
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.xml.Elem
+import zio.Chunk
 
 /*
  * Test the cache behaviour
@@ -83,6 +86,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     <isSystem>false</isSystem>
     <policyMode>default</policyMode>
     <tags/>
+    <security><tenants><tenant id="zoneA"/></tenants></security>
   </directive>
 
   val directive: Directive = Directive(
@@ -96,7 +100,8 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     5,
     _isEnabled = true,
     isSystem = false,
-    tags = Tags(Set())
+    tags = Tags(Set()),
+    security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
   )
 
   "when unserializing, we" should {
@@ -169,7 +174,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
           tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
-          tenants = NodeSecurityContext.All
+          tenants = TenantAccessGrant.All
         )
       )
     )
@@ -223,7 +228,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
           tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
-          tenants = NodeSecurityContext.All
+          tenants = TenantAccessGrant.All
         )
       )
     )
@@ -279,7 +284,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
           tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
-          tenants = NodeSecurityContext.All
+          tenants = TenantAccessGrant.All
         )
       )
     )
@@ -311,7 +316,8 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       Some(Query(QueryReturnType.NodeReturnType, CriterionComposition.And, Identity, List())),
       isDynamic = true,
       serverList = Set(),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val xml    = nodeGroupSerialisation.serialise(group)
@@ -334,7 +340,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       </nodeGroupCategory>
     )
 
-    res must beRight(NodeGroupCategory(NodeGroupCategoryId(id), dn, d, Nil, Nil, true))
+    res must beRight(NodeGroupCategory(NodeGroupCategoryId(id), dn, d, Nil, Nil, true, security = None))
   }
 
 }

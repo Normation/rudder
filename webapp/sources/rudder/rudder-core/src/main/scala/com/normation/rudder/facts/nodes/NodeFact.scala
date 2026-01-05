@@ -39,14 +39,8 @@ package com.normation.rudder.facts.nodes
 
 import cats.syntax.traverse.*
 import com.normation.box.*
-import com.normation.errors.Inconsistency
-import com.normation.errors.PureResult
-import com.normation.errors.RudderError
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.rudder.apidata.NodeDetailLevel
-import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.Node
@@ -61,7 +55,9 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports.*
-import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
@@ -118,15 +114,6 @@ final case class RudderAgent(
     capabilities:                 Chunk[AgentCapability]
 ) {
   def toAgentInfo: AgentInfo = AgentInfo(agentType, Some(version), securityToken, capabilities.toSet)
-}
-
-// A security token for now is just a a list of tags denoting tenants
-// That security tag is not exposed in proxy service
-final case class SecurityTag(tenants: Chunk[TenantId])
-
-// default serialization for security tag. Be careful, changing that impacts external APIs.
-object SecurityTag {
-  implicit val codecSecurityTag: JsonCodec[SecurityTag] = DeriveJsonCodec.gen
 }
 
 // rudder settings for that node
@@ -317,6 +304,16 @@ object MinimalNodeFactInterface {
 }
 
 object NodeFact {
+  given HasSecurityTag[NodeFact] with {
+    extension (a: NodeFact) {
+      override def security: Option[SecurityTag] = a.rudderSettings.security
+
+      override def debugId: String = a.id.value
+
+      override def updateSecurityContext(security: Option[SecurityTag]): NodeFact =
+        a.modify(_.rudderSettings.security).setTo(security)
+    }
+  }
 
   /*
    * Check if the node fact are the same.
@@ -593,7 +590,7 @@ object NodeFact {
         nodeInfo.state,
         nodeInfo.policyMode,
         nodeInfo.policyServerId,
-        nodeInfo.node.securityTag
+        nodeInfo.node.security
       ),
       RudderAgent(
         nodeInfo.agentsName(0).agentType,
@@ -1012,6 +1009,14 @@ final case class CoreNodeFact(
 ) extends MinimalNodeFactInterface
 
 object CoreNodeFact {
+  given HasSecurityTag[CoreNodeFact] with {
+    extension (a: CoreNodeFact) {
+      override def security:                                             Option[SecurityTag] = a.rudderSettings.security
+      override def debugId:                                              String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): CoreNodeFact        =
+        a.modify(_.rudderSettings.security).setTo(security)
+    }
+  }
 
   def updateNode(node: CoreNodeFact, n: Node): CoreNodeFact = {
     import com.softwaremill.quicklens.*
@@ -1631,172 +1636,6 @@ object NodeFactChangeEvent {
     override def debugString: String = s"[${name}] node '${nodeId.value}' "
     override def debugDiff:   String = debugString
   }
-}
-
-/*
- * A change context groups together information needed to track a change: who, when, why
- */
-final case class ChangeContext(
-    modId:     ModificationId,
-    actor:     EventActor,
-    eventDate: Instant,
-    message:   Option[String],
-    actorIp:   Option[String],
-    nodePerms: NodeSecurityContext
-)
-
-object ChangeContext {
-  implicit class ChangeContextImpl(cc: ChangeContext) {
-    def toQuery: QueryContext = QueryContext(cc.actor, cc.nodePerms)
-  }
-
-  def newForRudder(msg: Option[String] = None, actorIp: Option[String] = None): ChangeContext = {
-    ChangeContext(
-      ModificationId(java.util.UUID.randomUUID.toString),
-      eventlog.RudderEventActor,
-      Instant.now(),
-      msg,
-      actorIp,
-      NodeSecurityContext.All
-    )
-  }
-}
-
-/*
- * A query context groups together information that are needed to either filter out
- * some result regarding a security context, or to enhance query efficiency by limiting
- * the item to retrieve. It's granularity is at the item level, not attribute level. For that
- * latter need, by-item solution need to be used (see for ex: SelectFacts for nodes)
- */
-final case class QueryContext(
-    actor:     EventActor,
-    nodePerms: NodeSecurityContext
-)
-
-object QueryContext {
-  // for test
-  implicit val testQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
-
-  // for place that didn't get a real node security context yet
-  implicit val todoQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
-
-  // for system queries (when rudder needs to look-up things)
-  implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
-}
-
-/*
- * People can access nodes based on a security context.
- * For now, there is only three cases:
- * - access all or none nodes, whatever properties the node has
- * - access nodes only if they belongs to one of the listed tenants.
- */
-sealed trait NodeSecurityContext {
-  def value:     String
-  // serialize into a string that can be parsed by parse `NodeSecurityContext.parse`
-  def serialize: String
-}
-object NodeSecurityContext       {
-
-  // a context that can see all nodes whatever their security tags
-  case object All                                      extends NodeSecurityContext {
-    override val value = "all"
-    override def serialize: String = "*"
-  }
-  // a security context that can't see any node. Very good for performance.
-  case object None                                     extends NodeSecurityContext {
-    override val value     = "none"
-    override def serialize = "-"
-  }
-  // a security context associated with a list of tenants. If the node share at least one of the
-  // tenants, if can be seen. Be careful, it's really just non-empty interesting (so that adding
-  // more tag here leads to more nodes, not less).
-  final case class ByTenants(tenants: Chunk[TenantId]) extends NodeSecurityContext {
-    override val value: String = s"tags:[${tenants.map(_.value).mkString(", ")}]"
-    override def serialize = tenants.map(_.value).mkString(",")
-  }
-
-  /*
-   * Tenants name are only alphanumeric (mandatory first) + '-' + '_' with two special cases:
-   * - '*' means "all"
-   * - '-' means "none"
-   * None means "all" for compat
-   */
-  def parse(tenantString: Option[String], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
-    parseList(tenantString.map(_.split(",").toList))
-  }
-
-  def parseList(tenants: Option[List[String]], ignoreMalformed: Boolean = true): PureResult[NodeSecurityContext] = {
-    tenants match {
-      case scala.None => Right(NodeSecurityContext.All) // for compatibility with previous versions
-      case Some(ts)   =>
-        (ts
-          .foldLeft(Right(NodeSecurityContext.ByTenants(Chunk.empty)): PureResult[NodeSecurityContext]) {
-            case (x: Left[RudderError, NodeSecurityContext], _) => x
-            case (Right(t1), t2)                                =>
-              t2.strip() match {
-                case "*"                       => Right(t1.plus(NodeSecurityContext.All))
-                case "-"                       => Right(NodeSecurityContext.None)
-                case TenantId.checkTenantId(v) => Right(t1.plus(NodeSecurityContext.ByTenants(Chunk(TenantId(v)))))
-                case x                         =>
-                  if (ignoreMalformed) Right(t1.plus(NodeSecurityContext.ByTenants(Chunk.empty)))
-                  else {
-                    Left(
-                      Inconsistency(
-                        s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
-                        s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
-                      )
-                    )
-                  }
-              }
-          })
-          .map {
-            case NodeSecurityContext.ByTenants(c) if (c.isEmpty) => NodeSecurityContext.None
-            case x                                               => x
-          }
-    }
-  }
-
-  /*
-   * check if the given security context allows to access items marked with
-   * that tag
-   */
-  implicit class NodeSecurityContextExt(val nsc: NodeSecurityContext) extends AnyVal {
-    def isNone: Boolean = {
-      nsc == None
-    }
-
-    // can that security tag be seen in that context, given the set of known tenants?
-    def canSee(nodeTag: SecurityTag)(implicit tenants: Set[TenantId]): Boolean = {
-      nsc match {
-        case All           => true
-        case None          => false
-        case ByTenants(ts) => ts.exists(s => nodeTag.tenants.exists(_ == s) && tenants.contains(s))
-      }
-    }
-
-    def canSee(optTag: Option[SecurityTag])(implicit tenants: Set[TenantId]): Boolean = {
-      optTag match {
-        case Some(t)    => canSee(t)
-        case scala.None => nsc == NodeSecurityContext.All // only admin can see private nodes
-      }
-    }
-
-    def canSee(n: MinimalNodeFactInterface)(implicit tenants: Set[TenantId]): Boolean = {
-      canSee(n.rudderSettings.security)
-    }
-
-    // NodeSecurityContext is a lattice
-    def plus(nsc2: NodeSecurityContext): NodeSecurityContext = {
-      (nsc, nsc2) match {
-        case (None, _)                      => None
-        case (_, None)                      => None
-        case (All, _)                       => All
-        case (_, All)                       => All
-        case (ByTenants(c1), ByTenants(c2)) => ByTenants((c1 ++ c2).distinctBy(_.value))
-      }
-    }
-  }
-
 }
 
 final case class NodeFactChangeEventCC(

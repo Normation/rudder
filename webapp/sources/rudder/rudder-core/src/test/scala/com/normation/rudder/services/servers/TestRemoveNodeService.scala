@@ -40,8 +40,8 @@ import better.files.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import java.time.Instant
 import org.joda.time.DateTime
@@ -100,12 +100,12 @@ class TestRemoveNodeService extends Specification with AfterAll {
   val cleanUp = new CleanUpNodePolicyFiles(varRudderShare.pathAsString)
   implicit val testChangeContext: ChangeContext = {
     ChangeContext(
-      ModificationId("test-mod-id"),
       EventActor("test"),
+      QueryContext.testQC.accessGrant,
+      ModificationId("test-mod-id"),
       Instant.now(),
       None,
-      None,
-      QueryContext.testQC.nodePerms
+      None
     )
   }
 

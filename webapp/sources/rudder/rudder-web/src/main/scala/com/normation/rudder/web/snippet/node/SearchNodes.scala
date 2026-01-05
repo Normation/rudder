@@ -46,7 +46,7 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
@@ -83,7 +83,7 @@ import zio.json.*
 class SearchNodes extends StatefulSnippet with Loggable {
 
   private val queryParser         = RudderConfig.cmdbQueryParser
-  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val linkUtil            = RudderConfig.linkUtil
 
   // the popup component to create the group
@@ -144,7 +144,8 @@ class SearchNodes extends StatefulSnippet with Loggable {
               isDynamic = true,
               serverList = serverList.openOr(Seq[CoreNodeFact]()).map(_.id).toSet,
               _isEnabled = true,
-              isSystem = false
+              isSystem = false,
+              security = CurrentUser.nodePerms.toSecurityTag
             )
           ),
           rootCategory = groupLibrary,

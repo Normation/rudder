@@ -58,8 +58,8 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.tenants.QueryContext
 import com.unboundid.ldap.sdk.DereferencePolicy
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldap.sdk.LDAPSearchException

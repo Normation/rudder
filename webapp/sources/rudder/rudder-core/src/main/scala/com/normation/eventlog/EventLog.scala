@@ -20,7 +20,7 @@
 
 package com.normation.eventlog
 
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
 import io.scalaland.chimney.Transformer
 import java.time.Instant

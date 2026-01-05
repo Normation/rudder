@@ -1,5 +1,15 @@
 # groups
 
+
+dn: groupCategoryId=category1,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: groupCategory
+objectClass: top
+cn: A group category
+groupCategoryId: category1
+isSystem: FALSE
+securityTag: {"tenants": ["zoneA"]}
+
+
 dn: nodeGroupId=test-group-node1,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
 objectClass: top
@@ -8,8 +18,9 @@ isDynamic: TRUE
 nodeGroupId: test-group-node1
 isEnabled: TRUE
 isSystem: FALSE
-jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node1"}}]}
+jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node1"}]}
 nodeId: node1
+securityTag: {"tenants": ["zoneA"]}
 
 dn: nodeGroupId=test-group-node2,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: nodeGroup
@@ -19,7 +30,7 @@ isDynamic: TRUE
 nodeGroupId: test-group-node2
 isEnabled: TRUE
 isSystem: FALSE
-jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}}]}
+jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node2"}]}
 nodeId: node2
 
 dn: nodeGroupId=test-group-node12,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
@@ -30,7 +41,7 @@ isDynamic: TRUE
 nodeGroupId: test-group-node12
 isEnabled: TRUE
 isSystem: FALSE
-jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node1"}},{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}}]}
+jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node1"},{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node2"}]}
 nodeId: node1
 nodeId: node2
 
@@ -42,7 +53,7 @@ isDynamic: TRUE
 nodeGroupId: test-group-node23
 isEnabled: TRUE
 isSystem: FALSE
-jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node2"}},{"objectType":"node",attribute":"nodeId", "comparator":"eq", "value":"node3"}}]}
+jsonNodeGroupQuery: {"select":"node","composition":"Or","where":[{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node2"},{"objectType":"node","attribute":"nodeId", "comparator":"eq", "value":"node3"}]}
 nodeId: node2
 nodeId: node3
 

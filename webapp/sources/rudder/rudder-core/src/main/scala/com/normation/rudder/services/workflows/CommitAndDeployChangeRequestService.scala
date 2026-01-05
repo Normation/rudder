@@ -52,13 +52,13 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.XmlSerializer
 import com.normation.rudder.services.marshalling.XmlUnserializer
 import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
@@ -120,7 +120,7 @@ class CommitAndDeployChangeRequestServiceImpl(
   private val logger = ChangeRequestLoggerPure
 
   def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest] = {
-    implicit val qc: QueryContext = cc.toQuery
+    implicit val qc: QueryContext = cc.toQC
 
     for {
       _                <- workflowEnabled()
@@ -341,27 +341,27 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
     }
 
-    def doNodeGroupChange(change: NodeGroupChanges)(implicit qc: QueryContext): Box[TriggerDeploymentDiff] = {
+    def doNodeGroupChange(change: NodeGroupChanges)(implicit qc: QueryContext): IOResult[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change.toBox
+        change <- change.changes.change.toIO
         diff   <- change.diff match {
                     case DeleteNodeGroupDiff(n)   =>
                       dependencyService
-                        .cascadeDeleteTarget(GroupTarget(n.id), modId, change.actor, change.reason)
+                        .cascadeDeleteTarget(GroupTarget(n.id))
                         .map(_ => DeleteNodeGroupDiff(n))
                     case AddNodeGroupDiff(n)      =>
-                      Failure("You should not be able to create a group with a change request")
+                      Inconsistency("You should not be able to create a group with a change request").fail
                     case ModifyToNodeGroupDiff(n) =>
                       // we first need to refresh the node list if it's a dynamic group
-                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(using qc) else Full(n)
+                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(using qc).toIO else n.succeed
 
                       // If we could get a nodeList, then we apply the change, else we bubble up the error
                       group.flatMap { resultingGroup =>
                         // if the update returns None, then we return the original modification object
                         woNodeGroupRepo
-                          .update(resultingGroup, modId, change.actor, change.reason)
+                          .update(resultingGroup)
                           .map(_.getOrElse(ModifyToNodeGroupDiff(n)))
-                          .toBox
+
                       }
                   }
       } yield {
@@ -495,7 +495,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     }
 
     val params     = bestEffort(sortedParam)(param => doParamChange(param))
-    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(using cc.toQuery))
+    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(using cc.toQC).toBox)
     val directives = bestEffort(sortedDirectives)(directiveChange => doDirectiveChange(directiveChange))
     val rules      = bestEffort(sortedRules)(rule => doRuleChange(rule))
     // TODO: we will want to keep tracks of all the modification done, and in

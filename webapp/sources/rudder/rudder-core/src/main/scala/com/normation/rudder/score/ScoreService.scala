@@ -41,7 +41,7 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import zio.*
 import zio.syntax.ToZio

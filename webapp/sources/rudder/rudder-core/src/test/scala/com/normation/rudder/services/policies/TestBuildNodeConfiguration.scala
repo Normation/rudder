@@ -111,7 +111,8 @@ class TestBuildNodeConfiguration extends Specification {
       query = None,
       isDynamic = false,
       serverList = allNodes.keySet.toSet,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
   }
   val groupLib:   FullNodeGroupCategory       = FullNodeGroupCategory(
@@ -125,9 +126,12 @@ class TestBuildNodeConfiguration extends Specification {
         name = "",
         description = "",
         isEnabled = true,
-        isSystem = false
+        isSystem = false,
+        security = None
       )
-    )
+    ),
+    isSystem = false,
+    security = None
   )
   val directives: Map[DirectiveId, Directive] = {
     ((1 to 100).map(i => data.rpmDirective("rpm" + i, "somepkg" + i)) :+
@@ -148,7 +152,8 @@ class TestBuildNodeConfiguration extends Specification {
         techniques = SortedMap(data.commonTechnique.id.version -> data.commonTechnique),
         directives = List(data.commonDirective),
         isEnabled = true,
-        policyTypes = PolicyTypes.rudderSystem
+        policyTypes = PolicyTypes.rudderSystem,
+        security = None
       ),
       FullActiveTechnique(
         ActiveTechniqueId("rpmPackageInstallation"),
@@ -157,10 +162,12 @@ class TestBuildNodeConfiguration extends Specification {
         techniques = SortedMap(data.rpmTechnique.id.version -> data.rpmTechnique),
         directives = directives.values.toList,
         isEnabled = true,
-        policyTypes = PolicyTypes.rudderSystem
+        policyTypes = PolicyTypes.rudderSystem,
+        security = None
       )
     ),
-    isSystem = true
+    isSystem = true,
+    security = None
   )
 
   val rule: Rule = Rule(
@@ -172,7 +179,8 @@ class TestBuildNodeConfiguration extends Specification {
     shortDescription = "",
     longDescription = "",
     isEnabledStatus = true,
-    isSystem = true
+    isSystem = true,
+    security = None
   )
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
