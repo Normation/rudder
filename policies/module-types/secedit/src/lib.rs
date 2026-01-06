@@ -31,7 +31,8 @@ impl Cli {
         let tmpdir = &cli.tmp.to_string_lossy().to_string();
         let exit_code = match secedit::Secedit::new(tmpdir)?.run(data, cli.audit)? {
             secedit::Outcome::Success => 0,
-            secedit::Outcome::NonCompliant => 1,
+            secedit::Outcome::Failure => 1,
+            secedit::Outcome::NonCompliant => 2,
         };
         process::exit(exit_code);
     }

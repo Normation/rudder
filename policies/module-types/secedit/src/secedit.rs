@@ -4,23 +4,36 @@ use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde_json::{Map, Value};
 use std::{
     collections::HashMap,
-    fmt::Display,
     path::Path,
     process::{Command, Stdio},
 };
 use tempdir::TempDir;
 
+#[derive(Debug, Default)]
 pub enum Outcome {
+    #[default]
     Success,
     NonCompliant,
+    Failure,
 }
 
-impl Display for Outcome {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Outcome::Success => write!(f, "Success"),
-            Outcome::NonCompliant => write!(f, "NonCompliant"),
-        }
+#[derive(Debug, Default)]
+pub struct Report {
+    status: Outcome,
+    errors: Vec<String>,
+    data: HashMap<String, ConfigValue>,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+struct ConfigValue {
+    old: String,
+    new: String,
+}
+
+impl ConfigValue {
+    fn new(old: String, new: String) -> Self {
+        Self { old, new }
     }
 }
 
@@ -127,48 +140,45 @@ fn invoke_with_args(args: &str) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
-struct ConfigValue {
-    old: String,
-    new: String,
-}
-
-impl ConfigValue {
-    fn new(old: String, new: String) -> Self {
-        Self { old, new }
-    }
-}
-
-fn config_search_and_replace(
-    config: &mut Ini,
-    data: &Map<String, Value>,
-) -> Result<HashMap<String, ConfigValue>> {
-    let mut changes: HashMap<String, ConfigValue> = HashMap::new();
+fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Result<Report> {
+    let mut report = Report::default();
 
     for (section, section_data) in data {
         let props = config
             .section_mut(Some(section))
             .ok_or_else(|| anyhow!("section '{section}' does not exist"))?;
 
-        let entries = section_data
-            .as_object()
-            .ok_or_else(|| anyhow!("Invalid data '{section_data:?}', expected JSON object"))?;
+        let entries = match section_data.as_object() {
+            Some(m) => m,
+            None => {
+                report.errors.push(format!(
+                    "Invalid data '{section_data:?}', expected JSON object"
+                ));
+                report.status = Outcome::Failure;
+                continue;
+            }
+        };
 
         for (key, value) in entries {
             if let Some(old) = props.clone().get(key) {
                 props.insert(key, value.to_string());
-                changes.insert(
+                report.data.insert(
                     key.to_string(),
                     ConfigValue::new(old.to_string(), value.to_string()),
                 );
             } else {
-                bail!("'{key}' does not exist");
+                report
+                    .errors
+                    .push(format!("key '{key}' in section '{section}' does not exist"))
             }
         }
     }
 
-    Ok(changes)
+    if !report.errors.is_empty() {
+        report.status = Outcome::NonCompliant;
+    }
+
+    Ok(report)
 }
 
 #[cfg(test)]
