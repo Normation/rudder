@@ -50,16 +50,17 @@ impl Secedit {
 
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<Outcome> {
         let mut config = self.export()?;
-        let log = config_search_and_replace(&mut config, &data)?;
-        println!("{log:?}");
+        let report = config_search_and_replace(&mut config, &data)?;
+        println!("{report:?}");
         if audit {
             println!("Audit DONE");
         } else {
+            // enforce
             self.apply_config(&config)?;
             println!("DONE");
         }
 
-        Ok(Outcome::Success)
+        Ok(report.status)
     }
 
     fn apply_config(&self, config: &Ini) -> Result<()> {
@@ -167,16 +168,17 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
         };
 
         for (key, value) in entries {
-            if let Some(old) = props.clone().get(key) {
-                props.insert(key, value.to_string());
-                report.data.insert(
-                    key.to_string(),
-                    ConfigValue::new(old.to_string(), value.to_string()),
-                );
-            } else {
-                report
+            match props.get(key) {
+                Some(old) => {
+                    report.data.insert(
+                        key.to_string(),
+                        ConfigValue::new(old.to_string(), value.to_string()),
+                    );
+                    props.insert(key, value.to_string());
+                }
+                None => report
                     .errors
-                    .push(format!("key '{key}' in section '{section}' does not exist"))
+                    .push(format!("key '{key}' in section '{section}' does not exist")),
             }
         }
     }
