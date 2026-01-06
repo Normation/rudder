@@ -94,24 +94,23 @@ impl Secedit {
 
     fn export(&self) -> Result<Ini> {
         let template_config = self.tmp_dir.path().join("template.ini");
-
         let cmd = format!("/export /cfg {}", template_config.as_path().display());
         invoke_with_args(&cmd)?;
 
-        let data = read_utf16_file(&template_config)?;
-        let opt = ParseOption {
-            enabled_escape: false,
-            ..Default::default()
-        };
-        let template = Ini::load_from_str_opt(&data, opt).with_context(|| {
-            format!(
-                "Failed to read template file '{}'",
-                template_config.as_path().display()
-            )
-        })?;
-
-        Ok(template)
+        parse_config(&template_config)
     }
+}
+
+fn parse_config(path: &Path) -> Result<Ini> {
+    let data = read_utf16_file(path)?;
+    let opt = ParseOption {
+        enabled_escape: false,
+        ..Default::default()
+    };
+    let template = Ini::load_from_str_opt(&data, opt)
+        .with_context(|| format!("Failed to read template file '{}'", path.display()))?;
+
+    Ok(template)
 }
 
 fn invoke_with_args(args: &str) -> Result<()> {
@@ -235,5 +234,18 @@ mod test {
         assert_eq!(config.get_from(Some("User"), "name"), Some("\"Ferris\""));
         assert_eq!(config.get_from(Some("User"), "value"), Some("42"));
         assert_eq!(config.get_from(Some("Settings"), "abc"), Some("12"));
+    }
+
+    #[test]
+    fn test_parse_config() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/config.ini");
+        let config = parse_config(&path).unwrap();
+        assert_eq!(
+            config
+                .get_from(Some("System Access"), "MaximumPasswordAge")
+                .unwrap(),
+            "42"
+        );
+        // assert_eq!(config.get_from(Some("Unicode"), "Unicode").unwrap(), "true");
     }
 }
