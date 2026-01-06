@@ -246,6 +246,37 @@ mod test {
                 .unwrap(),
             "42"
         );
+        // FIXME:
         // assert_eq!(config.get_from(Some("Unicode"), "Unicode").unwrap(), "true");
+
+        assert_eq!(
+            config
+                .get_from(Some("System Access"), "NewAdministratorName")
+                .unwrap(),
+            "Administrator"
+        );
+
+        assert_eq!(
+            config
+                .get_from(Some("Registry Values"), "MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\CachedLogonsCount")
+                .unwrap(),
+            "1,\"10\""
+        );
+
+        assert_eq!(
+            config
+                .get_from(Some("Registry Values"), "MACHINE\\System\\CurrentControlSet\\Control\\SecurePipeServers\\Winreg\\AllowedPaths\\Machine")
+                .unwrap(),
+            "7,System\\CurrentControlSet\\Control\\Print\\Printers,System\\CurrentControlSet\\Services\\Eventlog,Software\\Microsoft\\OLAP Server,Software\\Microsoft\\Windows NT\\CurrentVersion\\Print,Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows,System\\CurrentControlSet\\Control\\ContentIndex,System\\CurrentControlSet\\Control\\Terminal Server,System\\CurrentControlSet\\Control\\Terminal Server\\UserConfig,System\\CurrentControlSet\\Control\\Terminal Server\\DefaultUserConfiguration,Software\\Microsoft\\Windows NT\\CurrentVersion\\Perflib,System\\CurrentControlSet\\Services\\SysmonLog"
+        );
+
+        assert_eq!(
+            config
+                .get_from(Some("Privilege Rights"), "SeNetworkLogonRight")
+                .unwrap(),
+            "*S-1-1-0,*S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551"
+        );
+
+        assert_eq!(config.get_from(Some("Version"), "Revision").unwrap(), "1");
     }
 }
