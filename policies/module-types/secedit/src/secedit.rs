@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde_json::{Map, Value};
@@ -144,9 +144,16 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
     let mut report = Report::default();
 
     for (section, section_data) in data {
-        let props = config
-            .section_mut(Some(section))
-            .ok_or_else(|| anyhow!("section '{section}' does not exist"))?;
+        let props = match config.section_mut(Some(section)) {
+            Some(m) => m,
+            None => {
+                report
+                    .errors
+                    .push(format!("section '{section}' does not exist"));
+                report.status = Outcome::Failure;
+                continue;
+            }
+        };
 
         let entries = match section_data.as_object() {
             Some(m) => m,
