@@ -32,14 +32,12 @@ struct ConfigValue {
 }
 
 impl ConfigValue {
-    fn equal(&self) -> bool {
-        self.old == self.new
-    }
-}
-
-impl ConfigValue {
     fn new(old: String, new: String) -> Self {
         Self { old, new }
+    }
+
+    fn equal(&self) -> bool {
+        self.old == self.new
     }
 }
 
