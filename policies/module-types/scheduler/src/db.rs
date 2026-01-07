@@ -166,7 +166,7 @@ impl EventDatabase {
     ) -> Result<(), rusqlite::Error> {
         self.conn
             .execute(
-                "update schedule_events set status = ?1, datetime = ?2 where event_id = ?3",
+                "update schedule_events set state = ?1, datetime = ?2 where event_id = ?3",
                 (
                     EventState::Done.to_string(),
                     datetime.to_rfc3339(),
@@ -221,5 +221,24 @@ mod tests {
             db.get_state(&event_id.to_lowercase()).unwrap().unwrap(),
             EventState::Scheduled
         );
+    }
+
+    #[test]
+    fn it_updates_events() {
+        let mut db = EventDatabase::new(None).unwrap();
+        let event_id = "TEST";
+        let event_type = "TYPE";
+        let event_name = "NAME";
+        let now = Utc::now();
+        assert_eq!(db.get_state(event_id).unwrap(), None);
+        db.insert_event(event_id, event_type, event_name, EventState::Scheduled, now)
+            .unwrap();
+        assert_eq!(
+            db.get_state(event_id).unwrap().unwrap(),
+            EventState::Scheduled
+        );
+        db.finish_event(event_id, now.add(Duration::minutes(5)))
+            .unwrap();
+        assert_eq!(db.get_state(event_id).unwrap().unwrap(), EventState::Done);
     }
 }
