@@ -232,7 +232,7 @@ mod test {
         });
         let data = data.as_object().unwrap();
 
-        let res = config_search_and_replace(&mut config, &data);
+        let res = config_search_and_replace(&mut config, data);
 
         assert!(res.is_ok());
         assert_eq!(config.get_from(Some("User"), "name"), Some("\"Ferris\""));
