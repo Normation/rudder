@@ -516,7 +516,7 @@ COMMAND
 
          values equal           compare the provided array against multiple nodes
 
-         values equal orderred  compare the provided array against multiple nodes in the exact order
+         values equal ordered   compare the provided array against multiple nodes in the exact order
 
          values in              check if the nodes values are in the provided allow list
 
