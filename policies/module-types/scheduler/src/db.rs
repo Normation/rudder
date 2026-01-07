@@ -10,6 +10,7 @@ use crate::event::Event;
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
 use rusqlite::{self, Connection, Row};
+use std::str::FromStr;
 use std::{
     fmt::{Display, Formatter},
     fs,
@@ -19,6 +20,40 @@ use std::{
 };
 
 const DB_EXTENSION: &str = "sqlite";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum EventState {
+    Scheduled,
+    Done,
+    Canceled,
+}
+
+impl FromStr for EventState {
+    type Err = std::io::Error;
+
+    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+        match s {
+            "scheduled" => Ok(Self::Scheduled),
+            "done" => Ok(Self::Done),
+            "canceled" => Ok(Self::Canceled),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid input",
+            )),
+        }
+    }
+}
+
+impl Display for EventState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            EventState::Scheduled => "scheduled",
+            EventState::Done => "done",
+            EventState::Canceled => "canceled",
+        };
+        write!(f, "{}", s)
+    }
+}
 
 pub struct EventDatabase {
     conn: Connection,
@@ -86,13 +121,13 @@ impl EventDatabase {
         Ok(())
     }
 
-    pub fn get_status(&self, event_id: &str) -> Result<Option<UpdateStatus>, rusqlite::Error> {
+    pub fn get_state(&self, event_id: &str) -> Result<Option<EventState>, rusqlite::Error> {
         let r = self.conn.query_row(
-            "select status from schedule_events where event_id = ?1",
+            "select state from schedule_events where event_id = ?1",
             [&event_id],
             |row| {
                 let v: String = row.get(0)?;
-                let p: UpdateStatus = v.parse().unwrap();
+                let p: EventState = v.parse().unwrap();
                 Ok(p)
             },
         );
@@ -103,17 +138,19 @@ impl EventDatabase {
         }
     }
 
-    /// Schedule an event
+    /// Insert an event, either scheduled or immediate
     ///
-    pub fn schedule_event(
+    pub fn insert_event(
         &mut self,
         event_id: &str,
-        campaign_name: &str,
+        event_type: &str,
+        event_name: &str,
+        state: EventState,
         schedule_datetime: DateTime<Utc>,
     ) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-                "insert into schedule_events (event_id, campaign_name, status, schedule_datetime) values (?1, ?2, ?3, ?4)",
-                (&event_id, &campaign_name, UpdateStatus::ScheduledUpdate.to_string(), schedule_datetime.to_rfc3339()),
+                "insert into schedule_events (event_id, event_type, event_name, state, datetime) values (?1, ?2, ?3, ?4, ?5)",
+                (event_id, event_type, event_name, state.to_string(), schedule_datetime.to_rfc3339()),
             ).map(|_| ())
     }
 
@@ -122,131 +159,27 @@ impl EventDatabase {
     /// The update also acts as the locking mechanism
     ///
     /// We take the actual start time, which is >= scheduled.
-    pub fn start_event(
+    pub fn finish_event(
         &mut self,
         event_id: &str,
-        start_datetime: DateTime<Utc>,
+        datetime: DateTime<Utc>,
     ) -> Result<(), rusqlite::Error> {
         self.conn
             .execute(
-                "update schedule_events set status = ?1, run_datetime = ?2 where event_id = ?3",
+                "update schedule_events set status = ?1, datetime = ?2 where event_id = ?3",
                 (
-                    UpdateStatus::RunningUpdate.to_string(),
-                    start_datetime.to_rfc3339(),
+                    EventState::Done.to_string(),
+                    datetime.to_rfc3339(),
                     &event_id,
                 ),
             )
             .map(|_| ())
-    }
-
-    /// Schedule post-event action. Can happen after a reboot in a separate run.
-    ///
-    pub fn schedule_post_event(
-        &mut self,
-        event_id: &str,
-        report: &Report,
-    ) -> Result<(), rusqlite::Error> {
-        self.conn
-            .execute(
-                "update schedule_events set status = ?1, report = ?2 where event_id = ?3",
-                (
-                    UpdateStatus::PendingPostActions.to_string(),
-                    serde_json::to_string(report).unwrap(),
-                    &event_id,
-                ),
-            )
-            .map(|_| ())
-    }
-
-    /// Start post-event action. Can happen after a reboot in a separate run.
-    ///
-    /// The update also acts as the locking mechanism
-    pub fn post_event(&mut self, event_id: &str) -> Result<(), rusqlite::Error> {
-        self.conn
-            .execute(
-                "update schedule_events set status = ?1 where event_id = ?2",
-                (UpdateStatus::RunningPostActions.to_string(), &event_id),
-            )
-            .map(|_| ())
-    }
-
-    /// Assumes the report exists, fails otherwise
-    pub fn get_report(&self, event_id: &str) -> Result<Report, rusqlite::Error> {
-        self.conn.query_row(
-            "select report from schedule_events where event_id = ?1",
-            [&event_id],
-            |row| {
-                let v: String = row.get(0)?;
-                let p: Report = serde_json::from_str(&v).unwrap();
-                Ok(p)
-            },
-        )
-    }
-
-    /// Mark the event as completed
-    pub fn completed(
-        &self,
-        event_id: &str,
-        report_datetime: DateTime<Utc>,
-        report: &Report,
-    ) -> Result<(), rusqlite::Error> {
-        self.conn.execute(
-            "update schedule_events set status = ?1, report_datetime = ?2, report = ?3 where event_id = ?4",
-            (
-                UpdateStatus::Completed.to_string(),
-                report_datetime.to_rfc3339(),
-                serde_json::to_string(report).unwrap(),
-                &event_id,
-            ),
-        )?;
-        Ok(())
-    }
-
-    /// Get data from all a specific event
-    pub fn event(&self, id: String) -> Result<Event, rusqlite::Error> {
-        let mut stmt = self.conn.prepare("select event_id,campaign_name,status,schedule_datetime,run_datetime,report_datetime,report from schedule_events where event_id like ?1 || '%'")?;
-        stmt.query_row([id], Self::extract_event)
-    }
-
-    /// Get data from all stored events
-    pub fn events(&self) -> Result<Vec<Event>, rusqlite::Error> {
-        let mut stmt = self.conn.prepare("select event_id,campaign_name,status,schedule_datetime,run_datetime,report_datetime,report from schedule_events order by schedule_datetime asc")?;
-        let event_map = stmt.query_map([], Self::extract_event)?;
-        let events: Result<Vec<Event>, rusqlite::Error> = event_map.collect();
-        events
-    }
-
-    fn extract_event(row: &Row) -> Result<Event, rusqlite::Error> {
-        Ok(Event {
-            id: row.get(0)?,
-            campaign_name: row.get(1)?,
-            status: {
-                let v: String = row.get(2)?;
-                v.parse().unwrap()
-            },
-            scheduled_datetime: {
-                let v: String = row.get(3)?;
-                DateTime::from(DateTime::parse_from_rfc3339(&v).unwrap())
-            },
-            run_datetime: {
-                let v: Option<String> = row.get(4)?;
-                v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
-            },
-            report_datetime: {
-                let v: Option<String> = row.get(5)?;
-                v.map(|s| DateTime::from(DateTime::parse_from_rfc3339(&s).unwrap()))
-            },
-            report: {
-                let v: Option<String> = row.get(6)?;
-                v.map(|s| serde_json::from_str(&s).unwrap())
-            },
-        })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Event, EventDatabase};
+    use super::{Event, EventDatabase, EventState};
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
     use rusqlite::Connection;
@@ -274,73 +207,19 @@ mod tests {
     fn it_gets_status_regardless_of_event_id_case() {
         let mut db = EventDatabase::new(None).unwrap();
         let event_id = "TEST";
-        let campaign_id = "CAMPAIGN";
+        let event_type = "TYPE";
+        let event_name = "NAME";
         let now = Utc::now();
-        assert_eq!(db.get_status(event_id).unwrap(), None);
-        db.schedule_event(event_id, campaign_id, now).unwrap();
-        assert_eq!(
-            db.get_status(event_id).unwrap().unwrap(),
-            UpdateStatus::ScheduledUpdate
-        );
-        assert_eq!(
-            db.get_status(&event_id.to_lowercase()).unwrap().unwrap(),
-            UpdateStatus::ScheduledUpdate
-        );
-    }
-
-    #[test]
-    fn start_event_inserts_and_sets_running_update() {
-        let mut db = EventDatabase::new(None).unwrap();
-        let event_id = "TEST";
-        let campaign_id = "CAMPAIGN";
-        let now = Utc::now();
-        db.schedule_event(event_id, campaign_id, now).unwrap();
-        db.start_event(event_id, now).unwrap();
-        assert_eq!(
-            db.get_status(event_id).unwrap().unwrap(),
-            UpdateStatus::RunningUpdate
-        )
-    }
-
-    #[test]
-    fn store_and_get_report_works() {
-        let mut db = EventDatabase::new(None).unwrap();
-        let report = Report::new();
-        let event_id = "TEST";
-        let campaign_name = "CAMPAIGN";
-        let schedule = Utc::now();
-        let start = schedule.add(Duration::minutes(2));
-        db.schedule_event(event_id, campaign_name, schedule)
+        assert_eq!(db.get_state(event_id).unwrap(), None);
+        db.insert_event(event_id, event_type, event_name, EventState::Scheduled, now)
             .unwrap();
-        db.start_event(event_id, start).unwrap();
-        db.schedule_post_event(event_id, &report).unwrap();
-
-        // Now get the data back and see if it matches
-        let got_report = db.get_report(event_id).unwrap();
-        assert_eq!(report, got_report);
-
-        let events = db.events().unwrap();
-        let event = Event {
-            id: event_id.to_string(),
-            campaign_name: campaign_name.to_string(),
-            status: UpdateStatus::PendingPostActions,
-            scheduled_datetime: schedule,
-            run_datetime: Some(start),
-            report_datetime: None,
-            report: Some(report.clone()),
-        };
-        assert_eq!(events, vec![event]);
-
-        let event = db.event("TES".to_string()).unwrap();
-        let ref_event = Event {
-            id: event_id.to_string(),
-            campaign_name: campaign_name.to_string(),
-            status: UpdateStatus::PendingPostActions,
-            scheduled_datetime: schedule,
-            run_datetime: Some(start),
-            report_datetime: None,
-            report: Some(report),
-        };
-        assert_eq!(event, ref_event);
+        assert_eq!(
+            db.get_state(event_id).unwrap().unwrap(),
+            EventState::Scheduled
+        );
+        assert_eq!(
+            db.get_state(&event_id.to_lowercase()).unwrap().unwrap(),
+            EventState::Scheduled
+        );
     }
 }

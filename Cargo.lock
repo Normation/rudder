@@ -3616,6 +3616,7 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "chrono",
+ "clap",
  "pretty_assertions",
  "rudder_commons_test",
  "rudder_module_type",
