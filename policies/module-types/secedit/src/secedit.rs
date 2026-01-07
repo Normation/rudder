@@ -32,6 +32,12 @@ struct ConfigValue {
 }
 
 impl ConfigValue {
+    fn equal(&self) -> bool {
+        self.old == self.new
+    }
+}
+
+impl ConfigValue {
     fn new(old: String, new: String) -> Self {
         Self { old, new }
     }
@@ -246,8 +252,7 @@ mod test {
                 .unwrap(),
             "42"
         );
-        // FIXME:
-        // assert_eq!(config.get_from(Some("Unicode"), "Unicode").unwrap(), "true");
+        assert_eq!(config.get_from(Some("Unicode"), "Unicode").unwrap(), "yes");
 
         assert_eq!(
             config
@@ -278,5 +283,11 @@ mod test {
         );
 
         assert_eq!(config.get_from(Some("Version"), "Revision").unwrap(), "1");
+    }
+
+    #[test]
+    fn test_config_value_equal() {
+        let v = ConfigValue::new("test".to_string(), "test".to_string()).equal();
+        assert!(v)
     }
 }

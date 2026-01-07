@@ -430,7 +430,7 @@ pub mod utf16_file {
     use anyhow::Result;
     use std::{
         fs::{File, write},
-        io::{Read, Write},
+        io::{Read, Seek, SeekFrom, Write},
         path::Path,
     };
 
@@ -438,6 +438,7 @@ pub mod utf16_file {
         let mut file = File::open(path)?;
         let mut buffer = Vec::new();
 
+        file.seek(SeekFrom::Start(2))?;
         file.read_to_end(&mut buffer)?;
         let data = String::from_utf16(
             &buffer
