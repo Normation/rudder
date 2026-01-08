@@ -609,6 +609,9 @@ object JsonCompliance {
             ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
             ~ ("policyMode"        -> rule.policyMode.name)
             ~ ("complianceDetails" -> percents(rule.compliance, precision))
+            ~ ("skippedDetails"    -> rule.skippedDetails.map(s =>
+              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
+            ))
             ~ ("components"        -> components(rule.components, level, precision))
           )
         })
@@ -978,6 +981,9 @@ object JsonCompliance {
             ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
             ~ ("policyMode"        -> directive.policyMode.name)
             ~ ("complianceDetails" -> percents(directive.compliance, precision))
+            ~ ("skippedDetails"    -> directive.skippedDetails.map(s =>
+              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
+            ))
             ~ ("components"        -> components(directive.components, level, precision))
           )
         })

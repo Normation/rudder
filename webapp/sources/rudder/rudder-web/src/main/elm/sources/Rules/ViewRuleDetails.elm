@@ -8,10 +8,11 @@ import List exposing (filter, length, member)
 import String
 import Maybe.Extra
 
+import Compliance.Utils exposing (badgePolicyMode)
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewTabContent exposing (tabContent)
-import Rules.ViewUtils exposing (badgePolicyMode, countRecentChanges, getRuleNbGroups, getRuleNbNodes, getNbResourcesBadge, getGroupsNbResourcesBadge, btnSave)
+import Rules.ViewUtils exposing (countRecentChanges, getRuleNbGroups, getRuleNbNodes, getNbResourcesBadge, getGroupsNbResourcesBadge, btnSave)
 
 
 --

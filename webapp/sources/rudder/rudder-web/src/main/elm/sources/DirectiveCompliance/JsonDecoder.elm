@@ -6,7 +6,7 @@ import Json.Decode.Field exposing (require)
 
 import DirectiveCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
-import Compliance.JsonDecoder exposing (decodeComplianceDetails)
+import Compliance.JsonDecoder exposing (decodeComplianceDetails, decodeSkippedDirectiveDetails)
 
 
 decodeGetPolicyMode : Decoder String
@@ -67,6 +67,7 @@ decodeRuleCompliance elem decoder =
     |> required "compliance" float
     |> required "policyMode"       string
     |> required "complianceDetails" decodeComplianceDetails
+    |> optional "skippedDetails" (maybe decodeSkippedDirectiveDetails) Nothing
     |> required "components" (list (decodeComponentCompliance elem decoder ))
 
 decodeComponentValueCompliance : String -> Decoder a -> Decoder (ComponentValueCompliance a)
