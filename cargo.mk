@@ -22,6 +22,8 @@ CARGO_NEXTEST_VER   := 0.9.115
 # Specific CI behavior
 ifeq ($(CI),1)
 export RUSTFLAGS=--deny warnings
+export CARGO_TERM_COLOR=always
+export RUSTUP_TERM_COLOR=always
 # faster cold builds
 export CARGO_INCREMENTAL=0
 # retry on network failures
