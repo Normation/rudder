@@ -20,6 +20,8 @@
 # @description Build a file from a template (MiniJinja, Jinja2, Mustache)
 # @documentation The `file_from_template` method renders a template into a destination file using one of the supported template engines.
 #
+# Note that on Windows we only support `UTF-8` encoded template file. 
+#
 # ### Template Rendering:
 #   Renders a template using the specified `engine` (`minijinja`, `mustache`, or `jinja2`) into the file given in `destination`.
 #
