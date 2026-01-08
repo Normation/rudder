@@ -12,7 +12,7 @@ import Tuple
 
 import Rules.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
-import Compliance.JsonDecoder exposing (decodeComplianceDetails)
+import Compliance.JsonDecoder exposing (decodeComplianceDetails, decodeSkippedDirectiveDetails)
 import Ui.Datatable exposing (Category, SubCategories(..))
 
 -- GENERAL
@@ -207,12 +207,6 @@ decodeDirectiveCompliance elem decoder =
     |> required "complianceDetails" decodeComplianceDetails
     |> optional "skippedDetails" (maybe decodeSkippedDirectiveDetails) Nothing
     |> required "components" (list (decodeComponentCompliance  elem decoder )  )
-
-decodeSkippedDirectiveDetails : Decoder SkippedDetails
-decodeSkippedDirectiveDetails =
-  succeed SkippedDetails
-    |> required "overridingRuleId" string
-    |> required "overridingRuleName" string
 
 decodeRuleChanges: Decoder (Dict String (List Changes))
 decodeRuleChanges =

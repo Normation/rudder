@@ -10,6 +10,7 @@ import Maybe.Extra exposing (isNothing)
 import String
 import NaturalOrdering as N
 
+import Compliance.Utils exposing (badgePolicyMode)
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewCategoryDetails exposing (..)

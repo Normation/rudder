@@ -19,7 +19,7 @@ import Rules.ViewUtils exposing (..)
 import Rules.ChangeRequest exposing (toLabel)
 
 import Compliance.DataTypes exposing (..)
-import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
+import Compliance.Utils exposing (badgePolicyMode, defaultComplianceFilter, displayComplianceFilters, filterDetailsByCompliance)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..), filterSearch, Category, getSubElems, getAllElems, generateLoadingTable)
 import Html.Events.Extra exposing (onClickPreventDefault)
