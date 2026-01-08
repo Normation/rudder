@@ -72,7 +72,7 @@ class CheckRudderGlobalProperties(
     uuidGen:     StringUuidGenerator
 ) extends BootstrapChecks {
 
-  val resource = "rudder-system-global-parameter.conf"
+  protected[consistency] val resource = "rudder-system-global-parameter.conf"
 
   override val description = "Check that `rudder` global properties matches default value"
 

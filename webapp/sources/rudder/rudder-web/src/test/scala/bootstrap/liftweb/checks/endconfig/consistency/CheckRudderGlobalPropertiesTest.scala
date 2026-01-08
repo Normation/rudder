@@ -40,105 +40,107 @@ package bootstrap.liftweb.checks.endconfig.consistency
 import com.normation.GitVersion
 import com.normation.rudder.MockGlobalParam
 import com.normation.rudder.domain.properties.*
+import com.normation.rudder.repository.RoParameterRepository
+import com.normation.rudder.repository.WoParameterRepository
 import com.normation.utils.StringUuidGenerator
-import com.typesafe.config.ConfigValueFactory
-import zio.test.Assertion.equalTo
-import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assert}
-import zio.{Ref, Scope}
-
+import com.typesafe.config.ConfigFactory
 import java.util.UUID
+import zio.Ref
+import zio.Scope
+import zio.test.Assertion.equalTo
+import zio.test.Spec
+import zio.test.TestEnvironment
+import zio.test.ZIOSpecDefault
+import zio.test.assert
+
+//import java.util.UUID
 
 object CheckRudderGlobalPropertiesTest extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment & Scope, Any] = {
-    suite("CheckRudderGlobalProperties")(test("""it should make some test
-                                                        |""".stripMargin) {
-      for {
-        counterRef <- Ref.make(0)
-        pRepo = new MockGlobalParam().paramsRepo
-        uuidGen   = new MockStringUuidGenerator
-        underTest = CheckRudderGlobalProperties(roParamRepo = pRepo, woParamRepo = pRepo, uuidGen = uuidGen)
-        _         = underTest.checks()
-        paramsMap <- pRepo.paramsMap.get
-      } yield assert(paramsMap.get("rudder").get)(equalTo(Map("rudder" -> globalParameter)))
-    })
+    suite("CheckRudderGlobalProperties")(
+      test("it should check the global properties without errors") {
+        for {
+          counterRef <- Ref.make(0)
+          pRepo       = new MockGlobalParam().paramsRepo
+          uuidGen     = new MockStringUuidGenerator
+          underTest   = CheckRudderGlobalProperties(roParamRepo = pRepo, woParamRepo = pRepo, uuidGen = uuidGen)
+          _           = underTest.checks()
+          paramsMap  <- pRepo.paramsMap.get
+        } yield assert(paramsMap.get("rudder").get)(equalTo(globalParameter))
+      },
+      test("it should check the inconsistent global properties handling errors") {
+        for {
+          counterRef <- Ref.make(0)
+          pRepo       = new MockGlobalParam().paramsRepo
+          uuidGen     = new MockStringUuidGenerator
+          underTest   = CheckRudderGlobalInconsistentProperties(roParamRepo = pRepo, woParamRepo = pRepo, uuidGen = uuidGen)
+          _           = underTest.checks()
+          paramsMap  <- pRepo.paramsMap.get
+        } yield assert(paramsMap.get("rudder").get)(equalTo(globalInconsistentParameter))
+      }
+    )
   }
 }
 
-/*class MockRoParameterRepository extends RoParameterRepository {
-
-  override def getGlobalParameter(parameterName: String): IOResult[Option[GlobalParameter]] = {
-    println(parameterName)
-    ZIO.succeed(None)
-    /*ZIO.succeed(
-      Some(
-        GlobalParameter(config = {
-          GenericProperty.toConfig(
-            name = "rudder",
-            rev = Revision("rev"),
-            value = ConfigValueFactory.fromAnyRef("value"),
-            mode = None,
-            provider = Some(PropertyProvider("system")),
-            description = Some("description"),
-            visibility = Some(Visibility.Displayed))
-        })
-      )
-    )*/
-  }
-
-  override def getAllGlobalParameters(): IOResult[Seq[GlobalParameter]] = ZIO.succeed(Seq())
-
-
-
+class CheckRudderGlobalInconsistentProperties(
+    roParamRepo: RoParameterRepository,
+    woParamRepo: WoParameterRepository,
+    uuidGen:     StringUuidGenerator
+) extends CheckRudderGlobalProperties(roParamRepo, woParamRepo, uuidGen) {
+  override protected[consistency] val resource: String = "rudder-system-global-parameter-inconsistent.conf"
 }
-
-class MockWoParameterRepository(counterRef: Ref[Int]) extends WoParameterRepository {
-
-  override def saveParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[AddGlobalParameterDiff] = {
-    println(reason)
-    ZIO.succeed(AddGlobalParameterDiff(globalParameterStub))
-  }
-
-  override def updateParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[Option[ModifyGlobalParameterDiff]] = ZIO.succeed(None)
-
-  override def delete(
-      parameterName: String,
-      provider:      Option[PropertyProvider],
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): IOResult[Option[DeleteGlobalParameterDiff]] = ZIO.succeed(None)
-
-  override def swapParameters(newParameters: Seq[GlobalParameter]): IOResult[ParameterArchiveId] = ZIO.succeed(ParameterArchiveId("ParameterArchiveId"))
-
-  override def deleteSavedParametersArchiveId(saveId: ParameterArchiveId): IOResult[Unit] = ZIO.succeed(())
-}*/
 
 class MockStringUuidGenerator extends StringUuidGenerator {
 
   override def newUuid: String = UUID.randomUUID().toString
 }
 
+val jsonString      = {
+  """{
+    |   "log": {
+    |     "syslog_facility":"NONE"
+    |   },
+    |   "packages": {
+    |     "installed_cache_expire":60,
+    |     "updates_cache_expire":240
+    |   },
+    |   "server": {
+    |     "cf_serverd_bind_address":"::"
+    |   }
+    | }""".stripMargin
+}
 val globalParameter = GlobalParameter(config = {
   GenericProperty.toConfig(
     name = "rudder",
     rev = GitVersion.DEFAULT_REV,
-
-    // GenericProperty.parseValue("""{"a":"b"}""") must beRight(ConfigValueFactory.fromMap(jmap(("a", "b"))))
-    // ConfigValueFactory.fromMap(jmap(("log",jmap(("syslog_facility","NONE"),("packages", (("installed_cache_expire", 60), ("updates_cache_expire",240),("server", jmap(("cf_serverd_bind_address","::"))))))))),
-
-    value = ConfigValueFactory.fromAnyRef("""{"log":{"syslog_facility":"NONE"},"packages":{"installed_cache_expire":60,"updates_cache_expire":240},"server":{"cf_serverd_bind_address":"::"}}"""),
+    value = ConfigFactory.parseString(jsonString).root(),
     mode = None,
     provider = Some(PropertyProvider("system")),
-    description = Some("This parameter defines important properties for Rudder and must always be defined. You can't modify them directly, but you can override them by setting a group or node property named \"rudder\" with updated values."),
-    visibility = Some(Visibility.Displayed))
+    description = Some(
+      "This parameter defines important properties for Rudder and must always be defined. You can't modify them directly, but you can override them by setting a group or node property named \"rudder\" with updated values."
+    ),
+    visibility = Some(Visibility.Displayed)
+  )
+})
+
+// {"compliance_expiration_policy":{"mode":"expire_immediately"}}
+val jsonErrorMessage            = {
+  """{
+    |   "compliance_expiration_policy": {
+    |       "mode": "expire_immediately"
+    |   }
+    | }""".stripMargin
+}
+val globalInconsistentParameter = GlobalParameter(config = {
+  GenericProperty.toConfig(
+    name = "rudder",
+    rev = GitVersion.DEFAULT_REV,
+    value = ConfigFactory.parseString(jsonErrorMessage).root(),
+    mode = None,
+    provider = Some(PropertyProvider("system")),
+    description = Some(
+      "rudder system config"
+    ),
+    visibility = Some(Visibility.Displayed)
+  )
 })
