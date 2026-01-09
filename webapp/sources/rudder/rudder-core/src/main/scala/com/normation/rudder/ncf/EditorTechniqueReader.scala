@@ -21,6 +21,7 @@ import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
+
 import java.time.Instant
 import zio.Ref
 import zio.ZIO
@@ -32,6 +33,7 @@ trait EditorTechniqueReader {
   def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])]
   def getMethodsMetadata:         IOResult[Map[BundleName, GenericMethod]]
 
+  def getTechnique(id : BundleName, version : String) : IOResult[Option[EditorTechnique]]
   // this one is an implementation detail of the cache-based version and should likely not be exposed here
   def updateMethodsMetadataFile: IOResult[CmdResult]
 }
@@ -75,6 +77,14 @@ class EditorTechniqueReaderImpl(
     }
   }
 
+
+  override def getTechnique(id : BundleName, version : String) : IOResult[Option[EditorTechnique]] = {
+    for {
+      (techniques,_,_) <- readTechniquesMetadataFile
+    } yield {
+      techniques.find(t => t.id == id && t.version.value == version)
+    }
+  }
   override def readTechniquesMetadataFile
       : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
     for {

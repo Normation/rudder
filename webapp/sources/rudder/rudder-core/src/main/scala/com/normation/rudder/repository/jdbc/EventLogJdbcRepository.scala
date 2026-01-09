@@ -45,6 +45,7 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.ncf.eventlogs.EditorTechniqueEventLogsFilter
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie.*
@@ -55,6 +56,7 @@ import doobie.postgres.implicits.*
 import doobie.util.fragments
 import doobie.util.log.LoggingInfo
 import doobie.util.log.Parameters.NonBatch
+
 import scala.xml.*
 import zio.interop.catz.*
 
@@ -327,7 +329,8 @@ private object EventLogReportsMapper extends NamedZioLogger {
     TechniqueEventLogsFilter.eventList :::
     ParameterEventsLogsFilter.eventList :::
     ModifyGlobalPropertyEventLogsFilter.eventList :::
-    SecretEventsLogsFilter.eventList
+    SecretEventsLogsFilter.eventList :::
+    EditorTechniqueEventLogsFilter.eventList
   }
 
   def mapEventLog(

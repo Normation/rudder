@@ -54,6 +54,7 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.ncf.eventlogs.{AddEditorTechnique, DeleteEditorTechnique, ModifyEditorTechnique}
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
@@ -73,6 +74,7 @@ import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
@@ -240,7 +242,10 @@ class EventLogDetailsGenerator(
       case x: AddSecret                     => secretDesc(x, Text(" added"))
       case x: ModifySecret                  => secretDesc(x, Text(" modified"))
       case x: DeleteSecret                  => secretDesc(x, Text(" deleted"))
-      case _ => Text("Unknow event type")
+      case x: AddEditorTechnique                     => secretDesc(x, Text(" added"))
+      case x: ModifyEditorTechnique                  => secretDesc(x, Text(" modified"))
+      case x: DeleteEditorTechnique                  => secretDesc(x, Text(" deleted"))
+      case _ => Text("Unknown event type")
     }
   }
 
@@ -463,6 +468,82 @@ class EventLogDetailsGenerator(
               }
               xml
             }
+
+          ///////// EditorTechnique /////////
+
+          case x: ModifyEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueModifyDetails(x.details) match {
+                case Full(modDiff)    =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h5>EditorTechnique overview:</h5>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>EditorTechnique ID: </b>{modDiff.id.serialize}
+                      </li>
+                      <li>
+                        <b>Name: </b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
+                      </li>
+                    </ul>{
+                    (
+                      "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
+                        "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
+                        "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
+                        "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
+                        "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
+                        "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
+                        "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
+                        "#policyMode *" #> mapSimpleDiffT[Option[PolicyMode]](
+                          modDiff.modPolicyMode,
+                          _.fold(PolicyMode.defaultValue)(_.name)
+                        ) &
+                        "#tags" #> tagsDiff(modDiff.modTags) &
+                        "#parameters" #> (
+                          modDiff.modParameters.map(diff => "#diff" #> displayEditorTechniqueInnerFormDiff(diff, event.id))
+                          )
+                      )(piModEditorTechniqueDetailsXML)
+                    }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case Failure(m, _, _) =>
+                  <p>
+                    {m}
+                  </p>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: AddEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueAddDetails(x.details) match {
+                case Full((diff, sectionVal)) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{EditorTechniqueDetails(piDetailsXML, diff.techniqueName, diff.EditorTechnique, sectionVal)}{
+                    reasonHtml
+                    }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: DeleteEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueDeleteDetails(x.details) match {
+                case Full((diff, sectionVal)) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{EditorTechniqueDetails(piDetailsXML, diff.techniqueName, diff.EditorTechnique, sectionVal)}{
+                    reasonHtml
+                    }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
 
           ///////// Node Group /////////
 
