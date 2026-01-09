@@ -10,7 +10,7 @@ import NaturalOrdering
 import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (..)
 
-import Compliance.Utils exposing (getAllComplianceValues, defaultComplianceFilter)
+import Compliance.Utils exposing (getAllComplianceValues, defaultComplianceFilter, badgePolicyMode)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..), filterSearch)
 
