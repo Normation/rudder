@@ -69,6 +69,9 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechniqueDiff
 import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.tenants.ChangeContext
 import doobie.*
@@ -177,6 +180,54 @@ trait EventLogRepository {
     saveEventLog(
       modId,
       eventLogFactory.getModifyDirectiveFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
+      )
+    )
+  }
+
+  def saveAddEditorTechnique(
+      modId:     ModificationId,
+      principal: EventActor,
+      addDiff:   AddEditorTechniqueDiff,
+      reason:    Option[String]
+  ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getAddEditorTechniqueFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
+      )
+    )
+  }
+
+  def saveDeleteEditorTechnique(
+      modId:      ModificationId,
+      principal:  EventActor,
+      deleteDiff: DeleteEditorTechniqueDiff,
+      reason:     Option[String]
+  ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getDeleteEditorTechniqueFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
+      )
+    )
+  }
+
+  def saveModifyEditorTechnique(
+      modId:      ModificationId,
+      principal:  EventActor,
+      modifyDiff: ModifyEditorTechniqueDiff,
+      reason:     Option[String]
+  ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getModifyEditorTechniqueFromDiff(
         principal = principal,
         modifyDiff = modifyDiff,
         reason = reason
