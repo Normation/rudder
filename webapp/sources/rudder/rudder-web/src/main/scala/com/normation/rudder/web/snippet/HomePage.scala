@@ -50,12 +50,14 @@ import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.FALSE
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.score.ScoreValue.NoScore
 import com.normation.rudder.users.CurrentUser
@@ -65,7 +67,6 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import scala.collection.MapView
 import scala.xml.*
 import zio.json.*
 
@@ -119,80 +120,70 @@ object HomePageUtils {
   }
 }
 
-object HomePage {
-  private val nodeFactRepo = RudderConfig.nodeFactRepository
-
-  def initNodeInfos()(implicit qc: QueryContext): MapView[NodeId, CoreNodeFact] = {
-    (for {
-      _  <- TimingDebugLoggerPure.debug(s"Start timing homepage")
-      n1 <- currentTimeMillis
-      n  <- nodeFactRepo.getAll()
-      n2 <- currentTimeMillis
-      _  <- TimingDebugLoggerPure.debug(s"Getting node infos: ${n2 - n1}ms")
-    } yield {
-      n
-    }).either.runNow match {
-      case Right(n)  => n
-      case Left(err) =>
-        ApplicationLogger.warn(s"Error when getting nodes: ${err.fullMsg}")
-        MapView.empty[NodeId, CoreNodeFact]
-    }
-  }
-
-  object nodeFacts extends RequestVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(using CurrentUser.queryContext))
-}
-
 class HomePage extends StatefulSnippet {
 
+  private val nodeFactRepo     = RudderConfig.nodeFactRepository
   private val ldap             = RudderConfig.roLDAPConnectionProvider
-  private val pendingNodesDit  = RudderConfig.pendingNodesDit
   private val rudderDit        = RudderConfig.rudderDit
   private val reportingService = RudderConfig.reportingService
   private val roRuleRepo       = RudderConfig.roRuleRepository
   private val scoreService     = RudderConfig.rci.scoreService
   private val directiveRepo    = RudderConfig.roDirectiveRepository
 
-  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-
   override val dispatch: DispatchIt = {
-    case "pendingNodes"       => pendingNodes
-    case "acceptedNodes"      => acceptedNodes
-    case "rules"              => rules
-    case "directives"         => directives
-    case "groups"             => groups
-    case "techniques"         => techniques
-    case "getAllCompliance"   => _ => getAllCompliance()
-    case "inventoryInfo"      => _ => inventoryInfo()
-    case "rudderAgentVersion" => _ => rudderAgentVersion()
+
+    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+    // get one coherent view of nodes for the whole page
+
+    val nodes: Map[NodeId, CoreNodeFact] = nodeFactRepo
+      .getAll()
+      .map(_.toMap)
+      .tapError(err => ApplicationLoggerPure.warn(s"Error when getting nodes: ${err.fullMsg}"))
+      .option
+      .runNow
+      .getOrElse(Map())
+
+    // partial function syntax is a bit strange
+    {
+      case "pendingNodes"       => pendingNodes
+      case "acceptedNodes"      => acceptedNodes(nodes.size)
+      case "rules"              => rules
+      case "directives"         => directives
+      case "groups"             => groups
+      case "techniques"         => techniques
+      case "getAllCompliance"   => _ => getAllCompliance(nodes)
+      case "inventoryInfo"      => _ => inventoryInfo(nodes)
+      case "rudderAgentVersion" => _ => rudderAgentVersion(nodes)
+    }
   }
 
-  def pendingNodes(html: NodeSeq): NodeSeq = {
-    displayCount(() => countPendingNodes(), "pending nodes")
+  def pendingNodes(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
+    displayCount(countPendingNodes, "pending nodes")
   }
 
-  def acceptedNodes(html: NodeSeq): NodeSeq = {
-    displayCount(() => countAcceptedNodes(HomePage.nodeFacts.get), "accepted nodes")
+  def acceptedNodes(nodeCount: Int)(html: NodeSeq): NodeSeq = {
+    displayCount(Full(nodeCount), "accepted nodes")
   }
 
   def rules(html: NodeSeq): NodeSeq = {
-    displayCount(() => countAllRules(), "rules")
+    displayCount(countAllRules(), "rules")
   }
 
   def directives(html: NodeSeq): NodeSeq = {
-    displayCount(() => countAllDirectives(), "directives")
+    displayCount(countAllDirectives(), "directives")
   }
 
   def groups(html: NodeSeq): NodeSeq = {
-    displayCount(() => countAllGroups(), "groups")
+    displayCount(countAllGroups(), "groups")
   }
 
   def techniques(html: NodeSeq): NodeSeq = {
-    displayCount(() => countAllTechniques(), "techniques")
+    displayCount(countAllTechniques(), "techniques")
   }
 
-  def getAllCompliance()(implicit qc: QueryContext): NodeSeq = {
+  def getAllCompliance(allNodes: Map[NodeId, CoreNodeFact])(implicit qc: QueryContext): NodeSeq = {
     // this needs to be outside of the zio for-comprehension context to see the right node facts
-    val nodes = HomePage.nodeFacts.get.filterNot(_._2.rudderSettings.state == NodeState.Ignored).keys.toSet
+    val nodes = allNodes.filterNot(_._2.rudderSettings.state == NodeState.Ignored).keys.toSet
     (for {
       n2                <- currentTimeMillis
       userRules         <- roRuleRepo.getIds()
@@ -212,7 +203,7 @@ class HomePage extends StatefulSnippet {
       global             = if (reports.isEmpty) {
                              None
                            } else {
-                             val complianceLevel = ComplianceLevel.sum(compliancePerNodes.map(_._2))
+                             val complianceLevel = ComplianceLevel.sum(compliancePerNodes.values)
                              Some(
                                (
                                  complianceLevel,
@@ -242,7 +233,7 @@ class HomePage extends StatefulSnippet {
        * Note: node without reports are also put in "pending".
        */
 
-      val numberOfPendingNodes = compliancePerNodes.values.filter(r => r.pending == r.total).size
+      val numberOfPendingNodes = compliancePerNodes.values.count(r => r.pending == r.total)
 
       val complianceDiagram: List[ScoreChart] =
         scores.values.groupBy(_.value).map(v => ScoreChart(v._1, v._2.size, None)).toList.sortBy(_.scoreValue.value).reverse
@@ -351,7 +342,7 @@ class HomePage extends StatefulSnippet {
     }
   }
 
-  def inventoryInfo(): NodeSeq = {
+  def inventoryInfo(nodes: Map[NodeId, CoreNodeFact]): NodeSeq = {
 
     val osTypes = {
       LinuxType.allKnownTypes :::
@@ -362,7 +353,7 @@ class HomePage extends StatefulSnippet {
 
     val osNames = JsObj(osTypes.map(os => (S.?("os.name." + os.name), Str(os.name)))*)
 
-    val machines             = HomePage.nodeFacts.get.values.map {
+    val machines             = nodes.values.map {
       _.machine.machineType match {
         case VirtualMachineType(_) => "Virtual"
         case PhysicalMachineType   => "Physical"
@@ -372,7 +363,7 @@ class HomePage extends StatefulSnippet {
       case ((labels, values), (label, value)) => (label :: labels, value :: values)
     }
     val machinesArray        = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
-    val (osLabels, osValues) = HomePage.nodeFacts.get.values
+    val (osLabels, osValues) = nodes.values
       .groupBy(_.os.os.name)
       .map { case (os, value) => (S.?(s"os.name.${os}"), value.size) }
       .toList
@@ -390,10 +381,10 @@ class HomePage extends StatefulSnippet {
       )"""))) // JsRaw ok, escaped
   }
 
-  def rudderAgentVersion(): Node = {
+  def rudderAgentVersion(nodes: Map[NodeId, CoreNodeFact]): Node = {
 
     val n4     = System.currentTimeMillis
-    val agents = getRudderAgentVersion(HomePage.nodeFacts.get)
+    val agents = getRudderAgentVersion(nodes)
     TimingDebugLogger.debug(s"Get software: ${System.currentTimeMillis - n4}ms")
 
     val agentsValue = agents.toList.sortBy(_._2)(using Ordering[Int]).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
@@ -410,7 +401,7 @@ class HomePage extends StatefulSnippet {
   /**
    * Get the count of agent version name -> size for accepted nodes
    */
-  private def getRudderAgentVersion(nodeFacts: MapView[NodeId, CoreNodeFact]): Map[String, Int] = {
+  private def getRudderAgentVersion(nodeFacts: Map[NodeId, CoreNodeFact]): Map[String, Int] = {
     val n2            = System.currentTimeMillis
     val agentSoftware = nodeFacts.map(_._2.rudderAgent.toAgentInfo)
     val agentVersions = agentSoftware.flatMap(_.version)
@@ -423,13 +414,9 @@ class HomePage extends StatefulSnippet {
     res
   }
 
-  private def countPendingNodes(): Box[Int] = {
-    ldap.flatMap(con => con.searchOne(pendingNodesDit.NODES.dn, ALL, "1.1")).map(x => x.size)
+  private def countPendingNodes(implicit qc: QueryContext): Box[Int] = {
+    nodeFactRepo.getAll()(using qc, SelectNodeStatus.Pending).map(_.size)
   }.toBox
-
-  private def countAcceptedNodes(nodeFacts: MapView[NodeId, CoreNodeFact]): Box[Int] = {
-    Full(nodeFacts.size)
-  }
 
   private def countAllRules(): Box[Int] = {
     roRuleRepo.getIds().map(_.size).toBox
@@ -458,8 +445,8 @@ class HomePage extends StatefulSnippet {
       .map(x => x.size)
   }.toBox
 
-  private def displayCount(count: () => Box[Int], name: String) = {
-    Text((count() match {
+  private def displayCount(count: Box[Int], name: String) = {
+    Text((count match {
       case Empty => 0
       case m: Failure =>
         ApplicationLogger.error(s"Could not fetch the number of ${name}. reason : ${m.messageChain}")
