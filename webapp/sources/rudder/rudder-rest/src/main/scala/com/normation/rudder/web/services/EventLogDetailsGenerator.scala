@@ -54,6 +54,14 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.ncf.Constraints
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.MethodBlock
+import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.TechniqueParameter
+import com.normation.rudder.ncf.eventlogs.AddEditorTechnique
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechnique
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechnique
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
@@ -240,7 +248,10 @@ class EventLogDetailsGenerator(
       case x: AddSecret                     => secretDesc(x, Text(" added"))
       case x: ModifySecret                  => secretDesc(x, Text(" modified"))
       case x: DeleteSecret                  => secretDesc(x, Text(" deleted"))
-      case _ => Text("Unknow event type")
+      case x: AddEditorTechnique            => secretDesc(x, Text(" added"))
+      case x: ModifyEditorTechnique         => secretDesc(x, Text(" modified"))
+      case x: DeleteEditorTechnique         => secretDesc(x, Text(" deleted"))
+      case _ => Text("Unknown event type")
     }
   }
 
@@ -288,7 +299,7 @@ class EventLogDetailsGenerator(
       }
 
       def errorMessage(e: EmptyBox) = {
-        logger.debug(e ?~! "Error when parsing details.", e)
+        logger.error(e ?~! "Error when parsing details.", e)
         <xml:group>
           <div class="evloglmargin">
             <h5>Details for that node were not in a recognized format.
@@ -456,6 +467,81 @@ class EventLogDetailsGenerator(
                   <div class="evloglmargin">
 
                     {generatedByChangeRequest}{directiveDetails(piDetailsXML, diff.techniqueName, diff.directive, sectionVal)}{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          ///////// EditorTechnique /////////
+
+          case x: ModifyEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueModifyDetails(x.details) match {
+                case Full(modDiff)    =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}<h5>EditorTechnique overview:</h5>
+                    <ul class="evlogviewpad">
+                      <li>
+                        <b>EditorTechnique ID: </b>{modDiff.techniqueId.value}
+                      </li>
+                      <li>
+                        <b>Name: </b>{modDiff.modName.map(diff => diff.newValue.toString).getOrElse(modDiff.name)}
+                      </li>
+                    </ul>{
+                    /*(
+                      "#name" #> mapSimpleDiff(modDiff.modName) &
+                        "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
+                        "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
+                        "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
+                        "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
+                        "#longDescription *" #> mapSimpleDiff(modDiff.modLongDescription) &
+                        "#ptVersion *" #> mapSimpleDiff(modDiff.modTechniqueVersion) &
+                        "#policyMode *" #> mapSimpleDiffT[Option[PolicyMode]](
+                          modDiff.modPolicyMode,
+                          _.fold(PolicyMode.defaultValue)(_.name)
+                        ) &
+                        "#tags" #> tagsDiff(modDiff.modTags) &
+                        "#parameters" #> (
+                          modDiff.modParameters.map(diff => "#diff" #> displayEditorTechniqueInnerFormDiff(diff, event.id))
+                          )
+                      )(modDiff)*/ NodeSeq.Empty
+                  }{reasonHtml}{xmlParameters(event.id)}
+                  </div>
+                case Failure(m, _, _) =>
+                  <p>
+                    {m}
+                  </p>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: AddEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueAddDetails(x.details) match {
+                case Full(diff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{editorTechniqueDetails(editorTechniqueDetailsXML, diff.editorTechnique)}{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: DeleteEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueDeleteDetails(x.details) match {
+                case Full(diff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{editorTechniqueDetails(editorTechniqueDetailsXML, diff.editorTechnique)}{
                     reasonHtml
                   }{xmlParameters(event.id)}
                   </div>
@@ -1235,6 +1321,212 @@ class EventLogDetailsGenerator(
     )(xml)
   }
 
+  private def editorTechniqueDetails(xml: NodeSeq, technique: EditorTechnique)(implicit qc: QueryContext) = {
+    (
+      "#techniqueId" #> technique.id.value &
+      "#version" #> technique.version.value &
+      "#category" #> technique.category &
+      "#name" #> technique.name &
+      "#description" #> technique.description &
+      "#documentation" #> technique.documentation &
+      "#tags" #> (if (technique.tags.isEmpty) { NodeSeq.Empty }
+                  else {
+                    technique.tags.map { tag =>
+                      <ul>
+                     <li>
+                       <b>Key:&nbsp;</b><value>{tag._1}</value>
+                       <b>Value:&nbsp;</b><value>{tag._2.toJsonPretty}</value>
+                     </li>
+                   </ul>
+                    }
+                  }) &
+      "#resources" #> (if (technique.resources.isEmpty) { NodeSeq.Empty }
+                       else {
+                         technique.resources.map { resource =>
+                           <ul>
+              <li>
+                <b>Path:&nbsp;</b><value>{resource.path}</value>
+                <b>State:&nbsp;</b><value>{resource.state.value}</value>
+              </li>
+            </ul>
+                         }
+                       }) &
+      "#parameters" #> technique.parameters.map(param => techniqueParameterDetails(techniqueParametersDetailXml, param))
+                         &
+      "#calls" #> (if (technique.calls.isEmpty) {
+                     NodeSeq.Empty
+                   } else
+              {
+                       technique.calls.map {
+                         case call: MethodCall  =>
+                           <li>
+                  {callDetails(techniqueCallDetailsXML, call)}
+                </li>
+                         case b:    MethodBlock =>
+                           <li>
+                  {blockDetails(techniqueBlockDetailsXML, b)}
+                </li>
+
+                       }
+                     }
+            )
+    )(xml)
+  }
+
+  /*
+        <li><b>Content:&nbsp;</b><value id="calls"/></li>
+   */
+  private def techniqueParameterDetails(xml: NodeSeq, parameter: TechniqueParameter) = {
+    (
+      "#parameterId" #> parameter.id.value &
+      "#name" #> parameter.name &
+      "#description" #> parameter.description.getOrElse("") &
+      "#documentation" #> parameter.documentation.getOrElse("") &
+      "#mayBeEmpty" #> parameter.mayBeEmpty &
+      "#constraints" #> parameter.constraints.map(constraintsDetails).getOrElse(Text(""))
+    )(xml)
+  }
+
+  private def constraintsDetails(constraints: Constraints) = {
+    <ul>
+      {constraints.allowEmpty.map(allow => <li><b>{if (allow) "Allow" else "Don't allow"}</b> empty value</li>).getOrElse(NodeSeq.Empty)}
+      {
+      constraints.allowWhiteSpace.map(allow =>
+        <li><b>{if (allow) "Allow" else "Don't allow"}</b> leading/trailling whitespaces</li>
+      ).getOrElse(NodeSeq.Empty)
+    }
+      {constraints.minLength.map(min => <li>Must be at least <b>{min}</b> character{if (min == 1) "" else "s"} long</li>).getOrElse(NodeSeq.Empty)}
+      {constraints.maxLength.map(max => <li>Must be at most <b>{max}</b> character{if (max == 1) "" else "s"} long</li>).getOrElse(NodeSeq.Empty)}
+      {constraints.regex.map(regex => <li>Must validate the following regex: <b>{regex}</b></li>).getOrElse(NodeSeq.Empty)}
+      {constraints.notRegex.map(regex => <li>Must not validate the following regex: <b>{regex}</b></li>).getOrElse(NodeSeq.Empty)}
+      {
+      constraints.select.map(select => {
+        <li>Must be one of the following values : <ul class="ms-3">{
+          select.map(option => <li>{option.value} {option.name.map(n => "name: " + n).getOrElse("")}</li>)
+        }</ul></li>
+      }).getOrElse(NodeSeq.Empty)
+    }
+    </ul>
+  }
+
+  private def blockDetails(xml: NodeSeq, block: MethodBlock)(implicit qc: QueryContext): NodeSeq = {
+    (
+      "#id" #> block.id &
+      "#component" #> block.component &
+      "#condition" #> block.condition &
+      "#reporting_logic" #> block.reportingLogic.value &
+      "#policy_mode" #> block.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue) &
+      "#calls" #> (if (block.calls.isEmpty) {
+                     NodeSeq.Empty
+                   } else
+              {
+                       block.calls.map {
+                         case call: MethodCall  =>
+                           <li>
+                  {callDetails(techniqueCallDetailsXML, call)}
+                </li>
+                         case b:    MethodBlock =>
+                           <li>
+                  {blockDetails(xml, b)}
+                </li>
+
+                       }
+                     }
+            ) &
+      "#foreach" #>
+      (block.foreach.map { foreach =>
+        <ul class="ms-3">
+                <li>
+                  <b>Iterator name</b>
+                  :
+                  &nbsp;{block.foreachName.getOrElse("item")}
+                </li>{
+          foreach.map(iterator => {
+            <li>
+                  {
+              iterator.map(iteration => <ul class="ms-3">
+                    <li>
+                      <b>Key:
+                        &nbsp;
+                      </b> <value>
+                      {iteration._1}
+                    </value>
+                      <b>Value:
+                        &nbsp;
+                      </b> <value>
+                      {iteration._2}
+                    </value>
+                    </li>
+                  </ul>)
+            }
+                </li>
+          })
+        }
+
+              </ul>
+      }).getOrElse(NodeSeq.Empty)
+    )(xml)
+  }
+
+  private def callDetails(xml: NodeSeq, call: MethodCall) = {
+    (
+      "#id" #> call.id &
+      "#method" #> call.method.value &
+      "#component" #> call.component &
+      "#condition" #> call.condition &
+      "#disable_reporting" #> call.disabledReporting &
+      "#policy_mode" #> call.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue) &
+      "#parameters" #>
+      call.parameters.map { tag =>
+        <ul class="ms-3 ">
+                <li>
+                  <b>Parameter:
+                    &nbsp;
+                  </b> <value>
+                  {tag._1.value}
+                </value>
+                </li>
+                <li>
+                  <b>Value:
+                    &nbsp;
+                  </b> <value>
+                  {tag._2}
+                </value>
+                </li>
+              </ul>
+      } &
+      "#calls" #>
+      (call.foreach.map { foreach =>
+        <ul class="ms-3">
+              <li><b>Iterator name</b>:&nbsp; {call.foreachName.getOrElse("item")}</li>  
+              {
+          foreach.map(iterator => {
+            <li>
+                {
+              iterator.map(iteration => <ul>
+                <li>
+                  <b>Key:
+                    &nbsp;
+                  </b> <value>
+                  {iteration._1}
+                </value>
+                  <b>Value:
+                    &nbsp;
+                  </b> <value>
+                  {iteration._2}
+                </value>
+                </li>
+              </ul>)
+            }
+                </li>
+          })
+        }
+
+                </ul>
+      }).getOrElse(NodeSeq.Empty)
+    )(xml)
+  }
+
   private def directiveDetails(xml: NodeSeq, ptName: TechniqueName, directive: Directive, sectionVal: SectionVal) = (
     "#directiveID" #> directive.id.serialize &
       "#directiveName" #> directive.name &
@@ -1412,6 +1704,66 @@ class EventLogDetailsGenerator(
         <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
         <li><b>System:&nbsp;</b><value id="isSystem"/></li>
         <li><b>Details:&nbsp;</b><value id="longDescription"/></li>
+      </ul>
+    </div>
+  }
+
+  private val editorTechniqueDetailsXML = {
+    <div>
+      <h5>Technique overview:</h5>
+      <ul class="evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="techniqueId"/></li>
+        <li><b>Version:&nbsp;</b><value id="version"/></li>
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
+        <li><b>Documentation:&nbsp;</b><value id="documentation"/></li>
+        <li><b>Category:&nbsp;</b><value id="category"/></li>
+        <li><b>Tags:&nbsp;</b><value id="tags"/></li>
+        <li><b>Parameters:&nbsp;</b><value id="parameters"/></li>
+        <li><b>Resources:&nbsp;</b><value id="isEnabled"/></li>
+        <li><b>Content:&nbsp;</b><value id="calls"/></li>
+      </ul>
+    </div>
+  }
+
+  private val techniqueParametersDetailXml = {
+    <ul class="ms-3 evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="parameterId"/></li>
+        <li><b>Name:&nbsp;</b><value id="name"/></li>
+        <li><b>Description:&nbsp;</b><value id="description"/></li>
+        <li><b>Documentation:&nbsp;</b><value id="documentation"/></li>
+        <li><b>May be empty:&nbsp;</b><value id="mayBeEmpty"/></li>
+        <li id="constraints"><b>Constraints:&nbsp;</b><value /></li>
+      </ul>
+  }
+
+  private val techniqueBlockDetailsXML = {
+    <div>
+      <ul class="ms-3 evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="id"/></li>
+        <li><b>Component:&nbsp;</b><value id="component"/></li>
+        <li><b>Condition:&nbsp;</b><value id="condition"/></li>
+        <li><b>Reporting logic:&nbsp;</b><value id="reporting_logic"/></li>
+        <li><b>Policy mode:&nbsp;</b><value id="policy_mode"/></li>
+        <li><b>Loop:&nbsp;</b><value id="foreach"/></li>
+        <li><b>Loop name:&nbsp;</b><value id="foreach_name"/></li>
+        <li><b>Children:&nbsp;</b><value id="calls"/></li>
+      </ul>
+    </div>
+  }
+
+  private val techniqueCallDetailsXML = {
+    <div>
+      <ul class="ms-3 evlogviewpad">
+        <li><b>ID:&nbsp;</b><value id="id"/></li>
+        <li><b>Method:&nbsp;</b><value id="method"/></li>
+        <li><b>Component:&nbsp;</b><value id="component"/></li>
+        <li><b>Condition:&nbsp;</b><value id="condition"/></li>
+        <li><b>Disable reporting:&nbsp;</b><value id="disable_reporting"/></li>
+        <li><b>Policy mode:&nbsp;</b><value id="policy_mode"/></li>
+        <li><b>Loop:&nbsp;</b><value id="foreach"/></li>
+        <li><b>Loop name:&nbsp;</b><value id="foreach_name"/></li>
+        <li><b>Parameters:&nbsp;</b><value id="parameters"/></li>
       </ul>
     </div>
   }

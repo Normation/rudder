@@ -43,11 +43,12 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechniqueDiff
+import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.utils.FileUtils
@@ -67,27 +68,23 @@ trait TechniqueWriter {
       techniqueName:    String,
       techniqueVersion: String,
       deleteDirective:  Boolean,
-      modId:            ModificationId,
-      committer:        QueryContext
+      committer:        ChangeContext
   ): IOResult[Unit]
 
   def writeTechniqueAndUpdateLib(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
+      technique:     EditorTechnique,
+      changeContext: ChangeContext
   ): IOResult[EditorTechnique]
 
   // Write and commit all techniques files
   def writeTechnique(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
+      technique:     EditorTechnique,
+      changeContext: ChangeContext
   ): IOResult[EditorTechnique]
 
   def writeTechniques(
-      techniques: List[EditorTechnique],
-      modId:      ModificationId,
-      committer:  EventActor
+      techniques:    List[EditorTechnique],
+      changeContext: ChangeContext
   ): IOResult[List[EditorTechnique]]
 }
 
@@ -102,6 +99,8 @@ class TechniqueWriterImpl(
     deleteService:            DeleteEditorTechnique,
     compiler:                 TechniqueCompiler,
     compilationStatusService: TechniqueCompilationStatusSyncService,
+    techniqueReader:          EditorTechniqueReader,
+    actionLogger:             EventLogRepository,
     baseConfigRepoPath:       String // root of config repos
 ) extends TechniqueWriter {
 
@@ -109,24 +108,26 @@ class TechniqueWriterImpl(
       techniqueName:    String,
       techniqueVersion: String,
       deleteDirective:  Boolean,
-      modId:            ModificationId,
-      committer:        QueryContext
+      committer:        ChangeContext
   ): IOResult[Unit] = {
-    deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, modId, committer)
+    deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, committer)
   }
 
   def writeTechniqueAndUpdateLib(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
+      technique:     EditorTechnique,
+      changeContext: ChangeContext
   ): IOResult[EditorTechnique] = {
     for {
       updated              <-
-        compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already done in library update
+        compileArchiveTechnique(technique, changeContext, syncStatus = false) // sync is already done in library update
       (updatedTechnique, _) = updated
       _                    <-
         techLibUpdate
-          .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
+          .update(
+            changeContext.modId,
+            changeContext.actor,
+            Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")
+          )
           .toIO
           .chainError(s"An error occurred during technique update after files were created for ncf Technique ${technique.name}")
     } yield {
@@ -135,20 +136,18 @@ class TechniqueWriterImpl(
   }
 
   override def writeTechnique(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
+      technique:     EditorTechnique,
+      changeContext: ChangeContext
   ): IOResult[EditorTechnique] = {
-    compileArchiveTechnique(technique, modId, committer).map { case (t, _) => t }
+    compileArchiveTechnique(technique, changeContext).map { case (t, _) => t }
   }
 
   override def writeTechniques(
-      techniques: List[EditorTechnique],
-      modId:      ModificationId,
-      committer:  EventActor
+      techniques:    List[EditorTechnique],
+      changeContext: ChangeContext
   ): IOResult[List[EditorTechnique]] = {
     for {
-      updated                     <- ZIO.foreach(techniques)(compileArchiveTechnique(_, modId, committer, syncStatus = false))
+      updated                     <- ZIO.foreach(techniques)(compileArchiveTechnique(_, changeContext, syncStatus = false))
       (updatedTechniques, results) = updated.unzip
       _                           <- compilationStatusService.getUpdateAndSync(Some(results))
     } yield {
@@ -160,13 +159,16 @@ class TechniqueWriterImpl(
 
   // Write and commit all techniques files
   private def compileArchiveTechnique(
-      technique:  EditorTechnique,
-      modId:      ModificationId,
-      committer:  EventActor,
-      syncStatus: Boolean = true // should update the compilation status ?
+      technique:     EditorTechnique,
+      changeContext: ChangeContext,
+      syncStatus:    Boolean = true // should update the compilation status ?
   ): IOResult[(EditorTechnique, EditorTechniqueCompilationResult)] = {
     for {
       time_0                      <- currentTimeMillis
+      existingTechnique           <- techniqueReader.getTechnique(technique.id, technique.version.value)
+      time_1                      <- currentTimeMillis
+      _                           <-
+        TimingDebugLoggerPure.trace(s"writeTechnique: getting existing technique '${technique.name}' took ${time_1 - time_0}ms")
       _                           <- TechniqueWriterLoggerPure.debug(s"Writing technique '${technique.name}'")
       // Before writing down technique, set all resources to Untouched state, and remove Delete resources, was the cause of #17750
       updateResources              = technique.resources.collect {
@@ -175,13 +177,14 @@ class TechniqueWriterImpl(
       techniqueWithResourceUpdated = technique.copy(resources = updateResources)
 
       _                <- TechniqueWriterImpl.writeYaml(techniqueWithResourceUpdated)(baseConfigRepoPath)
-      time_1           <- currentTimeMillis
+      time_2           <- currentTimeMillis
       _                <-
-        TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_1 - time_0}ms")
+        TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_2 - time_1}ms")
       compiled         <- compiler.compileTechnique(techniqueWithResourceUpdated)
       compilationResult = EditorTechniqueCompilationResult.from(techniqueWithResourceUpdated, compiled)
       _                <- compilationStatusService.syncOne(compilationResult)
       time_3           <- currentTimeMillis
+      _                <- TimingDebugLoggerPure.trace(s"writeTechnique: compiling technique '${technique.name}' took ${time_3 - time_2}ms")
       id               <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
       // resources files are missing the "resources/" prefix
       resources         = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
@@ -189,8 +192,8 @@ class TechniqueWriterImpl(
                             id,
                             technique.category.split('/').toIndexedSeq,
                             Chunk.fromIterable(resources),
-                            modId,
-                            committer,
+                            changeContext.modId,
+                            changeContext.actor,
                             s"Committing technique ${technique.name}"
                           )
       time_4           <- currentTimeMillis
@@ -199,7 +202,24 @@ class TechniqueWriterImpl(
       time_5           <- currentTimeMillis
       _                <-
         TimingDebugLoggerPure.trace(s"writeTechnique: writing technique '${technique.name}' in cache took ${time_5 - time_4}ms")
-
+      logged           <- existingTechnique match {
+                            case Some(previous) =>
+                              val diff = ModifyEditorTechniqueDiff(previous, technique)
+                              actionLogger.saveModifyEditorTechnique(
+                                changeContext.modId,
+                                principal = changeContext.actor,
+                                modifyDiff = diff,
+                                reason = changeContext.message
+                              )
+                            case None           =>
+                              val diff = AddEditorTechniqueDiff(technique)
+                              actionLogger.saveAddEditorTechnique(
+                                changeContext.modId,
+                                principal = changeContext.actor,
+                                addDiff = diff,
+                                reason = changeContext.message
+                              )
+                          }
     } yield {
       (techniqueWithResourceUpdated, compilationResult)
     }

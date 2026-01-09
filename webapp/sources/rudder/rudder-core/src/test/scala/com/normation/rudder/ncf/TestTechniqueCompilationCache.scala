@@ -88,6 +88,9 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
     override def getMethodsMetadata:        IOResult[Map[BundleName, GenericMethod]] = ???
     override def updateMethodsMetadataFile: IOResult[CmdResult]                      = ???
 
+    override def getTechnique(id: BundleName, version: String): IOResult[Option[EditorTechnique]] =
+      techniques.find(technique => id == technique.id && version == technique.version.value).succeed
+
   }
   private val techniqueCompiler:     TechniqueCompiler     = new TechniqueCompiler {
 

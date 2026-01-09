@@ -143,7 +143,9 @@ object EditorTechnique {
 }
 
 @jsonDiscriminator("type")
-sealed trait MethodElem
+sealed trait MethodElem {
+  def id: String
+}
 
 @jsonHint("block")
 final case class MethodBlock(
