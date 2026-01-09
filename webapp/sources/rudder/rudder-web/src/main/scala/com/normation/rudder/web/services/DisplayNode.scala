@@ -752,17 +752,31 @@ object DisplayNode extends Loggable {
       s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
     }> <b>{tokenKind}</b> {checked} </button>
       <div>
-        {
-      if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
-        SHtml.ajaxButton(
-          "Reset status to be able to accept a different key",
-          () => resetKeyStatus(nodeFact)
-        ) % ("class", "btn btn-default btn-sm")
-      } else NodeSeq.Empty
-    }
-        <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
+        <div id={publicKeyId} style="display:none;">
+          <pre class="display-keys"><div>{agent.securityToken.key}</div></pre>{
       Script(OnLoad(JsRaw(s"""initBsTooltips();"""))) // JsRaw ok, const
     }
+          {
+      if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
+        <div>
+          <p>
+            You may wish to disable the key above so that it is no longer trusted by this node.
+            <br/>
+            In that case, you can <b>reset</b> this key: the key status for this node will be set to "undefined", and the next inventory will be trusted automatically.
+            <br/>
+            You may define a different key for this node after the reset.
+            <br/>
+          </p>
+          {
+          SHtml.ajaxButton(
+            "Reset key",
+            () => resetKeyStatus(nodeFact)
+          ) % ("class", "btn btn-default btn-sm")
+        }
+        </div>
+      } else NodeSeq.Empty
+    }
+        </div>
       </div>
     </div>
   }
