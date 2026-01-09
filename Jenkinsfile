@@ -12,6 +12,8 @@ pipeline {
     environment {
         RUDDER_VERSION = "${version}"
         CI             = 1
+        FORCE_COLOR    = 1
+        CLICOLOR_FORCE = 1
     }
     triggers {
         cron('@midnight')
@@ -281,8 +283,8 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'webapp/sources/rudder/rudder-core/src/test/resources/hooks.d/test-hooks.sh', label: "hooks tests"
                             dir('webapp/sources') {
-                                sh script: 'mvn spotless:check --batch-mode', label: "scala format test"
-                                sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                                sh script: 'mvn spotless:check --batch-mode -Djansi.passthrough=true -Dstyle.color=always', label: "scala format test"
+                                sh script: 'mvn clean test     --batch-mode -Djansi.passthrough=true -Dstyle.color=always', label: "webapp tests"
                             }
                         }
                     }
