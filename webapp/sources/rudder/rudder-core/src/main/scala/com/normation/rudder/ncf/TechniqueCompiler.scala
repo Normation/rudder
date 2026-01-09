@@ -44,7 +44,6 @@ import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
-import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.zio.currentTimeNanos
 import enumeratum.*
@@ -87,48 +86,6 @@ trait TechniqueCompiler {
       _    <- EditorTechnique.checkTechniqueIdConsistency(techniqueBaseDirectory, t)
       res  <- compileTechnique(t)
     } yield res
-  }
-
-  /*
-   * check if the technique is an old JSON technique (try to migrate) or a yaml technique
-   * without or with old generated files.
-   */
-  def migrateCompileIfNeeded(techniquePath: File): IOResult[TechniqueCompilationOutput] = {
-    val yamlFile    = techniquePath / TechniqueFiles.yaml
-    val metadata    = techniquePath / TechniqueFiles.Generated.metadata
-    val compileYaml = compileAtPath(techniquePath)
-    val success     = TechniqueCompilationOutput(
-      TechniqueCompilerApp.Rudderc,
-      resultCode = 0,
-      fileStatus = Chunk.empty,
-      msg = "no compilation needed: artifact are up-to-date",
-      stdout = "",
-      stderr = ""
-    ).succeed
-
-    for {
-      _ <- RuddercLogger.debug(s"Migrate/recompile '${techniquePath.pathAsString}' if needed'")
-      _ <- MigrateJsonTechniquesService.migrateJson(techniquePath)
-      x <- IOResult.attemptZIO {
-             if (yamlFile.exists) {
-               if (metadata.exists) {
-                 if (yamlFile.lastModifiedTime.isAfter(metadata.lastModifiedTime)) {
-                   RuddercLogger.debug(
-                     s"'${techniquePath.pathAsString}': YAML descriptor is more recent than XML metadata, recompiling"
-                   ) *> compileYaml
-                 } else success
-               } else {
-                 RuddercLogger.debug(
-                   s"'${techniquePath.pathAsString}': XML metadata missing, recompiling"
-                 ) *> compileYaml
-               }
-             } else {
-               RuddercLogger.debug(
-                 s"'${techniquePath.pathAsString}': YAML descriptor doesn't exist: assuming it's an old technique format, ignore"
-               ) *> success
-             }
-           }
-    } yield x
   }
 
   def getCompilationOutputFile(technique: EditorTechnique): File

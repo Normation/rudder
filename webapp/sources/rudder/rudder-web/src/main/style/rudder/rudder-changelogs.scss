@@ -83,6 +83,18 @@ pre.technical-details{
   text-align : center;
   flex: 1;
 }
+
+
+li.added {
+    list-style-type : none;
+    background: none repeat scroll 0 0 #D6FFD6
+    }
+
+li.deleted {
+    list-style-type : none;
+    background: none repeat scroll 0 0 #FFD6D6
+    }
+
 .evlogviewpad {
   padding:5px;
 }

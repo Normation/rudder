@@ -92,6 +92,8 @@ import com.normation.rudder.metrics.*
 import com.normation.rudder.ncf
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
+import com.normation.rudder.ncf.eventlogs.EditorTechniqueXmlSerialisationImpl
+import com.normation.rudder.ncf.eventlogs.EditorTechniqueXmlUnserialisationImpl
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.properties.*
 import com.normation.rudder.reports.*
@@ -1913,10 +1915,14 @@ object RudderConfigInit {
         techniqueRepository,
         workflowLevelService,
         techniqueCompilationCache,
+        ncfTechniqueReader,
+        eventLogRepository,
         RUDDER_GIT_ROOT_CONFIG_REPO
       ),
       techniqueCompiler,
       techniqueCompilationCache,
+      ncfTechniqueReader,
+      eventLogRepository,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
 
@@ -2555,7 +2561,8 @@ object RudderConfigInit {
       globalParameterSerialisation,
       apiAccountSerialisation,
       propertySerialization,
-      new SecretSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+      new SecretSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString),
+      new EditorTechniqueXmlSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
     )
     lazy val pathComputer    = new PathComputerImpl(
       Constants.NODE_PROMISES_PARENT_DIR_BASE,
@@ -2604,7 +2611,8 @@ object RudderConfigInit {
       new DeploymentStatusUnserialisationImpl,
       new GlobalParameterUnserialisationImpl,
       new ApiAccountUnserialisationImpl,
-      new SecretUnserialisationImpl
+      new SecretUnserialisationImpl,
+      new EditorTechniqueXmlUnserialisationImpl
     )
 
     //////////////////////////////////////////////////////////
@@ -3570,13 +3578,6 @@ object RudderConfigInit {
         updateTechniqueLibrary,
         ncfTechniqueReader,
         resourceFileService
-      ),
-      new MigrateJsonTechniquesToYaml(
-        ncfTechniqueWriter,
-        stringUuidGenerator,
-        updateTechniqueLibrary,
-        techniqueCompilationStatusService,
-        gitConfigRepo.rootDirectory.pathAsString
       ),
       new FixedPathLoggerMigration(),
       new DropNodeComplianceTables(doobie),

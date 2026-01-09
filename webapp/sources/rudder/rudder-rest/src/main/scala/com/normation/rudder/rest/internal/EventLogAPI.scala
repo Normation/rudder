@@ -260,8 +260,10 @@ class EventLogService(
   def getEventLogDetails(id: Long)(implicit qc: QueryContext): IOResult[RestEventLogDetails] = {
 
     (for {
-      event             <- repo.getEventLogById(id)
-      crId              <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
+      event <- repo.getEventLogById(id)
+      _     <- EventLogsLoggerPure.info(event.details.toString)
+      crId  <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
+
       htmlDetails        = eventLogDetailGenerator.displayDetails(event, crId.flatten)
       nodePropertiesDiff = eventLogDetailGenerator.nodePropertiesDiff(event)
     } yield {

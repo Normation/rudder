@@ -69,6 +69,11 @@ import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.EditorTechniqueXmlUnserialisation
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechniqueDiff
 import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.marshalling.*
@@ -111,6 +116,14 @@ trait EventLogDetailsService {
   def getDirectiveDeleteDetails(xml: NodeSeq): Box[(DeleteDirectiveDiff, SectionVal)]
 
   def getDirectiveModifyDetails(xml: NodeSeq): Box[ModifyDirectiveDiff]
+
+  ///// EditorTechnique /////
+
+  def getEditorTechniqueAddDetails(xml: NodeSeq): Box[AddEditorTechniqueDiff]
+
+  def getEditorTechniqueDeleteDetails(xml: NodeSeq): Box[DeleteEditorTechniqueDiff]
+
+  def getEditorTechniqueModifyDetails(xml: NodeSeq): Box[ModifyEditorTechniqueDiff]
 
   ///// node group /////
 
@@ -183,26 +196,13 @@ trait EventLogDetailsService {
 
 }
 
-/**
- * Details should always be in the format: <entry>{more details here}</entry>
- */
-class EventLogDetailsServiceImpl(
-    cmdbQueryParser:                 CmdbQueryParser,
-    piUnserialiser:                  DirectiveUnserialisation,
-    groupUnserialiser:               NodeGroupUnserialisation,
-    crUnserialiser:                  RuleUnserialisation,
-    techniqueUnserialiser:           ActiveTechniqueUnserialisation,
-    deploymentStatusUnserialisation: DeploymentStatusUnserialisation,
-    globalParameterUnserialisation:  GlobalParameterUnserialisation,
-    apiAccountUnserialisation:       ApiAccountUnserialisation,
-    secretUnserialisation:           SecretUnserialisation
-) extends EventLogDetailsService {
+object EventLogDetailsService {
 
   /**
    * An utility method that is able the parse a <X<from>....</from><to>...</to></X>
    * attribute and extract it into a SimpleDiff class.
    */
-  private def getFromTo[T](opt: Option[NodeSeq], f: NodeSeq => Box[T]): Box[Option[SimpleDiff[T]]] = {
+  def getFromTo[T](opt: Option[NodeSeq], f: NodeSeq => Box[T]): Box[Option[SimpleDiff[T]]] = {
     opt match {
       case None    => Full(None)
       case Some(x) =>
@@ -217,11 +217,51 @@ class EventLogDetailsServiceImpl(
     }
   }
 
+  def getFromToOption[T](opt: Option[NodeSeq], f: NodeSeq => Box[T]): Box[Option[SimpleDiff[Option[T]]]] = {
+    opt match {
+      case None    => Full(None)
+      case Some(x) =>
+        val fromS = (x \ "from").headOption
+        val toS   = (x \ "to").headOption
+        for {
+          from <- fromS match {
+                    case None    => Full(None)
+                    case Some(v) => f(v).map(Some(_))
+                  }
+          to   <- toS match {
+                    case None    => Full(None)
+                    case Some(v) => f(v).map(Some(_))
+                  }
+        } yield {
+          Some(SimpleDiff(from, to))
+        }
+    }
+  }
+
   /**
    * Special case of getFromTo for strings.
    */
-  private def getFromToString(opt: Option[NodeSeq]) = getFromTo[String](opt, (s: NodeSeq) => Full(s.text))
+  def getFromToString(opt: Option[NodeSeq]) = getFromTo[String](opt, (s: NodeSeq) => Full(s.text))
 
+}
+
+/**
+ * Details should always be in the format: <entry>{more details here}</entry>
+ */
+class EventLogDetailsServiceImpl(
+    cmdbQueryParser:                 CmdbQueryParser,
+    piUnserialiser:                  DirectiveUnserialisation,
+    groupUnserialiser:               NodeGroupUnserialisation,
+    crUnserialiser:                  RuleUnserialisation,
+    techniqueUnserialiser:           ActiveTechniqueUnserialisation,
+    deploymentStatusUnserialisation: DeploymentStatusUnserialisation,
+    globalParameterUnserialisation:  GlobalParameterUnserialisation,
+    apiAccountUnserialisation:       ApiAccountUnserialisation,
+    secretUnserialisation:           SecretUnserialisation,
+    editorTechniqueUnserialisation:  EditorTechniqueXmlUnserialisation
+) extends EventLogDetailsService {
+
+  import EventLogDetailsService.*
   def getEntryContent(xml: NodeSeq): Box[Elem] = {
     if (xml.size == 1) {
       val node = Utility.trim(xml.head)
@@ -367,6 +407,75 @@ class EventLogDetailsServiceImpl(
       rule            <- crUnserialiser.unserialise(crXml).toBox
     } yield {
       rule
+    }
+  }
+
+  override def getEditorTechniqueAddDetails(xml: NodeSeq): Box[AddEditorTechniqueDiff] = {
+    getEditorTechniqueFromXML(xml, "add").map(editorTechnique => AddEditorTechniqueDiff(editorTechnique))
+  }
+
+  /**
+   * Version 2:
+   * <EditorTechnique changeType="delete" fileFormat="2">
+   * <id>{EditorTechnique.id.value}</id>
+   * <name>{EditorTechnique.name}</name>
+   * <serial>{EditorTechnique.serial}</serial>
+   * <target>{ EditorTechnique.target.map( _.target).getOrElse("") }</target>
+   * <directiveIds>{
+   * EditorTechnique.directiveIds.map { id => <id>{id.value}</id> }
+   * }</directiveIds>
+   * <shortDescription>{EditorTechnique.shortDescription}</shortDescription>
+   * <longDescription>{EditorTechnique.longDescription}</longDescription>
+   * <isEnabled>{EditorTechnique.isEnabledStatus}</isEnabled>
+   * <isSystem>{EditorTechnique.isSystem}</isSystem>
+   * </EditorTechnique>
+   */
+  override def getEditorTechniqueDeleteDetails(xml: NodeSeq): Box[DeleteEditorTechniqueDiff] = {
+    getEditorTechniqueFromXML(xml, "delete").map(editorTechnique => DeleteEditorTechniqueDiff(editorTechnique))
+  }
+
+  /**
+   * <EditorTechnique changeType="modify">
+   * <id>012f3064-d392-43a3-bec9-b0f75950a7ea</id>
+   * <displayName>cr1</displayName>
+   * <name><from>cr1</from><to>cr1-x</to></name>
+   * <category><from>oldId</from><to>newId</to></category>
+   * <target><from>....</from><to>....</to></target>
+   * <directiveIds><from><id>...</id><id>...</id></from><to><id>...</id></to></directiveIds>
+   * <shortDescription><from>...</from><to>...</to></shortDescription>
+   * <longDescription><from>...</from><to>...</to></longDescription>
+   * </EditorTechnique>
+   */
+  override def getEditorTechniqueModifyDetails(xml: NodeSeq): Box[ModifyEditorTechniqueDiff] = for {
+    entry           <- getEntryContent(xml)
+    EditorTechnique <- (entry \ "technique").headOption ?~! ("Entry type is not EditorTechnique : " + entry.toString())
+    changeTypeAddOk <- {
+      if (EditorTechnique.attribute("changeType").map(_.text) == Some("modify"))
+        Full("OK")
+      else
+        Failure("EditorTechnique attribute does not have changeType=modify: " + entry.toString())
+    }
+    diff            <- editorTechniqueUnserialisation.unserialiseDiff(entry)
+  } yield {
+    diff
+  }
+
+  /**
+   * Map XML into a EditorTechnique
+   */
+  private def getEditorTechniqueFromXML(xml: NodeSeq, changeType: String): Box[EditorTechnique] = {
+    for {
+      entry           <- getEntryContent(xml)
+      xml             <- (entry \ "technique").headOption ?~! ("Entry type is not a technique: " + entry.toString())
+      changeTypeAddOk <- {
+        if (xml.attribute("changeType").exists(_.text == changeType))
+          Full("OK")
+        else
+          Failure("EditorTechnique attribute does not have changeType=%s: ".format(changeType) + entry)
+      }
+      editorTechnique <- editorTechniqueUnserialisation.unserialise(xml).toBox
+    } yield {
+      editorTechnique
     }
   }
 

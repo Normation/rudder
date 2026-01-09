@@ -83,7 +83,6 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.git.ZipUtils.Zippable
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -1035,7 +1034,6 @@ object PolicyArchiveUnzip {
 sealed trait TechniqueType { def name: String }
 object TechniqueType       {
   case object Yaml     extends TechniqueType { val name = TechniqueFiles.yaml               }
-  case object Json     extends TechniqueType { val name = TechniqueFiles.json               }
   case object Metadata extends TechniqueType { val name = TechniqueFiles.Generated.metadata }
 }
 
@@ -1061,7 +1059,6 @@ class ZipArchiveReaderImpl(
   val techniqueCatsRegex: Regex = """(.*/|)techniques/(.+category.json)""".r
   val techniqueRegex:     Regex = """(.*/|)techniques/(.+)""".r
   val yamlRegex:          Regex = s"""(.+)/${TechniqueType.Yaml.name}""".r
-  val jsonRegex:          Regex = s"""(.+)/${TechniqueType.Json.name}""".r
   val metadataRegex:      Regex = s"""(.+)/${TechniqueType.Metadata.name}""".r
   val directiveRegex:     Regex = """(.*/|)directives/(.+.json)""".r
   val groupCatsRegex:     Regex = """(.*/|)groups/(.*category.json)""".r
@@ -1148,14 +1145,6 @@ class ZipArchiveReaderImpl(
       // In the technique.json and technique.yml case, we always override what we might already have parsed for metadata/
       // In technique.json, we also first try to migrate to yml.
       name.toLowerCase() match {
-        case TechniqueType.Json.name =>
-          val json = new String(content, StandardCharsets.UTF_8)
-          for {
-            yaml <- MigrateJsonTechniquesService.toYaml(json).toIO
-            res  <-
-              checkParseTechniqueDescriptor(basePath, id, optTech, TechniqueType.Yaml.name, yaml.getBytes(StandardCharsets.UTF_8))
-          } yield res
-
         case TechniqueType.Yaml.name =>
           val yaml = new String(content, StandardCharsets.UTF_8)
           for {
@@ -1191,7 +1180,7 @@ class ZipArchiveReaderImpl(
                  }
       tech    <-
         optTech.get.notOptional(
-          s"Error: archive does not contains a ${TechniqueType.Yaml.name} or ${TechniqueType.Metadata.name} or ${TechniqueType.Json.name} file " +
+          s"Error: archive does not contains a ${TechniqueType.Yaml.name} or ${TechniqueType.Metadata.name} file " +
           s"for technique with id '${basepath}', at least one was expected"
         )
     } yield {
@@ -1339,7 +1328,6 @@ class ZipArchiveReaderImpl(
     // create a map of technique names -> list of (filename, content)
     val techniques = sortedEntries.techniques.collect {
       case (yamlRegex(basePath), _)     => basePath
-      case (jsonRegex(basePath), _)     => basePath
       case (metadataRegex(basePath), _) => basePath
     }
 
