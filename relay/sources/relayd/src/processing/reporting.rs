@@ -7,6 +7,7 @@ use anyhow::Error;
 use tokio::{sync::mpsc, task::spawn_blocking};
 use tracing::{debug, error, info, instrument, span, warn, Instrument, Level};
 
+use crate::processing::ensure_file_size_limit;
 use crate::{
     configuration::main::ReportingOutputSelect,
     data::{RunInfo, RunLog},
@@ -63,6 +64,20 @@ async fn serve(job_config: Arc<JobConfig>, mut rx: mpsc::Receiver<ReceivedFile>)
                 file
             );
             continue;
+        }
+
+        match ensure_file_size_limit(
+            file.clone(),
+            job_config.cfg.processing.reporting.max_size,
+            job_config.cfg.processing.reporting.directory.clone(),
+        )
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{:?}", e);
+                continue;
+            }
         }
 
         let queue_id = queue_id_from_file(&file);
