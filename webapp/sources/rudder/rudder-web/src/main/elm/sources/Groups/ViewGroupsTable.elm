@@ -1,5 +1,6 @@
 module Groups.ViewGroupsTable exposing (..)
 
+import Dict exposing (Dict)
 import Maybe
 import Html exposing (Html, i, text, td, th, tr)
 import Html.Attributes exposing (class, colspan, rowspan)
@@ -10,6 +11,7 @@ import Groups.ViewUtils exposing (..)
 
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (defaultComplianceFilter)
+import Rudder.Table
 import Ui.Datatable exposing (filterSearch, sortTable, thClass)
 
 
@@ -68,3 +70,27 @@ groupsTableHeader groupFilters =
       , onClick (UpdateGroupFilters { groupFilters | tableFilters = (sortTable tableFilters TargetedCompliance)})
       ] [ text "Targeted compliance" ]
     ]
+
+
+toGroupWithCompliance : Dict String GroupComplianceSummary -> Group -> GroupWithCompliance
+toGroupWithCompliance groupsCompliance group =
+    let
+        compliance =
+            Dict.get group.id.value groupsCompliance
+    in
+    { name = group.name
+    , category = group.category
+    , globalCompliance = Maybe.map .global compliance
+    , targetedCompliance = Maybe.map .targeted compliance
+    }
+
+updateGroupsTableData : Model -> Model
+updateGroupsTableData model =
+    let
+        groupsList = getElemsWithCompliance model
+        data =
+            List.map
+                (toGroupWithCompliance model.groupsCompliance)
+                groupsList
+    in
+    {model | groupsTable = Rudder.Table.updateData data model.groupsTable}

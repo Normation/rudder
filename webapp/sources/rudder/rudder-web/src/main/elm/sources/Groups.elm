@@ -3,6 +3,7 @@ port module Groups exposing (..)
 import Browser
 import Dict
 import Dict.Extra
+import Groups.ViewGroupsTable exposing (updateGroupsTableData)
 import Http exposing (..)
 
 
@@ -13,6 +14,9 @@ import Groups.Init exposing (init)
 import Groups.View exposing (view)
 import Groups.ViewUtils exposing (..)
 
+import Notifications exposing (successNotification)
+import Rudder.Table exposing (OutMsg(..))
+import Rudder.Filters
 import Ui.Datatable exposing (getAllCats)
 
 
@@ -88,7 +92,7 @@ update msg model =
             newModel = { model | groupsTree = r, mode = if (model.mode == Loading) then LoadingTable else model.mode, ui = newUi }
           in
             ( 
-              newModel
+              newModel |> updateGroupsTableData
               , Cmd.batch (initTooltips () :: (if chainInitTable then [ getInitialGroupCompliance newModel ] else []))  -- reload the table each time we have a new groups tree
             )
         Err err ->
@@ -99,12 +103,13 @@ update msg model =
           let
             modelUi = model.ui
             currentGroups = if keepGroups then model.groupsCompliance else Dict.empty
+            groupsCompliance = (Dict.Extra.fromListBy (.id >> .value) r) |> Dict.union currentGroups
           in 
             ( { model | 
-                  groupsCompliance = (Dict.Extra.fromListBy (.id >> .value) r) |> Dict.union currentGroups
+                  groupsCompliance = groupsCompliance
                   , mode = if (model.mode == LoadingTable) then GroupTable else model.mode
                   , ui = { modelUi | loadingGroups = False }
-              }
+              } |> updateGroupsTableData
               , Cmd.batch [adjustComplianceCols (), initTooltips ()]
             )
         Err err ->
@@ -120,8 +125,14 @@ update msg model =
       let
         ui = model.ui
         newUi = { ui | groupFilters = filters }
+        --fixme
+        filter s =
+            String.contains
+                (s |> String.toLower |> String.trim)
+                (filters.treeFilters.filter |> String.toLower)
+        groupsTable = Rudder.Table.updateDataWithFilter (Groups.Init.filterPredicate (\_ -> True)) model.groupsTable
       in
-        ({model | ui = newUi}, initTooltips ())
+        ({model | ui = newUi, groupsTable = groupsTable}, initTooltips ())
     FoldAllCategories filters ->
       let
         -- remove rootGroupCategoryId because we can't fold/unfold root category
@@ -143,7 +154,32 @@ update msg model =
       in
         ({model | ui = { ui | groupFilters = foldedList}}, initTooltips ())
 
-    
+    RudderTableMsg tableMsg ->
+      let
+          (groupsTable, tabMsg, outMsgOpt) =
+              Rudder.Table.update tableMsg model.groupsTable
+      in
+      handleOutMsg model groupsTable tabMsg outMsgOpt
+
+    ExportCsvMsg ->
+        let
+            (groupsTable, tabMsg, outMsgOpt) =
+                Rudder.Table.updateExportToCsv model.groupsTable
+        in
+        handleOutMsg model groupsTable tabMsg outMsgOpt
+
+
+handleOutMsg : Model -> Rudder.Table.Model GroupWithCompliance Msg -> Cmd Msg -> Maybe (OutMsg Msg) -> (Model, Cmd Msg)
+handleOutMsg model groupsTable tabMsg outMsgOpt =
+    case outMsgOpt of
+        Just (OnHtml parentMsg) ->
+            let
+                (newModel, newMsg) = update parentMsg ({model | groupsTable = groupsTable})
+            in
+            (newModel, Cmd.batch [newMsg, tabMsg])
+        _ ->
+            ( {model | groupsTable = groupsTable}, tabMsg )
+
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
