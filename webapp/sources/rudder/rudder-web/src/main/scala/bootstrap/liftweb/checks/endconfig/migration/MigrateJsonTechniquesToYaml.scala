@@ -45,6 +45,7 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.migration.MigrateJsonTechniquesService
 import com.normation.rudder.repository.xml.TechniqueFiles
@@ -105,9 +106,11 @@ class MigrateJsonTechniquesToYaml(
       _        <- TechniqueMigrationLogger.debug(
                     s"Technique JSON metadata `${path.pathAsString}` correctly read as an editor technique, migrating."
                   )
-      // techniqueWriter (techniqueArchiver under the hood) will handle both migration of json file to yaml, and call to compiler
+      cc = ChangeContext.newForRudder(Some("Regenerate technique at startup"),None)
+
+                    // techniqueWriter (techniqueArchiver under the hood) will handle both migration of json file to yaml, and call to compiler
       _        <- techniqueWriter
-                    .writeTechnique(t, ModificationId(uuidGen.newUuid), RudderEventActor)
+                    .writeTechnique(t, cc)
                     .chainError(s"An error occurred while writing technique '${t.id.value}'")
       _        <- TechniqueMigrationLogger.info(s"Migration of technique '${techName}' to YAML format done")
     } yield ()

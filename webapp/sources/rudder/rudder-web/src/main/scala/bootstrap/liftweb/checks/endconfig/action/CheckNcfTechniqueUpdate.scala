@@ -45,6 +45,7 @@ import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
@@ -93,6 +94,7 @@ class CheckNcfTechniqueUpdate(
     import com.normation.errors.*
 
     def updateNcfTechniques = {
+      implicit val cc: ChangeContext = ChangeContext.newForRudder(Some("Regenerate technique at startup"),None)
       for {
         _                            <- BootstrapLogger.info("Started editor techniques update")
         res                          <- techniqueReader.readTechniquesMetadataFile
@@ -114,7 +116,7 @@ class CheckNcfTechniqueUpdate(
         // Actually write techniques
         written                 <- ZIO.foreach(techniquesWithResources) { t =>
                                      techniqueWrite
-                                       .writeTechnique(t, ModificationId(uuidGen.newUuid), EventActor(systemApiToken.name.value))
+                                       .writeTechnique(t, cc)
                                        .chainError(s"An error occurred while writing technique '${t.id.value}'")
                                        .either
                                    }

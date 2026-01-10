@@ -69,6 +69,7 @@ import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
+import com.normation.rudder.ncf.eventlogs.{AddEditorTechniqueDiff, DeleteEditorTechniqueDiff, ModifyEditorTechniqueDiff}
 import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.marshalling.*
@@ -81,6 +82,7 @@ import net.liftweb.common.Box.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.xml.*
 
 /**
@@ -112,6 +114,14 @@ trait EventLogDetailsService {
 
   def getDirectiveModifyDetails(xml: NodeSeq): Box[ModifyDirectiveDiff]
 
+  ///// EditorTechnique /////
+
+  def getEditorTechniqueAddDetails(xml: NodeSeq): Box[AddEditorTechniqueDiff]
+
+  def getEditorTechniqueDeleteDetails(xml: NodeSeq): Box[DeleteEditorTechniqueDiff]
+
+  def getEditorTechniqueModifyDetails(xml: NodeSeq): Box[ModifyEditorTechniqueDiff]
+  
   ///// node group /////
 
   def getNodeGroupAddDetails(xml: NodeSeq): Box[AddNodeGroupDiff]
@@ -367,6 +377,112 @@ class EventLogDetailsServiceImpl(
       rule            <- crUnserialiser.unserialise(crXml).toBox
     } yield {
       rule
+    }
+  }
+
+  override def getEditorTechniqueAddDetails(xml: NodeSeq): Box[AddEditorTechniqueDiff] = {
+    getEditorTechniqueFromXML(xml, "add").map(EditorTechnique => AddEditorTechniqueDiff(EditorTechnique))
+  }
+
+  /**
+   * Version 2:
+   * <EditorTechnique changeType="delete" fileFormat="2">
+   * <id>{EditorTechnique.id.value}</id>
+   * <name>{EditorTechnique.name}</name>
+   * <serial>{EditorTechnique.serial}</serial>
+   * <target>{ EditorTechnique.target.map( _.target).getOrElse("") }</target>
+   * <directiveIds>{
+   * EditorTechnique.directiveIds.map { id => <id>{id.value}</id> }
+   * }</directiveIds>
+   * <shortDescription>{EditorTechnique.shortDescription}</shortDescription>
+   * <longDescription>{EditorTechnique.longDescription}</longDescription>
+   * <isEnabled>{EditorTechnique.isEnabledStatus}</isEnabled>
+   * <isSystem>{EditorTechnique.isSystem}</isSystem>
+   * </EditorTechnique>
+   */
+  override def getEditorTechniqueDeleteDetails(xml: NodeSeq): Box[DeleteEditorTechniqueDiff] = {
+    getEditorTechniqueFromXML(xml, "delete").map(EditorTechnique => DeleteEditorTechniqueDiff(EditorTechnique))
+  }
+
+  /**
+   * <EditorTechnique changeType="modify">
+   * <id>012f3064-d392-43a3-bec9-b0f75950a7ea</id>
+   * <displayName>cr1</displayName>
+   * <name><from>cr1</from><to>cr1-x</to></name>
+   * <category><from>oldId</from><to>newId</to></category>
+   * <target><from>....</from><to>....</to></target>
+   * <directiveIds><from><id>...</id><id>...</id></from><to><id>...</id></to></directiveIds>
+   * <shortDescription><from>...</from><to>...</to></shortDescription>
+   * <longDescription><from>...</from><to>...</to></longDescription>
+   * </EditorTechnique>
+   */
+  override def getEditorTechniqueModifyDetails(xml: NodeSeq): Box[ModifyEditorTechniqueDiff] = for {
+    entry <- getEntryContent(xml)
+    EditorTechnique <- (entry \ "EditorTechnique").headOption ?~! ("Entry type is not EditorTechnique : " + entry.toString())
+    changeTypeAddOk <- {
+      if (EditorTechnique.attribute("changeType").map(_.text) == Some("modify"))
+        Full("OK")
+      else
+        Failure("EditorTechnique attribute does not have changeType=modify: " + entry.toString())
+    }
+    fileFormatOk <- TestFileFormat(EditorTechnique)
+    sid <- (EditorTechnique \ "id").headOption.map(_.text) ?~!
+      ("Missing attribute 'id' in entry type EditorTechnique : " + entry.toString())
+    id <- EditorTechniqueId.parse(sid).toBox
+    displayName <- (EditorTechnique \ "displayName").headOption.map(_.text) ?~!
+      ("Missing attribute 'displayName' in entry type EditorTechnique : " + entry.toString())
+    name <- getFromToString((EditorTechnique \ "name").headOption)
+    category <- getFromTo[EditorTechniqueCategoryId](
+      (EditorTechnique \ "category").headOption,
+      s => Full(EditorTechniqueCategoryId(s.text))
+    )
+    serial <- getFromTo[Int]((EditorTechnique \ "serial").headOption, x => tryo(x.text.toInt))
+    targets <- getFromTo[Set[EditorTechniqueTarget]](
+      (EditorTechnique \ "targets").headOption,
+      (x: NodeSeq) => Full((x \ "target").toSet.flatMap((y: NodeSeq) => EditorTechniqueTarget.unser(y.text)))
+    )
+    shortDescription <- getFromToString((EditorTechnique \ "shortDescription").headOption)
+    longDescription <- getFromToString((EditorTechnique \ "longDescription").headOption)
+    isEnabled <- getFromTo[Boolean]((EditorTechnique \ "isEnabled").headOption, s => tryo(s.text.toBoolean))
+    isSystem <- getFromTo[Boolean]((EditorTechnique \ "isSystem").headOption, s => tryo(s.text.toBoolean))
+    directiveIds <- getFromTo[Set[DirectiveId]](
+      (EditorTechnique \ "directiveIds").headOption,
+      { (x: NodeSeq) =>
+        Full((x \ "id").toSet.map { (y: NodeSeq) =>
+          DirectiveId(DirectiveUid(y.text), ParseRev((y \ "@revision").text))
+        })
+      }
+    )
+  } yield {
+    ModifyEditorTechniqueDiff(
+      id = id,
+      name = displayName,
+      modName = name,
+      modSerial = serial,
+      modTarget = targets,
+      modDirectiveIds = directiveIds,
+      modShortDescription = shortDescription,
+      modLongDescription = longDescription,
+      modIsActivatedStatus = isEnabled,
+      modIsSystem = isSystem,
+      modCategory = category
+    )
+  }
+
+  /**
+   * Map XML into a EditorTechnique
+   */
+  private def getEditorTechniqueFromXML(xml: NodeSeq, changeType: String): Box[EditorTechnique] = {
+    for {
+      entry <- getEntryContent(xml)
+      crXml <- (entry \ "EditorTechnique").headOption ?~! ("Entry type is not a EditorTechnique: " + entry.toString())
+      changeTypeAddOk <- {
+        if (crXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
+        else Failure("EditorTechnique attribute does not have changeType=%s: ".format(changeType) + entry)
+      }
+      EditorTechnique <- crUnserialiser.unserialise(crXml).toBox
+    } yield {
+      EditorTechnique
     }
   }
 

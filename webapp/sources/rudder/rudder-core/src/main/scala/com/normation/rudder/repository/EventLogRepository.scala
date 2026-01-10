@@ -69,8 +69,10 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.ncf.eventlogs.{AddEditorTechniqueDiff, DeleteEditorTechniqueDiff, ModifyEditorTechniqueDiff}
 import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie.*
+
 import java.time.Instant
 
 trait EventLogRepository {
@@ -183,6 +185,54 @@ trait EventLogRepository {
     )
   }
 
+  def saveAddEditorTechnique(
+                        modId:               ModificationId,
+                        principal:           EventActor,
+                        addDiff:             AddEditorTechniqueDiff,
+                        reason:              Option[String]
+                      ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getAddEditorTechniqueFromDiff(
+        principal = principal,
+        addDiff = addDiff,
+        reason = reason
+      )
+    )
+  }
+
+  def saveDeleteEditorTechnique(
+                           modId:               ModificationId,
+                           principal:           EventActor,
+                           deleteDiff:          DeleteEditorTechniqueDiff,
+                           reason:              Option[String]
+                         ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getDeleteEditorTechniqueFromDiff(
+        principal = principal,
+        deleteDiff = deleteDiff,
+        reason = reason
+      )
+    )
+  }
+
+  def saveModifyEditorTechnique(
+                           modId:      ModificationId,
+                           principal:  EventActor,
+                           modifyDiff: ModifyEditorTechniqueDiff,
+                           reason:     Option[String]
+                         ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getModifyEditorTechniqueFromDiff(
+        principal = principal,
+        modifyDiff = modifyDiff,
+        reason = reason
+      )
+    )
+  }
+  
   def saveAddNodeGroup(
       modId:     ModificationId,
       principal: EventActor,
