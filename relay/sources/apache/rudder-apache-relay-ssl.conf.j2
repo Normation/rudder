@@ -26,22 +26,26 @@ SSLSessionTickets       off
 
 # Key/Certificate used by the server for nodes communication
 
-{% if cert_validation %}
 <IfFile  /opt/rudder/etc/ssl/server.cert>
 SSLCertificateFile     /opt/rudder/etc/ssl/server.cert
 </IfFile>
-<IfFile !/opt/rudder/etc/ssl/server.cert>
-SSLCertificateFile     /opt/rudder/etc/ssl/agent-http.cert
-</IfFile>
 <IfFile  /opt/rudder/etc/ssl/server.key>
 SSLCertificateKeyFile  /opt/rudder/etc/ssl/server.key
+</IfFile>
+{% if cert_validation %}
+<IfFile !/opt/rudder/etc/ssl/server.cert>
+SSLCertificateFile     /opt/rudder/etc/ssl/agent-http.cert
 </IfFile>
 <IfFile !/opt/rudder/etc/ssl/server.key>
 SSLCertificateKeyFile  /opt/rudder/etc/ssl/agent-http.key
 </IfFile>
 {% else %}
+<IfFile !/opt/rudder/etc/ssl/server.cert>
 SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
+</IfFile>
+<IfFile !/opt/rudder/etc/ssl/server.key>
 SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
+</IfFile>
 {% endif %}
 
 {% if cert_validation and custom_ca %}
