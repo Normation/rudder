@@ -110,6 +110,7 @@ import org.joda.time.DateTimeZone
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
+import scala.annotation.nowarn
 import scala.collection.MapView
 import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
@@ -1187,7 +1188,7 @@ trait PromiseGeneration_BuildNodeContext {
                                      for {
                                        x     <- parseJValue(p.prop.toJsonObj, contextEngine)
                                        // we need to fetch only the value, and nothing else, for the property
-                                       value  = GenericProperty.fromJsonValue(x.\("value"))
+                                       value  = GenericProperty.fromJsonValue(x.\("value")): @nowarn("msg=deprecated")
                                        result = NodeProperty(p.prop.config.getString("name"), value, None, None)
                                      } yield {
                                        result
