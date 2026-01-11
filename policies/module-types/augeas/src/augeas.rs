@@ -11,7 +11,7 @@ use crate::{
     },
     report::diff,
 };
-use anyhow::bail;
+use anyhow::{Context, bail};
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{
@@ -37,14 +37,16 @@ pub struct Augeas {
     aug: raugeas::Augeas,
     root: Option<PathBuf>,
     load_paths: Vec<PathBuf>,
+    /// A list of files that are modified in memory, but not on disk.
+    tainted_files: Vec<PathBuf>,
 }
 
 impl Augeas {
     /// Create a new Augeas module.
-    pub fn new_module(root: Option<PathBuf>, load_paths: Vec<PathBuf>) -> anyhow::Result<Self> {
-        // Cleanup the environment first to avoid any interference.
+    pub fn new(root: Option<PathBuf>, load_paths: Vec<PathBuf>) -> anyhow::Result<Self> {
+        // Clean up the environment first to avoid any interference.
         //
-        // SAFETY: Safe as the module is single threaded.
+        // SAFETY: Safe as the module is single-threaded.
         unsafe {
             env::remove_var("AUGEAS_ROOT");
             env::remove_var("AUGEAS_LENS_LIB");
@@ -57,6 +59,7 @@ impl Augeas {
             aug,
             root,
             load_paths,
+            tainted_files: Vec::new(),
         })
     }
 
@@ -117,6 +120,16 @@ impl Augeas {
         policy_mode: PolicyMode,
         backup_dir: Option<&Path>,
     ) -> CheckApplyResult {
+        if let Ok(path) = p.path.canonicalize() {
+            if self.tainted_files.contains(&path) {
+                rudder_debug!(
+                    "File {} is tainted, reloading Augeas instance",
+                    p.path.display()
+                );
+                self.reset_augeas()?;
+            }
+        }
+
         let aug = &mut self.aug;
 
         let mut report = String::new();
@@ -341,6 +354,11 @@ impl Augeas {
 
         // Error cases
         if modified && policy_mode == PolicyMode::Audit {
+            self.tainted_files.push(
+                p.path
+                    .canonicalize()
+                    .context(format!("Canonify the target file {}", p.path.display()))?,
+            );
             bail!(
                 "File {} does not match the expected content",
                 p.path.display()
@@ -390,7 +408,7 @@ mod tests {
         policy_mode: PolicyMode,
         backup_dir: Option<&Path>,
     ) -> (CheckApplyResult, String) {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
 
         let d = tempdir().unwrap().into_path();
         let f = d.join("report.log");
@@ -406,7 +424,7 @@ mod tests {
 
     #[test]
     fn it_writes_file_from_commands_in_new_file() {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -433,7 +451,7 @@ mod tests {
 
     #[test]
     fn it_writes_file_from_commands_in_existing_file() {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -462,7 +480,7 @@ mod tests {
 
     #[test]
     fn it_stops_on_files_too_big() {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -488,7 +506,7 @@ mod tests {
 
     #[test]
     fn it_compares_lists_of_values() {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Sshd";
@@ -514,7 +532,7 @@ mod tests {
 
     #[test]
     fn it_compares_lists_of_incorrect_values() {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Sshd";
@@ -537,7 +555,7 @@ mod tests {
 
     #[test]
     fn it_reports_parsing_errors() {
-        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Sshd";
@@ -557,5 +575,53 @@ mod tests {
             )
             .err().unwrap();
         assert!(r.to_string().starts_with("Error: Load error: parse_failed"));
+    }
+
+    #[test]
+    fn it_reloads_augeas_on_tainted_files() {
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f1 = d.join("test1");
+        let lens = "Simplelines";
+
+        fs::write(&f1, "line1\nline2\n").unwrap();
+
+        // First, we taint f1
+        let r1 = augeas
+            .handle_check_apply(
+                arguments(
+                    format!("set /files{}/1 \"line3\"", f1.display()),
+                    f1.clone(),
+                    Some(lens.to_string()),
+                    None,
+                ),
+                PolicyMode::Audit,
+                None,
+            )
+            .err()
+            .unwrap();
+        assert!(
+            r1.to_string()
+                .contains("does not match the expected content")
+        );
+
+        let r2 = augeas
+            .handle_check_apply(
+                arguments(
+                    format!("set /files{}/2 \"lineB\"", f1.display()),
+                    f1.clone(),
+                    Some(lens.to_string()),
+                    None,
+                ),
+                PolicyMode::Enforce,
+                None,
+            )
+            .unwrap();
+        assert_eq!(
+            r2,
+            Outcome::repaired(format!("File {} modified", f1.display()))
+        );
+        let content = read_to_string(&f1).unwrap();
+        assert_eq!(content, "line1\nlineB\n");
     }
 }
