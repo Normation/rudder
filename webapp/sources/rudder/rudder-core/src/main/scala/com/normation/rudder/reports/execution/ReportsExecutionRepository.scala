@@ -105,7 +105,7 @@ class CachedReportsExecutionRepository(
    * can be used for a given node) is given by the presence of the
    * nodeid in map's keys.
    */
-  private val cacheRef =
+  private val cacheRef: Ref.Synchronized[Map[NodeId, Option[AgentRunWithNodeConfig]]] =
     Ref.Synchronized.make(Map[NodeId, Option[AgentRunWithNodeConfig]]()).runNow
 
   override def clearCache(): Unit = cacheRef.set(Map()).runNow

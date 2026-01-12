@@ -37,76 +37,66 @@
 
 package bootstrap.liftweb.checks.endconfig.consistency
 
+import _root_.zio.*
 import better.files.*
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.GitVersion
 import com.normation.box.*
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
+import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.*
-import com.normation.rudder.domain.properties.GenericProperty
-import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.InheritMode
-import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.properties.Visibility
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
-import net.liftweb.json.*
-import zio.*
-import zio.syntax.*
+import zio.json.*
+import zio.json.ast.*
 
 /**
  * init or reset content of `rudder` global parameters to their default values.
  */
-class CheckRudderGlobalParameter(
+class CheckRudderGlobalProperties(
     roParamRepo: RoParameterRepository,
     woParamRepo: WoParameterRepository,
     uuidGen:     StringUuidGenerator
 ) extends BootstrapChecks {
 
-  val resource = "rudder-system-global-parameter.conf"
+  protected[consistency] val resource = "rudder-system-global-parameter.conf"
 
-  override val description = "Check that `rudder` global parameter matches default value"
+  override val description = "Check that `rudder` global properties matches default value"
 
-  def toParams(value: JValue): IOResult[List[GlobalParameter]] = {
-    implicit val formats = DefaultFormats
-    value match {
-      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-      case JArray(list) =>
-        ZIO.foreach(list)(v => IOResult.attempt(v.extract[JsonParam].toGlobalParam: @annotation.nowarn("cat=deprecation")))
-      case x            =>
-        Inconsistency(s"Resources `${resource}` must contain an array of json object with keys name, description, value`").fail
-    }
-  }
+  private def toProperties(value: Either[String, Json]): IOResult[Chunk[GlobalParameter]] = value
+    .map(_.asArray)
+    .toIO
+    .notOptional(s"Resources `$resource` must contain an array of json object with keys name, description, value.")
+    .flatMap(list => ZIO.foreach(list)(_.as[GlobalPropertiesJson].toIO.map(_.toGlobalParam)))
 
-  def updateOne(modId: ModificationId, p: GlobalParameter): IOResult[Unit] = {
+  private def updateOne(modId: ModificationId, p: GlobalParameter): IOResult[Unit] = {
     for {
       saved <- roParamRepo.getGlobalParameter(p.name)
       _     <- saved match {
-                 case None                                                        =>
-                   BootstrapLogger.info(s"Creating missing global parameter '${p.name}' with value: '${p.valueAsString}''") *>
+                 case None                                                      =>
+                   BootstrapLogger.info(s"Creating missing global properties '${p.name}' with value: '${p.valueAsString}''") *>
                    woParamRepo.saveParameter(
                      p,
                      modId,
                      RudderEventActor,
                      Some(s"Creating global system parameter '${p.name}' to its default value")
                    )
-                 case Some(s) if (p.value != s.value || p.provider != s.provider) =>
+                 case Some(s) if p.value != s.value || p.provider != s.provider =>
                    val provider = p.provider.getOrElse(PropertyProvider.systemPropertyProvider).value
                    BootstrapLogger.info(
-                     s"Reseting global parameter '${p.name}' from ${provider} provider to value: ${p.valueAsString}"
+                     s"Resetting global properties '${p.name}' from $provider provider to value: ${p.valueAsString}"
                    ) *>
                    woParamRepo.updateParameter(
                      p,
                      modId,
                      RudderEventActor,
-                     Some(s"Reseting global system parameter '${p.name}' to its default value")
+                     Some(s"Resetting global system properties '${p.name}' to its default value")
                    )
-                 case _                                                           => ZIO.unit
+                 case _                                                         => ZIO.unit
                }
     } yield ()
   }
@@ -114,39 +104,37 @@ class CheckRudderGlobalParameter(
   override def checks(): Unit = {
 
     val modId           = ModificationId(uuidGen.newUuid)
-    // get defaults global parameters. It should be an array of JValues
-    val managedResource = IOManaged.make(parse(Resource.getAsString(resource)))(_ => ())
+    // get defaults global properties. It should be an array of zio.json.ast.Json
+    val managedResource = IOManaged.make(Resource.getAsString(resource).fromJson[zio.json.ast.Json])(_ => ())
 
     val check = ZIO.scoped[Any](
       managedResource.flatMap(json => {
         for {
-          params <- toParams(json)
-          _      <- ZIO.foreach(params)(p => updateOne(modId, p))
+          properties <- toProperties(json)
+          _          <- ZIO.foreach(properties)(p => updateOne(modId, p))
         } yield ()
       })
     )
 
     ZioRuntime.runNow(
-      check.catchAll(err => BootstrapLogger.error(s"Error when checking for default global system parameter: ${err.fullMsg}"))
+      check.catchAll(err => BootstrapLogger.error(s"Error when checking for default global system properties: ${err.fullMsg}"))
     )
   }
 }
 
-// lift json need that to be topevel
-// TODO: add Option[String] revision in API
-final private[checks] case class JsonParam(
+final private[checks] case class GlobalPropertiesJson(
     name:        String,
     description: String,
-    value:       JValue,
+    value:       zio.json.ast.Json,
     inheritMode: Option[String],
     provider:    Option[String],
     visibility:  Option[String]
-) {
+) derives JsonDecoder {
   def toGlobalParam: GlobalParameter = {
     GlobalParameter(
       name,
       GitVersion.DEFAULT_REV,
-      GenericProperty.fromJsonValue(value),
+      GenericProperty.fromZioJson(value),
       inheritMode.flatMap(InheritMode.parseString(_).toOption),
       description,
       provider.map(PropertyProvider.apply),
