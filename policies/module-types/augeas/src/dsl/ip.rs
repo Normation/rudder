@@ -15,10 +15,10 @@ pub struct IpRangeChecker {
     ipv6: IpRange<Ipv6Net>,
 }
 
-impl TryFrom<Vec<&str>> for IpRangeChecker {
+impl TryFrom<&Vec<String>> for IpRangeChecker {
     type Error = anyhow::Error;
 
-    fn try_from(ranges: Vec<&str>) -> Result<Self> {
+    fn try_from(ranges: &Vec<String>) -> Result<Self> {
         let mut checker = IpRangeChecker::new();
         for range in ranges {
             checker.add_range(range)?;
@@ -119,8 +119,12 @@ mod tests {
     use std::net::IpAddr;
 
     fn it_converts_from_vec() {
-        let ranges = vec!["192.168.1.1/24", "192.168.42.1/24", "3fff::/20"];
-        let checker = IpRangeChecker::try_from(ranges).unwrap();
+        let ranges = vec![
+            "192.168.1.1/24".to_string(),
+            "192.168.42.1/24".to_string(),
+            "3fff::/20".to_string(),
+        ];
+        let checker = IpRangeChecker::try_from(&ranges).unwrap();
         assert_eq!(
             checker.to_string(),
             "192.168.1.0/24, 192.168.42.0/24, 3fff::/20"

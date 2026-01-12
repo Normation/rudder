@@ -13,7 +13,6 @@ pub mod repl;
 pub mod script;
 mod value_type;
 
-pub type Value<'a> = &'a str;
 pub type Sub<'a> = &'a str;
 
 /// A path in the Augeas tree.
