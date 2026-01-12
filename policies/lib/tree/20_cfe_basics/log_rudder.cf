@@ -154,6 +154,28 @@ bundle agent log_rudder_v4(parameter_value, message, details)
       "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.method_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
 }
 
+
+# @name Log for Rudder
+# @description Logging output for Rudder reports. Like v4 but without details nor automatic message suffix.
+#
+# @parameter message The human readable output to report. The report of the report information is collected from context.
+bundle agent log_rudder_v4_2(parameter_value, message)
+{
+  vars:
+      "component_key" string => "${report_data.component_key}";
+    rudder_report_force_component_none::
+      "component_key" string => "None";
+
+  defaults:
+      # if class_parameter is not set, then use the component_key from report_data
+      "component_key" string => "${parameter_value}", if_match_regex => "";
+
+  methods:
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${report_data.report_id}"),
+                                        if => "${report_data.should_report}";
+      "${report_data.method_id}" usebundle => _rudder_common_reports_generic_v4_2("${report_data.technique_name}", "${report_data.method_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message}");
+}
+
 # @name Log for Non Applicable call to generic method
 # @description Logging output for non applicable reports
 #
@@ -340,6 +362,77 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
       "${report_data.method_id}"
         usebundle  => _rudder_common_report("${technique_name}", "${class_prefix}", "audit_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired but should have been run in dry-run mode"),
         ifvarclass => "${class_prefix}_repaired";
+}
+
+
+#
+# Automatically create reports based on existing classes starting by
+# class_prefix (as defined by the body classes rudder_common_classes)
+# Takes 6 parameters
+# technique_name : the name of the technique, human readable
+# class_prefix   : the prefix of a set of classes to reporting on (suffixes with "kept", "repaired" or "error")
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (None if it does not exists)
+# message_prefix : The beginning of an explanation message understandable by a human
+#
+# Identical to _rudder_common_reports_generic_v4 but without appending any suffix in the message.
+#
+# Warning, any modification here should also be ported to _rudder_common_generic_hooks and rudder_report_na and _rudder_common_reports_generic
+bundle agent _rudder_common_reports_generic_v4_2(technique_name, class_prefix, identifier, component_name, component_key, message)
+{
+  vars:
+    pass2.!is_report::
+      "outcome" string => "log_info",
+                    if => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "log_info",
+                    if => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "log_info",
+                    if => "${class_prefix}_error";
+      "outcome" string => "log_repaired",
+                    if => "${class_prefix}_repaired.!${class_prefix}_error";
+
+    pass2.is_report.!is_audit::
+      "outcome" string => "result_na",
+                    if => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "result_success",
+                    if => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "result_repaired",
+                    if => "${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "result_error",
+                    if => "${class_prefix}_error";
+
+    pass2.is_report.is_audit::
+      "outcome" string => "audit_na",
+                    if => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "audit_compliant",
+                    if => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+      "outcome" string => "audit_noncompliant",
+                    if => "${class_prefix}_error.!${class_prefix}_repaired";
+      "outcome" string => "audit_error",
+                    if => "${class_prefix}_repaired";
+
+  # We cannot allow for empty component_name
+  defaults:
+      "component_name" string => "None", if_match_regex => "";
+
+  classes:
+      "is_report" expression => "${report_data.should_report}";
+      "is_audit"  expression => "(dry_run|global_dry_run)";
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+      # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
+      # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
+      "${report_data.method_id}" usebundle => _abort("repaired_during_dryrun", "Repaired previous component while in dry-run mode, this is a bug. Aborting immediately."),
+                                   action  => immediate_ignore_dry_run,
+                                        if => "is_audit.${class_prefix}_repaired";
+
+    pass2::
+      "${report_data.method_id}"
+        usebundle => _rudder_common_report("${technique_name}", "${class_prefix}", "${outcome}", "${identifier}", "${component_name}", "${component_key}", "${message}");
 }
 
 bundle agent _rudder_report_na(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)

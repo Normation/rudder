@@ -184,12 +184,12 @@ bundle agent command_execution_options(command, args, run_in_audit_mode, in_shel
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("rudder_actual_command_execution_options");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Execution of ${command}", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4_2("${command}", "Execution of ${command}");
 
     pass3.!has_module::
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Commands module is not supported on this agent", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4_2("${command}", "Commands module is not supported on this agent");
 }
 
 bundle agent command_module_serializer(r_command, r_args, r_shell_path, r_chdir, r_timeout, r_stdin, r_compliant_codes, r_repaired_codes, r_output_to_file, r_uid, r_gid, r_user, r_group, r_umask, r_env_vars) {
