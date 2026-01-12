@@ -584,7 +584,7 @@ mod tests {
     #[test]
     fn it_reloads_augeas_on_tainted_files() {
         let mut augeas = Augeas::new(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f1 = d.join("test1");
         let lens = "Simplelines";
 
