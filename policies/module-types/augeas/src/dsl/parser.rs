@@ -22,7 +22,7 @@ use zxcvbn::Score;
 ///
 /// All check expressions apply to a match expression.
 #[derive(Clone, Debug, PartialEq)]
-pub enum CheckExpr<'a> {
+pub enum CheckExpr {
     /// Check the value at the path has a given type
     ///
     /// Uses the "is" keyword.
@@ -39,12 +39,12 @@ pub enum CheckExpr<'a> {
     ValuesLen(NumComparator, usize),
     // Comparison contains both the typed value and the comparator
     Compare(Comparison),
-    ValuesInclude(&'a str),
-    ValuesNotInclude(&'a str),
-    ValuesEqual(Vec<&'a str>),
-    ValuesEqualOrdered(Vec<&'a str>),
-    ValuesIn(Vec<&'a str>),
-    InIpRange(Vec<&'a str>),
+    ValuesInclude(String),
+    ValuesNotInclude(String),
+    ValuesEqual(Vec<String>),
+    ValuesEqualOrdered(Vec<String>),
+    ValuesIn(Vec<String>),
+    InIpRange(Vec<String>),
 }
 
 /// A command of the extended Augeas language used in Rudder.
@@ -57,10 +57,10 @@ pub enum Expr<'src> {
     /// A generic augeas command, not parsed.
     GenericAugeas(&'src str),
     /// Sets the value VALUE at location PATH
-    Set(AugPath<'src>, crate::dsl::Value<'src>),
+    Set(AugPath<'src>, String),
     Get(AugPath<'src>),
     /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
-    SetMultiple(AugPath<'src>, Sub<'src>, crate::dsl::Value<'src>),
+    SetMultiple(AugPath<'src>, Sub<'src>, String),
     /// Removes the node at location PATH
     Remove(AugPath<'src>),
     /// Sets the node at PATH to NULL, creating it if needed
@@ -70,22 +70,18 @@ pub enum Expr<'src> {
     /// Creates PATH with the value NULL if it does not exist
     Touch(AugPath<'src>),
     /// Inserts an empty node LABEL either before or after PATH.
-    Insert(crate::dsl::Value<'src>, Position, AugPath<'src>),
+    Insert(String, Position, AugPath<'src>),
     /// Moves a node at PATH to the new location OTHER PATH
     Move(AugPath<'src>, AugPath<'src>),
     /// Copies a node at PATH to the new location OTHER PATH
     Copy(AugPath<'src>, AugPath<'src>),
     /// Rename a node at PATH to a new LABEL
-    Rename(AugPath<'src>, crate::dsl::Value<'src>),
+    Rename(AugPath<'src>, String),
     /// Sets Augeas variable $NAME to PATH
-    DefineVar(crate::dsl::Value<'src>, AugPath<'src>),
+    DefineVar(String, AugPath<'src>),
     /// Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
-    DefineNode(
-        crate::dsl::Value<'src>,
-        AugPath<'src>,
-        crate::dsl::Value<'src>,
-    ),
-    Check(AugPath<'src>, CheckExpr<'src>),
+    DefineNode(String, AugPath<'src>, String),
+    Check(AugPath<'src>, CheckExpr),
     /// Save the changes to the tree.
     Save,
     /// Quit the script.
@@ -100,20 +96,45 @@ pub enum Expr<'src> {
 #[grammar = "dsl/raugeas.pest"]
 pub struct RaugeasParser;
 
-fn parse_array(pair: Pairs<Rule>) -> Vec<&str> {
-    pair.map(|p| p.as_str()).collect()
+fn parse_array(pair: Pairs<Rule>) -> Vec<String> {
+    pair.map(|p| unescape_string(p.as_str())).collect()
+}
+
+fn unescape_string(s: &str) -> String {
+    let mut result = String::new();
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            match chars.next() {
+                Some('"') => result.push('"'),
+                Some('\'') => result.push('\''),
+                Some('\\') => result.push('\\'),
+                Some('n') => result.push('\n'),
+                Some('r') => result.push('\r'),
+                Some('t') => result.push('\t'),
+                Some(c) => {
+                    result.push('\\');
+                    result.push(c);
+                }
+                None => result.push('\\'),
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }
 
 fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
     Ok(match pair.as_rule() {
         Rule::values_include => {
             let mut inner_rules = pair.into_inner();
-            let value: &str = inner_rules.next().unwrap().as_str();
+            let value: String = unescape_string(inner_rules.next().unwrap().as_str());
             CheckExpr::ValuesInclude(value)
         }
         Rule::values_not_include => {
             let mut inner_rules = pair.into_inner();
-            let value: &str = inner_rules.next().unwrap().as_str();
+            let value: String = unescape_string(inner_rules.next().unwrap().as_str());
             CheckExpr::ValuesNotInclude(value)
         }
         Rule::values_equal => CheckExpr::ValuesEqual(parse_array(pair.into_inner())),
@@ -189,7 +210,7 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
         Rule::set => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
-            let value: &str = inner_rules.next().unwrap().as_str();
+            let value: String = unescape_string(inner_rules.next().unwrap().as_str());
             Expr::Set(path.into(), value)
         }
         Rule::get => Expr::Get(pair.into_inner().next().unwrap().as_str().into()),
@@ -205,27 +226,27 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
         Rule::rename => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
-            let new_label: &str = inner_rules.next().unwrap().as_str();
+            let new_label: String = unescape_string(inner_rules.next().unwrap().as_str());
             Expr::Rename(path.into(), new_label)
         }
         Rule::defvar => {
             let mut inner_rules = pair.into_inner();
-            let name: &str = inner_rules.next().unwrap().as_str();
+            let name: String = unescape_string(inner_rules.next().unwrap().as_str());
             let path: &str = inner_rules.next().unwrap().as_str();
             Expr::DefineVar(name, path.into())
         }
         Rule::defnode => {
             let mut inner_rules = pair.into_inner();
-            let name: &str = inner_rules.next().unwrap().as_str();
+            let name: String = unescape_string(inner_rules.next().unwrap().as_str());
             let path: &str = inner_rules.next().unwrap().as_str();
-            let value: &str = inner_rules.next().unwrap().as_str();
+            let value: String = unescape_string(inner_rules.next().unwrap().as_str());
             Expr::DefineNode(name, path.into(), value)
         }
         Rule::load => Expr::Load,
         Rule::load_file => Expr::LoadFile(pair.into_inner().next().unwrap().as_str().into()),
         Rule::insert => {
             let mut inner_rules = pair.into_inner();
-            let label: &str = inner_rules.next().unwrap().as_str();
+            let label: String = unescape_string(inner_rules.next().unwrap().as_str());
             let position = match inner_rules.next().unwrap().as_str() {
                 "before" => Position::Before,
                 "after" => Position::After,
@@ -244,7 +265,7 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
             let sub: &str = inner_rules.next().unwrap().as_str();
-            let value: &str = inner_rules.next().unwrap().as_str();
+            let value: String = unescape_string(inner_rules.next().unwrap().as_str());
             Expr::SetMultiple(path.into(), sub, value)
         }
         Rule::clear_multiple => {
@@ -325,6 +346,36 @@ mod tests {
     }
 
     #[test]
+    fn parser_correctly_handles_escaped_strings() {
+        let input = r#"
+            set /path/to/node "value with spaces \t and a \" quote"
+            set /path/to/other_node 'another \\ value with spaces and a \' quote'
+            check /path/to/node values == ["value1\"thing", "value2\"thing"]
+        "#;
+        let expected = vec![
+            Expr::Set(
+                "/path/to/node".into(),
+                "value with spaces \t and a \" quote".to_string(),
+            ),
+            Expr::Set(
+                "/path/to/other_node".into(),
+                "another \\ value with spaces and a ' quote".to_string(),
+            ),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                ValuesEqual(vec![
+                    "value1\"thing".to_string(),
+                    "value2\"thing".to_string(),
+                ]),
+            ),
+        ];
+        let parsed = parse_script(input).unwrap();
+        assert_eq!(parsed.expressions, expected);
+    }
+
+    #[test]
     fn pest_parse_script() {
         let input = r#"
             # This is a comment
@@ -358,7 +409,7 @@ mod tests {
             check /path/to/node values === ["value1", "value2"]
         "#;
         let expected = vec![
-            Expr::Set("/path/to/node".into(), "value"),
+            Expr::Set("/path/to/node".into(), "value".to_string()),
             Expr::Remove("/path/to/node".into()),
             Expr::Clear("/path/to/node".into()),
             Expr::Touch("/path/to/node".into()),
@@ -367,9 +418,13 @@ mod tests {
             Expr::Load,
             Expr::Move("/path/to/node".into(), "/new/path".into()),
             Expr::Move("/path/to/node".into(), "/new/path".into()),
-            Expr::Rename("/path/to/node".into(), "new_label"),
-            Expr::DefineVar("name", "/path/to/node".into()),
-            Expr::DefineNode("name", "/path/to/node".into(), "value"),
+            Expr::Rename("/path/to/node".into(), "new_label".to_string()),
+            Expr::DefineVar("name".to_string(), "/path/to/node".into()),
+            Expr::DefineNode(
+                "name".to_string(),
+                "/path/to/node".into(),
+                "value".to_string(),
+            ),
             Expr::Check(
                 AugPath {
                     inner: "/path/to/node",
@@ -402,13 +457,13 @@ mod tests {
                 AugPath {
                     inner: "/path/to/node",
                 },
-                ValuesEqual(vec!["value1", "value2"]),
+                ValuesEqual(vec!["value1".to_string(), "value2".to_string()]),
             ),
             Expr::Check(
                 AugPath {
                     inner: "/path/to/node",
                 },
-                ValuesEqualOrdered(vec!["value1", "value2"]),
+                ValuesEqualOrdered(vec!["value1".to_string(), "value2".to_string()]),
             ),
         ];
         let parsed = parse_script(input).unwrap();
