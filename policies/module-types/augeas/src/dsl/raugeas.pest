@@ -7,10 +7,12 @@
 WHITESPACE = _{ " " | "\t" }
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
 
-// Capture inner string content without quotes
-// FIXME escape sequences
-double_quoted_content = @{ (!("\"") ~ ANY)* }
-single_quoted_content = @{ (!("'") ~ ANY)* }
+// Escape sequences
+escape_char = @{ "\\" ~ ("\"" | "'" | "\\" | "n" | "r" | "t") }
+
+// Capture inner string content without quotes with escape support
+double_quoted_content = @{ (escape_char | !("\"" | "\\") ~ ANY)* }
+single_quoted_content = @{ (escape_char | !("'" | "\\") ~ ANY)* }
 unquoted_string = @{ (!(WHITESPACE | "," | "]" | NEWLINE | COMMENT) ~ ANY)+ }
 
 string = _{
@@ -63,7 +65,7 @@ check_commands = _{
 
 check = { "check" ~ path ~ check_commands }
 
-// Stock Augeas commands commands
+// Stock Augeas commands
 get = { "get" ~ path }
 set = { "set" ~ path ~ string }
 set_multiple = { "setm" ~ path ~ string ~ string }
