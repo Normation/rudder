@@ -119,13 +119,14 @@ impl Augeas {
         backup_dir: Option<&Path>,
     ) -> CheckApplyResult {
         if let Ok(path) = p.path.canonicalize()
-            && self.tainted_files.contains(&path) {
-                rudder_debug!(
-                    "File {} is tainted, reloading Augeas instance",
-                    p.path.display()
-                );
-                self.reset_augeas()?;
-            }
+            && self.tainted_files.contains(&path)
+        {
+            rudder_debug!(
+                "File {} is tainted, reloading Augeas instance",
+                p.path.display()
+            );
+            self.reset_augeas()?;
+        }
 
         let aug = &mut self.aug;
 
