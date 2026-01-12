@@ -39,6 +39,7 @@ package com.normation.rudder.rest.data
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogType
+import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.utils.DateFormaterService
@@ -48,6 +49,7 @@ import enumeratum.EnumEntry.Lowercase
 import enumeratum.EnumEntry.Uppercase
 import io.scalaland.chimney.Transformer
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import org.joda.time.DateTime
 import scala.xml.NodeSeq
@@ -136,19 +138,42 @@ final case class RestEventLogFilter(
     startDate: Option[LocalDateTime],
     endDate:   Option[LocalDateTime],
     order:     Chunk[RestEventLogFilter.Order]
-)
+) {
+  def toEventLogCriteriaFilter: EventLogCriteriaFilter = {
+    EventLogCriteriaFilter(
+      start,
+      length,
+      search.map(_.toSearchCriteriaFilter),
+      startDate.map(_.toInstant(ZoneOffset.UTC)),
+      endDate.map(_.toInstant(ZoneOffset.UTC)),
+      principal = None,
+      order.collectFirst(_.toOrderCriteriaFilter)
+    )
+  }
+}
 
 object RestEventLogFilter {
 
-  final case class Search(value: String)
-  object Search {
+  final case class Search(value: String) {
+    def toSearchCriteriaFilter: EventLogCriteriaFilter.Search = EventLogCriteriaFilter.Search(value)
+  }
+  object Search                          {
     implicit val decoder: JsonDecoder[Search] = DeriveJsonDecoder.gen[Search]
   }
 
   // columns and direction are directly used for database query
   // the case does not really matter for the parsing and serialization, we use the old one
 
-  sealed abstract class Column(val id: Int) extends Lowercase
+  sealed abstract class Column(val id: Int) extends Lowercase       {
+    def toColumnCriteriaFilter: EventLogCriteriaFilter.Column = {
+      id match {
+        case 0 => EventLogCriteriaFilter.Column.ID
+        case 2 => EventLogCriteriaFilter.Column.CreationDate
+        case 3 => EventLogCriteriaFilter.Column.Principal
+        case 4 => EventLogCriteriaFilter.Column.EventType
+      }
+    }
+  }
   object Column                             extends Enum[Column]    {
     case object ID           extends Column(0)
     case object CreationDate extends Column(1)
@@ -177,7 +202,15 @@ object RestEventLogFilter {
       withNameInsensitiveEither(s).left.map(e => s"not a valid sorting order: ${e.notFoundName}")
     implicit val decoder: JsonDecoder[Direction]    = JsonDecoder[String].mapOrFail(parse(_))
   }
-  final case class Order(column: Column, dir: Direction)
+  final case class Order(column: Column, dir: Direction) {
+    def toOrderCriteriaFilter: EventLogCriteriaFilter.Order = {
+      val direction = dir match {
+        case Direction.Desc => EventLogCriteriaFilter.Direction.Desc
+        case Direction.Asc  => EventLogCriteriaFilter.Direction.Asc
+      }
+      EventLogCriteriaFilter.Order(column = column.toColumnCriteriaFilter, direction)
+    }
+  }
   object Order {
     implicit val decoder: JsonDecoder[Order] = DeriveJsonDecoder.gen[Order]
   }
