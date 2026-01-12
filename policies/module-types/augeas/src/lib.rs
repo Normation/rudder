@@ -55,7 +55,7 @@ pub fn entry() -> Result<(), anyhow::Error> {
         env::set_var("LC_ALL", "C");
     }
 
-    let promise_type = Augeas::new_module(None, vec![])?;
+    let promise_type = Augeas::new(None, vec![])?;
     if rudder_module_type::cfengine::called_from_agent() {
         rudder_module_type::run_module(promise_type)
     } else {
