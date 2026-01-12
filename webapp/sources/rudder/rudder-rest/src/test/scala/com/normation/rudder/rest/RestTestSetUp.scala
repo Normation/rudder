@@ -346,17 +346,22 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
-    override def eventLogFactory:           EventLogFactory    = ???
+    override def eventLogFactory:                       EventLogFactory                                       = ???
     override def getEventLogByCriteria(
+        principal:      Option[Fragment] = None,
         criteria:       Option[Fragment],
         limit:          Option[Int],
         orderBy:        List[Fragment],
         extendedFilter: Option[Fragment]
     ): IOResult[Seq[EventLog]] = List(fakeModifyNodeGroupEventLog).succeed
-    override def getEventLogById(id: Long): IOResult[EventLog] = {
+    override def getEventLogById(id: Long):             IOResult[EventLog]                                    = {
       fakeModifyNodeGroupEventLog.succeed
     }
-    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = 0L.succeed
+    override def getEventLogCount(
+        principal:      Option[Fragment] = None,
+        criteria:       Option[Fragment],
+        extendedFilter: Option[Fragment]
+    ): IOResult[Long] = 0L.succeed
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
         xpath:           String,

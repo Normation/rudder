@@ -122,7 +122,8 @@ class EventListDisplayer(repos: EventLogRepository, staticResourceRewrite: Stati
                              val orderedDate = if (start.after(end)) (end, start) else (start, end)
                              Some(fr" creationdate > ${orderedDate._1} and creationdate < ${orderedDate._2} ")
                          }
-        logs          <- repos.getEventLogByCriteria(whereStatement, None, List(Fragment.const("id DESC"))).toBox
+        logs          <-
+          repos.getEventLogByCriteria(criteria = whereStatement, limit = None, orderBy = List(Fragment.const("id DESC"))).toBox
       } yield {
         logs
       })

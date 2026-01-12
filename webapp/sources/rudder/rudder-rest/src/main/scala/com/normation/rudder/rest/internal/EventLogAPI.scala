@@ -248,10 +248,10 @@ class EventLogService(
     (for {
       events      <-
         repo
-          .getEventLogByCriteria(queryCriteria, Some(length), Nil, from)
+          .getEventLogByCriteria(criteria = queryCriteria, limit = Some(length), orderBy = Nil, extendedFilter = from)
           .chainError(s"Error when trying fetch eventlogs from database for page ${(start / length) + 1}")
-      totalRecord <- repo.getEventLogCount(None)
-      totalFilter <- repo.getEventLogCount(criteria, from)
+      totalRecord <- repo.getEventLogCount(criteria = None)
+      totalFilter <- repo.getEventLogCount(criteria = criteria, extendedFilter = from)
     } yield {
       EventLogSlice(events, totalRecord, totalFilter)
     }).catchSystemErrors
