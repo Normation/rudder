@@ -37,44 +37,23 @@
 
 package com.normation.rudder.rest.internal
 
-import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.rest.ApiModuleProvider
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.EventLogApi
+import com.normation.rudder.rest.*
 import com.normation.rudder.rest.RudderJsonRequest.*
-import com.normation.rudder.rest.RudderJsonResponse
-import com.normation.rudder.rest.data.RestEventLog
-import com.normation.rudder.rest.data.RestEventLogDetails
-import com.normation.rudder.rest.data.RestEventLogError
-import com.normation.rudder.rest.data.RestEventLogFilter
-import com.normation.rudder.rest.data.RestEventLogFilter.Direction.Asc
-import com.normation.rudder.rest.data.RestEventLogFilter.Direction.Desc
-import com.normation.rudder.rest.data.RestEventLogRollback
+import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
-import com.normation.rudder.rest.data.RestEventLogSuccess
-import com.normation.rudder.rest.data.SimpleDiffJson
-import com.normation.rudder.rest.lift.DefaultParams
-import com.normation.rudder.rest.lift.LiftApiModule
-import com.normation.rudder.rest.lift.LiftApiModule0
-import com.normation.rudder.rest.lift.LiftApiModuleProvider
-import com.normation.rudder.rest.lift.LiftApiModuleString
+import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.*
 import com.normation.zio.UnsafeRun
-import doobie.*
-import doobie.implicits.*
-import doobie.postgres.implicits.*
-import doobie.util.fragments
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -83,6 +62,7 @@ import zio.syntax.*
 
 class EventLogAPI(
     service:            EventLogService,
+    coreService:        com.normation.rudder.services.eventlog.EventLogService,
     eventLogDetail:     EventLogDetailsGenerator,
     translateEventType: EventLogType => String
 ) extends LiftApiModuleProvider[EventLogApi] {
@@ -114,8 +94,12 @@ class EventLogAPI(
       implicit val prettify: Boolean = params.prettify
 
       (for {
-        restFilter <- req.fromJson[RestEventLogFilter].toIO
-        res        <- service.getEventLogSlice(restFilter)
+        restFilter  <- req.fromJson[RestEventLogFilter].toIO
+        filter       = restFilter.toEventLogRequest
+        totalRecord <- coreService.getEventLogCount(filter = None)
+        totalFilter <- coreService.getEventLogCount(filter = Some(filter))
+        events      <- coreService.getUserEventLogs(filter = Some(filter))
+        res          = EventLogSlice(events, totalRecord, totalFilter)
       } yield {
         (restFilter.draw, res)
       }).chainError("Error when fetching event logs")
@@ -208,55 +192,6 @@ class EventLogService(
 ) {
   import EventLogService.*
 
-  def getEventLogSlice(
-      restFilter: RestEventLogFilter
-  ): IOResult[EventLogSlice] = {
-    import restFilter.*
-
-    val dateCriteria =
-      fragments.andOpt(startDate.map(start => fr"creationDate >= ${start}"), endDate.map(end => fr"creationDate <= ${end}"))
-
-    val (criteria, from) = (search.flatMap(_.toFragment), dateCriteria) match {
-      case (None, res)              => (res, None)
-      case (Some(value), None)      =>
-        (
-          Some(value),
-          Some(
-            fr"from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1"
-          )
-        )
-      case (Some(value), Some(res)) =>
-        (
-          Some(fragments.and(value, res)),
-          Some(
-            fr"from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1"
-          )
-        )
-    }
-    val orderBy          = NonEmptyList
-      .fromList(order.map(_.toFragment).toList)
-      .map(fragments.comma(_))
-      .map(fr"order by" ++ _)
-      .getOrElse(Fragment.empty)
-    val offset           = fr"offset ${start}"
-    val queryCriteria    = Some(
-      // as full criteria the "where" needs a condition
-      // we also need the orderBy here because it should come before the offset
-      criteria.getOrElse(fr"1=1") ++ orderBy ++ offset
-    )
-
-    (for {
-      events      <-
-        repo
-          .getEventLogByCriteria(queryCriteria, Some(length), Nil, from)
-          .chainError(s"Error when trying fetch eventlogs from database for page ${(start / length) + 1}")
-      totalRecord <- repo.getEventLogCount(None)
-      totalFilter <- repo.getEventLogCount(criteria, from)
-    } yield {
-      EventLogSlice(events, totalRecord, totalFilter)
-    }).catchSystemErrors
-  }
-
   def getEventLogDetails(id: Long)(implicit qc: QueryContext): IOResult[RestEventLogDetails] = {
 
     (for {
@@ -310,30 +245,6 @@ object EventLogService {
       case Chained(msg, err: SystemError) =>
         EventLogsLoggerPure.error(err.fullMsg) *>
         Inconsistency(msg).fail
-    }
-  }
-
-  /**
-   * Syntax for converting rest filters objects to fragment, as only the service knows about the table and column names.
-   * Some day we would have a repo that expose queries and test the resulting query with type-checking
-   */
-  implicit class SearchOps(search: RestEventLogFilter.Search) {
-    def toFragment: Option[Fragment] = {
-      if (search.value.isEmpty) {
-        None
-      } else {
-        val v = "%" + search.value + "%"
-        Some(fr"(temp1.filter ilike ${v} OR temp1.eventtype ilike ${v})")
-      }
-    }
-  }
-
-  implicit class OrderOps(order: RestEventLogFilter.Order) {
-    // fragment needs to be with constant known column names
-    def toFragment: Fragment = Fragment.const(order.column.entryName) ++ directionFragment
-    private def directionFragment = order.dir match {
-      case Desc => fr"DESC"
-      case Asc  => fr"ASC"
     }
   }
 }

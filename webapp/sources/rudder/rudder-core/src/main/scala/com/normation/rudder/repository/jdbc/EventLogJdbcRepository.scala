@@ -41,6 +41,8 @@ import cats.implicits.*
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.eventlog.*
+import com.normation.eventlog.EventLogRequest.Direction.Asc
+import com.normation.eventlog.EventLogRequest.Direction.Desc
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.eventlog.*
@@ -56,6 +58,7 @@ import doobie.postgres.implicits.*
 import doobie.util.fragments
 import doobie.util.log.LoggingInfo
 import doobie.util.log.Parameters.NonBatch
+import scala.annotation.nowarn
 import scala.xml.*
 import zio.interop.catz.*
 
@@ -71,13 +74,14 @@ class EventLogJdbcRepository(
     override val eventLogFactory: EventLogFactory
 ) extends EventLogRepository with NamedZioLogger {
 
+  import com.normation.rudder.repository.jdbc.EventLogJdbcRepository.*
   import doobie.*
 
   override def loggerName: String = this.getClass.getName
 
   /**
    * Save an eventLog
-   * Optionnal : the user. At least one of the eventLog user or user must be defined
+   * Optional : the user. At least one of the eventLog user or user must be defined
    * Return the event log with its serialization number
    */
   def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = {
@@ -85,12 +89,9 @@ class EventLogJdbcRepository(
     eventLog.details match {
       case elt: Elem =>
         val boxId: IOResult[Int] = {
-          transactIOResult(s"Error when persisting event log ${eventLog.eventType.serialize}")(xa => sql"""
-          insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
-          values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
-                 ${eventLog.severity}, ${elt}, ${eventLog.eventDetails.reason}, ${eventLog.cause}
-                )
-        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa))
+          transactIOResult(s"Error when persisting event log ${eventLog.eventType.serialize}")(xa =>
+            saveEventLogSQL(modId, eventLog, elt).withUniqueGeneratedKeys[Int]("id").transact(xa)
+          )
         }
 
         for {
@@ -194,19 +195,31 @@ class EventLogJdbcRepository(
     })
   }
 
-  def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment] = None): IOResult[Long] = {
-    val from = extendedFilter.getOrElse(fr"from eventlog")
-    val q    = sql"SELECT count(*) ${from} where ${criteria.getOrElse(Fragment.const(" 1 = 1 "))}"
-    // sql"SELECT count(*) FROM eventlog".query[Long].option.transact(xa).unsafeRunSync
+  def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = {
+    val q = getEventLogCountSQL(filter)
+
     transactIOResult(s"Error when retrieving event logs count with request: ${q}")(xa => {
       (for {
-        entries <- q.query[Long].unique
+        entries <- q.unique
       } yield {
         entries
       }).transact(xa)
     })
   }
 
+  def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = {
+    val q = getEventLogByCriteriaSQL(filter)
+
+    transactIOResult(s"Error when retrieving event logs for change request with request: ${q}")(xa => {
+      (for {
+        entries <- q.to[Vector]
+      } yield {
+        entries.map(toEventLog)
+      }).transact(xa)
+    })
+  }
+
+  @nowarn("msg=deprecated")
   def getEventLogByCriteria(
       criteria:       Option[Fragment],
       optLimit:       Option[Int] = None,
@@ -271,6 +284,92 @@ class EventLogJdbcRepository(
 
 object EventLogJdbcRepository {
 
+  def saveEventLogSQL(modId: ModificationId, eventLog: EventLog, elt: Elem): Update0 = {
+    sql"""
+            insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
+            values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
+                   ${eventLog.severity}, $elt, ${eventLog.eventDetails.reason}, ${eventLog.cause}
+                  )
+          """.update
+  }
+
+  private def filterToFromAndWhere(filter: Option[EventLogRequest]) = {
+    val interval = filter.flatMap(f => {
+      (f.startDate, f.endDate) match {
+        case (None, None)             => None
+        case (Some(start), None)      => Some(fr"creationdate > $start")
+        case (None, Some(end))        => Some(fr"creationdate < $end")
+        case (Some(start), Some(end)) =>
+          val orderedDate = if (start.isAfter(end)) (end, start) else (start, end)
+          Some(fr"creationdate > ${orderedDate._1} and creationdate < ${orderedDate._2}")
+      }
+    })
+
+    val includePrincipals = filter.flatMap(f => f.principal).flatMap(p => p.include.map(nel => fragments.in(fr"principal", nel)))
+    val excludePrincipals =
+      filter.flatMap(f => f.principal).flatMap(p => p.exclude.map(nel => fragments.notIn(fr"principal", nel)))
+
+    val search = filter.flatMap(f => f.search).flatMap(toFragment)
+
+    val where = Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, search)
+
+    val fromWithSearchFragment = {
+      fr"""
+          |from (
+          |  select eventtype,
+          |         id,
+          |         modificationid,
+          |         principal,
+          |         creationdate,
+          |         causeid,
+          |         severity,
+          |         reason,
+          |         data,
+          |         UNNEST(xpath('string(//entry)',data))::text as filter
+          |  from eventlog
+          |) as temp1
+                                 """.stripMargin
+    }
+    val regularFrom            = fr"from eventlog"
+    val fromWithSearch         = (search, interval) match {
+      case (None, intervalCriteria)               => None
+      case (Some(search), None)                   => Some(fromWithSearchFragment)
+      case (Some(search), Some(intervalCriteria)) => Some(fromWithSearchFragment)
+    }
+    (fromWithSearch.getOrElse(regularFrom), where)
+  }
+
+  def getEventLogCountSQL(filter: Option[EventLogRequest]): Query0[Long] = {
+    val (from, where) = filterToFromAndWhere(filter)
+    sql"""
+         |  SELECT count(*)
+         |  ${from}
+         |  ${where}
+         |""".stripMargin.query[Long]
+  }
+
+  def getEventLogByCriteriaSQL(filter: Option[EventLogRequest]): Query0[(String, EventLogDetails)] = {
+    val order   = filter.flatMap(_.order.map(toFragment))
+    val orderBy = order
+      .map(fr"ORDER BY" ++ _)
+      .getOrElse(Fragment.empty)
+
+    val limit = filter.map(f => fr"LIMIT" ++ Fragment.const(f.length.toString)).getOrElse(Fragment.empty)
+
+    val offset = filter.map(f => fr"OFFSET" ++ Fragment.const(f.start.toString)).getOrElse(Fragment.empty)
+
+    val (from, where) = filterToFromAndWhere(filter)
+
+    sql"""
+         |  SELECT eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+         |  ${from}
+         |  ${where}
+         |  ${orderBy}
+         |  ${limit}
+         |  ${offset}
+         |""".stripMargin.query[(String, EventLogDetails)]
+  }
+
   // Query to get Last event by change request, we need to do something like a groupby and get the one with a higher creationDate
   // We partition our result by id, and order them by creation desc, and get the number of that row
   // then we only keep the first row (rownumber <=1)
@@ -304,6 +403,23 @@ object EventLogJdbcRepository {
     }
 
     result
+  }
+
+  def toFragment(order: EventLogRequest.Order): Fragment = {
+    val directionFragment = order.dir match {
+      case Desc => fr"DESC"
+      case Asc  => fr"ASC"
+    }
+    Fragment.const(order.column.entryName) ++ directionFragment
+  }
+
+  def toFragment(search: EventLogRequest.Search): Option[Fragment] = {
+    if (search.value.isEmpty) {
+      None
+    } else {
+      val v = "%" + search.value + "%"
+      Some(fr"(temp1.filter ilike ${v} OR temp1.eventtype ilike ${v})")
+    }
   }
 }
 

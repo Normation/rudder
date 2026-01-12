@@ -49,6 +49,7 @@ import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.CfeCommunity
@@ -150,6 +151,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
+import scala.annotation.nowarn
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
 import scala.util.control.NonFatal
@@ -465,6 +467,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
     override def eventLogFactory: EventLogFactory = ???
 
+    @nowarn("msg=deprecated")
     override def getEventLogByCriteria(
         criteria:       Option[Fragment],
         limit:          Option[Int],
@@ -475,8 +478,6 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def getEventLogById(id: Long): IOResult[EventLog] = {
       ???
     }
-
-    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = 0L.succeed
 
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
@@ -517,6 +518,9 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         reason:    Option[String]
     ): IOResult[EventLog] = ZIO.succeed(null)
 
+    override def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = ZIO.succeed(null)
+
+    override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = ZIO.succeed(0L)
   }
 
   val techniqueWriter = new TechniqueWriterImpl(

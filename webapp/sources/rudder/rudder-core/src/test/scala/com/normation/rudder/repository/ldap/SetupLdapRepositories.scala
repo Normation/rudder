@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.*
 import com.normation.inventory.ldap.provisioning.NameAndVersionIdFinder
@@ -290,8 +291,6 @@ trait SetupLdapRepositories {
         extendedFilter: Option[doobie.Fragment]
     ): IOResult[Seq[EventLog]] = ???
     override def getEventLogById(id: Long): IOResult[EventLog] = ???
-    override def getEventLogCount(criteria: Option[doobie.Fragment], extendedFilter: Option[doobie.Fragment]): IOResult[Long] =
-      ???
 
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
@@ -307,6 +306,10 @@ trait SetupLdapRepositories {
         xpath:           String,
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Map[ChangeRequestId, EventLog]] = ???
+
+    override def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = ???
+
+    override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = ???
   }
 
   // git archiver are not used because of the guard, still need to be declared.

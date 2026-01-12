@@ -49,6 +49,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.FullInventory
@@ -131,6 +132,7 @@ import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.eventlog.EventLogDetailsServiceImpl
 import com.normation.rudder.services.eventlog.EventLogFactory
+import com.normation.rudder.services.eventlog.EventLogServiceImpl
 import com.normation.rudder.services.healthcheck.CheckCoreNumber
 import com.normation.rudder.services.healthcheck.CheckFileDescriptorLimit
 import com.normation.rudder.services.healthcheck.CheckFreeSpace
@@ -321,17 +323,22 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
-    override def eventLogFactory:           EventLogFactory    = ???
+    override def eventLogFactory: EventLogFactory = ???
+    @nowarn("msg=deprecated")
     override def getEventLogByCriteria(
         criteria:       Option[Fragment],
         limit:          Option[Int],
         orderBy:        List[Fragment],
         extendedFilter: Option[Fragment]
     ): IOResult[Seq[EventLog]] = List(fakeModifyNodeGroupEventLog).succeed
-    override def getEventLogById(id: Long): IOResult[EventLog] = {
+
+    override def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]] = List(
+      fakeModifyNodeGroupEventLog
+    ).succeed
+    override def getEventLogById(id: Long):                              IOResult[EventLog]      = {
       fakeModifyNodeGroupEventLog.succeed
     }
-    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = 0L.succeed
+    override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = 0L.succeed
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
         xpath:           String,
@@ -595,9 +602,11 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     null
   )
 
-  val eventLogService = new EventLogService(eventLogRepo, eventLogDetailGenerator, fakePersonIndentService)
-  val eventLogApi     = new EventLogAPI(
-    eventLogService,
+  val eventLogCoreService = new EventLogServiceImpl(eventLogRepo)
+  val eventLogRestService = new EventLogService(eventLogRepo, eventLogDetailGenerator, fakePersonIndentService)
+  val eventLogApi         = new EventLogAPI(
+    eventLogRestService,
+    eventLogCoreService,
     eventLogDetailGenerator,
     _.serialize
   )

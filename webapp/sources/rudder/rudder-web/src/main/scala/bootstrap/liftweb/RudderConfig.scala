@@ -104,12 +104,13 @@ import com.normation.rudder.repository.ldap.*
 import com.normation.rudder.repository.xml.*
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.data.ApiAccountMapping
-import com.normation.rudder.rest.internal.*
+import com.normation.rudder.rest.internal.{EventLogService as RestEventLogService, *}
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
 import com.normation.rudder.services.*
 import com.normation.rudder.services.eventlog.*
+import com.normation.rudder.services.eventlog.EventLogService as EventLogCoreService
 import com.normation.rudder.services.healthcheck.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.modification.*
@@ -1370,6 +1371,7 @@ object RudderConfig extends Loggable {
   val doobie:                              Doobie                                   = rci.doobie
   val dynGroupService:                     DynGroupService                          = rci.dynGroupService
   val eventListDisplayer:                  EventListDisplayer                       = rci.eventListDisplayer
+  val eventLogCoreService:                 EventLogCoreService                      = rci.eventLogCoreService
   val eventLogApi:                         EventLogAPI                              = rci.eventLogApi
   val systemApiService:                    SystemApiService11                       = rci.systemApiService
   val eventLogDeploymentService:           EventLogDeploymentService                = rci.eventLogDeploymentService
@@ -1569,6 +1571,7 @@ case class RudderServiceApi(
     restQuicksearch:                     RestQuicksearch,
     restCompletion:                      RestCompletion,
     sharedFileApi:                       SharedFilesAPI,
+    eventLogCoreService:                 EventLogCoreService,
     eventLogApi:                         EventLogAPI,
     systemApiService:                    SystemApiService11,
     staticResourceRewrite:               StaticResourceRewrite,
@@ -2405,16 +2408,18 @@ object RudderConfigInit {
     }
 
     // Internal APIs
-    lazy val sharedFileApi     =
+    lazy val sharedFileApi       =
       new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
-    lazy val eventLogApi       = {
+    lazy val eventLogCoreService = new EventLogServiceImpl(logRepository)
+    lazy val eventLogApi         = {
       new EventLogAPI(
-        new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
+        new RestEventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
+        eventLogCoreService,
         eventLogDetailsGenerator,
         eventType => S ? ("rudder.log.eventType.names." + eventType.serialize)
       )
     }
-    lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
+    lazy val asyncWorkflowInfo   = new AsyncWorkflowInfo
     lazy val configService: ReadConfigService & UpdateConfigService = {
       new GenericConfigService(
         RudderProperties.config,
@@ -2825,7 +2830,8 @@ object RudderConfigInit {
 
     lazy val modificationService      =
       new ModificationService(gitModificationRepository, itemArchiveManagerImpl)
-    lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository, staticResourceRewrite)
+    lazy val eventLogService          = new EventLogServiceImpl(eventLogRepository)
+    lazy val eventListDisplayerImpl   = new EventListDisplayer(eventLogService, staticResourceRewrite)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
       roLdapNodeGroupRepository,
@@ -3938,6 +3944,7 @@ object RudderConfigInit {
       restQuicksearch,
       restCompletion,
       sharedFileApi,
+      eventLogCoreService,
       eventLogApi,
       systemApiService11,
       staticResourceRewrite,

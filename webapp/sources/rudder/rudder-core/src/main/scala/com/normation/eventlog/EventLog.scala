@@ -20,8 +20,15 @@
 
 package com.normation.eventlog
 
+import cats.data.NonEmptyList
+import com.normation.eventlog.EventLogRequest.Column.findValues
+import com.normation.eventlog.EventLogRequest.Direction.findValues
+import com.normation.eventlog.EventLogRequest.Direction.withNameInsensitiveEither
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
+import enumeratum.Enum
+import enumeratum.EnumEntry.Lowercase
+import enumeratum.EnumEntry.Uppercase
 import io.scalaland.chimney.Transformer
 import java.time.Instant
 import scala.xml.*
@@ -203,4 +210,49 @@ object EventLog {
 
 case object UnknownEventLogType extends NoRollbackEventLogType {
   def serialize = "UnknownType"
+}
+
+case class EventLogRequest(
+    start:     Int,
+    length:    Int,
+    search:    Option[EventLogRequest.Search],
+    startDate: Option[Instant],
+    endDate:   Option[Instant],
+    principal: Option[EventLogRequest.PrincipalFilter],
+    order:     Option[EventLogRequest.Order]
+)
+
+object EventLogRequest {
+
+  final case class Search(value: String)
+  final case class Order(column: Column, dir: Direction)
+  final case class PrincipalFilter(include: Option[NonEmptyList[EventActor]], exclude: Option[NonEmptyList[EventActor]])
+
+  sealed abstract class Column(val id: Int) extends Lowercase
+  object Column                             extends Enum[Column] {
+    case object ID           extends Column(0)
+    case object CreationDate extends Column(1)
+    case object Principal    extends Column(2)
+    case object EventType    extends Column(3)
+
+    override def values: IndexedSeq[Column] = findValues
+
+    def fromId(id: Int): Either[String, Column] = {
+      values
+        .find(_.id == id)
+        .toRight(s"Not a valid column id : ${id}, columns are ${values.map(c => s"${c.id}=${c.entryName}").mkString(",")}")
+    }
+  }
+
+  sealed trait Direction extends Uppercase
+
+  object Direction extends Enum[Direction] {
+    case object Desc extends Direction
+    case object Asc  extends Direction
+
+    override def values: IndexedSeq[Direction] = findValues
+
+    def parse(s: String): Either[String, Direction] =
+      withNameInsensitiveEither(s).left.map(e => s"not a valid sorting order: ${e.notFoundName}")
+  }
 }
