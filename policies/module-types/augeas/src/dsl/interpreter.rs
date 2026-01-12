@@ -110,7 +110,7 @@ impl InterpreterOut {
 pub enum InterpreterOutcome {
     /// Everything went well.
     Ok,
-    /// The augeas expressions were evaluated correctly,
+    /// The augeas expressions were evaluated correctly
     /// and lead to invalidated checks.
     /// Note: change errors are treated as hard errors and stop the script.
     ///
@@ -132,7 +132,7 @@ impl InterpreterOutcome {
 /// should the interpreter accumulate the results or fail early.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum CheckMode {
-    /// Fail on first check error.
+    /// Fail on the first check error.
     FailEarly,
     /// Stack all check errors.
     StackErrors,
@@ -295,7 +295,7 @@ impl<'a> Interpreter<'a> {
 
                 let values_res = match check_expr {
                     CheckExpr::ValuesInclude(expected_value) => {
-                        let is_ok = values_str.contains(expected_value);
+                        let is_ok = values_str.contains(&expected_value.as_ref());
                         Some(InterpreterOut::from_out(if is_ok {
                             format!(
                                 "values '{}' include the expected value {}",
@@ -311,7 +311,7 @@ impl<'a> Interpreter<'a> {
                         })?)
                     }
                     CheckExpr::ValuesNotInclude(expected_value) => {
-                        let is_ok = !values_str.contains(expected_value);
+                        let is_ok = !values_str.contains(&expected_value.as_ref());
                         Some(InterpreterOut::from_out(if is_ok {
                             format!(
                                 "values '{}' does not include the forbidden value {}",
@@ -368,7 +368,7 @@ impl<'a> Interpreter<'a> {
                         })?)
                     }
                     CheckExpr::ValuesIn(expected_values) => {
-                        let is_ok = values_str.iter().all(|v| expected_values.contains(v));
+                        let is_ok = values_str.iter().all(|v| expected_values.iter().map(|va|va.as_str()).contains(v));
                         Some(InterpreterOut::from_out(if is_ok {
                             format!(
                                 "values '{}' is a subset of the allowed values",
@@ -467,7 +467,7 @@ impl<'a> Interpreter<'a> {
                             })?
                         }
                         CheckExpr::InIpRange(ip_ranges) => {
-                            let range_checker = IpRangeChecker::try_from(ip_ranges.clone())?;
+                            let range_checker = IpRangeChecker::try_from(ip_ranges)?;
                             InterpreterOut::from_out(range_checker.check_range(&value).map(
                                 |_| {
                                     format!(
