@@ -463,7 +463,7 @@ pipeline {
                         // The rationale here is:
                         // * all base test already run on the lowest supported (LTS) version
                         // * add specific compatibility tests for other supported LTS + latest release
-                        values '21', '22'
+                        values '21', '25'
                     }
                 }
                 stages {
