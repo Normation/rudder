@@ -10,7 +10,6 @@ pub enum Outcome {
     #[default]
     Success,
     NonCompliant,
-    Failure,
 }
 
 #[derive(Debug, Default)]
@@ -145,7 +144,6 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
             report
                 .errors
                 .push("Registry values are not supported".to_string());
-            report.status = Outcome::Failure;
             continue;
         }
 
@@ -155,7 +153,6 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
                 report
                     .errors
                     .push(format!("section '{section}' does not exist"));
-                report.status = Outcome::Failure;
                 continue;
             }
         };
@@ -166,7 +163,6 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
                 report.errors.push(format!(
                     "Invalid data '{section_data:?}', expected JSON object"
                 ));
-                report.status = Outcome::Failure;
                 continue;
             }
         };
