@@ -143,12 +143,12 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("rudder_actual_file_from_template_options");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "${rudder_actual_file_from_template_options.report}", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4_2("${destination}", "${rudder_actual_file_from_template_options.report}");
 
     pass3.!has_module::
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Template module is not supported on this agent", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4_2("${destination}", "Template module is not supported on this agent");
 }
 
 bundle agent template_module_serializer(r_destination, r_engine, r_data, r_template_string, r_template_path, r_datastate_path, r_report_file) {
