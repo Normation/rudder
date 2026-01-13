@@ -3749,6 +3749,7 @@ dependencies = [
  "clap",
  "rudder_module_type",
  "rust-ini",
+ "serde",
  "serde_json",
  "tempdir",
 ]

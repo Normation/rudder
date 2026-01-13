@@ -1,25 +1,26 @@
 use anyhow::{Context, Result, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
+use serde::Serialize;
 use serde_json::{Map, Value};
 use std::{collections::HashMap, path::Path, process::Command};
 use tempdir::TempDir;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub enum Outcome {
     #[default]
     Success,
     NonCompliant,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct Report {
     status: Outcome,
     errors: Vec<String>,
     changes: HashMap<String, ConfigValue>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct ConfigValue {
     old: String,
     new: String,
@@ -49,13 +50,10 @@ impl Secedit {
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<Outcome> {
         let mut config = self.export()?;
         let report = config_search_and_replace(&mut config, &data)?;
-        println!("{report:?}");
-        if audit {
-            println!("Audit DONE");
-        } else {
-            // enforce
+        let json_report = serde_json::to_string(&report)?;
+        println!("{json_report}");
+        if !audit {
             self.apply_config(&config)?;
-            println!("DONE");
         }
 
         Ok(report.status)
