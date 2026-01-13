@@ -56,12 +56,12 @@ bundle agent file_augeas(path, script, if_script, lens, show_content) {
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("${module_method}");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "${${module_method}.report}", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4_2("${name}", "${${module_method}.report}");
 
     pass3.!has_module::
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Augeas module is not supported on this agent", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4_2("${name}", "Augeas module is not supported on this agent");
 
 }
 
