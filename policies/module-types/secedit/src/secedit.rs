@@ -2,11 +2,7 @@ use anyhow::{Context, Result, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde_json::{Map, Value};
-use std::{
-    collections::HashMap,
-    path::Path,
-    process::{Command, Stdio},
-};
+use std::{collections::HashMap, path::Path, process::Command};
 use tempdir::TempDir;
 
 #[derive(Debug, Default)]
@@ -21,11 +17,10 @@ pub enum Outcome {
 pub struct Report {
     status: Outcome,
     errors: Vec<String>,
-    data: HashMap<String, ConfigValue>,
+    changes: HashMap<String, ConfigValue>,
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 struct ConfigValue {
     old: String,
     new: String,
@@ -109,6 +104,7 @@ fn parse_config(path: &Path) -> Result<Ini> {
     let data = read_utf16_file(path)?;
     let opt = ParseOption {
         enabled_escape: false,
+        enabled_quote: false,
         ..Default::default()
     };
     let template = Ini::load_from_str_opt(&data, opt)
@@ -120,9 +116,6 @@ fn parse_config(path: &Path) -> Result<Ini> {
 fn invoke_with_args(args: &str) -> Result<()> {
     const COMMAND: &str = "secedit.exe";
     let mut cmd = Command::new(COMMAND);
-    cmd.stdin(Stdio::piped());
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
 
     if !args.is_empty() {
         cmd.args(args.split_whitespace());
@@ -148,6 +141,14 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
     let mut report = Report::default();
 
     for (section, section_data) in data {
+        if section.as_str() == "Registry Values" {
+            report
+                .errors
+                .push("Registry values are not supported".to_string());
+            report.status = Outcome::Failure;
+            continue;
+        }
+
         let props = match config.section_mut(Some(section)) {
             Some(m) => m,
             None => {
@@ -173,11 +174,12 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
         for (key, value) in entries {
             match props.get(key) {
                 Some(old) => {
-                    report.data.insert(
-                        key.to_string(),
-                        ConfigValue::new(old.to_string(), value.to_string()),
-                    );
-                    props.insert(key, value.to_string());
+                    let new = value.to_string().replace("\"", "");
+                    let v = ConfigValue::new(old.replace("\"", ""), new.clone());
+                    if !v.equal() {
+                        report.changes.insert(key.to_string(), v);
+                        props.insert(key, new);
+                    }
                 }
                 None => report
                     .errors
@@ -225,9 +227,6 @@ mod test {
             },
             "Settings": {
                 "abc": 12
-            },
-            "Registry Values": {
-                "MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Setup\\RecoveryConsole\\SecurityLevel": "4,0"
             }
         });
         let data = data.as_object().unwrap();
@@ -235,7 +234,7 @@ mod test {
         let res = config_search_and_replace(&mut config, data);
 
         assert!(res.is_ok());
-        assert_eq!(config.get_from(Some("User"), "name"), Some("\"Ferris\""));
+        assert_eq!(config.get_from(Some("User"), "name"), Some("Ferris"));
         assert_eq!(config.get_from(Some("User"), "value"), Some("42"));
         assert_eq!(config.get_from(Some("Settings"), "abc"), Some("12"));
     }
@@ -243,7 +242,17 @@ mod test {
     #[test]
     fn test_parse_config() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/config.ini");
-        let config = parse_config(&path).unwrap();
+        let mut config = parse_config(&path).unwrap();
+
+        let data = json!({
+          "System Access": {
+            "MinimumPasswordLength": 12,
+            "MinimumPasswordAge": 0,
+            "NewAdministratorName": "Ferris"
+          }
+        });
+        let data = data.as_object().unwrap();
+        let _ = config_search_and_replace(&mut config, data);
         assert_eq!(
             config
                 .get_from(Some("System Access"), "MaximumPasswordAge")
@@ -256,21 +265,7 @@ mod test {
             config
                 .get_from(Some("System Access"), "NewAdministratorName")
                 .unwrap(),
-            "Administrator"
-        );
-
-        assert_eq!(
-            config
-                .get_from(Some("Registry Values"), "MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\CachedLogonsCount")
-                .unwrap(),
-            "1,\"10\""
-        );
-
-        assert_eq!(
-            config
-                .get_from(Some("Registry Values"), "MACHINE\\System\\CurrentControlSet\\Control\\SecurePipeServers\\Winreg\\AllowedPaths\\Machine")
-                .unwrap(),
-            "7,System\\CurrentControlSet\\Control\\Print\\Printers,System\\CurrentControlSet\\Services\\Eventlog,Software\\Microsoft\\OLAP Server,Software\\Microsoft\\Windows NT\\CurrentVersion\\Print,Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows,System\\CurrentControlSet\\Control\\ContentIndex,System\\CurrentControlSet\\Control\\Terminal Server,System\\CurrentControlSet\\Control\\Terminal Server\\UserConfig,System\\CurrentControlSet\\Control\\Terminal Server\\DefaultUserConfiguration,Software\\Microsoft\\Windows NT\\CurrentVersion\\Perflib,System\\CurrentControlSet\\Services\\SysmonLog"
+            "Ferris"
         );
 
         assert_eq!(
@@ -278,6 +273,13 @@ mod test {
                 .get_from(Some("Privilege Rights"), "SeNetworkLogonRight")
                 .unwrap(),
             "*S-1-1-0,*S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551"
+        );
+
+        assert_eq!(
+            config
+                .get_from(Some("Event Audit"), "AuditSystemEvents")
+                .unwrap(),
+            "0"
         );
 
         assert_eq!(config.get_from(Some("Version"), "Revision").unwrap(), "1");
