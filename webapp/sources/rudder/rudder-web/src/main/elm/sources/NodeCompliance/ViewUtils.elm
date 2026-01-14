@@ -32,33 +32,6 @@ onCustomClick msg =
 -- DATATABLES & TREES
 --
 
-badgePolicyMode : String -> String -> Html Msg
-badgePolicyMode globalPolicyMode policyMode =
-  let
-    mode = if policyMode == "default" then globalPolicyMode else policyMode
-    defaultMsg = "This mode is the globally defined default. You can change it in the global <b>settings</b>."
-    msg =
-      case mode of
-        "enforce" -> "<div style='margin-bottom:5px;'>This rule is in <b style='color:#9bc832;'>enforce</b> mode.</div>" ++ defaultMsg
-        "audit"   -> "<div style='margin-bottom:5px;'>This rule is in <b style='color:#3694d1;'>audit</b> mode.</div>" ++ defaultMsg
-        "mixed" ->
-          """
-          <div style='margin-bottom:5px;'>This rule is in <b>mixed</b> mode.</div>
-          This rule is applied on at least one node or directive that will <b style='color:#9bc832;'>enforce</b>
-          one configuration, and at least one that will <b style='color:#3694d1;'>audit</b> them.
-          """
-        _ -> "Unknown policy mode"
-
-  in
-    span [class ("treeGroupName rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg)][]
-badgeSkipped : SkippedDetails -> Html Msg
-badgeSkipped { overridingRuleId, overridingRuleName } =
-    let
-        msg =
-            "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId ++ ")."
-    in
-    span [ class "treeGroupName rudder-label label-sm label-overridden", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Skipped directive" msg) ] []
-
 
 subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)
 subItemOrder fun model id  =
@@ -259,18 +232,6 @@ htmlEscape s =
     |> String.replace "'" "&#x27;"
     |> String.replace "\\" "&#x2F;"
 
-
--- WARNING:
---
--- Here the content is an HTML so it need to be already escaped.
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag
 
 buildComplianceReport : List Report -> Html Msg
 buildComplianceReport reports =
