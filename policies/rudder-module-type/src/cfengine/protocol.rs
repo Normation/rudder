@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CheckApplyResult, Outcome, PolicyMode, ProtocolResult, ValidateResult,
-    cfengine::log::LevelFilter, parameters::Parameters, rudder_error, rudder_info,
+    cfengine::log::LevelFilter, parameters::Parameters, rudder_debug, rudder_error, rudder_info,
 };
 
 const ALLOWED_CHAR_CLASS: &str = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -69,7 +69,7 @@ impl From<ValidateResult> for ValidateOutcome {
         match item {
             Ok(()) => ValidateOutcome::Valid,
             Err(e) => {
-                // Use Debug to show full anyhow error stack
+                // Use Debug to show full anyhow error stack.
                 rudder_error!("{:#}", e);
                 ValidateOutcome::Invalid
             }
@@ -105,9 +105,9 @@ impl From<CheckApplyResult> for EvaluateOutcome {
                 EvaluateOutcome::Repaired
             }
             Err(e) => {
-                // returning a non kept requires an error log
-                // Use Debug to show full anyhow error stack
-                rudder_error!("{:#}", e);
+                // Use Debug to show full anyhow error stack.
+                // Only log in debug level as there is already a report written.
+                rudder_debug!("{:#}", e);
                 EvaluateOutcome::NotKept
             }
         }
