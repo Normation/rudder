@@ -9,13 +9,19 @@ import Result
 import List.Extra
 import Maybe.Extra exposing (isNothing)
 import Random
+import Rudder.Filters
+import Rudder.Table exposing (OutMsg(..))
 import Rules.ChangeRequest exposing (initCrSettings)
+import Task
+import Time
+import Time.DateTime
+import Time.Iso8601
 import UUID
 import Json.Encode exposing (..)
 
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
-import Rules.Init exposing (init)
+import Rules.Init exposing (entryToStringList, init)
 import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
 
@@ -78,20 +84,20 @@ update msg model =
 
     -- UI high level stuff: list rules and other elements needed (groups, directives...)
     GetRulesResult res ->
-      case  res of
+      case res of
         Ok r ->
             ( { model |
                   rulesTree = r
                 , mode = if (model.mode == Loading) then RuleTable else model.mode
-              }
-              , initTooltips ""
-             )
+              } |> updateRulesTableData
+            , initTooltips ""
+            )
         Err err ->
           processApiError "Getting Rules tree" err model
     GetPolicyModeResult res ->
       case res of
         Ok p ->
-            ( { model | policyMode = p }
+            ( { model | policyMode = p } |> updateRulesTableData
               , initTooltips ""
             )
         Err err ->
@@ -254,17 +260,18 @@ update msg model =
     GetRulesComplianceResult res ->
       case res of
         Ok r ->
-          ( { model | rulesCompliance  =  Dict.Extra.fromListBy (.id >> .value)  r } , initTooltips "" )
+          ( { model | rulesCompliance = Dict.Extra.fromListBy (.id >> .value) r } |> updateRulesTableData
+          , initTooltips "" )
         Err err ->
           processApiError "Getting compliance" err model
 
     GetRuleChanges res ->
       case res of
         Ok r ->
-          ( { model | changes = r} , initTooltips "" )
+          ( { model | changes = r} |> updateRulesTableData
+          , initTooltips "" )
         Err err ->
           processApiError "Getting changes" err model
-
 
     GetRuleNodesDirectivesResult id res ->
       case res of
@@ -587,7 +594,7 @@ update msg model =
       let
         ui = model.ui
       in
-        ({model | ui = { ui | ruleFilters = filters}}, initTooltips "")
+        ({model | ui = { ui | ruleFilters = filters}} |> updateRulesTableFilter, initTooltips "")
     UpdateDirectiveFilters filters ->
       let
         ui = model.ui
@@ -668,6 +675,89 @@ update msg model =
           _ -> ui.modal
       in
         ({ model | ui = { ui | crSettings = Just settings, modal = newModalState } }, Cmd.none)
+
+    RudderTableMsg tableMsg ->
+      let
+        (groupsTable, tabMsg, outMsgOpt) =
+          Rudder.Table.update tableMsg model.rulesTable
+      in
+      handleOutMsg model groupsTable tabMsg outMsgOpt
+
+    ExportCsvWithCurrentDate time ->
+      let
+        timeStr =
+          time
+          |> Time.DateTime.fromPosix
+          |> Time.Iso8601.fromDateTime
+          -- remove millis
+          |> String.toList |> List.take 10 |> String.fromList
+        filename = "rudder_rules_" ++ timeStr
+        (groupsTable, tabMsg, outMsgOpt) =
+            Rudder.Table.updateExportToCsv model.rulesTable filename
+      in
+      handleOutMsg model groupsTable tabMsg outMsgOpt
+
+toRuleWithCompliance : Model -> Rule -> RuleWithCompliance
+toRuleWithCompliance model rule =
+    { id = rule.id
+    , name = rule.name
+    , policyMode = if rule.policyMode == "default" then model.policyMode else rule.policyMode
+    , categoryId = rule.categoryId
+    , categoryName = (getCategoryName model rule.categoryId)
+    , status = rule.status
+    , compliance = getRuleCompliance model rule.id
+    , changes = (countRecentChanges rule.id model.changes)
+    , tags = rule.tags
+    }
+
+updateRulesTableData : Model -> Model
+updateRulesTableData model =
+    let
+        rulesList = getListRules model.rulesTree
+        data = List.map (toRuleWithCompliance model) rulesList
+    in
+    {model | rulesTable = Rudder.Table.updateData data model.rulesTable}
+
+updateRulesTableFilter : Model -> Model
+updateRulesTableFilter model =
+    let
+        searchFieldRules r =
+            [ r.id.value
+            , r.name
+            , r.categoryId
+            , getCategoryName model r.categoryId
+            ]
+        predicate =
+            Rudder.Filters.and
+                -- Entry must match the search filter
+                (\entry ->
+                    entry |> (Rudder.Filters.applyString
+                        (Rudder.Filters.substring model.ui.ruleFilters.treeFilters.filter)
+                        (Rudder.Filters.byValues (searchFieldRules))))
+                -- Entry must contain all of the selected tags
+                (\entry ->
+                    List.all
+                        (\filterTag -> List.member filterTag entry.tags)
+                        model.ui.ruleFilters.treeFilters.tags)
+
+    in
+    {model | rulesTable = Rudder.Table.updateDataWithFilter predicate model.rulesTable}
+
+handleOutMsg : Model -> Rudder.Table.Model RuleWithCompliance Msg -> Cmd Msg -> Maybe (OutMsg Msg) -> (Model, Cmd Msg)
+handleOutMsg model groupsTable tabMsg outMsgOpt =
+    case outMsgOpt of
+        Just (OnHtml parentMsg) ->
+            let
+                (newModel, newMsg) = update parentMsg ({model | rulesTable = groupsTable})
+            in
+            (newModel, Cmd.batch [newMsg, tabMsg])
+
+        Just CsvExportRequested ->
+            (model, Task.perform ExportCsvWithCurrentDate Time.now)
+
+        _ ->
+            ( {model | rulesTable = groupsTable}, tabMsg )
+
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =

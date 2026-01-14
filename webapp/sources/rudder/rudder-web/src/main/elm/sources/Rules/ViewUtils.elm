@@ -631,6 +631,35 @@ buildTagsList tags =
     else
         text ""
 
+badgePolicyModeNoGlobal : String -> Html Msg
+badgePolicyModeNoGlobal policyMode =
+    let
+        defaultMsg =
+            "This mode is the globally defined default. You can change it in the global <b>settings</b>."
+        msg =
+            case policyMode of
+                "enforce" ->
+                    "<div style='margin-bottom:5px;'>This rule is in <b style='color:#9bc832;'>enforce</b> mode.</div>" ++ defaultMsg
+
+                "audit" ->
+                    "<div style='margin-bottom:5px;'>This rule is in <b style='color:#3694d1;'>audit</b> mode.</div>" ++ defaultMsg
+
+                "mixed" ->
+                    """
+                    <div style='margin-bottom:5px;'>This rule is in <b>mixed</b> mode.</div>
+                    This rule is applied on at least one node or directive that will <b style='color:#9bc832;'>enforce</b>
+                    one configuration, and at least one that will <b style='color:#3694d1;'>audit</b> them.
+                    """
+
+                _ ->
+                     "Unknown policy mode"
+    in
+    span [ class ("treeGroupName rudder-label label-sm label-" ++ policyMode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg) ] []
+
+
+
+
+
 
 -- WARNING:
 --
