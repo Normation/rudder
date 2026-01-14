@@ -25,6 +25,7 @@ pub enum EventSchedule {
 #[serde(rename_all = "snake_case")]
 pub struct Event {
     pub(crate) id: String,
+    pub(crate) schedule_id: String,
     pub(crate) name: String,
     // No need to have an enum here, as the type is only informative
     // Keep it simple and extensible
@@ -40,6 +41,7 @@ pub struct Event {
 impl Event {
     pub fn new(
         id: String,
+        schedule_id: String,
         name: String,
         e_type: String,
         schedule: EventSchedule,
@@ -48,6 +50,7 @@ impl Event {
     ) -> Self {
         Self {
             id,
+            schedule_id,
             name,
             e_type,
             schedule,
