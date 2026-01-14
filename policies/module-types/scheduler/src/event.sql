@@ -1,10 +1,11 @@
--- Update events
 create table if not exists schedule_events (
     id integer primary key,
 
-    -- event_id
+    -- IDs
     -- use nocase to allow using index for "like" queries
-    event_id text not null collate nocase unique,
+    event_id text    not null collate nocase unique,
+    schedule_id text not null collate nocase,
+
     -- benchmark, system-update, etc.
     event_type text not null,
     -- event name
@@ -22,4 +23,5 @@ create table if not exists schedule_events (
     not_after text
 );
 
-create index if not exists idx_event_id on schedule_events (event_id);
+create index if not exists idx_event_id    on schedule_events (event_id);
+create index if not exists idx_schedule_id on schedule_events (schedule_id);

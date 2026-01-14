@@ -8,10 +8,6 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
-    /// Template file
-    #[arg(short, long)]
-    template: PathBuf,
-
     /// JSON data file
     #[arg(short, long)]
     data: PathBuf,
