@@ -3,7 +3,9 @@ module Rules.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Dict exposing (Dict)
 import Http exposing (Error)
+import Rudder.Table
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
+import Time
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
 import Ui.Datatable exposing (TableFilters, SortOrder, Category, getAllElems, getAllCats, getSubElems)
@@ -228,6 +230,17 @@ type alias RuleNodesDirectives =
 type alias CategoryDetails =
     { originCategory : Maybe (Category Rule), category : Category Rule, parentId : String, tab : TabMenu }
 
+type alias RuleWithCompliance =
+    { id : RuleId
+    , name : String
+    , policyMode : String
+    , category : Maybe String
+    , status : RuleStatus
+    , compliance : Maybe RuleComplianceGlobal
+    , changes : Float --fixme ?
+    , tags : List Tag --todo
+    }
+
 
 type Mode
     = Loading
@@ -298,6 +311,7 @@ type alias Model =
     , directives : Dict String Directive
     , nodes : Dict String NodeInfo
     , ui : UI
+    , rulesTable : Rudder.Table.Model RuleWithCompliance Msg
     }
 
 
@@ -355,3 +369,5 @@ type Msg
     | RefreshComplianceTable RuleId
     | RefreshReportsTable RuleId
     | UpdateCrSettings ChangeRequestSettings
+    | RudderTableMsg (Rudder.Table.Msg Msg)
+    | ExportCsvWithCurrentTime Time.Posix

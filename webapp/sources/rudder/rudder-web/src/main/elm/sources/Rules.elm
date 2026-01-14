@@ -9,7 +9,12 @@ import Result
 import List.Extra
 import Maybe.Extra exposing (isNothing)
 import Random
+import Rudder.Table exposing (OutMsg(..))
 import Rules.ChangeRequest exposing (initCrSettings)
+import Task
+import Time
+import Time.DateTime
+import Time.Iso8601
 import UUID
 import Json.Encode exposing (..)
 
@@ -668,6 +673,59 @@ update msg model =
           _ -> ui.modal
       in
         ({ model | ui = { ui | crSettings = Just settings, modal = newModalState } }, Cmd.none)
+
+    RudderTableMsg tableMsg ->
+      let
+        (groupsTable, tabMsg, outMsgOpt) =
+          Rudder.Table.update tableMsg model.rulesTable
+      in
+      handleOutMsg model groupsTable tabMsg outMsgOpt
+
+    ExportCsvWithCurrentTime time ->
+      let
+        timeStr =
+          time
+          |> Time.DateTime.fromPosix
+          |> Time.Iso8601.fromDateTime
+          -- remove millis
+          |> String.toList |> List.take 16 |> String.fromList
+        filename = "rudder_rules_" ++ timeStr
+        (groupsTable, tabMsg, outMsgOpt) =
+            Rudder.Table.updateExportToCsv model.rulesTable filename
+      in
+      handleOutMsg model groupsTable tabMsg outMsgOpt
+
+toRuleWithCompliance : Rule -> RuleWithCompliance
+toRuleWithCompliance rule =
+    { id = rule.id
+    , name = rule.name
+    , policyMode = rule.policyMode
+    , category = (Debug.todo "")
+    , status = rule.status
+    , compliance = (Debug.todo "")
+    , changes = (Debug.todo "")
+    , tags = rule.tags
+    }
+
+updateRulesTableData : Model -> Model
+updateRulesTableData model =
+    Debug.todo ""
+
+handleOutMsg : Model -> Rudder.Table.Model RuleWithCompliance Msg -> Cmd Msg -> Maybe (OutMsg Msg) -> (Model, Cmd Msg)
+handleOutMsg model groupsTable tabMsg outMsgOpt =
+    case outMsgOpt of
+        Just (OnHtml parentMsg) ->
+            let
+                (newModel, newMsg) = update parentMsg ({model | rulesTable = groupsTable})
+            in
+            (newModel, Cmd.batch [newMsg, tabMsg])
+
+        Just CsvExportRequested ->
+            (model, Task.perform ExportCsvWithCurrentTime Time.now)
+
+        _ ->
+            ( {model | rulesTable = groupsTable}, tabMsg )
+
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
