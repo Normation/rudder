@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+  summary: Get API account for the currently identified token
+  description: Return the account as in the GET account endpoint for the authenticated token in X-API-TOKEN header
+  operationId: getTokenAccount
+  responses:
+    "200":
+      description: API account information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - id
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              id:
+                type: string
+                description: Id of the API account
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getTokenAccount
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API account management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/token-account.sh

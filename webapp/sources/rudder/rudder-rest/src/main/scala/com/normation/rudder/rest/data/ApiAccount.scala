@@ -344,6 +344,11 @@ object UpdateApiAccount extends ApiAccountCodecs {
   implicit val decoderUpdateApiAccount: JsonDecoder[UpdateApiAccount] = DeriveJsonDecoder.gen
 }
 
+final case class ApiToken(token: ApiTokenSecret) derives JsonDecoder
+object ApiToken {
+  given JsonDecoder[ApiTokenSecret] = JsonDecoder[String].map(ApiTokenSecret(_))
+}
+
 /**
  * Transformation service for the part with effects / injection
  * of other needed services

@@ -103,33 +103,33 @@ url: /secure/api/apiaccounts
 headers:
   - "Content-Type: application/json"
 body: >-
-    {
-      "name":"account 1",
-      "description":"account 1 description",
-      "expirationPolicy": "datetime",
-      "status": "enabled",
-      "generateToken":true,
-      "tenants":"*",
-      "authorizationType":"acl",
-      "acl":[
-        {
-          "path":"rules/tree",
-          "actions":["get" ]
-        },
-        {
-          "path":"rules/tree",
-          "actions":[ "POST" ]
-        },
-        {
-          "path":"rules/categories/*",
-          "actions":["get"]
-        },
-        {
-          "path":"compliance/*",
-          "actions":["get"]
-        }
-      ]
-    }
+  {
+    "name":"account 1",
+    "description":"account 1 description",
+    "expirationPolicy": "datetime",
+    "status": "enabled",
+    "generateToken":true,
+    "tenants":"*",
+    "authorizationType":"acl",
+    "acl":[
+      {
+        "path":"rules/tree",
+        "actions":["get" ]
+      },
+      {
+        "path":"rules/tree",
+        "actions":[ "POST" ]
+      },
+      {
+        "path":"rules/categories/*",
+        "actions":["get"]
+      },
+      {
+        "path":"compliance/*",
+        "actions":["get"]
+      }
+    ]
+  }
 response:
   code: 200
   content: >-
@@ -177,15 +177,15 @@ url: /secure/api/apiaccounts
 headers:
   - "Content-Type: application/json"
 body: >-
-    {
-      "name":"account 2",
-      "description":"this is a demo account with only compliance and rules (GET) access",
-      "expirationDate":"2025-05-22T17:35:00Z",
-      "status": "disabled",
-      "generateToken":false,
-      "tenants":"-",
-      "authorizationType":"none"
-    }
+  {
+    "name":"account 2",
+    "description":"this is a demo account with only compliance and rules (GET) access",
+    "expirationDate":"2025-05-22T17:35:00Z",
+    "status": "disabled",
+    "generateToken":false,
+    "tenants":"-",
+    "authorizationType":"none"
+  }
 response:
   code: 200
   content: >-
@@ -217,16 +217,16 @@ url: /secure/api/apiaccounts
 headers:
   - "Content-Type: application/json"
 body: >-
-    {
-      "id": "e16114be-94ee-497f-8d17-7b258c8e5624",
-      "name":"overriding account 2",
-      "description":"an account with that ID already exists",
-      "expirationDate":"2025-05-22T17:35:00Z",
-      "status": "disabled",
-      "generateToken":false,
-      "tenants":"-",
-      "authorizationType":"none"
-    }
+  {
+    "id": "e16114be-94ee-497f-8d17-7b258c8e5624",
+    "name":"overriding account 2",
+    "description":"an account with that ID already exists",
+    "expirationDate":"2025-05-22T17:35:00Z",
+    "status": "disabled",
+    "generateToken":false,
+    "tenants":"-",
+    "authorizationType":"none"
+  }
 response:
   code: 500
   content: >-
@@ -268,16 +268,155 @@ response:
       }
     }
 ---
+description: Get API account for the queried token value
+method: POST
+url: /api/latest/apiaccounts/token
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "token":"t2-29d5c3cdca39bd7ba81e7e0f88084689"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"queryTokenAccount",
+      "result":"success",
+      "data" : {
+        "accounts" : [
+          {
+            "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+            "name":"account 2",
+            "description":"this is a demo account with only compliance and rules (GET) access",
+            "status": "disabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"generatedv2",
+            "tokenGenerationDate":"2025-02-10T16:37:19Z",
+            "tenants":"-",
+            "authorizationType":"none"
+          }
+        ]
+      }
+    }
+---
+description: Get API account without token in body
+method: POST
+url: /api/latest/apiaccounts/token
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "toke":"attempt-token"
+  }
+response:
+  code: 400
+  content: >-
+    {
+      "action":"queryTokenAccount",
+      "result":"error",
+      "errorDetails" : "A valid token must be provided in payload; cause was: Unexpected: .token(missing)"
+    }
+---
+description: Get API account from a non-existing token
+method: POST
+url: /api/latest/apiaccounts/token
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "token":"attempt-token"
+  }
+response:
+  code: 404
+  content: >-
+    {
+      "action":"queryTokenAccount",
+      "result":"error",
+      "errorDetails" : "API account could not be found from token 'atte[SHORTENED ApiTokenSecret]'"
+    }
+---
+description: Create a new API account for current test user
+method: POST
+url: /secure/api/apiaccounts
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id":"test-user",
+    "name":"Test user",
+    "description":"API account for test user in REST tests",
+    "expirationDate":"2025-05-22T17:35:00Z",
+    "status": "enabled",
+    "generateToken":false,
+    "tenants":"*",
+    "authorizationType":"rw"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createAccount",
+      "id":"test-user",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"test-user",
+            "name":"Test user",
+            "description":"API account for test user in REST tests",
+            "status": "enabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"undef",
+            "tenants":"*",
+            "authorizationType":"rw"
+          }
+        ]
+      }
+    }
+---
+description: Get API account for the currently identified token
+comment: this corresponds to an account/user doing their own token introspection
+method: GET
+url: /api/latest/apiaccounts/token
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getTokenAccount",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"test-user",
+            "name":"Test user",
+            "description":"API account for test user in REST tests",
+            "status": "enabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"undef",
+            "tenants":"*",
+            "authorizationType":"rw"
+          }
+        ]
+      }
+    }
+---
 description: Update an API account - token not displayed
 method: POST
 url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624
 headers:
   - "Content-Type: application/json"
 body: >-
-    {
-      "name":"account 2 updated",
-      "status": "enabled"
-    }
+  {
+    "name":"account 2 updated",
+    "status": "enabled"
+  }
 response:
   code: 200
   content: >-

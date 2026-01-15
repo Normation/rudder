@@ -1576,43 +1576,55 @@ sealed trait ApiAccounts extends EnumEntry with EndpointSchema with GeneralApi w
 }
 object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAccounts]        {
 
-  case object GetAllAccounts  extends ApiAccounts with ZeroParam with StartsAtVersion21 with SortIndex {
+  case object GetAllAccounts    extends ApiAccounts with ZeroParam with StartsAtVersion21 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get the list of all API accounts with their details"
     val (action, path) = GET / "apiaccounts"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
-  case object GetAccount      extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+  case object GetTokenAccount   extends ApiAccounts with ZeroParam with StartsAtVersion22 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get API account for the currently identified token"
+    val (action, path) = GET / "apiaccounts" / "token"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+  }
+  case object GetAccount        extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get one API account if it exists"
     val (action, path) = GET / "apiaccounts" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
-  case object CreateAccount   extends ApiAccounts with ZeroParam with StartsAtVersion21 with SortIndex {
+  case object CreateAccount     extends ApiAccounts with ZeroParam with StartsAtVersion21 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Create a new API account. If ID is provided and already exists, it's an error"
     val (action, path) = POST / "apiaccounts"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
-  case object UpdateAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+  case object QueryTokenAccount extends ApiAccounts with ZeroParam with StartsAtVersion22 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get API account for the queried token value"
+    val (action, path) = POST / "apiaccounts" / "token"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+  }
+  case object UpdateAccount     extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Update an API account"
     val (action, path) = POST / "apiaccounts" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
-  case object RegenerateToken extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+  case object RegenerateToken   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Regenerate a token for an API account"
     val (action, path) = POST / "apiaccounts" / "{id}" / "token" / "regenerate"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
-  case object DeleteToken     extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+  case object DeleteToken       extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Delete a token for an API account"
     val (action, path) = DELETE / "apiaccounts" / "{id}" / "token"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
-  case object DeleteAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+  case object DeleteAccount     extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Delete an API account if it exists"
     val (action, path) = DELETE / "apiaccounts" / "{id}"
