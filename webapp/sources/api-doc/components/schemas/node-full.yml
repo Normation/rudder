@@ -295,6 +295,9 @@ properties:
           type: string
           description: Environment variable value
           example: en_US.UTF-8
+  instanceId:
+    type: string
+    description: The Rudder instance unique identifier on which that node lives
   fileSystems:
     type: array
     description: File system declared on the node
