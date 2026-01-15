@@ -80,6 +80,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
@@ -266,6 +267,7 @@ object JsonResponseObjects {
       controllers:                 Option[Chunk[domain.Controller]],
       environmentVariables:        Option[Map[String, String]],
       fileSystems:                 Option[Chunk[domain.FileSystem]],
+      instanceId:                  Option[InstanceId],
       managementTechnologyDetails: Option[JRNodeDetailLevel.ManagementDetails],
       memories:                    Option[Chunk[domain.MemorySlot]],
       networkInterfaces:           Option[Chunk[domain.Network]],
@@ -283,9 +285,10 @@ object JsonResponseObjects {
 
   object JRNodeDetailLevel {
     implicit def transformer(implicit
-        nodeFact: NodeFact,
-        status:   InventoryStatus,
-        agentRun: Option[AgentRunWithNodeConfig]
+        nodeFact:   NodeFact,
+        status:     InventoryStatus,
+        agentRun:   Option[AgentRunWithNodeConfig],
+        instanceId: InstanceId
     ): Transformer[NodeDetailLevel, JRNodeDetailLevel] = {
       val nodeInfo:    NodeInfo               = nodeFact.toNodeInfo
       val securityTag: Option[SecurityTag]    = nodeFact.rudderSettings.security
@@ -360,6 +363,7 @@ object JsonResponseObjects {
             })
           )
         )
+        .withFieldComputed(_.instanceId, levelField(_)("instanceId")(Some(instanceId)))
         .withFieldComputed(
           _.managementTechnologyDetails,
           levelField(_)("managementTechnologyDetails")(Some(nodeFact.transformInto[ManagementDetails]))
@@ -2261,6 +2265,7 @@ trait RudderJsonEncoders {
   implicit val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
   implicit val softwareEncoder:          JsonEncoder[domain.Software]     = DeriveJsonEncoder.gen[domain.Software]
 
+  implicit val encoderInstanceId:      JsonEncoder[InstanceId]        = JsonEncoder.string.contramap(_.value)
   implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen[JRNodeDetailLevel]
 
   implicit val runAnalysisKindEncoder:  JsonEncoder[RunAnalysisKind]   = JsonEncoder[String].contramap(_.entryName)

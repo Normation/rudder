@@ -133,6 +133,7 @@ object NodeDetailLevel {
     "controllers",
     "environmentVariables",
     "fileSystems",
+    "instanceId",
     "managementTechnologyDetails",
     "memories",
     "networkInterfaces",
