@@ -1594,6 +1594,12 @@ object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAcc
     val (action, path) = POST / "apiaccounts"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
+  case object GetTokenAccount      extends ApiAccounts with ZeroParam with StartsAtVersion22 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get API account from a token"
+    val (action, path) = POST / "apiaccounts" / "token"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+  }
   case object UpdateAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Update an API account"
