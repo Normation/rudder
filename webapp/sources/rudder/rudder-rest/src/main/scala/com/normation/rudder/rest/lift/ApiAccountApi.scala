@@ -46,6 +46,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.{ApiAccounts as API, *}
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
@@ -69,6 +70,7 @@ class ApiAccountApi(
       case API.GetAccount      => GetAccount
       case API.CreateAccount   => CreateAccount
       case API.UpdateAccount   => UpdateAccount
+      case API.GetTokenAccount => GetTokenAccount
       case API.RegenerateToken => RegenerateToken
       case API.DeleteToken     => DeleteToken
       case API.DeleteAccount   => DeleteAccount
@@ -125,6 +127,38 @@ class ApiAccountApi(
     }
   }
 
+  /**
+   * Attempt to find a "token" within the payload.
+   * If there is no such payload, it means it's the current token provided with X-Api-Token header
+   */
+  object GetTokenAccount extends LiftApiModule0 {
+    val schema: API.GetTokenAccount.type = API.GetTokenAccount
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      val token = ZioJsonExtractor.parseJson[ApiToken](req).toOption.flatMap(_.token)
+      (for {
+        account <- ZIO
+                     .foreach(token)(secret => {
+                       service.getByToken(ApiTokenHash.fromSecret(secret))
+                     })
+                     .someOrElseZIO(authzToken.user.account match {
+                       case _: RudderAccount.User =>
+                         // a user token is enabled only if the api-authorizations plugin is enabled
+                         // but it should have prevented accessing this endpoint processing anyway
+                         service.getAccount(ApiAccountId(authzToken.qc.actor.name))
+                       case RudderAccount.Api(account) =>
+                         ZIO.some(account.transformInto[ApiAccountDetails.Public])
+                     })
+      } yield {
+        account
+      }).toLiftResponseOne(
+        params,
+        schema,
+        None
+      )
+    }
+  }
+
   object RegenerateToken extends LiftApiModule {
     val schema: API.RegenerateToken.type = API.RegenerateToken
 
@@ -169,12 +203,13 @@ class ApiAccountApi(
  */
 trait ApiAccountApiService {
   def getAccounts(): IOResult[List[ApiAccountDetails.Public]]
-  def getAccount(id:         ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
-  def createAccount(account: NewRestApiAccount)(using QueryContext): IOResult[ApiAccountDetails]
-  def updateAccount(id:      ApiAccountId, data: UpdateApiAccount)(using QueryContext): IOResult[ApiAccountDetails.Public]
-  def regenerateToken(id:    ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
-  def deleteToken(id:        ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
-  def deleteAccount(id:      ApiAccountId)(using QueryContext): IOResult[Option[ApiAccountDetails.Public]]
+  def getAccount(id:          ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
+  def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccountDetails.Public]]
+  def createAccount(account:  NewRestApiAccount)(using QueryContext): IOResult[ApiAccountDetails]
+  def updateAccount(id:       ApiAccountId, data: UpdateApiAccount)(using QueryContext): IOResult[ApiAccountDetails.Public]
+  def regenerateToken(id:     ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
+  def deleteToken(id:         ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
+  def deleteAccount(id:       ApiAccountId)(using QueryContext): IOResult[Option[ApiAccountDetails.Public]]
 }
 
 class ApiAccountApiServiceV1(
@@ -213,6 +248,10 @@ class ApiAccountApiServiceV1(
 
   override def getAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
     getOptPublicApiAccount(id).map(_.map(_.transformInto[ApiAccountDetails.Public]))
+  }
+
+  override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccountDetails.Public]] = {
+    readApi.getByToken(hashedToken).map(_.map(_.transformInto[ApiAccountDetails.Public]))
   }
 
   override def createAccount(data: NewRestApiAccount)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
