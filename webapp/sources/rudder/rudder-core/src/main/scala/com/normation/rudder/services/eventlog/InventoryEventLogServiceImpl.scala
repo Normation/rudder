@@ -54,7 +54,7 @@ class InventoryEventLogServiceImpl(
    */
   def getInventoryEventLogs(): Box[Seq[InventoryEventLog]] = {
     repository
-      .getEventLogByCriteria(Some(Fragment.const(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode') ")))
+      .getEventLogByCriteria(criteria = Some(Fragment.const(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode') ")))
       .toBox match {
       case Full(seq) =>
         Control.traverse(seq) {

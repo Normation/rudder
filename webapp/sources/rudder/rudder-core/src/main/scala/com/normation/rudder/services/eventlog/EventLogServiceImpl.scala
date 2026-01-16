@@ -60,7 +60,12 @@ class EventLogDeploymentService(
   def getLastDeployement(): Box[CurrentDeploymentStatus] = {
     val query = fr"eventtype in (${SuccessfulDeploymentEventType.serialize}, ${FailedDeploymentEventType.serialize})"
     (repository
-      .getEventLogByCriteria(Some(query), Some(1), List(Fragment.const("creationdate desc")), None)
+      .getEventLogByCriteria(
+        criteria = Some(query),
+        limit = Some(1),
+        orderBy = List(Fragment.const("creationdate desc")),
+        extendedFilter = None
+      )
       .toBox: @unchecked) match {
       case Full(seq) if seq.size > 1  => Failure("Too many answer from last policy update")
       case Full(seq) if seq.size == 1 =>
@@ -76,7 +81,12 @@ class EventLogDeploymentService(
   def getLastSuccessfulDeployement(): Box[EventLog] = {
     val query = fr"eventtype = ${SuccessfulDeploymentEventType.serialize}"
     (repository
-      .getEventLogByCriteria(Some(query), Some(1), List(Fragment.const("creationdate desc")), None)
+      .getEventLogByCriteria(
+        criteria = Some(query),
+        limit = Some(1),
+        orderBy = List(Fragment.const("creationdate desc")),
+        extendedFilter = None
+      )
       .toBox: @unchecked) match {
       case Full(seq) if seq.size > 1  => Failure("Too many answer from last policy update")
       case Full(seq) if seq.size == 1 => Full(seq.head)
@@ -95,7 +105,12 @@ class EventLogDeploymentService(
       case h :: t =>
         val query =
           Fragments.and(Fragments.in(fr"eventtype", NonEmptyList.of(h, t*)), fr" id > ${lastSuccess.id.getOrElse(0)}")
-        repository.getEventLogByCriteria(Some(query), None, List(Fragment.const("id DESC")), None)
+        repository.getEventLogByCriteria(
+          criteria = Some(query),
+          limit = None,
+          orderBy = List(Fragment.const("id DESC")),
+          extendedFilter = None
+        )
     }
   }
 

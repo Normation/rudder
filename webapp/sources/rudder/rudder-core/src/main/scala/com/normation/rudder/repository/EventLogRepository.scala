@@ -78,7 +78,7 @@ trait EventLogRepository {
 
   /**
    * Save an eventLog
-   * Optionnal : the user. At least one of the eventLog user or user must be defined
+   * Optional : the user. At least one of the eventLog user or user must be defined
    * Return the unspecialized event log with its serialization number
    */
   def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog]
@@ -534,6 +534,7 @@ trait EventLogRepository {
    * For the moment it only a string, it should be something else in the future
    */
   def getEventLogByCriteria(
+      principal:      Option[Fragment] = None,
       criteria:       Option[Fragment],
       limit:          Option[Int] = None,
       orderBy:        List[Fragment] = Nil,
@@ -542,7 +543,11 @@ trait EventLogRepository {
 
   def getEventLogById(id: Long): IOResult[EventLog]
 
-  def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment] = None): IOResult[Long]
+  def getEventLogCount(
+      principal:      Option[Fragment] = None,
+      criteria:       Option[Fragment],
+      extendedFilter: Option[Fragment] = None
+  ): IOResult[Long]
 
   def getEventLogByChangeRequest(
       changeRequest:   ChangeRequestId,

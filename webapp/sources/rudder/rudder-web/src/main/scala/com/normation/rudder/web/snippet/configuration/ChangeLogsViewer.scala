@@ -55,7 +55,7 @@ class ChangeLogsViewer extends DispatchSnippet with Loggable {
   private val gridName  = "changeLogsGrid"
 
   def getLastEvents: Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(None, Some(1000), List(Fragment.const("id DESC"))).toBox
+    repos.getEventLogByCriteria(criteria = None, limit = Some(1000), orderBy = List(Fragment.const("id DESC"))).toBox
   }
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
