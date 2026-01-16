@@ -14,8 +14,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@1.92.0
 
-      - name: Run tests
+      - name: Run template module tests
         run: make cargo-test PACKAGE=rudder-module-template
+      - name: Run schedule module tests
+        run: make cargo-test PACKAGE=rudder-module-scheduler
 
     permissions:
       contents: read
