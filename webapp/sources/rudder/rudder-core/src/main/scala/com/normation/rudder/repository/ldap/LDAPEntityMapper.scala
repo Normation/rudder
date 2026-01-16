@@ -56,6 +56,7 @@ import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.api.*
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
@@ -766,6 +767,15 @@ class LDAPEntityMapper(
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         tags            <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
+        scheduleId      <- e(A_SCHEDULE_ID) match {
+                             case None     => Right(None)
+                             case Some(id) =>
+                               CampaignId
+                                 .parse(id)
+                                 .toPureResult
+                                 .map(Some.apply)
+                                 .chainError(s"Invalid attribute value for schedule ID '${A_SCHEDULE_ID}'")
+                           }
       } yield {
         Directive(
           DirectiveId(DirectiveUid(id), ParseRev(e(A_REV_ID))),
@@ -778,7 +788,8 @@ class LDAPEntityMapper(
           priority,
           isEnabled,
           isSystem,
-          tags
+          tags,
+          scheduleId
         )
       }
     } else {
@@ -805,6 +816,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach(mode => entry.resetValuesTo(A_POLICY_MODE, mode.name))
     entry.resetValuesTo(A_SERIALIZED_TAGS, directive.tags.toJson)
+    directive.scheduleId.foreach(id => entry.resetValuesTo(A_SCHEDULE_ID, id.serialize))
     entry
   }
 

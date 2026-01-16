@@ -783,7 +783,7 @@ class ZipArchiveBuilderService(
       _               <- usedNames.update(_ + ((RULES_DIR, Set.empty[String])))
       rulesDirZip      = Zippable(rulesDir, None)
       ruleCatsRef     <- Ref.make(Set[RuleCategoryId]())
-      rules           <- if (ruleIds.contains(SpecialExportAll.allRules)) ruleRepo.getAll(includeSytem = false)
+      rules           <- if (ruleIds.contains(SpecialExportAll.allRules)) ruleRepo.getAll(includeSystem = false)
                          else {
                            ZIO.foreach(ruleIds) { ruleId =>
                              configRepo
