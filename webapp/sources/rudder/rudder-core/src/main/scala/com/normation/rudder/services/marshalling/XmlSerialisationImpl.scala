@@ -510,7 +510,7 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
     val kind = account.kind match {
       case ApiAccountKind.User | ApiAccountKind.System =>
         <kind>{account.kind.kind.name}</kind>
-      case ApiAccountKind.PublicApi(authz, exp)        =>
+      case ApiAccountKind.PublicApi(authz, policy)     =>
         NodeSeq.fromSeq(
           Seq(
             <kind>{account.kind.kind.name}</kind>,
@@ -526,18 +526,20 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
               }
             }</authorization>
           )
-        ) ++ exp.map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate>).getOrElse(NodeSeq.Empty)
+        ) ++ policy.expirationDate
+          .map(d => <expirationDate>{d.toString}</expirationDate>)
+          .getOrElse(NodeSeq.Empty)
     }
 
     createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)(
       (
         <id>{account.id.value}</id>
        <name>{account.name.value}</name>
-       <token>{account.token.flatMap(_.exposeHash()).getOrElse("")}</token>
+       <token>{account.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse("")}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
-       <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
-       <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
+       <creationDate>{account.creationDate.toString}</creationDate>
+       <tokenGenerationDate>{account.tokenGenerationDate.toString}</tokenGenerationDate>
        <tenants>{account.tenants.serialize}</tenants>
       ) ++ kind
     )

@@ -72,7 +72,7 @@ init flags =
         initDatePicker =
             DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing (SingleDatePicker.init UpdatePicker)
 
-        initFilters = Filters (defaultTableFilters Name) ""
+        initFilters = Filters (defaultTableFilters Name) Nothing
 
         initUi =
             UI initFilters NoModal False True initDatePicker False False
