@@ -7,6 +7,7 @@ import Html.Events.Extra exposing (onClickPreventDefault)
 import List
 import List.Extra
 import Maybe.Extra exposing (isNothing)
+import Rudder.Table
 import String
 import NaturalOrdering as N
 
@@ -116,7 +117,11 @@ view model =
     templateMain = case model.mode of
       Loading -> generateLoadingTable False 5
       RuleTable   ->
+        -- todo replace with Rudder.Table
         div [class "main-table"]
+
+            [Html.map RudderTableMsg (Rudder.Table.view model.rulesTable)]
+        {-
         [ div [class "table-container"]
           [ table [ class "no-footer dataTable"]
             [ thead [] [rulesTableHeader model.ui.ruleFilters]
@@ -124,6 +129,7 @@ view model =
             ]
           ]
         ]
+        -}
 
       RuleForm details ->
         (editionTemplate model details)
@@ -303,7 +309,8 @@ view model =
             ]
           , ( if model.ui.hasWriteRights then
               div [class "header-buttons"]
-              [ button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add category"]
+              [ (Html.map RudderTableMsg (Rudder.Table.viewCsvExportButton model.rulesTable))
+              , button [class "btn btn-default", type_ "button", onClick (GenerateId (\s -> NewCategory s      ))][text "Add category"]
               , button [class "btn btn-success", type_ "button", onClick (GenerateId (\s -> NewRule (RuleId s) ))][text "Create", i[class "fa fa-plus-circle"][]]
               ]
             else
