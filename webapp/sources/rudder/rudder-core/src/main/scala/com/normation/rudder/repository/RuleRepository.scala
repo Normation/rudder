@@ -66,7 +66,7 @@ trait RoRuleRepository {
    * To get only applied one, you can post-filter the seq
    * with the method RuleTargetService#isApplied
    */
-  def getAll(includeSytem: Boolean = false): IOResult[Seq[Rule]]
+  def getAll(includeSystem: Boolean = false): IOResult[Seq[Rule]]
 
   /**
    * Return all rules ids.
