@@ -25,6 +25,9 @@ fi
 # Ensure correct versions
 npm_config_loglevel=error npm ci --no-audit
 
+# Elm git library : needs an `elm/elm-git.json`, if absent Elm project will just fail at compilation
+npm run elm-git-install
+
 if [ "$RELEASE" = true ]; then
   npx gulp --production
 elif [ "$WATCH" = true ]; then
