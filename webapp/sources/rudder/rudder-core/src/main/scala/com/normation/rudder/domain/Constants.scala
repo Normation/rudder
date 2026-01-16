@@ -103,6 +103,7 @@ object Constants {
   val XML_TAG_ACTIVE_TECHNIQUE_CATEGORY = "activeTechniqueCategory"
   val XML_TAG_ACTIVE_TECHNIQUE          = "activeTechnique"
   val XML_TAG_DIRECTIVE                 = "directive"
+  val XML_TAG_EDITOR_TECHNIQUE          = "technique"
   val XML_TAG_NODE_GROUP_CATEGORY       = "nodeGroupCategory"
   val XML_TAG_NODE_GROUP                = "nodeGroup"
   val XML_TAG_DEPLOYMENT_STATUS         = "deploymentStatus"

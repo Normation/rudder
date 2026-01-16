@@ -49,6 +49,7 @@ import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -60,6 +61,7 @@ import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -230,10 +232,18 @@ class TechniqueApi(
 
       val modId = ModificationId(uuidGen.newUuid)
 
+      implicit val cc: ChangeContext = ChangeContext(
+        modId,
+        authzToken.qc.actor,
+        Instant.now(),
+        params.reason,
+        None,
+        authzToken.qc.nodePerms
+      )
       val content = {
         for {
           force <- extractBoolean("force")(req).map(_.getOrElse(false)).toIO
-          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc)
+          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, cc)
         } yield {
           // here, up to 8.3 we used to just return: `"data": { "techniques": { "id":...}}`
           // in place of the normalized `"data": { "techniques": [ {"id":...}]}
@@ -266,7 +276,15 @@ class TechniqueApi(
       val modId = ModificationId(uuidGen.newUuid)
       import techniqueSerializer.*
 
-      def charset: String = RestUtils.getCharset(req)
+      def charset:     String        = RestUtils.getCharset(req)
+      implicit val cc: ChangeContext = ChangeContext(
+        modId,
+        authzToken.qc.actor,
+        Instant.now(),
+        params.reason,
+        None,
+        authzToken.qc.nodePerms
+      )
       // end copy
       val response = {
         for {
@@ -276,7 +294,7 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           _                <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, cc)
           json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
           json
@@ -330,7 +348,15 @@ class TechniqueApi(
     import techniqueSerializer.*
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val modId    = ModificationId(uuidGen.newUuid)
+      val modId = ModificationId(uuidGen.newUuid)
+      implicit val cc: ChangeContext = ChangeContext(
+        modId,
+        authzToken.qc.actor,
+        Instant.now(),
+        params.reason,
+        None,
+        authzToken.qc.nodePerms
+      )
       val response = for {
         res                    <- techniqueReader.readTechniquesMetadataFile
         (techniques, _, errors) = res
@@ -340,7 +366,7 @@ class TechniqueApi(
                                       s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
                                     )
                                   }
-        res                    <- techniqueWriter.writeTechniques(techniques, modId, authzToken.qc.actor)
+        res                    <- techniqueWriter.writeTechniques(techniques, cc)
         json                   <- ZIO.foreach(res)(_.toJsonAST.toIO)
       } yield {
         json
@@ -418,8 +444,15 @@ class TechniqueApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
-
-      def charset: String = RestUtils.getCharset(req)
+      implicit val cc: ChangeContext = ChangeContext(
+        modId,
+        authzToken.qc.actor,
+        Instant.now(),
+        params.reason,
+        None,
+        authzToken.qc.nodePerms
+      )
+      def charset:     String        = RestUtils.getCharset(req)
 
       // end copy
       val response = {
@@ -449,7 +482,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, cc)
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json

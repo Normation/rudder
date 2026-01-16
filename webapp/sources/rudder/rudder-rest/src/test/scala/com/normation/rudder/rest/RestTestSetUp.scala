@@ -393,7 +393,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     ): IOResult[EventLog] = ZIO.succeed(null)
 
   }
-  val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
+  val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null, null)
   val modificationService = new ModificationService(null, null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
@@ -993,6 +993,10 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       (techniques, methods, List(Inconsistency("for test"))).succeed
     override def getMethodsMetadata:        IOResult[Map[BundleName, GenericMethod]] = methods.succeed
     override def updateMethodsMetadataFile: IOResult[CmdResult]                      = CmdResult(0, "", "").succeed
+
+    override def getTechnique(id: BundleName, version: String): IOResult[Option[EditorTechnique]] =
+      techniques.find(technique => id == technique.id && version == technique.version.value).succeed
+
   }
 
   val techniqueSerializer: TechniqueSerializer = new TechniqueSerializer(new BasicParameterTypeService)
@@ -1011,6 +1015,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     mockTechniques.deleteEditorTechnique,
     mockTechniques.techniqueCompiler,
     mockTechniques.techniqueCompilationCache,
+    mockTechniques.editorTechniqueReader,
+    eventLogRepo,
     mockGitRepo.configurationRepositoryRoot.pathAsString
   )
 

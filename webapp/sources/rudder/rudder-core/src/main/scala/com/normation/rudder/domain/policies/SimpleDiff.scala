@@ -61,4 +61,18 @@ object SimpleDiff {
   def floatToXml(eltTag:   Elem, diff: SimpleDiff[Float]):   NodeSeq = toXml[Float](eltTag, diff)(s => Text(s.toString))
   def longToXml(eltTag:    Elem, diff: SimpleDiff[Long]):    NodeSeq = toXml[Long](eltTag, diff)(s => Text(s.toString))
   def doubleToXml(eltTag:  Elem, diff: SimpleDiff[Double]):  NodeSeq = toXml[Double](eltTag, diff)(s => Text(s.toString))
+
+  def optionToXml[T](eltTag: Elem, diff: SimpleDiff[Option[T]])(serialize: T => NodeSeq): NodeSeq = {
+    eltTag.copy(
+      child = { diff.oldValue.map(v => <from>{serialize(v)}</from>) }.toList ++
+        { diff.newValue.map(v => <to>{serialize(v)}</to>) }.toList
+    )
+  }
+
+  def createDiff[T, U](oldValue: T, newValue: T)(f: T => U): Option[SimpleDiff[U]] = {
+    val realOldValue = f(oldValue)
+    val realNewValue = f(newValue)
+    if (realOldValue == realNewValue) { None }
+    else { Some(SimpleDiff(realOldValue, realNewValue)) }
+  }
 }
