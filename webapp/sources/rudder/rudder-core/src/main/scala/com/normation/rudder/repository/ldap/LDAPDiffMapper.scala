@@ -61,7 +61,6 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
-import com.normation.utils.DateFormaterService
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType.ADD
@@ -598,7 +597,11 @@ class LDAPDiffMapper(
                                 }
                               case A_API_TOKEN                   =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
-                                  d.copy(modToken = Some(SimpleDiff(oldAccount.token.flatMap(_.exposeHash()).getOrElse(""), value)))
+                                  d.copy(modToken = {
+                                    Some(
+                                      SimpleDiff(oldAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse(""), value)
+                                    )
+                                  })
                                 }
                               case A_DESCRIPTION                 =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
@@ -613,26 +616,24 @@ class LDAPDiffMapper(
                                   val diffDate = GeneralizedTime.parse(value).map(_.instant)
                                   d.copy(modTokenGenerationDate = {
                                     diffDate
-                                      .map(date => (SimpleDiff(oldAccount.tokenGenerationDate, DateFormaterService.toDateTime(date))))
+                                      .map(date => (SimpleDiff(oldAccount.tokenGenerationDate, date)))
                                   })
                                 }
                               case A_CREATION_DATETIME           =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
                                   val diffDate = GeneralizedTime.parse(value).map(_.instant)
-                                  d.copy(modCreationDate =
-                                    diffDate.map(date => (SimpleDiff(oldAccount.creationDate, DateFormaterService.toDateTime(date))))
-                                  )
+                                  d.copy(modCreationDate = diffDate.map(date => (SimpleDiff(oldAccount.creationDate, date))))
                                 }
                               case A_API_EXPIRATION_DATETIME     =>
                                 val expirationDate = oldAccount.kind match {
-                                  case PublicApi(_, date) => date
-                                  case _                  => None
+                                  case PublicApi(_, policy) => policy.expirationDate
+                                  case _                    => None
                                 }
                                 val diffDate       = {
                                   try {
                                     mod.getOptValueDefault("") match {
                                       case "None" => None
-                                      case v      => GeneralizedTime.parse(v).map(x => DateFormaterService.toDateTime(x.instant))
+                                      case v      => GeneralizedTime.parse(v).map(_.instant)
                                     }
                                   } catch {
                                     case ex: Exception => None

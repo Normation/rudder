@@ -55,8 +55,7 @@ import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.Instant
 import zio.*
 import zio.syntax.*
 
@@ -77,6 +76,9 @@ trait RoApiAccountRepository {
   def getById(id: ApiAccountId): IOResult[Option[ApiAccount]]
 
   def getSystemAccount: ApiAccount
+
+  def isSystemToken(apiTokenHash: ApiTokenHash): Boolean
+
 }
 
 /**
@@ -93,6 +95,8 @@ trait WoApiAccountRepository {
   def save(principal: ApiAccount, modId: ModificationId, actor: EventActor): IOResult[ApiAccount]
 
   def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId]
+
+  def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[ApiAccountId]
 }
 
 final class RoLDAPApiAccountRepository(
@@ -100,7 +104,7 @@ final class RoLDAPApiAccountRepository(
     val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection],
     val mapper:        LDAPEntityMapper,
     val systemAcl:     List[ApiAclElement],
-    val systemToken:   ApiTokenHash
+    val systemToken:   SystemToken
 ) extends RoApiAccountRepository {
 
   val systemAPIAccount: ApiAccount = {
@@ -108,14 +112,16 @@ final class RoLDAPApiAccountRepository(
       ApiAccountId("rudder-system-api-account"),
       ApiAccountKind.System,
       ApiAccountName("Rudder system account"),
-      Some(systemToken),
+      systemToken,
       "For internal use",
       isEnabled = true,
-      creationDate = DateTime.now(DateTimeZone.UTC),
-      tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
+      creationDate = Instant.now(),
+      lastAuthenticationDate = None,
       tenants = NodeSecurityContext.All
     )
   }
+
+  override def isSystemToken(apiTokenHash: ApiTokenHash): Boolean = systemToken.value.equalsToken(apiTokenHash)
 
   override def getSystemAccount: ApiAccount = systemAPIAccount
 
@@ -145,7 +151,7 @@ final class RoLDAPApiAccountRepository(
   Look for a given token hash in the LDAP.
    */
   override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
-    val hash = hashedToken.exposeHash();
+    val hash = hashedToken.exposeHash()
     for {
       ldap     <- ldapConnexion
       // here, be careful to the semantic of get with a filter!
@@ -204,12 +210,6 @@ final class WoLDAPApiAccountRepository(
     semaphore.withPermit(
       for {
         ldap        <- ldapConnexion
-        existing    <-
-          ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id)) map {
-            case None    => None.succeed
-            case Some(e) =>
-              Some(e).succeed
-          }
         name        <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
                          case None    => None.succeed
                          case Some(e) =>
@@ -256,6 +256,21 @@ final class WoLDAPApiAccountRepository(
         principal
       }
     )
+  }
+
+  override def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[ApiAccountId] = {
+    for {
+      ldap    <- ldapConnexion
+      entry   <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
+                   case None    => LDAPRudderError.Consistency(s"Api Account with ID '${id.value}' is not present").fail
+                   case Some(x) => x.succeed
+                 }
+      updated <- mapper.entry2ApiAccount(entry).map(_.copy(lastAuthenticationDate = Some(date))).toIO
+      _       <- ldap.save(mapper.apiAccount2Entry(updated))
+      // there is no diff to produce since it's a simple token access (audit logs should be based on file/db logs instead)
+    } yield {
+      id
+    }
   }
 
   override def delete(

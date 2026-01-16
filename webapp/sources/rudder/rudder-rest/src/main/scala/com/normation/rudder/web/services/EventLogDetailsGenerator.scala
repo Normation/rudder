@@ -64,6 +64,8 @@ import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
+import java.time.Instant
+import java.time.ZonedDateTime
 import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
@@ -71,8 +73,6 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
@@ -934,9 +934,9 @@ class EventLogDetailsGenerator(
                       "#description *" #> mapSimpleDiff(apiAccountDiff.modDescription) &
                       "#isEnabled *" #> mapSimpleDiff(apiAccountDiff.modIsEnabled) &
                       "#tokenGenerationDate *" #> mapSimpleDiff(apiAccountDiff.modTokenGenerationDate) &
-                      "#expirationDate *" #> mapSimpleDiffT[Option[DateTime]](
+                      "#expirationDate *" #> mapSimpleDiffT[Option[Instant]](
                         apiAccountDiff.modExpirationDate,
-                        _.fold("")(_.toString(ISODateTimeFormat.dateTime()))
+                        _.fold("")(_.toString)
                       ) &
                       "#accountKind *" #> mapSimpleDiff(apiAccountDiff.modAccountKind) &
                       // make list of ACL unsderstandable
@@ -1288,11 +1288,11 @@ class EventLogDetailsGenerator(
 
   private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = {
     val (expiration, kind, authz) = apiAccount.kind match {
-      case ApiAccountKind.System                                    => ("N/A", "system", Text("N/A"))
-      case ApiAccountKind.User                                      => ("N/A", "user", Text("N/A"))
-      case ApiAccountKind.PublicApi(authorizations, expirationDate) =>
+      case ApiAccountKind.System                                      => ("N/A", "system", Text("N/A"))
+      case ApiAccountKind.User                                        => ("N/A", "user", Text("N/A"))
+      case ApiAccountKind.PublicApi(authorizations, expirationPolicy) =>
         (
-          expirationDate.map(DateFormaterService.getDisplayDate).getOrElse("N/A"),
+          expirationPolicy.expirationDate.map(e => DateFormaterService.getDisplayDate(ZonedDateTime.from(e))).getOrElse("N/A"),
           "API",
           authorizations match {
             case ApiAuthorization.None     => Text("none")
@@ -1305,7 +1305,7 @@ class EventLogDetailsGenerator(
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
-    "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
+    "#token" #> apiAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse("") &
     "#description" #> apiAccount.description &
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
