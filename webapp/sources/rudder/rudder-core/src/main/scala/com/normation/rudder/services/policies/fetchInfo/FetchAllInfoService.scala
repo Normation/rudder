@@ -39,6 +39,7 @@ package com.normation.rudder.services.policies.fetchInfo
 import com.normation.errors.*
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.*
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -62,6 +63,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.services.policies.FetchAllInfo
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.policies.RuleVal
@@ -338,8 +340,28 @@ class FetchAllInfoServiceImpl(
         errors,
         maxParallelism,
         jsTimeout,
-        generationContinueOnError
+        generationContinueOnError,
+        Map(
+          SystemDirectiveSchedule.dailyOnNight.info.id -> SystemDirectiveSchedule.dailyOnNight
+        )
       )
     }
   }
+
+}
+
+/*
+ * For now, we only have ONE directive schedule, and it's a daily one during the night.
+ */
+object SystemDirectiveSchedule {
+
+  val dailyOnNight = DirectiveSchedule(
+    CampaignInfo(
+      CampaignId("rudder-daily-on-night"),
+      "Rudder system daily on night directive schedule",
+      "A daily schedule used by Rudder infrequent checkes",
+      com.normation.rudder.campaigns.Enabled,
+      Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone("UTC")))
+    )
+  )
 }

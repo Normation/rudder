@@ -47,6 +47,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
@@ -75,6 +76,7 @@ import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.*
+import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.services.policies.fetchInfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
@@ -222,7 +224,8 @@ trait PromiseGenerationService {
                                     errors,
                                     maxParallelism,
                                     jsTimeout,
-                                    generationContinueOnError
+                                    generationContinueOnError,
+                                    schedules
                                   )                    <- fetchAllInfoService.fetchAll().toBox
                                   buildConfigTime       = System.currentTimeMillis
                                   /// here, we still have directive by directive info
@@ -549,7 +552,8 @@ case class FetchAllInfo(
     errors:                    Map[NodeId, String],
     maxParallelism:            Int,
     jsTimeout:                 FiniteDuration,
-    generationContinueOnError: Boolean
+    generationContinueOnError: Boolean,
+    schedules:                 Map[CampaignId, DirectiveSchedule]
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
