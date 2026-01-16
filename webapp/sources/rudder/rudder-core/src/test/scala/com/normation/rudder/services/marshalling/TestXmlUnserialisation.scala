@@ -152,6 +152,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       <kind>public</kind>
       <authorization>rw</authorization>
       <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
+      <lastAuthenticationDate>2025-05-07T00:11:22.345+02:00</lastAuthenticationDate>
     </apiAccount>
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
@@ -170,6 +171,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
+          lastAuthenticationDate = Some(Instant.parse("2025-05-07T00:11:22.345+02:00")),
           tenants = NodeSecurityContext.All
         )
       )
@@ -197,6 +199,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         </acl>
       </authorization>
       <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
+      <lastAuthenticationDate>2025-05-07T00:11:22.345+02:00</lastAuthenticationDate>
     </apiAccount>
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
@@ -224,6 +227,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
+          lastAuthenticationDate = Some(Instant.parse("2025-05-07T00:11:22.345+02:00")),
           tenants = NodeSecurityContext.All
         )
       )
@@ -251,6 +255,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         </acl>
       </authorization>
       <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
+      <lastAuthenticationDate>2025-05-07T00:11:22.345+02:00</lastAuthenticationDate>
     </apiAccount>
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
@@ -280,6 +285,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
+          lastAuthenticationDate = Some(Instant.parse("2025-05-07T00:11:22.345+02:00")),
           tenants = NodeSecurityContext.All
         )
       )

@@ -572,11 +572,12 @@ final case class ApiAccount(
     // If a token should be revoked, use isEnabled = false.
     name: ApiAccountName, // used in event log to know who did actions.
 
-    token:        ApiAccountToken, // if none, then the token can't be used for authentication
-    description:  String,
-    isEnabled:    Boolean,
-    creationDate: Instant,
-    tenants:      NodeSecurityContext
+    token:                  ApiAccountToken, // if none, then the token can't be used for authentication
+    description:            String,
+    isEnabled:              Boolean,
+    creationDate:           Instant,
+    lastAuthenticationDate: Option[Instant],
+    tenants:                NodeSecurityContext
 ) {
 
   /**

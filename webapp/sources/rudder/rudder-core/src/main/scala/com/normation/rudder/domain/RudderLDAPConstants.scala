@@ -112,6 +112,7 @@ object RudderLDAPConstants extends Loggable {
   val A_API_TOKEN                   = "apiToken"
   val A_API_TOKEN_CREATION_DATETIME = "apiTokenCreationTimestamp"
   val A_API_EXPIRATION_DATETIME     = "expirationTimestamp"
+  val A_API_LAST_AUTH_DATETIME      = "lastAuthenticationTimestamp"
   val A_API_AUTHZ_KIND              = "apiAuthorizationKind"
   val A_API_ACL                     = "apiAcl"
   val A_API_TENANT                  = "apiTenant"
@@ -229,7 +230,7 @@ object RudderLDAPConstants extends Loggable {
   OC.createObjectClass(
     OC_API_ACCOUNT,
     must = Set(A_API_UUID, A_NAME, A_CREATION_DATETIME, A_API_TOKEN, A_API_TOKEN_CREATION_DATETIME),
-    may = Set(A_DESCRIPTION, A_API_EXPIRATION_DATETIME, A_API_ACL, A_IS_ENABLED, A_API_AUTHZ_KIND)
+    may = Set(A_DESCRIPTION, A_API_EXPIRATION_DATETIME, A_API_ACL, A_IS_ENABLED, A_API_AUTHZ_KIND, A_API_LAST_AUTH_DATETIME)
   )
 
   OC.createObjectClass(

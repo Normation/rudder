@@ -834,58 +834,70 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
 
   def unserialise(entry: XNode): Box[ApiAccount] = {
     for {
-      apiAccount     <- {
+      apiAccount             <- {
         if (entry.label == XML_TAG_API_ACCOUNT) Full(entry)
         else Failure(s"Entry type is not a ${XML_TAG_API_ACCOUNT}: ${entry}")
       }
-      _              <- TestFileFormat(apiAccount)
-      id             <- (apiAccount \ "id").headOption.map(_.text) ?~! (s"Missing attribute 'id' in entry type API Account : ${entry}")
-      name           <- (apiAccount \ "name").headOption.map(_.text) ?~! (s"Missing attribute 'name' in entry type API Account : ${entry}")
-      token          <-
+      _                      <- TestFileFormat(apiAccount)
+      id                     <- (apiAccount \ "id").headOption.map(_.text) ?~! (s"Missing attribute 'id' in entry type API Account : ${entry}")
+      name                   <- (apiAccount \ "name").headOption.map(_.text) ?~! (s"Missing attribute 'name' in entry type API Account : ${entry}")
+      token                  <-
         (apiAccount \ "token").headOption.map(_.text) ?~! (s"Missing attribute 'token' in entry type API Account : ${entry}")
-      description    <- (apiAccount \ "description").headOption.map(
-                          _.text
-                        ) ?~! (s"Missing attribute 'description' in entry type API Account : ${entry}")
-      isEnabled      <- (apiAccount \ "isEnabled").headOption.flatMap(s =>
-                          tryo(s.text.toBoolean)
-                        ) ?~! (s"Missing attribute 'isEnabled' in entry type API Account : ${entry}")
-      creationDate   <- (apiAccount \ "creationDate").headOption.flatMap(s =>
-                          tryo(Instant.parse(s.text))
-                        ) ?~! (s"Missing attribute 'creationDate' in entry type API Account : ${entry}")
-      tokenGenDate   <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s =>
-                          tryo(dateFormatter.parseDateTime(s.text))
-                        ) ?~! (s"Missing attribute 'tokenGenerationDate' in entry type API Account : ${entry}")
-      expirationDate <- (apiAccount \ "expirationDate").headOption match {
-                          case None    => Full(None)
-                          case Some(s) =>
-                            Either
-                              .catchNonFatal(Instant.parse(s.text))
-                              .bimap(
-                                _ => "Bad date format for field 'expirationDate' in entry type API Account : " + entry,
-                                Some(_)
-                              )
-                              .toBox
-                        }
-      authz          <- (apiAccount \ "authorization").headOption match {
-                          case None =>
-                            // we are most likely in a case where API ACL weren't implemented,
-                            // because the event was saved < Rudder 4.3. Use a "nil" ACL
-                            Full(ApiAuthorization.None)
+      description            <- (apiAccount \ "description").headOption.map(
+                                  _.text
+                                ) ?~! (s"Missing attribute 'description' in entry type API Account : ${entry}")
+      isEnabled              <- (apiAccount \ "isEnabled").headOption.flatMap(s =>
+                                  tryo(s.text.toBoolean)
+                                ) ?~! (s"Missing attribute 'isEnabled' in entry type API Account : ${entry}")
+      creationDate           <- (apiAccount \ "creationDate").headOption.flatMap(s =>
+                                  tryo(Instant.parse(s.text))
+                                ) ?~! (s"Missing attribute 'creationDate' in entry type API Account : ${entry}")
+      tokenGenDate           <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s =>
+                                  tryo(dateFormatter.parseDateTime(s.text))
+                                ) ?~! (s"Missing attribute 'tokenGenerationDate' in entry type API Account : ${entry}")
+      expirationDate         <- (apiAccount \ "expirationDate").headOption match {
+                                  case None    => Full(None)
+                                  case Some(s) =>
+                                    Either
+                                      .catchNonFatal(Instant.parse(s.text))
+                                      .bimap(
+                                        _ => "Bad date format for field 'expirationDate' in entry type API Account : " + entry,
+                                        Some(_)
+                                      )
+                                      .toBox
+                                }
+      lastAuthenticationDate <- (apiAccount \ "lastAuthenticationDate").headOption match {
+                                  case None    => Full(None)
+                                  case Some(s) =>
+                                    Either
+                                      .catchNonFatal(Instant.parse(s.text))
+                                      .bimap(
+                                        _ =>
+                                          "Bad date format for field 'lastAuthenticationDate' in entry type API Account : " + entry,
+                                        Some(_)
+                                      )
+                                      .toBox
+                                }
+      authz                  <- (apiAccount \ "authorization").headOption match {
+                                  case None =>
+                                    // we are most likely in a case where API ACL weren't implemented,
+                                    // because the event was saved < Rudder 4.3. Use a "nil" ACL
+                                    Full(ApiAuthorization.None)
 
-                          case Some(x) if x.text == ApiAuthorizationKind.RO.name =>
-                            Full(ApiAuthorization.RO)
-                          case Some(x) if x.text == ApiAuthorizationKind.RW.name =>
-                            Full(ApiAuthorization.RW)
-                          case Some(node) if (node \ "acl").nonEmpty             =>
-                            unserAcl((node \ "acl").head)
-                          case _                                                 =>
-                            Full(ApiAuthorization.None)
-                        }
-      accountType     = (apiAccount \ "kind").headOption.map(_.text) match {
-                          case None    => ApiAccountType.PublicApi
-                          case Some(s) => ApiAccountType.values.find(_.name == s).getOrElse(ApiAccountType.PublicApi)
-                        }
-      tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
+                                  case Some(x) if x.text == ApiAuthorizationKind.RO.name =>
+                                    Full(ApiAuthorization.RO)
+                                  case Some(x) if x.text == ApiAuthorizationKind.RW.name =>
+                                    Full(ApiAuthorization.RW)
+                                  case Some(node) if (node \ "acl").nonEmpty             =>
+                                    unserAcl((node \ "acl").head)
+                                  case _                                                 =>
+                                    Full(ApiAuthorization.None)
+                                }
+      accountType             = (apiAccount \ "kind").headOption.map(_.text) match {
+                                  case None    => ApiAccountType.PublicApi
+                                  case Some(s) => ApiAccountType.values.find(_.name == s).getOrElse(ApiAccountType.PublicApi)
+                                }
+      tenants                <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
       val kind         = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
@@ -902,6 +914,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         description,
         isEnabled,
         creationDate,
+        lastAuthenticationDate,
         tenants
       )
     }
