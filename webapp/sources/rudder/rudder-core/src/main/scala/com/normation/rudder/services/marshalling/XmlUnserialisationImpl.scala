@@ -866,6 +866,17 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                               )
                               .toBox
                         }
+      lastAuthenticatedDate <- (apiAccount \ "lastAuthenticatedDate").headOption match {
+                          case None    => Full(None)
+                          case Some(s) =>
+                            Either
+                              .catchNonFatal(Instant.parse(s.text))
+                              .bimap(
+                                _ => "Bad date format for field 'lastAuthenticatedDate' in entry type API Account : " + entry,
+                                Some(_)
+                              )
+                              .toBox
+                        }
       authz          <- (apiAccount \ "authorization").headOption match {
                           case None =>
                             // we are most likely in a case where API ACL weren't implemented,
@@ -902,6 +913,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         description,
         isEnabled,
         creationDate,
+        lastAuthenticatedDate,
         tenants
       )
     }

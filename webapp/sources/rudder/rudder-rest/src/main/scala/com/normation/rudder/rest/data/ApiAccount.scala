@@ -154,9 +154,11 @@ sealed trait ApiAccountDetails {
   def expirationDate:      Option[Instant]                // this is expiration for the whole account
   def tokenState:          ApiTokenState
   def tokenGenerationDate: Option[Instant]                // this is the token generation date, mapped to apiTokenCreationTimestamp
-  def tenants:             NodeSecurityContext
-  def authorizationType:   Option[ApiAuthorizationKind]   // ApiAuthorization.kind
-  def acl:                 Option[JsonApiAcl]
+  def lastAuthenticationDate
+      : Option[Instant] // this is the last account authentication date, mapped to lastAuthenticationTimestamp
+  def tenants:           NodeSecurityContext
+  def authorizationType: Option[ApiAuthorizationKind] // ApiAuthorization.kind
+  def acl:               Option[JsonApiAcl]
 }
 
 final case class ClearTextSecret(value: String)
@@ -179,34 +181,36 @@ object ApiAccountDetails extends ApiAccountCodecs {
    *   - if it is generated and it expires, we return the expiration date
    */
   final case class Public(
-      id:                  ApiAccountId,
-      name:                ApiAccountName,
-      description:         String,
-      status:              ApiAccountStatus,
-      creationDate:        Instant,
-      expirationPolicy:    ApiAccountExpirationPolicyKind,
-      expirationDate:      Option[Instant],
-      tokenState:          ApiTokenState,
-      tokenGenerationDate: Option[Instant],
-      tenants:             NodeSecurityContext,
-      authorizationType:   Option[ApiAuthorizationKind],
-      acl:                 Option[JsonApiAcl]
+      id:                     ApiAccountId,
+      name:                   ApiAccountName,
+      description:            String,
+      status:                 ApiAccountStatus,
+      creationDate:           Instant,
+      expirationPolicy:       ApiAccountExpirationPolicyKind,
+      expirationDate:         Option[Instant],
+      tokenState:             ApiTokenState,
+      tokenGenerationDate:    Option[Instant],
+      lastAuthenticationDate: Option[Instant],
+      tenants:                NodeSecurityContext,
+      authorizationType:      Option[ApiAuthorizationKind],
+      acl:                    Option[JsonApiAcl]
   ) extends ApiAccountDetails
 
   final case class WithToken(
-      id:                  ApiAccountId,
-      name:                ApiAccountName,
-      description:         String,
-      status:              ApiAccountStatus,
-      creationDate:        Instant,
-      expirationPolicy:    ApiAccountExpirationPolicyKind,
-      expirationDate:      Option[Instant],
-      tokenState:          ApiTokenState,
-      tokenGenerationDate: Option[Instant],
-      token:               ClearTextSecret,
-      tenants:             NodeSecurityContext,
-      authorizationType:   Option[ApiAuthorizationKind],
-      acl:                 Option[JsonApiAcl]
+      id:                     ApiAccountId,
+      name:                   ApiAccountName,
+      description:            String,
+      status:                 ApiAccountStatus,
+      creationDate:           Instant,
+      expirationPolicy:       ApiAccountExpirationPolicyKind,
+      expirationDate:         Option[Instant],
+      tokenState:             ApiTokenState,
+      tokenGenerationDate:    Option[Instant],
+      lastAuthenticationDate: Option[Instant],
+      token:                  ClearTextSecret,
+      tenants:                NodeSecurityContext,
+      authorizationType:      Option[ApiAuthorizationKind],
+      acl:                    Option[JsonApiAcl]
   ) extends ApiAccountDetails
 
   // only encode, no decoder for that
@@ -334,6 +338,7 @@ object NewRestApiAccount extends ApiAccountCodecs {
       .withFieldConst(_.token, t)
       .withFieldComputed(_.isEnabled, _.status == ApiAccountStatus.Enabled)
       .withFieldConst(_.creationDate, d)
+      .withFieldConst(_.lastAuthenticationDate, None)
       .buildTransformer
   }
 }

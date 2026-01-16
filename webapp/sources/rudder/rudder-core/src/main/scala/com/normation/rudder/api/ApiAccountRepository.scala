@@ -95,6 +95,8 @@ trait WoApiAccountRepository {
   def save(principal: ApiAccount, modId: ModificationId, actor: EventActor): IOResult[ApiAccount]
 
   def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId]
+
+  def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[ApiAccountId]
 }
 
 final class RoLDAPApiAccountRepository(
@@ -114,6 +116,7 @@ final class RoLDAPApiAccountRepository(
       "For internal use",
       isEnabled = true,
       creationDate = Instant.now(),
+      lastAuthenticationDate = None,
       tenants = NodeSecurityContext.All
     )
   }
@@ -253,6 +256,21 @@ final class WoLDAPApiAccountRepository(
         principal
       }
     )
+  }
+
+  override def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[ApiAccountId] = {
+    for {
+      ldap    <- ldapConnexion
+      entry   <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
+                   case None    => LDAPRudderError.Consistency(s"Api Account with ID '${id.value}' is not present").fail
+                   case Some(x) => x.succeed
+                 }
+      updated <- mapper.entry2ApiAccount(entry).map(_.copy(lastAuthenticationDate = Some(date))).toIO
+      _       <- ldap.save(mapper.apiAccount2Entry(updated))
+      // there is no diff to produce since it's a simple token access (audit logs should be based on file/db logs instead)
+    } yield {
+      id
+    }
   }
 
   override def delete(
