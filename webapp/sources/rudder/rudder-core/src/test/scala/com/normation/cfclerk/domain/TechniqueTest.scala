@@ -90,7 +90,9 @@ class TechniqueTest extends Specification {
     }
 
     "have bundle list: 'bundle1,bundle2' for each agent" in {
-      technique.agentConfigs.map(_.bundlesequence.map(_.value)) must contain(beEqualTo(Seq("bundle1", "bundle2"))).foreach
+      technique.agentConfigs.map(_.bundlesequence.map(bn => bn.getValue)) must contain(
+        beEqualTo(Seq("bundle1", "bundle2"))
+      ).foreach
     }
 
     "have templates 'tml1, tml2, tml3' for each agent" in {

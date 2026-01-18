@@ -87,10 +87,10 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   // a list of node, one node by type of reports, in a triplet:
   // (node, expired report, still ok report)
   def expected(id: String): NodeExpectedReports =
-    NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
+    NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil, Nil)
 
   val date0         = new DateTime(0, DateTimeZone.UTC)
-  val dummyExpected = NodeExpectedReports(NodeId("dummy"), NodeConfigId("dummy"), date0, null, null, Nil, Nil)
+  val dummyExpected = NodeExpectedReports(NodeId("dummy"), NodeConfigId("dummy"), date0, null, null, Nil, Nil, Nil)
 
   val nodes: List[((NodeId, CoreNodeFact), NodeStatusReport, NodeStatusReport)] = List(
     (

@@ -227,6 +227,7 @@ class ComplianceTest extends Specification {
         dateParser.parseDateTime(l(3)),
         end,
         json.modes,
+        json.schedules,
         json.ruleExpectedReports,
         Nil
       )

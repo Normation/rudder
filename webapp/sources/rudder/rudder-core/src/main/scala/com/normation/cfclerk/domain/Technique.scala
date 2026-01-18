@@ -238,7 +238,21 @@ final case class Technique(
 /**
  * The representation of a bundle name, used for the bundlesequence
  */
-final case class BundleName(value: String) extends AnyVal
+opaque type BundleName = String
+object BundleName {
+
+  // in CFEngine, we don't want +- in names
+  def escape(s: String): String = s.replaceAll("[-+]", "_")
+
+  def apply(s: String): BundleName = escape(s)
+
+  extension (x: BundleName) {
+    def value: String = x
+
+    // sometimes we need an other name in test \o/
+    def getValue: String = x
+  }
+}
 
 object Technique {
   def normalizeName(name: String): String = {

@@ -128,6 +128,7 @@ class ExecutionBatchTest extends Specification {
                 directiveId,
                 policyMode = None,
                 PolicyTypes.rudderBase,
+                None,
                 components = components
                   .map(componentName =>
                     ValueExpectedReport(componentName, ExpectedValueMatch(componentName, componentName) :: Nil)
@@ -156,7 +157,7 @@ class ExecutionBatchTest extends Specification {
         }
 
         directives.flatMap {
-          case DirectiveExpectedReports(directiveId, _, _, components) =>
+          case DirectiveExpectedReports(directiveId, _, _, _, components) =>
             components.flatMap(mapComponent(_, directiveId))
         }
     }
@@ -169,6 +170,7 @@ class ExecutionBatchTest extends Specification {
       now,
       None,
       mode,
+      Nil,
       expectedReports.toList,
       Nil
     )
@@ -201,6 +203,7 @@ class ExecutionBatchTest extends Specification {
         now,
         None,
         mode,
+        Nil,
         List(RuleExpectedReports(RuleId(ruleId), directives)),
         Nil
       ))
@@ -344,6 +347,7 @@ class ExecutionBatchTest extends Specification {
           "policy",
           None,
           PolicyTypes.rudderBase,
+          scheduleId = None,
           components = List(
             new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
           )
@@ -1324,6 +1328,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -1504,6 +1509,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         policyMode = None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -1650,6 +1656,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         policyMode = None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -1868,6 +1875,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -2085,6 +2093,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -2262,6 +2271,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -2424,6 +2434,7 @@ class ExecutionBatchTest extends Specification {
         DirectiveId(DirectiveUid("policy")),
         None,
         PolicyTypes.rudderBase,
+        scheduleId = None,
         components = expectedComponent :: Nil
       )
     }
@@ -3030,6 +3041,7 @@ class ExecutionBatchTest extends Specification {
       "d1",
       None,
       PolicyTypes.rudderBase,
+      scheduleId = None,
       components = List(
         ValueExpectedReport("Package", List(ExpectedValueMatch("vim", "vim"))),
         ValueExpectedReport("Post-modification script", List(ExpectedValueMatch("vim", "vim")))
@@ -3039,6 +3051,7 @@ class ExecutionBatchTest extends Specification {
       directiveId = "d2",
       policyMode = None,
       PolicyTypes.rudderBase,
+      scheduleId = None,
       components = List(
         BlockExpectedReport(
           "block1",
@@ -3605,6 +3618,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
             ) // here, we automatically must have "value" infered as unexpanded var
@@ -3657,6 +3671,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3702,6 +3717,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3757,6 +3773,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3800,6 +3817,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil))
           )
         )
@@ -3853,6 +3871,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3862,6 +3881,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy2",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3974,6 +3994,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -3983,6 +4004,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy2",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -4127,6 +4149,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport(
                 "component",
@@ -4265,6 +4288,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               ValueExpectedReport("component", ExpectedValueMatch(("""some\"text"""), ("""some\text""")) :: Nil)
             )
@@ -4310,6 +4334,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               ValueExpectedReport(
                 "component",
@@ -4357,6 +4382,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               ValueExpectedReport(
                 "component",
@@ -4493,6 +4519,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy1",
             policyMode = None,
             PolicyTypes.fromTypes(tag1),
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -4502,6 +4529,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy2",
             policyMode = None,
             PolicyTypes.fromTypes(tag1, tag2),
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -4592,6 +4620,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy1",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -4601,6 +4630,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy2",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List(
               new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
               new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
@@ -4700,6 +4730,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy1",
             policyMode = None,
             PolicyTypes.rudderBase,
+            scheduleId = None,
             components = List()
           )
         )
