@@ -182,11 +182,15 @@ class RuleValServiceImpl(
               directive.priority,
               directive.isSystem,
               directive.policyMode,
+              directive.scheduleId,
               technique.trackerVariableSpec.toVariable(trackerVariable.values),
               lookupNodeParameterization(otherVars),
               vared,
               ruleOrder,
-              BundleOrder(directive.name)
+              BundleOrder(directive.name),
+              // if there is a campaign ID, we directly map that ID into the corresponding string for ifvarclass.
+              // Escaping will be done in agent specific way when building bundle.
+              directive.scheduleId.map(IfVarClass.fromScheduleId)
             )
           )
         }

@@ -101,6 +101,12 @@ attributetype ( RudderAttributes:111
   DESC 'Unique identifier for a Rule category'
   SUP uuid )
 
+attributetype ( RudderAttributes:111
+  NAME 'scheduleId'
+  DESC 'Unique identifier for a schedule'
+  SUP uuid )
+
+
 #######################################################################
 
 attributetype ( RudderAttributes:201
@@ -518,7 +524,7 @@ objectclass ( RudderObjectClasses:23
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $ revision $
         directivePriority $ directiveVariable $ policyMode $ serializedTags $
-        securityTag) )
+        securityTag $ scheduleId) )
 
 ### rules ###
 

@@ -41,12 +41,14 @@ import com.normation.cfclerk.domain.RunHook
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersionHelper
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.services.policies.IfVarClass
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.write.BuildBundleSequence.*
@@ -64,27 +66,27 @@ class PrepareTemplateVariableTest extends Specification {
     (
       "Global configuration for all nodes/20. Install jdk version 1.0",
       "directive1",
-      Bundle(None, BundleName("Install_jdk_rudder_reporting"), Nil)
+      Bundle(None, BundleName("Install_jdk_rudder_reporting"), Nil, None)
     ),
     (
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)",
       "directive2",
-      Bundle(None, BundleName("check_zmd_settings"), Nil)
+      Bundle(None, BundleName("check_zmd_settings"), Nil, None)
     ),
     (
       """Nodes only/Name resolution version "3.0" and counting""",
       "directive3",
-      Bundle(None, BundleName("check_dns_configuration"), Nil)
+      Bundle(None, BundleName("check_dns_configuration"), Nil, None)
     ),
     (
       raw"""Nodes only/Package \"management\" for Debian""",
       "directive4",
-      Bundle(None, BundleName("check_apt_package_installation"), Nil)
+      Bundle(None, BundleName("check_apt_package_installation"), Nil, None)
     ),
     (
       raw"""Nodes only/Package \\"management\\" for Debian - again""",
       "directive5",
-      Bundle(None, BundleName("check_apt_package_installation2"), Nil)
+      Bundle(None, BundleName("check_apt_package_installation2"), Nil, None)
     )
   ).map {
     case (x, directiveId, y) =>
@@ -97,16 +99,18 @@ class PrepareTemplateVariableTest extends Specification {
         post = Nil,
         PolicyTypes.rudderBase,
         policyMode = PolicyMode.Enforce,
-        enableMethodReporting = false
+        enableMethodReporting = false,
+        if (directiveId == "directive3") Some(IfVarClass.fromScheduleId(CampaignId("da687546-d546-4a06-8153-eb5cd28c0b0e")))
+        else None
       )
   }
 
   val fillTemplate = new FillTemplatesService()
 
   // Ok, now I can test
-  "Preparing the string for writting usebundle of directives" should {
+  "Preparing the string for writing usebundle of directives" should {
 
-    "correctly write nothing at all when the list of bundle is emtpy" in {
+    "correctly write nothing at all when the list of bundle is empty" in {
       CfengineBundleVariables.formatMethodsUsebundle(
         CFEngineAgentSpecificGeneration.escape,
         Nil,
@@ -129,7 +133,8 @@ class PrepareTemplateVariableTest extends Specification {
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => set_dry_run_mode("false");
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => run_directive2;
       "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => set_dry_run_mode("false");
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3;
+      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3,
+                                                                                                 if => schedule_da687546_d546_4a06_8153_eb5cd28c0b0e;
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
@@ -225,18 +230,19 @@ bundle agent run_directive5
       )
       val expected = {
         List(
-          raw"""      "pre-run-hook"                                                                      usebundle => package-install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');
+          raw"""      "pre-run-hook"                                                                      usebundle => package_install('{"parameters":{"package":"vim","action":"update-only"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt1","value":"val1"}]}');
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => set_dry_run_mode("false");
       "Global configuration for all nodes/20. Install jdk version 1.0"                    usebundle => run_directive1;
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => set_dry_run_mode("false");
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => run_directive2;
       "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => set_dry_run_mode("false");
-      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3;
+      "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3,
+                                                                                                 if => schedule_da687546_d546_4a06_8153_eb5cd28c0b0e;
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => run_directive5;
-      "post-run-hook"                                                                     usebundle => service-restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');""", // HERE WE HAVE A SECOND ELEMENT
+      "post-run-hook"                                                                     usebundle => service_restart('{"parameters":{"service":"syslog"},"reports":[{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"},{"id":"r1@@d1@@0","mode":"enforce","technique":"tech1","name":"cmpt2","value":"None"}]}');""", // HERE WE HAVE A SECOND ELEMENT
           raw"""
 }
 bundle agent run_directive1

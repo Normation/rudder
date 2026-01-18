@@ -57,6 +57,7 @@ object RudderLDAPConstants extends Loggable {
   val A_ACTIVE_TECHNIQUE_UUID   = "activeTechniqueId"
   val A_NODE_GROUP_UUID         = "nodeGroupId"
   val A_RULE_UUID               = "ruleId"
+  val A_SCHEDULE_ID             = "scheduleId"
 
   /* other things */
   val A_TECHNIQUE_LIB_VERSION = "techniqueLibraryVersion"
