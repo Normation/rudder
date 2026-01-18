@@ -66,6 +66,8 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
+import com.normation.rudder.services.policies.fetchInfo.*
+import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
 import org.junit.runner.*
@@ -185,13 +187,10 @@ class TestBuildNodeConfiguration extends Specification {
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
   val ruleValService        = new RuleValServiceImpl(valueCompiler)
-  val buildContext:     PromiseGeneration_BuildNodeContext = new PromiseGeneration_BuildNodeContext {
-    override def interpolatedValueCompiler: InterpolatedValueCompiler = valueCompiler
-    override def systemVarService:          SystemVariableService     = data.systemVariableService
-  }
-  val globalPolicyMode: GlobalPolicyMode                   = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
-  val activeNodeIds:    Set[NodeId]                        = Set(rootId, node1Node.id, node2Node.id)
-  val allNodeModes:     Map[NodeId, NodeModeConfig]        = allNodes.map { case (id, _) => (id, defaultModesConfig) }.toMap
+  val buildContext:     NodeContextBuilder          = new NodeContextBuilderImpl(valueCompiler, data.systemVariableService)
+  val globalPolicyMode: GlobalPolicyMode            = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
+  val activeNodeIds:    Set[NodeId]                 = Set(rootId, node1Node.id, node2Node.id)
+  val allNodeModes:     Map[NodeId, NodeModeConfig] = allNodes.map { case (id, _) => (id, defaultModesConfig) }.toMap
   val scriptEngineEnabled = FeatureSwitch.Disabled
   val maxParallelism      = 8
   val jsTimeout: FiniteDuration = FiniteDuration(5, "minutes")
@@ -226,7 +225,7 @@ class TestBuildNodeConfiguration extends Specification {
         data.globalComplianceMode,
         globalPolicyMode
       )
-      .getOrElse(throw new RuntimeException("oups"))
+      .runNow
     val t3           = System.currentTimeMillis()
     val res          = BuildNodeConfiguration
       .buildNodeConfigurations(
