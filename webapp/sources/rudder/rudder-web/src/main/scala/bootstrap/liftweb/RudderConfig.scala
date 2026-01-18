@@ -3212,6 +3212,7 @@ object RudderConfigInit {
         policyGenerationDynGroupUpdate,
         fetchAllInfoServiceImpl,
         policyGenerationHookService,
+        ???,
         UPDATED_NODE_IDS_PATH,
         GENERATION_FAILURE_MSG_PATH,
         POSTGRESQL_IS_LOCAL

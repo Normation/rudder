@@ -61,6 +61,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
@@ -107,7 +108,8 @@ trait PolicyWriterService {
       versions:         Map[NodeId, NodeConfigId],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
-      parallelism:      Int
+      parallelism:      Int,
+      scheduledEvents:  Seq[DirectiveScheduleEvent]
   ): Box[Seq[NodeId]]
 }
 
@@ -425,7 +427,8 @@ class PolicyWriterServiceImpl(
       versions:         Map[NodeId, NodeConfigId],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
-      parallelism:      Int
+      parallelism:      Int,
+      scheduledEvents:  Seq[DirectiveScheduleEvent]
   ): Box[Seq[NodeId]] = {
     writeTemplatePure(
       rootNodeId,
@@ -435,7 +438,8 @@ class PolicyWriterServiceImpl(
       versions,
       globalPolicyMode,
       generationTime,
-      parallelism
+      parallelism,
+      scheduledEvents
     ).toBox
   }
 
@@ -447,7 +451,8 @@ class PolicyWriterServiceImpl(
       versions:         Map[NodeId, NodeConfigId],
       globalPolicyMode: GlobalPolicyMode,
       generationTime:   DateTime,
-      parallelism:      Int
+      parallelism:      Int,
+      scheduledEvents:  Seq[DirectiveScheduleEvent]
   ): IOResult[Seq[NodeId]] = {
 
     val interestingNodeConfigs = allNodeConfigs.collect {
@@ -570,7 +575,7 @@ class PolicyWriterServiceImpl(
                                 fillTimer          <- FillTemplateTimer.make()
                                 beforeWritingTime  <- currentTimeMillis
                                 promiseWritten     <- writePolicies(preparedTemplates, writeTimer, fillTimer)
-                                others             <- writeOtherResources(preparedTemplates, writeTimer, globalPolicyMode, resources)
+                                others             <- writeOtherResources(preparedTemplates, writeTimer, globalPolicyMode, resources, scheduledEvents)
                                 promiseWrittenTime <- currentTimeMillis
                                 _                  <- timingLogger.debug(s"Policies written in ${promiseWrittenTime - beforeWritingTime} ms")
                                 nanoToMillis        = 1000 * 1000
@@ -824,7 +829,8 @@ class PolicyWriterServiceImpl(
       preparedTemplates: Seq[AgentNodeWritableConfiguration],
       writeTimer:        WriteTimer,
       globalPolicyMode:  GlobalPolicyMode,
-      resources:         Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
+      resources:         Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo],
+      scheduledEvents:   Seq[DirectiveScheduleEvent]
   )(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
     parallelSequence(preparedTemplates) { prepared =>
       val isRootServer   = prepared.agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID
@@ -864,7 +870,7 @@ class PolicyWriterServiceImpl(
       } yield ()
       val writeJSON  = for {
         t0 <- currentTimeNanos
-        _  <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
+        _  <- writeSystemVarJson(prepared.paths, prepared.systemVariables, scheduledEvents)
         t1 <- currentTimeNanos
         _  <- writeTimer.writeJSON.update(_ + t1 - t0)
       } yield ()
@@ -1047,14 +1053,15 @@ class PolicyWriterServiceImpl(
   }
 
   private def writeSystemVarJson(
-      paths:     NodePoliciesPaths,
-      variables: Map[String, Variable]
+      paths:           NodePoliciesPaths,
+      variables:       Map[String, Variable],
+      scheduledEvents: Seq[DirectiveScheduleEvent]
   ): IOResult[List[AgentSpecificFile]] = {
     val path         = File(paths.newFolder, filepaths.SYSTEM_VARIABLE_JSON)
     val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
     for {
       _ <- path
-             .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables) + "\n", isRootServer)
+             .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables, scheduledEvents) + "\n", isRootServer)
              .chainError(
                s"Can not write json parameter file at path '${path.pathAsString}'"
              )
@@ -1397,7 +1404,8 @@ object RudderJsonPolicyFile {
    * }
    */
   def systemVariableToJson(
-      vars: Map[String, Variable]
+      vars:            Map[String, Variable],
+      scheduledEvents: Seq[DirectiveScheduleEvent]
   ): String = {
 
     // remove these system vars (perhaps they should not even be there, in fact)
@@ -1437,7 +1445,14 @@ object RudderJsonPolicyFile {
         (v.spec.name, value)
     }
 
-    val all = Chunk.fromIterable(systemVars).sortBy(_._1)
+    val events = {
+      (
+        "events",
+        Json.Arr(Chunk.fromIterable(scheduledEvents.sortBy(_.id.value)).map(_.toJsonAST.getOrElse(Json.Str(""))))
+      )
+    }
+
+    val all = Chunk.fromIterable(systemVars).appended(events).sortBy(_._1)
 
     Json.Obj(all).toJsonPretty
   }

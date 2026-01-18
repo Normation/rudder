@@ -41,6 +41,7 @@ import com.normation.cfclerk.domain.BasicStringVType
 import com.normation.cfclerk.domain.BooleanVType
 import com.normation.cfclerk.domain.Constraint
 import com.normation.cfclerk.domain.IntegerVType
+import com.normation.cfclerk.domain.RawVType
 import com.normation.cfclerk.domain.RegexConstraint
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.services.MissingSystemVariable
@@ -411,6 +412,12 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "Only allow communications over HTTPS",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
+    ),
+    SystemVariableSpec(
+      "POLICY_SCHEDULE_EVENTS",
+      "List of schedule events for directives",
+      multivalued = true,
+      constraint = Constraint(mayBeEmpty = true, typeName = RawVType)
     )
   )
 

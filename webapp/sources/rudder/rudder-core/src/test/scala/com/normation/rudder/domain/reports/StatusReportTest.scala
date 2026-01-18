@@ -228,6 +228,7 @@ class StatusReportTest extends Specification {
             None,
             modesConfig,
             Nil,
+            Nil,
             List()
           ), // TODO : correct that test
 
