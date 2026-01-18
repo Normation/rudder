@@ -269,14 +269,14 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
   // We want to ignore rules that are defined in `MockRules` because they may target all nodes and pollute our compliance tests
   private def rulesRepo(rules: List[Rule]) = new RoRuleRepository with WoRuleRepository {
-    override def getOpt(ruleId: RuleId):        IOResult[Option[Rule]] = {
+    override def getOpt(ruleId: RuleId):         IOResult[Option[Rule]] = {
       rules.find(_.id == ruleId).succeed
     }
-    override def getAll(includeSytem: Boolean): IOResult[Seq[Rule]]    = {
+    override def getAll(includeSystem: Boolean): IOResult[Seq[Rule]]    = {
       rules.succeed
     }
 
-    override def getIds(includeSytem:             Boolean): IOResult[Set[RuleId]] = ???
+    override def getIds(includeSystem:            Boolean): IOResult[Set[RuleId]] = ???
     override def create(rule:                     Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = ???
     override def update(
         rule:   Rule,
