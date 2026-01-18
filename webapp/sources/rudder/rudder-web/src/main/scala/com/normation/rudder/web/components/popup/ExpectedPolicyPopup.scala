@@ -117,7 +117,7 @@ class ExpectedPolicyPopup(
                         .findDynGroups(Set(nodeSrv.id), allDynGroups.toList)
                         .toBox ?~! "Error when building the map of dynamic group to update by node"
       groupTargets  = dynGroups.getOrElse(nodeSrv.id, Seq())
-      rules        <- ruleRepository.getAll(includeSytem = false).toBox
+      rules        <- ruleRepository.getAll(includeSystem = false).toBox
     } yield {
       val pendingNode = Map((nodeSrv.id, nodeSrv.isPolicyServer))
       val groups      = groupTargets.map(x => (x, Set(nodeSrv.id))).toMap
