@@ -19,7 +19,7 @@
       "ds":[
         {
           "did":"common-hasPolicyServer-root",
-          "s":true,
+          "t":["rudder.system"],
           "cs":[
             {
               "vid":"Update",
@@ -105,7 +105,7 @@
       "ds":[
         {
           "did":"rudder-service-apache-root",
-          "s":true,
+          "t":["rudder.system"],
           "cs":[
             {
               "vid":"Apache service",
@@ -142,7 +142,7 @@
       "ds":[
         {
           "did":"inventory-all",
-          "s":true,
+          "t":["rudder.system"],
           "cs":[
             {
               "vid":"Inventory",

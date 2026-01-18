@@ -116,6 +116,7 @@ import com.normation.rudder.services.modification.*
 import com.normation.rudder.services.nodes.*
 import com.normation.rudder.services.nodes.history.impl.*
 import com.normation.rudder.services.policies.*
+import com.normation.rudder.services.policies.fetchinfo.*
 import com.normation.rudder.services.policies.nodeconfig.*
 import com.normation.rudder.services.policies.write.*
 import com.normation.rudder.services.queries.*
@@ -1361,7 +1362,7 @@ object RudderConfig extends Loggable {
   val databaseManager:                     DatabaseManager                          = rci.databaseManager
   val debugScript:                         DebugInfoService                         = rci.debugScript
   val dependencyAndDeletionService:        DependencyAndDeletionService             = rci.dependencyAndDeletionService
-  val deploymentService:                   PromiseGeneration_Hooks                  = rci.deploymentService
+  val policyGenerationHookService:         PolicyGenerationHookService              = rci.policyGenerationHookService
   val diffDisplayer:                       DiffDisplayer                            = rci.diffDisplayer
   val diffService:                         DiffService                              = rci.diffService
   val directiveEditorService:              DirectiveEditorService                   = rci.directiveEditorService
@@ -1612,7 +1613,7 @@ case class RudderServiceApi(
     roLDAPParameterRepository:           RoLDAPParameterRepository,
     woLDAPParameterRepository:           WoLDAPParameterRepository,
     interpolationCompiler:               InterpolatedValueCompilerImpl,
-    deploymentService:                   PromiseGeneration_Hooks,
+    policyGenerationHookService:         PolicyGenerationHookService,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
     campaignRepo:                        CampaignRepository,
     mainCampaignService:                 MainCampaignService,
@@ -3156,44 +3157,58 @@ object RudderConfigInit {
       rudderDit,
       eventLogRepository
     )
-    lazy val policyServerManagementService = psMngtService
-    lazy val ruleValGeneratedHookService   = new RuleValGeneratedHookService()
-    lazy val deploymentService             = {
-      new PromiseGenerationServiceImpl(
+    lazy val policyServerManagementService  = psMngtService
+    lazy val ruleValGeneratedHookService    = new RuleValGeneratedHookService()
+    lazy val policyGenerationDynGroupUpdate = new PolicyGenerationUpdateDynGroupImpl(() =>
+      configService.rudder_generation_compute_dyngroups()
+    )
+    lazy val policyGenerationHookService    = new PolicyGenerationHookServiceImpl(
+      HOOKS_D,
+      HOOKS_IGNORE_SUFFIXES,
+      UPDATED_NODE_IDS_COMPABILITY
+    )
+    lazy val deploymentService              = {
+      val writeCertificate        = new WriteCertificatesPemServiceImpl(
+        new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD)),
+        better.files.File("/var/rudder/lib/ssl/allnodescerts.pem")
+      )
+      val buildNodeContext        = new NodeContextBuilderImpl(interpolationCompiler, systemVariableService)
+      val fetchAllInfoServiceImpl = new FetchAllInfoServiceImpl(
         roLdapRuleRepository,
-        woLdapRuleRepository,
-        ruleValService,
-        systemVariableService,
-        nodeConfigurationHashRepo,
         nodeFactRepository,
-        propertiesRepository,
-        updateExpectedRepo,
-        roNodeGroupRepository,
-        roDirectiveRepository,
         configurationRepository,
-        ruleApplicationStatusImpl,
-        roParameterServiceImpl,
-        interpolationCompiler,
-        globalComplianceModeService,
+        roNodeGroupRepository,
+        roLDAPParameterRepository,
         globalAgentRunService,
+        propertiesRepository,
+        globalComplianceModeService,
+        nodeConfigurationHashRepo,
+        ruleValService,
+        ruleApplicationStatusImpl,
+        buildNodeContext,
+        writeCertificate,
+        ruleValGeneratedHookService,
+        () => configService.rudder_featureSwitch_directiveScriptEngine(),
+        () => configService.rudder_global_policy_mode(),
+        () => configService.rudder_generation_max_parallelism(),
+        () => configService.rudder_generation_js_timeout(),
+        () => configService.rudder_generation_continue_on_error()
+      )
+      new PolicyGenerationServiceImpl(
+        woLdapRuleRepository,
+        nodeConfigurationHashRepo,
+        updateExpectedRepo,
         findNewNodeStatusReports,
         rudderCf3PromisesFileWriterService,
-        new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD)),
         cachedNodeConfigurationService,
-        () => configService.rudder_featureSwitch_directiveScriptEngine().toBox,
-        () => configService.rudder_global_policy_mode().toBox,
-        () => configService.rudder_generation_compute_dyngroups().toBox,
-        () => configService.rudder_generation_max_parallelism().toBox,
-        () => configService.rudder_generation_js_timeout().toBox,
-        () => configService.rudder_generation_continue_on_error().toBox,
-        HOOKS_D,
-        HOOKS_IGNORE_SUFFIXES,
+        BuildNodeConfiguration,
+        ruleValGeneratedHookService,
+        policyGenerationDynGroupUpdate,
+        fetchAllInfoServiceImpl,
+        policyGenerationHookService,
         UPDATED_NODE_IDS_PATH,
-        UPDATED_NODE_IDS_COMPABILITY,
         GENERATION_FAILURE_MSG_PATH,
-        allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodescerts.pem"),
-        POSTGRESQL_IS_LOCAL,
-        ruleValGeneratedHookService
+        POSTGRESQL_IS_LOCAL
       )
     }
 
@@ -3967,7 +3982,7 @@ object RudderConfigInit {
       roLDAPParameterRepository,
       woLDAPParameterRepository,
       interpolationCompiler,
-      deploymentService,
+      policyGenerationHookService,
       campaignEventRepo,
       campaignRepo,
       mainCampaignService,
@@ -3999,7 +4014,7 @@ object RudderConfigInit {
     ZIO.collectAllParDiscard(deferredEffects).runNow
 
     // This needs to be done at the end, to be sure that all is initialized
-    deploymentService.setDynamicsGroupsService(dyngroupUpdaterBatch)
+    policyGenerationDynGroupUpdate.setDynamicsGroupsService(dyngroupUpdaterBatch)
     // we need to reference batches not part of the API to start them since
     // they are lazy val
     cleanOldInventoryBatch.start()

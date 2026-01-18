@@ -197,13 +197,9 @@ class RuleValServiceTest extends Specification {
   // Ok, now I can test
   "The RuleValService, with one directive, one Meta-technique " should {
 
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
+    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map()).runNow
 
-    "return a Full(RuleVal)" in {
-      ruleVal.isDefined == true
-    }
-
-    val directivesVals = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDrafts
+    val directivesVals = ruleVal.parsedPolicyDrafts
 
     "the ruleval should have only one directiveVal" in {
       directivesVals.size == 1
@@ -237,8 +233,8 @@ class RuleValServiceTest extends Specification {
   }
 
   "The cardinality computed " should {
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map())
-    val draft   = ruleVal.openOrThrowException("Should have been full for test").parsedPolicyDrafts.head
+    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map()).runNow
+    val draft   = ruleVal.parsedPolicyDrafts.head
     // false PolicyVars for that draft
     val vars    = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)
 

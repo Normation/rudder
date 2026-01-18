@@ -517,7 +517,8 @@ objectclass ( RudderObjectClasses:23
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $ revision $
-        directivePriority $ directiveVariable $ policyMode $ serializedTags $ securityTag) )
+        directivePriority $ directiveVariable $ policyMode $ serializedTags $
+        securityTag) )
 
 ### rules ###
 

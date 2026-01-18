@@ -45,11 +45,8 @@ import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.UpdateDynamicGroups
-import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
@@ -59,7 +56,6 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.reports.BlockExpectedReport
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
@@ -72,19 +68,13 @@ import com.normation.rudder.domain.reports.OverriddenPolicy
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.reports.ValueExpectedReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.properties.PropertiesRepository
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.AgentRunIntervalService
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ComplianceModeService
-import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.repository.*
+import com.normation.rudder.services.policies.fetchinfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -93,25 +83,15 @@ import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
-import com.normation.rudder.services.servers.PolicyServerConfigurationObjects
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.Control.*
-import com.softwaremill.quicklens.*
+import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
-import scala.annotation.nowarn
-import scala.collection.MapView
 import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
 import zio.syntax.*
@@ -123,7 +103,7 @@ trait PromiseGenerationHooks {
 
   /*
    * Hooks to call before deployment start.
-   * This one is synchronise, so that deployment will
+   * This one is synchronised, so that deployment will
    * wait for its completion AND success.
    * So
    */
@@ -147,9 +127,7 @@ object NodePriority {
  * The main service which deploy modified rules and
  * their dependencies.
  */
-trait PromiseGenerationService {
-
-  def ruleValGeneratedHookService: RuleValGeneratedHookService
+trait PolicyGenerationService {
 
   /**
    * All mighty method that take all modified rules, find their
@@ -159,7 +137,62 @@ trait PromiseGenerationService {
    * Return the list of node IDs actually updated.
    *
    */
-  def deploy(): Box[Set[NodeId]] = {
+  def deploy(): Box[Set[NodeId]]
+
+}
+
+/*
+ * A data structure that represent all information needed to perform a policy generation.
+ * Once we have that, the world can restart ticking, we are good and can do the whole
+ * policy generation without any other data fetch.
+ */
+case class FetchAllInfo(
+    activeNodeIds:             Set[NodeId],
+    ruleVals:                  Seq[RuleVal],
+    nodeContexts:              Map[NodeId, InterpolationContext],
+    allNodeModes:              Map[NodeId, NodeModeConfig],
+    scriptEngineEnabled:       FeatureSwitch,
+    globalPolicyMode:          GlobalPolicyMode,
+    nodeConfigCaches:          Map[NodeId, NodeConfigurationHash],
+    timeFetchAll:              Long,
+    timeRuleVal:               Long,
+    errors:                    Map[NodeId, String],
+    maxParallelism:            Int,
+    jsTimeout:                 FiniteDuration,
+    generationContinueOnError: Boolean
+)
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  Implémentation
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class PolicyGenerationServiceImpl(
+    override val woRuleRepo:                     WoRuleRepository,
+    override val nodeConfigurationService:       NodeConfigurationHashRepository,
+    override val confExpectedRepo:               UpdateExpectedReportsRepository,
+    override val complianceCache:                FindNewNodeStatusReports,
+    override val promisesFileWriterService:      PolicyWriterService,
+    override val cachedNodeConfigurationService: CachedNodeConfigurationService,
+    val buildNodeConfigurationService:           BuildNodeConfigurationService,
+    val ruleValGeneratedHookService:             RuleValGeneratedHookService,
+    val policyGenerationUpdateDynGroup:          PolicyGenerationUpdateDynGroup,
+    val fetchAllInfoService:                     FetchAllInfoService,
+    val promiseGenerationHookService:            PolicyGenerationHookService,
+    UPDATED_NODE_IDS_PATH:                       String,
+    GENERATION_FAILURE_MSG_PATH:                 String,
+    override val isPostgresqlLocal:              Boolean
+) extends PolicyGenerationService with PolicyGeneration_localPostgresql with PolicyGeneration_updateAndWriteRule
+    with PolicyGeneration_setExpectedReports {
+
+  /**
+   * All mighty method that take all modified rules, find their
+   * dependencies, process ${vars}, build the list of node to update,
+   * update nodes.
+   *
+   * Return the list of node IDs actually updated.
+   *
+   */
+  override def deploy(): Box[Set[NodeId]] = {
     PolicyGenerationLogger.info("Start policy generation, checking updated rules")
 
     val initialTime = System.currentTimeMillis
@@ -171,76 +204,21 @@ trait PromiseGenerationService {
     import scala.jdk.CollectionConverters.*
     val systemEnv      = HookEnvPairs.build(System.getenv.asScala.toSeq*)
 
-    /*
-     * The computation of dynamic group is a workaround inconsistencies after importing definition
-     * from LDAP, see: https://issues.rudder.io/issues/14758
-     * But that computation may lead to a huge delay in generation (tens of minutes). We want to be
-     * able to unset their computation in some case through an environment variable.
-     *
-     * To disable it, set environment variable "rudder.generation.computeDynGroup" to "disabled"
-     */
-    val computeDynGroupsEnabled = getComputeDynGroups().getOrElse(true)
-
-    val maxParallelism = ParseMaxParallelism(
-      getMaxParallelism().getOrElse("x0.5"),
-      1,
-      "rudder_generation_max_parallelism",
-      (s: String) => PolicyGenerationLogger.warn(s)
-    )
-
-    val jsTimeout = {
-      // by default 5s but can be overridden
-      val t = getJsTimeout().getOrElse(5)
-      FiniteDuration(
-        try {
-          Math.max(1, t.toLong) // must be a positive number
-        } catch {
-          case ex: NumberFormatException =>
-            PolicyGenerationLogger.error(s"Impossible to user property '${t}' for js engine timeout: not a number")
-            5L // default
-        },
-        TimeUnit.SECONDS
-      )
-    }
-
-    val generationContinueOnError = getGenerationContinueOnError().getOrElse(false)
-
-    PolicyGenerationLogger.debug(
-      s"Policy generation parallelism set to: ${maxParallelism} (change with REST API settings parameter 'rudder_generation_max_parallelism')"
-    )
-    PolicyGenerationLogger.debug(
-      s"Policy generation JS evaluation of directive parameter timeout: ${jsTimeout} s (change with REST API settings parameter 'rudder_generation_jsTimeout')"
-    )
-    PolicyGenerationLogger.debug(
-      s"Policy generation continues on NodeConfigurations evaluation: ${generationContinueOnError} (change with REST API settings parameter 'rudder_generation_continue_on_error')"
-    )
-
     val result = for {
 
-      _                 <- runPreHooks(generationTime, systemEnv)
+      _                 <- promiseGenerationHookService.runPreHooks(generationTime, systemEnv)
       timeRunPreGenHooks = (System.currentTimeMillis - initialTime)
       _                  = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
-      // trigger a dynamic group update
-      dynamicGroupUpdateTime = System.currentTimeMillis
-      _                     <- if (computeDynGroupsEnabled) {
-                                 triggerNodeGroupUpdate()
-                               } else {
-                                 PolicyGenerationLogger.warn(
-                                   s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'"
-                                 )
-                                 Full(())
-                               }
-      timeComputeGroups      = (System.currentTimeMillis - dynamicGroupUpdateTime)
-      _                      = PolicyGenerationLogger.timing.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
+      _ <- policyGenerationUpdateDynGroup.checkUpdate().toBox
 
       startedGenHooksTime    = System.currentTimeMillis
-      _                     <- runStartedHooks(generationTime, systemEnv)
+      _                     <- promiseGenerationHookService.runStartedHooks(generationTime, systemEnv)
       timeRunStartedGenHooks = (System.currentTimeMillis - startedGenHooksTime)
       _                      = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunStartedGenHooks} ms")
 
       codePreGenHooksTime = System.currentTimeMillis
-      _                  <- beforeDeploymentSync(generationTime)
+      _                  <- promiseGenerationHookService.beforeDeploymentSync(generationTime)
       timeCodePreGenHooks = (System.currentTimeMillis - codePreGenHooksTime)
       _                   = PolicyGenerationLogger.timing.debug(
                               s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data."
@@ -248,7 +226,7 @@ trait PromiseGenerationService {
 
       // Objects need to be created in separate for {} yield to be garbage collectable,
       // otherwise they remain in the scope and are not freed.
-      // We need to do that as many times as necessary to free memory during policy generation
+      // We need to limit scope like that as necessary to free memory during policy generation
 
       fetch0Time       = System.currentTimeMillis
       (
@@ -275,9 +253,10 @@ trait PromiseGenerationService {
                              errorNodes,
                              timeFetchAll,
                              timeRuleVal,
-                             timeBuildConfig
+                             timeBuildConfig,
+                             maxParallelism
                            ) <- for {
-                                  (
+                                  FetchAllInfo(
                                     activeNodeIds,
                                     ruleVals,
                                     nodeContexts,
@@ -287,123 +266,28 @@ trait PromiseGenerationService {
                                     nodeConfigCaches,
                                     timeFetchAll,
                                     timeRuleVal,
-                                    errors
-                                  )                    <- for {
-                                                            allRules             <- findDependantRules() ?~! "Could not find dependant rules"
-                                                            fetch1Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched rules in ${fetch1Time - fetch0Time} ms")
-                                                            nf                   <- getNodeFacts() ?~! "Could not get Node Infos" // disabled node don't get new policies
-                                                            fetch2Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched node infos in ${fetch2Time - fetch1Time} ms")
-                                                            directiveLib         <-
-                                                              getDirectiveLibrary(allRules.flatMap(_.directiveIds).toSet) ?~! "Could not get the directive library"
-                                                            fetch3Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched directives in ${fetch3Time - fetch2Time} ms")
-                                                            gl                   <- getGroupLibrary() ?~! "Could not get the group library"
-                                                            tmp                  <- GetConsistentNodesAndGroups(nf, gl).toBox
-                                                            (nodeFacts, groupLib) = tmp
-                                                            fetch4Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched groups in ${fetch4Time - fetch3Time} ms")
-                                                            allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
-                                                            fetch5Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched global parameters in ${fetch5Time - fetch4Time} ms")
-                                                            globalAgentRun       <- getGlobalAgentRun()
-                                                            fetch6Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched run infos in ${fetch6Time - fetch5Time} ms")
-                                                            mergedProps          <- getNodeProperties.toBox
-                                                            fetch7Time            = System.currentTimeMillis
-                                                            _                     = PolicyGenerationLogger.timing.trace(s"Fetched merged properties ${fetch7Time - fetch6Time} ms")
-                                                            scriptEngineEnabled  <-
-                                                              getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
-                                                            globalComplianceMode <- getGlobalComplianceMode()
-                                                            globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
-                                                            nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
-                                                            allNodeModes          = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
-                                                            timeFetchAll          = (System.currentTimeMillis - fetch0Time)
-                                                            _                     = PolicyGenerationLogger.timing.debug(s"All relevant information fetched in ${timeFetchAll} ms.")
-
-                                                            _ = logMetrics(nodeFacts, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
-                                                            /////
-                                                            ///// end of inputs, all information gathered for promise generation.
-                                                            /////
-
-                                                            /////
-                                                            ///// Generate the root file with all certificate. This could be done in the node lifecycle management.
-                                                            ///// For now, it's just a trigger: the generation is async and doesn't fail policy generation.
-                                                            ///// File is: /var/rudder/lib/ssl/allnodescerts.pem
-                                                            _ = writeCertificatesPem(nodeFacts)
-
-                                                            ///// parse rule for directive parameters and build node context that will be used for them
-                                                            ///// also restrict generation to only active rules & nodes:
-                                                            ///// - number of nodes: only node somehow targeted by a rule have to be considered.
-                                                            ///// - number of rules: any rule without target or with only target with no node can be skipped
-
-                                                            ruleValTime                               = System.currentTimeMillis
-                                                            arePolicyServers                          = nodeFacts.view.mapValues(_.rudderSettings.isPolicyServer).toMap
-                                                            activeRuleIds                             = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
-                                                            ruleVals                                 <- buildRuleVals(
-                                                                                                          activeRuleIds,
-                                                                                                          allRules,
-                                                                                                          directiveLib,
-                                                                                                          groupLib,
-                                                                                                          arePolicyServers
-                                                                                                        ) ?~! "Cannot build Rule vals"
-                                                            timeRuleVal                               = (System.currentTimeMillis - ruleValTime)
-                                                            _                                         = PolicyGenerationLogger.timing.debug(
-                                                                                                          s"RuleVals built in ${timeRuleVal} ms, run rule vals post hooks"
-                                                                                                        )
-                                                            ruleValPostTime                           = System.currentTimeMillis
-                                                            hookRes                                  <- ruleValGeneratedHookService.runHooks(ruleVals).toBox
-                                                            timeRuleValPost                           = (System.currentTimeMillis - ruleValPostTime)
-                                                            _                                         = PolicyGenerationLogger.timing.debug(
-                                                                                                          s"RuleVals post hook in ${timeRuleValPost}, start to expand their values."
-                                                                                                        )
-                                                            nodeContextsTime                          = System.currentTimeMillis
-                                                            activeNodeIds                             = ruleVals.foldLeft(Set[NodeId]()) { case (s, r) => s ++ r.nodeIds }
-                                                            NodesContextResult(nodeContexts, errors) <-
-                                                              getNodeContexts(
-                                                                activeNodeIds,
-                                                                nodeFacts,
-                                                                mergedProps,
-                                                                groupLib,
-                                                                allParameters.toList,
-                                                                globalAgentRun,
-                                                                globalComplianceMode,
-                                                                globalPolicyMode
-                                                              ) ?~! "Could not get node interpolation context"
-                                                            timeNodeContexts                          = (System.currentTimeMillis - nodeContextsTime)
-                                                            _                                         = PolicyGenerationLogger.timing.debug(
-                                                                                                          s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations."
-                                                                                                        )
-                                                          } yield {
-                                                            (
+                                    errors,
+                                    maxParallelism,
+                                    jsTimeout,
+                                    generationContinueOnError
+                                  )                    <- fetchAllInfoService.fetchAll().toBox
+                                  buildConfigTime       = System.currentTimeMillis
+                                  /// here, we still have directive by directive info
+                                  filteredTechniques    = getFilteredTechnique()
+                                  configsAndErrors     <- buildNodeConfigurationService
+                                                            .buildNodeConfigurations(
                                                               activeNodeIds,
                                                               ruleVals,
                                                               nodeContexts,
                                                               allNodeModes,
+                                                              filteredTechniques,
                                                               scriptEngineEnabled,
                                                               globalPolicyMode,
-                                                              nodeConfigCaches,
-                                                              timeFetchAll,
-                                                              timeRuleVal,
-                                                              errors
+                                                              maxParallelism,
+                                                              jsTimeout,
+                                                              generationContinueOnError
                                                             )
-                                                          }
-                                  buildConfigTime       = System.currentTimeMillis
-                                  /// here, we still have directive by directive info
-                                  filteredTechniques    = getFilteredTechnique()
-                                  configsAndErrors     <- buildNodeConfigurations(
-                                                            activeNodeIds,
-                                                            ruleVals,
-                                                            nodeContexts,
-                                                            allNodeModes,
-                                                            filteredTechniques,
-                                                            scriptEngineEnabled,
-                                                            globalPolicyMode,
-                                                            maxParallelism,
-                                                            jsTimeout,
-                                                            generationContinueOnError
-                                                          ) ?~! "Cannot build target configuration node"
+                                                            .toBox ?~! "Cannot build target configuration node"
                                   /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
                                   allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
                                   allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
@@ -440,7 +324,8 @@ trait PromiseGenerationService {
                                     errorNodes,
                                     timeFetchAll,
                                     timeRuleVal,
-                                    timeBuildConfig
+                                    timeBuildConfig,
+                                    maxParallelism
                                   )
                                 }
                            ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
@@ -489,7 +374,7 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime       = System.currentTimeMillis
-      _                  <- runPostHooks(
+      _                  <- promiseGenerationHookService.runPostHooks(
                               generationTime,
                               new DateTime(postHooksTime, DateTimeZone.UTC),
                               updatedNodeInfo,
@@ -532,7 +417,7 @@ trait PromiseGenerationService {
         val exceptionInfo          = f.rootExceptionCause
           .map(ex => s"\n\nException linked to failure: ${ex.getMessage}\n  ${ex.getStackTrace.map(_.toString).mkString("\n  ")}")
           .getOrElse("")
-        runFailureHooks(
+        promiseGenerationHookService.runFailureHooks(
           generationTime,
           new DateTime(failureHooksTime, DateTimeZone.UTC),
           systemEnv,
@@ -569,150 +454,97 @@ trait PromiseGenerationService {
       .toFormatter()
   }
 
-  /**
-   * Snapshot all information needed:
-   * - node infos
-   * - rules
-   * - directives library
-   * - groups library
-   */
-  def getNodeFacts():    Box[MapView[NodeId, CoreNodeFact]]
-  def getNodeProperties: IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]]
-  // get full active technique category, checking that:
-  // - all ids in parameter are in it,
-  // - filtering out other directives (and pruning relevant branches).
-  def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory]
-  def getGroupLibrary():            Box[FullNodeGroupCategory]
-  def getAllGlobalParameters:       Box[Seq[GlobalParameter]]
-  def getGlobalComplianceMode():    Box[GlobalComplianceMode]
-  def getGlobalAgentRun():          Box[AgentRunInterval]
-  def getScriptEngineEnabled:       () => Box[FeatureSwitch]
-  def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]
-  def getComputeDynGroups:          () => Box[Boolean]
-  def getMaxParallelism:            () => Box[String]
-  def getJsTimeout:                 () => Box[Int]
-  def getGenerationContinueOnError: () => Box[Boolean]
-  def writeCertificatesPem(nodeFacts: Map[NodeId, CoreNodeFact]): Unit
+}
 
-  /**
-   * This method logs interesting metrics that can be use to assess performance problem.
-   */
-  def logMetrics(
-      nodeFacts:        Map[NodeId, CoreNodeFact],
-      allRules:         Seq[Rule],
-      directiveLib:     FullActiveTechniqueCategory,
-      groupLib:         FullNodeGroupCategory,
-      allParameters:    Seq[GlobalParameter],
-      nodeConfigCaches: Map[NodeId, NodeConfigurationHash]
-  ): Unit = {
-    /*
-     * log:
-     * - number of nodes (total, number with cache)
-     * - number of rules (total, enable)
-     * - number of directives (total, enable)
-     * - number of groups (total, enable, and for enable: number of nodes)
-     * - number of parameters
-     */
-    val ram = MemorySize(java.lang.Runtime.getRuntime().maxMemory()).toStringMo
-    val n   = nodeFacts.size
-    val nc  = nodeConfigCaches.size
-    val r   = allRules.size
-    val re  = allRules.filter(_.isEnabled).size
-    val t   = directiveLib.allActiveTechniques.size
-    val te  = directiveLib.allActiveTechniques.filter(_._2.isEnabled).size
-    val d   = directiveLib.allDirectives.size
-    val de  = directiveLib.allDirectives.filter(_._2._2.isEnabled).size
-    val g   = groupLib.allGroups.size
-    val gd  = groupLib.allGroups.filter(_._2.nodeGroup.isDynamic).size
-    val p   = allParameters.size
-    PolicyGenerationLogger.info(
-      s"[metrics] Xmx:$ram nodes:$n (cached:$nc) rules:$r (enabled:$re) techniques:$t (enabled:$te) directives:$d (enabled:$de) groups:$g (dynamic:$gd) parameters:$p"
-    )
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Follows: traits implementing each part of the deployment service
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * Facade that manage dynamic group update before policy generation if needed.
+ */
+trait PolicyGenerationUpdateDynGroup {
+  def checkUpdate(): IOResult[Unit]
+}
+
+/*
+ * Default implementation
+ */
+class PolicyGenerationUpdateDynGroupImpl(getComputeDynGroups: () => IOResult[Boolean]) extends PolicyGenerationUpdateDynGroup {
+  private val dynamicsGroupsUpdate: Ref[Option[UpdateDynamicGroups]] = ZioRuntime.unsafeRun(Ref.make(None))
+
+  // We need to register the update dynamic group after instantiation of the class
+  // as the deployment service, the async deployment and the dynamic group update have cyclic dependencies
+  def setDynamicsGroupsService(updateDynamicGroups: UpdateDynamicGroups): Unit = {
+    ZioRuntime.unsafeRun(dynamicsGroupsUpdate.set(Some(updateDynamicGroups)))
   }
 
-  // Trigger dynamic group update
-  def triggerNodeGroupUpdate(): Box[Unit]
+  private def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): IOResult[Unit] = {
 
-  // code hooks
-  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
+    def awaitEndGroup: IOResult[Unit] = for {
+      isIdle <- IOResult.attempt(updateDynamicGroups.isIdle())
+      _      <- ZIO.when(isIdle)(ZIO.sleep(50.millis) *> awaitEndGroup)
+    } yield ()
 
-  // base folder for hooks. It's a string because there is no need to get it from config
-  // file, it's just a constant.
-  def HOOKS_D:                     String
-  def HOOKS_IGNORE_SUFFIXES:       List[String]
-  def UPDATED_NODE_IDS_PATH:       String
-  def GENERATION_FAILURE_MSG_PATH: String
-
-  /*
-   * From global configuration and node modes, build node modes
-   */
-  def buildNodeModes(
-      nodes:                Map[NodeId, CoreNodeFact],
-      globalComplianceMode: GlobalComplianceMode,
-      globalAgentRun:       AgentRunInterval,
-      globalPolicyMode:     GlobalPolicyMode
-  ): Map[NodeId, NodeModeConfig] = {
-    nodes.map {
-      case (id, info) =>
-        (
-          id,
-          NodeModeConfig(
-            globalComplianceMode,
-            globalAgentRun,
-            info.rudderSettings.reportingConfiguration.agentRunInterval,
-            globalPolicyMode,
-            info.rudderSettings.policyMode
-          )
-        )
-    }.toMap
+    // Trigger a manual update if one is not pending (otherwise it goes in infinite loop)
+    // It doesn't expose anything about its ending, so we need to wait for the update to be idle
+    ZIO.whenZIO(IOResult.attempt(updateDynamicGroups.isIdle())) {
+      IOResult.attempt(updateDynamicGroups.startManualUpdate) *>
+      // wait for it to finish. We unfortunately cannot do much more than waiting
+      // we do need a timeout though
+      // Leave some time for actor to kick in
+      ZIO.sleep(50.millis)
+    } *> awaitEndGroup
   }
 
-  def getAppliedRuleIds(
-      rules:            Seq[Rule],
-      groupLib:         FullNodeGroupCategory,
-      directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: Map[NodeId, Boolean]
-  ): Set[RuleId]
-
-  /**
-   * Get all rules, including system ones
-   */
-  def findDependantRules(): Box[Seq[Rule]]
-
-  /**
-   * Rule vals are just rules with a analysis of parameter
-   * on directive done, so that we will be able to bind them
-   * to a context latter.
-   */
-  def buildRuleVals(
-      activesRules:     Set[RuleId],
-      rules:            Seq[Rule],
-      directiveLib:     FullActiveTechniqueCategory,
-      groupLib:         FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
-  ): Box[Seq[RuleVal]]
-
-  def getNodeContexts(
-      nodeIds:              Set[NodeId],
-      nodeFacts:            Map[NodeId, CoreNodeFact],
-      inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
-      allGroups:            FullNodeGroupCategory,
-      globalParameters:     List[GlobalParameter],
-      globalAgentRun:       AgentRunInterval,
-      globalComplianceMode: ComplianceMode,
-      globalPolicyMode:     GlobalPolicyMode
-  ): Box[NodesContextResult]
-
   /*
-   * Get a list of filtered out technique by node, for special cases
+   * The computation of dynamic group is a workaround inconsistencies after importing definition
+   * from LDAP, see: https://issues.rudder.io/issues/14758
+   * But that computation may lead to a huge delay in generation (tens of minutes). We want to be
+   * able to unset their computation in some case through an environment variable.
+   *
+   * To disable it, set environment variable "rudder.generation.computeDynGroup" to "disabled"
    */
-  def getFilteredTechnique(): Map[NodeId, List[TechniqueName]]
+  override def checkUpdate(): IOResult[Unit] = {
+    for {
+      // trigger a dynamic group update
+      doCompute              <- getComputeDynGroups().catchAll(_ => true.succeed)
+      (timeComputeGroups, _) <- (if (doCompute) {
+                                   dynamicsGroupsUpdate.get.flatMap {
+                                     case Some(service) => groupUpdate(service)
+                                     case None          => Inconsistency("Dynamic group update is not registered, this is an error").fail
+                                   }
+                                 } else {
+                                   PolicyGenerationLoggerPure.warn(
+                                     s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'"
+                                   )
+                                 }).timed
+      _                      <- PolicyGenerationLoggerPure.timing.debug(s"Computing dynamic groups finished in ${timeComputeGroups.toMillis} ms")
+    } yield ()
+  }
+}
 
-  /*
-   * From a list of ruleVal, find the list of all impacted nodes
-   * with the actual PolicyBean they will have.
-   * Replace all ${node.varName} vars.
-   */
+trait PolicyGeneration_localPostgresql {
+
+  def isPostgresqlLocal: Boolean
+
+  def getFilteredTechnique(): Map[NodeId, List[TechniqueName]] = {
+    if (isPostgresqlLocal) {
+      Map()
+    } else {
+      Map((Constants.ROOT_POLICY_SERVER_ID -> List(TechniqueName("rudder-service-postgresql"))))
+    }
+  }
+}
+
+final case class NodeConfigurations(
+    ok:     List[NodeConfiguration],
+    errors: List[RudderError]
+)
+
+trait BuildNodeConfigurationService {
   def buildNodeConfigurations(
       activeNodeIds:             Set[NodeId],
       ruleVals:                  Seq[RuleVal],
@@ -724,595 +556,10 @@ trait PromiseGenerationService {
       maxParallelism:            Int,
       jsTimeout:                 FiniteDuration,
       generationContinueOnError: Boolean
-  ): Box[NodeConfigurations]
-
-  /**
-   * Forget all other node configuration state.
-   * If passed with an empty set, actually forget all node configuration.
-   */
-  def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]]
-
-  /**
-   * Get the actual cached values for NodeConfiguration
-   */
-  def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]]
-
-  /**
-   * For each nodeConfiguration, check if the config is updated.
-   * If so, return the new configId.
-   */
-  def getNodesConfigVersion(
-      allNodeConfigs: Map[NodeId, NodeConfiguration],
-      hashes:         Map[NodeId, NodeConfigurationHash],
-      generationTime: DateTime
-  ): Map[NodeId, NodeConfigId]
-
-  /**
-   * Actually  write the new configuration for the list of given node.
-   * If the node target configuration is the same as the actual, nothing is done.
-   * Else, promises are generated;
-   * Return the list of configuration successfully written.
-   */
-  def writeNodeConfigurations(
-      rootNodeId:       NodeId,
-      updated:          Map[NodeId, NodeConfigId],
-      allNodeConfig:    Map[NodeId, NodeConfiguration],
-      nodeInfo:         Map[NodeId, CoreNodeFact],
-      globalPolicyMode: GlobalPolicyMode,
-      generationTime:   DateTime,
-      maxParallelism:   Int
-  ): Box[Set[NodeId]]
-
-  /**
-   * Compute expected reports for each node
-   * (that does not save them in base)
-   */
-  def computeExpectedReports(
-      allNodeConfigurations: Map[NodeId, NodeConfiguration],
-      updatedId:             Map[NodeId, NodeConfigId],
-      generationTime:        DateTime,
-      allNodeModes:          Map[NodeId, NodeModeConfig]
-  ): List[NodeExpectedReports]
-
-  /**
-   * Save expected reports in database
-   */
-  def saveExpectedReports(
-      expectedReports: List[NodeExpectedReports]
-  ): Box[Seq[NodeExpectedReports]]
-
-  /**
-   * After updates of everything, notify expected reports and compliance cache
-   * that it should forget what it knows about the updated nodes
-   */
-  def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit]
-
-  /**
-   * Run pre generation hooks
-   */
-
-  def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
-
-  def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
-
-  /**
-   * Run post generation hooks
-   */
-  def runPostHooks(
-      generationTime:    DateTime,
-      endTime:           DateTime,
-      idToConfiguration: Map[NodeId, CoreNodeFact],
-      systemEnv:         HookEnvPairs,
-      nodeIdsPath:       String
-  ): Box[Unit]
-
-  /**
-   * Run failure hook
-   */
-  def runFailureHooks(
-      generationTime:   DateTime,
-      endTime:          DateTime,
-      systemEnv:        HookEnvPairs,
-      errorMessage:     String,
-      errorMessagePath: String
-  ): Box[Unit]
+  ): IOResult[NodeConfigurations]
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Implémentation
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// here, we need to make a double consistency check:
-// - in a policy server group, we want the real list of node from node facts that have that policy server. Other nodes
-//   (in addition or missing in the group list, for ex because there wasn't a dyn group update yet) are unwanted.
-// - in groups, we only want nodes that are in all nodes. That can happen for a deleted node, before dyn group
-//   are computed back.
-// We also filter out node that are not in a state that should not lead to policy generation
-// Return a filtered list of valid node facts and corresponding group Lib.
-object GetConsistentNodesAndGroups {
-  def apply(
-      nodeFacts: MapView[NodeId, CoreNodeFact],
-      groupLib:  FullNodeGroupCategory
-  ): IOResult[(Map[NodeId, CoreNodeFact], FullNodeGroupCategory)] = {
-    // when we have a node group, only keep existing nodes in it.
-    // We pass both the realized keyIds (to avoid recomputing the set several time, it's costly) and the mapView (for
-    // the collect case)
-    def cleanFullRuleTarget(nodeFacts: Map[NodeId, CoreNodeFact], ignoredNodes: Set[NodeId])(
-        frti: FullRuleTargetInfo
-    ): IOResult[FullRuleTargetInfo] = {
-      frti.target match {
-        case FullGroupTarget(target, nodeGroup) =>
-          // get the list for the node group. There is a special case for the "hasPolicyServer-" system group
-          val nodeIds = if (nodeGroup.isSystem) {
-            PolicyServerConfigurationObjects.extractPolicyServerIdFromHasGroupName(nodeGroup.id) match {
-              // retrieve from the list of NodeFact
-              case Some(policyServerId) =>
-                nodeFacts.collect {
-                  case (id, nf)
-                      if (nf.rudderSettings.policyServerId == policyServerId && nf.rudderAgent.agentType == AgentType.CfeCommunity) =>
-                    id
-                }.toSet
-              case None                 =>
-                nodeGroup.serverList
-            }
-          } else nodeGroup.serverList
-
-          // restrict result to known node IDs
-          val nodes = nodeIds.intersect(nodeFacts.keySet)
-
-          // now, check if the group node was consistent, else update and warn user
-          val enabledNodes = nodeGroup.serverList -- ignoredNodes
-          if (nodes != enabledNodes) {
-            PolicyGenerationLoggerPure.warn(
-              s"Group '${nodeGroup.name}' [${nodeGroup.id.serialize}]}' had inconsistent list of nodes compared to current known list of nodes"
-            ) *> ZIO.when(PolicyGenerationLoggerPure.logEffect.isDebugEnabled) {
-              PolicyGenerationLoggerPure.debug(
-                s"  - added nodes: [${(nodes -- enabledNodes).map(_.value).mkString(",")}]"
-              ) *>
-              PolicyGenerationLoggerPure.debug(
-                s"  - removed nodes: [${(enabledNodes -- nodes).map(_.value).mkString(",")}]"
-              )
-            } *> frti.modify(_.target).setTo(FullGroupTarget(target, nodeGroup.modify(_.serverList).setTo(nodes))).succeed
-          } else frti.succeed
-
-        case other => frti.succeed
-      }
-    }
-
-    // recursively clean all group from the lib
-    def recFilterOut(nodeFacts: Map[NodeId, CoreNodeFact], ignoredNodes: Set[NodeId])(
-        groupRoot: FullNodeGroupCategory
-    ): IOResult[FullNodeGroupCategory] = {
-      for {
-        targetInfos   <- ZIO.foreach(groupRoot.targetInfos)(cleanFullRuleTarget(nodeFacts, ignoredNodes))
-        subCategories <- ZIO.foreach(groupRoot.subCategories)(recFilterOut(nodeFacts, ignoredNodes))
-      } yield {
-        groupRoot
-          .modify(_.targetInfos)
-          .setTo(targetInfos)
-          .modify(_.subCategories)
-          .setTo(subCategories)
-      }
-    }
-
-    // now, filter out all nodes in groups that are not in the accepted list of nodes
-    val (okNodes, others) = nodeFacts.toMap.partition { case (_, n) => n.rudderSettings.state != NodeState.Ignored }
-
-    for {
-      _   <- ZIO.foreachDiscard(others.values) { n =>
-               PolicyGenerationLoggerPure.debug(
-                 s"Skipping node '${n.id.value}' because the node is in state '${n.rudderSettings.state.name}'"
-               )
-             }
-      res <- recFilterOut(okNodes, others.keySet)(groupLib)
-    } yield (okNodes, res)
-  }
-}
-
-class PromiseGenerationServiceImpl(
-    override val roRuleRepo:                        RoRuleRepository,
-    override val woRuleRepo:                        WoRuleRepository,
-    override val ruleValService:                    RuleValService,
-    override val systemVarService:                  SystemVariableService,
-    override val nodeConfigurationService:          NodeConfigurationHashRepository,
-    override val nodeFactRepository:                NodeFactRepository,
-    override val propertiesRepository:              PropertiesRepository,
-    override val confExpectedRepo:                  UpdateExpectedReportsRepository,
-    override val roNodeGroupRepository:             RoNodeGroupRepository,
-    override val roDirectiveRepository:             RoDirectiveRepository,
-    override val configurationRepository:           ConfigurationRepository,
-    override val ruleApplicationStatusService:      RuleApplicationStatusService,
-    override val parameterService:                  RoParameterService,
-    override val interpolatedValueCompiler:         InterpolatedValueCompiler,
-    override val complianceModeService:             ComplianceModeService,
-    override val agentRunService:                   AgentRunIntervalService,
-    override val complianceCache:                   FindNewNodeStatusReports,
-    override val promisesFileWriterService:         PolicyWriterService,
-    override val writeNodeCertificatesPem:          WriteNodeCertificatesPem,
-    override val cachedNodeConfigurationService:    CachedNodeConfigurationService,
-    override val getScriptEngineEnabled:            () => Box[FeatureSwitch],
-    override val getGlobalPolicyMode:               () => Box[GlobalPolicyMode],
-    override val getComputeDynGroups:               () => Box[Boolean],
-    override val getMaxParallelism:                 () => Box[String],
-    override val getJsTimeout:                      () => Box[Int],
-    override val getGenerationContinueOnError:      () => Box[Boolean],
-    override val HOOKS_D:                           String,
-    override val HOOKS_IGNORE_SUFFIXES:             List[String],
-    override val UPDATED_NODE_IDS_PATH:             String,
-    override val postGenerationHookCompabilityMode: Option[Boolean],
-    override val GENERATION_FAILURE_MSG_PATH:       String,
-    override val allNodeCertificatesPemFile:        File,
-    override val isPostgresqlLocal:                 Boolean,
-    override val ruleValGeneratedHookService:       RuleValGeneratedHookService
-) extends PromiseGenerationService with PromiseGeneration_performeIO with PromiseGeneration_NodeCertificates
-    with PromiseGeneration_BuildNodeContext with PromiseGeneration_buildRuleVals with PromiseGeneration_buildNodeConfigurations
-    with PromiseGeneration_updateAndWriteRule with PromiseGeneration_setExpectedReports with PromiseGeneration_Hooks {
-
-  private var dynamicsGroupsUpdate: Option[UpdateDynamicGroups] = None
-
-  // We need to register the update dynamic group after instantiation of the class
-  // as the deployment service, the async deployment and the dynamic group update have cyclic dependencies
-  def setDynamicsGroupsService(updateDynamicGroups: UpdateDynamicGroups): Unit = {
-    this.dynamicsGroupsUpdate = Some(updateDynamicGroups)
-  }
-
-  override def triggerNodeGroupUpdate(): Box[Unit] = {
-    dynamicsGroupsUpdate match {
-      case Some(service) => groupUpdate(service)
-      case None          => Failure("Dynamic group update is not registered, this is an error")
-    }
-  }
-
-  private def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): Box[Unit] = {
-    // Trigger a manual update if one is not pending (otherwise it goes in infinite loop)
-    // It doesn't expose anything about its ending, so we need to wait for the update to be idle
-    if (updateDynamicGroups.isIdle()) {
-      updateDynamicGroups.startManualUpdate
-      // wait for it to finish. We unfortunately cannot do much more than waiting
-      // we do need a timeout though
-      // Leave some time for actor to kick in
-      Thread.sleep(50)
-    }
-
-    // wait for dyn group update to finish
-    while (!updateDynamicGroups.isIdle()) {
-      Thread.sleep(50)
-    }
-
-    Full(())
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Follows: traits implementing each part of the deployment service
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * So. There is a lot of "hidden" dependencies,
- * so for now, we just return *ALL* rule.
- *
- * It might not scale very well.
- *
- * Latter (3 years): in fact, perhaps most of the
- * time, being too smart is much more slow.
- *
- */
-trait PromiseGeneration_performeIO extends PromiseGenerationService {
-  def roRuleRepo:              RoRuleRepository
-  def nodeFactRepository:      NodeFactRepository
-  def roNodeGroupRepository:   RoNodeGroupRepository
-  def roDirectiveRepository:   RoDirectiveRepository
-  def configurationRepository: ConfigurationRepository
-  def parameterService:        RoParameterService
-  def complianceModeService:   ComplianceModeService
-  def agentRunService:         AgentRunIntervalService
-
-  def interpolatedValueCompiler:    InterpolatedValueCompiler
-  def systemVarService:             SystemVariableService
-  def ruleApplicationStatusService: RuleApplicationStatusService
-  def propertiesRepository:         PropertiesRepository
-  def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]
-
-  override def findDependantRules(): Box[Seq[Rule]]                     = roRuleRepo.getAll(true).toBox
-  override def getNodeFacts():       Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(using QueryContext.systemQC).toBox
-
-  override def getNodeProperties: IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
-    propertiesRepository.getAllNodeProps()(using QueryContext.systemQC)
-  }
-
-  override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
-    configurationRepository.getDirectiveLibrary(ids).toBox
-  }
-  override def getGroupLibrary():                          Box[FullNodeGroupCategory]       =
-    roNodeGroupRepository.getFullGroupLibrary()(using QueryContext.systemQC).toBox
-  override def getAllGlobalParameters:                     Box[Seq[GlobalParameter]]        = parameterService.getAllGlobalParameters()
-  override def getGlobalComplianceMode():                  Box[GlobalComplianceMode]        = complianceModeService.getGlobalComplianceMode.toBox
-  override def getGlobalAgentRun():                        Box[AgentRunInterval]            = agentRunService.getGlobalAgentRun()
-  override def getAppliedRuleIds(
-      rules:            Seq[Rule],
-      groupLib:         FullNodeGroupCategory,
-      directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: Map[NodeId, Boolean]
-  ): Set[RuleId] = {
-    rules
-      .filter(r => {
-        ruleApplicationStatusService
-          .isApplied(r, groupLib, directiveLib, arePolicyServers) match {
-          case _: AppliedStatus => true
-          case _ => false
-        }
-      })
-      .map(_.id)
-      .toSet
-
-  }
-}
-
-final case class NodesContextResult(
-    ok:    Map[NodeId, InterpolationContext],
-    error: Map[NodeId, String]
-)
-
-trait PromiseGeneration_BuildNodeContext {
-
-  def interpolatedValueCompiler: InterpolatedValueCompiler
-  def systemVarService:          SystemVariableService
-
-  // we should get the context to replace the value (PureResult[String] to String)
-  def parseJValue(value: JValue, context: InterpolationContext): IOResult[JValue] = {
-    def rec(v: JValue): IOResult[JValue] = v match {
-      case JObject(l) => ZIO.foreach(l)(field => rec(field.value).map(x => field.copy(value = x))).map(JObject(_))
-      case JArray(l)  => ZIO.foreach(l)(v => rec(v)).map(JArray(_))
-      case JString(s) =>
-        for {
-          v <- interpolatedValueCompiler
-                 .compile(s)
-                 .toIO
-                 .chainError(s"Error when looking for interpolation variable '${s}' in node property")
-          s <- v(context)
-        } yield {
-          JString(s)
-        }
-      case x          => x.succeed
-    }
-    rec(value)
-  }
-
-  /**
-   * Build interpolation contexts.
-   *
-   * An interpolation context is a node-dependant
-   * context for resolving ("expanding", "binding")
-   * interpolation variable in directive values.
-   *
-   * It's also the place where parameters are looked for
-   * local overrides.
-   */
-  def getNodeContexts(
-      nodeIds:              Set[NodeId],
-      nodeFacts:            Map[NodeId, CoreNodeFact],
-      inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
-      allGroups:            FullNodeGroupCategory,
-      globalParameters:     List[GlobalParameter],
-      globalAgentRun:       AgentRunInterval,
-      globalComplianceMode: ComplianceMode,
-      globalPolicyMode:     GlobalPolicyMode
-  ): Box[NodesContextResult] = {
-
-    /*
-     * parameters have to be taken apart:
-     *
-     * - they can be overridden by node - not handled here, it will be in the resolution of node
-     *   when implemented. Most likely, we will have the information in the node info. And
-     *   in that case, we could just use an interpolation variable
-     *
-     * - they can be plain string => nothing to do
-     * - they can contains interpolated strings:
-     *   - to node info parameters: ok
-     *   - to parameters : hello loops!
-     */
-    def buildParams(
-        parameters: List[GlobalParameter]
-    ): PureResult[Map[GlobalParameter, ParamInterpolationContext => IOResult[String]]] = {
-      parameters.accumulatePure { param =>
-        for {
-          p <- interpolatedValueCompiler
-                 .compileParam(param.valueAsString)
-                 .chainError(s"Error when looking for interpolation variable in global parameter '${param.name}'")
-        } yield {
-          (param, p)
-        }
-      }.map(_.toMap)
-    }
-
-    var timeNanoMergeProp = 0L
-    for {
-      globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
-      parameters            <- buildParams(globalParameters).toBox ?~! "Can not parsed global parameter (looking for interpolated variables)"
-    } yield {
-      val all = nodeIds.foldLeft(NodesContextResult(Map(), Map())) {
-        case (res, nodeId) =>
-          (for {
-            info              <- Box(nodeFacts.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-            policyServer      <-
-              Box(
-                nodeFacts.get(info.rudderSettings.policyServerId)
-              ) ?~! s"Policy server '${info.rudderSettings.policyServerId.value}' of Node '${nodeId.value}' was not found"
-            context            = ParamInterpolationContext(
-                                   info,
-                                   policyServer,
-                                   globalPolicyMode,
-                                   parameters.map { case (p, i) => (p.name, i) }
-                                 )
-            nodeParam         <- ZIO
-                                   .foreach(parameters.toList) {
-                                     case (param, interpol) =>
-                                       for {
-                                         i <- interpol(context)
-                                         v <- GenericProperty.parseValue(i).toIO
-                                         p  = param.withValue(v)
-                                       } yield {
-                                         (p.name, p)
-                                       }
-                                   }
-                                   .toBox
-            nodeTargets        = allGroups.getTarget(info).map(_._2).toList
-            timeMerge          = System.nanoTime
-            mergedProps       <- inheritedProps.get(nodeId) match {
-                                   case None                                  =>
-                                     Full(Chunk.empty)
-                                   case Some(s: SuccessNodePropertyHierarchy) =>
-                                     Full(s.resolved)
-                                   case Some(f: FailedNodePropertyHierarchy)  =>
-                                     Failure(s"Property resolution failed for node ${nodeId.value} with error : ${f.getMessage}")
-
-                                 }
-            nodeContextBefore <- systemVarService.getSystemVariables(
-                                   info,
-                                   nodeFacts,
-                                   nodeTargets,
-                                   globalSystemVariables,
-                                   globalAgentRun,
-                                   globalComplianceMode: ComplianceMode
-                                 )
-            // Not sure if I should InterpolationContext or create a "EngineInterpolationContext
-            contextEngine      = InterpolationContext(
-                                   info,
-                                   policyServer,
-                                   globalPolicyMode,
-                                   nodeContextBefore,
-                                   nodeParam.map { case (k, g) => (k, g.value) }.toMap
-                                 )
-            _                  = { timeNanoMergeProp = timeNanoMergeProp + System.nanoTime - timeMerge }
-            propsCompiled     <- ZIO
-                                   .foreach(mergedProps) { p =>
-                                     for {
-                                       x     <- parseJValue(p.prop.toJsonObj, contextEngine)
-                                       // we need to fetch only the value, and nothing else, for the property
-                                       value  = GenericProperty.fromJsonValue(x.\("value")): @nowarn("msg=deprecated")
-                                       result = NodeProperty(p.prop.config.getString("name"), value, None, None)
-                                     } yield {
-                                       result
-                                     }
-                                   }
-                                   .toBox
-            nodeInfo           = info.modify(_.properties).setTo(Chunk.fromIterable(propsCompiled))
-            nodeContext       <- systemVarService.getSystemVariables(
-                                   nodeInfo,
-                                   nodeFacts,
-                                   nodeTargets,
-                                   globalSystemVariables,
-                                   globalAgentRun,
-                                   globalComplianceMode: ComplianceMode
-                                 )
-            // now we set defaults global parameters to all nodes
-            withDefautls      <- CompareProperties
-                                   .updateProperties(
-                                     nodeParam.toList.map { case (k, v) => NodeProperty(k, v.value, v.inheritMode, None) },
-                                     Some(nodeInfo.properties.toList)
-                                   )
-                                   .map(p => nodeInfo.modify(_.properties).setTo(Chunk.fromIterable(p)))
-                                   .toBox
-          } yield {
-            (
-              nodeId,
-              InterpolationContext(
-                withDefautls,
-                policyServer,
-                globalPolicyMode,
-                nodeContext,
-                nodeParam.map { case (k, g) => (k, g.value) }.toMap
-              )
-            )
-          }) match {
-            case eb: EmptyBox =>
-              val e =
-                eb ?~! s"Error while building target configuration node for node '${nodeId.value}' which is one of the target of rules. Ignoring it for the rest of the process"
-              PolicyGenerationLogger.error(e.messageChain)
-              res.copy(error = res.error + ((nodeId, e.messageChain)))
-
-            case Full(x) => res.copy(ok = res.ok + x)
-          }
-      }
-      PolicyGenerationLogger.timing.debug(
-        s"Merge group properties took ${timeNanoMergeProp / (1_000_000)} ms for ${nodeIds.size} nodes"
-      )
-      all
-    }
-  }
-
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
-
-  def ruleValService: RuleValService
-
-  override def buildRuleVals(
-      activeRuleIds:    Set[RuleId],
-      rules:            Seq[Rule],
-      directiveLib:     FullActiveTechniqueCategory,
-      allGroups:        FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
-  ): Box[Seq[RuleVal]] = {
-
-    val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
-    for {
-      rawRuleVals <- bestEffort(appliedRules) { rule =>
-                       ruleValService.buildRuleVal(rule, directiveLib, allGroups, arePolicyServers)
-                     } ?~! "Could not find configuration vals"
-    } yield rawRuleVals
-  }
-
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService {
-
-  def isPostgresqlLocal: Boolean
-
-  override def getFilteredTechnique(): Map[NodeId, List[TechniqueName]] = {
-    if (isPostgresqlLocal) {
-      Map()
-    } else {
-      Map((Constants.ROOT_POLICY_SERVER_ID -> List(TechniqueName("rudder-service-postgresql"))))
-    }
-  }
-
-  override def buildNodeConfigurations(
-      activeNodeIds:             Set[NodeId],
-      ruleVals:                  Seq[RuleVal],
-      nodeContexts:              Map[NodeId, InterpolationContext],
-      allNodeModes:              Map[NodeId, NodeModeConfig],
-      filteredTechniques:        Map[NodeId, List[TechniqueName]],
-      scriptEngineEnabled:       FeatureSwitch,
-      globalPolicyMode:          GlobalPolicyMode,
-      maxParallelism:            Int,
-      jsTimeout:                 FiniteDuration,
-      generationContinueOnError: Boolean
-  ): Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(
-    activeNodeIds,
-    ruleVals,
-    nodeContexts,
-    allNodeModes,
-    filteredTechniques,
-    scriptEngineEnabled,
-    globalPolicyMode,
-    maxParallelism,
-    jsTimeout,
-    generationContinueOnError
-  )
-
-}
-
-final case class NodeConfigurations(
-    ok:     List[NodeConfiguration],
-    errors: List[RudderError]
-)
-
-object BuildNodeConfiguration extends Loggable {
+object BuildNodeConfiguration extends BuildNodeConfigurationService {
 
   /*
    * Utility class that helps deduplicate same failures in a chain
@@ -1401,7 +648,7 @@ object BuildNodeConfiguration extends Loggable {
       maxParallelism:            Int,
       jsTimeout:                 FiniteDuration,
       generationContinueOnError: Boolean
-  ): Box[NodeConfigurations] = {
+  ): IOResult[NodeConfigurations] = {
 
     // step 1: from RuleVals to expanded rules vals
 
@@ -1508,13 +755,13 @@ object BuildNodeConfiguration extends Loggable {
                             policies <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts).toIO
                             t1_4     <- nanoTime
                             _        <- counters.sumTimeMerge.update(_ + t1_4 - t1_3)
+
                           } yield {
                             // we have the node mode
                             val nodeModes  = allNodeModes(context.nodeInfo.id)
                             val nodeConfig = NodeConfiguration(
                               nodeInfo = context.nodeInfo,
                               modesConfig = nodeModes, // system technique should not have hooks, and at least it is not supported.
-
                               runHooks = MergePolicyService.mergeRunHooks(
                                 // used to be !isSystem
                                 policies.filter(_.technique.policyTypes.isBase),
@@ -1563,7 +810,7 @@ object BuildNodeConfiguration extends Loggable {
     }
 
     // do evaluation
-    evalJsProg.toBox
+    evalJsProg
   }
 
   // we need to remove all nodes whose parent are failed, recursively
@@ -1590,7 +837,7 @@ object BuildNodeConfiguration extends Loggable {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
+trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
 
   def nodeConfigurationService:  NodeConfigurationHashRepository
   def woRuleRepo:                WoRuleRepository
@@ -1768,12 +1015,12 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
+trait PolicyGeneration_setExpectedReports extends PolicyGenerationService {
   def complianceCache:                FindNewNodeStatusReports
   def confExpectedRepo:               UpdateExpectedReportsRepository
   def cachedNodeConfigurationService: CachedNodeConfigurationService
 
-  override def computeExpectedReports(
+  def computeExpectedReports(
       allNodeConfigurations: Map[NodeId, NodeConfiguration],
       updatedNodes:          Map[NodeId, NodeConfigId],
       generationTime:        DateTime,
@@ -1792,18 +1039,17 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
           generationTime,
           None,
           allNodeModes(nodeId), // that shall not throw, because we have all nodes here
-
           RuleExpectedReportBuilder(nodeConfig.policies),
           overrides
         )
     }.toList
   }
 
-  override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
+  def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     cachedNodeConfigurationService.invalidateWithAction(actions)
   }
 
-  override def saveExpectedReports(
+  def saveExpectedReports(
       expectedReports: List[NodeExpectedReports]
   ): Box[Seq[NodeExpectedReports]] = {
     // now, we just need to go node by node, and for each:
@@ -2029,9 +1275,37 @@ object RuleExpectedReportBuilder extends Loggable {
 // utility case class where we store the sorted list of node ids to be passed to hooks
 final case class SortedNodeIds(servers: Seq[String], nodes: Seq[String])
 
-trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGenerationHooks {
+trait PolicyGenerationHookService {
+  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
+  def runPreHooks(generationTime:          DateTime, systemEnv: HookEnvPairs): Box[Unit]
+  def runStartedHooks(generationTime:      DateTime, systemEnv: HookEnvPairs): Box[Unit]
+  /*
+   * Post generation hooks
+   */
+  def runPostHooks(
+      generationTime:   DateTime,
+      endTime:          DateTime,
+      updatedNodeInfos: Map[NodeId, CoreNodeFact],
+      systemEnv:        HookEnvPairs,
+      nodeIdsPath:      String
+  ): Box[Unit]
 
-  def postGenerationHookCompabilityMode: Option[Boolean]
+  def runFailureHooks(
+      generationTime:   DateTime,
+      endTime:          DateTime,
+      systemEnv:        HookEnvPairs,
+      errorMessage:     String,
+      errorMessagePath: String
+  ): Box[Unit]
+}
+
+class PolicyGenerationHookServiceImpl(
+    // base folder for hooks. It's a string because there is no need to get it from config
+    // file, it's just a constant.
+    HOOKS_D:                           String,
+    HOOKS_IGNORE_SUFFIXES:             List[String],
+    postGenerationHookCompabilityMode: Option[Boolean]
+) extends PolicyGenerationHookService {
 
   /*
    * Plugin hooks
@@ -2052,7 +1326,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Pre generation hooks
    */
-  override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
+  def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
     val name = "policy-generation-pre-start"
     (for {
       preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
@@ -2076,7 +1350,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Pre generation hooks
    */
-  override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
+  def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
     val name = "policy-generation-started"
     (for {
       // fetch all
@@ -2216,7 +1490,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Post generation hooks
    */
-  override def runPostHooks(
+  def runPostHooks(
       generationTime:   DateTime,
       endTime:          DateTime,
       updatedNodeInfos: Map[NodeId, CoreNodeFact],
@@ -2296,7 +1570,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Post generation hooks
    */
-  override def runFailureHooks(
+  def runFailureHooks(
       generationTime:   DateTime,
       endTime:          DateTime,
       systemEnv:        HookEnvPairs,
@@ -2323,11 +1597,14 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
 
 }
 
-trait PromiseGeneration_NodeCertificates extends PromiseGenerationService {
+trait WriteCertificatesPemService {
+  def writeCertificatesPem(nodeFacts: Map[NodeId, CoreNodeFact]): Unit
+}
 
-  def allNodeCertificatesPemFile: File
-  def writeNodeCertificatesPem:   WriteNodeCertificatesPem
-
+class WriteCertificatesPemServiceImpl(
+    writeNodeCertificatesPem:   WriteNodeCertificatesPem,
+    allNodeCertificatesPemFile: File
+) extends WriteCertificatesPemService {
   override def writeCertificatesPem(nodeFacts: Map[NodeId, CoreNodeFact]): Unit = {
     writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, nodeFacts.toMap)
   }

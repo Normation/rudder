@@ -824,8 +824,9 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
 
     "encode NodeConfiguration to JSON" in withLogger("log-debug") { (logger, f) =>
       val date = "2025-10-27T13:29:49.974Z"
-      val node = NodeConfigData.rootNodeConfig.copy(nodeInfo =
-        NodeConfigData.rootNodeConfig.nodeInfo.copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date))
+      val node = NodeConfigData.rootNodeConfig.copy(
+        nodeInfo = NodeConfigData.rootNodeConfig.nodeInfo
+          .copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date))
       )
       logger.log(List(node)).either.runNow must beRight
       NodeConfigurationLogger.getLogFile(f, node.nodeInfo).contentAsString must equalsJsonSemantic(

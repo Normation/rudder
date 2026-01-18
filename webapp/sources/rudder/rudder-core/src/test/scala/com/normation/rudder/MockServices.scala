@@ -3371,6 +3371,8 @@ object TestCampaignType extends CampaignType("test-campaign")
 
 final case class TestCampaignDetails(name: String) extends CampaignDetails
 
+// The only goal of this trait is to be able to provide a discriminator in json,
+// zio-json allow to have discriminator only on sealed trait
 @jsonDiscriminator("campaignType")
 sealed trait TestCampaignTrait extends Campaign
 

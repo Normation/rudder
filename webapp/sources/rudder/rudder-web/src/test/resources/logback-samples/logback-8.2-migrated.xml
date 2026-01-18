@@ -198,7 +198,7 @@
       Set to info to only have macro information, debug to have timing information about
       sub-steps (good for debugging performances issues), trace to have more information.
     -->
-    <logger level="info" name="com.normation.rudder.services.policies.PromiseGenerationServiceImpl"/>
+    <logger level="info" name="com.normation.rudder.services.policies.PolicyGenerationServiceImpl"/>
     <!--
       The following logger take care of promises writing. Set to debug or trace to
       have these information.

@@ -60,10 +60,9 @@ import org.specs2.runner.JUnitRunner
 
 /**
  * Test parsing and serialization of expected
- * reports according to 7.1 format:
- * - must be able to read old (pre 7.0) and new (7.1) expected reports
+ * reports according to 8.2 format:
+ * - must be able to read (8.2) expected reports
  * - must be able to write new expected reports
- * - for 7.1 reports, we can have two kind of values: with report Id or not
  */
 
 @RunWith(classOf[JUnitRunner])
