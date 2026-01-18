@@ -47,6 +47,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
@@ -74,6 +75,9 @@ import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.*
+import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.schedule.DirectiveScheduleEvent
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.fetchinfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
@@ -86,6 +90,7 @@ import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import com.normation.utils.Control.*
 import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -159,7 +164,8 @@ case class FetchAllInfo(
     errors:                    Map[NodeId, String],
     maxParallelism:            Int,
     jsTimeout:                 FiniteDuration,
-    generationContinueOnError: Boolean
+    generationContinueOnError: Boolean,
+    schedules:                 Map[CampaignId, DirectiveSchedule]
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +184,7 @@ class PolicyGenerationServiceImpl(
     val policyGenerationUpdateDynGroup:          PolicyGenerationUpdateDynGroup,
     val fetchAllInfoService:                     FetchAllInfoService,
     val promiseGenerationHookService:            PolicyGenerationHookService,
+    val scheduleManagement:                      ScheduleManagement,
     UPDATED_NODE_IDS_PATH:                       String,
     GENERATION_FAILURE_MSG_PATH:                 String,
     override val isPostgresqlLocal:              Boolean
@@ -269,11 +276,15 @@ class PolicyGenerationServiceImpl(
                                     errors,
                                     maxParallelism,
                                     jsTimeout,
-                                    generationContinueOnError
+                                    generationContinueOnError,
+                                    schedules
                                   )                    <- fetchAllInfoService.fetchAll().toBox
                                   buildConfigTime       = System.currentTimeMillis
                                   /// here, we still have directive by directive info
                                   filteredTechniques    = getFilteredTechnique()
+                                  scheduleData          =
+                                    scheduleManagement.updateSchedules(Instant.ofEpochMilli(buildConfigTime.millis.toMillis), schedules)
+                                  _                    <- scheduleManagement.saveUpdatedSchedule(scheduleData.updated).toBox
                                   configsAndErrors     <- buildNodeConfigurationService
                                                             .buildNodeConfigurations(
                                                               activeNodeIds,
@@ -281,6 +292,7 @@ class PolicyGenerationServiceImpl(
                                                               nodeContexts,
                                                               allNodeModes,
                                                               filteredTechniques,
+                                                              scheduleData.all,
                                                               scriptEngineEnabled,
                                                               globalPolicyMode,
                                                               maxParallelism,
@@ -462,6 +474,27 @@ class PolicyGenerationServiceImpl(
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+case class ScheduleData(
+    // list of schedules that need to be save and trigger workflow
+    updated:  Map[CampaignId, JsonDirectiveSchedule],
+    // the one already ok
+    upToDate: Map[CampaignId, JsonDirectiveSchedule],
+    events:   Map[CampaignId, List[DirectiveScheduleEvent]]
+) {
+  def all = upToDate ++ updated
+}
+
+trait ScheduleManagement {
+
+  // create schedule events for given schedule.
+  // We compute min(30, 10 days) events.
+  def updateSchedules(now: Instant, schedules: Map[CampaignId, DirectiveSchedule]): ScheduleData
+
+  // save and update workflow events for these schedules
+  def saveUpdatedSchedule(schedules: Map[CampaignId, JsonDirectiveSchedule]): IOResult[Unit]
+
+}
+
 /*
  * Facade that manage dynamic group update before policy generation if needed.
  */
@@ -551,6 +584,7 @@ trait BuildNodeConfigurationService {
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
+      schedules:                 Map[CampaignId, JsonDirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
@@ -643,6 +677,7 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
+      schedules:                 Map[CampaignId, JsonDirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
@@ -756,6 +791,16 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
                             t1_4     <- nanoTime
                             _        <- counters.sumTimeMerge.update(_ + t1_4 - t1_3)
 
+                            nodeSchedules <- ZIO.foreach(policies.flatMap(p => p.scheduleId.map(id => (id, p.id))).distinctBy(_._1)) {
+                                               case (sid, pid) =>
+                                                 schedules.get(sid) match {
+                                                   case None    =>
+                                                     Inconsistency(
+                                                       s"Error: policy '${pid.getReportId}' requires a schedule with id '${sid.serialize}' which is not available"
+                                                     ).fail
+                                                   case Some(s) => s.succeed
+                                                 }
+                                             }
                           } yield {
                             // we have the node mode
                             val nodeModes  = allNodeModes(context.nodeInfo.id)
@@ -772,7 +817,8 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
                               nodeContext = context.nodeContext,
                               parameters = context.parameters.map {
                                 case (k, v) => ParameterForConfiguration(k, GenericProperty.serializeToHocon(v))
-                              }.toSet
+                              }.toSet,
+                              schedules = nodeSchedules
                             )
                             nodeConfig
                           }).chainError(
@@ -1039,6 +1085,7 @@ trait PolicyGeneration_setExpectedReports extends PolicyGenerationService {
           generationTime,
           None,
           allNodeModes(nodeId), // that shall not throw, because we have all nodes here
+          nodeConfig.schedules,
           RuleExpectedReportBuilder(nodeConfig.policies),
           overrides
         )
@@ -1093,6 +1140,7 @@ object RuleExpectedReportBuilder extends Loggable {
               pvar.policyId.directiveId,
               pvar.policyMode,
               policy.technique.policyTypes,
+              policy.scheduleId,
               componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
             )
           }

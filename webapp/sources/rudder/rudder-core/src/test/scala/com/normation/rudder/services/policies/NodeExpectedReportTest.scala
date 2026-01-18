@@ -251,6 +251,7 @@ class NodeExpectedReportTest extends Specification {
     ),
     priority = 0,
     policyMode = None,
+    scheduleId = None,
     ruleOrder = BundleOrder("1"),
     directiveOrder = BundleOrder("1"),
     overrides = Set()
@@ -274,6 +275,7 @@ class NodeExpectedReportTest extends Specification {
     ),
     priority = 0,
     policyMode = None,
+    scheduleId = None,
     ruleOrder = BundleOrder("1"),
     directiveOrder = BundleOrder("1"),
     overrides = Set()
@@ -297,6 +299,7 @@ class NodeExpectedReportTest extends Specification {
     ),
     priority = 0,
     policyMode = None,
+    scheduleId = None,
     ruleOrder = BundleOrder("1"),
     directiveOrder = BundleOrder("1"),
     overrides = Set()
@@ -462,6 +465,7 @@ class NodeExpectedReportTest extends Specification {
       ),
       priority = 0,
       policyMode = None,
+      scheduleId = None,
       ruleOrder = BundleOrder("1"),
       directiveOrder = BundleOrder("1"),
       overrides = Set()

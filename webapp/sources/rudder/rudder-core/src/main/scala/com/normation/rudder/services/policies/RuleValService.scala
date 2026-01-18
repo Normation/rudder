@@ -184,6 +184,7 @@ class RuleValServiceImpl(
               directive.priority,
               directive.isSystem,
               directive.policyMode,
+              directive.scheduleId,
               technique.trackerVariableSpec.toVariable(trackerVariable.values),
               lookupNodeParameterization(otherVars),
               vared,

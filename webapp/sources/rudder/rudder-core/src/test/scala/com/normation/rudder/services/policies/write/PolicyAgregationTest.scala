@@ -151,6 +151,7 @@ class PolicyAgregationTest extends Specification {
       priority = 5,
       isSystem = false,
       policyMode = None,
+      scheduleId = None,
       ruleOrder = BundleOrder(id.ruleId.serialize),
       directiveOrder = BundleOrder(id.directiveId.serialize),
       overrides = Set()

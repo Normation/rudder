@@ -41,6 +41,7 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import scala.xml.*
@@ -202,9 +203,15 @@ final case class Directive(
     /**
      * Optionally, Directive can have Tags
      */
-    tags:     Tags = Tags(Set()),
+    tags:       Tags = Tags(Set()),
     // security so that in json is becomes: { "security": { "tenants": [...] }, ...}
-    security: Option[SecurityTag] // optional for backward compat. None means "no tenant"
+    security:   Option[SecurityTag], // optional for backward compat. None means "no tenant"
+    /**
+    * Directive may have a schedule. A schedule generates event that
+    * ask for the agent to run the or not the directive.
+    * This is None by default, for compat with previous version of Rudder.
+    */
+    scheduleId: Option[CampaignId] = None
 ) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = _isEnabled || isSystem

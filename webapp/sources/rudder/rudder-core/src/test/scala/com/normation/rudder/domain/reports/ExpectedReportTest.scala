@@ -52,6 +52,9 @@ import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceModeName.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.schedule.JsonDirectiveSchedule
+import com.normation.rudder.services.policies.fetchinfo.SystemDirectiveSchedule
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
@@ -110,6 +113,7 @@ class ExpectedReportTest extends Specification {
           GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always),
           None
         ),
+        List(SystemDirectiveSchedule.dailyOn4UTC.transformInto[JsonDirectiveSchedule]),
         List(
           RuleExpectedReports(
             "hasPolicyServer-root",
@@ -118,6 +122,7 @@ class ExpectedReportTest extends Specification {
                 "common-hasPolicyServer-root",
                 None,
                 PolicyTypes.rudderSystem,
+                None,
                 components = List(
                   ValueExpectedReport(
                     "Update",
@@ -166,6 +171,7 @@ class ExpectedReportTest extends Specification {
                 "dc0eaf47-356a-4a44-877d-e3873f75385b",
                 None,
                 PolicyTypes.rudderBase,
+                Some(SystemDirectiveSchedule.dailyOn4UTC.info.id),
                 components = List(
                   ValueExpectedReport(
                     "Package",
@@ -185,6 +191,7 @@ class ExpectedReportTest extends Specification {
                 "cbc2377f-ce6d-47fe-902b-8d92a484b184",
                 None,
                 PolicyTypes.rudderBase,
+                Some(SystemDirectiveSchedule.dailyOn4UTC.info.id),
                 components = List(
                   BlockExpectedReport(
                     "my main component",
@@ -216,6 +223,7 @@ class ExpectedReportTest extends Specification {
                 "rudder-service-apache-root",
                 None,
                 PolicyTypes.rudderSystem,
+                None,
                 components = List(
                   ValueExpectedReport(
                     "Apache service",
@@ -254,6 +262,7 @@ class ExpectedReportTest extends Specification {
                 "inventory-all",
                 None,
                 PolicyTypes.rudderSystem,
+                None,
                 components = List(
                   ValueExpectedReport(
                     "Inventory",
