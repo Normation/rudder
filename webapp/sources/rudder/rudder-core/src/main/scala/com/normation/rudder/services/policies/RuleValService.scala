@@ -40,14 +40,13 @@ package com.normation.rudder.services.policies
 import com.normation.cfclerk.domain.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.utils.Control.bestEffort
 import java.time.Instant
-import net.liftweb.common.*
 import zio.syntax.*
 
 trait RuleValService {
@@ -56,7 +55,7 @@ trait RuleValService {
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
       arePolicyServers: Map[NodeId, Boolean]
-  ): Box[RuleVal]
+  ): IOResult[RuleVal]
 
   def lookupNodeParameterization(
       variables: Map[ComponentId, Variable]
@@ -65,7 +64,9 @@ trait RuleValService {
 
 class RuleValServiceImpl(
     interpolatedValueCompiler: InterpolatedValueCompiler
-) extends RuleValService with Loggable {
+) extends RuleValService {
+
+  private val logger = PolicyGenerationLoggerPure
 
   /*
    * return variable merged when they have the same component name & reportid.
@@ -73,22 +74,20 @@ class RuleValServiceImpl(
   private def buildVariables(
       variableSpecs: Seq[(List[SectionSpec], VariableSpec)],
       context:       Map[String, Seq[String]]
-  ): Box[Map[ComponentId, Variable]] = {
-    Full(
-      variableSpecs.map {
-        case (parents, spec) =>
-          // be careful, component id are not defined at the varspec level, but in its parent spec one
-          val reportId = spec.id.orElse(parents.headOption.flatMap(_.id))
-          context.get(spec.name) match {
-            case None            =>
-              (ComponentId(spec.name, parents.map(_.name), reportId), spec.toVariable())
-            case Some(seqValues) =>
-              val newVar = spec.toVariable(seqValues)
-              assert(seqValues.toSet == newVar.values.toSet)
-              (ComponentId(spec.name, parents.map(_.name), reportId), newVar)
-          }
-      }.toMap
-    )
+  ): Map[ComponentId, Variable] = {
+    variableSpecs.map {
+      case (parents, spec) =>
+        // be careful, component id are not defined at the varspec level, but in its parent spec one
+        val reportId = spec.id.orElse(parents.headOption.flatMap(_.id))
+        context.get(spec.name) match {
+          case None            =>
+            (ComponentId(spec.name, parents.map(_.name), reportId), spec.toVariable())
+          case Some(seqValues) =>
+            val newVar = spec.toVariable(seqValues)
+            assert(seqValues.toSet == newVar.values.toSet)
+            (ComponentId(spec.name, parents.map(_.name), reportId), newVar)
+        }
+    }.toMap
   }
 
   /*
@@ -127,61 +126,50 @@ class RuleValServiceImpl(
       ruleOrder:    BundleOrder,
       ruleName:     String,
       directiveLib: FullActiveTechniqueCategory
-  ): Box[Option[ParsedPolicyDraft]] = {
+  ): IOResult[Option[ParsedPolicyDraft]] = {
     directiveLib.allDirectives.get(id) match {
       case None                                                               =>
-        Failure(
+        Inconsistency(
           s"Cannot find directive with id '${id.debugString}' when building rule '${ruleOrder.value}' (${ruleId.serialize})"
-        )
+        ).fail
       case Some((_, directive)) if !(directive.isEnabled)                     =>
         logger.debug(
-          "The Directive with id %s is disabled and we don't generate a ParsedPolicyDraft for Rule %s".format(
-            id.debugString,
-            ruleId.serialize
-          )
-        )
-        Full(None)
+          s"The Directive with id ${id.debugString} is disabled and we don't generate a ParsedPolicyDraft for Rule '${ruleId.serialize}'"
+        ) *> None.succeed
       case Some((fullActiveDirective, _)) if !(fullActiveDirective.isEnabled) =>
         logger.debug(
           s"The Active Technique with id ${fullActiveDirective.id.value} is disabled and we don't generate a ParsedPolicyDraft for Rule ${ruleId.serialize}"
-        )
-        Full(None)
+        ) *> None.succeed
       case Some((fullActiveTechnique, directive))                             =>
         for {
-          technique                 <-
-            Box(
-              fullActiveTechnique.techniques.get(directive.techniqueVersion)
-            ) ?~! s"Version '${directive.techniqueVersion.debugString}' of technique '${fullActiveTechnique.techniqueName.value}' is not available for directive '${directive.name}' [${directive.id.uid.value}]"
-          varSpecs                   = technique.rootSection.getAllVariablesBySection(Nil) ++ technique.systemVariableSpecs
-                                         .map((Nil, _)) :+ ((Nil, technique.trackerVariableSpec))
-          vared                     <- buildVariables(varSpecs, directive.parameters)
-          trackerVariableComponentId = ComponentId(technique.trackerVariableSpec.name, Nil, technique.trackerVariableSpec.id)
-          exists                    <- {
-            if (vared.isDefinedAt(trackerVariableComponentId)) {
-              Full("OK")
-            } else {
-              logger.error(
-                "Cannot find key %s in Directive %s when building Rule %s".format(
-                  technique.trackerVariableSpec.name,
-                  id.debugString,
-                  ruleId.serialize
-                )
+          technique                    <-
+            fullActiveTechnique.techniques
+              .get(directive.techniqueVersion)
+              .notOptional(
+                s"Version '${directive.techniqueVersion.debugString}' of technique '${fullActiveTechnique.techniqueName.value}' is not available for directive '${directive.name}' [${directive.id.uid.value}]"
               )
-              Failure(
-                "Cannot find key %s in Directibe %s when building Rule %s".format(
-                  technique.trackerVariableSpec.name,
-                  id.debugString,
-                  ruleId.serialize
-                )
-              )
-            }
-          }
-          trackerVariable           <- vared.get(trackerVariableComponentId)
-          otherVars                  = vared - trackerVariableComponentId
+          varSpecs                      = technique.rootSection.getAllVariablesBySection(Nil) ++ technique.systemVariableSpecs
+                                            .map((Nil, _)) :+ ((Nil, technique.trackerVariableSpec))
+          vared                         = buildVariables(varSpecs, directive.parameters)
+          trackerVariableComponentId    = ComponentId(technique.trackerVariableSpec.name, Nil, technique.trackerVariableSpec.id)
+          (trackerVariable, otherVars) <- vared.get(trackerVariableComponentId) match {
+                                            case None    =>
+                                              logger.error(
+                                                "Cannot find key %s in Directive %s when building Rule %s".format(
+                                                  technique.trackerVariableSpec.name,
+                                                  id.debugString,
+                                                  ruleId.serialize
+                                                )
+                                              ) *> Inconsistency(
+                                                s"Cannot find key ${technique.trackerVariableSpec.name} in directive ${id.debugString} when building rule ${ruleId.serialize}"
+                                              ).fail
+                                            case Some(x) => (x, vared - trackerVariableComponentId).succeed
+                                          }
           // only normal vars can be interpolated
+          _                            <- logger.trace(
+                                            s"Creating a ParsedPolicyDraft '${fullActiveTechnique.techniqueName}' from the ruleId ${ruleId.serialize}"
+                                          )
         } yield {
-          logger.trace(s"Creating a ParsedPolicyDraft '${fullActiveTechnique.techniqueName}' from the ruleId ${ruleId.serialize}")
-
           Some(
             ParsedPolicyDraft(
               PolicyId(ruleId, id, technique.id.version),
@@ -224,11 +212,11 @@ class RuleValServiceImpl(
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
       arePolicyServers: Map[NodeId, Boolean]
-  ): Box[RuleVal] = {
+  ): IOResult[RuleVal] = {
     val nodeIds = getTargetedNodes(rule, groupLib, arePolicyServers)
 
     for {
-      drafts <- bestEffort(rule.directiveIds.toSeq) {
+      drafts <- rule.directiveIds.toList.accumulate {
                   getParsedPolicyDraft(_, rule.id, BundleOrder(rule.name), rule.name, directiveLib)
                 }
     } yield {

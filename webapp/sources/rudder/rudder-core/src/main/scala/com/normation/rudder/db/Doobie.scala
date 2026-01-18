@@ -256,7 +256,9 @@ object Doobie {
     Read[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].map(tuple => {
       parseJsonNodeExpectedReports(tuple._5) match {
         case Full(x) =>
-          Right(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports, x.overrides))
+          Right(
+            NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports, x.overrides)
+          )
         case eb: EmptyBox =>
           Left((tuple._1, tuple._2, tuple._3))
       }

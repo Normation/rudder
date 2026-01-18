@@ -254,6 +254,8 @@ object errors {
   implicit class EitherToIoResult[A](val res: Either[String, A]) extends AnyVal {
     @inline
     def toIO: IOResult[A] = ZIO.fromEither(res.left.map(Inconsistency(_)))
+
+    def toPureResult: PureResult[A] = res.left.map(Inconsistency(_))
   }
 
   // not optional - mandatory presence of an object

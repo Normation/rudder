@@ -39,6 +39,9 @@ package com.normation.rudder.domain.policies
 import com.normation.errors.*
 import enumeratum.*
 
+/*
+ * Policy mode describes if the policy should be audited or enforced.
+ */
 sealed trait PolicyMode extends EnumEntry {
   def name: String
 }

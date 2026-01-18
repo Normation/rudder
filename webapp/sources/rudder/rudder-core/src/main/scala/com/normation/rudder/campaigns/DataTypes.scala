@@ -112,6 +112,7 @@ object CampaignId {
 sealed trait CampaignStatusValue extends EnumEntry {
   def value: String
 }
+
 @jsonDiscriminator("value")
 sealed trait CampaignStatus {
   def value: CampaignStatusValue
@@ -244,6 +245,7 @@ case class MonthlySchedule(
 ) extends CampaignSchedule {
   override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
 }
+
 @jsonHint("weekly")
 case class WeeklySchedule(
     start: DayTime,
@@ -252,6 +254,7 @@ case class WeeklySchedule(
 ) extends CampaignSchedule {
   override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
 }
+
 @jsonHint("one-shot")
 case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule {
   override def tz:                                     None.type        = None
