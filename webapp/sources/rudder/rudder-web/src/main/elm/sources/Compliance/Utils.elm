@@ -471,3 +471,56 @@ buildTooltipContent title content =
     closeTag   = "</pre></div>"
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
+
+
+badgePolicyMode : String -> String -> Html msg
+badgePolicyMode globalPolicyMode policyMode =
+  let
+    mode = if policyMode == "default" then globalPolicyMode else policyMode
+    defaultMsg = "This mode is the globally defined default. You can change it in the global <b>settings</b>."
+    msg =
+      case mode of
+        "enforce" -> "<div style='margin-bottom:5px;'>This rule is in <b>enforce</b> mode.</div>" ++ defaultMsg
+        "audit"   -> "<div style='margin-bottom:5px;'>This rule is in <b>audit</b> mode.</div>" ++ defaultMsg
+        "mixed"   ->
+          """
+          <div style='margin-bottom:5px;'>This rule is in <b>mixed</b> mode.</div>
+          This rule is applied on at least one node or directive that will <b>enforce</b>
+          one configuration, and at least one that will <b>audit</b> them.
+          """
+        -- "skipped" should be superseded when SkippedDetails are available, see `badgeSkipped`
+        -- otherwise, when there is no details available, this is the fallback text
+        "skipped"  ->
+          """
+          <div style='margin-bottom:5px;'>This rule is in <b style='color:#eda800;'>skipped</b> mode.</div>
+          This rule has all its directives skipped.
+          """
+        _ -> "Unknown policy mode"
+
+  in
+    span [class ("treeGroupName rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg)][]
+
+
+badgeSkipped : SkippedDetails -> Html msg
+badgeSkipped { overridingRuleId, overridingRuleName } =
+  let
+    msg =
+      "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId ++ ")."
+
+    buildTooltip : String -> String -> String
+    buildTooltip title content =
+      let
+        headingTag = "<h4 class='tags-tooltip-title'>"
+        contentTag = "</h4><div class='tooltip-inner-content'>"
+        closeTag   = "</div>"
+      in
+        headingTag ++ title ++ contentTag ++ content ++ closeTag
+  in
+    span
+    [ class "treeGroupName rudder-label label-sm label-skipped"
+    , attribute "data-bs-toggle" "tooltip"
+    , attribute "data-bs-placement" "bottom"
+    , title (buildTooltip "Skipped directive" msg)
+    ] []
+
+
