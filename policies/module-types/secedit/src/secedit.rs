@@ -3,7 +3,7 @@ use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde::Serialize;
 use serde_json::{Map, Value};
-use std::{collections::HashMap, path::Path, process::Command};
+use std::{collections::HashMap, path::Path, process::Command, process::Stdio};
 use tempdir::TempDir;
 
 #[derive(Debug, Default, Serialize)]
@@ -118,6 +118,8 @@ fn invoke_with_args(args: &str) -> Result<()> {
         cmd.args(args.split_whitespace());
     }
 
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
     let output = match cmd.spawn() {
         Ok(task) => task,
         Err(e) => bail!("Failed to execute command '{COMMAND} {args}' {e}"),
