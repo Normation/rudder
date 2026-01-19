@@ -143,7 +143,7 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
         if section.as_str() == "Registry Values" {
             report
                 .errors
-                .push("Registry values are not supported".to_string());
+                .push("The 'Registry Values' section is not supported".to_string());
             continue;
         }
 
