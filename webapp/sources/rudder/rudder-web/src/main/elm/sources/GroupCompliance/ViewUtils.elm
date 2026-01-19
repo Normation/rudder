@@ -179,7 +179,7 @@ byDirectiveCompliance mod complianceFilters subFun =
       |> List.sortWith sortFunction
     )
     (\_ i -> i)
-    [ ("Directive", \i -> span [] [ (badgePolicyMode mod.policyMode i.policyMode), text i.name, goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
+    [ ("Directive", \i -> span [] [ i.skippedDetails |> Maybe.map badgeSkipped |> Maybe.withDefault (badgePolicyMode mod.policyMode i.policyMode), text i.name, goToBtn (getDirectiveLink contextPath i.directiveId) ],  (\d1 d2 -> N.compare d1.name d2.name ))
     , ("Compliance", \i -> buildComplianceBar complianceFilters i.complianceDetails,  (\d1 d2 -> Basics.compare d1.compliance d2.compliance ))
     ]
     (.directiveId >> .value)
@@ -270,38 +270,6 @@ searchFieldNodeCompliance n =
   , n.name
   ]
 
--- WARNING:
---
--- Here the content is an HTML so it need to be already escaped.
-badgePolicyMode : String -> String -> Html Msg
-badgePolicyMode globalPolicyMode policyMode =
-  let
-    mode = if policyMode == "default" then globalPolicyMode else policyMode
-    defaultMsg = "This mode is the globally defined default. You can change it in the global <b>settings</b>."
-    msg =
-      case mode of
-        "enforce" -> "<div style='margin-bottom:5px;'>This rule is in <b style='color:#9bc832;'>enforce</b> mode.</div>" ++ defaultMsg
-        "audit"   -> "<div style='margin-bottom:5px;'>This rule is in <b style='color:#3694d1;'>audit</b> mode.</div>" ++ defaultMsg
-        "mixed" ->
-          """
-          <div style='margin-bottom:5px;'>This rule is in <b>mixed</b> mode.</div>
-          This rule is applied on at least one node or directive that will <b style='color:#9bc832;'>enforce</b>
-          one configuration, and at least one that will <b style='color:#3694d1;'>audit</b> them.
-          """
-        _ -> "Unknown policy mode"
-
-  in
-    span [class ("treeGroupName rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg)][]
-
-
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag
 
 buildComplianceReport : List Report -> Html Msg
 buildComplianceReport reports =

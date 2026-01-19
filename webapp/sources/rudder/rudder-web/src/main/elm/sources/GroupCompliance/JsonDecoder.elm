@@ -1,5 +1,6 @@
 module GroupCompliance.JsonDecoder exposing (..)
 
+import Compliance.JsonDecoder exposing (decodeSkippedDirectiveDetails)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Decode.Field exposing (require)
@@ -94,6 +95,7 @@ decodeDirectiveCompliance elem decoder =
     |> required "compliance" float
     |> required "policyMode" string
     |> required "complianceDetails" decodeComplianceDetails
+    |> optional "skippedDetails" (maybe decodeSkippedDirectiveDetails) Nothing
     |> required "components" (list (decodeComponentCompliance elem decoder))
 
 decodeComponentValueCompliance : String -> Decoder a -> Decoder (ComponentValueCompliance a)
