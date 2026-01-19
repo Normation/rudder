@@ -2380,6 +2380,10 @@ response:
                     "compliance" : 0.0,
                     "policyMode" : "skipped",
                     "complianceDetails" : {},
+                    "skippedDetails" : {
+                      "overridingRuleId" : "br5",
+                      "overridingRuleName" : "unknown"
+                    },
                     "components" : []
                   }
                 ]
@@ -2690,6 +2694,10 @@ response:
                     "compliance" : 0.0,
                     "policyMode" : "skipped",
                     "complianceDetails" : {},
+                    "skippedDetails" : {
+                      "overridingRuleId" : "br5",
+                      "overridingRuleName" : "unknown"
+                    },
                     "components" : []
                   }
                 ]
@@ -2857,6 +2865,10 @@ response:
               "compliance" : 0.0,
               "policyMode" : "skipped",
               "complianceDetails" : {},
+              "skippedDetails" : {
+                "overridingRuleId" : "br5",
+                "overridingRuleName" : "R5"
+              },
               "components" : []
             },
             {
@@ -5317,6 +5329,10 @@ response:
                 "compliance" : 0.0,
                 "policyMode" : "skipped",
                 "complianceDetails" : {},
+                "skippedDetails" : {
+                  "overridingRuleId" : "br5",
+                  "overridingRuleName" : "R5"
+                },
                 "components" : []
               },
               {
