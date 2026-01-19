@@ -1484,18 +1484,18 @@ class MockRules() {
 
     val rulesMap: Ref.Synchronized[Map[RuleId, Rule]] = Ref.Synchronized.make(rules.all.map(r => (r.id, r)).toMap).runNow
 
-    val predicate: Boolean => (Rule => Boolean) = (includeSytem: Boolean) =>
-      (r: Rule) => if (includeSytem) true else r.isSystem == false
+    val predicate: Boolean => (Rule => Boolean) = (includeSystem: Boolean) =>
+      (r: Rule) => if (includeSystem) true else r.isSystem == false
 
     override def getOpt(ruleId: RuleId): IOResult[Option[Rule]] =
       rulesMap.get.map(_.get(ruleId))
 
-    override def getAll(includeSytem: Boolean): IOResult[Seq[Rule]] = {
-      rulesMap.get.map(_.valuesIterator.filter(predicate(includeSytem)).toSeq)
+    override def getAll(includeSystem: Boolean): IOResult[Seq[Rule]] = {
+      rulesMap.get.map(_.valuesIterator.filter(predicate(includeSystem)).toSeq)
     }
 
-    override def getIds(includeSytem: Boolean): IOResult[Set[RuleId]] = {
-      rulesMap.get.map(_.valuesIterator.collect { case r if (predicate(includeSytem)(r)) => r.id }.toSet)
+    override def getIds(includeSystem: Boolean): IOResult[Set[RuleId]] = {
+      rulesMap.get.map(_.valuesIterator.collect { case r if (predicate(includeSystem)(r)) => r.id }.toSet)
     }
 
     override def create(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = {
