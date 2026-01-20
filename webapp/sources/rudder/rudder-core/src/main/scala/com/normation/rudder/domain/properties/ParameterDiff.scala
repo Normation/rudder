@@ -66,7 +66,7 @@ final case class ModifyGlobalParameterDiff(
     modVisibility:  Option[SimpleDiff[Option[Visibility]]] = None
 ) extends ParameterDiff {
   def needDeployment: Boolean = {
-    modValue.isDefined
+    modValue.isDefined || modInheritMode.isDefined
   }
 }
 
