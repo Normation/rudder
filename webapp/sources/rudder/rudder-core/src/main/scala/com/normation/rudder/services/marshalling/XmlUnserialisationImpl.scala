@@ -76,6 +76,8 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
+import com.normation.utils.DateFormaterService.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import org.apache.commons.text.StringEscapeUtils
@@ -848,7 +850,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                           tryo(s.text.toBoolean)
                         ) ?~! (s"Missing attribute 'isEnabled' in entry type API Account : ${entry}")
       creationDate   <- (apiAccount \ "creationDate").headOption.flatMap(s =>
-                          tryo(dateFormatter.parseDateTime(s.text))
+                          tryo(Instant.parse(s.text))
                         ) ?~! (s"Missing attribute 'creationDate' in entry type API Account : ${entry}")
       tokenGenDate   <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s =>
                           tryo(dateFormatter.parseDateTime(s.text))
@@ -856,9 +858,13 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
       expirationDate <- (apiAccount \ "expirationDate").headOption match {
                           case None    => Full(None)
                           case Some(s) =>
-                            tryo {
-                              Some(dateFormatter.parseDateTime(s.text))
-                            } ?~! (s"Bad date format for field 'expirationDate' in entry type API Account : ${entry}")
+                            Either
+                              .catchNonFatal(Instant.parse(s.text))
+                              .bimap(
+                                _ => "Bad date format for field 'expirationDate' in entry type API Account : " + entry,
+                                Some(_)
+                              )
+                              .toBox
                         }
       authz          <- (apiAccount \ "authorization").headOption match {
                           case None =>
@@ -881,21 +887,21 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                         }
       tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
-      val kind = accountType match {
+      val kind         = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
         case ApiAccountType.User      => ApiAccountKind.User
-        case ApiAccountType.PublicApi => ApiAccountKind.PublicApi(authz, expirationDate)
+        case ApiAccountType.PublicApi => ApiAccountKind.PublicApi.apply(authz, expirationDate)
       }
+      val accountToken = AccountToken(Some(ApiTokenHash.fromHashValue(token)), tokenGenDate.toJavaInstant)
 
       ApiAccount(
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        Some(ApiTokenHash.fromHashValue(token)),
+        accountToken,
         description,
         isEnabled,
         creationDate,
-        tokenGenDate,
         tenants
       )
     }

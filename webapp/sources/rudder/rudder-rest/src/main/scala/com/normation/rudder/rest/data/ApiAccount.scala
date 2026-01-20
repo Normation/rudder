@@ -38,7 +38,12 @@
 package com.normation.rudder.rest.data
 
 import com.normation.errors.*
+import com.normation.errors.IOResult
+import com.normation.rudder.api.AccountToken
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountExpirationPolicy
+import com.normation.rudder.api.ApiAccountExpirationPolicy.*
+import com.normation.rudder.api.ApiAccountExpirationPolicyKind
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountKind.PublicApi
@@ -52,8 +57,7 @@ import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.TokenGenerator
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.ldap.JsonApiAcl
-import com.normation.rudder.rest.data.NewRestApiAccount.transformNewRestApiAccount
-import com.normation.utils.DateFormaterService.DateTimeCodecs
+import com.normation.utils.DateFormaterService.*
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
@@ -61,9 +65,7 @@ import enumeratum.EnumEntry
 import io.scalaland.chimney.*
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
-import java.time.ZonedDateTime
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.Instant
 import zio.json.*
 import zio.json.enumeratum.*
 import zio.json.internal.Write
@@ -97,14 +99,6 @@ object ApiTokenState       extends Enum[ApiTokenState] with EnumCodec[ApiTokenSt
   case object GeneratedV2 extends ApiTokenState
 
   override def values: IndexedSeq[ApiTokenState] = findValues
-}
-
-sealed trait ApiAccountExpirationPolicy(override val entryName: String) extends EnumEntry
-object ApiAccountExpirationPolicy                                       extends Enum[ApiAccountExpirationPolicy] with EnumCodec[ApiAccountExpirationPolicy] {
-  case object Never      extends ApiAccountExpirationPolicy("never")
-  case object AtDateTime extends ApiAccountExpirationPolicy("datetime")
-
-  override def values: IndexedSeq[ApiAccountExpirationPolicy] = findValues
 }
 
 // encapsulate Option[JsonAcl] into a type so that it's easier to map to business object
@@ -141,20 +135,27 @@ trait ApiAccountCodecs extends DateTimeCodecs {
   implicit val encoderNodeSecurityContext:  JsonEncoder[NodeSecurityContext]  = JsonEncoder.string.contramap(_.serialize)
   implicit val decoderNodeSecurityContext:  JsonDecoder[NodeSecurityContext]  =
     JsonDecoder.string.mapOrFail(s => NodeSecurityContext.parse(Some(s)).left.map(_.fullMsg))
+
+  implicit val codecApiTokenExpirationPolicy: JsonCodec[ApiAccountExpirationPolicyKind] = {
+    new JsonCodec[ApiAccountExpirationPolicyKind](
+      JsonEncoder.string.contramap(_.entryName),
+      JsonDecoder.string.mapOrFail(ApiAccountExpirationPolicyKind.withNameInsensitiveEither(_).left.map(_.getMessage()))
+    )
+  }
 }
 
 sealed trait ApiAccountDetails {
   def id:                  ApiAccountId
-  def name:                ApiAccountName               // used in event log to know who did actions.
+  def name:                ApiAccountName                 // used in event log to know who did actions.
   def description:         String
   def status:              ApiAccountStatus
-  def creationDate:        ZonedDateTime                // this is the account creation date, mapped to creationTimestamp
-  def expirationPolicy:    ApiAccountExpirationPolicy   // this is expiration for the whole account
-  def expirationDate:      Option[ZonedDateTime]        // this is expiration for the whole account
+  def creationDate:        Instant                        // this is the account creation date, mapped to creationTimestamp
+  def expirationPolicy:    ApiAccountExpirationPolicyKind // this is expiration for the whole account
+  def expirationDate:      Option[Instant]                // this is expiration for the whole account
   def tokenState:          ApiTokenState
-  def tokenGenerationDate: Option[ZonedDateTime]        // this is the token generation date, mapped to apiTokenCreationTimestamp
+  def tokenGenerationDate: Option[Instant]                // this is the token generation date, mapped to apiTokenCreationTimestamp
   def tenants:             NodeSecurityContext
-  def authorizationType:   Option[ApiAuthorizationKind] // ApiAuthorization.kind
+  def authorizationType:   Option[ApiAuthorizationKind]   // ApiAuthorization.kind
   def acl:                 Option[JsonApiAcl]
 }
 
@@ -182,11 +183,11 @@ object ApiAccountDetails extends ApiAccountCodecs {
       name:                ApiAccountName,
       description:         String,
       status:              ApiAccountStatus,
-      creationDate:        ZonedDateTime,
-      expirationPolicy:    ApiAccountExpirationPolicy,
-      expirationDate:      Option[ZonedDateTime],
+      creationDate:        Instant,
+      expirationPolicy:    ApiAccountExpirationPolicyKind,
+      expirationDate:      Option[Instant],
       tokenState:          ApiTokenState,
-      tokenGenerationDate: Option[ZonedDateTime],
+      tokenGenerationDate: Option[Instant],
       tenants:             NodeSecurityContext,
       authorizationType:   Option[ApiAuthorizationKind],
       acl:                 Option[JsonApiAcl]
@@ -197,11 +198,11 @@ object ApiAccountDetails extends ApiAccountCodecs {
       name:                ApiAccountName,
       description:         String,
       status:              ApiAccountStatus,
-      creationDate:        ZonedDateTime,
-      expirationPolicy:    ApiAccountExpirationPolicy,
-      expirationDate:      Option[ZonedDateTime],
+      creationDate:        Instant,
+      expirationPolicy:    ApiAccountExpirationPolicyKind,
+      expirationDate:      Option[Instant],
       tokenState:          ApiTokenState,
-      tokenGenerationDate: Option[ZonedDateTime],
+      tokenGenerationDate: Option[Instant],
       token:               ClearTextSecret,
       tenants:             NodeSecurityContext,
       authorizationType:   Option[ApiAuthorizationKind],
@@ -209,24 +210,16 @@ object ApiAccountDetails extends ApiAccountCodecs {
   ) extends ApiAccountDetails
 
   // only encode, no decoder for that
-  implicit val encoderApiAccountDetailsPublic:    JsonEncoder[ApiAccountDetails.Public]              = DeriveJsonEncoder.gen
-  implicit val encoderApiAccountDetailsWithToken: JsonEncoder[ApiAccountDetails.WithToken]           = DeriveJsonEncoder.gen
-  implicit val encoderApiAccountDetails:          JsonEncoder[ApiAccountDetails]                     = new JsonEncoder[ApiAccountDetails] {
+  implicit val encoderClearTextSecret:            JsonEncoder[ClearTextSecret]             = JsonEncoder.string.contramap(_.value)
+  implicit val encoderApiAccountDetailsPublic:    JsonEncoder[ApiAccountDetails.Public]    = DeriveJsonEncoder.gen
+  implicit val encoderApiAccountDetailsWithToken: JsonEncoder[ApiAccountDetails.WithToken] = DeriveJsonEncoder.gen
+  implicit val encoderApiAccountDetails:          JsonEncoder[ApiAccountDetails]           = new JsonEncoder[ApiAccountDetails] {
     override def unsafeEncode(a: ApiAccountDetails, indent: Option[Int], out: Write): Unit = {
       a match {
         case x: ApiAccountDetails.Public    => encoderApiAccountDetailsPublic.unsafeEncode(x, indent, out)
         case x: ApiAccountDetails.WithToken => encoderApiAccountDetailsWithToken.unsafeEncode(x, indent, out)
       }
     }
-  }
-  implicit val transformApiAccountKindExpDT:      Transformer[ApiAccountKind, Option[ZonedDateTime]] = {
-    case ApiAccountKind.System | ApiAccountKind.User => None
-    case PublicApi(_, expirationDate)                => expirationDate.map(_.transformInto[ZonedDateTime])
-  }
-
-  implicit val transformApiAccountKindExpPol: Transformer[ApiAccountKind, ApiAccountExpirationPolicy] = {
-    case PublicApi(_, expirationDate) if (expirationDate.isDefined) => ApiAccountExpirationPolicy.AtDateTime
-    case _                                                          => ApiAccountExpirationPolicy.Never
   }
 
   implicit val transformApiAclElement: Transformer[List[ApiAclElement], JsonApiAcl] = JsonApiAcl.from
@@ -246,30 +239,47 @@ object ApiAccountDetails extends ApiAccountCodecs {
   private def transformApiAccountDetails[A <: ApiAccountDetails] = Transformer
     .define[ApiAccount, A]
     .withFieldComputed(_.status, x => if (x.isEnabled) ApiAccountStatus.Enabled else ApiAccountStatus.Disabled)
-    .withFieldComputed(_.expirationPolicy, _.kind.transformInto[ApiAccountExpirationPolicy])
-    .withFieldComputed(_.expirationDate, _.kind.transformInto[Option[ZonedDateTime]])
+    .withFieldRenamed(_.kind, _.expirationPolicy)
+    .withFieldComputed(
+      _.expirationDate,
+      _.kind match {
+        case PublicApi(_, expirationPolicy) => expirationPolicy.expirationDate
+        case _                              => None
+      }
+    )
     .withFieldComputed(
       _.tokenState,
       x => {
         x.token match {
-          case Some(t) if t.version() < 2  => ApiTokenState.GeneratedV1
-          case Some(t) if t.version() == 2 => ApiTokenState.GeneratedV2
-          case _                           => ApiTokenState.Undef
+          case AccountToken(Some(t), _) if t.version() < 2  => ApiTokenState.GeneratedV1
+          case AccountToken(Some(t), _) if t.version() == 2 => ApiTokenState.GeneratedV2
+          case _                                            => ApiTokenState.Undef
         }
       }
     )
     .withFieldComputed(_.authorizationType, _.kind.transformInto[Option[ApiAuthorizationKind]])
+    .withFieldComputed(
+      _.tokenGenerationDate,
+      x => {
+        // only when account token is there
+        x.token match {
+          case a: AccountToken if a.hash.isDefined => Some(a.generationDate)
+          case _ => None
+        }
+      }
+    )
     .withFieldComputed(_.acl, _.kind.transformInto[Option[JsonApiAcl]])
 
   implicit val transformPublicApi: Transformer[ApiAccount, ApiAccountDetails.Public] = {
     transformApiAccountDetails[ApiAccountDetails.Public]
-      .withFieldComputed(_.tokenGenerationDate, x => x.token.map(_ => x.tokenGenerationDate.transformInto[ZonedDateTime]))
+      .withFieldComputed(_.expirationPolicy, _.kind.expirationPolicyKind)
       .buildTransformer
   }
 
   def transformWithTokenApi(secret: ClearTextSecret): Transformer[ApiAccount, ApiAccountDetails.WithToken] = {
     transformApiAccountDetails[ApiAccountDetails.WithToken]
       .withFieldConst(_.token, secret)
+      .withFieldComputed(_.expirationPolicy, _.kind.expirationPolicyKind)
       .buildTransformer
   }
 }
@@ -285,13 +295,13 @@ object ApiAccountDetails extends ApiAccountCodecs {
  */
 final case class NewRestApiAccount(
     id:                Option[ApiAccountId],
-    name:              ApiAccountName, // used in event log to know who did actions.
+    name:              ApiAccountName,                         // used in event log to know who did actions.
     description:       Option[String],
     status:            ApiAccountStatus,
     tenants:           NodeSecurityContext,
     generateToken:     Option[Boolean],
-    expirationPolicy:  Option[ApiAccountExpirationPolicy],
-    expirationDate:    Option[ZonedDateTime],
+    expirationPolicy:  Option[ApiAccountExpirationPolicyKind], // defaults to "datetime" by default
+    expirationDate:    Option[Instant],                        // defaults to the policy default value
     authorizationType: Option[ApiAuthorizationKind],
     acl:               Option[JsonApiAcl]
 )
@@ -303,10 +313,10 @@ object NewRestApiAccount extends ApiAccountCodecs {
   implicit val decoderNewRestApiAccount: JsonDecoder[NewRestApiAccount] = DeriveJsonDecoder.gen
 
   // build transformer with dependencies
-  def transformNewRestApiAccount(
-      d:  DateTime,
+  def transformNewApiAccount(
+      d:  Instant,
       id: ApiAccountId,
-      t:  Option[ApiTokenHash]
+      t:  AccountToken
   ): PartialTransformer[NewRestApiAccount, ApiAccount] = {
     PartialTransformer
       .define[NewRestApiAccount, ApiAccount]
@@ -324,7 +334,6 @@ object NewRestApiAccount extends ApiAccountCodecs {
       .withFieldConst(_.token, t)
       .withFieldComputed(_.isEnabled, _.status == ApiAccountStatus.Enabled)
       .withFieldConst(_.creationDate, d)
-      .withFieldConst(_.tokenGenerationDate, d) // should be optional no?
       .buildTransformer
   }
 }
@@ -334,8 +343,8 @@ final case class UpdateApiAccount(
     description:       Option[String],
     status:            Option[ApiAccountStatus],
     tenants:           Option[NodeSecurityContext],
-    expirationPolicy:  Option[ApiAccountExpirationPolicy],
-    expirationDate:    Option[ZonedDateTime],
+    expirationPolicy:  Option[ApiAccountExpirationPolicyKind],
+    expirationDate:    Option[Instant],
     authorizationType: Option[ApiAuthorizationKind],
     acl:               Option[JsonApiAcl]
 )
@@ -349,11 +358,13 @@ object UpdateApiAccount extends ApiAccountCodecs {
  * of other needed services
  */
 class ApiAccountMapping(
-    creationDate:   IOResult[DateTime],
+    creationDate:   IOResult[Instant],
     generateId:     IOResult[ApiAccountId],
     generateSecret: IOResult[ClearTextSecret],
     createToken:    ClearTextSecret => IOResult[ApiTokenHash]
 ) extends DateTimeCodecs {
+  import ApiAccountExpirationPolicy.*
+  import NewRestApiAccount.transformNewApiAccount
 
   /**
    * Create a new ApiAccount and optionally return the secret used for the token
@@ -366,11 +377,11 @@ class ApiAccountMapping(
                 }
       secret <- if (newApiAccount.generateToken.getOrElse(true)) generateSecret.map(Some.apply) else None.succeed
       token  <- secret match {
-                  case Some(s) => createToken(s).map(Some.apply)
-                  case None    => None.succeed
+                  case Some(s) => createAccountToken(s)
+                  case None    => creationDate.map(AccountToken(None, _))
                 }
       d      <- creationDate
-      r      <- transformNewRestApiAccount(d, id, token).transform(newApiAccount).toIO
+      r      <- transformNewApiAccount(d, id, token).transform(newApiAccount).toIO
     } yield (r, secret)
   }
 
@@ -397,11 +408,12 @@ class ApiAccountMapping(
               val exp   = {
                 // if we go from "never" to "datetime" without a date, now + 1 month
                 (e, up.expirationPolicy, up.expirationDate) match {
-                  case (None, None, None)                                        => None
-                  case (_, Some(ApiAccountExpirationPolicy.Never), _)            => None
-                  case (_, _, Some(d))                                           => Some(d.transformInto[DateTime])
-                  case (None, Some(ApiAccountExpirationPolicy.AtDateTime), None) => Some(DateTime.now(DateTimeZone.UTC))
-                  case (Some(e), _, None)                                        => Some(e)
+                  case (NeverExpire, None, None)                                            => NeverExpire
+                  case (_, Some(ApiAccountExpirationPolicyKind.Never), _)                   => NeverExpire
+                  case (_, _, Some(d))                                                      => ExpireAtDate(d)
+                  case (NeverExpire, Some(ApiAccountExpirationPolicyKind.AtDateTime), None) =>
+                    ExpireAtDate.now().plusOneMonth
+                  case (e: ExpireAtDate, _, None)                                           => e
                 }
               }
               ApiAccountKind.PublicApi(authz.getOrElse(a), exp)
@@ -414,10 +426,9 @@ class ApiAccountMapping(
   def updateToken(account: ApiAccount): IOResult[(ApiAccount, ClearTextSecret)] = {
     for {
       s <- generateSecret
-      t <- createToken(s)
-      n <- creationDate
+      t <- createAccountToken(s)
     } yield {
-      val a = account.modify(_.token).setTo(Some(t)).modify(_.tokenGenerationDate).setTo(n)
+      val a = account.modify(_.token).setTo(t)
       (a, s)
     }
   }
@@ -426,9 +437,18 @@ class ApiAccountMapping(
     ApiAccountDetails.transformWithTokenApi(secret).transform(account)
   }
 
+  private def createAccountToken(secret: ClearTextSecret): IOResult[AccountToken] = {
+    for {
+      d <- creationDate
+      t <- createToken(secret)
+    } yield {
+      AccountToken(Some(t), d)
+    }
+  }
 }
 
-object ApiAccountMapping extends DateTimeCodecs {
+object ApiAccountMapping {
+  import ApiAccountExpirationPolicy.*
 
   // from an API authz kind and acl, build the public API
   def authz(k: ApiAuthorizationKind, acl: Option[List[ApiAclElement]]): ApiAuthorization = {
@@ -444,15 +464,17 @@ object ApiAccountMapping extends DateTimeCodecs {
     }
   }
 
-  // if expiration policy is missing, it's datetime by default
-  // if expiration date is missing, it's one month ahead by default
-  def exp(now: DateTime, policy: Option[ApiAccountExpirationPolicy], date: Option[ZonedDateTime]): Option[DateTime] = {
-    policy match {
-      case Some(ApiAccountExpirationPolicy.Never) => None
-      case _                                      =>
+  def exp(
+      now:  Instant,
+      kind: Option[ApiAccountExpirationPolicyKind],
+      date: Option[Instant]
+  ): ApiAccountExpirationPolicy = {
+    kind match {
+      case Some(ApiAccountExpirationPolicyKind.Never) => NeverExpire
+      case _                                          =>
         date match {
-          case Some(d) => Some(d.transformInto[DateTime])
-          case None    => Some(now.plusMonths(1))
+          case Some(d) => ExpireAtDate(d)
+          case None    => ExpireAtDate(now).plusOneMonth
         }
     }
   }
@@ -460,9 +482,9 @@ object ApiAccountMapping extends DateTimeCodecs {
   def apiKind(
       a:       ApiAuthorizationKind,
       acl:     Option[List[ApiAclElement]],
-      now:     DateTime,
-      expPol:  Option[ApiAccountExpirationPolicy],
-      expDate: Option[ZonedDateTime]
+      now:     Instant,
+      expPol:  Option[ApiAccountExpirationPolicyKind],
+      expDate: Option[Instant]
   ): ApiAccountKind.PublicApi = {
     ApiAccountKind.PublicApi(authz(a, acl), exp(now, expPol, expDate))
   }
@@ -471,7 +493,7 @@ object ApiAccountMapping extends DateTimeCodecs {
       uuidGen:        StringUuidGenerator,
       tokenGenerator: TokenGenerator
   ) = {
-    val getNow         = DateTime.now(DateTimeZone.UTC).succeed
+    val getNow         = Instant.now().succeed
     val generateId     = ApiAccountId(uuidGen.newUuid).succeed
     val generateSecret = ApiTokenSecret.generate(tokenGenerator).transformInto[ClearTextSecret].succeed
     def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =

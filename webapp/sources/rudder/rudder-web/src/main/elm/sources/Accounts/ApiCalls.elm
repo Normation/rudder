@@ -25,7 +25,7 @@ getAccounts model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model [ "apiaccounts" ] []
         , body    = emptyBody
-        , expect  = Detailed.expectJson GetAccountsResult (decodeGetAccounts model.ui.datePickerInfo)
+        , expect  = Detailed.expectJson GetAccountsResult (decodeGetAccounts model.ui.datePickerInfo.zone)
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -43,8 +43,8 @@ saveAccount account model =
         { method  = method
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model url []
-        , body    = encodeAccount model.ui.datePickerInfo account |> jsonBody
-        , expect  = Detailed.expectJson SaveAccount (decodePostAccount model.ui.datePickerInfo)
+        , body    = encodeAccount model.ui.datePickerInfo.zone account |> jsonBody
+        , expect  = Detailed.expectJson SaveAccount (decodePostAccount model.ui.datePickerInfo.zone)
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -60,7 +60,7 @@ deleteAccount account model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["apiaccounts", account.id] []
         , body    = emptyBody
-        , expect  = Detailed.expectJson (ConfirmActionAccount Delete) (decodePostAccount model.ui.datePickerInfo)
+        , expect  = Detailed.expectJson (ConfirmActionAccount Delete) (decodePostAccount model.ui.datePickerInfo.zone)
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -76,7 +76,7 @@ regenerateToken account model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["apiaccounts", account.id, "token", "regenerate"] []
         , body    = emptyBody
-        , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo)
+        , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo.zone)
         , timeout = Nothing
         , tracker = Nothing
         }

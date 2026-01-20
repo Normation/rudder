@@ -45,6 +45,7 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.TimeZone
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
 import org.joda.time.DateTimeZone
@@ -57,16 +58,32 @@ import zio.json.*
 
 object DateFormaterService {
 
-  implicit class JodaTimeToJava(d: DateTime) {
+  extension (self: DateTime) {
+    def toJavaInstant: Instant = Instant.ofEpochMilli(self.getMillis)
+
     // see https://stackoverflow.com/a/47753227 - read other solution and the comment in them, too
-    def toJava: ZonedDateTime =
-      ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID, ZoneId.SHORT_IDS))
+    def toZonedDateTime: ZonedDateTime = self.toJavaInstant.atZone(ZoneId.of(self.getZone.getID, ZoneId.SHORT_IDS))
+  }
+
+  extension (self: Instant) {
+    def toJodaDateTime: DateTime = new DateTime(self.toEpochMilli, DateTimeZone.UTC)
+  }
+
+  implicit class JavaTimeToJoda(x: ZonedDateTime) {
+    // see https://stackoverflow.com/a/37335420 - read other solution and the comment in them, too
+    def toJoda: DateTime =
+      new DateTime(x.toInstant.toEpochMilli, DateTimeZone.forTimeZone(TimeZone.getTimeZone(x.getZone)))
   }
 
   trait DateTimeCodecs {
     implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder[String].contramap(serialize)
     implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
     implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
+
+    implicit val encoderInstant: JsonEncoder[Instant] = JsonEncoder[String].contramap(_.toString)
+    implicit val decoderInstant: JsonDecoder[Instant] = JsonDecoder[String].mapOrFail(parseInstant(_).left.map(_.fullMsg))
+
+    implicit val codecInstant: JsonCodec[Instant] = JsonCodec(encoderInstant, decoderInstant)
 
     implicit val encoderZonedDateTime: JsonEncoder[ZonedDateTime] = JsonEncoder[String].contramap(serializeZDT)
     implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
@@ -75,19 +92,15 @@ object DateFormaterService {
     implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
       new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
 
-    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = {
-      _.toJava
-    }
+    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
     implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
       new DateTime(x.toInstant.toEpochMilli, DateTimeZone.UTC)
     }
 
-    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = { x => x.toJava.toInstant }
+    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = _.toJavaInstant
 
-    implicit val transformInstantDateTime: Transformer[Instant, DateTime] = { x =>
-      new DateTime(x.toEpochMilli, DateTimeZone.UTC)
-    }
+    implicit val transformInstantDateTime: Transformer[Instant, DateTime] = _.toJodaDateTime
 
     implicit val transformInstantLocalDate: Transformer[Instant, LocalDate] = { x => LocalDate.ofInstant(x, ZoneOffset.UTC) }
 

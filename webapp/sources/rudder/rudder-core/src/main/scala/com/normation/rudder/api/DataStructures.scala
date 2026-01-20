@@ -42,10 +42,14 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.syntax.*
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import org.bouncycastle.util.encoders.Hex
-import org.joda.time.DateTime
 
 /**
  * ID of the Account.
@@ -446,13 +450,117 @@ object ApiAccountKind       {
   case object System extends ApiAccountKind { val kind: ApiAccountType.System.type = ApiAccountType.System }
   case object User   extends ApiAccountKind { val kind: ApiAccountType.User.type = ApiAccountType.User     }
   final case class PublicApi(
-      authorizations: ApiAuthorization,
-      // this is an expiration date for the whole account, not a generated token. IE, we can
-      // have it even without token, or even if we just generated the token.
-      expirationDate: Option[DateTime]
+      authorizations:   ApiAuthorization,
+      // this is an expiration policy for the whole account, not for a generated token. IE, we can
+      // have it even without token, or even if we just generated a token for the account.
+      expirationPolicy: ApiAccountExpirationPolicy
   ) extends ApiAccountKind {
     val kind: ApiAccountType.PublicApi.type = ApiAccountType.PublicApi
   }
+
+  object PublicApi {
+    def apply(
+        authorizations: ApiAuthorization,
+        expirationDate: Option[Instant]
+    ): PublicApi = PublicApi(authorizations, ApiAccountExpirationPolicy.fromOpt(expirationDate))
+  }
+
+  extension (self: ApiAccountKind) {
+    def expirationPolicyKind: ApiAccountExpirationPolicyKind = self.transformInto[ApiAccountExpirationPolicyKind]
+  }
+}
+
+/**
+ * Definition of different expiration policies for public API accounts :
+ * - system and user account never expire
+ * - public account can : also be set to never expire, or expire at a given datetime (with default value after the API creation)
+ */
+sealed trait ApiAccountExpirationPolicy {
+  def kind: ApiAccountExpirationPolicyKind
+
+  def expirationDate: Option[Instant]
+}
+
+object ApiAccountExpirationPolicy {
+  import ApiAccountExpirationPolicyKind.*
+
+  case class ExpireAtDate(date: Instant) extends ApiAccountExpirationPolicy {
+    override def kind:           ApiAccountExpirationPolicyKind = AtDateTime
+    override def expirationDate: Some[Instant]                  = Some(date)
+  }
+  object ExpireAtDate {
+    private def defaultPeriod: java.time.Period = java.time.Period.ofMonths(1)
+
+    def now(): ExpireAtDate = ExpireAtDate(Instant.now())
+
+    // Instant does not support adding months, see https://community.sonarsource.com/t/java-time-instant-calculation-traps/135337
+    extension (self: ExpireAtDate) {
+      def plusOneMonth: ExpireAtDate = ExpireAtDate(
+        LocalDateTime.ofInstant(self.date, ZoneOffset.UTC).plus(defaultPeriod).toInstant(ZoneOffset.UTC)
+      )
+    }
+  }
+
+  case object NeverExpire extends ApiAccountExpirationPolicy {
+    override def kind:           ApiAccountExpirationPolicyKind = Never
+    override def expirationDate: None.type                      = None
+  }
+
+  // implicit instances : we know the association between api account kind and its expiration policy
+  implicit val transformApiAccountKindExpPolicy: Transformer[ApiAccountKind, ApiAccountExpirationPolicy] = {
+    Transformer
+      .define[ApiAccountKind, ApiAccountExpirationPolicy]
+      .withSealedSubtypeHandled[ApiAccountKind.System.type](_ => NeverExpire)
+      .withSealedSubtypeHandled[ApiAccountKind.User.type](_ => NeverExpire)
+      .withSealedSubtypeHandled[ApiAccountKind.PublicApi](_.expirationPolicy)
+      .buildTransformer
+  }
+
+  def fromOpt(expirationDate: Option[Instant]): ApiAccountExpirationPolicy = {
+    expirationDate match {
+      case None        => NeverExpire
+      case Some(value) => ExpireAtDate(value)
+    }
+  }
+}
+
+sealed trait ApiAccountExpirationPolicyKind extends EnumEntry with EnumEntry.Lowercase
+object ApiAccountExpirationPolicyKind       extends Enum[ApiAccountExpirationPolicyKind] {
+
+  case object Never      extends ApiAccountExpirationPolicyKind
+  case object AtDateTime extends ApiAccountExpirationPolicyKind {
+    override def entryName: String = "datetime"
+  }
+
+  // we know the association between api account kind and its expiration policy kind
+  given Transformer[ApiAccountKind, ApiAccountExpirationPolicyKind] = {
+    Transformer
+      .define[ApiAccountKind, ApiAccountExpirationPolicyKind]
+      .withSealedSubtypeHandled[ApiAccountKind.System.type](_ => Never)
+      .withSealedSubtypeHandled[ApiAccountKind.User.type](_ => Never)
+      .withSealedSubtypeHandled[ApiAccountKind.PublicApi](_.expirationPolicy.kind)
+      .buildTransformer
+  }
+
+  override def values: IndexedSeq[ApiAccountExpirationPolicyKind] = findValues
+}
+
+sealed trait ApiAccountToken {
+  def authenticationHash: Option[ApiTokenHash]
+}
+
+/**
+ * Token that is optional and that has generation date if generated / creation date otherwise because time of token creation is still persisted
+ */
+final case class AccountToken(hash: Option[ApiTokenHash], generationDate: Instant) extends ApiAccountToken {
+  override def authenticationHash: Option[ApiTokenHash] = hash
+}
+
+/**
+ * Existing token that does not need generation date, since it is generated once and for all
+ */
+final case class SystemToken(value: ApiTokenHash) extends ApiAccountToken {
+  override def authenticationHash: Some[ApiTokenHash] = Some(value)
 }
 
 /**
@@ -464,54 +572,23 @@ final case class ApiAccount(
     // If a token should be revoked, use isEnabled = false.
     name: ApiAccountName, // used in event log to know who did actions.
 
-    token:               Option[ApiTokenHash], // if none, then the token can't be used for authentication
-    description:         String,
-    isEnabled:           Boolean,
-    creationDate:        DateTime,
-    tokenGenerationDate: DateTime,
-    tenants:             NodeSecurityContext
+    token:        ApiAccountToken, // if none, then the token can't be used for authentication
+    description:  String,
+    isEnabled:    Boolean,
+    creationDate: Instant,
+    tenants:      NodeSecurityContext
 ) {
-  def toNewApiAccount(secret: ApiTokenSecret): NewApiAccount = {
-    NewApiAccount(
-      id,
-      kind,
-      name,
-      Some(secret),
-      description,
-      isEnabled,
-      creationDate,
-      tokenGenerationDate,
-      tenants
-    )
-  }
-}
 
-/**
- * An API principal, containing the secret, to be used just after creation, and never stored.
- */
-final case class NewApiAccount(
-    id:                  ApiAccountId,
-    kind:                ApiAccountKind,
-    name:                ApiAccountName,
-    // Clear text token, only used for just-created accounts, never stored
-    token:               Option[ApiTokenSecret],
-    description:         String,
-    isEnabled:           Boolean,
-    creationDate:        DateTime,
-    tokenGenerationDate: DateTime,
-    tenants:             NodeSecurityContext
-) {
-  def toApiAccount(): ApiAccount = {
-    ApiAccount(
-      id,
-      kind,
-      name,
-      token.map(_.toHash()),
-      description,
-      isEnabled,
-      creationDate,
-      tokenGenerationDate,
-      tenants
-    )
+  /**
+   * Retrieve an AccountToken, if it is not the system token
+   */
+  def accountToken: Option[AccountToken] = token match {
+    case a: AccountToken => Some(a)
+    case _: SystemToken  => None
+  }
+
+  def tokenGenerationDate: Instant = token match {
+    case a: AccountToken => a.generationDate
+    case _: SystemToken  => creationDate
   }
 }

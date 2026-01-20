@@ -2454,7 +2454,7 @@ object RudderConfigInit {
       roLdap,
       ldapEntityMapper,
       ApiAuthorization.allAuthz.acl, // for system token
-      systemTokenSecret.toHash()
+      SystemToken(systemTokenSecret.toHash())
     )
     lazy val roApiAccountRepository: RoApiAccountRepository = roLDAPApiAccountRepository
 

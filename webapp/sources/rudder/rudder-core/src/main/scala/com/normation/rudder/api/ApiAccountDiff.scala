@@ -37,7 +37,7 @@
 package com.normation.rudder.api
 
 import com.normation.rudder.domain.policies.SimpleDiff
-import org.joda.time.DateTime
+import java.time.Instant
 
 /**
  * That file define "diff" object between ApiAccounts.
@@ -55,11 +55,11 @@ final case class ModifyApiAccountDiff(
     modToken:               Option[SimpleDiff[String]] = None,
     modDescription:         Option[SimpleDiff[String]] = None,
     modIsEnabled:           Option[SimpleDiff[Boolean]] = None,
-    modCreationDate:        Option[SimpleDiff[DateTime]] = None,
-    modExpirationDate:      Option[SimpleDiff[Option[DateTime]]] = None,
+    modCreationDate:        Option[SimpleDiff[Instant]] = None,
+    modExpirationDate:      Option[SimpleDiff[Option[Instant]]] = None,
     modAPIKind:             Option[SimpleDiff[String]] = None,
     modAccountKind:         Option[SimpleDiff[String]] = None,
-    modTokenGenerationDate: Option[SimpleDiff[DateTime]] = None,
+    modTokenGenerationDate: Option[SimpleDiff[Instant]] = None,
     modAccountAcl:          Option[SimpleDiff[List[ApiAclElement]]] = None,
     modAPITenants:          Option[SimpleDiff[String]] = None
 ) extends ApiAccountDiff
