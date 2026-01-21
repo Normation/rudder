@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
+use crate::db::EventDatabase;
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -18,6 +19,18 @@ pub enum EventSchedule {
     Always,
     /// Never run
     Never,
+}
+
+impl Display for EventSchedule {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            EventSchedule::Once => "once",
+            EventSchedule::OnceSplayed => "once_splayed",
+            EventSchedule::Always => "always",
+            EventSchedule::Never => "never",
+        };
+        f.write_str(s)
+    }
 }
 
 /// Information about an event stored in the database
@@ -71,16 +84,7 @@ impl Event {
             }
             EventSchedule::OnceSplayed => {
                 if let (Some(nb), Some(na)) = (self.not_before, self.not_after) {
-                    let span = na.signed_duration_since(nb);
-                    if span.num_seconds() <= 0 {
-                        // Invalid range
-                        self.datetime = Some(nb);
-                        return Some(nb);
-                    }
-                    let half_span = span / 2;
-                    let scheduled_time = nb + half_span;
-                    self.datetime = Some(scheduled_time);
-                    Some(scheduled_time)
+                    todo!()
                 } else {
                     // Cannot schedule
                     None
@@ -118,8 +122,10 @@ impl Event {
 impl Display for Event {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("\nEvent ID: {}\n", self.id))?;
+        f.write_str(&format!("\nSchedule ID: {}\n", self.schedule_id))?;
         f.write_str(&format!("Type: {}\n", self.e_type))?;
         f.write_str(&format!("Name: {}\n", self.name))?;
+        f.write_str(&format!("Schedule: {}\n", self.schedule))?;
         f.write_str(&format!(
             "Created: {}\n",
             self.created.to_rfc3339_opts(SecondsFormat::Secs, true)
@@ -144,6 +150,32 @@ impl Display for Event {
                 d.to_rfc3339_opts(SecondsFormat::Secs, true)
             ))?;
         }
+        Ok(())
+    }
+}
+
+// todo
+//
+// on prend une liste d'events en input, on extrait les events de la base et on reconcilie
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Events {
+    events: Vec<Event>,
+}
+
+impl Events {
+    pub fn new(events: Vec<Event>) -> Self {
+        Self { events }
+    }
+
+    pub fn update_events(&mut self, db: &mut EventDatabase) -> anyhow::Result<()> {
+        db.cancel_other_events(
+            self.events
+                .iter()
+                .map(|e| e.id.as_str())
+                .collect::<Vec<&str>>()
+                .as_slice(),
+        )?;
         Ok(())
     }
 }

@@ -117,6 +117,16 @@ pub trait ModuleType0 {
     /// either parse it completely into structs or leave some generic parts (arbitrary key value, etc.).
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult;
 
+    /// Same as `check_apply`, but also returns classes to set on the agent.
+    fn check_apply_with_classes(
+        &mut self,
+        mode: PolicyMode,
+        parameters: &Parameters,
+    ) -> (CheckApplyResult, Vec<String>) {
+        let result = self.check_apply(mode, parameters);
+        (result, vec![])
+    }
+
     /// Run before normal executor termination,
     ///
     /// can be used for clean up tasks.
