@@ -10,7 +10,7 @@ use std::{
 use anyhow::{Error, bail};
 use serde::Serialize;
 
-use crate::cfengine::protocol::Request;
+use crate::cfengine::protocol::{Class, Request};
 use crate::{
     ModuleType0, ProtocolResult, Runner0,
     cfengine::{
@@ -180,13 +180,21 @@ impl CfengineRunner {
                 }
                 Ok(Request::Evaluate(req)) => {
                     set_max_level(req.log_level);
-                    let result: EvaluateOutcome = promise
-                        .check_apply(req.attributes.action_policy.into(), &req.attributes)
-                        .into();
+                    let (result, classes) = promise.check_apply_with_classes(
+                        req.attributes.action_policy.into(),
+                        &req.attributes,
+                    );
+
+                    let result: EvaluateOutcome = result.into();
+                    let classes = classes
+                        .into_iter()
+                        .map(|c| Class::from_str(&c))
+                        .collect::<Result<Vec<Class>, _>>()?;
+
                     Self::write_json(
                         &mut output,
                         &mut logger,
-                        EvaluateResponse::new(&req, result, vec![]),
+                        EvaluateResponse::new(&req, result, classes),
                     )?
                 }
                 Ok(Request::Terminate(_req)) => {

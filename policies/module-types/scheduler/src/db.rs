@@ -142,8 +142,8 @@ impl EventDatabase {
     ///
     pub fn insert_event(&mut self, e: &Event, state: EventState) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-                "insert into schedule_events (event_id, event_type, event_name, state, datetime) values (?1, ?2, ?3, ?4, ?5)",
-                (&e.id, &e.e_type, &e.name, state.to_string(), e.datetime.map(|d|d.to_rfc3339())),
+                "insert into schedule_events (event_id, schedule_id, event_type, event_name, state, datetime) values (?1, ?2, ?3, ?4, ?5, ?6)",
+                (&e.id, &e.schedule_id, &e.e_type, &e.name, state.to_string(), e.datetime.map(|d|d.to_rfc3339())),
             ).map(|_| ())
     }
 
@@ -163,6 +163,18 @@ impl EventDatabase {
             )
             .map(|_| ())
     }
+
+    pub fn cancel_other_events(&mut self, event_ids: &[&str]) -> Result<(), rusqlite::Error> {
+        let ids = event_ids.join(",");
+        let query = format!(
+            "update schedule_events set state = ?1 where event_id not in ({})",
+            ids
+        );
+        // FIXME ??: SQL injection vulnerability
+        self.conn
+            .execute(&query, (EventState::Canceled.to_string(),))
+            .map(|_| ())
+    }
 }
 
 #[cfg(test)]
@@ -177,6 +189,7 @@ mod tests {
     fn test_event(id: &str) -> Event {
         Event::new(
             id.to_string(),
+            "SCHEDULE_ID".to_string(),
             "NAME".to_string(),
             "TYPE".to_string(),
             EventSchedule::Once,
