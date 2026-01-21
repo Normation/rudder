@@ -55,6 +55,11 @@ properties:
     type: string
     format: rfc3339
     example: 2025-02-12T10:55:00Z
+  lastAuthenticationDate:
+    description: Optional date for the last successful authentication of the account
+    type: string
+    format: rfc3339
+    example: 2025-02-12T11:59:00Z
   tenants:
     description: a comma separated list of tenants allowed for that account. See tenant documentation for syntax.
     type: string

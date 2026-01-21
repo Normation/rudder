@@ -1010,6 +1010,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         "system",
         isEnabled = true,
         creationDate = accountCreationDate,
+        lastAuthenticationDate = None,
         NodeSecurityContext.All
       ),
       // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
@@ -1021,6 +1022,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         "old account",
         isEnabled = false,     // done when reading account
         creationDate = accountCreationDate,
+        lastAuthenticationDate = None,
         NodeSecurityContext.All
       ),
       // a standard admin account with rights on everything/all tenants
@@ -1032,6 +1034,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
+        lastAuthenticationDate = None,
         NodeSecurityContext.All
       ),
       // limited account
@@ -1046,6 +1049,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
+        lastAuthenticationDate = Some(accountCreationDate.plus(1.minute)),
         NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
       )
     ).map(a => (a.id, a)).toMap
@@ -1079,6 +1083,14 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
 
     override def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId] = {
       accounts.update(_.removed(id)).map(_ => id)
+    }
+
+    override def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[Unit] = {
+      accounts
+        .update(_.map {
+          case (`id`, principal) => (id, principal.copy(lastAuthenticationDate = Some(date)))
+          case o                 => o
+        })
     }
 
     override def isSystemToken(apiTokenHash: ApiTokenHash): Boolean = {

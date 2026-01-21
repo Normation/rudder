@@ -95,6 +95,8 @@ trait WoApiAccountRepository {
   def save(principal: ApiAccount, modId: ModificationId, actor: EventActor): IOResult[ApiAccount]
 
   def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId]
+
+  def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[Unit]
 }
 
 final class RoLDAPApiAccountRepository(
@@ -107,13 +109,14 @@ final class RoLDAPApiAccountRepository(
 
   val systemAPIAccount: ApiAccount = {
     ApiAccount(
-      ApiAccountId("rudder-system-api-account"),
+      ApiAccountRepository.systemAccountId,
       ApiAccountKind.System,
       ApiAccountName("Rudder system account"),
       systemToken,
       "For internal use",
       isEnabled = true,
       creationDate = Instant.now(),
+      lastAuthenticationDate = None, // access for system token is not persisted in base, it only gets logged
       tenants = NodeSecurityContext.All
     )
   }
@@ -255,6 +258,24 @@ final class WoLDAPApiAccountRepository(
     )
   }
 
+  // system account is immutable and in-memory (see RO implementation), so it should not return error on update
+  override def updateLastAuthenticationDate(id: ApiAccountId, date: Instant): IOResult[Unit] = {
+    ZIO
+      .unless(id == ApiAccountRepository.systemAccountId) {
+        for {
+          ldap    <- ldapConnexion
+          entry   <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
+                       case None    => LDAPRudderError.Consistency(s"Api Account with ID '${id.value}' is not present").fail
+                       case Some(x) => x.succeed
+                     }
+          updated <- mapper.entry2ApiAccount(entry).map(_.copy(lastAuthenticationDate = Some(date))).toIO
+          _       <- ldap.save(mapper.apiAccount2Entry(updated))
+          // there is no diff to produce since it's a simple token access (audit logs should be based on file/db logs instead)
+        } yield ()
+      }
+      .unit
+  }
+
   override def delete(
       id:    ApiAccountId,
       modId: ModificationId,
@@ -274,4 +295,8 @@ final class WoLDAPApiAccountRepository(
       id
     }
   }
+}
+
+private object ApiAccountRepository {
+  val systemAccountId: ApiAccountId = ApiAccountId("rudder-system-api-account")
 }

@@ -948,6 +948,8 @@ class LDAPEntityMapper(
         description            = e(A_DESCRIPTION).getOrElse("")
         // expiration date is optional
         expirationDate         = e.getAsGTime(A_API_EXPIRATION_DATETIME)
+        // last access date is optional
+        lastAuthenticationDate = e.getAsGTime(A_API_LAST_AUTH_DATETIME)
         // api authz kind/acl are not optional, but may be missing for Rudder < 4.3 migration
         // in that case, use the defaultACL
         accountType            = e(A_API_KIND) match {
@@ -1027,6 +1029,7 @@ class LDAPEntityMapper(
           description,
           isEnabledAndVersionOk,
           creationDatetime.instant,
+          lastAuthenticationDate.map(_.instant),
           tenants
         )
       }
@@ -1049,6 +1052,7 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_DESCRIPTION, principal.description)
     mod.resetValuesTo(A_IS_ENABLED, principal.isEnabled.toLDAPString)
     mod.resetValuesTo(A_API_KIND, principal.kind.kind.name)
+    principal.lastAuthenticationDate.foreach(d => mod.resetValuesTo(A_API_LAST_AUTH_DATETIME, GeneralizedTime(d).toString()))
     mod.resetValuesTo(A_API_TENANT, principal.tenants.serialize)
 
     principal.kind match {

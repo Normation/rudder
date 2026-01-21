@@ -412,6 +412,7 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean def restAuthenticationFilter = {
     new RestAuthenticationFilter(
       RudderConfig.roApiAccountRepository,
+      RudderConfig.woApiAccountRepository,
       rudderUserDetailsService,
       SYSTEM_API_ACL,
       RestAuthenticationFilter.API_TOKEN_HEADER
@@ -791,10 +792,11 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
  * for the user and update REST token ACL with that knowledge
  */
 class RestAuthenticationFilter(
-    apiTokenRepository: RoApiAccountRepository,
-    userDetailsService: RudderInMemoryUserDetailsService,
-    systemApiAcl:       ApiAuthorization,
-    apiTokenHeaderName: String
+    apiTokenRepository:      RoApiAccountRepository,
+    writeApiTokenRepository: WoApiAccountRepository,
+    userDetailsService:      RudderInMemoryUserDetailsService,
+    systemApiAcl:            ApiAuthorization,
+    apiTokenHeaderName:      String
 ) extends Filter with Loggable {
   override def destroy(): Unit = {}
   override def init(config: FilterConfig): Unit = {}
@@ -818,7 +820,7 @@ class RestAuthenticationFilter(
     httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
   }
 
-  private def authenticate(userDetails: RudderUserDetail): Unit = {
+  private def authenticate(userDetails: RudderUserDetail, updateLoginDate: Boolean = true): Unit = {
     val authenticationToken = new UsernamePasswordAuthenticationToken(
       userDetails,
       userDetails.getAuthorities,
@@ -827,12 +829,28 @@ class RestAuthenticationFilter(
 
     // save in spring security context
     SecurityContextHolder.getContext().setAuthentication(authenticationToken)
+
+    if (updateLoginDate) onAuthenticateUpdateLoginDate(userDetails.account)
+  }
+
+  // API accounts should be updated with current date upon successful authentication
+  private def onAuthenticateUpdateLoginDate(account: RudderAccount): Unit = {
+    def updateLoginDate(apiAccountId: ApiAccountId): Unit = {
+      writeApiTokenRepository.updateLastAuthenticationDate(apiAccountId, Instant.now()).runNow
+    }
+
+    account match {
+      case u: RudderAccount.User => updateLoginDate(ApiAccountId(u.login))
+      case a: RudderAccount.Api  => updateLoginDate(a.api.id)
+    }
   }
 
   /**
    * Look for the X-API-TOKEN header, and use it
    * to try to find a correspond token,
    * and authenticate in SpringSecurity with that.
+   * 
+   * Once authenticated, the last authentication date of the mapped API account is updated
    */
   def doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain): Unit = {
     if (
@@ -862,6 +880,7 @@ class RestAuthenticationFilter(
                   "API Account for un-authenticated API",
                   isEnabled = true,
                   creationDate = Instant.EPOCH,
+                  lastAuthenticationDate = None,
                   tenants = NodeSecurityContext.None
                 )
 
@@ -872,7 +891,8 @@ class RestAuthenticationFilter(
                     RudderAuthType.Api.apiRudderRole,
                     ApiAuthorization.None,   // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
                     NodeSecurityContext.None // ApiV1 should not have to deal with nodes
-                  )
+                  ),
+                  updateLoginDate = false
                 )
                 chain.doFilter(request, response)
               } else {

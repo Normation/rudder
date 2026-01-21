@@ -43,6 +43,7 @@ response:
             "expirationDate" : "2025-08-12T00:00:00Z",
             "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
+            "lastAuthenticationDate" : "2025-02-12T10:56:00Z",
             "tenants" : "zone1",
             "authorizationType" : "acl",
             "acl" : [
