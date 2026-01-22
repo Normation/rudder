@@ -1,0 +1,25 @@
+id: testing_iteration
+name: Testing resulting conditions
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: ef43fa1d-b0e6-4983-a4bf-bfd208908022
+    name: My block
+    reporting:
+      mode: weighted
+    items:
+      - id: 18e9e0a3-88d5-49e3-bd94-df769031d4c0
+        name: ''
+        method: file_present
+        params:
+          path: ${item.path}
+      - id: c1bd4ac6-f88b-47e2-be33-2a18ede114d7
+        name: ''
+        condition: ${something_undefined}|file_present_${item.path}_repaired.any
+        method: command_execution
+        params:
+          command: echo ${item.path}
+    foreach:
+      - path: /tmp/oui.txt
+      - path: /tmp/non.txt
+    foreach_name: item

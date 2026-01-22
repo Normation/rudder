@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+use crate::ir::condition::Condition;
 use anyhow::{Context, Error, Result, bail};
-use rudder_commons::{PolicyMode, RegexConstraint, Select, methods::method::MethodInfo};
+use rudder_commons::{PolicyMode, RegexConstraint, Select, canonify, methods::method::MethodInfo};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_yaml::Value;
 use std::{
@@ -11,8 +12,6 @@ use std::{
     str::FromStr,
 };
 use uuid::Uuid;
-
-use crate::ir::condition::Condition;
 
 pub const TECHNIQUE_FORMAT_VERSION: usize = 1;
 
@@ -489,7 +488,7 @@ impl ForeachContext {
             index,
         }
     }
-    fn expand(self, template: String) -> String {
+    fn expand(self, template: String, canonify_iterator: bool) -> String {
         let pattern = format!(r"\$\{{{}\.(\w+)\}}", regex::escape(&self.variable_name));
         let regex = regex::Regex::new(&pattern)
             .unwrap_or_else(|_| panic!("Invalid loop variable iterator {}", &self.variable_name));
@@ -498,7 +497,13 @@ impl ForeachContext {
                 let key = &captures[1];
                 // Replace with the value from the hashmap, or keep the placeholder if the key doesn't exist.
                 match self.data.get(key) {
-                    Some(value) => value.clone().to_owned(),
+                    Some(value) => {
+                        if canonify_iterator {
+                            canonify(&value.clone())
+                        } else {
+                            value.clone()
+                        }
+                    }
                     None => captures[0].to_string(),
                 }
             })
@@ -510,22 +515,22 @@ impl DeserItem {
     fn replace_using_context(&self, context: Vec<ForeachContext>) -> Result<DeserItem> {
         let name = context
             .iter()
-            .fold(self.name.clone(), |acc, x| x.clone().expand(acc));
+            .fold(self.name.clone(), |acc, x| x.clone().expand(acc, false));
         let condition =
             Condition::from_str(
                 &context.clone()
                     .into_iter()
-                    .fold(self.condition.to_string(), |acc, x| x.clone().expand(acc.to_string()))
+                    .fold(self.condition.to_string(), |acc, x| x.clone().expand(acc.to_string(), true))
             ).with_context(|| format!("Failed to render the condition in item {} while resolving the foreach items, using context {:#?}", &self.id, context))?;
         let documentation = self.documentation.as_ref().map(|d| {
             context
                 .iter()
-                .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
+                .fold(d.to_owned(), |acc, x| x.clone().expand(acc, false))
         });
         let description = self.description.as_ref().map(|d| {
             context
                 .iter()
-                .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
+                .fold(d.to_owned(), |acc, x| x.clone().expand(acc, false))
         });
         let id = if context.is_empty() {
             self.id.clone()
@@ -547,7 +552,7 @@ impl DeserItem {
             .map(|p| {
                 let value: String = context
                     .iter()
-                    .fold(p.1.to_string(), |acc, x| x.clone().expand(acc));
+                    .fold(p.1.to_string(), |acc, x| x.clone().expand(acc, false));
                 (p.0, value)
             })
             .collect::<HashMap<String, String>>();
