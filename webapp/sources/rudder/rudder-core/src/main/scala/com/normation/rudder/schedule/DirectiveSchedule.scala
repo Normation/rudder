@@ -39,6 +39,8 @@ package com.normation.rudder.schedule
 
 import com.normation.rudder.campaigns.*
 import com.softwaremill.quicklens.*
+import zio.json.jsonDiscriminator
+import zio.json.jsonHint
 
 /*
  * A directive schedule is a very particular schedule type which
@@ -54,12 +56,14 @@ object NoDirectiveScheduleDetails extends CampaignDetails
 
 // The only goal of this trait is to be able to provide a discriminator in json,
 // zio-json allow to have discriminator only on sealed trait
+@jsonDiscriminator("campaignType")
 sealed trait DirectiveScheduleFamily extends Campaign {
   override def version:      Int             = 1
   override def details:      CampaignDetails = NoDirectiveScheduleDetails
   override def campaignType: CampaignType    = DirectiveScheduleType
 }
 
+@jsonHint(NoDirectiveScheduleDetails.value)
 case class DirectiveSchedule(info: CampaignInfo) extends DirectiveScheduleFamily {
   override def copyWithId(newId: CampaignId): Campaign = this.modify(_.info.id).setTo(newId)
   override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =

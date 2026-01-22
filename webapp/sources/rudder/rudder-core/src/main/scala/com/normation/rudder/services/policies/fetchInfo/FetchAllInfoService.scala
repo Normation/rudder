@@ -201,18 +201,18 @@ class FetchAllInfoServiceImpl(
    */
   def buildRuleVals(
       activeRuleIds:    Set[RuleId],
-      rules:            Seq[Rule],
+      rules:            List[Rule],
       directiveLib:     FullActiveTechniqueCategory,
       allGroups:        FullNodeGroupCategory,
       arePolicyServers: Map[NodeId, Boolean]
   ): IOResult[Seq[RuleVal]] = {
 
     val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
-    (for {
-      rawRuleVals <- bestEffort(appliedRules) { rule =>
+    for {
+      rawRuleVals <- appliedRules.accumulate { rule =>
                        ruleValService.buildRuleVal(rule, directiveLib, allGroups, arePolicyServers)
-                     } ?~! "Could not find configuration vals"
-    } yield rawRuleVals).toIO
+                     }.chainError("Could not find configuration vals")
+    } yield rawRuleVals
   }
 
   val fetch0Time = System.currentTimeMillis
@@ -268,9 +268,14 @@ class FetchAllInfoServiceImpl(
       globalPolicyMode            <- getGlobalPolicyMode().chainError("Cannot get the Global Policy Mode (Enforce or Verify)")
       nodeConfigCaches            <- nodeConfigurationService.getAll().toIO.chainError("Cannot get the Configuration Cache")
       allNodeModes                 = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
-      fetchAllTime                <- currentTimeMillis
-      timeFetchAll                 = fetchAllTime - fetch0Time
-      _                           <- PolicyGenerationLoggerPure.timing.debug(s"All relevant information fetched in ${timeFetchAll - fetch0Time} ms.")
+      // for now, schedules are not configurable, so we only have one, hardcoded.
+      schedules                    = Map(
+                                       SystemDirectiveSchedule.dailyOnNight.info.id -> SystemDirectiveSchedule.dailyOnNight
+                                     )
+
+      fetchAllTime <- currentTimeMillis
+      timeFetchAll  = fetchAllTime - fetch0Time
+      _            <- PolicyGenerationLoggerPure.timing.debug(s"All relevant information fetched in ${timeFetchAll - fetch0Time} ms.")
 
       _ = logMetrics(nodeFacts, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
       /////
@@ -293,7 +298,7 @@ class FetchAllInfoServiceImpl(
       activeRuleIds                             = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
       ruleVals                                 <- buildRuleVals(
                                                     activeRuleIds,
-                                                    allRules,
+                                                    allRules.toList,
                                                     directiveLib,
                                                     groupLib,
                                                     arePolicyServers
@@ -341,9 +346,7 @@ class FetchAllInfoServiceImpl(
         maxParallelism,
         jsTimeout,
         generationContinueOnError,
-        Map(
-          SystemDirectiveSchedule.dailyOnNight.info.id -> SystemDirectiveSchedule.dailyOnNight
-        )
+        schedules
       )
     }
   }

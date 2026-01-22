@@ -236,12 +236,13 @@ trait PromiseGenerationService {
                                                             nodeContexts,
                                                             allNodeModes,
                                                             filteredTechniques,
+                                                            schedules,
                                                             scriptEngineEnabled,
                                                             globalPolicyMode,
                                                             maxParallelism,
                                                             jsTimeout,
                                                             generationContinueOnError
-                                                          ) ?~! "Cannot build target configuration node"
+                                                          ).toBox ?~! "Cannot build target configuration node"
                                   /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
                                   allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
                                   allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
@@ -434,12 +435,13 @@ trait PromiseGenerationService {
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
+      schedules:                 Map[CampaignId, DirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
       jsTimeout:                 FiniteDuration,
       generationContinueOnError: Boolean
-  ): Box[NodeConfigurations]
+  ): IOResult[NodeConfigurations]
 
   /**
    * Forget all other node configuration state.
@@ -666,18 +668,20 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
       ruleVals:                  Seq[RuleVal],
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
+      schedules:                 Map[CampaignId, DirectiveSchedule],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
       jsTimeout:                 FiniteDuration,
       generationContinueOnError: Boolean
-  ): Box[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(
+  ): IOResult[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(
     activeNodeIds,
     ruleVals,
     nodeContexts,
     allNodeModes,
     filteredTechniques,
+    schedules,
     scriptEngineEnabled,
     globalPolicyMode,
     maxParallelism,
@@ -776,12 +780,13 @@ object BuildNodeConfiguration extends Loggable {
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
+      schedules:                 Map[CampaignId, DirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
       jsTimeout:                 FiniteDuration,
       generationContinueOnError: Boolean
-  ): Box[NodeConfigurations] = {
+  ): IOResult[NodeConfigurations] = {
 
     // step 1: from RuleVals to expanded rules vals
 
@@ -888,13 +893,23 @@ object BuildNodeConfiguration extends Loggable {
                             policies <- MergePolicyService.buildPolicy(context.nodeInfo, globalPolicyMode, boundedDrafts).toIO
                             t1_4     <- nanoTime
                             _        <- counters.sumTimeMerge.update(_ + t1_4 - t1_3)
+
+                            nodeSchedules <- ZIO.foreach(policies.flatMap(p => p.scheduleId.map(id => (id, p.id))).distinctBy(_._1)) {
+                                               case (sid, pid) =>
+                                                 schedules.get(sid) match {
+                                                   case None    =>
+                                                     Inconsistency(
+                                                       s"Error: policy '${pid.getReportId}' requires a schedule with id '${sid.serialize}' which is not available"
+                                                     ).fail
+                                                   case Some(s) => s.succeed
+                                                 }
+                                             }
                           } yield {
                             // we have the node mode
                             val nodeModes  = allNodeModes(context.nodeInfo.id)
                             val nodeConfig = NodeConfiguration(
                               nodeInfo = context.nodeInfo,
                               modesConfig = nodeModes, // system technique should not have hooks, and at least it is not supported.
-
                               runHooks = MergePolicyService.mergeRunHooks(
                                 // used to be !isSystem
                                 policies.filter(_.technique.policyTypes.isBase),
@@ -905,7 +920,8 @@ object BuildNodeConfiguration extends Loggable {
                               nodeContext = context.nodeContext,
                               parameters = context.parameters.map {
                                 case (k, v) => ParameterForConfiguration(k, GenericProperty.serializeToHocon(v))
-                              }.toSet
+                              }.toSet,
+                              schedules = nodeSchedules
                             )
                             nodeConfig
                           }).chainError(
@@ -943,7 +959,7 @@ object BuildNodeConfiguration extends Loggable {
     }
 
     // do evaluation
-    evalJsProg.toBox
+    evalJsProg
   }
 
   // we need to remove all nodes whose parent are failed, recursively
