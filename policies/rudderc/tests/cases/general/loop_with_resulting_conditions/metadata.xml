@@ -1,0 +1,52 @@
+<TECHNIQUE name="Testing resulting conditions">
+  <DESCRIPTION>Testing resulting conditions</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>testing_iteration</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Testing-Iteration</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION id="ef43fa1d-b0e6-4983-a4bf-bfd208908022-0" name="My block" reporting="weighted" component="true" multivalued="true">
+      <SECTION name="File present" id="18e9e0a3-88d5-49e3-bd94-df769031d4c0-0" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="18e9e0a3-88d5-49e3-bd94-df769031d4c0-0">/tmp/oui.txt</VALUE>
+        </REPORTKEYS>
+      </SECTION>
+      <SECTION name="Command execution" id="c1bd4ac6-f88b-47e2-be33-2a18ede114d7-0" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="c1bd4ac6-f88b-47e2-be33-2a18ede114d7-0">echo /tmp/oui.txt</VALUE>
+        </REPORTKEYS>
+      </SECTION>
+    </SECTION>
+    <SECTION id="ef43fa1d-b0e6-4983-a4bf-bfd208908022-1" name="My block" reporting="weighted" component="true" multivalued="true">
+      <SECTION name="File present" id="18e9e0a3-88d5-49e3-bd94-df769031d4c0-1" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="18e9e0a3-88d5-49e3-bd94-df769031d4c0-1">/tmp/non.txt</VALUE>
+        </REPORTKEYS>
+      </SECTION>
+      <SECTION name="Command execution" id="c1bd4ac6-f88b-47e2-be33-2a18ede114d7-1" component="true" multivalued="true">
+        <REPORTKEYS>
+          <VALUE id="c1bd4ac6-f88b-47e2-be33-2a18ede114d7-1">echo /tmp/non.txt</VALUE>
+        </REPORTKEYS>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
