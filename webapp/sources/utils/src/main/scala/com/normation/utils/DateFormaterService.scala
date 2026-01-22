@@ -42,6 +42,7 @@ import com.normation.errors.PureResult
 import io.scalaland.chimney.*
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -146,6 +147,9 @@ object DateFormaterService {
 
   def serializeZDT(datetime: ZonedDateTime): String =
     datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
+
+  def serializeOffsetDateTime(offsetDateTime: OffsetDateTime): String =
+    offsetDateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssVV").withZone(ZoneOffset.UTC))
 
   def serializeInstant(instant: Instant): String = instant.toString
 

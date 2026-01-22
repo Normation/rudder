@@ -745,7 +745,7 @@ object JsonResponseObjects {
   )
   object JRRevisionInfo     {
     def fromRevisionInfo(r: RevisionInfo): JRRevisionInfo = {
-      JRRevisionInfo(r.rev.value, DateFormaterService.serialize(r.date), r.author, r.message)
+      JRRevisionInfo(r.rev.value, DateFormaterService.serializeOffsetDateTime(r.date), r.author, r.message)
     }
   }
 

@@ -1,7 +1,9 @@
 package com.normation.utils
 
+import com.normation.utils.DateFormaterService.JavaTimeToJoda
 import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -36,6 +38,13 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
     min = Instant.EPOCH,
     max = Instant.parse("9999-01-01T00:00:00Z")
   )
+
+  val nearEnoughZonedDateTime = Gen
+    .zonedDateTime(
+      min = ZonedDateTime.parse("1970-01-01T00:00:00Z"),
+      max = ZonedDateTime.parse("9999-01-01T00:00:00Z")
+    )
+    .filterNot(_.getZone.toString.startsWith("SystemV")) // not supported by joda
 
   def spec = suite("DateFormaterService")(
     test("basicDateTimeFormatter should behave like jodatime ISODateTimeFormat.basicDateTime()") {
@@ -147,6 +156,13 @@ object DateFormaterServiceSpec extends ZIOSpecDefault {
           assert(DateFormaterService.parseAsGitTag(asString))(equalTo(input))
         }
       }
-    )
+    ),
+    suite("OffsetDateTime")(test("serialize(OffsetDateTime) should have the same output as serialize(joda.DateTime)") {
+      check(nearEnoughZonedDateTime) { input =>
+        assert(DateFormaterService.serializeOffsetDateTime(input.toOffsetDateTime))(
+          equalTo(DateFormaterService.serialize(input.toJoda))
+        )
+      }
+    })
   ) @@ TestAspect.shrinks(0)
 }
