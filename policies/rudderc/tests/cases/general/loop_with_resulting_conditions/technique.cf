@@ -1,0 +1,111 @@
+# @name Testing resulting conditions
+# @version 1.0
+
+bundle agent testing_iteration {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => call_testing_iteration_18e9e0a3_88d5_49e3_bd94_df769031d4c0_0("File present", "/tmp/oui.txt", "18e9e0a3-88d5-49e3-bd94-df769031d4c0-0", "true", "/tmp/oui.txt"),
+                                    if => "pass3";
+
+    "index_${local_index}_1" usebundle => call_testing_iteration_c1bd4ac6_f88b_47e2_be33_2a18ede114d7_0("Command execution", "echo /tmp/oui.txt", "c1bd4ac6-f88b-47e2-be33-2a18ede114d7-0", concat("true.(",canonify("${something_undefined}"),"|file_present__tmp_oui_txt_repaired.any)"), "echo /tmp/oui.txt"),
+                                    if => "pass3";
+
+    "index_${local_index}_2" usebundle => call_testing_iteration_18e9e0a3_88d5_49e3_bd94_df769031d4c0_1("File present", "/tmp/non.txt", "18e9e0a3-88d5-49e3-bd94-df769031d4c0-1", "/tmp/non.txt"),
+                                    if => "pass3";
+
+    "index_${local_index}_3" usebundle => call_testing_iteration_c1bd4ac6_f88b_47e2_be33_2a18ede114d7_1("Command execution", "echo /tmp/non.txt", "c1bd4ac6-f88b-47e2-be33-2a18ede114d7-1", concat("",canonify("${something_undefined}"),"|file_present__tmp_non_txt_repaired.any"), "echo /tmp/non.txt"),
+                                    if => "pass3";
+
+}
+bundle agent call_testing_iteration_18e9e0a3_88d5_49e3_bd94_df769031d4c0_0(c_name, c_key, report_id, method_call_condition, path) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => file_present("${path}"),
+                                    if => "${method_call_condition}";
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
+                                unless => "${method_call_condition}";
+    "index_${local_index}_3" usebundle => log_rudder_v4("${c_key}", "Skipping method 'File present' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
+                                unless => "${method_call_condition}";
+
+}
+bundle agent call_testing_iteration_c1bd4ac6_f88b_47e2_be33_2a18ede114d7_0(c_name, c_key, report_id, method_call_condition, command) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => command_execution("${command}"),
+                                    if => "${method_call_condition}";
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
+                                unless => "${method_call_condition}";
+    "index_${local_index}_3" usebundle => log_rudder_v4("${c_key}", "Skipping method 'Command execution' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
+                                unless => "${method_call_condition}";
+
+}
+bundle agent call_testing_iteration_18e9e0a3_88d5_49e3_bd94_df769031d4c0_1(c_name, c_key, report_id, path) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => file_present("${path}");
+
+}
+bundle agent call_testing_iteration_c1bd4ac6_f88b_47e2_be33_2a18ede114d7_1(c_name, c_key, report_id, method_call_condition, command) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => command_execution("${command}"),
+                                    if => "${method_call_condition}";
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
+                                unless => "${method_call_condition}";
+    "index_${local_index}_3" usebundle => log_rudder_v4("${c_key}", "Skipping method 'Command execution' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
+                                unless => "${method_call_condition}";
+
+}
