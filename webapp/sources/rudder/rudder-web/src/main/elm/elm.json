@@ -37,6 +37,7 @@
             "isaacseymour/deprecated-time": "1.0.0",
             "jinjor/elm-debounce": "3.0.0",
             "justinmimbs/time-extra": "1.2.0",
+            "justinmimbs/timezone-data": "11.1.0",
             "jzxhuang/http-extras": "2.1.0",
             "matthewsj/elm-ordering": "2.0.0",
             "mcordova47/elm-natural-ordering": "1.1.0",

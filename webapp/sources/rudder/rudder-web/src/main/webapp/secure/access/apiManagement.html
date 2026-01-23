@@ -24,6 +24,7 @@
         const main = document.getElementById("accounts-app")
         const initValues = {
             contextPath: contextPath,
+            timeZone: localStorage.getItem('timeZone') ?? 'UTC',
             hasWriteRights: hasWriteRights,
             aclPluginEnabled: aclPluginEnabled,
             tenantsPluginEnabled: tenantsPluginEnabled

@@ -4,6 +4,7 @@ import Accounts.DataTypes as TenantMode exposing (..)
 import Accounts.DataTypes as Token exposing (..)
 import Accounts.DataTypes as TokenState exposing (..)
 import Json.Decode exposing (..)
+import Json.Decode.Extra
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
 import String exposing (join, split)
@@ -32,15 +33,15 @@ decodeAccount zone =
         |> required "authorizationType" decodeAuthorizationType
         |> optional "kind" string "public"
         |> required "status" decodeAccountStatus
-        |> required "creationDate" string
+        |> required "creationDate" decodeDatetime
         |> required "tokenState" decodeTokenState
         |> optional "token" (maybe decodeToken) Nothing
-        |> optional "tokenGenerationDate" (maybe string) Nothing
-        |> custom (decodeExpirationPolicy zone)
+        |> optional "tokenGenerationDate" (maybe decodeDatetime) Nothing
+        |> custom decodeExpirationPolicy
+        |> optional "lastAuthenticationDate" (maybe decodeDatetime) Nothing
         |> optional "acl" (map Just (list decodeAcls |> map List.concat)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
-
 
 decodeAuthorizationType : Decoder AuthorizationType
 decodeAuthorizationType =
@@ -103,29 +104,21 @@ decodePortAcl =
         |> required "verb" string
 
 
-decodeExpirationPolicy : Zone -> Decoder ExpirationPolicy
-decodeExpirationPolicy zone =
+decodeExpirationPolicy : Decoder ExpirationPolicy
+decodeExpirationPolicy =
     field "expirationPolicy" string
-        |> andThen (parseExpirationPolicy zone)
+        |> andThen parseExpirationPolicy
 
 
-parseExpirationPolicy : Zone -> String -> Decoder ExpirationPolicy
-parseExpirationPolicy zone str =
+parseExpirationPolicy : String -> Decoder ExpirationPolicy
+parseExpirationPolicy str =
     case str of
         "never" ->
             succeed NeverExpire
 
         "datetime" ->
-            field "expirationDate" string
-                |> andThen
-                    (\s ->
-                        case parseDateTimeAsPosix zone s of
-                            Ok posix ->
-                                succeed (ExpireAtDate posix)
-
-                            Err err ->
-                                fail ("Expiration date invalid : " ++ err)
-                    )
+            field "expirationDate" decodeDatetime
+                |> map ExpireAtDate
 
         _ ->
             fail "Unrecognized \"expirationPolicy\" field, expected \"never\" or \"datetime\""
@@ -229,16 +222,6 @@ decodeErrorDetails json =
             ( s, join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors)) )
 
 
-{-| Format is ISO8601 String : YYYY-MM-ddTHH:mm:ssZ
 
-To account for the specified datepicker timezone and its date representation,
-we need to translate the date to POSIX,
-and we need to adjust the parsed offset of the date time string.
-
--}
-parseDateTimeAsPosix : Zone -> String -> Result String Posix
-parseDateTimeAsPosix zone str =
-    Time.Iso8601.toDateTime str
-        |> Result.map (\d -> Time.DateTime.toPosix d)
-        |> Result.map (\p -> Time.Extra.partsToPosix zone (Time.Extra.Parts (Time.toYear zone p) (Time.toMonth zone p) (Time.toDay zone p) (Time.toHour zone p) (Time.toMinute zone p) (Time.toSecond zone p) (Time.toMillis zone p)))
-        |> Result.mapError (List.map (Time.Iso8601ErrorMsg.renderText "Invalid ISO string date") >> String.join "\n")
+decodeDatetime : Decoder Posix
+decodeDatetime = Json.Decode.Extra.datetime

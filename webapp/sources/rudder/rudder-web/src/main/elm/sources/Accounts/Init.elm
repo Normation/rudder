@@ -1,12 +1,15 @@
 port module Accounts.Init exposing (..)
 
+import Accounts.ApiCalls exposing (getAccounts)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (decodePortAcl)
+import Dict
 import Json.Decode exposing (..)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Task
 import Time exposing (Month(..), Posix, Zone)
+import TimeZone
 
 import Ui.Datatable exposing (defaultTableFilters)
 
@@ -59,18 +62,22 @@ port getCheckedTenants : (Json.Decode.Value -> msg) -> Sub msg
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ SingleDatePicker.subscriptions (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime model.ui.datePickerInfo.currentTime) model.ui.datePickerInfo.picker
+        [ SingleDatePicker.subscriptions (userDefinedDatePickerSettings { zone = model.ui.datePickerInfo.zone, today = model.ui.datePickerInfo.currentTime, focusedDate = model.ui.datePickerInfo.currentTime }) model.ui.datePickerInfo.picker
         , Time.every 1000 Tick -- Update of the current time every second
         , getCheckedAcl (GetCheckedAcl << decodeValue (Json.Decode.list decodePortAcl)) -- here, we are talking to the plugin, so with ("path", "verb")
         , getCheckedTenants (GetCheckedTenants << decodeValue (Json.Decode.list string))
         ]
 
 
-init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled:Bool, tenantsPluginEnabled: Bool } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled:Bool, timeZone: String, tenantsPluginEnabled: Bool } -> ( Model, Cmd Msg )
 init flags =
     let
+        initTimeZone =
+            Dict.get flags.timeZone TimeZone.zones
+                |> Maybe.withDefault (\() -> Time.utc)
+
         initDatePicker =
-            DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing (SingleDatePicker.init UpdatePicker)
+            DatePickerInfo (Time.millisToPosix 0) (initTimeZone ()) Nothing (SingleDatePicker.init UpdatePicker)
 
         initFilters = Filters (defaultTableFilters Name) Nothing
 
@@ -94,9 +101,9 @@ init flags =
 
         initActions =
             [ Task.perform Tick Time.now
-            , Task.perform AdjustTimeZone Time.here
             , initAclPlugin
             , initTenantsPlugin
+            , getAccounts initModel
             ]
     in
     ( initModel, Cmd.batch initActions )

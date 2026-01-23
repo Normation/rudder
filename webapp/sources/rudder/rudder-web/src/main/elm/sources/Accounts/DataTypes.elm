@@ -1,5 +1,6 @@
 module Accounts.DataTypes exposing (..)
 
+import Accounts.DatePickerUtils as DatePickerUtils exposing (isBefore)
 import Http exposing (Error)
 import Http.Detailed
 import Json.Decode as D exposing (..)
@@ -31,7 +32,7 @@ type SortBy
     | Id
     | ExpDate
     | CreDate
-    | TknDate
+    | LstDate
 
 type TenantMode
     = AllAccess -- special "*" permission giving access to objects in any/no tenants
@@ -77,11 +78,12 @@ type alias Account =
     , authorizationType : AuthorizationType
     , kind : String
     , status : AccountStatus
-    , creationDate : String
+    , creationDate : Posix
     , tokenState: TokenState
     , token : Maybe Token
-    , tokenGenerationDate : Maybe String
+    , tokenGenerationDate : Maybe Posix
     , expirationPolicy: ExpirationPolicy
+    , lastAuthenticationDate : Maybe Posix
     , acl : Maybe (List AccessControl)
     , tenantMode : TenantMode
     , selectedTenants : Maybe (List String) -- non empty list only
@@ -142,7 +144,6 @@ type Msg
       -- DATEPICKER
     | OpenPicker Posix
     | UpdatePicker SingleDatePicker.Msg
-    | AdjustTimeZone Zone
     | Tick Posix
 
 
@@ -225,3 +226,18 @@ setExpirationPolicy policy account =
 updateExpirationPolicy : (ExpirationPolicy -> ExpirationPolicy) -> Account -> Account
 updateExpirationPolicy f account =
     setExpirationPolicy (f account.expirationPolicy) account
+
+
+
+checkIfExpired : DatePickerInfo -> Account -> Bool
+checkIfExpired datePickerInfo account =
+  case account.expirationPolicy of
+    ExpireAtDate p -> DatePickerUtils.isBefore { date = p, reference = datePickerInfo.currentTime }
+    NeverExpire -> False
+
+checkIfTokenV1 : Account -> Bool
+checkIfTokenV1 a =
+  case a.tokenState of
+    GeneratedV1 -> True
+    GeneratedV2 -> False
+    Undef       -> False

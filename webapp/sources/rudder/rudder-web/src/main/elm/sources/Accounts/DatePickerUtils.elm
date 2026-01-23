@@ -1,24 +1,34 @@
-module Accounts.DatePickerUtils exposing (..)
+module Accounts.DatePickerUtils exposing
+  ( isBefore
+  , posixOrdering
+  , posixToString
+  , userDefinedDatePickerSettings
+  )
 
+import Ordering
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Time exposing (Month(..), Posix, Zone)
-import Time.Extra as Time exposing (Interval(..), Parts)
-import Accounts.DataTypes exposing (..)
-import Accounts.DataTypes as TokenState exposing (..)
+import Time.Extra exposing (Interval(..), Parts)
 
 
-isDateBeforeToday : Posix -> Posix -> Bool
-isDateBeforeToday today datetime =
-  Time.posixToMillis today > Time.posixToMillis datetime
+posixOrdering : Posix -> Posix -> Order
+posixOrdering =
+  Ordering.byField Time.posixToMillis
 
-userDefinedDatePickerSettings : Zone -> Posix -> Posix -> Settings
-userDefinedDatePickerSettings zone today focusDate =
+
+isBefore : { date : Posix, reference : Posix } -> Bool
+isBefore { date, reference } =
+  Time.posixToMillis date < Time.posixToMillis reference
+
+
+userDefinedDatePickerSettings : { zone : Zone, today : Posix, focusedDate : Posix } -> Settings
+userDefinedDatePickerSettings { zone, today, focusedDate } =
   let
     defaults = defaultSettings zone
   in
     { defaults
-    | isDayDisabled = \clientZone datetime -> isDateBeforeToday (Time.floor Day clientZone today) datetime
-    , focusedDate = Just focusDate
+    | isDayDisabled = \clientZone datetime -> isBefore { date = datetime, reference = Time.Extra.floor Day clientZone today }
+    , focusedDate = Just focusedDate
     , dateStringFn = posixToDateString
     , timePickerVisibility =
       AlwaysVisible
@@ -54,16 +64,16 @@ monthToNmbString month =
 adjustAllowedTimesOfDayToClientZone : Zone -> Zone -> Posix -> Posix -> { startHour : Int, startMinute : Int, endHour : Int, endMinute : Int }
 adjustAllowedTimesOfDayToClientZone baseZone clientZone today datetimeBeingProcessed =
   let
-    processingPartsInClientZone   = Time.posixToParts clientZone datetimeBeingProcessed
-    todayPartsInClientZone        = Time.posixToParts clientZone today
+    processingPartsInClientZone   = Time.Extra.posixToParts clientZone datetimeBeingProcessed
+    todayPartsInClientZone        = Time.Extra.posixToParts clientZone today
 
-    startPartsAdjustedForBaseZone = Time.posixToParts baseZone datetimeBeingProcessed
-      |> (\parts -> Time.partsToPosix baseZone { parts | hour = 0, minute = 0 })
-      |> Time.posixToParts clientZone
+    startPartsAdjustedForBaseZone = Time.Extra.posixToParts baseZone datetimeBeingProcessed
+      |> (\parts -> Time.Extra.partsToPosix baseZone { parts | hour = 0, minute = 0 })
+      |> Time.Extra.posixToParts clientZone
 
-    endPartsAdjustedForBaseZone = Time.posixToParts baseZone datetimeBeingProcessed
-      |> (\parts -> Time.partsToPosix baseZone { parts | hour = 23, minute = 59 })
-      |> Time.posixToParts clientZone
+    endPartsAdjustedForBaseZone = Time.Extra.posixToParts baseZone datetimeBeingProcessed
+      |> (\parts -> Time.Extra.partsToPosix baseZone { parts | hour = 23, minute = 59 })
+      |> Time.Extra.posixToParts clientZone
 
     bounds =
       { startHour   = startPartsAdjustedForBaseZone.hour
@@ -94,27 +104,57 @@ posixToTimeString zone datetime =
     ++ ":"
     ++ addLeadingZero (Time.toMinute zone datetime)
 
-getDateString : DatePickerInfo -> Maybe Posix -> String
-getDateString datePickerInfo pickedTime =
-  case pickedTime of
-    Just d  ->
-      posixToString datePickerInfo d
-    Nothing ->
-      ""
 
-posixToString : DatePickerInfo -> Posix -> String
-posixToString datePickerInfo p =
-  (posixToDateString datePickerInfo.zone p ++ " " ++ posixToTimeString datePickerInfo.zone p)
+{-| Pretty date for a posix in API accounts display
+-}
+posixToString : Zone -> Posix -> String
+posixToString zone time =
+  String.fromInt (Time.toYear zone time)
+    ++ "-"
+    ++ monthToNmbString (Time.toMonth zone time)
+    ++ "-"
+    ++ padded (Time.toDay zone time)
+    ++ " "
+    ++ padded (Time.toHour zone time)
+    ++ ":"
+    ++ padded (Time.toMinute zone time)
+    ++ ":"
+    ++ padded (Time.toSecond zone time)
+    ++ offsetString zone time
 
-checkIfExpired : DatePickerInfo -> Account -> Bool
-checkIfExpired datePickerInfo account =
-  case account.expirationPolicy of
-    ExpireAtDate p -> isDateBeforeToday datePickerInfo.currentTime p
-    NeverExpire -> False
 
-checkIfTokenV1 : Account -> Bool
-checkIfTokenV1 a =
-  case a.tokenState of
-    TokenState.GeneratedV1 -> True
-    TokenState.GeneratedV2 -> False
-    TokenState.Undef       -> False
+padded : Int -> String
+padded n =
+  n
+    |> String.fromInt
+    |> String.padLeft 2 '0'
+
+
+-- This has been adapted from Time.TimeZone.offsetString since we want UTC offsets, but for Zone instead of TimeZone
+
+{-| Given an arbitrary Time and TimeZone, offsetString returns an
+ISO8601-formatted UTC offset for at that Time.
+-}
+offsetString : Zone -> Posix -> String
+offsetString zone time =
+    let
+        utcOffset =
+            Time.Extra.toOffset zone time
+
+        hours =
+            abs utcOffset // 60
+
+        minutes =
+            modBy 60 (abs utcOffset)
+
+        string =
+            padded hours ++ ":" ++ padded minutes
+    in
+    if utcOffset < 0 then
+        "-" ++ string
+
+    else if utcOffset == 0 then
+        "Z"
+
+    else
+        "+" ++ string

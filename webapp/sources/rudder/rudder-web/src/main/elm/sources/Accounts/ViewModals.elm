@@ -9,7 +9,7 @@ import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
-import Time.Extra as Time exposing (Interval(..), add)
+import Time.Extra exposing (Interval(..), add)
 
 buildModal : String -> Html Msg -> Html Msg -> Html Msg
 buildModal modalTitle modalBody modalBtn =
@@ -106,7 +106,7 @@ displayModal model =
                       ( expirationText, selectedDate ) =
                           case account.expirationPolicy of
                               ExpireAtDate d ->
-                                  ( posixToString model.ui.datePickerInfo d, d )
+                                  ( posixToString model.ui.datePickerInfo.zone d, d )
 
                               NeverExpire ->
                                   ( "Never", add Month 1 model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime )
@@ -206,7 +206,7 @@ displayModal model =
                                   [ button [ type_ "button", class "form-control btn-datepicker", disabled (account.expirationPolicy == NeverExpire), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
                                       [ text expirationText
                                       ]
-                                  , SingleDatePicker.view (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime selectedDate) model.ui.datePickerInfo.picker
+                                  , SingleDatePicker.view (userDefinedDatePickerSettings { zone = model.ui.datePickerInfo.zone, today = model.ui.datePickerInfo.currentTime, focusedDate = selectedDate }) model.ui.datePickerInfo.picker
                                   ]
                               ]
                           , div [ class "form-group" ]

@@ -1,14 +1,12 @@
 module Accounts.JsonEncoder exposing (..)
 
 import Accounts.DataTypes exposing (..)
+import Iso8601
 import Json.Encode exposing (..)
 import Json.Encode.Extra exposing (maybe)
 import Maybe.Extra
 import String.Extra
 import Time exposing (Month(..), Posix, Zone)
-import Time.DateTime exposing (..)
-import Time.Extra
-import Time.Iso8601
 
 
 encodeAccount : Zone -> Account -> Value
@@ -17,7 +15,7 @@ encodeAccount zone account =
         ( expirationPolicy, expirationDate ) =
             case account.expirationPolicy of
                 ExpireAtDate d ->
-                    ( "datetime", [ ( "expirationDate", string (posixToIso8601 zone d) ) ] )
+                    ( "datetime", [ ( "expirationDate", string (Iso8601.fromTime d) ) ] )
 
                 NeverExpire ->
                     ( "never", [] )
@@ -104,64 +102,3 @@ encodeAccountTenants accountId tenants =
         , ( "tenants", list string tenants )
         ]
 
-
-{-| Take a zone into account when encoding to date to ISO8601 from a POSIX.
-We need to translate into parts, otherwise we would lose zone information.
--}
-posixToIso8601 : Zone -> Posix -> String
-posixToIso8601 zone p =
-    let
-        { year, month, day, hour, minute, second, millisecond } =
-            Time.Extra.posixToParts zone p
-    in
-    Time.DateTime.fromPosix p
-        |> setYear year
-        |> setMonth (monthToInt month)
-        |> setDay day
-        |> setHour hour
-        |> setMinute minute
-        |> setSecond second
-        |> setMillisecond millisecond
-        |> Time.Iso8601.fromDateTime
-
-
-{-| Library does not expose this
--}
-monthToInt : Month -> Int
-monthToInt m =
-    case m of
-        Jan ->
-            1
-
-        Feb ->
-            2
-
-        Mar ->
-            3
-
-        Apr ->
-            4
-
-        May ->
-            5
-
-        Jun ->
-            6
-
-        Jul ->
-            7
-
-        Aug ->
-            8
-
-        Sep ->
-            9
-
-        Oct ->
-            10
-
-        Nov ->
-            11
-
-        Dec ->
-            12
