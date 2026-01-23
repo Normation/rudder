@@ -2247,7 +2247,8 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration]()
+    parameters = Set[ParameterForConfiguration](),
+    schedules = Nil
   )
 
   val node1NodeConfig: NodeConfiguration = NodeConfiguration(
@@ -2256,7 +2257,8 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration]()
+    parameters = Set[ParameterForConfiguration](),
+    schedules = Nil
   )
 
   val node2NodeConfig: NodeConfiguration = NodeConfiguration(
@@ -2265,7 +2267,8 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration]()
+    parameters = Set[ParameterForConfiguration](),
+    schedules = Nil
   )
 
   /**

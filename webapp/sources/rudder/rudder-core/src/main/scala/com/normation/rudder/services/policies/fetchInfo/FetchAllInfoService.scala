@@ -73,7 +73,6 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.utils.ParseMaxParallelism
-import com.normation.utils.Control.bestEffort
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
@@ -270,7 +269,7 @@ class FetchAllInfoServiceImpl(
       allNodeModes                 = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
       // for now, schedules are not configurable, so we only have one, hardcoded.
       schedules                    = Map(
-                                       SystemDirectiveSchedule.dailyOnNight.info.id -> SystemDirectiveSchedule.dailyOnNight
+                                       SystemDirectiveSchedule.dailyOn4UTC.info.id -> SystemDirectiveSchedule.dailyOn4UTC
                                      )
 
       fetchAllTime <- currentTimeMillis
@@ -358,11 +357,11 @@ class FetchAllInfoServiceImpl(
  */
 object SystemDirectiveSchedule {
 
-  val dailyOnNight = DirectiveSchedule(
+  val dailyOn4UTC = DirectiveSchedule(
     CampaignInfo(
-      CampaignId("rudder-daily-on-night"),
-      "Rudder system daily on night directive schedule",
-      "A daily schedule used by Rudder infrequent checkes",
+      CampaignId("rudder-daily-on-4-utc"),
+      "Rudder system daily directive schedule",
+      "A daily schedule used by Rudder infrequent checks",
       com.normation.rudder.campaigns.Enabled,
       Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone("UTC")))
     )

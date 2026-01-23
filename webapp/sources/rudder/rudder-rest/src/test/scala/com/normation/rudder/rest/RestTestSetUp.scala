@@ -63,6 +63,7 @@ import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.config.StatelessUserPropertyService
 import com.normation.rudder.domain.appconfig.FeatureSwitch
@@ -133,6 +134,7 @@ import com.normation.rudder.rest.internal.SharedFilesAPI
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
+import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.eventlog.EventLogDetailsServiceImpl
@@ -418,12 +420,13 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         nodeContexts:              Map[NodeId, InterpolationContext],
         allNodeModes:              Map[NodeId, NodeModeConfig],
         filter:                    Map[NodeId, List[TechniqueName]],
+        schedules:                 Map[CampaignId, DirectiveSchedule],
         scriptEngineEnabled:       FeatureSwitch,
         globalPolicyMode:          GlobalPolicyMode,
         maxParallelism:            Int,
         jsTimeout:                 FiniteDuration,
         generationContinueOnError: Boolean
-    ): Box[NodeConfigurations] = ???
+    ): IOResult[NodeConfigurations] = ???
     override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
     override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]] = ???
     override def getNodesConfigVersion(

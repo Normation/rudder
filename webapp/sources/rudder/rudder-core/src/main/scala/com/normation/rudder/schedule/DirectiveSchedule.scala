@@ -38,7 +38,9 @@
 package com.normation.rudder.schedule
 
 import com.normation.rudder.campaigns.*
+import com.normation.rudder.campaigns.CampaignSerializer.*
 import com.softwaremill.quicklens.*
+import zio.json.JsonCodec
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
 
@@ -57,14 +59,14 @@ object NoDirectiveScheduleDetails extends CampaignDetails
 // The only goal of this trait is to be able to provide a discriminator in json,
 // zio-json allow to have discriminator only on sealed trait
 @jsonDiscriminator("campaignType")
-sealed trait DirectiveScheduleFamily extends Campaign {
+sealed trait DirectiveScheduleFamily extends Campaign derives JsonCodec {
   override def version:      Int             = 1
   override def details:      CampaignDetails = NoDirectiveScheduleDetails
   override def campaignType: CampaignType    = DirectiveScheduleType
 }
 
-@jsonHint(NoDirectiveScheduleDetails.value)
-case class DirectiveSchedule(info: CampaignInfo) extends DirectiveScheduleFamily {
+@jsonHint(DirectiveScheduleType.value)
+case class DirectiveSchedule(info: CampaignInfo) extends DirectiveScheduleFamily derives JsonCodec {
   override def copyWithId(newId: CampaignId): Campaign = this.modify(_.info.id).setTo(newId)
   override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
     this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))

@@ -69,6 +69,7 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.services.policies.fetchInfo.SystemDirectiveSchedule
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
@@ -824,8 +825,10 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
 
     "encode NodeConfiguration to JSON" in withLogger("log-debug") { (logger, f) =>
       val date = "2025-10-27T13:29:49.974Z"
-      val node = NodeConfigData.rootNodeConfig.copy(nodeInfo =
-        NodeConfigData.rootNodeConfig.nodeInfo.copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date))
+      val node = NodeConfigData.rootNodeConfig.copy(
+        nodeInfo = NodeConfigData.rootNodeConfig.nodeInfo
+          .copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date)),
+        schedules = List(SystemDirectiveSchedule.dailyOn4UTC)
       )
       logger.log(List(node)).either.runNow must beRight
       NodeConfigurationLogger.getLogFile(f, node.nodeInfo).contentAsString must equalsJsonSemantic(
@@ -898,7 +901,29 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
             "policies": [],
             "runHooks": [],
             "nodeContext": {},
-            "parameters": []
+            "parameters": [],
+            "schedules": [    {
+      "info" : {
+        "id" : "rudder-daily-on-4-utc",
+        "name" : "Rudder system daily directive schedule",
+        "description" : "A daily schedule used by Rudder infrequent checks",
+        "status" : {
+          "value" : "enabled"
+        },
+        "schedule" : {
+          "type" : "daily",
+          "start" : {
+            "hour" : 4,
+            "minute" : 0
+          },
+          "end" : {
+            "hour" : 6,
+            "minute" : 0
+          },
+          "tz" : "UTC"
+        }
+      }
+    }]
           }"""
       )
 

@@ -210,9 +210,12 @@ class TestBuildNodeConfiguration extends Specification {
 
     logger.trace("\n--------------------------------")
     val t1           = System.currentTimeMillis()
-    val ruleVal      =
-      ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.view.mapValues(_.rudderSettings.isPolicyServer).toMap)
-    val ruleVals     = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
+    val ruleVal      = {
+      ruleValService
+        .buildRuleVal(rule, directiveLib, groupLib, allNodes.view.mapValues(_.rudderSettings.isPolicyServer).toMap)
+        .runNow
+    }
+    val ruleVals     = Seq(ruleVal)
     val t2           = System.currentTimeMillis()
     val nodeContexts = buildContext
       .getNodeContexts(
@@ -234,13 +237,14 @@ class TestBuildNodeConfiguration extends Specification {
         nodeContexts.ok,
         allNodeModes,
         Map(),
+        Map(),
         scriptEngineEnabled,
         globalPolicyMode,
         maxParallelism,
         jsTimeout,
         generationContinueOnError
       )
-      .openOrThrowException(throw new RuntimeException(s"Error: node configuration failed"))
+      .runNow
     val t4           = System.currentTimeMillis()
 
     logger.trace(s"ruleval: ${t2 - t1} ms")
