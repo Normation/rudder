@@ -40,6 +40,7 @@ package com.normation.rudder.domain.reports
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -54,6 +55,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.PolicyId
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -88,6 +90,7 @@ final case class NodeExpectedReports(
     beginDate:           DateTime,
     endDate:             Option[DateTime],
     modes:               NodeModeConfig,
+    schedules:           List[JsonDirectiveSchedule],
     ruleExpectedReports: List[RuleExpectedReports],
     overrides:           List[OverriddenPolicy]
 ) {
@@ -125,6 +128,7 @@ final case class DirectiveExpectedReports(
     directiveId: DirectiveId,
     policyMode:  Option[PolicyMode],
     policyTypes: PolicyTypes,
+    scheduleId:  Option[CampaignId],
     components:  List[ComponentExpectedReport]
 )
 
@@ -205,6 +209,7 @@ object ExpectedReportsSerialisation {
    */
   final case class JsonNodeExpectedReports private[reports] (
       modes:               NodeModeConfig,
+      schedules:           List[JsonDirectiveSchedule],
       ruleExpectedReports: List[RuleExpectedReports],
       overrides:           List[OverriddenPolicy]
   )
@@ -278,12 +283,14 @@ object ExpectedReportsSerialisation {
      *      ...                      // same as gar
      *    },
      *  },
+     *  "ss": [{"id":"0f6e33e5-b678-490c-b8aa-9520d59f381b", "e":true, "s": { schedule definition },...]
      *  "rs": [                       // rules
      *    {
      *      "rid": "4bb75daa-a82f-445a-8e8e-af3e99608ffe",      // rule id
      *      "ds": [                                              // directives
      *        {
      *          "did": "73e069ea-de00-4b5d-a00e-012709b7b462",  // directive id
+     *          "sid": "0f6e33e5-b678-490c-b8aa-9520d59f381b",  // schedule id, opt
      *          "cs": [                                         // components
      *            {                                             // block
      *              "bid": "my main block",                     // block (component) id
@@ -453,46 +460,35 @@ object ExpectedReportsSerialisation {
     }
 
     /*
-     * In 8.2 we changed the s: Option[Boolean] for isSystem to t: Option[ComplianceTag]
-     * We still want to be able to decode json with s, but never write it. This is done by
-     * being sure that when we go from DirectiveExpectedReports to JsonDirectiveExpectedReports8_2,
-     * we always let the s value to None.
-     * The chosen strategy means that when there is neither s nor t present in json (ie the common
-     * case of base policies), we always need to test both. The overhead seems negligible compared
-     * to burden of having two decoders + orElse
+     * In 8.2 we changed the s: Option[Boolean] for isSystem to t: Option[PolicyTypes]
+     * In 9.1, we can abandon "s" old attribute since it was never written since 8.2.
      */
     final case class JsonDirectiveExpectedReports8_2(
         did: DirectiveId,
         pm:  Option[PolicyMode],
-        // the old tag for "isSystem", that we can encounter when reading old json. Never write it.
-        // If both it and t is present, t wins
-        s:   Option[Boolean],
         t:   Option[PolicyTypes],
+        sid: Option[CampaignId],
         cs:  List[JsonComponentExpectedReport7_1]
     ) {
       def transform: DirectiveExpectedReports = {
         val ct = {
           t match {
             case Some(value) => value
-            case None        =>
-              s match {
-                case Some(true) => PolicyTypes.rudderSystem
-                case _          => PolicyTypes.rudderBase
-              }
+            case None        => PolicyTypes.rudderBase
           }
         }
-        DirectiveExpectedReports(did, pm, ct, cs.map(_.transform))
+        DirectiveExpectedReports(did, pm, ct, sid, cs.map(_.transform))
       }
     }
     implicit class _JsonDirectiveExpectedReports8_2(x: DirectiveExpectedReports) {
       def transform: JsonDirectiveExpectedReports8_2 = {
-        // optimisation: if policyTypes is exactly base, we skip it
+        // optimization: if policyTypes is exactly base, we skip it
         val t = if (x.policyTypes == PolicyTypes.rudderBase) None else Some(x.policyTypes)
         JsonDirectiveExpectedReports8_2(
           x.directiveId,
           x.policyMode,
-          None,
           t,
+          x.scheduleId,
           x.components.map(_.transform)
         )
       }
@@ -508,16 +504,24 @@ object ExpectedReportsSerialisation {
       def transform = JsonRuleExpectedReports7_1(x.ruleId, x.directives.map(_.transform))
     }
 
+    @jsonExplicitEmptyCollections(encoding = false, decoding = false) // needed for compat for ss
     final case class JsonNodeExpectedReports7_1(
         ms: JsonModes7_1,
+        ss: List[JsonDirectiveSchedule],
         rs: List[JsonRuleExpectedReports7_1],
         os: List[JsonOverrides7_1]
     ) extends JsonNodeExpectedReportV {
-      def transform: JsonNodeExpectedReports = JsonNodeExpectedReports(ms.transform, rs.map(_.transform), os.map(_.transform))
+      def transform: JsonNodeExpectedReports = JsonNodeExpectedReports(ms.transform, ss, rs.map(_.transform), os.map(_.transform))
     }
     implicit class _JsonNodeExpecteReports7_1(x: JsonNodeExpectedReports)        {
-      def transform =
-        JsonNodeExpectedReports7_1(x.modes.transform, x.ruleExpectedReports.map(_.transform), x.overrides.map(_.transform))
+      def transform = {
+        JsonNodeExpectedReports7_1(
+          x.modes.transform,
+          x.schedules,
+          x.ruleExpectedReports.map(_.transform),
+          x.overrides.map(_.transform)
+        )
+      }
     }
 
     ////////// json codec //////////
@@ -609,7 +613,7 @@ object ExpectedReportsSerialisation {
   }
 
   /*
-   * We always serialise to 7.1 format
+   * We always serialize to 7.1 format
    */
   implicit class JNodeToJson(val n: JsonNodeExpectedReports) extends AnyVal {
     import Version7_1.*
@@ -621,7 +625,7 @@ object ExpectedReportsSerialisation {
   implicit class NodeToJson(val n: NodeExpectedReports) extends AnyVal {
     import Version7_1.*
     private def toJson7_1 = {
-      JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides).transform
+      JsonNodeExpectedReports(n.modes, n.schedules, n.ruleExpectedReports, n.overrides).transform
     }
     def toJson            = toJson7_1.toJsonPretty
     def toCompactJson     = toJson7_1.toJson

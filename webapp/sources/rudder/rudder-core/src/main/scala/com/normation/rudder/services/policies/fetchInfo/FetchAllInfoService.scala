@@ -64,6 +64,7 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.FetchAllInfo
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.policies.RuleVal
@@ -73,6 +74,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.utils.ParseMaxParallelism
+import io.scalaland.chimney.dsl.*
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
@@ -345,7 +347,7 @@ class FetchAllInfoServiceImpl(
         maxParallelism,
         jsTimeout,
         generationContinueOnError,
-        schedules
+        schedules.transformInto[Map[CampaignId, JsonDirectiveSchedule]]
       )
     }
   }

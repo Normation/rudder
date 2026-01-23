@@ -59,6 +59,7 @@ import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
@@ -74,6 +75,7 @@ import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.file
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
+import io.scalaland.chimney.syntax.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -828,7 +830,7 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
       val node = NodeConfigData.rootNodeConfig.copy(
         nodeInfo = NodeConfigData.rootNodeConfig.nodeInfo
           .copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date)),
-        schedules = List(SystemDirectiveSchedule.dailyOn4UTC)
+        schedules = List(SystemDirectiveSchedule.dailyOn4UTC.transformInto[JsonDirectiveSchedule])
       )
       logger.log(List(node)).either.runNow must beRight
       NodeConfigurationLogger.getLogFile(f, node.nodeInfo).contentAsString must equalsJsonSemantic(
@@ -902,28 +904,24 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
             "runHooks": [],
             "nodeContext": {},
             "parameters": [],
-            "schedules": [    {
-      "info" : {
-        "id" : "rudder-daily-on-4-utc",
-        "name" : "Rudder system daily directive schedule",
-        "description" : "A daily schedule used by Rudder infrequent checks",
-        "status" : {
-          "value" : "enabled"
-        },
-        "schedule" : {
-          "type" : "daily",
-          "start" : {
-            "hour" : 4,
-            "minute" : 0
-          },
-          "end" : {
-            "hour" : 6,
-            "minute" : 0
-          },
-          "tz" : "UTC"
-        }
-      }
-    }]
+            "schedules": [
+              {
+                "id" : "rudder-daily-on-4-utc",
+                "e" : true,
+                "s" : {
+                  "type" : "daily",
+                  "start" : {
+                    "hour" : 4,
+                    "minute" : 0
+                  },
+                  "end" : {
+                    "hour" : 6,
+                    "minute" : 0
+                  },
+                  "tz" : "UTC"
+                }
+              }
+            ]
           }"""
       )
 

@@ -80,7 +80,7 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.typesafe.config.ConfigValue
 import org.joda.time.DateTime
 import scala.collection.immutable.TreeMap
@@ -289,7 +289,7 @@ final case class NodeConfiguration(
     nodeContext: Map[String, Variable],
     parameters:  Set[ParameterForConfiguration],
     // the list of schedules for directives in that node - on schedule can be referred in several policies
-    schedules:   List[DirectiveSchedule]
+    schedules:   List[JsonDirectiveSchedule]
 ) {
   def isRootServer: Boolean = nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID
 

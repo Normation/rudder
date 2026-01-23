@@ -76,7 +76,7 @@ import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.*
-import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.fetchInfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
@@ -435,7 +435,7 @@ trait PromiseGenerationService {
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
-      schedules:                 Map[CampaignId, DirectiveSchedule],
+      schedules:                 Map[CampaignId, JsonDirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
@@ -555,7 +555,7 @@ case class FetchAllInfo(
     maxParallelism:            Int,
     jsTimeout:                 FiniteDuration,
     generationContinueOnError: Boolean,
-    schedules:                 Map[CampaignId, DirectiveSchedule]
+    schedules:                 Map[CampaignId, JsonDirectiveSchedule]
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -669,7 +669,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
-      schedules:                 Map[CampaignId, DirectiveSchedule],
+      schedules:                 Map[CampaignId, JsonDirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
@@ -780,7 +780,7 @@ object BuildNodeConfiguration extends Loggable {
       nodeContexts:              Map[NodeId, InterpolationContext],
       allNodeModes:              Map[NodeId, NodeModeConfig],
       filteredTechniques:        Map[NodeId, List[TechniqueName]],
-      schedules:                 Map[CampaignId, DirectiveSchedule],
+      schedules:                 Map[CampaignId, JsonDirectiveSchedule],
       scriptEngineEnabled:       FeatureSwitch,
       globalPolicyMode:          GlobalPolicyMode,
       maxParallelism:            Int,
@@ -1188,7 +1188,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
           generationTime,
           None,
           allNodeModes(nodeId), // that shall not throw, because we have all nodes here
-
+          nodeConfig.schedules,
           RuleExpectedReportBuilder(nodeConfig.policies),
           overrides
         )
@@ -1243,6 +1243,7 @@ object RuleExpectedReportBuilder extends Loggable {
               pvar.policyId.directiveId,
               pvar.policyMode,
               policy.technique.policyTypes,
+              policy.scheduleId,
               componentsFromVariables(policy.technique, policy.id.directiveId, pvar)
             )
           }

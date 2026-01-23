@@ -134,7 +134,7 @@ import com.normation.rudder.rest.internal.SharedFilesAPI
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
-import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.eventlog.EventLogDetailsServiceImpl
@@ -420,7 +420,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         nodeContexts:              Map[NodeId, InterpolationContext],
         allNodeModes:              Map[NodeId, NodeModeConfig],
         filter:                    Map[NodeId, List[TechniqueName]],
-        schedules:                 Map[CampaignId, DirectiveSchedule],
+        schedules:                 Map[CampaignId, JsonDirectiveSchedule],
         scriptEngineEnabled:       FeatureSwitch,
         globalPolicyMode:          GlobalPolicyMode,
         maxParallelism:            Int,

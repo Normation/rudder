@@ -40,6 +40,7 @@ package com.normation.rudder.schedule
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignSerializer.*
 import com.softwaremill.quicklens.*
+import io.scalaland.chimney.*
 import zio.json.JsonCodec
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
@@ -71,3 +72,26 @@ case class DirectiveSchedule(info: CampaignInfo) extends DirectiveScheduleFamily
   override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
     this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))
 }
+
+object DirectiveSchedule {
+
+  // transform into json short representation of directive schedules
+  implicit val transformDirectiveSchedule: Transformer[DirectiveSchedule, JsonDirectiveSchedule] = {
+    Transformer
+      .define[DirectiveSchedule, JsonDirectiveSchedule]
+      .withFieldComputed(_.id, _.info.id)
+      .withFieldComputed(_.e, _.info.status.value == CampaignStatusValue.Enabled)
+      .withFieldComputed(_.s, _.info.schedule)
+      .buildTransformer
+  }
+
+}
+
+/*
+ * We need a short version of directive schedule to be kept in node configuration / expected reports
+ */
+case class JsonDirectiveSchedule(
+    id: CampaignId,
+    e:  Boolean,         // enabled == true <=> status == enabled, else false
+    s:  CampaignSchedule // that's a complicated data format, keep it like that
+) derives JsonCodec

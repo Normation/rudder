@@ -409,7 +409,7 @@ class NodeExpectedReportTest extends Specification {
                , "cs" : [
                    {
                      "vid": "tnoComponent"
-                   , "vs"       : [["None"]]
+                   , "vs" : [["None"]]
                    }
                  ]
                }
