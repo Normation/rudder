@@ -37,10 +37,14 @@
 
 package com.normation.rudder.ncf
 
+import better.files.File
+import cats.syntax.functor.*
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.Version
-import com.normation.rudder.batch.UpdateCompilationStatus
+import com.normation.rudder.batch.UpdateTechniqueStatus
 import com.normation.rudder.domain.logger.StatusLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.repository.FullActiveTechnique
@@ -62,8 +66,14 @@ case class EditorTechniqueCompilationResult(
     result:  CompilationResult
 )
 
+opaque type EditorTechniqueCheckResult = EditorTechniqueParsingError | EditorTechniqueCompilationResult
+object EditorTechniqueCheckResult {
+  def apply(res: EditorTechniqueCompilationResult): EditorTechniqueCheckResult = res
+  def apply(res: EditorTechniqueParsingError):      EditorTechniqueCheckResult = res
+}
+
 object EditorTechniqueCompilationResult {
-  def from(technique: EditorTechnique, output: TechniqueCompilationOutput) = {
+  def from(technique: EditorTechnique, output: TechniqueCompilationOutput): EditorTechniqueCompilationResult = {
     if (output.isError) {
       EditorTechniqueCompilationResult(technique.id, technique.version, technique.name, CompilationResult.Error(output.stderr))
     } else {
@@ -72,6 +82,7 @@ object EditorTechniqueCompilationResult {
   }
 }
 
+//TODO: this is "compilation error" ?
 case class EditorTechniqueError(
     id:           BundleName,
     version:      Version,
@@ -80,15 +91,43 @@ case class EditorTechniqueError(
     errorMessage: String
 )
 
-sealed trait CompilationStatus
-object CompilationStatus {
-  def fromErrors(errors: Chunk[EditorTechniqueError]): CompilationStatus = {
+case class EditorTechniqueParsingError(
+    id:           TechniqueId,
+    status:       TechniqueActiveStatus,
+    name:         String,
+    errorMessage: String
+) {
+  def version: TechniqueVersion = id.version
+}
+object EditorTechniqueParsingError      {
+  def from(technique: Technique, status: TechniqueActiveStatus, errorMsg: String): EditorTechniqueParsingError = {
+    EditorTechniqueParsingError(
+      technique.id,
+      status,
+      technique.name,
+      errorMsg
+    )
+  }
+}
+
+/**
+ * The state of editor techniques, where some can be syntactically invalid (parsing as EditorTechnique fails),
+ * and for those which are valid, the YAML compilation may fail with some output
+ */
+sealed trait EditorTechniqueStatus
+
+object EditorTechniqueStatus {
+  case object AllSuccess                                              extends EditorTechniqueStatus
+  case class Errors(parsingErrors: Chunk[EditorTechniqueParsingError], compilationErrors: Chunk[EditorTechniqueError]) extends EditorTechniqueStatus
+
+  def fromErrors(errors: Chunk[EditorTechniqueError | EditorTechniqueParsingError]): EditorTechniqueStatus = {
     NonEmptyChunk.fromChunk(errors) match {
-      case None        => CompilationStatusAllSuccess
-      case Some(value) => CompilationStatusErrors(value)
+      case None        => AllSuccess
+      case Some(err) => Errors(err.collect { case e: EditorTechniqueParsingError => e }, err.collect { case e: EditorTechniqueError => e })
     }
   }
 
+  /*
   def ignoreDisabledTechniques(status: CompilationStatus): CompilationStatus = {
     status match {
       case CompilationStatusErrors(techniquesInError) =>
@@ -96,21 +135,15 @@ object CompilationStatus {
       case CompilationStatusAllSuccess                =>
         CompilationStatusAllSuccess
     }
-  }
-}
-case object CompilationStatusAllSuccess extends CompilationStatus
-case class CompilationStatusErrors(techniquesInError: NonEmptyChunk[EditorTechniqueError]) extends CompilationStatus {
-  def ++(other: CompilationStatusErrors): CompilationStatusErrors = CompilationStatusErrors(
-    this.techniquesInError ++ other.techniquesInError
-  )
+  }*/
 }
 
 /**
-  * Get latest global techniques compilation results
+  * Get latest global techniques check results
   */
-trait ReadEditorTechniqueCompilationResult {
+trait ReadEditorTechniqueCheckResult {
 
-  def get(): IOResult[List[EditorTechniqueCompilationResult]]
+  def get(): IOResult[List[EditorTechniqueCheckResult]]
 
 }
 
@@ -156,33 +189,50 @@ trait TechniqueCompilationStatusSyncService {
 }
 
 /**
-  * Service to read the latest technique compilation results using the editor techniques 
-  * and the compiler which has access to the output from the editor techniques 
+  * Service to read the latest technique parsing or compilation results
+  * using the editor techniques and the compiler, which has access to the output from the editor techniques
   */
-class TechniqueCompilationStatusService(
+class TechniqueCheckStatusService(
     readTechniques:    EditorTechniqueReader,
     techniqueCompiler: TechniqueCompiler
-) extends ReadEditorTechniqueCompilationResult {
+) extends ReadEditorTechniqueCheckResult {
 
-  override def get(): IOResult[List[EditorTechniqueCompilationResult]] = {
+  override def get(): IOResult[List[EditorTechniqueCheckResult]] = {
     readTechniques.readTechniquesMetadataFile.flatMap {
-      // _._3 errors are not compilation errors but error on techniques, we ignore them for status
-      case (techniques, _, _) => {
+      // other errors than parsing and compilation are ignored for status
+      case ReadEditorTechnique(techniques, _, parsingErrors, _) => {
 
         val outputs = ZIO
           .foreach(techniques) { technique =>
-            techniqueCompiler
-              .getCompilationOutput(technique)
-              .map {
-                case None         => // we don't have output only in case of successful compilation
-                  EditorTechniqueCompilationResult(technique.id, technique.version, technique.name, CompilationResult.Success)
-                case Some(output) =>
-                  EditorTechniqueCompilationResult.from(technique, output)
-              }
+            ZIO
+              .succeed(
+                parsingErrors
+                  .find(err => technique.matchesPath(err.file))
+                  .map(EditorTechniqueCheckResult(_))
+              )
+              .someOrElseZIO(
+                techniqueCompiler
+                  .getCompilationOutput(technique)
+                  .map {
+                    case None         => // we don't have output only in case of successful compilation
+                      EditorTechniqueCheckResult(
+                        EditorTechniqueCompilationResult(
+                          technique.id,
+                          technique.version,
+                          technique.name,
+                          CompilationResult.Success
+                        )
+                      )
+                    case Some(output) =>
+                      EditorTechniqueCheckResult(
+                        EditorTechniqueCompilationResult.from(technique, output)
+                      )
+                  }
+              )
           }
 
         outputs <* StatusLoggerPure.Techniques.trace(
-          s"Get compilation status : read ${techniques.size} editor techniques to update compilation status with"
+          s"Get status of editor techniques : read ${techniques.size} editor techniques to update status with"
         )
 
       }
@@ -192,7 +242,7 @@ class TechniqueCompilationStatusService(
 }
 
 /**
-  * Service to gather technique attributes using the directive reposistory : 
+  * Service to gather technique attributes using the directive repository : 
   * it knows about active techniques and their status
   */
 class TechniqueActiveStatusService(directiveRepo: RoDirectiveRepository) extends ReadEditorTechniqueActiveStatus {
@@ -229,10 +279,12 @@ class TechniqueActiveStatusService(directiveRepo: RoDirectiveRepository) extends
   *
   * It is used mainly to get errors in the Rudder UI, and is updated when API requests to update techniques are made,
   * when technique library is reloaded
+ *
+ * TODO: error base is specific to compilation, so how does it translate to general "editorTechniqueStatus" to be shared with the actor ?
   */
 class TechniqueCompilationErrorsActorSync(
-    actor:            SimpleActor[UpdateCompilationStatus],
-    reader:           ReadEditorTechniqueCompilationResult,
+    actor:            SimpleActor[UpdateTechniqueStatus],
+    reader:           ReadEditorTechniqueCheckResult,
     attributesReader: ReadEditorTechniqueActiveStatus,
     errorBase:        Ref[Map[(BundleName, Version), EditorTechniqueError]]
 ) extends TechniqueCompilationStatusSyncService {
@@ -275,7 +327,10 @@ class TechniqueCompilationErrorsActorSync(
    */
   def getUpdateAndSync(results: Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = {
     (for {
-      res            <- results.map(_.succeed).getOrElse(reader.get())
+      res            <- results.map(_.succeed).getOrElse {
+                          // ignore parsing errors in this class which only synces compilation
+                          reader.get().map(_.collect { case c: EditorTechniqueCompilationResult => c })
+                        }
       activeStatuses <- attributesReader.getActiveStatuses()
       // ones without status are filtered out (if the status is unknown, they are ignored)
       resWithStatus   = res.flatMap(r => activeStatuses.get(r.id).map(r -> _))
@@ -295,7 +350,7 @@ class TechniqueCompilationErrorsActorSync(
    * Push the changes to comet actor
    */
   private[ncf] def syncStatusWithUi(status: CompilationStatus): IOResult[Unit] = {
-    IOResult.attempt(actor ! UpdateCompilationStatus(status))
+    IOResult.attempt(actor ! UpdateTechniqueStatus(status))
   }
 
   /**
@@ -373,8 +428,8 @@ class TechniqueCompilationErrorsActorSync(
 
 object TechniqueCompilationErrorsActorSync {
   def make(
-      actor:            SimpleActor[UpdateCompilationStatus],
-      reader:           ReadEditorTechniqueCompilationResult,
+      actor:            SimpleActor[UpdateTechniqueStatus],
+      reader:           ReadEditorTechniqueCheckResult,
       attributesReader: ReadEditorTechniqueActiveStatus
   ): UIO[TechniqueCompilationErrorsActorSync] = {
     Ref

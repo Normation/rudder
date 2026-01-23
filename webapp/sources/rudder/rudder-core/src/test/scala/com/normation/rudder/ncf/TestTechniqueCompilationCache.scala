@@ -40,7 +40,7 @@ package com.normation.rudder.ncf
 import better.files.File
 import com.normation.errors.*
 import com.normation.inventory.domain.Version
-import com.normation.rudder.batch.UpdateCompilationStatus
+import com.normation.rudder.batch.UpdateTechniqueStatus
 import com.normation.rudder.hooks.CmdResult
 import com.normation.zio.UnsafeRun
 import net.liftweb.actor.MockLiftActor
@@ -114,7 +114,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
   }
 
   // the SUT
-  private val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+  private val compilationStatusService: ReadEditorTechniqueCheckResult = new TechniqueCheckStatusService(
     editorTechniqueReader,
     techniqueCompiler
   )
@@ -235,7 +235,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
     "sync with UI" in {
       (writeCache.syncOne(newError) *> // println(mockActor.messages.head).succeed *>
       msgLock.withPermit(
-        (mockActor hasReceivedMessage_? UpdateCompilationStatus(expectedCompilationStatus ++ newErrorStatus)).succeed
+        (mockActor hasReceivedMessage_? UpdateTechniqueStatus(expectedCompilationStatus ++ newErrorStatus)).succeed
       )).runNow.aka("actor received message") must beTrue
       mockActor.messageCount must beEqualTo(1)
     }
@@ -307,7 +307,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       // bring the status back to Enabled
       (writeCache.syncTechniqueActiveStatus(newError.id) *>
       msgLock.withPermit(
-        (mockActor hasReceivedMessage_? UpdateCompilationStatus(newErrorStatus)).succeed
+        (mockActor hasReceivedMessage_? UpdateTechniqueStatus(newErrorStatus)).succeed
       )).runNow.aka("actor received message") must beTrue
       mockActor.messageCount must beEqualTo(2)
     }
@@ -315,7 +315,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
     "unsync one" in {
       (writeCache.unsyncOne(newError.id -> newError.version) *>
       msgLock.withPermit(
-        (mockActor hasReceivedMessage_? UpdateCompilationStatus(CompilationStatusAllSuccess)).succeed
+        (mockActor hasReceivedMessage_? UpdateTechniqueStatus(CompilationStatusAllSuccess)).succeed
       )).runNow.aka("actor received message") must beTrue
       mockActor.messageCount must beEqualTo(3)
     }

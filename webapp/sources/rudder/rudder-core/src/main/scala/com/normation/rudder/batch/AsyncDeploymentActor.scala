@@ -140,9 +140,10 @@ final case class DeploymentStatus(
     processing: DeployerState
 )
 
-case class UpdateCompilationStatus(
+case class UpdateTechniqueStatus(
     status: CompilationStatus
 )
+
 
 case class UpdatePropertiesStatus(
     nodes:  Map[NodeId, ResolvedNodePropertyHierarchy],
@@ -487,7 +488,7 @@ final class AsyncDeploymentActor(
     //
     // Updating state from technique compilation output result
     //
-    case UpdateCompilationStatus(status)                                                   => {
+    case UpdateTechniqueStatus(status)                                                   => {
       StatusLoggerPure.Techniques.logEffect.trace(
         s"Compilation status has a new update command with payload : ${status}"
       )

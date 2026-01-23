@@ -215,10 +215,10 @@ object TechniqueWriterImpl {
   private[ncf] def writeYaml(technique: EditorTechnique)(basePath: String): IOResult[String] = {
     import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
 
-    val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
+    val metadataPath = File(technique.path) / TechniqueFiles.yaml
 
     for {
-      path    <- FileUtils.sanitizePath(File(basePath), metadataPath)
+      path    <- FileUtils.checkSanitizedIsIn(File(basePath), metadataPath)
       content <- technique.toYaml().toIO
       _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
@@ -226,7 +226,7 @@ object TechniqueWriterImpl {
                    file.write(content)
                  }
     } yield {
-      metadataPath
+      metadataPath.pathAsString
     }
   }
 }

@@ -90,7 +90,7 @@ import com.normation.rudder.ncf.EditorTechniqueReaderImpl
 import com.normation.rudder.ncf.GenericMethod
 import com.normation.rudder.ncf.GitResourceFileService
 import com.normation.rudder.ncf.ReadEditorTechniqueActiveStatus
-import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.rudder.ncf.ReadEditorTechniqueCheckResult
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.RuddercOptions
@@ -98,7 +98,7 @@ import com.normation.rudder.ncf.RuddercResult
 import com.normation.rudder.ncf.RuddercService
 import com.normation.rudder.ncf.RuddercTechniqueCompiler
 import com.normation.rudder.ncf.TechniqueActiveStatus
-import com.normation.rudder.ncf.TechniqueCompilationStatusService
+import com.normation.rudder.ncf.TechniqueCheckStatusService
 import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
 import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
@@ -388,7 +388,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
   val techniqueCompiler = new RuddercTechniqueCompiler(
     rudderc,
-    _.path,
+    _.path.toString,
     mockGit.configurationRepositoryRoot.pathAsString
   )
 
@@ -411,7 +411,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def updateMethodsMetadataFile: IOResult[CmdResult]              = Inconsistency("this should not be called").fail
   }
 
-  val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+  val compilationStatusService: ReadEditorTechniqueCheckResult = new TechniqueCheckStatusService(
     editorTechniqueReader,
     techniqueCompiler
   )

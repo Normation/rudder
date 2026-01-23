@@ -588,7 +588,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         RuddercResult.Fail(42, Chunk.empty, "error:see implementation of test", "", "").succeed
       }
     },
-    _.path,
+    _.path.toString,
     basePath
   )
 

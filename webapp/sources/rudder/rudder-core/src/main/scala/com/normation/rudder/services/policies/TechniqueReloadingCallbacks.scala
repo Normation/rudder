@@ -120,6 +120,7 @@ class SyncCompilationStatusOnTechniqueCallback(
       actor:             EventActor,
       reason:            Option[String]
   ): Box[Unit] = {
+    //FIXME: this should include all checks
     techniqueCompilationStatusService.getUpdateAndSync().toBox
   }
 }
