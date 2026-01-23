@@ -1,0 +1,19 @@
+---
+name: Directory
+description: Ensure the state of a directory
+version: "0.0.1"
+documentation: "TODO"
+supported_targets: ["unix"]
+parameters:
+  path:
+    description: "Directory to manage"
+    constraints:
+      allow_empty: false
+      allow_whitespace_string: false
+    p_type: Path
+  state:
+    description: "Expected state"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: Bool
