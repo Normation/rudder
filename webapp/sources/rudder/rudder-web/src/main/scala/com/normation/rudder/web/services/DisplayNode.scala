@@ -979,7 +979,6 @@ object DisplayNode extends Loggable {
             "Last inventory date",
             StringEscapeUtils.escapeHtml4(node.lastInventoryDate.map(DateFormaterService.getDisplayDate).getOrElse("-"))
           ),
-          ("Policy server ID", StringEscapeUtils.escapeHtml4(sm.node.main.policyServerId.value)),
           (
             "Time zone",
             StringEscapeUtils.escapeHtml4(
