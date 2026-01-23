@@ -69,7 +69,6 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.eventlog.ModifyNodeGroup
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
@@ -78,10 +77,7 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
@@ -121,9 +117,6 @@ import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.ncf.TechniqueWriterImpl
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.AgentRunWithoutCompliance
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
@@ -159,10 +152,11 @@ import com.normation.rudder.services.policies.FindDependencies
 import com.normation.rudder.services.policies.InterpolationContext
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.NodeConfigurations
-import com.normation.rudder.services.policies.NodesContextResult
+import com.normation.rudder.services.policies.PolicyGenerationUpdateDynGroup
 import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.policies.RuleVal
+import com.normation.rudder.services.policies.fetchInfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.queries.DynGroupService
@@ -220,7 +214,6 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.annotation.nowarn
-import scala.collection.MapView
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -414,54 +407,13 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
   }
   val policyGeneration: PromiseGenerationService  = new PromiseGenerationService {
-    override def deploy():       Box[Set[NodeId]]                   = Full(Set())
-    override def getNodeFacts(): Box[MapView[NodeId, CoreNodeFact]] = ???
-    override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
-    override def getGroupLibrary():            Box[FullNodeGroupCategory]  = ???
-    override def getAllGlobalParameters:       Box[Seq[GlobalParameter]]   = ???
-    override def getGlobalComplianceMode():    Box[GlobalComplianceMode]   = ???
-    override def getGlobalAgentRun():          Box[AgentRunInterval]       = ???
-    override def getScriptEngineEnabled:       () => Box[FeatureSwitch]    = ???
-    override def getGlobalPolicyMode:          () => Box[GlobalPolicyMode] = ???
-    override def getComputeDynGroups:          () => Box[Boolean]          = ???
-    override def getMaxParallelism:            () => Box[String]           = ???
-    override def getJsTimeout:                 () => Box[Int]              = ???
-    override def getGenerationContinueOnError: () => Box[Boolean]          = ???
-    override def writeCertificatesPem(allNodeInfos: Map[NodeId, CoreNodeFact]): Unit = ???
-    override def triggerNodeGroupUpdate(): Box[Unit] = ???
+    override def deploy(): Box[Set[NodeId]] = Full(Set())
     override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
-    override def HOOKS_D:                     String                                               = ???
-    override def HOOKS_IGNORE_SUFFIXES:       List[String]                                         = ???
-    override def UPDATED_NODE_IDS_PATH:       String                                               = ???
-    override def GENERATION_FAILURE_MSG_PATH: String                                               = ???
-    override def getAppliedRuleIds(
-        rules:        Seq[Rule],
-        groupLib:     FullNodeGroupCategory,
-        directiveLib: FullActiveTechniqueCategory,
-        allNodeInfos: Map[NodeId, Boolean]
-    ): Set[RuleId] = ???
-    override def findDependantRules():        Box[Seq[Rule]]                                       = ???
-    override def buildRuleVals(
-        activesRules: Set[RuleId],
-        rules:        Seq[Rule],
-        directiveLib: FullActiveTechniqueCategory,
-        groupLib:     FullNodeGroupCategory,
-        allNodeInfos: Map[NodeId, Boolean]
-    ): Box[Seq[RuleVal]] = ???
-    override def getNodeProperties:           IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
-      ???
-    }
-    override def getNodeContexts(
-        nodeIds:              Set[NodeId],
-        allNodeInfos:         Map[NodeId, CoreNodeFact],
-        inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
-        allGroups:            FullNodeGroupCategory,
-        globalParameters:     List[GlobalParameter],
-        globalAgentRun:       AgentRunInterval,
-        globalComplianceMode: ComplianceMode,
-        globalPolicyMode:     GlobalPolicyMode
-    ): Box[NodesContextResult] = ???
-    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]                     = ???
+    override def HOOKS_D:                     String                                  = ???
+    override def HOOKS_IGNORE_SUFFIXES:       List[String]                            = ???
+    override def UPDATED_NODE_IDS_PATH:       String                                  = ???
+    override def GENERATION_FAILURE_MSG_PATH: String                                  = ???
+    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]        = ???
     override def buildNodeConfigurations(
         activeNodeIds:             Set[NodeId],
         ruleVals:                  Seq[RuleVal],
@@ -475,7 +427,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         generationContinueOnError: Boolean
     ): Box[NodeConfigurations] = ???
     override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
-    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]]              = ???
+    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]] = ???
     override def getNodesConfigVersion(
         allNodeConfigs: Map[NodeId, NodeConfiguration],
         hashes:         Map[NodeId, NodeConfigurationHash],
@@ -497,8 +449,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         allNodeModes:          Map[NodeId, NodeModeConfig]
     ): List[NodeExpectedReports] = ???
     override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
-    override def runPreHooks(generationTime:        DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
-    override def runStartedHooks(generationTime:    DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
+    override def runPreHooks(generationTime:     DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
+    override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
     override def runPostHooks(
         generationTime:    DateTime,
         endTime:           DateTime,
@@ -513,9 +465,13 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         errorMessage:     String,
         errorMessagePath: String
     ): Box[Unit] = ???
+
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
 
     override def ruleValGeneratedHookService: RuleValGeneratedHookService = new RuleValGeneratedHookService()
+
+    override def policyGenerationUpdateDynGroup: PolicyGenerationUpdateDynGroup = ???
+    override def fetchAllInfoService:            FetchAllInfoService            = ???
   }
   val bootGuard:        Promise[Nothing, Unit]    = (for {
     p <- Promise.make[Nothing, Unit]
