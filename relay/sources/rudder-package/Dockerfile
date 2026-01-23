@@ -1,4 +1,4 @@
-FROM rust:1.92.0-trixie
+FROM rust:1.93.0-trixie
 LABEL ci=rudder/relay/sources/rudder-package/Dockerfile
 
 ARG USER_ID=1000

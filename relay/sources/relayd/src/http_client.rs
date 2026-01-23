@@ -61,13 +61,14 @@ impl HttpClientBuilder {
     // Not very efficient as we parse a cert just dumped by openssl
     pub fn pinned(self, certs: Vec<PemCertificate>) -> Result<HttpClient, Error> {
         debug!("Creating HTTP client with pinned certificates");
-        let mut client = self
+        let parsed_certs = certs
+            .iter()
+            .map(|c| Certificate::from_pem(c))
+            .collect::<Result<Vec<Certificate>, _>>()?;
+        let client = self
             .builder
             .danger_accept_invalid_hostnames(true)
-            .tls_built_in_root_certs(false);
-        for cert in &certs {
-            client = client.add_root_certificate(Certificate::from_pem(cert)?);
-        }
+            .tls_certs_only(parsed_certs);
         Ok(HttpClient::Pinned(client.build()?, certs))
     }
 
