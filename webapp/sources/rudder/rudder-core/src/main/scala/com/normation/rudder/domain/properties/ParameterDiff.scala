@@ -39,6 +39,7 @@ package com.normation.rudder.domain.properties
 
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
+import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.ConfigValue
 
 sealed trait ParameterDiff extends TriggerDeploymentDiff
@@ -63,10 +64,11 @@ final case class ModifyGlobalParameterDiff(
     modDescription: Option[SimpleDiff[String]] = None,
     modProvider:    Option[SimpleDiff[Option[PropertyProvider]]] = None,
     modInheritMode: Option[SimpleDiff[Option[InheritMode]]] = None,
-    modVisibility:  Option[SimpleDiff[Option[Visibility]]] = None
+    modVisibility:  Option[SimpleDiff[Option[Visibility]]] = None,
+    modSecurityTag: Option[SimpleDiff[Option[SecurityTag]]] = None
 ) extends ParameterDiff {
   def needDeployment: Boolean = {
-    modValue.isDefined || modInheritMode.isDefined
+    modValue.isDefined || modInheritMode.isDefined || modSecurityTag.isDefined
   }
 }
 

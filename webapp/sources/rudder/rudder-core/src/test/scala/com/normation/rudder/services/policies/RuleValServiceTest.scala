@@ -152,7 +152,8 @@ class RuleValServiceTest extends Specification {
     longDescription = "longDescription",
     priority = 5,
     _isEnabled = true,
-    isSystem = false
+    isSystem = false,
+    security = None
   )
 
   val rule: Rule = Rule(
@@ -164,7 +165,8 @@ class RuleValServiceTest extends Specification {
     shortDescription = "",
     longDescription = "",
     isEnabledStatus = true,
-    isSystem = false
+    isSystem = false,
+    security = None
   )
 
   val fullActiveTechnique: FullActiveTechnique = {
@@ -175,7 +177,8 @@ class RuleValServiceTest extends Specification {
       techniques = SortedMap((techniqueId.version, technique)),
       directives = List(directive),
       isEnabled = true,
-      policyTypes = PolicyTypes.rudderBase
+      policyTypes = PolicyTypes.rudderBase,
+      security = None
     )
   }
 
@@ -187,7 +190,8 @@ class RuleValServiceTest extends Specification {
       description = "description",
       subCategories = Nil,
       activeTechniques = List(fullActiveTechnique),
-      isSystem = false
+      isSystem = false,
+      security = None
     )
   }
 

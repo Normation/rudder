@@ -49,10 +49,10 @@ import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.api.HttpAction.POST
 import com.normation.rudder.api.HttpAction.PUT
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.EndpointSchema.syntax.*
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider
@@ -208,7 +208,7 @@ class UserManagementApiImpl(
     userRepo:                  UserRepository,
     userService:               FileUserDetailListProvider,
     userManagementService:     UserManagementService,
-    tenantsService:            TenantService,
+    tenantRepository:          TenantService,
     getProviderRoleExtensions: () => Map[String, ProviderRoleExtension],
     getAuthBackendsProviders:  () => Set[String]
 ) extends LiftApiModuleProvider[UserManagementApi] {
@@ -277,7 +277,7 @@ class UserManagementApiImpl(
                     val userWithoutPermissions = transformUser(
                       u.id,
                       u.status,
-                      NodeSecurityContext.None,
+                      TenantAccessGrant.None,
                       Rights(),
                       u,
                       Map(u.managedBy -> JsonProviderInfo.from(Set.empty, Rights(), u.managedBy)),
@@ -292,7 +292,7 @@ class UserManagementApiImpl(
                           case _                                =>
                             transformProvidedUser(
                               u,
-                              NodeSecurityContext.All,
+                              TenantAccessGrant.All,
                               lastSession
                             ) // default value for tenants is "all" if not in file
                         }
@@ -308,7 +308,7 @@ class UserManagementApiImpl(
                           transformUser(
                             currentUserDetails.getUsername,
                             currentUserDetails.status,
-                            currentUserDetails.nodePerms,
+                            currentUserDetails.accessGrant,
                             currentUserDetails.authz,
                             u,
                             Map(fileProviderInfo.provider -> fileProviderInfo),
@@ -319,11 +319,11 @@ class UserManagementApiImpl(
                           mainProviderRoleExtension match {
                             case Some(ProviderRoleExtension.WithOverride) =>
                               // Do not recompute roles nor roles coverage, because file roles are overridden by provider roles
-                              transformProvidedUser(u, currentUserDetails.nodePerms, lastSession)
+                              transformProvidedUser(u, currentUserDetails.accessGrant, lastSession)
                                 .addProviderInfo(fileProviderInfo)
                             case Some(ProviderRoleExtension.NoOverride)   =>
                               // Merge the previous session roles with the file roles and recompute role coverage over the merge result
-                              transformProvidedUser(u, currentUserDetails.nodePerms, lastSession)
+                              transformProvidedUser(u, currentUserDetails.accessGrant, lastSession)
                                 .merge(fileProviderInfo)
                                 .withRoleCoverage(currentUserDetails)
                             case Some(ProviderRoleExtension.None)         =>
@@ -334,7 +334,7 @@ class UserManagementApiImpl(
                               transformUser(
                                 currentUserDetails.getUsername,
                                 currentUserDetails.status,
-                                currentUserDetails.nodePerms,
+                                currentUserDetails.accessGrant,
                                 currentUserDetails.authz,
                                 u,
                                 Map(fileProviderInfo.provider -> fileProviderInfo),
@@ -597,13 +597,13 @@ class UserManagementApiImpl(
     val roleListOverride       = providerRoleExtensions.values.max
     val providersProperties    = providerRoleExtensions.view.mapValues(_.transformInto[JsonProviderProperty]).toMap
 
-    JsonAuthConfig(roleListOverride, getAuthBackendsProviders(), providersProperties, users, tenantsService.tenantsEnabled)
+    JsonAuthConfig(roleListOverride, getAuthBackendsProviders(), providersProperties, users, tenantRepository.tenantsEnabled)
   }
 
   private def transformUser(
       username:      String,
       status:        UserStatus,
-      nodePerms:     NodeSecurityContext,
+      nodePerms:     TenantAccessGrant,
       authz:         Rights,
       info:          UserInfo,
       providersInfo: Map[String, JsonProviderInfo],
@@ -651,7 +651,7 @@ class UserManagementApiImpl(
 
   implicit def transformDbUserToJsonUser(implicit
       userInfo:      UserInfo,
-      nodePerms:     NodeSecurityContext,
+      nodePerms:     TenantAccessGrant,
       previousLogin: Option[DateTime]
   ): Transformer[UserSession, JsonUser] = {
     def getDisplayPermissions(userSession: UserSession): JsonRoles = {
@@ -700,7 +700,7 @@ class UserManagementApiImpl(
    * Current user permissions may be different if they have changed since we saved the user info, roles may also no longer exist,
    * so we do not attempt to parse as roles, but we still need to transform roles that are aliases or that are unnamed.
    */
-  private def transformProvidedUser(userInfo: UserInfo, nodePerms: NodeSecurityContext, lastSession: Option[UserSession])(implicit
+  private def transformProvidedUser(userInfo: UserInfo, nodePerms: TenantAccessGrant, lastSession: Option[UserSession])(implicit
       allRoles:      Set[Role],
       previousLogin: Option[DateTime]
   ): JsonUser = {
@@ -709,7 +709,7 @@ class UserManagementApiImpl(
         transformUser(
           userInfo.id,
           userInfo.status,
-          NodeSecurityContext.None,
+          TenantAccessGrant.None,
           Rights(),
           userInfo,
           Map(userInfo.managedBy -> JsonProviderInfo.from(Set.empty, Rights(), userInfo.managedBy)),
@@ -717,18 +717,18 @@ class UserManagementApiImpl(
         )
       }
       case Some(userSession) => {
-        implicit val user:    UserInfo            = userInfo
-        implicit val tenants: NodeSecurityContext = nodePerms
+        implicit val user:    UserInfo          = userInfo
+        implicit val tenants: TenantAccessGrant = nodePerms
         userSession.transformInto[JsonUser]
       }
     }
   }
 
-  private def getDisplayTenants(nodePerms: NodeSecurityContext): String = {
+  private def getDisplayTenants(nodePerms: TenantAccessGrant): String = {
     nodePerms match {
-      case NodeSecurityContext.All                => "all"
-      case NodeSecurityContext.None               => "none"
-      case NodeSecurityContext.ByTenants(tenants) => tenants.map(_.value).mkString(",")
+      case TenantAccessGrant.All                => "all"
+      case TenantAccessGrant.None               => "none"
+      case TenantAccessGrant.ByTenants(tenants) => tenants.map(_.value).mkString(",")
     }
   }
 }

@@ -41,7 +41,7 @@ import better.files.File
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import zio.*
 import zio.syntax.*
 

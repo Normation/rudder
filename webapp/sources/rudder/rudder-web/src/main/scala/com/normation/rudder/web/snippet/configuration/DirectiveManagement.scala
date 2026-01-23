@@ -56,10 +56,10 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.DontCare
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.DirectiveEditForm
 import com.normation.rudder.web.components.DisplayColumn
@@ -105,7 +105,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private val techniqueRepository = RudderConfig.techniqueRepository
   private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private val getRules            = () => RudderConfig.roRuleRepository.getAll()
-  private val getGroups           = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getGroups           = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val uuidGen             = RudderConfig.stringUuidGenerator
   private val linkUtil            = RudderConfig.linkUtil
   private val configService       = RudderConfig.configService
@@ -725,7 +725,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             None,
             "",
             5,
-            _isEnabled = true
+            _isEnabled = true,
+            security = CurrentUser.nodePerms.toSecurityTag
           )
         }
         updateDirectiveSettingForm(
@@ -939,13 +940,7 @@ object DirectiveManagement {
   def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd): JsCmd = {
     val msg = (if (status) "Enable" else "Disable") ++ "technique from directive library screen"
     RudderConfig.woDirectiveRepository
-      .changeStatus(
-        activeTechniqueId,
-        status,
-        ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-        CurrentUser.actor,
-        Some(msg)
-      )
+      .changeStatus(activeTechniqueId, status)(using CurrentUser.changeContext(Some(msg)))
       .either
       .runNow match {
       case Left(err) =>

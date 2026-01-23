@@ -51,8 +51,7 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -206,14 +205,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     )
   )
 
-  val tenantService = DefaultTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
+  val tenantRepository = InMemoryTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
   // enable tenants for these tests
-  tenantService.setTenantEnabled(true).runNow
+  tenantRepository.setTenantEnabled(true).runNow
+
+  val tenantService = new DefaultTenantCheckLogic()
 
   val factRepo: CoreNodeFactRepository = {
     val trailCB = CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event)))
 //   val logCB = CoreNodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
-    CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, tenantService, Chunk(trailCB)).runNow
+    CoreNodeFactRepository.make(factStorage, nodeBySoftwareName, tenantRepository, tenantService, Chunk(trailCB)).runNow
   }
 
 //  org.slf4j.LoggerFactory
@@ -262,12 +263,12 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit val testChangeContext: ChangeContext = {
     ChangeContext(
-      ModificationId("test-mod-id"),
       EventActor("test"),
+      QueryContext.testQC.accessGrant,
+      ModificationId("test-mod-id"),
       Instant.now(),
       None,
-      None,
-      QueryContext.testQC.nodePerms
+      None
     )
   }
   implicit val qc:                QueryContext  = QueryContext.todoQC
@@ -425,15 +426,15 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
      */
     val ccA = ChangeContext
       .newForRudder()
-      .modify(_.nodePerms)
-      .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
+      .modify(_.accessGrant)
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
 
-    val qcNone = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.None)
-    val qcA    = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"))))
-    val qcB    = QueryContext.testQC.modify(_.nodePerms).setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneB"))))
+    val qcNone = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.None)
+    val qcA    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
+    val qcB    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
     val qcAB   = QueryContext.testQC
-      .modify(_.nodePerms)
-      .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+      .modify(_.accessGrant)
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
     val nodeId = NodeId("node0")
 
     "allow to filter all nodes with no access" in {
@@ -463,7 +464,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "when the plugin is enable, we can change security tag for node" in {
 
       val (nodesA, nodesB) = (for {
-        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(TenantId("zoneB")))))(using
+        _      <- factRepo.setSecurityTag(nodeId, Some(SecurityTag.ByTenants(Chunk(TenantId("zoneB")))))(using
                     ChangeContext.newForRudder()
                   ) // admin can change from zoneA to zoneB
         nodesA <- factRepo.getAll()(using qcA, SelectNodeStatus.Accepted)
@@ -479,7 +480,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val nonExistingTenantId = TenantId("zoneXXX")
 
       val res = (for {
-        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
+        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag.ByTenants(Chunk(nonExistingTenantId))))(using
+               ChangeContext.newForRudder()
+             )
       } yield ()).either.runNow
 
       res must beLike {
@@ -497,7 +500,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       res must beLike {
         case Left(err) =>
-          err.fullMsg must beMatching(""".*\QNode 'node0' [zoneB] can't be modified by 'rudder' (perm:tags:[zoneA])\E.*""")
+          err.fullMsg must beMatching(""".*\QObject 'node0' [zoneB] can't be modified by 'rudder' (perm:tags:[zoneA])\E.*""")
       }
     }
 
@@ -506,23 +509,25 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val res = (for {
         n      <- factRepo.get(nodeId)(using qcB).notOptional(s"node0 must be there for tests")
-        newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
+        newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag.ByTenants(Chunk(nonExistingTenantId))))
         e      <- factRepo.save(newNode)(using ChangeContext.newForRudder())
       } yield e).runNow
 
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
     }
 
-    "when the plugin is disabled, we don't change tenants on setSecurityContext, we just keep the existing one in storage" in {
+    "setSecurityContext keeps the existing one in storage even if admin change them" in {
       val nonExistingTenantId = TenantId("zoneXXX")
 
-      tenantService.setTenantEnabled(false).runNow
+      tenantRepository.setTenantEnabled(false).runNow
 
       val res = (for {
-        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
+        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag.ByTenants(Chunk(nonExistingTenantId))))(using
+               ChangeContext.newForRudder()
+             )
       } yield e).runNow
 
-      tenantService.setTenantEnabled(true).runNow
+      tenantRepository.setTenantEnabled(true).runNow
 
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
     }
@@ -531,16 +536,14 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val nodes = (for {
         // keep for restoration but remove all tenant
-        initTs <- tenantService.tenantIds.getAndSet(Set())
-        nodes  <- factRepo
-                    .getAll()(using
-                      QueryContext.testQC
-                        .modify(_.nodePerms)
-                        .setTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))),
-                      SelectNodeStatus.Accepted
-                    )
+        initTs  <- tenantRepository.tenantIds.getAndSet(Set())
+        qc       = QueryContext.testQC
+                     .modify(_.accessGrant)
+                     .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+        refined <- tenantRepository.refineTenantAccessGrant(qc.accessGrant)
+        nodes   <- factRepo.getAll()(using qc.copy(accessGrant = refined), SelectNodeStatus.Accepted)
         // restore tenants
-        _      <- tenantService.tenantIds.set(initTs)
+        _       <- tenantRepository.tenantIds.set(initTs)
       } yield nodes).runNow
 
       nodes must beEmpty

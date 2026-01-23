@@ -42,6 +42,7 @@ import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.policies.TriggerDeploymentDiff
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.tenants.SecurityTag
 
 /**
  * That file defines "diff" objects for NodeGroups (groups, etc).
@@ -78,11 +79,13 @@ final case class ModifyNodeGroupDiff(
     modNodeList:    Option[SimpleDiff[Set[NodeId]]] = None,
     modIsActivated: Option[SimpleDiff[Boolean]] = None,
     modIsSystem:    Option[SimpleDiff[Boolean]] = None,
-    modCategory:    Option[SimpleDiff[NodeGroupCategoryId]] = None
+    modCategory:    Option[SimpleDiff[NodeGroupCategoryId]] = None,
+    modSecurityTag: Option[SimpleDiff[Option[SecurityTag]]] = None
 ) extends NodeGroupDiff {
 
   def needDeployment: Boolean = {
     modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined ||
-    modIsActivated.isDefined || modName.isDefined || modProperties.isDefined
+    modIsActivated.isDefined || modName.isDefined || modProperties.isDefined ||
+    modSecurityTag.isDefined
   }
 }

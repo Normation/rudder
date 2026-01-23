@@ -95,8 +95,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.rudder.tenants.TenantId
-import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
@@ -195,16 +194,17 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeGroups.find(_.id == id).map((_, NodeGroupCategoryId("cat1"))).succeed
     }
 
-    def getFullGroupLibrary(): IOResult[FullNodeGroupCategory] = {
+    override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
       FullNodeGroupCategory(
         NodeGroupCategoryId("GroupRoot"),
         name = "GroupRoot",
         description = "root of group categories",
         subCategories = Nil,
         targetInfos = nodeGroups.map(g => {
-          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem)
+          FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
-        isSystem = true
+        isSystem = true,
+        security = None
       ).succeed
     }
 
@@ -388,7 +388,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = (1 to 2).map(nodeId).toSet,
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val g2: NodeGroup = NodeGroup(
@@ -399,7 +400,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(2)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val g3: NodeGroup = NodeGroup(
@@ -410,7 +412,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(1)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val r1: Rule = Rule(
@@ -418,7 +421,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R1",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id)),
-      Set(directives.techniqueWithBlocksDirective.id)
+      Set(directives.techniqueWithBlocksDirective.id),
+      security = None
     )
 
     val r2: Rule = Rule(
@@ -428,7 +432,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
       ), // include G1 but not G2, ie only node1
-      Set(directives.fileTemplateVariables2.id)
+      Set(directives.fileTemplateVariables2.id),
+      security = None
     )
 
     val r3: Rule = Rule(
@@ -436,7 +441,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R3",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id), GroupTarget(g3.id)),
-      Set(directives.rpmDirective.id)
+      Set(directives.rpmDirective.id),
+      security = None
     )
 
     val simpleCustomRules: List[Rule] = List(r1, r2, r3)
@@ -475,7 +481,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(1), nodeId(2)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g2: NodeGroup = NodeGroup(
       nodeGroupId(2),
@@ -485,7 +492,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(2)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g3: NodeGroup = NodeGroup(
       nodeGroupId(3),
@@ -495,7 +503,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(1)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g4: NodeGroup = NodeGroup(
       nodeGroupId(4),
@@ -505,7 +514,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(3), nodeId(4), nodeId(5)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g5: NodeGroup = NodeGroup(
       nodeGroupId(5),
@@ -515,7 +525,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(2), nodeId(3)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
     val g6: NodeGroup = NodeGroup(
       nodeGroupId(6),
@@ -525,7 +536,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       query = None,
       isDynamic = false,
       serverList = Set(nodeId(4), nodeId(5)),
-      _isEnabled = true
+      _isEnabled = true,
+      security = None
     )
 
     val d1 = directives.fileTemplateDirecive1
@@ -540,7 +552,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R1",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id)),
-      Set(d1.id)
+      Set(d1.id),
+      security = None
     )
 
     val r2: Rule = Rule(
@@ -550,7 +563,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
       ), // include G1 but not G2
-      Set(d2.id)
+      Set(d2.id),
+      security = None
     )
 
     val r3: Rule = Rule(
@@ -558,7 +572,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R3",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g2.id), GroupTarget(g3.id)),
-      Set(d3.id)
+      Set(d3.id),
+      security = None
     )
 
     val r4: Rule = Rule(
@@ -566,7 +581,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R4",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g4.id), GroupTarget(g5.id)),
-      Set(d4.id)
+      Set(d4.id),
+      security = None
     )
 
     val r5: Rule = Rule(
@@ -576,7 +592,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g6.id))), TargetIntersection(Set(GroupTarget(g4.id))))
       ), // include G6 but not G4 (no node at all)
-      Set(d5.id)
+      Set(d5.id),
+      security = None
     )
 
     val r6: Rule = Rule(
@@ -584,7 +601,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R6",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g6.id)),
-      Set(d4.id, d6.id)
+      Set(d4.id, d6.id),
+      security = None
     )
 
     val complexStatusReports: Map[NodeId, NodeStatusReport] = Map(
@@ -894,26 +912,10 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val providerRoleExtension: Map[String, ProviderRoleExtension] = Map("file" -> ProviderRoleExtension.WithOverride)
   val authBackendProviders:  Set[String]                        = Set("file")
 
-  object tenantsService extends TenantService {
-    override def tenantsEnabled: Boolean            = false
-    override def getTenants():   UIO[Set[TenantId]] = ???
-    override def updateTenants(ids:                             Set[TenantId]): IOResult[Unit] = ???
-    override def nodeFilter[A <: MinimalNodeFactInterface](opt: Option[A])(implicit qc:          QueryContext): UIO[Option[A]]     = ???
-    override def nodeFilterStream(s:                            IOStream[NodeFact])(implicit qc: QueryContext): IOStream[NodeFact] = ???
-    override def nodeFilterMapView(nodes: Ref[Map[NodeId, CoreNodeFact]])(implicit
-        qc: QueryContext
-    ): IOResult[MapView[NodeId, CoreNodeFact]] = ???
-    override def nodeGetMapView(nodes: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
-        qc: QueryContext
-    ): IOResult[Option[CoreNodeFact]] = ???
-    override def manageUpdate[A](existing: Option[CoreNodeFact], updated: NodeFact, cc: ChangeContext)(
-        action: NodeFact => IOResult[A]
-    ): IOResult[A] = ???
-    override def checkDelete(
-        existing:         CoreNodeFact,
-        cc:               ChangeContext,
-        availableTenants: Set[TenantId]
-    ): Either[RudderError, CoreNodeFact] = ???
+  object tenantRepo extends TenantService {
+    override def tenantsEnabled: Boolean           = false
+    override def getStatus:      UIO[TenantStatus] = TenantStatus.Disabled.succeed
+    override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = ???
   }
 }
 
@@ -1011,7 +1013,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         lastAuthenticationDate = None,
-        NodeSecurityContext.All
+        TenantAccessGrant.All
       ),
       // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
       ApiAccount(
@@ -1023,7 +1025,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = false,     // done when reading account
         creationDate = accountCreationDate,
         lastAuthenticationDate = None,
-        NodeSecurityContext.All
+        TenantAccessGrant.All
       ),
       // a standard admin account with rights on everything/all tenants
       ApiAccount(
@@ -1035,7 +1037,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         lastAuthenticationDate = None,
-        NodeSecurityContext.All
+        TenantAccessGrant.All
       ),
       // limited account
       ApiAccount(
@@ -1050,7 +1052,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         lastAuthenticationDate = Some(accountCreationDate.plus(1.minute)),
-        NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
+        TenantAccessGrant.ByTenants(Chunk(TenantId("zone1")))
       )
     ).map(a => (a.id, a)).toMap
   }

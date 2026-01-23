@@ -55,13 +55,13 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.MethodBlock
 import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.tenants.QueryContext
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.Filter
 import java.util.regex.Pattern

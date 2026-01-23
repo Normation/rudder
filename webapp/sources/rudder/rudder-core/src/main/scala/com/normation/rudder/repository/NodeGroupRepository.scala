@@ -38,14 +38,13 @@
 package com.normation.rudder.repository
 
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.Utils
 import com.unboundid.ldif.LDIFChangeRecord
 import scala.collection.MapView
@@ -90,7 +89,8 @@ final case class FullNodeGroupCategory(
     description:   String,
     subCategories: List[FullNodeGroupCategory],
     targetInfos:   List[FullRuleTargetInfo],
-    isSystem:      Boolean = false
+    isSystem:      Boolean,
+    security:      Option[SecurityTag]
 ) {
 
   def toNodeGroupCategory: NodeGroupCategory = NodeGroupCategory(
@@ -99,7 +99,8 @@ final case class FullNodeGroupCategory(
     description = description,
     children = subCategories.map(_.id),
     items = targetInfos.map(_.toTargetInfo),
-    isSystem = isSystem
+    isSystem = isSystem,
+    security = security
   )
 
   /**
@@ -137,7 +138,7 @@ final case class FullNodeGroupCategory(
   }
 
   val ownGroups: Map[NodeGroupId, FullGroupTarget] = targetInfos.collect {
-    case FullRuleTargetInfo(g: FullGroupTarget, _, _, _, _) => (g.nodeGroup.id, g)
+    case FullRuleTargetInfo(g: FullGroupTarget, _, _, _, _, _) => (g.nodeGroup.id, g)
   }.toMap
 
   val allGroups: Map[NodeGroupId, FullGroupTarget] = (
@@ -204,7 +205,7 @@ final case class FullNodeGroupCategory(
    */
   def getGroupTarget(node: CoreNodeFact): Map[RuleTarget, FullGroupTarget] = {
     allTargets.collect {
-      case (t, FullRuleTargetInfo(groupTarget: FullGroupTarget, _, _, _, _))
+      case (t, FullRuleTargetInfo(groupTarget: FullGroupTarget, _, _, _, _, _))
           if groupTarget.nodeGroup.serverList.contains(node.id) =>
         t -> groupTarget
     }
@@ -219,7 +220,7 @@ trait RoNodeGroupRepository {
    * for categories and groups.
    * Returns the objects sorted by name within
    */
-  def getFullGroupLibrary(): IOResult[FullNodeGroupCategory]
+  def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory]
 
   def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean]
 
@@ -346,7 +347,7 @@ trait RoNodeGroupRepository {
   /**
    * Return the list of parents for that category, the nearest parent
    * first, until the root of the library.
-   * The the last parent is not the root of the library, return a Failure.
+   * The last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
   def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]]
@@ -391,23 +392,12 @@ trait WoNodeGroupRepository {
    * The id provided by the nodeGroup will  be used to save it inside the repository
    * return the newly created server group
    */
-  def create(
-      group: NodeGroup,
-      into:  NodeGroupCategoryId,
-      modId: ModificationId,
-      actor: EventActor,
-      why:   Option[String]
-  ): IOResult[AddNodeGroupDiff]
+  def create(group: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff]
 
   /**
-   * Used in relay-server plugin
+   * Used in relay-server plugin.
    */
-  def createPolicyServerTarget(
-      target: PolicyServerTarget,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[LDIFChangeRecord]
+  def createPolicyServerTarget(target: PolicyServerTarget)(implicit cc: ChangeContext): IOResult[LDIFChangeRecord]
 
   /**
    * Update the given existing group
@@ -417,34 +407,19 @@ trait WoNodeGroupRepository {
    *
    * System group can not be updated with that method.
    */
-  def update(
-      group:          NodeGroup,
-      modId:          ModificationId,
-      actor:          EventActor,
-      whyDescription: Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]]
+  def update(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Only add / remove some nodes in an atomic way from the group
    */
-  def updateDiffNodes(
-      group:          NodeGroupId,
-      add:            List[NodeId],
-      delete:         List[NodeId],
-      modId:          ModificationId,
-      actor:          EventActor,
-      whyDescription: Option[String]
+  def updateDiffNodes(group: NodeGroupId, add: List[NodeId], delete: List[NodeId])(implicit
+      cc: ChangeContext
   ): IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Update the given existing system group
    */
-  def updateSystemGroup(
-      group:  NodeGroup,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]]
+  def updateSystemGroup(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Update the given existing dynamic group, and only the node list
@@ -457,12 +432,7 @@ trait WoNodeGroupRepository {
    * so you will have to manage rule deployment
    * if needed
    */
-  def updateDynGroupNodes(
-      group:          NodeGroup,
-      modId:          ModificationId,
-      actor:          EventActor,
-      whyDescription: Option[String]
-  ): IOResult[Option[ModifyNodeGroupDiff]]
+  def updateDynGroupNodes(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Move the given existing group to the new container.
@@ -475,10 +445,9 @@ trait WoNodeGroupRepository {
    * so you will have to manage rule deployment
    * if needed
    */
-  def move(
-      group:       NodeGroupId,
-      containerId: NodeGroupCategoryId
-  )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]]
+  def move(group: NodeGroupId, containerId: NodeGroupCategoryId)(implicit
+      cc: ChangeContext
+  ): IOResult[Option[ModifyNodeGroupDiff]]
 
   /**
    * Delete the given nodeGroup.
@@ -486,18 +455,14 @@ trait WoNodeGroupRepository {
    * @param id
    * @return
    */
-  def delete(
-      id:             NodeGroupId,
-      modId:          ModificationId,
-      actor:          EventActor,
-      whyDescription: Option[String]
-  ): IOResult[DeleteNodeGroupDiff]
+  def delete(id: NodeGroupId)(implicit cc: ChangeContext): IOResult[DeleteNodeGroupDiff]
 
   /**
    * Delete the given policyServerTarget.
    * If no policyServerTarget has such id in the directory, return a success.
+   * Used in ScaleOutRelay plugin.
    */
-  def deletePolicyServerTarget(policyServer: PolicyServerTarget): IOResult[PolicyServerTarget]
+  def deletePolicyServerTarget(policyServer: PolicyServerTarget)(implicit cc: ChangeContext): IOResult[PolicyServerTarget]
 
   /**
    * Add that group category into the given parent category
@@ -506,53 +471,31 @@ trait WoNodeGroupRepository {
    *
    * return the new category.
    */
-  def addGroupCategorytoCategory(
-      that: NodeGroupCategory,
-      into: NodeGroupCategoryId, // parent category
-
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
+  def addGroupCategoryToCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
+      cc: ChangeContext
   ): IOResult[NodeGroupCategory]
 
   /**
    * Update an existing group category
    */
-  def saveGroupCategory(
-      category:       NodeGroupCategory,
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
-  ): IOResult[NodeGroupCategory]
+  def saveGroupCategory(category: NodeGroupCategory)(implicit cc: ChangeContext): IOResult[NodeGroupCategory]
 
   /**
     * Update/move an existing group category
     */
-  def saveGroupCategory(
-      category:       NodeGroupCategory,
-      containerId:    NodeGroupCategoryId,
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
+  def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId)(implicit
+      cc: ChangeContext
   ): IOResult[NodeGroupCategory]
 
   /**
    * Delete the category with the given id.
    * If no category with such id exists, it is a success.
-   * If checkEmtpy is set to true, the deletion may be done only if
-   * the category is empty (else, category and children are deleted).
-   * @param id
-   * @param checkEmtpy
-   * @return
-   *  - Full(category id) for a success
-   *  - Failure(with error message) iif an error happened.
+   * If `checkEmpty` is set to true, the deletion may be done only if
+   * the category is empty.
+   * If `checkEmpty` is set to false, category and children are deleted.
+   * A category can be deleted only if its security context and the one of sub-items
+   * is compatible with the one given in `cc`.
    */
-  def delete(
-      id:             NodeGroupCategoryId,
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String],
-      checkEmpty:     Boolean = true
-  ): IOResult[NodeGroupCategoryId]
+  def delete(id: NodeGroupCategoryId, checkEmpty: Boolean = true)(implicit cc: ChangeContext): IOResult[NodeGroupCategoryId]
 
 }

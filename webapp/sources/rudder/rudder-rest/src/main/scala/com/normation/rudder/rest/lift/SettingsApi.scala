@@ -57,7 +57,6 @@ import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.reports.*
 import com.normation.rudder.rest.ApiModuleProvider
@@ -71,6 +70,7 @@ import com.normation.rudder.services.policies.SendMetrics as SendMetricsEnum
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import enumeratum.*
 import net.liftweb.http.LiftResponse

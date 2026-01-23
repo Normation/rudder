@@ -51,8 +51,8 @@ import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import net.liftweb.common.Box

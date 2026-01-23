@@ -38,8 +38,8 @@
 package com.normation.rudder.domain.properties
 
 import com.normation.rudder.MockNodes
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.InMemoryPropertiesRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.UnsafeRun
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification

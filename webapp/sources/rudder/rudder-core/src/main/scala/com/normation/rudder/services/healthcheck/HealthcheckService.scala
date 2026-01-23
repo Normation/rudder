@@ -5,12 +5,12 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.HealthcheckLoggerPure as logger
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
+import com.normation.rudder.tenants.QueryContext
 import java.io
 import java.lang.Runtime.getRuntime
 import zio.ZIO

@@ -53,7 +53,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.users.AuthenticatedUser
 import net.liftweb.common.*
 import zio.syntax.ToZio

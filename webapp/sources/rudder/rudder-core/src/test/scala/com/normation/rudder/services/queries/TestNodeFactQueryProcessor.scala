@@ -50,7 +50,7 @@ import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.services.queries.TestNodeFactAlgebra.*
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
-import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
@@ -126,13 +126,15 @@ class TestNodeFactQueryProcessor {
       override def apply(softName: String): IOResult[List[(NodeId, Software)]] = Nil.succeed
     }
 
+    val tenantRepository: TenantService = InMemoryTenantService.make(Nil).runNow
+
     (for {
-      t <- DefaultTenantService.make(Nil)
       r <- CoreNodeFactRepository
              .make(
                mockLdapFactStorage.nodeFactStorage,
                NoopNodeBySoftware,
-               t,
+               tenantRepository,
+               new DefaultTenantCheckLogic,
                Chunk.empty
              )
     } yield r).runNow

@@ -38,14 +38,16 @@
 package bootstrap.liftweb
 
 import bootstrap.liftweb.LogFailedLogin.DisabledUserException
+import bootstrap.liftweb.LogFailedLogin.getRemoteAddr
 import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.ProviderRoleExtension
+import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
@@ -375,7 +377,7 @@ class AppConfigAuth extends ApplicationContextAware {
             UserStatus.Active,
             Set(Role.Administrator),
             SYSTEM_API_ACL,
-            NodeSecurityContext.All
+            TenantAccessGrant.All
           )
         )
       }
@@ -414,6 +416,7 @@ class AppConfigAuth extends ApplicationContextAware {
       RudderConfig.roApiAccountRepository,
       RudderConfig.woApiAccountRepository,
       rudderUserDetailsService,
+      RudderConfig.tenantService,
       SYSTEM_API_ACL,
       RestAuthenticationFilter.API_TOKEN_HEADER
     )
@@ -545,7 +548,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
                 user.status,
                 Set(),
                 ApiAuthorization.None,
-                NodeSecurityContext.None
+                TenantAccessGrant.None
               )
             case Right(d)  =>
               // update status, user can be disabled for ex
@@ -795,6 +798,7 @@ class RestAuthenticationFilter(
     apiTokenRepository:      RoApiAccountRepository,
     writeApiTokenRepository: WoApiAccountRepository,
     userDetailsService:      RudderInMemoryUserDetailsService,
+    tenantRepo:              TenantService,
     systemApiAcl:            ApiAuthorization,
     apiTokenHeaderName:      String
 ) extends Filter with Loggable {
@@ -820,16 +824,30 @@ class RestAuthenticationFilter(
     httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")
   }
 
-  private def authenticate(userDetails: RudderUserDetail, updateLoginDate: Boolean = true): Unit = {
-    val authenticationToken = new UsernamePasswordAuthenticationToken(
-      userDetails,
-      userDetails.getAuthorities,
-      userDetails.getAuthorities
-    )
-
-    // save in spring security context
-    SecurityContextHolder.getContext().setAuthentication(authenticationToken)
-
+  /*
+   * Before authenticating and setting the user in security context holder, we check that the
+   * tenants info are up to date with what the tenant service knows.
+   */
+  private def authenticate(
+      userDetails:     RudderUserDetail,
+      httpRequest:     HttpServletRequest,
+      httpResponse:    HttpServletResponse,
+      updateLoginDate: Boolean = true
+  ): Unit = {
+    tenantRepo
+      .refineTenantAccessGrant(userDetails.accessGrant)
+      .catchAllDefect(ex => SystemError("Error when accessing tenants", ex).fail)
+      .either
+      .runNow match {
+      case Left(err)  =>
+        failsAuthentication(httpRequest, httpResponse, err)
+      case Right(tag) =>
+        // update user details with the refined TenantAccessGrant and other security info
+        val u                   = userDetails.copy(accessGrant = tag, actorIp = Some(getRemoteAddr(httpRequest)))
+        val authenticationToken = new UsernamePasswordAuthenticationToken(u, u.getAuthorities, u.getAuthorities)
+        // save in spring security context
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken)
+    }
     if (updateLoginDate) onAuthenticateUpdateLoginDate(userDetails.account)
   }
 
@@ -849,7 +867,7 @@ class RestAuthenticationFilter(
    * Look for the X-API-TOKEN header, and use it
    * to try to find a correspond token,
    * and authenticate in SpringSecurity with that.
-   * 
+   *
    * Once authenticated, the last authentication date of the mapped API account is updated
    */
   def doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain): Unit = {
@@ -881,7 +899,7 @@ class RestAuthenticationFilter(
                   isEnabled = true,
                   creationDate = Instant.EPOCH,
                   lastAuthenticationDate = None,
-                  tenants = NodeSecurityContext.None
+                  tenants = TenantAccessGrant.None
                 )
 
                 authenticate(
@@ -889,9 +907,11 @@ class RestAuthenticationFilter(
                     RudderAccount.Api(apiV1Account),
                     UserStatus.Active,
                     RudderAuthType.Api.apiRudderRole,
-                    ApiAuthorization.None,   // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
-                    NodeSecurityContext.None // ApiV1 should not have to deal with nodes
+                    ApiAuthorization.None, // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
+                    TenantAccessGrant.None // ApiV1 should not have to deal with nodes
                   ),
+                  httpRequest,
+                  httpResponse,
                   updateLoginDate = false
                 )
                 chain.doFilter(request, response)
@@ -915,8 +935,10 @@ class RestAuthenticationFilter(
                     UserStatus.Active,
                     Set(Role.Administrator), // this token has "admin rights - use with care
                     systemApiAcl,
-                    NodeSecurityContext.All
-                  )
+                    TenantAccessGrant.All
+                  ),
+                  httpRequest,
+                  httpResponse
                 )
 
                 chain.doFilter(request, response)
@@ -941,8 +963,10 @@ class RestAuthenticationFilter(
                             UserStatus.Active,
                             Set(Role.Administrator), // this token has "admin rights - use with care
                             systemApiAcl,
-                            NodeSecurityContext.All
-                          )
+                            TenantAccessGrant.All
+                          ),
+                          httpRequest,
+                          httpResponse
                         )
                         chain.doFilter(request, response)
                       }
@@ -973,7 +997,7 @@ class RestAuthenticationFilter(
                                     principal.tenants
                                   )
                                   // cool, build an authentication token from it
-                                  authenticate(user)
+                                  authenticate(user, httpRequest, httpResponse)
                                   chain.doFilter(request, response)
                               }
                             case ApiAccountKind.User                     =>
@@ -1005,8 +1029,10 @@ class RestAuthenticationFilter(
                                       u.status,
                                       u.roles,
                                       u.apiAuthz,
-                                      u.nodePerms
-                                    )
+                                      u.accessGrant
+                                    ),
+                                    httpRequest,
+                                    httpResponse
                                   )
                                   chain.doFilter(request, response)
 

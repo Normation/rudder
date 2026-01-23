@@ -55,6 +55,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.SecurityTag
 import com.unboundid.ldap.sdk.*
 import net.liftweb.common.*
 import zio.json.*
@@ -233,7 +234,8 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         techniqueName:        TechniqueName,
         acceptationDateTimes: String,
         isEnabled:            Boolean,
-        policyTypes:          PolicyTypes
+        policyTypes:          PolicyTypes,
+        security:             Option[SecurityTag]
     ): LDAPEntry = {
       val mod = LDAPEntry(new DN(buildRDN(uuid), parentDN))
       mod.resetValuesTo(A_OC, OC.objectClassNames(OC_ACTIVE_TECHNIQUE).toSeq*)
@@ -241,6 +243,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
       mod.resetValuesTo(A_POLICY_TYPES, policyTypes.toJson)
       mod.resetValuesTo(A_ACCEPTATION_DATETIME, acceptationDateTimes)
+      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, t.toJson))
       mod
     }
 
@@ -309,13 +312,15 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         parentDN:    DN,
         name:        String,
         description: String,
-        isSystem:    Boolean = false
+        isSystem:    Boolean = false,
+        security:    Option[SecurityTag]
     ): LDAPEntry = {
       val mod = LDAPEntry(ruleCategory.ruleCategoryDN(uuid, parentDN))
       mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RULE_CATEGORY).toSeq*)
       mod.resetValuesTo(A_NAME, name)
       mod.resetValuesTo(A_DESCRIPTION, description)
       mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
+      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, t.toJson))
 
       mod
     }
@@ -392,7 +397,8 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         isDynamic:   Boolean,
         srvList:     Set[NodeId],
         isEnabled:   Boolean,
-        isSystem:    Boolean
+        isSystem:    Boolean,
+        security:    Option[SecurityTag]
     ): LDAPEntry = {
       val mod = LDAPEntry(group.groupDN(uuid, parentDN))
       mod.resetValuesTo(A_OC, OC.objectClassNames(OC_RUDDER_NODE_GROUP).toSeq*)
@@ -402,6 +408,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod.resetValuesTo(A_IS_SYSTEM, isSystem.toLDAPString)
       mod.resetValuesTo(A_IS_DYNAMIC, isDynamic.toLDAPString)
       mod.resetValuesTo(A_NODE_UUID, srvList.map(x => x.value).toSeq*)
+      security.foreach(t => mod.resetValuesTo(A_SECURITY_TAG, t.toJson))
 
       query match {
         case None    => // No query to add. Maybe we'd like to enforce that it is not activated

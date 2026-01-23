@@ -41,12 +41,12 @@ import com.normation.box.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.UserService
 import com.normation.rudder.web.model.LinkUtil

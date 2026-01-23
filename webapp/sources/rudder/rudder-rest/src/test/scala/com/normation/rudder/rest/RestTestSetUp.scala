@@ -88,10 +88,7 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
@@ -178,6 +175,9 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.*
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.model.LinkUtil
@@ -248,10 +248,12 @@ import zio.test.*
  */
 class TestUserService extends UserService {
   val user:                    AuthenticatedUser         = new AuthenticatedUser {
-    override val account:   RudderAccount       = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
-    override val authz:     Rights              = Rights.AnyRights
-    override val apiAuthz:  ApiAuthz            = ApiAuthz.allAuthz
-    override val nodePerms: NodeSecurityContext = NodeSecurityContext.All
+    override val account:     RudderAccount     = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
+    override val authz:       Rights            = Rights.AnyRights
+    override val apiAuthz:    ApiAuthz          = ApiAuthz.allAuthz
+    override val accessGrant: TenantAccessGrant = TenantAccessGrant.All
+
+    override def actorIp: Option[String] = None
 
     override def checkRights(auth: AuthorizationType): Boolean = true
   }
@@ -270,11 +272,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   // Instantiate Service needed to feed System API constructor
 
   val fakeUpdatePTLibService: UpdateTechniqueLibrary = new UpdateTechniqueLibrary() {
-    def update(
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
+    def update()(implicit cc: ChangeContext): Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
       Full(Map())
     }
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
@@ -319,7 +317,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   object dynGroupService extends DynGroupService {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
       mockNodeGroups.groupsRepo
-        .getFullGroupLibrary()
+        .getFullGroupLibrary()(using QueryContext.testQC)
         .map(_.allGroups.collect {
           case (id, t) if (t.nodeGroup.isDynamic) => t.nodeGroup
         }.toSeq)
@@ -394,7 +392,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   }
   val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val modificationService = new ModificationService(null, null, null) {
+  val modificationService = new ModificationService(null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
         commiter:         PersonIdent,
@@ -871,12 +869,12 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(
-        ModificationId(uuidGen.newUuid),
         EventActor("test"),
+        QueryContext.testQC.accessGrant,
+        ModificationId(uuidGen.newUuid),
         Instant.now(),
         None,
-        None,
-        QueryContext.testQC.nodePerms
+        None
       )
     }
     import QueryContext.testQC
@@ -911,7 +909,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   val parameterApiService14 = new ParameterApiService14(
     mockParameters.paramsRepo,
-    uuidGen,
     workflowLevelService
   )
 
@@ -1189,7 +1186,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       mockUserManagement.userRepo,
       mockUserManagement.userService,
       mockUserManagement.userManagementService,
-      mockUserManagement.tenantsService,
+      mockUserManagement.tenantRepo,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),

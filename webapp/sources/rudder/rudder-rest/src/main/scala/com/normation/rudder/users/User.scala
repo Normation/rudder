@@ -42,8 +42,9 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.UserPassword.HashedUserPassword
 import com.normation.rudder.users.UserPassword.RandomHexaPassword
 import java.util.Collection
@@ -98,11 +99,12 @@ object RudderAuthType {
  * Don't make it final as SSO kind of authentication may need to extend it.
  */
 case class RudderUserDetail(
-    account:   RudderAccount,
-    status:    UserStatus,
-    roles:     Set[Role],
-    apiAuthz:  ApiAuthorization,
-    nodePerms: NodeSecurityContext
+    account:     RudderAccount,
+    status:      UserStatus,
+    roles:       Set[Role],
+    apiAuthz:    ApiAuthorization,
+    accessGrant: TenantAccessGrant,
+    actorIp:     Option[String] = None
 ) extends UserDetails with AuthenticatedUser {
   // merge roles rights
   override val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
@@ -164,9 +166,13 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
 
   //  This is used only in snippets. It could be a more generic query context, which could be empty, which impacts snippets
   def queryContext: QueryContext =
-    getCurrentUser.map(_.qc).getOrElse(QueryContext(EventActor("unknown"), NodeSecurityContext.None))
+    getCurrentUser.map(_.qc).getOrElse(QueryContext(EventActor("unknown"), TenantAccessGrant.None))
 
-  def nodePerms: NodeSecurityContext = getCurrentUser.map(_.nodePerms).getOrElse(NodeSecurityContext.None)
+  // it's a "new" each time, because we want different change context for different user
+  // action even for a same request if called several times.
+  def changeContext(reason: Option[String] = None): ChangeContext = queryContext.newCC(reason)
+
+  def nodePerms: TenantAccessGrant = getCurrentUser.map(_.accessGrant).getOrElse(TenantAccessGrant.None)
 
   def actor: EventActor = getCurrentUser.map(_.qc.actor).getOrElse(EventActor("unknown"))
 

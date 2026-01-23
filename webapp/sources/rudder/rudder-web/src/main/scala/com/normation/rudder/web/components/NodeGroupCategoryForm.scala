@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -77,7 +76,6 @@ class NodeGroupCategoryForm(
 
   private val roGroupCategoryRepository  = RudderConfig.roNodeGroupRepository
   private val woGroupCategoryRepository  = RudderConfig.woNodeGroupRepository
-  private val uuidGen                    = RudderConfig.stringUuidGenerator
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
   val categories: Seq[NodeGroupCategory] = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
@@ -226,11 +224,10 @@ class NodeGroupCategoryForm(
 
   private def onDelete(): JsCmd = {
     woGroupCategoryRepository
-      .delete(
-        _nodeGroupCategory.id,
-        ModificationId(uuidGen.newUuid),
-        CurrentUser.actor,
-        Some("Node Group category deleted by user from UI")
+      .delete(_nodeGroupCategory.id)(using
+        CurrentUser.changeContext(
+          Some("Node Group category deleted by user from UI")
+        )
       )
       .toBox match {
       case Full(id) =>
@@ -326,16 +323,15 @@ class NodeGroupCategoryForm(
         description.get,
         _nodeGroupCategory.children,
         _nodeGroupCategory.items,
-        _nodeGroupCategory.isSystem
+        _nodeGroupCategory.isSystem,
+        security = CurrentUser.nodePerms.toSecurityTag
       )
 
       woGroupCategoryRepository
-        .saveGroupCategory(
-          newNodeGroup,
-          NodeGroupCategoryId(container.get),
-          ModificationId(uuidGen.newUuid),
-          CurrentUser.actor,
-          Some("Node Group category saved by user from UI")
+        .saveGroupCategory(newNodeGroup, NodeGroupCategoryId(container.get))(using
+          CurrentUser.changeContext(
+            Some("Node Group category saved by user from UI")
+          )
         )
         .toBox match {
         case Full(x)          =>

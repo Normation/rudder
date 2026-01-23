@@ -47,6 +47,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
@@ -473,11 +474,8 @@ class TechniqueEditForm(
                   category.id,
                   technique.id.name,
                   techniqueRepository.getTechniqueVersions(technique.id.name).toSeq,
-                  technique.policyTypes,
-                  ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
-                  Some("User added a technique from UI")
-                )
+                  technique.policyTypes
+                )(using CurrentUser.changeContext(Some("User added a technique from UI")))
 
                 // update UI
                 Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory(technique)) &
@@ -564,14 +562,13 @@ class TechniqueEditForm(
   private def error(msg: String) = <span class="error">{msg}</span>
 
   private def statusAndDeployTechnique(activeTechnique: ActiveTechnique, status: Boolean): JsCmd = {
-    val modId = ModificationId(uuidGen.newUuid)
+    implicit val cc: ChangeContext = CurrentUser.changeContext(crReasonsDisablePopup.map(_.get))
     (for {
       save   <-
-        (rwActiveTechniqueRepository
-          .changeStatus(activeTechnique.id, status, modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
+        (rwActiveTechniqueRepository.changeStatus(activeTechnique.id, status)
         <* techniqueCompilationStatusService.syncTechniqueActiveStatus(BundleName(activeTechnique.techniqueName.value))).toBox
       deploy <- {
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
         Full("Policy update request sent")
       }
     } yield {
