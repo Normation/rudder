@@ -363,7 +363,7 @@ limitations under the License.
 
     <!-- Libraries version that MUST be used in all children project -->
 
-    <current-year>2025</current-year>
+    <current-year>2026</current-year>
     <rudder-major-version>9.2</rudder-major-version>
     <rudder-version>9.2.0~alpha1-SNAPSHOT</rudder-version>
 

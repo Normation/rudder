@@ -13,13 +13,13 @@ build = "build.rs"
 [dependencies]
 anyhow = "1.0.75"
 ar = "0.9.0"
-base16ct = { version = "0.3.0", features = ["alloc"] }
+base16ct = { version = "1", features = ["alloc"] }
 clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 chrono = { version = "0.4.31", default-features = false, features = ["clock", "std", "serde"] }
 lzma-rs = "0.3.0"
-quick-xml = "0.38.0"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "native-tls"] }
+quick-xml = "0.39.0"
+reqwest = { version = "0.13.1", default-features = false, features = ["blocking", "native-tls"] }
 regex = "1.10.2"
 secrecy = { version = "0.10.3", features = ["serde"] }
 serde = { version = "1.0.189", features = ["derive"] }

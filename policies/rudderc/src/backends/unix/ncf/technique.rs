@@ -65,14 +65,14 @@ impl Technique {
 
 impl fmt::Display for Technique {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.name.is_some() {
-            writeln!(f, "# @name {}", self.name.as_ref().unwrap())?;
+        if let Some(n) = &self.name {
+            writeln!(f, "# @name {}", n)?;
         }
-        if self.version.is_some() {
-            writeln!(f, "# @version {}", self.version.as_ref().unwrap())?;
+        if let Some(ver) = &self.version {
+            writeln!(f, "# @version {}", ver)?;
         }
-        if self.description.is_some() {
-            writeln!(f, "# @description {}", self.description.as_ref().unwrap())?;
+        if let Some(desc) = &self.description {
+            writeln!(f, "# @description {}", desc)?;
         }
         for bundle in &self.bundles {
             write!(f, "\n{bundle}")?;
