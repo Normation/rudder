@@ -47,8 +47,10 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.softwaremill.quicklens.*
@@ -90,7 +92,8 @@ final case class FullActiveTechnique(
     techniques:           SortedMap[TechniqueVersion, Technique],
     directives:           List[Directive],
     isEnabled:            Boolean = true,
-    policyTypes:          PolicyTypes = PolicyTypes.rudderBase
+    policyTypes:          PolicyTypes = PolicyTypes.rudderBase,
+    security:             Option[SecurityTag]
 ) {
   def toActiveTechnique(): ActiveTechnique = ActiveTechnique(
     id = id,
@@ -98,7 +101,8 @@ final case class FullActiveTechnique(
     acceptationDatetimes = AcceptationDateTime(acceptationDatetimes.toMap),
     directives = directives.map(_.id.uid),
     _isEnabled = isEnabled,
-    policyTypes = policyTypes
+    policyTypes = policyTypes,
+    security
   )
 
   val newestAvailableTechnique: Option[Technique] = techniques.toSeq.sortBy(_._1).reverse.map(_._2).headOption
@@ -138,15 +142,25 @@ final case class FullActiveTechnique(
   }
 }
 
+object FullActiveTechnique {
+  given HasSecurityTag[FullActiveTechnique] with {
+    extension (a: FullActiveTechnique) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechnique = a.copy(security = security)
+    }
+  }
+}
+
 final case class FullActiveTechniqueCategory(
     id:               ActiveTechniqueCategoryId,
     name:             String,
     description:      String,
     subCategories:    List[FullActiveTechniqueCategory],
     activeTechniques: List[FullActiveTechnique],
-    isSystem:         Boolean = false // by default, we can't create system Category
+    isSystem:         Boolean,
+    security:         Option[SecurityTag]
 ) {
-
   val allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)] = (
     subCategories.flatMap(_.allDirectives).toMap
       ++ activeTechniques.flatMap(at => at.directives.map(d => (d.id, (at, d)))).toMap
@@ -231,7 +245,8 @@ final case class FullActiveTechniqueCategory(
       description,
       subCategories.map(_.id),
       activeTechniques.map(_.id),
-      isSystem
+      isSystem,
+      security
     )
   }
 
@@ -275,7 +290,7 @@ final case class FullActiveTechniqueCategory(
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       techniques:    Seq[Technique]
-  ): FullActiveTechniqueCategory = {
+  )(implicit cc: ChangeContext): FullActiveTechniqueCategory = {
     if (this.id == categoryId) {
       // only keep technique with the good name
       val techs    = techniques.filter(_.id.name == techniqueName)
@@ -291,7 +306,8 @@ final case class FullActiveTechniqueCategory(
             SortedMap[TechniqueVersion, Technique]() ++ newTechs,
             Nil,
             isEnabled = true,
-            policyTypes = PolicyTypes.rudderBase
+            policyTypes = PolicyTypes.rudderBase,
+            security = cc.accessGrant.toSecurityTag // inherit user tenant creating that technique
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
@@ -313,6 +329,16 @@ final case class FullActiveTechniqueCategory(
       }
     } else {
       this.modify(_.subCategories).using(_.map(_.addActiveTechniqueCategory(categoryId, category)))
+    }
+  }
+}
+
+object FullActiveTechniqueCategory {
+  given HasSecurityTag[FullActiveTechniqueCategory] with {
+    extension (a: FullActiveTechniqueCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechniqueCategory = a.copy(security = security)
     }
   }
 }
@@ -528,11 +554,8 @@ trait WoDirectiveRepository {
       categoryId:    ActiveTechniqueCategoryId,
       techniqueName: TechniqueName,
       versions:      Seq[TechniqueVersion],
-      policyTypes:   PolicyTypes,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): IOResult[ActiveTechnique]
+      policyTypes:   PolicyTypes
+  )(implicit cc: ChangeContext): IOResult[ActiveTechnique]
 
   /**
    * Move an active technique to a new category.
@@ -542,22 +565,16 @@ trait WoDirectiveRepository {
    */
   def move(
       id:            ActiveTechniqueId,
-      newCategoryId: ActiveTechniqueCategoryId,
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): IOResult[ActiveTechniqueId]
+      newCategoryId: ActiveTechniqueCategoryId
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId]
 
   /**
    * Set the status of the active technique to the new value
    */
   def changeStatus(
       id:     ActiveTechniqueId,
-      status: Boolean,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[ActiveTechniqueId]
+      status: Boolean
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId]
 
   /**
    * Add new (version,acceptation datetime) to existing
@@ -569,11 +586,8 @@ trait WoDirectiveRepository {
    */
   def setAcceptationDatetimes(
       id:        ActiveTechniqueId,
-      datetimes: Map[TechniqueVersion, DateTime],
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[ActiveTechniqueId]
+      datetimes: Map[TechniqueVersion, DateTime]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId]
 
   /**
    * Delete the active technique in the active tehcnique library.
@@ -597,12 +611,8 @@ trait WoDirectiveRepository {
    */
   def addActiveTechniqueCategory(
       that: ActiveTechniqueCategory,
-      into: ActiveTechniqueCategoryId, // parent category
-
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
-  ): IOResult[ActiveTechniqueCategory]
+      into: ActiveTechniqueCategoryId // parent category
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory]
 
   /**
    * Update an existing active technique category
@@ -610,11 +620,8 @@ trait WoDirectiveRepository {
    * same name (name must be unique for a given level)
    */
   def saveActiveTechniqueCategory(
-      category:       ActiveTechniqueCategory,
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
-  ): IOResult[ActiveTechniqueCategory]
+      category: ActiveTechniqueCategory
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory]
 
   /**
    * Delete the category with the given id.
@@ -628,12 +635,9 @@ trait WoDirectiveRepository {
    *  - Failure(with error message) iif an error happened.
    */
   def deleteCategory(
-      id:             ActiveTechniqueCategoryId,
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String],
-      checkEmpty:     Boolean = true
-  ): IOResult[ActiveTechniqueCategoryId]
+      id:         ActiveTechniqueCategoryId,
+      checkEmpty: Boolean = true
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId]
 
   /**
    * Move an existing category into a new one.
@@ -643,13 +647,10 @@ trait WoDirectiveRepository {
    * same name (name must be unique for a given level)
    */
   def move(
-      categoryId:     ActiveTechniqueCategoryId,
-      intoParent:     ActiveTechniqueCategoryId,
-      optionNewName:  Option[ActiveTechniqueCategoryId],
-      modificationId: ModificationId,
-      actor:          EventActor,
-      reason:         Option[String]
-  ): IOResult[ActiveTechniqueCategoryId]
+      categoryId:    ActiveTechniqueCategoryId,
+      intoParent:    ActiveTechniqueCategoryId,
+      optionNewName: Option[ActiveTechniqueCategoryId]
+  )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId]
 
 }
 
@@ -671,6 +672,7 @@ class InitDirectivesTree(
       ActiveTechniqueCategoryId(fromCat.id.name.value)
     }
     def recCopyRef(fromCatId: TechniqueCategoryId, toParentCat: ActiveTechniqueCategory): Box[ActiveTechniqueCategory] = {
+      implicit val cc: ChangeContext = ChangeContext.newForRudder(Some("Initialize active templates library"))
 
       for {
         fromCat     <- techniqueRepository.getTechniqueCategory(fromCatId).toBox
@@ -680,7 +682,8 @@ class InitDirectivesTree(
                          description = fromCat.description,
                          children = Nil,
                          items = Nil,
-                         isSystem = fromCat.isSystem
+                         isSystem = fromCat.isSystem,
+                         security = fromCat.security
                        )
         res         <- if (fromCat.isSystem && !includeSystem) { // Rudder internal Technique category are handle elsewhere
                          Full(newUserPTCat)
@@ -689,10 +692,7 @@ class InitDirectivesTree(
                            updatedParentCat <- woDirectiveRepository
                                                  .addActiveTechniqueCategory(
                                                    newUserPTCat,
-                                                   toParentCat.id,
-                                                   ModificationId(uuidGen.newUuid),
-                                                   RudderEventActor,
-                                                   reason = Some("Initialize active templates library")
+                                                   toParentCat.id
                                                  )
                                                  .toBox ?~!
                                                "Error when adding category '%s' to user library parent category '%s'".format(
@@ -700,33 +700,31 @@ class InitDirectivesTree(
                                                  toParentCat.id.value
                                                )
                            // now, add items and subcategories, in a "try to do the max you can" way
-                           fullRes          <- sequence(
-                                                 // Techniques
-                                                 bestEffort(fromCat.techniqueIds.groupBy(id => id.name).toSeq) {
-                                                   case (name, ids) =>
-                                                     for {
-                                                       activeTechnique <- woDirectiveRepository
-                                                                            .addTechniqueInUserLibrary(
-                                                                              newUserPTCat.id,
-                                                                              name,
-                                                                              ids.map(_.version).toSeq,
-                                                                              if (newUserPTCat.isSystem) PolicyTypes.rudderSystem
-                                                                              else PolicyTypes.rudderBase,
-                                                                              ModificationId(uuidGen.newUuid),
-                                                                              RudderEventActor,
-                                                                              reason = Some("Initialize active templates library")
-                                                                            )
-                                                                            .toBox ?~!
-                                                                          "Error when adding Technique '%s' into user library category '%s'"
-                                                                            .format(name.value, newUserPTCat.id.value)
-                                                     } yield {
-                                                       activeTechnique
-                                                     }
-                                                 } ::
-                                                 // recurse on children categories of reference lib
-                                                 bestEffort(fromCat.subCategoryIds.toSeq)(catId => recCopyRef(catId, newUserPTCat)) ::
-                                                 Nil
-                                               )
+                           fullRes          <-
+                             sequence(
+                               // Techniques
+                               bestEffort(fromCat.techniqueIds.groupBy(id => id.name).toSeq) {
+                                 case (name, ids) =>
+                                   for {
+                                     activeTechnique <- woDirectiveRepository
+                                                          .addTechniqueInUserLibrary(
+                                                            newUserPTCat.id,
+                                                            name,
+                                                            ids.map(_.version).toSeq,
+                                                            if (newUserPTCat.isSystem) PolicyTypes.rudderSystem
+                                                            else PolicyTypes.rudderBase
+                                                          )(using cc.withMsg("Initialize active templates library"))
+                                                          .toBox ?~!
+                                                        "Error when adding Technique '%s' into user library category '%s'"
+                                                          .format(name.value, newUserPTCat.id.value)
+                                   } yield {
+                                     activeTechnique
+                                   }
+                               } ::
+                               // recurse on children categories of reference lib
+                               bestEffort(fromCat.subCategoryIds.toSeq)(catId => recCopyRef(catId, newUserPTCat)) ::
+                               Nil
+                             )
                          } yield {
                            fullRes
                          }

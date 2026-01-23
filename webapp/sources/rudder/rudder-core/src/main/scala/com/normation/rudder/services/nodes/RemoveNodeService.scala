@@ -37,7 +37,6 @@
 package com.normation.rudder.services.servers
 
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants.*
@@ -46,7 +45,6 @@ import com.normation.ldap.sdk.*
 import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.facts.nodes.*
@@ -60,7 +58,7 @@ import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.servers.DeletionResult.*
-import com.normation.utils.StringUuidGenerator
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.unboundid.ldap.sdk.Modification
 import com.unboundid.ldap.sdk.ModificationType
@@ -456,8 +454,7 @@ class LdapRemoveNodeBackend(
  */
 class RemoveNodeFromGroups(
     roNodeGroupRepository: RoNodeGroupRepository,
-    woNodeGroupRepository: WoNodeGroupRepository,
-    uuidGen:               StringUuidGenerator
+    woNodeGroupRepository: WoNodeGroupRepository
 ) extends PostNodeDeleteAction {
 
   override def run(
@@ -475,11 +472,8 @@ class RemoveNodeFromGroups(
                           .updateDiffNodes(
                             nodeGroupId,
                             add = Nil,
-                            delete = List(nodeId),
-                            ModificationId(uuidGen.newUuid),
-                            RudderEventActor,
-                            msg
-                          )
+                            delete = List(nodeId)
+                          )(using ChangeContext.newForRudder(msg))
                           .chainError(
                             s"Could not update group '${nodeGroupId.serialize}' to remove node '${nodeId.value}'"
                           )

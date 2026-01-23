@@ -63,7 +63,7 @@ import com.normation.rudder.inventory.InventoryProcessStatus.Saved
 import com.normation.rudder.inventory.InventoryProcessStatus.SaveError
 import com.normation.rudder.inventory.NodeFactInventorySaver
 import com.normation.rudder.inventory.SaveInventoryInfo
-import com.normation.rudder.tenants.DefaultTenantService
+import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
@@ -477,22 +477,23 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   val factRepo: CoreNodeFactRepository = {
     for {
-      pending   <- Ref.make(Map[NodeId, CoreNodeFact]())
-      accepted  <- Ref.make(Map[NodeId, CoreNodeFact]())
-      callbacks <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
-      tenants   <- DefaultTenantService.make(Nil)
-      lock      <- ReentrantLock.make()
-      r          = new CoreNodeFactRepository(
-                     factStorage,
-                     noopNodeBySoftwareName,
-                     tenants,
-                     pending,
-                     accepted,
-                     callbacks,
-                     CoreNodeFactRepository.defaultSavePreChecks,
-                     lock
-                   )
-      _         <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
+      pending    <- Ref.make(Map[NodeId, CoreNodeFact]())
+      accepted   <- Ref.make(Map[NodeId, CoreNodeFact]())
+      callbacks  <- Ref.make(Chunk.empty[NodeFactChangeEventCallback])
+      tenantRepo <- InMemoryTenantService.make(Nil)
+      lock       <- ReentrantLock.make()
+      r           = new CoreNodeFactRepository(
+                      factStorage,
+                      noopNodeBySoftwareName,
+                      tenantRepo,
+                      new DefaultTenantCheckLogic(),
+                      pending,
+                      accepted,
+                      callbacks,
+                      CoreNodeFactRepository.defaultSavePreChecks,
+                      lock
+                    )
+      _          <- r.registerChangeCallbackAction(CoreNodeFactChangeEventCallback("trail", e => callbackLog.update(_.appended(e.event))))
 //      _         <- r.registerChangeCallbackAction(new NodeFactChangeEventCallback("log", e => effectUioUnit(println(s"**** ${e.name}"))))
     } yield {
       r

@@ -60,7 +60,8 @@ class ComputePolicyModeTest extends Specification with Loggable {
       s"directive ${id}",
       "",
       policyMode,
-      ""
+      "",
+      security = None
     )
   }
 

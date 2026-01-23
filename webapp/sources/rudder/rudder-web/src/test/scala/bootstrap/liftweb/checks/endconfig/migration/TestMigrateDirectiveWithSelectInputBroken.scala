@@ -116,7 +116,8 @@ class TestMigrateDirectiveWithSelectInputBroken extends Specification with Conte
     Map.empty.updated("test", Seq("enforce")),
     "test-directive",
     "",
-    None
+    None,
+    security = None
   )
 
   val atId = mockDirectives.directiveRepo

@@ -41,8 +41,8 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.*
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import com.normation.rudder.web.components.popup.RuleCategoryPopup

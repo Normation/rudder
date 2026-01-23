@@ -44,8 +44,8 @@ import com.normation.rudder.domain.logger.ComplianceLoggerPure
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.PropertiesRepository
+import com.normation.rudder.tenants.QueryContext
 import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigRenderOptions
 import zio.Chunk

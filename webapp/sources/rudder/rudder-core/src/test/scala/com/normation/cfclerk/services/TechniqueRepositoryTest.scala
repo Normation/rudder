@@ -59,6 +59,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.tenants.ChangeContext
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.*
@@ -85,8 +86,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
   val git     = setupRepos.repo.git
   val techniqueRoot: File = File(setupRepos.repo.db.getWorkTree.getAbsolutePath, "techniques")
 
-  val modid = new ModificationId("test")
-  val actor = new EventActor("test")
+  implicit val cc: ChangeContext = ChangeContext.newForRudder()
 
   object testCallback extends TechniquesLibraryUpdateNotification() {
 
@@ -98,11 +98,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def updatedTechniques(
         gitRev:            String,
         techniqueIds:      Map[TechniqueName, TechniquesLibraryUpdateType],
-        updatedCategories: Set[TechniqueCategoryModType],
-        modId:             ModificationId,
-        actor:             EventActor,
-        reason:            Option[String]
-    ): Box[Unit] = {
+        updatedCategories: Set[TechniqueCategoryModType]
+    )(implicit cc: ChangeContext): Box[Unit] = {
       categories = updatedCategories
       techniques = techniqueIds
       Full(())
@@ -117,33 +114,24 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     var updatedTechniques: List[String]                           = Nil
 
     override def addActiveTechniqueCategory(
-        that:           ActiveTechniqueCategory,
-        into:           ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = {
+        that: ActiveTechniqueCategory,
+        into: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = {
       added = that.id.value :: added
       that.succeed
     }
     override def deleteCategory(
-        id:             ActiveTechniqueCategoryId,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String],
-        checkEmpty:     Boolean
-    ): IOResult[ActiveTechniqueCategoryId] = {
+        id:         ActiveTechniqueCategoryId,
+        checkEmpty: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = {
       deleted = id.value :: deleted
       id.succeed
     }
     override def move(
-        categoryId:     ActiveTechniqueCategoryId,
-        intoParent:     ActiveTechniqueCategoryId,
-        optionNewName:  Option[ActiveTechniqueCategoryId],
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategoryId] = {
+        categoryId:    ActiveTechniqueCategoryId,
+        intoParent:    ActiveTechniqueCategoryId,
+        optionNewName: Option[ActiveTechniqueCategoryId]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = {
       moved = (categoryId.value, intoParent.value, optionNewName.map(_.value)) :: moved
       optionNewName.getOrElse(categoryId).succeed
     }
@@ -151,13 +139,10 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
         versions:      Seq[TechniqueVersion],
-        policyTypes:   PolicyTypes,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechnique] = {
+        policyTypes:   PolicyTypes
+    )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
-      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty).succeed
+      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty, security = None).succeed
     }
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = {
@@ -167,7 +152,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         description = "",
         subCategories = Nil,
         activeTechniques = Nil,
-        isSystem = true
+        isSystem = true,
+        None
       ).succeed
     }
     override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
@@ -190,11 +176,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     override def getParentsForActiveTechnique(id: ActiveTechniqueId):         IOResult[ActiveTechniqueCategory] = ???
     override def containsDirective(id:            ActiveTechniqueCategoryId): UIO[Boolean]                      = ???
     override def saveActiveTechniqueCategory(
-        category:       ActiveTechniqueCategory,
-        modificationId: ModificationId,
-        actor:          EventActor,
-        reason:         Option[String]
-    ): IOResult[ActiveTechniqueCategory] = ???
+        category: ActiveTechniqueCategory
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
     override def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
         directive:           Directive,
@@ -223,25 +206,16 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ): IOResult[Option[DeleteDirectiveDiff]] = ???
     override def move(
         id:            ActiveTechniqueId,
-        newCategoryId: ActiveTechniqueCategoryId,
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        newCategoryId: ActiveTechniqueCategoryId
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     override def changeStatus(
         id:     ActiveTechniqueId,
-        status: Boolean,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        status: Boolean
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     override def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime],
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        datetimes: Map[TechniqueVersion, DateTime]
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     override def deleteActiveTechnique(
         id:     ActiveTechniqueId,
         modId:  ModificationId,
@@ -300,7 +274,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
 
   "Creating a category should be notified" in {
     createCategory("test1", "Test 1")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
     val cat = getCategory("test1")
 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Added(cat, rootCategory.id)))) and
@@ -311,7 +285,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     val cat1 = getCategory("test1")
     File(techniqueRoot, "test1").moveTo(File(techniqueRoot, "test2"))
     addCommitAll("Move category with id test1 to test2. Keep same name")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
     val cat2 = getCategory("test2")
 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Moved(cat1.id, cat2.id)))) and
@@ -322,7 +296,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     val cat2 = getCategory("test2")
     File(techniqueRoot, "test2").delete()
     addCommitAll("Delete category test2")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Deleted(cat2)))) and
     (ldapRepo.deleted must beEqualTo(cat2.id.name.value :: Nil))
@@ -333,7 +307,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ldapRepo.deleted = Nil
     File(techniqueRoot, "applications").delete()
     addCommitAll("Deleted applicates")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Deleted(appCat)))) and
     (fsRepos.getAllCategories.get(appCat.id) must beNone) and // technique repos doesn't have it anymore
@@ -345,7 +319,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ldapRepo.moved = Nil
     File(techniqueRoot, "fileDistribution").moveTo(File(techniqueRoot, "fileDistribution2"))
     addCommitAll("Move category with id fileDistribution to fileDistribution2. Keep same name")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
     val cat2 = getCategory("fileDistribution2")
 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Moved(cat.id, cat2.id)))) and
@@ -359,11 +333,11 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
     ldapRepo.added = Nil
 
     createCategory("fileDistribution2/fileSecurity", "File Security")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
     val cat  = getCategory("fileSecurity")
     (techniqueRoot / "fileDistribution2" / "fileSecurity").moveTo(techniqueRoot / "fileSecurity")
     addCommitAll("Move a sub-category to root one")
-    fsRepos.update(modid, actor, None)
+    fsRepos.update()
     val cat2 = getCategory("fileSecurity")
 
     (testCallback.categories must containTheSameElementsAs(Seq(TechniqueCategoryModType.Moved(cat.id, cat2.id)))) and

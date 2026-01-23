@@ -40,7 +40,6 @@ package com.normation.rudder.web.components.popup
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -73,7 +72,6 @@ class GiveReasonPopup(
     "reason-givereasonpopup"
   )
 
-  private val uuidGen                     = RudderConfig.stringUuidGenerator
   private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
   private val userPropertyService         = RudderConfig.userPropertyService
   private val techniqueRepository         = RudderConfig.techniqueRepository
@@ -159,11 +157,8 @@ class GiveReasonPopup(
                         ActiveTechniqueCategoryId(destCatId.value),
                         ptName,
                         techniqueRepository.getTechniqueVersions(ptName).toSeq,
-                        policyTypes = PolicyTypes.rudderBase,
-                        modId = ModificationId(uuidGen.newUuid),
-                        actor = CurrentUser.actor,
-                        reason = crReasons.map(_.get)
-                      )
+                        policyTypes = PolicyTypes.rudderBase
+                      )(using CurrentUser.changeContext(crReasons.map(_.get)))
                       .toBox
                     ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)
                   )

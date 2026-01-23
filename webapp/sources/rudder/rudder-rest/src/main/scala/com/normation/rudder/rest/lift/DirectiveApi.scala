@@ -62,8 +62,6 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
@@ -74,12 +72,12 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
-import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -160,6 +158,8 @@ class DirectiveApi(
     val schema:                                                                                                API.CreateDirective.type = API.CreateDirective
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
 
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
+
       (for {
         restDirective <-
           zioJsonExtractor.extractDirective(req).chainError(s"Could not extract directive parameters from request").toIO
@@ -167,8 +167,7 @@ class DirectiveApi(
                            restDirective,
                            restDirective.id.map(_.uid).getOrElse(DirectiveUid(uuidGen.newUuid)),
                            restDirective.source,
-                           params,
-                           authzToken.qc.actor
+                           params
                          )
       } yield {
         val action = if (restDirective.source.nonEmpty) "cloneDirective" else schema.name
@@ -188,7 +187,8 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
+
       (for {
         id            <- DirectiveId.parse(sid).toIO
         restDirective <- zioJsonExtractor.extractDirective(req).chainError(s"Could not extract a directive from request.").toIO
@@ -209,7 +209,7 @@ class DirectiveApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
+      implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       service.deleteDirective(DirectiveUid(id), params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -307,7 +307,7 @@ class DirectiveApiService14(
       opTechniqueVersion: Option[TechniqueVersion]
   ): IOResult[Technique] = {
     // we need at least a name.
-    // It version is not specified, use last version of technique, last revision, even if revision is specified (if someone want something precise, they must give the main version)
+    // If version is not specified, use last version of technique, last revision, even if revision is specified (if someone want something precise, they must give the main version)
     // If both version and revision are specified, revision from techniqueRevision field is prefered.
     (optTechniqueName, opTechniqueVersion) match {
       case (None, _)                            =>
@@ -329,17 +329,15 @@ class DirectiveApiService14(
       restDirective: JQDirective,
       directiveId:   DirectiveUid,
       source:        Option[DirectiveId],
-      params:        DefaultParams,
-      actor:         EventActor
-  ): IOResult[JRDirective] = {
+      params:        DefaultParams
+  )(implicit cc: ChangeContext): IOResult[JRDirective] = {
     def actualDirectiveCreation(
         restDirective:   JQDirective,
         baseDirective:   Directive,
         activeTechnique: ActiveTechnique,
         technique:       Technique,
-        params:          DefaultParams,
-        actor:           EventActor
-    ): IOResult[JRDirective] = {
+        params:          DefaultParams
+    )(implicit cc: ChangeContext): IOResult[JRDirective] = {
       val newDirective = restDirective.updateDirective(baseDirective)
       val modId        = ModificationId(uuidGen.newUuid)
       for {
@@ -351,16 +349,16 @@ class DirectiveApiService14(
                  }
         // Check parameters of the new Directive
         _     <- (for {
-                   // Two step process, could be simplified
+                   // Two steps process, could be simplified
                    paramEditor       <- editorService.get(technique.id, newDirective.id.uid, newDirective.parameters)
                    checkedParameters <- traverse(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
                  } yield { checkedParameters.toMap }).toIO.chainError(s"Error with directive Parameters")
         saved <- writeDirective
-                   .saveDirective(activeTechnique.id, newDirective, modId, actor, params.reason)
+                   .saveDirective(activeTechnique.id, newDirective, modId, cc.actor, params.reason)
                    .chainError(s"Could not save Directive ${newDirective.id.uid.value}")
         // We need to deploy only if there is a saveDiff, that says that a deployment is needed
         _     <- ZIO.when(saved.map(_.needDeployment).getOrElse(false)) {
-                   IOResult.attempt(asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor))
+                   IOResult.attempt(asyncDeploymentAgent ! AutomaticStartDeployment(modId, cc.actor))
                  }
       } yield {
         JRDirective.fromDirective(technique, newDirective, None)
@@ -381,7 +379,7 @@ class DirectiveApiService14(
           (_, technique) = tuple
           newDirective   = restDirective.copy(enabled = Some(false), techniqueVersion = Some(techId.version))
           baseDirective  = ad.directive.modify(_.id.uid).setTo(directiveId)
-          result        <- actualDirectiveCreation(newDirective, baseDirective, ad.activeTechnique, technique, params, actor)
+          result        <- actualDirectiveCreation(newDirective, baseDirective, ad.activeTechnique, technique, params)
         } yield {
           result
         }
@@ -403,9 +401,10 @@ class DirectiveApiService14(
                                name,
                                "",
                                None,
-                               _isEnabled = true
+                               _isEnabled = true,
+                               security = cc.accessGrant.toSecurityTag
                              )
-          result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params, actor)
+          result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params)
         } yield {
           result
         }
@@ -416,11 +415,10 @@ class DirectiveApiService14(
       diff:      ChangeRequestDirectiveDiff,
       technique: Technique,
       change:    DirectiveChangeRequest,
-      params:    DefaultParams,
-      actor:     EventActor
+      params:    DefaultParams
   )(implicit cc: ChangeContext) = {
     for {
-      workflow <- workflowLevelService.getForDirective(actor, change)
+      workflow <- workflowLevelService.getForDirective(cc.actor, change)
       cr        = ChangeRequestService.createChangeRequestFromDirective(
                     params.changeRequestName.getOrElse(
                       s"${change.action.name} directive '${change.newDirective.name}' (${change.newDirective.id.uid.value}) from API"
@@ -431,7 +429,7 @@ class DirectiveApiService14(
                     change.newDirective.id,
                     change.previousDirective,
                     diff,
-                    actor,
+                    cc.actor,
                     params.reason
                   )
       id       <- workflow
@@ -444,16 +442,8 @@ class DirectiveApiService14(
   }
 
   def updateDirective(restDirective: JQDirective, params: DefaultParams, actor: EventActor)(implicit
-      qc: QueryContext
+      cc: ChangeContext
   ): IOResult[JRDirective] = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      actor,
-      Instant.now(),
-      params.reason,
-      None,
-      qc.nodePerms
-    )
     for {
       id              <- restDirective.id.notOptional(s"Directive id is mandatory in update")
       directiveUpdate <- updateDirectiveModel(id.uid, restDirective)
@@ -472,21 +462,13 @@ class DirectiveApiService14(
                            Nil,
                            Nil
                          )
-      result          <- createChangeRequest(diff, updatedTechnique, change, params, actor)
+      result          <- createChangeRequest(diff, updatedTechnique, change, params)
     } yield result
   }
 
   def deleteDirective(id: DirectiveUid, params: DefaultParams, actor: EventActor)(implicit
-      qc: QueryContext
+      cc: ChangeContext
   ): IOResult[JRDirective] = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      actor,
-      Instant.now(),
-      params.reason,
-      None,
-      qc.nodePerms
-    )
     // TODO: manage rev
     readDirective.getDirectiveWithContext(id).flatMap {
       case Some((technique, activeTechnique, directive)) =>
@@ -500,7 +482,7 @@ class DirectiveApiService14(
           Nil,
           Nil
         )
-        createChangeRequest(DeleteDirectiveDiff(technique.id.name, directive), technique, change, params, actor)
+        createChangeRequest(DeleteDirectiveDiff(technique.id.name, directive), technique, change, params)
       case None                                          =>
         JRDirective.empty(id.value).succeed
     }

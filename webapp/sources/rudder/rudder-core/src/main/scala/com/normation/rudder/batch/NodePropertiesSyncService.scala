@@ -38,16 +38,16 @@
 package com.normation.rudder.batch
 
 import com.normation.errors.IOResult
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.SimpleActor
 
 trait NodePropertiesSyncService {
 
   /**
-    * Do actions to update all node properties with the current state 
-    * of group configuration and parameters accross groups and nodes 
+    * Do actions to update all node properties with the current state
+    * of group configuration and parameters accross groups and nodes
     */
   def syncProperties()(implicit qc: QueryContext): IOResult[Unit]
 

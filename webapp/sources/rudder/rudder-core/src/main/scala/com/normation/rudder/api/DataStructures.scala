@@ -40,7 +40,7 @@ import cats.data.*
 import cats.implicits.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
-import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import enumeratum.*
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
@@ -577,7 +577,7 @@ final case class ApiAccount(
     isEnabled:              Boolean,
     creationDate:           Instant,
     lastAuthenticationDate: Option[Instant],
-    tenants:                NodeSecurityContext
+    tenants:                TenantAccessGrant
 ) {
 
   /**

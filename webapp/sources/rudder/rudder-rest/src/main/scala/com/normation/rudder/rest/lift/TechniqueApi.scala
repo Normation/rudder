@@ -263,7 +263,6 @@ class TechniqueApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val modId = ModificationId(uuidGen.newUuid)
       import techniqueSerializer.*
 
       def charset: String = RestUtils.getCharset(req)
@@ -276,7 +275,11 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           _                <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using
+                                authzToken.user.qc.newCC(
+                                  Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")
+                                )
+                              )
           json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
           json
@@ -417,7 +420,6 @@ class TechniqueApi(
     val schema: API.CreateTechnique.type = API.CreateTechnique
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val modId = ModificationId(uuidGen.newUuid) // copied from `Req.forcedBodyAsJson`
 
       def charset: String = RestUtils.getCharset(req)
 
@@ -449,7 +451,7 @@ class TechniqueApi(
 
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           _           <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
-          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
+          updatedTech <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using authzToken.qc.newCC())
           json        <- service.getTechniqueJson(updatedTech)
         } yield {
           json

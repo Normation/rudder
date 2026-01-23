@@ -44,11 +44,11 @@ import com.normation.errors.*
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
 import com.normation.rudder.services.reports.ComputeNodeStatusReportService
 import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
+import com.normation.rudder.tenants.QueryContext
 import doobie.implicits.*
 import jakarta.servlet.UnavailableException
 import net.liftweb.common.EmptyBox

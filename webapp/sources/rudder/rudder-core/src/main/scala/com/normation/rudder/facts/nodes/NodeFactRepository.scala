@@ -43,8 +43,7 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.tenants.*
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import scala.collection.MapView
@@ -338,7 +337,8 @@ object CoreNodeFactRepository {
   def make(
       storage:       NodeFactStorage,
       softByName:    GetNodesBySoftwareName,
-      tenants:       TenantService,
+      tenantRepos:   TenantService,
+      tenantService: TenantCheckLogic,
       callbacks:     Chunk[NodeFactChangeEventCallback],
       savePreChecks: Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
   ): IOResult[CoreNodeFactRepository] = for {
@@ -347,7 +347,7 @@ object CoreNodeFactRepository {
     _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
     accepted <- storage.getAllAccepted()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Creating node fact repos")
-    repo     <- make(storage, softByName, tenants, pending, accepted, callbacks, savePreChecks)
+    repo     <- make(storage, softByName, tenantRepos, tenantService, pending, accepted, callbacks, savePreChecks)
   } yield {
     repo
   }
@@ -355,7 +355,8 @@ object CoreNodeFactRepository {
   def make(
       storage:       NodeFactStorage,
       softByName:    GetNodesBySoftwareName,
-      tenants:       TenantService,
+      tenantRepo:    TenantService,
+      tenantService: TenantCheckLogic,
       pending:       Map[NodeId, CoreNodeFact],
       accepted:      Map[NodeId, CoreNodeFact],
       callbacks:     Chunk[NodeFactChangeEventCallback],
@@ -366,7 +367,7 @@ object CoreNodeFactRepository {
     lock <- ReentrantLock.make()
     cbs  <- Ref.make(callbacks)
   } yield {
-    new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, savePreChecks, lock)
+    new CoreNodeFactRepository(storage, softByName, tenantRepo, tenantService, p, a, cbs, savePreChecks, lock)
   }
 
   // a version for tests
@@ -376,9 +377,18 @@ object CoreNodeFactRepository {
       callbacks:     Chunk[NodeFactChangeEventCallback] = Chunk.empty,
       savePreChecks: Chunk[NodeFact => IOResult[Unit]] = Chunk.empty
   ): UIO[CoreNodeFactRepository] = for {
-    t <- DefaultTenantService.make(Nil)
-    r <- make(NoopFactStorage, NoopGetNodesBySoftwareName, t, pending, accepted, callbacks, savePreChecks)
-  } yield r
+    tr   <- InMemoryTenantService.make(Nil)
+    repo <- make(
+              NoopFactStorage,
+              NoopGetNodesBySoftwareName,
+              tr,
+              new DefaultTenantCheckLogic(),
+              pending,
+              accepted,
+              callbacks,
+              savePreChecks
+            )
+  } yield repo
 }
 
 // we have some specialized services / materialized view for complex queries. Implementation can manage cache and
@@ -410,19 +420,20 @@ class SoftDaoGetNodesBySoftwareName(val softwareDao: ReadOnlySoftwareDAO) extend
  * Rudder server (id=root) is special among nodes. It can be disabled, non system, deleted, etc.
  */
 class CoreNodeFactRepository(
-    storage:        NodeFactStorage,
-    softwareByName: GetNodesBySoftwareName,
-    tenantService:  TenantService,
-    pendingNodes:   Ref[Map[NodeId, CoreNodeFact]],
-    acceptedNodes:  Ref[Map[NodeId, CoreNodeFact]],
-    callbacks:      Ref[Chunk[NodeFactChangeEventCallback]],
-    savePreChecks:  Chunk[NodeFact => IOResult[Unit]],
-    lock:           ReentrantLock,
-    cbTimeout:      zio.Duration = 5.seconds
+    storage:          NodeFactStorage,
+    softwareByName:   GetNodesBySoftwareName,
+    tenantRepository: TenantService,
+    tenantService:    TenantCheckLogic,
+    pendingNodes:     Ref[Map[NodeId, CoreNodeFact]],
+    acceptedNodes:    Ref[Map[NodeId, CoreNodeFact]],
+    callbacks:        Ref[Chunk[NodeFactChangeEventCallback]],
+    savePreChecks:    Chunk[NodeFact => IOResult[Unit]],
+    lock:             ReentrantLock,
+    cbTimeout:        zio.Duration = 5.seconds
 ) extends NodeFactRepository {
   import NodeFactChangeEvent.*
 
-  // number of accepted, enambled node
+  // number of accepted, enabled nodes
   private def coundEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
   private val enabledNodes:         Ref[Int]  = (for {
     n <- acceptedNodes.get
@@ -485,7 +496,7 @@ class CoreNodeFactRepository(
   private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       qc: QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
-    tenantService.nodeGetMapView(ref, nodeId)
+    tenantService.getMapView(ref, nodeId)
   }
 
   /*
@@ -494,12 +505,12 @@ class CoreNodeFactRepository(
    */
   def fetchAndSync(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
     implicit val attrs: SelectFacts = SelectFacts.default
-    if (cc.nodePerms.isNone) NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, attrs), cc).succeed
+    if (cc.accessGrant.isNone) NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, attrs), cc).succeed
     else {
       for {
         a    <- storage.getAccepted(nodeId)
         p    <- storage.getPending(nodeId)
-        c    <- get(nodeId)(using cc.toQuery, SelectNodeStatus.Any)
+        c    <- get(nodeId)(using cc.toQC, SelectNodeStatus.Any)
         diff <- (a, p, c) match {
                   case (None, None, _)    => delete(nodeId)
                   case (None, Some(x), _) =>
@@ -569,14 +580,13 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-      sec    <- tenantService.nodeFilter(res)
-    } yield sec
+    } yield tenantService.flatMap(res)
   }
 
   private[nodes] def getAllOnRef[A](
       ref: Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    tenantService.nodeFilterMapView(ref)
+    tenantService.filterMapView(ref)
   }
 
   override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
@@ -592,7 +602,7 @@ class CoreNodeFactRepository(
   }
 
   override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    tenantService.nodeFilterStream(
+    tenantService.filterStream(
       if (attrs == SelectFacts.none) {
         ZStream.fromIterableZIO(getAll()(using qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
@@ -632,24 +642,20 @@ class CoreNodeFactRepository(
   private def deleteOn(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       cc: ChangeContext
   ): IOResult[StorageChangeEventDelete] = {
-    tenantService
-      .getTenants()
-      .flatMap(tenants => {
-        ref
-          .modify(nodes => {
-            nodes.get(nodeId) match {
-              case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
-              case Some(existing) =>
-                tenantService.checkDelete(existing, cc, tenants) match {
-                  case Left(err) => (Left(err), nodes)
-                  case Right(n)  =>
-                    val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
-                    (Right(e), nodes.removed(nodeId))
-                }
+    ref
+      .modify(nodes => {
+        nodes.get(nodeId) match {
+          case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
+          case Some(existing) =>
+            tenantService.checkDelete(existing, cc) match {
+              case Left(err) => (Left(err), nodes)
+              case Right(n)  =>
+                val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
+                (Right(e), nodes.removed(nodeId))
             }
-          })
-          .flatMap(ZIO.fromEither(_))
+        }
       })
+      .flatMap(ZIO.fromEither(_))
   }
 
   /*
@@ -663,13 +669,16 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _                   <- lock.withLock
-        core                <- get(node.fold(_.id, _._1))(using cc.toQuery)
+        // here we use system QueryContext to look up the node because we want to know if it exists for real, not
+        // get a "none" because it was filtered-out for visibility
+        core                <- get(node.fold(_.id, _._1))(using QueryContext.systemQC)
         pair                <- (node, core) match {
                                  // first case: we are saving a new node fact, tenant can be set
                                  // we keep attrs from request
                                  case (Left(x), None)          => (x, attrs).succeed
-                                 // second case: updating a node fact, we need to keep existing tenant
-                                 // we also keep status
+                                 // second case: updating a node fact,
+                                 // we can only do that without changing tenant (keep existing)
+                                 // we force also keep status
                                  // we keep attrs from request
                                  case (Left(x), Some(y))       =>
                                    (
@@ -688,7 +697,8 @@ class CoreNodeFactRepository(
                                    Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
                                }
         (nodeFact, selected) = pair
-        es                  <- tenantService.manageUpdate(core, nodeFact, cc) { updated =>
+        tenantStatus        <- tenantRepository.getStatus
+        es                  <- tenantService.manageUpdate(core, nodeFact, cc, tenantStatus) { updated =>
                                  for {
                                    // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
                                    // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.
@@ -740,7 +750,7 @@ class CoreNodeFactRepository(
     if (nodeId == Constants.ROOT_POLICY_SERVER_ID && into != AcceptedInventory) {
       Inconsistency(s"Rudder server (id='root' must be accepted").fail
     } else {
-      implicit val qc: QueryContext = cc.toQuery
+      implicit val qc: QueryContext = cc.toQC
       ZIO.scoped(
         for {
           _ <- lock.withLock
@@ -806,7 +816,7 @@ class CoreNodeFactRepository(
     ZIO.scoped(
       for {
         _   <- lock.withLock
-        cnf <- get(nodeId)(using cc.toQuery, SelectNodeStatus.Any)
+        cnf <- get(nodeId)(using cc.toQC, SelectNodeStatus.Any)
         s   <- storage.delete(nodeId)(using SelectFacts.all)
         e   <- cnf match {
                  case Some(n) =>
@@ -827,7 +837,7 @@ class CoreNodeFactRepository(
   ): IOResult[NodeFactChangeEventCC] = {
     val nodeId = inventory.node.main.id
     implicit val attrs: SelectFacts  = if (software.isEmpty) SelectFacts.noSoftware else SelectFacts.all
-    implicit val qc:    QueryContext = cc.toQuery
+    implicit val qc:    QueryContext = cc.toQC
     ZIO.scoped(
       for {
         _          <- lock.withLock
@@ -841,7 +851,7 @@ class CoreNodeFactRepository(
                           Some(NodeFact.updateFullInventory(NodeFact.fromMinimal(f), inventory, software))
                         case None    =>
                           // only people with full node rights can create node for now
-                          if (cc.nodePerms == NodeSecurityContext.All) {
+                          if (cc.accessGrant == TenantAccessGrant.All) {
                             Some(NodeFact.newFromFullInventory(inventory, software))
                           } else {
                             None

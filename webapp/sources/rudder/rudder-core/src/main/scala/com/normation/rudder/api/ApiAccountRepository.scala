@@ -49,11 +49,11 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants
 import com.normation.rudder.domain.RudderLDAPConstants.A_API_UUID
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.zio.*
 import java.time.Instant
 import zio.*
@@ -117,7 +117,7 @@ final class RoLDAPApiAccountRepository(
       isEnabled = true,
       creationDate = Instant.now(),
       lastAuthenticationDate = None, // access for system token is not persisted in base, it only gets logged
-      tenants = NodeSecurityContext.All
+      tenants = TenantAccessGrant.All
     )
   }
 

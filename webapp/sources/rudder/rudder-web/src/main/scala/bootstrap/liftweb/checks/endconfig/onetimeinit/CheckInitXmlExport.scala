@@ -42,9 +42,9 @@ import bootstrap.liftweb.BootstrapLogger
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import zio.*

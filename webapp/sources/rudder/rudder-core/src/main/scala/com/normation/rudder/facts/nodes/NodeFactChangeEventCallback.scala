@@ -63,6 +63,7 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepo
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.InvalidateCache
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import java.time.Instant
@@ -161,7 +162,7 @@ class ScoreUpdateOnNodeFactChange(scoreServiceManager: ScoreServiceManager, scor
         scoreServiceManager.handleEvent(SystemUpdateScoreEvent(node.id, node.softwareUpdate.toList))
       case NodeFactChangeEvent.Updated(_, newNode, _) =>
         scoreServiceManager.handleEvent(SystemUpdateScoreEvent(newNode.id, newNode.softwareUpdate.toList))
-      case NodeFactChangeEvent.Deleted(node, _)       => scoreService.deleteNodeScore(node.id)(using change.cc.toQuery)
+      case NodeFactChangeEvent.Deleted(node, _)       => scoreService.deleteNodeScore(node.id)(using change.cc.toQC)
       case _                                          => ZIO.unit
     }
   }

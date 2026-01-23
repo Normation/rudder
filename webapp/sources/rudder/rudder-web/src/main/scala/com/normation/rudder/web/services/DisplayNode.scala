@@ -41,7 +41,6 @@ package services
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.SHA1
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.AutomaticStartDeployment
@@ -49,15 +48,15 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.*
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.servers.DeleteMode
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.snippet.RegisterToasts
@@ -104,7 +103,6 @@ object DisplayNode extends Loggable {
   private val nodeFactRepository   = RudderConfig.nodeFactRepository
   private val removeNodeService    = RudderConfig.removeNodeService
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private val uuidGen              = RudderConfig.stringUuidGenerator
   private val linkUtil             = RudderConfig.linkUtil
 
   private def escapeJs(in:   String):         JsExp   = Str(StringEscapeUtils.escapeEcmaScript(in))
@@ -645,7 +643,7 @@ object DisplayNode extends Loggable {
         .getOrElse("none available")
     }
           </div>
-          
+
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>
@@ -777,18 +775,12 @@ object DisplayNode extends Loggable {
    * Reset key status for given node and redisplay it's security <div>
    */
   private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-      CurrentUser.actor,
-      Instant.now(),
-      Some("Trusted key status reset to accept new key (first use)"),
-      None,
-      CurrentUser.nodePerms
-    )
+    implicit val cc: ChangeContext =
+      CurrentUser.changeContext(Some("Trusted key status reset to accept new key (first use)"))
 
     (for {
       node   <- RudderConfig.nodeFactRepository
-                  .get(nodeFact.id)(using cc.toQuery)
+                  .get(nodeFact.id)(using cc.toQC)
                   .notOptional(s"Cannot update node with id ${nodeFact.id.value}: there is no node with that id")
       newNode = node.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey)
       _      <- RudderConfig.nodeFactRepository.save(newNode)
@@ -838,9 +830,9 @@ object DisplayNode extends Loggable {
   // Display the node tenant if defined (ie if different from "no tenant"
   private def displayTenant(nodeFact: NodeFact): NodeSeq = {
     nodeFact.rudderSettings.security match {
-      case Some(SecurityTag(tenants)) if (tenants.nonEmpty) =>
+      case Some(SecurityTag.ByTenants(tenants)) if (tenants.nonEmpty) =>
         <div><label>Tenant:</label> {tenants.map(_.value).mkString(", ")}</div>
-      case _                                                =>
+      case _                                                          =>
         NodeSeq.Empty
     }
   }
@@ -1310,14 +1302,7 @@ object DisplayNode extends Loggable {
   }
 
   private def removeNode(node: MinimalNodeFactInterface): JsCmd = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      CurrentUser.actor,
-      Instant.now(),
-      None,
-      S.request.map(_.remoteAddr).toOption,
-      CurrentUser.nodePerms
-    )
+    implicit val cc: ChangeContext = CurrentUser.changeContext()
 
     // only erase for Rudder 8.0
     removeNodeService.removeNodePure(node.id, DeleteMode.Erase).toBox match {

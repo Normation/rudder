@@ -55,8 +55,8 @@ import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.TokenGenerator
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.ldap.JsonApiAcl
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.DateFormaterService.*
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
@@ -121,21 +121,17 @@ import MaybeAcl.transformtpe
 // default codecs for API accounts
 trait ApiAccountCodecs extends DateTimeCodecs {
 
-  implicit val accountIdEncoder:            JsonEncoder[ApiAccountId]         = JsonEncoder.string.contramap(_.value)
-  implicit val decoderApiAccountId:         JsonDecoder[ApiAccountId]         =
+  implicit val accountIdEncoder:              JsonEncoder[ApiAccountId]                 = JsonEncoder.string.contramap(_.value)
+  implicit val decoderApiAccountId:           JsonDecoder[ApiAccountId]                 =
     JsonDecoder.string.mapOrFail(ApiAccountId.parse(_).left.map(_.fullMsg))
-  implicit val accountNameEncoder:          JsonEncoder[ApiAccountName]       = JsonEncoder.string.contramap(_.value)
-  implicit val decoderApiAccountName:       JsonDecoder[ApiAccountName]       = JsonDecoder.string.map(ApiAccountName.apply)
-  implicit val accountTypeEncoder:          JsonEncoder[ApiAccountType]       = JsonEncoder.string.contramap(_.name)
-  implicit val decoderApiAccountType:       JsonDecoder[ApiAccountType]       =
+  implicit val accountNameEncoder:            JsonEncoder[ApiAccountName]               = JsonEncoder.string.contramap(_.value)
+  implicit val decoderApiAccountName:         JsonDecoder[ApiAccountName]               = JsonDecoder.string.map(ApiAccountName.apply)
+  implicit val accountTypeEncoder:            JsonEncoder[ApiAccountType]               = JsonEncoder.string.contramap(_.name)
+  implicit val decoderApiAccountType:         JsonDecoder[ApiAccountType]               =
     JsonDecoder.string.mapOrFail(ApiAccountType.parse(_).left.map(_.fullMsg))
-  implicit val authorizationTypeEncoder:    JsonEncoder[ApiAuthorizationKind] = JsonEncoder.string.contramap(_.name)
-  implicit val decoderApiAuthorizationKind: JsonDecoder[ApiAuthorizationKind] =
+  implicit val authorizationTypeEncoder:      JsonEncoder[ApiAuthorizationKind]         = JsonEncoder.string.contramap(_.name)
+  implicit val decoderApiAuthorizationKind:   JsonDecoder[ApiAuthorizationKind]         =
     JsonDecoder.string.mapOrFail(ApiAuthorizationKind.parse)
-  implicit val encoderNodeSecurityContext:  JsonEncoder[NodeSecurityContext]  = JsonEncoder.string.contramap(_.serialize)
-  implicit val decoderNodeSecurityContext:  JsonDecoder[NodeSecurityContext]  =
-    JsonDecoder.string.mapOrFail(s => NodeSecurityContext.parse(Some(s)).left.map(_.fullMsg))
-
   implicit val codecApiTokenExpirationPolicy: JsonCodec[ApiAccountExpirationPolicyKind] = {
     new JsonCodec[ApiAccountExpirationPolicyKind](
       JsonEncoder.string.contramap(_.entryName),
@@ -156,7 +152,7 @@ sealed trait ApiAccountDetails {
   def tokenGenerationDate: Option[Instant]                // this is the token generation date, mapped to apiTokenCreationTimestamp
   def lastAuthenticationDate
       : Option[Instant] // this is the last account authentication date, mapped to lastAuthenticationTimestamp
-  def tenants:           NodeSecurityContext
+  def tenants:           TenantAccessGrant
   def authorizationType: Option[ApiAuthorizationKind] // ApiAuthorization.kind
   def acl:               Option[JsonApiAcl]
 }
@@ -191,7 +187,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       tokenState:             ApiTokenState,
       tokenGenerationDate:    Option[Instant],
       lastAuthenticationDate: Option[Instant],
-      tenants:                NodeSecurityContext,
+      tenants:                TenantAccessGrant,
       authorizationType:      Option[ApiAuthorizationKind],
       acl:                    Option[JsonApiAcl]
   ) extends ApiAccountDetails
@@ -208,7 +204,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       tokenGenerationDate:    Option[Instant],
       lastAuthenticationDate: Option[Instant],
       token:                  ClearTextSecret,
-      tenants:                NodeSecurityContext,
+      tenants:                TenantAccessGrant,
       authorizationType:      Option[ApiAuthorizationKind],
       acl:                    Option[JsonApiAcl]
   ) extends ApiAccountDetails
@@ -302,7 +298,7 @@ final case class NewRestApiAccount(
     name:              ApiAccountName,                         // used in event log to know who did actions.
     description:       Option[String],
     status:            ApiAccountStatus,
-    tenants:           NodeSecurityContext,
+    tenants:           TenantAccessGrant,
     generateToken:     Option[Boolean],
     expirationPolicy:  Option[ApiAccountExpirationPolicyKind], // defaults to "datetime" by default
     expirationDate:    Option[Instant],                        // defaults to the policy default value
@@ -347,7 +343,7 @@ final case class UpdateApiAccount(
     name:              Option[ApiAccountName],
     description:       Option[String],
     status:            Option[ApiAccountStatus],
-    tenants:           Option[NodeSecurityContext],
+    tenants:           Option[TenantAccessGrant],
     expirationPolicy:  Option[ApiAccountExpirationPolicyKind],
     expirationDate:    Option[Instant],
     authorizationType: Option[ApiAuthorizationKind],

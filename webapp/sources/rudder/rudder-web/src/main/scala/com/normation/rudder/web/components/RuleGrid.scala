@@ -45,11 +45,11 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.reports.NodeChanges
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ComputePolicyMode
@@ -93,7 +93,7 @@ class RuleGrid(
 
   import RuleGrid.*
 
-  private val getFullNodeGroupLib      = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullNodeGroupLib      = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
   private val getFullDirectiveLib      = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied
   private val getRootRuleCategory      = () => RudderConfig.roRuleCategoryRepository.getRootCategory()

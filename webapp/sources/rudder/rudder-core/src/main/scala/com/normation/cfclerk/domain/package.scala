@@ -36,11 +36,7 @@
  */
 package com.normation.cfclerk
 
-import com.normation.eventlog.EventActor
-
 package object domain {
-
-  val CfclerkEventActor: EventActor = EventActor("CFClerk")
 
   // The name of the special Variable that holds all the
   // parameters

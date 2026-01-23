@@ -83,7 +83,8 @@ class ImportTechniqueLibraryTest extends Specification {
               "Restored root",
               Nil,
               Nil,
-              true
+              true,
+              None
             ),
             Set(),
             Set()

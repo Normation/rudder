@@ -41,6 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.ShowNodeDetailsFromNode
 import net.liftweb.common.*
 import net.liftweb.http.S
@@ -51,7 +52,7 @@ import net.liftweb.http.StatefulSnippet
  */
 class Node extends StatefulSnippet {
 
-  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
 
   private val groupLibrary = getFullGroupLibrary().toBox match {
     case Full(x) => x

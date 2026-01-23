@@ -61,3 +61,12 @@ object TenantId {
   val checkTenantId: Regex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
 
 }
+
+/*
+ * A data structure representing current tenant feature state
+ */
+sealed trait TenantStatus
+object TenantStatus {
+  case object Disabled                       extends TenantStatus
+  case class Enabled(tenants: Set[TenantId]) extends TenantStatus
+}

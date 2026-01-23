@@ -46,9 +46,9 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
 import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import java.util.concurrent.TimeUnit

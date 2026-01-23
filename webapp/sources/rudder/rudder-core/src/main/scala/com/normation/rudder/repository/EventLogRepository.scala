@@ -70,6 +70,7 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
+import com.normation.rudder.tenants.ChangeContext
 import doobie.*
 import java.time.Instant
 
@@ -78,7 +79,7 @@ trait EventLogRepository {
 
   /**
    * Save an eventLog
-   * Optionnal : the user. At least one of the eventLog user or user must be defined
+   * Optional : the user. At least one of the eventLog user or user must be defined
    * Return the unspecialized event log with its serialization number
    */
   def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog]
@@ -184,17 +185,14 @@ trait EventLogRepository {
   }
 
   def saveAddNodeGroup(
-      modId:     ModificationId,
-      principal: EventActor,
-      addDiff:   AddNodeGroupDiff,
-      reason:    Option[String]
-  ): IOResult[EventLog] = {
+      addDiff: AddNodeGroupDiff
+  )(implicit cc: ChangeContext): IOResult[EventLog] = {
     saveEventLog(
-      modId,
+      cc.modId,
       eventLogFactory.getAddNodeGroupFromDiff(
-        principal = principal,
+        principal = cc.actor,
         addDiff = addDiff,
-        reason = reason
+        reason = cc.message
       )
     )
   }

@@ -3,12 +3,12 @@ package com.normation.rudder.campaigns
 import better.files.File
 import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.GitArchiveLoggerPure
-import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.repository.xml.BuildFilePaths
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
 import scala.jdk.CollectionConverters.*
 import zio.ZIO
 

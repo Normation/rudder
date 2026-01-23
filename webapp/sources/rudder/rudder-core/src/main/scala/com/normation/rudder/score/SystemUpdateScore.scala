@@ -42,7 +42,6 @@ import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.SoftwareUpdateKind
 import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.score.ScoreValue.A
@@ -51,6 +50,7 @@ import com.normation.rudder.score.ScoreValue.C
 import com.normation.rudder.score.ScoreValue.D
 import com.normation.rudder.score.ScoreValue.E
 import com.normation.rudder.score.ScoreValue.F
+import com.normation.rudder.tenants.QueryContext
 import zio.*
 import zio.json.*
 import zio.syntax.*

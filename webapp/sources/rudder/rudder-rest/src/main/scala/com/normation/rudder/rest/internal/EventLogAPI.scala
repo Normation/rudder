@@ -43,7 +43,6 @@ import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -69,6 +68,7 @@ import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiModuleString
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.*
 import com.normation.zio.UnsafeRun
 import doobie.*
