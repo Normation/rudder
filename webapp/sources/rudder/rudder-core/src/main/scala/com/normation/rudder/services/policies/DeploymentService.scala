@@ -109,7 +109,7 @@ trait PromiseGenerationHooks {
 
   /*
    * Hooks to call before deployment start.
-   * This one is synchronise, so that deployment will
+   * This one is synchronised, so that deployment will
    * wait for its completion AND success.
    * So
    */
@@ -133,11 +133,7 @@ object NodePriority {
  * The main service which deploy modified rules and
  * their dependencies.
  */
-trait PromiseGenerationService {
-
-  def ruleValGeneratedHookService:    RuleValGeneratedHookService
-  def policyGenerationUpdateDynGroup: PolicyGenerationUpdateDynGroup
-  def fetchAllInfoService:            FetchAllInfoService
+trait PolicyGenerationService {
 
   /**
    * All mighty method that take all modified rules, find their
@@ -147,7 +143,63 @@ trait PromiseGenerationService {
    * Return the list of node IDs actually updated.
    *
    */
-  def deploy(): Box[Set[NodeId]] = {
+  def deploy(): Box[Set[NodeId]]
+
+}
+
+/*
+ * A data structure that represent all information needed to perform a policy generation.
+ * Once we have that, the world can restart ticking, we are good and can do the whole
+ * policy generation without any other data fetch.
+ */
+case class FetchAllInfo(
+    activeNodeIds:             Set[NodeId],
+    ruleVals:                  Seq[RuleVal],
+    nodeContexts:              Map[NodeId, InterpolationContext],
+    allNodeModes:              Map[NodeId, NodeModeConfig],
+    scriptEngineEnabled:       FeatureSwitch,
+    globalPolicyMode:          GlobalPolicyMode,
+    nodeConfigCaches:          Map[NodeId, NodeConfigurationHash],
+    timeFetchAll:              Long,
+    timeRuleVal:               Long,
+    errors:                    Map[NodeId, String],
+    maxParallelism:            Int,
+    jsTimeout:                 FiniteDuration,
+    generationContinueOnError: Boolean,
+    schedules:                 Map[CampaignId, JsonDirectiveSchedule]
+)
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  Implémentation
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class PolicyGenerationServiceImpl(
+    override val woRuleRepo:                     WoRuleRepository,
+    override val nodeConfigurationService:       NodeConfigurationHashRepository,
+    override val confExpectedRepo:               UpdateExpectedReportsRepository,
+    override val complianceCache:                FindNewNodeStatusReports,
+    override val promisesFileWriterService:      PolicyWriterService,
+    override val cachedNodeConfigurationService: CachedNodeConfigurationService,
+    val buildNodeConfigurationService:           BuildNodeConfigurationService,
+    val ruleValGeneratedHookService:             RuleValGeneratedHookService,
+    val policyGenerationUpdateDynGroup:          PolicyGenerationUpdateDynGroup,
+    val fetchAllInfoService:                     FetchAllInfoService,
+    val promiseGenerationHookService:            PolicyGenerationHookService,
+    UPDATED_NODE_IDS_PATH:                       String,
+    GENERATION_FAILURE_MSG_PATH:                 String,
+    override val isPostgresqlLocal:              Boolean
+) extends PolicyGenerationService with PolicyGeneration_localPostgresql with PolicyGeneration_updateAndWriteRule
+    with PolicyGeneration_setExpectedReports {
+
+  /**
+   * All mighty method that take all modified rules, find their
+   * dependencies, process ${vars}, build the list of node to update,
+   * update nodes.
+   *
+   * Return the list of node IDs actually updated.
+   *
+   */
+  override def deploy(): Box[Set[NodeId]] = {
     PolicyGenerationLogger.info("Start policy generation, checking updated rules")
 
     val initialTime = System.currentTimeMillis
@@ -161,19 +213,19 @@ trait PromiseGenerationService {
 
     val result = for {
 
-      _                 <- runPreHooks(generationTime, systemEnv)
+      _                 <- promiseGenerationHookService.runPreHooks(generationTime, systemEnv)
       timeRunPreGenHooks = (System.currentTimeMillis - initialTime)
       _                  = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
 
       _ <- policyGenerationUpdateDynGroup.checkUpdate().toBox
 
       startedGenHooksTime    = System.currentTimeMillis
-      _                     <- runStartedHooks(generationTime, systemEnv)
+      _                     <- promiseGenerationHookService.runStartedHooks(generationTime, systemEnv)
       timeRunStartedGenHooks = (System.currentTimeMillis - startedGenHooksTime)
       _                      = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunStartedGenHooks} ms")
 
       codePreGenHooksTime = System.currentTimeMillis
-      _                  <- beforeDeploymentSync(generationTime)
+      _                  <- promiseGenerationHookService.beforeDeploymentSync(generationTime)
       timeCodePreGenHooks = (System.currentTimeMillis - codePreGenHooksTime)
       _                   = PolicyGenerationLogger.timing.debug(
                               s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data."
@@ -230,19 +282,21 @@ trait PromiseGenerationService {
                                   buildConfigTime       = System.currentTimeMillis
                                   /// here, we still have directive by directive info
                                   filteredTechniques    = getFilteredTechnique()
-                                  configsAndErrors     <- buildNodeConfigurations(
-                                                            activeNodeIds,
-                                                            ruleVals,
-                                                            nodeContexts,
-                                                            allNodeModes,
-                                                            filteredTechniques,
-                                                            schedules,
-                                                            scriptEngineEnabled,
-                                                            globalPolicyMode,
-                                                            maxParallelism,
-                                                            jsTimeout,
-                                                            generationContinueOnError
-                                                          ).toBox ?~! "Cannot build target configuration node"
+                                  configsAndErrors     <- buildNodeConfigurationService
+                                                            .buildNodeConfigurations(
+                                                              activeNodeIds,
+                                                              ruleVals,
+                                                              nodeContexts,
+                                                              allNodeModes,
+                                                              filteredTechniques,
+                                                              schedules,
+                                                              scriptEngineEnabled,
+                                                              globalPolicyMode,
+                                                              maxParallelism,
+                                                              jsTimeout,
+                                                              generationContinueOnError
+                                                            )
+                                                            .toBox ?~! "Cannot build target configuration node"
                                   /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
                                   allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
                                   allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
@@ -329,7 +383,7 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime       = System.currentTimeMillis
-      _                  <- runPostHooks(
+      _                  <- promiseGenerationHookService.runPostHooks(
                               generationTime,
                               new DateTime(postHooksTime, DateTimeZone.UTC),
                               updatedNodeInfo,
@@ -372,7 +426,7 @@ trait PromiseGenerationService {
         val exceptionInfo          = f.rootExceptionCause
           .map(ex => s"\n\nException linked to failure: ${ex.getMessage}\n  ${ex.getStackTrace.map(_.toString).mkString("\n  ")}")
           .getOrElse("")
-        runFailureHooks(
+        promiseGenerationHookService.runFailureHooks(
           generationTime,
           new DateTime(failureHooksTime, DateTimeZone.UTC),
           systemEnv,
@@ -409,177 +463,7 @@ trait PromiseGenerationService {
       .toFormatter()
   }
 
-  // code hooks
-  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
-
-  // base folder for hooks. It's a string because there is no need to get it from config
-  // file, it's just a constant.
-  def HOOKS_D:                     String
-  def HOOKS_IGNORE_SUFFIXES:       List[String]
-  def UPDATED_NODE_IDS_PATH:       String
-  def GENERATION_FAILURE_MSG_PATH: String
-
-  /*
-   * Get a list of filtered out technique by node, for special cases
-   */
-  def getFilteredTechnique(): Map[NodeId, List[TechniqueName]]
-
-  /*
-   * From a list of ruleVal, find the list of all impacted nodes
-   * with the actual PolicyBean they will have.
-   * Replace all ${node.varName} vars.
-   */
-  def buildNodeConfigurations(
-      activeNodeIds:             Set[NodeId],
-      ruleVals:                  Seq[RuleVal],
-      nodeContexts:              Map[NodeId, InterpolationContext],
-      allNodeModes:              Map[NodeId, NodeModeConfig],
-      filteredTechniques:        Map[NodeId, List[TechniqueName]],
-      schedules:                 Map[CampaignId, JsonDirectiveSchedule],
-      scriptEngineEnabled:       FeatureSwitch,
-      globalPolicyMode:          GlobalPolicyMode,
-      maxParallelism:            Int,
-      jsTimeout:                 FiniteDuration,
-      generationContinueOnError: Boolean
-  ): IOResult[NodeConfigurations]
-
-  /**
-   * Forget all other node configuration state.
-   * If passed with an empty set, actually forget all node configuration.
-   */
-  def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]]
-
-  /**
-   * Get the actual cached values for NodeConfiguration
-   */
-  def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]]
-
-  /**
-   * For each nodeConfiguration, check if the config is updated.
-   * If so, return the new configId.
-   */
-  def getNodesConfigVersion(
-      allNodeConfigs: Map[NodeId, NodeConfiguration],
-      hashes:         Map[NodeId, NodeConfigurationHash],
-      generationTime: DateTime
-  ): Map[NodeId, NodeConfigId]
-
-  /**
-   * Actually  write the new configuration for the list of given node.
-   * If the node target configuration is the same as the actual, nothing is done.
-   * Else, promises are generated;
-   * Return the list of configuration successfully written.
-   */
-  def writeNodeConfigurations(
-      rootNodeId:       NodeId,
-      updated:          Map[NodeId, NodeConfigId],
-      allNodeConfig:    Map[NodeId, NodeConfiguration],
-      nodeInfo:         Map[NodeId, CoreNodeFact],
-      globalPolicyMode: GlobalPolicyMode,
-      generationTime:   DateTime,
-      maxParallelism:   Int
-  ): Box[Set[NodeId]]
-
-  /**
-   * Compute expected reports for each node
-   * (that does not save them in base)
-   */
-  def computeExpectedReports(
-      allNodeConfigurations: Map[NodeId, NodeConfiguration],
-      updatedId:             Map[NodeId, NodeConfigId],
-      generationTime:        DateTime,
-      allNodeModes:          Map[NodeId, NodeModeConfig]
-  ): List[NodeExpectedReports]
-
-  /**
-   * Save expected reports in database
-   */
-  def saveExpectedReports(
-      expectedReports: List[NodeExpectedReports]
-  ): Box[Seq[NodeExpectedReports]]
-
-  /**
-   * After updates of everything, notify expected reports and compliance cache
-   * that it should forget what it knows about the updated nodes
-   */
-  def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit]
-
-  /**
-   * Run pre generation hooks
-   */
-
-  def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
-
-  def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit]
-
-  /**
-   * Run post generation hooks
-   */
-  def runPostHooks(
-      generationTime:    DateTime,
-      endTime:           DateTime,
-      idToConfiguration: Map[NodeId, CoreNodeFact],
-      systemEnv:         HookEnvPairs,
-      nodeIdsPath:       String
-  ): Box[Unit]
-
-  /**
-   * Run failure hook
-   */
-  def runFailureHooks(
-      generationTime:   DateTime,
-      endTime:          DateTime,
-      systemEnv:        HookEnvPairs,
-      errorMessage:     String,
-      errorMessagePath: String
-  ): Box[Unit]
-
 }
-
-/*
- * A data structure that represent all information needed to perform a policy generation.
- * Once we have that, the world can restart ticking, we are good and can do the whole
- * policy generation without any other data fetch.
- */
-case class FetchAllInfo(
-    activeNodeIds:             Set[NodeId],
-    ruleVals:                  Seq[RuleVal],
-    nodeContexts:              Map[NodeId, InterpolationContext],
-    allNodeModes:              Map[NodeId, NodeModeConfig],
-    scriptEngineEnabled:       FeatureSwitch,
-    globalPolicyMode:          GlobalPolicyMode,
-    nodeConfigCaches:          Map[NodeId, NodeConfigurationHash],
-    timeFetchAll:              Long,
-    timeRuleVal:               Long,
-    errors:                    Map[NodeId, String],
-    maxParallelism:            Int,
-    jsTimeout:                 FiniteDuration,
-    generationContinueOnError: Boolean,
-    schedules:                 Map[CampaignId, JsonDirectiveSchedule]
-)
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Implémentation
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class PromiseGenerationServiceImpl(
-    override val woRuleRepo:                        WoRuleRepository,
-    override val nodeConfigurationService:          NodeConfigurationHashRepository,
-    override val confExpectedRepo:                  UpdateExpectedReportsRepository,
-    override val complianceCache:                   FindNewNodeStatusReports,
-    override val promisesFileWriterService:         PolicyWriterService,
-    override val cachedNodeConfigurationService:    CachedNodeConfigurationService,
-    override val HOOKS_D:                           String,
-    override val HOOKS_IGNORE_SUFFIXES:             List[String],
-    override val UPDATED_NODE_IDS_PATH:             String,
-    override val postGenerationHookCompabilityMode: Option[Boolean],
-    override val GENERATION_FAILURE_MSG_PATH:       String,
-    override val isPostgresqlLocal:                 Boolean,
-    override val ruleValGeneratedHookService:       RuleValGeneratedHookService,
-    override val policyGenerationUpdateDynGroup:    PolicyGenerationUpdateDynGroup,
-    override val fetchAllInfoService:               FetchAllInfoService
-) extends PromiseGenerationService with PromiseGeneration_buildNodeConfigurations with PromiseGeneration_updateAndWriteRule
-    with PromiseGeneration_setExpectedReports with PromiseGeneration_Hooks {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Follows: traits implementing each part of the deployment service
@@ -651,19 +535,26 @@ class PolicyGenerationUpdateDynGroupImpl(getComputeDynGroups: () => IOResult[Boo
   }
 }
 
-trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService {
+trait PolicyGeneration_localPostgresql {
 
   def isPostgresqlLocal: Boolean
 
-  override def getFilteredTechnique(): Map[NodeId, List[TechniqueName]] = {
+  def getFilteredTechnique(): Map[NodeId, List[TechniqueName]] = {
     if (isPostgresqlLocal) {
       Map()
     } else {
       Map((Constants.ROOT_POLICY_SERVER_ID -> List(TechniqueName("rudder-service-postgresql"))))
     }
   }
+}
 
-  override def buildNodeConfigurations(
+final case class NodeConfigurations(
+    ok:     List[NodeConfiguration],
+    errors: List[RudderError]
+)
+
+trait BuildNodeConfigurationService {
+  def buildNodeConfigurations(
       activeNodeIds:             Set[NodeId],
       ruleVals:                  Seq[RuleVal],
       nodeContexts:              Map[NodeId, InterpolationContext],
@@ -675,28 +566,10 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
       maxParallelism:            Int,
       jsTimeout:                 FiniteDuration,
       generationContinueOnError: Boolean
-  ): IOResult[NodeConfigurations] = BuildNodeConfiguration.buildNodeConfigurations(
-    activeNodeIds,
-    ruleVals,
-    nodeContexts,
-    allNodeModes,
-    filteredTechniques,
-    schedules,
-    scriptEngineEnabled,
-    globalPolicyMode,
-    maxParallelism,
-    jsTimeout,
-    generationContinueOnError
-  )
-
+  ): IOResult[NodeConfigurations]
 }
 
-final case class NodeConfigurations(
-    ok:     List[NodeConfiguration],
-    errors: List[RudderError]
-)
-
-object BuildNodeConfiguration extends Loggable {
+object BuildNodeConfiguration extends BuildNodeConfigurationService {
 
   /*
    * Utility class that helps deduplicate same failures in a chain
@@ -986,7 +859,7 @@ object BuildNodeConfiguration extends Loggable {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
+trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
 
   def nodeConfigurationService:  NodeConfigurationHashRepository
   def woRuleRepo:                WoRuleRepository
@@ -1164,12 +1037,12 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
+trait PolicyGeneration_setExpectedReports extends PolicyGenerationService {
   def complianceCache:                FindNewNodeStatusReports
   def confExpectedRepo:               UpdateExpectedReportsRepository
   def cachedNodeConfigurationService: CachedNodeConfigurationService
 
-  override def computeExpectedReports(
+  def computeExpectedReports(
       allNodeConfigurations: Map[NodeId, NodeConfiguration],
       updatedNodes:          Map[NodeId, NodeConfigId],
       generationTime:        DateTime,
@@ -1195,11 +1068,11 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     }.toList
   }
 
-  override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
+  def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = {
     cachedNodeConfigurationService.invalidateWithAction(actions)
   }
 
-  override def saveExpectedReports(
+  def saveExpectedReports(
       expectedReports: List[NodeExpectedReports]
   ): Box[Seq[NodeExpectedReports]] = {
     // now, we just need to go node by node, and for each:
@@ -1426,9 +1299,37 @@ object RuleExpectedReportBuilder extends Loggable {
 // utility case class where we store the sorted list of node ids to be passed to hooks
 final case class SortedNodeIds(servers: Seq[String], nodes: Seq[String])
 
-trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGenerationHooks {
+trait PolicyGenerationHookService {
+  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
+  def runPreHooks(generationTime:          DateTime, systemEnv: HookEnvPairs): Box[Unit]
+  def runStartedHooks(generationTime:      DateTime, systemEnv: HookEnvPairs): Box[Unit]
+  /*
+   * Post generation hooks
+   */
+  def runPostHooks(
+      generationTime:   DateTime,
+      endTime:          DateTime,
+      updatedNodeInfos: Map[NodeId, CoreNodeFact],
+      systemEnv:        HookEnvPairs,
+      nodeIdsPath:      String
+  ): Box[Unit]
 
-  def postGenerationHookCompabilityMode: Option[Boolean]
+  def runFailureHooks(
+      generationTime:   DateTime,
+      endTime:          DateTime,
+      systemEnv:        HookEnvPairs,
+      errorMessage:     String,
+      errorMessagePath: String
+  ): Box[Unit]
+}
+
+class PolicyGenerationHookServiceImpl(
+    // base folder for hooks. It's a string because there is no need to get it from config
+    // file, it's just a constant.
+    HOOKS_D:                           String,
+    HOOKS_IGNORE_SUFFIXES:             List[String],
+    postGenerationHookCompabilityMode: Option[Boolean]
+) extends PolicyGenerationHookService {
 
   /*
    * Plugin hooks
@@ -1449,7 +1350,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Pre generation hooks
    */
-  override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
+  def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
     val name = "policy-generation-pre-start"
     (for {
       preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
@@ -1473,7 +1374,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Pre generation hooks
    */
-  override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
+  def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
     val name = "policy-generation-started"
     (for {
       // fetch all
@@ -1613,7 +1514,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Post generation hooks
    */
-  override def runPostHooks(
+  def runPostHooks(
       generationTime:   DateTime,
       endTime:          DateTime,
       updatedNodeInfos: Map[NodeId, CoreNodeFact],
@@ -1693,7 +1594,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
   /*
    * Post generation hooks
    */
-  override def runFailureHooks(
+  def runFailureHooks(
       generationTime:   DateTime,
       endTime:          DateTime,
       systemEnv:        HookEnvPairs,

@@ -1360,7 +1360,7 @@ object RudderConfig extends Loggable {
   val databaseManager:                     DatabaseManager                          = rci.databaseManager
   val debugScript:                         DebugInfoService                         = rci.debugScript
   val dependencyAndDeletionService:        DependencyAndDeletionService             = rci.dependencyAndDeletionService
-  val deploymentService:                   PromiseGeneration_Hooks                  = rci.deploymentService
+  val policyGenerationHookService:         PolicyGenerationHookService              = rci.policyGenerationHookService
   val diffDisplayer:                       DiffDisplayer                            = rci.diffDisplayer
   val diffService:                         DiffService                              = rci.diffService
   val directiveEditorService:              DirectiveEditorService                   = rci.directiveEditorService
@@ -1611,7 +1611,7 @@ case class RudderServiceApi(
     roLDAPParameterRepository:           RoLDAPParameterRepository,
     woLDAPParameterRepository:           WoLDAPParameterRepository,
     interpolationCompiler:               InterpolatedValueCompilerImpl,
-    deploymentService:                   PromiseGeneration_Hooks,
+    policyGenerationHookService:         PolicyGenerationHookService,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
     campaignRepo:                        CampaignRepository,
     mainCampaignService:                 MainCampaignService,
@@ -3153,6 +3153,11 @@ object RudderConfigInit {
     lazy val policyGenerationDynGroupUpdate = new PolicyGenerationUpdateDynGroupImpl(() =>
       configService.rudder_generation_compute_dyngroups()
     )
+    lazy val policyGenerationHookService    = new PolicyGenerationHookServiceImpl(
+      HOOKS_D,
+      HOOKS_IGNORE_SUFFIXES,
+      UPDATED_NODE_IDS_COMPABILITY
+    )
     lazy val deploymentService              = {
       val writeCertificate        = new WriteCertificatesPemServiceImpl(
         new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD)),
@@ -3180,22 +3185,21 @@ object RudderConfigInit {
         () => configService.rudder_generation_js_timeout(),
         () => configService.rudder_generation_continue_on_error()
       )
-      new PromiseGenerationServiceImpl(
+      new PolicyGenerationServiceImpl(
         woLdapRuleRepository,
         nodeConfigurationHashRepo,
         updateExpectedRepo,
         findNewNodeStatusReports,
         rudderCf3PromisesFileWriterService,
         cachedNodeConfigurationService,
-        HOOKS_D,
-        HOOKS_IGNORE_SUFFIXES,
-        UPDATED_NODE_IDS_PATH,
-        UPDATED_NODE_IDS_COMPABILITY,
-        GENERATION_FAILURE_MSG_PATH,
-        POSTGRESQL_IS_LOCAL,
+        BuildNodeConfiguration,
         ruleValGeneratedHookService,
         policyGenerationDynGroupUpdate,
-        fetchAllInfoServiceImpl
+        fetchAllInfoServiceImpl,
+        policyGenerationHookService,
+        UPDATED_NODE_IDS_PATH,
+        GENERATION_FAILURE_MSG_PATH,
+        POSTGRESQL_IS_LOCAL
       )
     }
 
@@ -3976,7 +3980,7 @@ object RudderConfigInit {
       roLDAPParameterRepository,
       woLDAPParameterRepository,
       interpolationCompiler,
-      deploymentService,
+      policyGenerationHookService,
       campaignEventRepo,
       campaignRepo,
       mainCampaignService,

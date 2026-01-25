@@ -63,10 +63,8 @@ import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger
-import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.config.StatelessUserPropertyService
-import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.eventlog.ModifyNodeGroup
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -79,9 +77,6 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.NodeExpectedReports
-import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -90,7 +85,6 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.CmdResult
-import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.metrics.FrequentNodeMetrics
 import com.normation.rudder.metrics.JvmInfo
 import com.normation.rudder.metrics.PrivateSystemInfo
@@ -134,7 +128,6 @@ import com.normation.rudder.rest.internal.SharedFilesAPI
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
-import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.eventlog.EventLogDetailsServiceImpl
@@ -148,20 +141,11 @@ import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.policies.DependencyAndDeletionServiceImpl
 import com.normation.rudder.services.policies.FindDependencies
-import com.normation.rudder.services.policies.InterpolationContext
-import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.rudder.services.policies.NodeConfigurations
-import com.normation.rudder.services.policies.PolicyGenerationUpdateDynGroup
-import com.normation.rudder.services.policies.PromiseGenerationService
+import com.normation.rudder.services.policies.PolicyGenerationService
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
-import com.normation.rudder.services.policies.RuleVal
-import com.normation.rudder.services.policies.fetchInfo.FetchAllInfoService
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
-import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
-import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.system.DebugInfoScriptResult
@@ -217,7 +201,6 @@ import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.annotation.nowarn
 import scala.concurrent.duration.Duration
-import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.xml.Elem
@@ -406,73 +389,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val eventLogger:      EventLogDeploymentService = new EventLogDeploymentService(eventLogRepo, null) {
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
   }
-  val policyGeneration: PromiseGenerationService  = new PromiseGenerationService {
+  val policyGeneration: PolicyGenerationService   = new PolicyGenerationService {
     override def deploy(): Box[Set[NodeId]] = Full(Set())
-    override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
-    override def HOOKS_D:                     String                                  = ???
-    override def HOOKS_IGNORE_SUFFIXES:       List[String]                            = ???
-    override def UPDATED_NODE_IDS_PATH:       String                                  = ???
-    override def GENERATION_FAILURE_MSG_PATH: String                                  = ???
-    override def getFilteredTechnique():      Map[NodeId, List[TechniqueName]]        = ???
-    override def buildNodeConfigurations(
-        activeNodeIds:             Set[NodeId],
-        ruleVals:                  Seq[RuleVal],
-        nodeContexts:              Map[NodeId, InterpolationContext],
-        allNodeModes:              Map[NodeId, NodeModeConfig],
-        filter:                    Map[NodeId, List[TechniqueName]],
-        schedules:                 Map[CampaignId, JsonDirectiveSchedule],
-        scriptEngineEnabled:       FeatureSwitch,
-        globalPolicyMode:          GlobalPolicyMode,
-        maxParallelism:            Int,
-        jsTimeout:                 FiniteDuration,
-        generationContinueOnError: Boolean
-    ): IOResult[NodeConfigurations] = ???
-    override def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = ???
-    override def getNodeConfigurationHash():  Box[Map[NodeId, NodeConfigurationHash]] = ???
-    override def getNodesConfigVersion(
-        allNodeConfigs: Map[NodeId, NodeConfiguration],
-        hashes:         Map[NodeId, NodeConfigurationHash],
-        generationTime: DateTime
-    ): Map[NodeId, NodeConfigId] = ???
-    override def writeNodeConfigurations(
-        rootNodeId:       NodeId,
-        updated:          Map[NodeId, NodeConfigId],
-        allNodeConfig:    Map[NodeId, NodeConfiguration],
-        allNodeInfos:     Map[NodeId, CoreNodeFact],
-        globalPolicyMode: GlobalPolicyMode,
-        generationTime:   DateTime,
-        maxParallelism:   Int
-    ): Box[Set[NodeId]] = ???
-    override def computeExpectedReports(
-        allNodeConfigurations: Map[NodeId, NodeConfiguration],
-        updatedId:             Map[NodeId, NodeConfigId],
-        generationTime:        DateTime,
-        allNodeModes:          Map[NodeId, NodeModeConfig]
-    ): List[NodeExpectedReports] = ???
-    override def saveExpectedReports(expectedReports: List[NodeExpectedReports]): Box[Seq[NodeExpectedReports]] = ???
-    override def runPreHooks(generationTime:     DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
-    override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = ???
-    override def runPostHooks(
-        generationTime:    DateTime,
-        endTime:           DateTime,
-        idToConfiguration: Map[NodeId, CoreNodeFact],
-        systemEnv:         HookEnvPairs,
-        nodeIdsPath:       String
-    ): Box[Unit] = ???
-    override def runFailureHooks(
-        generationTime:   DateTime,
-        endTime:          DateTime,
-        systemEnv:        HookEnvPairs,
-        errorMessage:     String,
-        errorMessagePath: String
-    ): Box[Unit] = ???
-
-    override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
-
-    override def ruleValGeneratedHookService: RuleValGeneratedHookService = new RuleValGeneratedHookService()
-
-    override def policyGenerationUpdateDynGroup: PolicyGenerationUpdateDynGroup = ???
-    override def fetchAllInfoService:            FetchAllInfoService            = ???
   }
   val bootGuard:        Promise[Nothing, Unit]    = (for {
     p <- Promise.make[Nothing, Unit]
