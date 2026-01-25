@@ -41,6 +41,7 @@ import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignSerializer.*
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.*
+import java.time.Instant
 import zio.json.JsonCodec
 import zio.json.jsonDiscriminator
 import zio.json.jsonHint
@@ -55,19 +56,29 @@ import zio.json.jsonHint
 object DirectiveScheduleType extends CampaignType("directive-schedule")
 
 // no details for directive schedule
-object NoDirectiveScheduleDetails extends CampaignDetails
+// maxDate : date up to which events are generated (may be none before first policy generation for that schedule).
+//           Must be consistent for all nodes.
+case class DirectiveScheduleDetails(
+    scheduleType: String, // for documantation: benchmarks, system-update, etc
+    maxDate:      Option[Instant]
+) extends CampaignDetails
+    derives JsonCodec
+
+object DirectiveScheduleDetails {
+  def empty = DirectiveScheduleDetails("generic", None)
+}
 
 // The only goal of this trait is to be able to provide a discriminator in json,
 // zio-json allow to have discriminator only on sealed trait
 @jsonDiscriminator("campaignType")
 sealed trait DirectiveScheduleFamily extends Campaign derives JsonCodec {
-  override def version:      Int             = 1
-  override def details:      CampaignDetails = NoDirectiveScheduleDetails
-  override def campaignType: CampaignType    = DirectiveScheduleType
+  override def version:      Int          = 1
+  override def campaignType: CampaignType = DirectiveScheduleType
 }
 
 @jsonHint(DirectiveScheduleType.value)
-case class DirectiveSchedule(info: CampaignInfo) extends DirectiveScheduleFamily derives JsonCodec {
+case class DirectiveSchedule(info: CampaignInfo, details: DirectiveScheduleDetails = DirectiveScheduleDetails.empty)
+    extends DirectiveScheduleFamily derives JsonCodec {
   override def copyWithId(newId: CampaignId): Campaign = this.modify(_.info.id).setTo(newId)
   override def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
     this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))
@@ -82,6 +93,7 @@ object DirectiveSchedule {
       .withFieldComputed(_.id, _.info.id)
       .withFieldComputed(_.e, _.info.status.value == CampaignStatusValue.Enabled)
       .withFieldComputed(_.s, _.info.schedule)
+      .withFieldComputed(_.d, _.details.maxDate)
       .buildTransformer
   }
 
@@ -93,5 +105,18 @@ object DirectiveSchedule {
 case class JsonDirectiveSchedule(
     id: CampaignId,
     e:  Boolean,         // enabled == true <=> status == enabled, else false
+    d:  Option[Instant], // max date up to which events were generated for that schedule
     s:  CampaignSchedule // that's a complicated data format, keep it like that
+) derives JsonCodec
+
+/*
+ * A schedule event that will be save in rudder.json for the module
+ */
+case class DirectiveScheduleEvent(
+    id:        CampaignId,
+    eventId:   String, // not sure ?
+    eventType: String, // for documentation, "benchmarks", etc
+    name:      String, // name of the schedule that created that event, ie info.name
+    notBefore: Instant,
+    notAfter:  Instant
 ) derives JsonCodec

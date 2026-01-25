@@ -76,6 +76,8 @@ import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.*
+import com.normation.rudder.schedule.DirectiveSchedule
+import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.fetchInfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
@@ -92,6 +94,7 @@ import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.Control.*
 import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -166,7 +169,7 @@ case class FetchAllInfo(
     maxParallelism:            Int,
     jsTimeout:                 FiniteDuration,
     generationContinueOnError: Boolean,
-    schedules:                 Map[CampaignId, JsonDirectiveSchedule]
+    schedules:                 Map[CampaignId, DirectiveSchedule]
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -185,6 +188,7 @@ class PolicyGenerationServiceImpl(
     val policyGenerationUpdateDynGroup:          PolicyGenerationUpdateDynGroup,
     val fetchAllInfoService:                     FetchAllInfoService,
     val promiseGenerationHookService:            PolicyGenerationHookService,
+    val scheduleManagement:                      ScheduleManagement,
     UPDATED_NODE_IDS_PATH:                       String,
     GENERATION_FAILURE_MSG_PATH:                 String,
     override val isPostgresqlLocal:              Boolean
@@ -282,6 +286,9 @@ class PolicyGenerationServiceImpl(
                                   buildConfigTime       = System.currentTimeMillis
                                   /// here, we still have directive by directive info
                                   filteredTechniques    = getFilteredTechnique()
+                                  scheduleData          =
+                                    scheduleManagement.updateSchedules(Instant.ofEpochMilli(buildConfigTime.millis.toMillis), schedules)
+                                  _                    <- scheduleManagement.saveUpdatedSchedule(scheduleData.updated).toBox
                                   configsAndErrors     <- buildNodeConfigurationService
                                                             .buildNodeConfigurations(
                                                               activeNodeIds,
@@ -289,7 +296,7 @@ class PolicyGenerationServiceImpl(
                                                               nodeContexts,
                                                               allNodeModes,
                                                               filteredTechniques,
-                                                              schedules,
+                                                              scheduleData.all,
                                                               scriptEngineEnabled,
                                                               globalPolicyMode,
                                                               maxParallelism,
@@ -470,6 +477,27 @@ class PolicyGenerationServiceImpl(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+case class ScheduleData(
+    // list of schedules that need to be save and trigger workflow
+    updated:  Map[CampaignId, JsonDirectiveSchedule],
+    // the one already ok
+    upToDate: Map[CampaignId, JsonDirectiveSchedule],
+    events:   Map[CampaignId, List[DirectiveScheduleEvent]]
+) {
+  def all = upToDate ++ updated
+}
+
+trait ScheduleManagement {
+
+  // create schedule events for given schedule.
+  // We compute min(30, 10 days) events.
+  def updateSchedules(now: Instant, schedules: Map[CampaignId, DirectiveSchedule]): ScheduleData
+
+  // save and update workflow events for these schedules
+  def saveUpdatedSchedule(schedules: Map[CampaignId, JsonDirectiveSchedule]): IOResult[Unit]
+
+}
 
 /*
  * Facade that manage dynamic group update before policy generation if needed.
