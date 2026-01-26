@@ -43,26 +43,6 @@ const homePage = (
   , nodeCount
   , scoreDetails
 ) => {
-  var opts = {
-    lines: 12, // The number of lines to draw
-    angle: 0, // The length of each line
-    lineWidth: 0.44, // The line thickness
-    pointer: {
-      length: 0.9, // The radius of the inner circle
-      strokeWidth: 0.035, // The rotation offset
-      color: '#36474E' // Fill color
-    },
-    limitMax         : 'false'  , // If true, the pointer will not go past the end of the gauge
-    colorStart       : '#6FADCF', // Colors
-    colorStop        : '#8FC0DA', // just experiment with them
-    strokeColor      : '#d8dde5', // to see which ones work best for you
-    percentColors    : [[0.0, "#DA291C" ], [0.30, "#EF9600"], [0.50, "#b1eda4"], [1.0, "#13BEB7"]],
-    generateGradient : true
-  };
-  var target = document.getElementById('complianceGauge'); // your canvas element
-  var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
-  gauge.maxValue = 100; // set max gauge value
-  gauge.animationSpeed = 14; // set animation speed (32 is default value)
 
   if(globalGauge < 0) { //put placeholder texte
     $("#globalCompliance").html('<div class="placeholder-bar progress m-0 mb-3"></div>');
@@ -70,15 +50,7 @@ const homePage = (
       "<p>You only have system rules. They are ignored in global compliance.</p>"+
       "<p>Please go to <a href='/rudder/secure/configurationManager/ruleManagement'>rule management</a> to define your rules.</p>"
     )
-
-    var complianceGauge = document.getElementById('complianceGauge');
-    complianceGauge.getContext('2d').clearRect(0, 0, complianceGauge.width, complianceGauge.height);
-    $("#gauge-value").text("") // let blank
-    $(target).attr("title","You only have system rules. They are ignored in Global compliance.")
-    //Display empty gauge
-    gauge.set(0)
   } else {
-
     $("#globalCompliance").append(buildComplianceBar(globalCompliance));
 
     var allNodes = nodeCount.active;
@@ -99,24 +71,18 @@ const homePage = (
     }
 
     $("#globalComplianceStats").html(stats);
-
-    gauge.set(function() {
-      // set actual value - there is a bug for value = 0, so let's pretend it's 0.1
-      if(globalGauge == 0) return 0.1;
-      return globalGauge;
-    }());
-    $("#gauge-value").text(globalGauge+"%");
-
   }
 
   doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]));
 
   scoreDetails.forEach(function(score) {
     $("#scoreBreakdown .node-charts").append(
-              `<div class="node-chart">
-                <h4 class="text-center">${score.name}</h4>
-                <canvas id="score-${score.scoreId}" > </canvas>
-                <div  id="score-${score.scoreId}-legend"></div>
+              `<div class="node-chart px-3 mb-4">
+                <h4 class="px-2">${score.name}</h4>
+                <div class="d-flex align-items-center justify-content-between">
+                  <canvas id="score-${score.scoreId}" > </canvas>
+                  <div  id="score-${score.scoreId}-legend"></div>
+                </div>
               </div>`)
     var complianceHColors = score.data.colors.map(x => complianceHoverColors[x]);
     var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
@@ -166,16 +132,6 @@ const onClickDoughnuts = (e, active, currentChart, id, data) => {
         ];
         break;
 
-      case 'nodeMachine':
-        jsonHashSearch.query.where = [
-          { objectType: "machine"
-          , attribute : "machineType"
-          , comparator: "eq"
-          , value     : data
-          }
-        ];
-        break;
-
       case 'nodeCompliance':
         const jsonHashFilter =
           { score : data
@@ -206,7 +162,6 @@ const homePageInventory = (
   , osNames
 ) => {
   g_osNames = osNames
-  doughnutChart('nodeMachine',nodeMachines, inventoryColors, hoverColors, onClickDoughnuts);
   doughnutChart('nodeOs', nodeOses, inventoryColors, hoverColors, onClickDoughnuts);
 }
 
