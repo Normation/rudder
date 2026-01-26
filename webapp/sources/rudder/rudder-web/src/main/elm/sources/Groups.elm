@@ -10,18 +10,17 @@ import Http exposing (..)
 import GroupRelatedRules.DataTypes exposing (GroupId)
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
-import Groups.Init exposing (entryToStringList, filterPredicate, init)
+import Groups.Init exposing (init)
 import Groups.View exposing (view)
 import Groups.ViewUtils exposing (..)
 
-import Notifications exposing (successNotification)
+import Maybe.Extra
 import Rudder.Filters as Filters
 import Rudder.Table exposing (OutMsg(..))
 import Task
 import Time
 import Time.DateTime
 import Time.Iso8601
-import Time.ZonedDateTime
 import Ui.Datatable exposing (getAllCats)
 
 
@@ -126,9 +125,10 @@ update msg model =
         nextIds = nextGroupIds model
       in
         ({model | mode = LoadingTable, ui = newUi}, getGroupsCompliance True nextIds model)
-    UpdateGroupFoldedFilters filters ->
+    UpdateGroupFoldedFilters categoryId ->
       let
         ui = model.ui
+        filters = (foldUnfoldCategory model.ui.groupFilters categoryId)
         newUi = { ui | groupFilters = filters }
       in
         ({model | ui = newUi}, initTooltips ())
@@ -137,13 +137,10 @@ update msg model =
       let
         ui = model.ui
         groupFilters = ui.groupFilters
-        treeFilters = groupFilters.treeFilters
-        newTreeFilters = { treeFilters | filter = search }
-        newGroupFilters = { groupFilters | treeFilters = newTreeFilters }
+        newGroupFilters = { groupFilters | filter = search }
         newUi = { ui | groupFilters = newGroupFilters }
-        groupsTable = Rudder.Table.updateDataWithFilter (Filters.applyString search (Filters.byValues entryToStringList)) model.groupsTable
       in
-        ({model | ui = newUi, groupsTable = groupsTable}, initTooltips ())
+        ({model | ui = newUi} |> updateGroupsTableFilter, initTooltips ())
     FoldAllCategories filters ->
       let
         -- remove rootGroupCategoryId because we can't fold/unfold root category
@@ -152,7 +149,7 @@ update msg model =
             |> List.map .id
             |> List.filter (\id -> id /= rootGroupCategoryId)
         foldedCat =
-          filters.treeFilters.folded
+          filters.folded
             |> List.filter (\id -> id /= rootGroupCategoryId)
         ui = model.ui
         newState =
@@ -160,8 +157,7 @@ update msg model =
             False
           else
             True
-        treeFilters = filters.treeFilters
-        foldedList = {filters | treeFilters = {treeFilters | folded = if(newState) then catIds else []}}
+        foldedList = {filters | folded = if(newState) then catIds else []}
       in
         ({model | ui = { ui | groupFilters = foldedList}}, initTooltips ())
 
@@ -202,6 +198,18 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
         _ ->
             ( {model | groupsTable = groupsTable}, tabMsg )
 
+
+updateGroupsTableFilter : Model -> Model
+updateGroupsTableFilter model =
+    let
+        searchFieldGroups g =
+            [ g.id.value
+            , g.name
+            ] ++ Maybe.Extra.toList g.category ++ Maybe.Extra.toList (Maybe.map (getCategoryName model) g.category)
+        search = model.ui.groupFilters.filter
+        predicate = Filters.applyString search (Filters.byValues searchFieldGroups)
+    in
+    {model | groupsTable = Rudder.Table.updateDataWithFilter predicate model.groupsTable}
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
