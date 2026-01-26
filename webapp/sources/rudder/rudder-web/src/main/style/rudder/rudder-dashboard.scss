@@ -37,35 +37,59 @@
 
 @use 'rudder-variables' as *;
 
-.content-wrapper,
-.content-wrapper > .rudder_col,
-.rudder-template,
-.rudder-template .homePage{
-  height: 100%;
-}
-.content-wrapper > .rudder_col .row{
-  height: auto;
-}
-.rudder-template .homePage {
-  display: flex;
-  flex-direction : column;
-  padding: 30px;
-  width: 100%;
-  overflow: auto;
-}
 
+$doughnut-size : 200px;
+
+.homePage > .container-fluid{
+  height: calc(100vh - 50px);
+}
+#headerBar~.content-wrapper .rudder-template .homePage > .container-fluid{
+  height: calc(100vh - 80px);
+}
 /* === CARD === */
-.rudder-template .homePage .card{
-  height: 100%;
+ .homePage .card{
   border-radius: 12px;
   box-shadow: 0 6px 16px 2px $rudder-box-shadow-color;
   border: none !important;
   overflow: hidden;
 }
 
-#globalComplianceStats {
-  color: $rudder-txt-light;
-  padding: 0 30px;
+.homePage a.card{
+  $duration: .2s;
+
+  cursor: pointer;
+  transition: $duration box-shadow;
+
+  .icon-link-container{
+    position: absolute;
+    display: flex;
+    height: 100%;
+    top: 0;
+    right: 0;
+    width: 2rem;
+    align-items: center;
+
+    i{
+      opacity: 0;
+      transform: rotate(45deg);
+      color: $rudder-txt-link;
+      font-size: 1.6rem;
+      position: relative;
+      right: 20px;
+      transition-duration: $duration;
+      transition-property : opacity, right;
+      transition-timing-function : ease-out;
+    }
+
+  }
+  &:hover {
+    box-shadow: 0 6px 14px 0px $rudder-box-shadow-hover-color;
+
+    .icon-link-container i{
+      opacity: 1;
+      right: 0;
+    }
+  }
 }
 
 .highlight{
@@ -102,9 +126,6 @@
 }
 
 /* Global Compliance */
-.global-compliance,.global-compliance-details {
-  height: 279px;
-}
 #globalCompliance .progress {
   height: 80px;
   border-radius: 8px;
@@ -113,25 +134,6 @@
 #globalCompliance .progress .progress-bar {
   font-size: 16px;
   min-width: 8px;
-}
-
-#complianceGauge {
-  max-width: 100%;
-  width:420px;
-}
-#gauge-value {
-  font-weight: bold;
-  font-size:30px;
-  float: left;
-  width: 100%;
-  color: $rudder-txt-light;
-}
-.node-compliance-chart{
-  padding: 15px;
-}
-.graph-legend{
-  margin-bottom: 0;
-  margin-top: 15px;
 }
 
 .placeholder.progress{
@@ -148,30 +150,14 @@
 /* Node Breakdown */
 .node-charts {
   display: flex;
-  justify-content: space-evenly;
   flex-wrap: wrap;
-  padding: 15px;
-}
-.node-charts .node-chart{
-  width: 30%;
-}
-@media (max-width: 768px){
-  .node-charts .node-chart{
-    width: 100%;
-  }
 }
 
-.node-charts .node-chart canvas{
-  width : 224px !important;
-  height: 224px !important;
-  margin: auto;
-}
+.node-charts .node-chart canvas,
 #nodeCompliance,
 .placeholder-doughnut-chart{
-  width : 290px !important;
-  height: 290px !important;
-  margin: auto;
-  display: block;
+  width : $doughnut-size !important;
+  height: $doughnut-size !important;
 }
 
 .placeholder-doughnut-chart{
@@ -186,37 +172,39 @@
   display: flex;
   justify-content: center;
   align-items: center;
-}
-.placeholder-doughnut-chart:before{
-  content: "";
-  width: 150px;
-  height: 150px;
-  background-color: #fff;
-  border-radius: 50%;
+
+  &:before{
+    content: "";
+    width: 150px;
+    height: 150px;
+    background-color: #fff;
+    border-radius: 50%;
+  }
 }
 
-ul.graph-legend{
-  width: 224px;
-  max-width: 100%;
-  margin: 15px auto 0px auto;
-}
-#nodeOverview {
-  min-height: 382px;
-}
-#nodeOverview ul.graph-legend{
-  width: 290px;
-}
-ul.graph-legend > li.legend{
-  background-color:transparent;
-  transition-property:background-color;
-  transition-duration:.2s;
-  cursor:pointer;
-  border-radius:4px;
-  display: flex;
-  align-items: flex-end;
-  color: $rudder-txt-light;
-}
-ul.graph-legend > li.legend:hover{
-  background-color: $rudder-bg-light-gray;
-  color: $rudder-txt-primary;
+.graph-legend {
+  margin-bottom: 0;
+  &  > .legend {
+    background-color:transparent;
+    transition-duration:.2s;
+    cursor:pointer;
+    border-radius:4px;
+    display: flex;
+    align-items: flex-end;
+    color: $rudder-txt-light;
+    font-weight: 500;
+    min-width : 100px;
+    padding: 4px;
+
+    &:hover{
+      background-color: $rudder-bg-light-gray;
+      color: $rudder-txt-primary;
+    }
+
+    .legend-square{
+      $size : 16px;
+      height: $size;
+      width: $size;
+    }
+  }
 }
