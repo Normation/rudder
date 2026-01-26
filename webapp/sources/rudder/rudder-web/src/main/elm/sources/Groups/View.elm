@@ -66,7 +66,7 @@ view model =
           |> List.filterMap groupTreeCategory
 
         groups = item.elems
-          |> List.filter (\r -> filterSearch (Rudder.Filters.getTextValue model.ui.groupFilters.treeFilters.filter) (searchFieldGroups r model))
+          |> List.filter (\r -> filterSearch (Rudder.Filters.getTextValue model.ui.groupFilters.filter) (searchFieldGroups r model))
           |> List.sortWith (\r1 r2 -> N.compare r1.name r2.name)
           |> List.map groupTreeElem
 
@@ -81,10 +81,10 @@ view model =
         --     _ -> ""
         treeItem =
           if item.id /= rootGroupCategoryId then
-            if (String.isEmpty (Rudder.Filters.getTextValue model.ui.groupFilters.treeFilters.filter)) || ((List.length groups > 0) || (List.length categories > 0)) then
+            if (String.isEmpty (Rudder.Filters.getTextValue model.ui.groupFilters.filter)) || ((List.length groups > 0) || (List.length categories > 0)) then
               Just (
-                li[class ("jstree-node" ++ foldedClass model.ui.groupFilters.treeFilters item.id)]
-                [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFoldedFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
+                li[class ("jstree-node" ++ foldedClass model.ui.groupFilters item.id)]
+                [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFoldedFilters item.id)][]
                 , a [class ("jstree-anchor"{- ++ classFocus -}), onClickPreventDefault (OpenCategoryDetails item.id)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class "treeGroupCategoryName"][text item.name]
@@ -99,9 +99,6 @@ view model =
       in
         treeItem
 
-    groupFilters = model.ui.groupFilters
-    treeFilters = groupFilters.treeFilters
-
     templateMain = case model.mode of
       Loading -> generateLoadingTable False 5
       LoadingTable -> generateLoadingTable False 5
@@ -109,20 +106,6 @@ view model =
         div [class "main-table"]
             [Html.map RudderTableMsg (Rudder.Table.view model.groupsTable) ]
 
-        {-
-        [ div [class "table-container"]
-          [ table [ class "no-footer dataTable"]
-            [ thead [] [groupsTableHeader model.ui.groupFilters]
-            , tbody [] (buildGroupsTable model groupsList)
-            ]
-            , if hasMoreGroups model then
-                div [ class "d-flex justify-content-center py-2" ] 
-                [ button [class "btn btn-default btn-icon load-more", onClick LoadMore] [text "Load more...", i [class "fa fa-plus-circle"] []]
-                ]
-              else text ""
-          ]
-        ]
-        -}
       ExternalTemplate -> text ""
 
     modal = case model.ui.modal of
@@ -153,7 +136,7 @@ view model =
             [ button [class "input-group-text btn btn-default", type_ "button", onClick (FoldAllCategories model.ui.groupFilters) ][span [class "fa fa-folder fa-folder-open"][]]
               , input
                 [ type_ "text"
-                , value (Rudder.Filters.getTextValue model.ui.groupFilters.treeFilters.filter)
+                , value (Rudder.Filters.getTextValue model.ui.groupFilters.filter)
                 , placeholder "Filter"
                 , class "form-control"
                 , onInput (\s -> UpdateGroupSearchFilters (Rudder.Filters.substring s))][]

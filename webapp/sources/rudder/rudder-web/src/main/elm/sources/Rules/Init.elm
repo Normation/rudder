@@ -10,7 +10,7 @@ import List.Nonempty as NonEmptyList
 import Ordering exposing (Ordering)
 import Round
 import Rudder.Filters
-import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), buildConfig, buildOptions)
+import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), buildConfig, buildCustomizations, buildOptions)
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 
@@ -59,19 +59,12 @@ init flags =
 initTable : Rudder.Table.Model RuleWithCompliance Msg
 initTable =
     let
-        customizations : Rudder.Table.Customizations RuleWithCompliance Msg
         customizations =
-            { tableContainerAttrs = [class "table-container"]
-            , tableAttrs = [class "no-footer dataTable"]
-            , optionsHeaderAttrs = []
-            , theadAttrs = []
-            , tbodyAttrs = []
-            , trAttrs = \rule -> [onClick (OpenRuleDetails rule.id True)]
-            , thAttrs = \(ColumnName _) -> []
-            , tdAttrs = \(ColumnName _) -> []
-            }
+            buildCustomizations.newCustomizations
+                |> buildCustomizations.withTableContainerAttrs [class "table-container"]
+                |> buildCustomizations.withTableAttrs [class "no-footer dataTable"]
+                |> buildCustomizations.withTrAttrs (\rule -> [onClick (OpenRuleDetails rule.id True)])
 
-        options : Rudder.Table.Options RuleWithCompliance Msg
         options =
             buildOptions.newOptions
                 |> buildOptions.withCustomizations customizations
@@ -115,6 +108,7 @@ initTable =
                 , { name = (ColumnName "Changes")
                   , renderHtml = .changes >> String.fromFloat >> text
                   , ordering = Ordering.byField (.changes) }])
+
         config = buildConfig.newConfig columns |> buildConfig.withOptions options
     in
     Rudder.Table.init config []

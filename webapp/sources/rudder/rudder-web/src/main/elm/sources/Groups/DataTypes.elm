@@ -88,12 +88,10 @@ type alias UI =
 type ModalState = NoModal | ExternalModal
 
 type alias Filters =
-  { treeFilters  : TreeFilters }
-
-type alias TreeFilters =
   { filter : SearchFilterState
   , folded : List String
   }
+
 
 
 -- The fixed group category ID for the root group category
@@ -110,7 +108,7 @@ type Msg
   | FoldAllCategories Filters
   | GetGroupsTreeResult (Result Error (Category Group)) Bool
   | GetGroupsComplianceResult Bool (Result Error (List GroupComplianceSummary))
-  | UpdateGroupFoldedFilters Filters
+  | UpdateGroupFoldedFilters String
   | UpdateGroupSearchFilters SearchFilterState
   | RudderTableMsg (Rudder.Table.Msg Msg)
   | ExportCsvWithCurrentDate Time.Posix

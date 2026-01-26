@@ -16,7 +16,7 @@ import Groups.DataTypes exposing (..)
 import Html.Attributes exposing (class)
 import Ordering exposing (Ordering)
 import Round
-import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), OutMsg(..), buildConfig, buildOptions)
+import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), OutMsg(..), buildConfig, buildCustomizations, buildOptions)
 import Rudder.Filters exposing (byValues)
 import Ui.Datatable exposing (defaultTableFilters, Category, SubCategories(..))
 
@@ -25,8 +25,7 @@ init : { contextPath : String, hasGroupToDisplay : Bool, hasWriteRights : Bool }
 init flags =
   let
     initCategory = Category "" "" "" (SubCategories []) []
-    initTreeFilters   = (TreeFilters Rudder.Filters.empty [])
-    initFilters       = Filters initTreeFilters
+    initFilters       = (Filters Rudder.Filters.empty [])
     initUI       = UI initFilters NoModal flags.hasWriteRights True
 
     exportCsvOptions =
@@ -77,23 +76,25 @@ initTable =
                 )
 
         customizations =
-            { tableContainerAttrs = [class "table-container"]
-            , tableAttrs = [class "no-footer dataTable"]
-            , optionsHeaderAttrs = []
-            , theadAttrs = []
-            , tbodyAttrs = []
-            , trAttrs = \row -> [ onClick (OpenGroupDetails row.id)]
-            , thAttrs = \(ColumnName name) ->
-                case name of
-                    "Global compliance" -> [class "compliance-col"]
-                    "Targeted compliance" -> [class "compliance-col"]
-                    _ -> []
-            , tdAttrs = \(ColumnName name) ->
-                case name of
-                    "Global compliance" -> [class "compliance-col"]
-                    "Targeted compliance" -> [class "compliance-col"]
-                    _ -> []
-            }
+            buildCustomizations.newCustomizations
+                |> buildCustomizations.withTableContainerAttrs [class "table-container"]
+                |> buildCustomizations.withTableAttrs [class "no-footer dataTable"]
+                |> buildCustomizations.withTrAttrs (\row -> [ onClick (OpenGroupDetails row.id)])
+                |> buildCustomizations.withThAttrs
+                    (\(ColumnName name) ->
+                        case name of
+                            "Global compliance" -> [class "compliance-col"]
+                            "Targeted compliance" -> [class "compliance-col"]
+                            _ -> []
+                    )
+                |> buildCustomizations.withTdAttrs
+                    (\(ColumnName name) ->
+                        case name of
+                            "Global compliance" -> [class "compliance-col"]
+                            "Targeted compliance" -> [class "compliance-col"]
+                            _ -> []
+                    )
+
         options =
             buildOptions.newOptions
                 |> buildOptions.withCustomizations customizations
@@ -123,9 +124,6 @@ complianceDataAvailable compliance =
         + allComplianceValues.pending.value
         + allComplianceValues.reportsDisabled.value
         + allComplianceValues.noReport.value == 0 ) then False else True
-
-filterPredicate : (String -> Bool) -> (GroupWithCompliance -> Bool)
-filterPredicate = Rudder.Filters.byValues entryToStringList
 
 entryToStringList : GroupWithCompliance -> List String
 entryToStringList group =

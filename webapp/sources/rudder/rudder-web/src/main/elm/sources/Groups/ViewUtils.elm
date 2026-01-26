@@ -55,9 +55,9 @@ buildTooltipContent title content =
   in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
 
-foldedClass : TreeFilters -> String -> String
-foldedClass treeFilters catId =
-  if List.member catId treeFilters.folded then
+foldedClass : Filters -> String -> String
+foldedClass filters catId =
+  if List.member catId filters.folded then
     " jstree-closed"
   else
     " jstree-open"
@@ -65,14 +65,13 @@ foldedClass treeFilters catId =
 foldUnfoldCategory : Filters -> String -> Filters
 foldUnfoldCategory filters catId =
   let
-    treeFilters = filters.treeFilters
     foldedList  =
-      if List.member catId treeFilters.folded then
-        List.Extra.remove catId treeFilters.folded
+      if List.member catId filters.folded then
+        List.Extra.remove catId filters.folded
       else
-        catId :: treeFilters.folded
+        catId :: filters.folded
   in
-    {filters | treeFilters = {treeFilters | folded = foldedList}}
+    {filters | folded = foldedList}
 
 getIdAnchorKey : String -> String
 getIdAnchorKey id =
