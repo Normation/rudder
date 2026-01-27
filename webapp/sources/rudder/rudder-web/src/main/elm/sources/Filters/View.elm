@@ -1,8 +1,8 @@
 module Filters.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, href, type_, disabled, for, checked, selected, value, placeholder)
-import Html.Events exposing (onClick, onInput)
+import Html.Attributes exposing (checked, class, id, placeholder, style, type_, value)
+import Html.Events exposing (onCheck, onClick, onInput)
 
 import Filters.DataTypes exposing (..)
 
@@ -31,7 +31,9 @@ view model =
         ]
       , button [ class "btn btn-default more-filters", onClick ShowMore][]
       ]
-    , div [ class ("filters-container" ++ if model.showMore then "" else " d-none")]
+    , div
+      [ class ("filters-container" ++ if model.showMore then "" else " d-none")
+      , style "display" "grid"]
       [ div [class "filterTag"]
         [ div [ id "form-tag" ]
           [ displayTagForm model.newTag model.tags model.completionKeys model.completionValues Filters.DataTypes.UpdateTag Filters.DataTypes.UpdateTags addBtnDisabled
@@ -48,6 +50,19 @@ view model =
           ]
         , displayTags model.newTag model.tags Filters.DataTypes.UpdateTag Filters.DataTypes.UpdateTags True True []
         ]
+      , toggleShowHideTechniques model
       ]
     ]
 
+toggleShowHideTechniques : Model -> Html Filters.DataTypes.Msg
+toggleShowHideTechniques model =
+    div
+        [ id "form-show-hide-techniques"]
+        [ input
+            [ type_ "checkbox"
+            , checked model.hideUnusedTechniques
+            , onCheck ToggleHideUnusedTechniques]
+            []
+        ,  b[] [text " Hide unused techniques"]
+        ]
+        
