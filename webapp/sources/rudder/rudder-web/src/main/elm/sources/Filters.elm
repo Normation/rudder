@@ -84,3 +84,11 @@ update msg model =
             (newModel, Cmd.none)
         Err err ->
           (model, Cmd.none)
+
+    ToggleShowTechniquesNoDirectives ->
+      let
+        newModel = {model | showTechniquesNoDirectives = not (model.showTechniquesNoDirectives)}
+        encodedFilters = encodeFilters newModel
+      in
+      (newModel, searchTree encodedFilters)
+      
