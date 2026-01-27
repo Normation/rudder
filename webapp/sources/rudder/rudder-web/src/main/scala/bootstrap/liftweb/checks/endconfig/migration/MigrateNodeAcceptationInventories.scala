@@ -107,12 +107,13 @@ class MigrateNodeAcceptationInventories(
    * - check if the node exists.
    *    - if not,
    *        - and if the node log is more than MAX_KEEP_REFUSED, do nothing
-   *        - if younger, then migrate it and then dele
+   *        - if younger, then migrate it and then delete
    *   - if exists, then migrate
    * - in all cases, delete the node log directory
    * => migrate if node exists or history younger than MAX_KEEP_REFUSED
+   * Return the nodeId if any version was found in the filelog
    */
-  def migrateOne(now: DateTime)(nodeId: NodeId): IOResult[Unit] = {
+  def migrateOne(now: DateTime)(nodeId: NodeId): IOResult[Option[NodeId]] = {
     def purgeLogFile(nodeid: NodeId): UIO[Unit] = {
       (for {
         f <- fileLogRepository.getFile(nodeId)
@@ -126,29 +127,36 @@ class MigrateNodeAcceptationInventories(
 
     fileLogRepository.versions(nodeId).flatMap {
       _.headOption match {
-        case None    => ZIO.unit
+        case None    => ZIO.none
         case Some(v) =>
           fileLogRepository.get(nodeId, v).flatMap {
-            case None    => ZIO.unit
+            case None    => ZIO.none
             case Some(l) =>
               for {
                 opt <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC)
                 _   <- ZIO.when(opt.isDefined || l.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
                          saveInDB(nodeId, l.datetime, l.data, !opt.isDefined)
                        }
-              } yield ()
+              } yield {
+                Some(l.id)
+              }
           }
       }
-    } *> purgeLogFile(nodeId)
+    } <* purgeLogFile(nodeId)
   }
 
-  def migrateAll(now: DateTime): ZIO[Any, errors.RudderError, Unit] = {
+  def migrateAll(now: DateTime): ZIO[Any, errors.RudderError, Seq[NodeId]] = {
     for {
-      ids <- fileLogRepository.getIds
-      _   <- BootstrapLogger.info(s"Migrating '${ids.size}' ${msg}")
-      _   <- ZIO.foreach(ids)(migrateOne(now))
-      _   <- BootstrapLogger.info(s"Migration of old accept/refuse facts done")
-    } yield ()
+      ids     <- fileLogRepository.getIds
+      _       <- BootstrapLogger.info(s"Migrating '${ids.size}' ${msg} : '${ids.map(_.value).mkString(",")}' ")
+      done    <- ZIO.foreach(ids)(migrateOne(now))
+      migrated = done.flatten
+      _       <- BootstrapLogger.info(
+                   s"Migration of old accept/refuse facts done for ${migrated.size} nodes : ${migrated.map(_.value).mkString(",")}"
+                 )
+    } yield {
+      migrated
+    }
   }
 
   override def checks(): Unit = {
