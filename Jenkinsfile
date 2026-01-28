@@ -271,9 +271,8 @@ pipeline {
                             label 'generic-docker'
                             filename 'webapp/sources/Dockerfile'
                             // we don't share elm folder as it is may break with concurrent builds
-                            // set same timezone as some tests rely on it
                             // and share maven cache
-                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
+                            args '-u 0:0 -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
                         }
                     }
                     steps {
@@ -474,9 +473,8 @@ pipeline {
                                 filename 'webapp/sources/Dockerfile'
                                 additionalBuildArgs "--build-arg JDK_VERSION=${JDK_VERSION}"
                                 // we don't share elm folder as it is may break with concurrent builds
-                                // set same timezone as some tests rely on it
                                 // and share maven cache
-                                args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
+                                args '-u 0:0 -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
                             }
                         }
                         steps {
@@ -623,9 +621,8 @@ pipeline {
                             label 'generic-docker'
                             filename 'webapp/sources/Dockerfile'
                             // we don't share elm folder as it is may break with concurrent builds
-                            // set same timezone as some tests rely on it
                             // and share maven cache
-                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
+                            args '-u 0:0 -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
                         }
                     }
                     steps {
