@@ -799,7 +799,7 @@ class WoLDAPNodeGroupRepository(
     groupLibMutex.writeLock(for {
       con                 <- ldap
       parentCategoryEntry <-
-        getCategoryEntry(con, into, "1.1").notOptional(s"The parent category '${into}' was not found, can not add")
+        getCategoryEntry(con, into).notOptional(s"The parent category '${into}' was not found, can not add")
       parent              <- mapper.entry2NodeGroupCategory(parentCategoryEntry).toIO
       // you can add to a category only if you can see its parent
       newCategory         <- cc.accessGrant.canSeeOrFail(parent) {
