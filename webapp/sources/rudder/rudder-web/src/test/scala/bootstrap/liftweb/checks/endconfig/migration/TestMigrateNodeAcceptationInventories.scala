@@ -120,7 +120,9 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // doobie is only defined in DBCommon
   def doobie: Doobie
 
-  val dateFormat: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HHmmss.SSSZ")
+  // tests files under /test/resources/historical-inventories are formatted with specific format, and with +0200 offset, so we need this format
+  val dateFormat: DateTimeFormatter =
+    DateTimeFormat.forPattern("yyyy-MM-dd'T'HHmmss.SSSZ").withZone(DateTimeZone.forOffsetHours(2))
 
   val testDir: File = File(s"/tmp/test-rudder-migrate-historical-inventories-${dateFormat.print(DateTime.now(DateTimeZone.UTC))}")
 
@@ -252,12 +254,20 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // 59512a56-53e9-41e1-b36f-ca22d3cdfcbc => ok, 2 files, both ok in age
   // fb0096f3-a928-454d-9776-e8079d48cdd8 => deleted, age ok
   // fb0096f4-a928-454d-9776-e8079d48cdd8 => deleted, too old
-  val nodes = List(
+  val nodes         = List(
     NodeConfigData.fact1.modify(_.id.value).setTo("0bd58a1f-3faa-4783-a7a2-52d84021663a"),
     NodeConfigData.fact1.modify(_.id.value).setTo("1bd58a1f-3faa-4783-a7a2-52d84021663a"),
     NodeConfigData.fact1.modify(_.id.value).setTo("4d3a43bc-8508-46a2-92d7-cfe7320309a5"),
     NodeConfigData.fact1.modify(_.id.value).setTo("59512a56-53e9-41e1-b36f-ca22d3cdfcbc")
   ).map(x => (x.id, x)).toMap
+  val migratedNodes = List(
+    "fb0096f4-a928-454d-9776-e8079d48cdd8",
+    "fb0096f3-a928-454d-9776-e8079d48cdd8",
+    "59512a56-53e9-41e1-b36f-ca22d3cdfcbc",
+    "4d3a43bc-8508-46a2-92d7-cfe7320309a5",
+    "1bd58a1f-3faa-4783-a7a2-52d84021663a",
+    "0bd58a1f-3faa-4783-a7a2-52d84021663a"
+  ).map(NodeId(_))
 
   val repo = CoreNodeFactRepository.makeNoop(nodes).runNow
 
@@ -280,7 +290,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     "do migration without error" in {
       FileUtils.copyDirectoryToDirectory(srcDir.toJava, testDir.toJava)
       val res = migration.migrateAll(referenceNow).either.runNow
-      res must beRight
+      res must beRight(containTheSameElementsAs(migratedNodes))
     }
 
     "migrate existing nodes, whatever age or number of files - but keep the most recent" in {
