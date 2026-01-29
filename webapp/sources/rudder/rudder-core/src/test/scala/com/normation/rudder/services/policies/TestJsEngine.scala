@@ -44,6 +44,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine
+import com.normation.rudder.services.policies.JsEngine.SandboxedJsEngine.DEFAULT_MAX_EVAL_DURATION
 import com.normation.zio.*
 import org.junit.runner.*
 import org.specs2.matcher.Matcher
@@ -51,7 +52,6 @@ import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.annotation.nowarn
-import scala.concurrent.duration.FiniteDuration
 import scala.util.matching.Regex
 import zio.*
 import zio.syntax.*
@@ -104,9 +104,9 @@ class TestJsEngine extends Specification {
     JsEngine.SandboxedJsEngine.sandboxed(maxThread)(script).either.runNow
 
   def contextEnabled[T](script: JsEngine => IOResult[T]):  Either[RudderError, T] =
-    JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, FiniteDuration(1, "second"))(script).either.runNow
+    JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled, 1, DEFAULT_MAX_EVAL_DURATION)(script).either.runNow
   def contextDisabled[T](script: JsEngine => IOResult[T]): Either[RudderError, T] =
-    JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, FiniteDuration(1, "second"))(script).either.runNow
+    JsEngineProvider.withNewEngine[T](FeatureSwitch.Disabled, 1, DEFAULT_MAX_EVAL_DURATION)(script).either.runNow
 
   /**
    * This is needed, because we set the security manager and then

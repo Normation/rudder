@@ -441,13 +441,10 @@ object JsEngine {
     java.lang.System.setProperty("polyglot.engine.WarnInterpreterOnly", "false")
 
     /*
-     * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
+     * The value is purely arbitrary. We expect that a normal use case ends in tens of ms.
      * But we don't want the user to have a whole generation fails because it scripts took 2 seconds
-     * for reasons. As it is something rather exceptionnal, and which will ends the
-     * Policy Generation, the value can be rather hight.
-     *
-     * Note: maybe make that a parameter so that we can put an even higher value here,
-     * but only put 1s in tests so that they end quickly
+     * for reasons. As it is something rather exceptional, and which will ends the
+     * Policy Generation, the value can be rather high.
      */
     val DEFAULT_MAX_EVAL_DURATION: FiniteDuration = FiniteDuration(5, TimeUnit.SECONDS)
 
