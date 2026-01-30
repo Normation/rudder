@@ -83,7 +83,7 @@ impl Event {
                 Some(now)
             }
             EventSchedule::OnceSplayed => {
-                if let (Some(nb), Some(na)) = (self.not_before, self.not_after) {
+                if let (Some(_nb), Some(_na)) = (self.not_before, self.not_after) {
                     todo!()
                 } else {
                     // Cannot schedule
@@ -105,16 +105,14 @@ impl Event {
 
     // Run asap
     pub fn should_run(&self, now: DateTime<Utc>) -> bool {
-        if let Some(nb) = self.not_before {
-            if now < nb {
+        if let Some(nb) = self.not_before
+            && now < nb {
                 return false;
             }
-        }
-        if let Some(na) = self.not_after {
-            if now > na {
+        if let Some(na) = self.not_after
+            && now > na {
                 return false;
             }
-        }
         true
     }
 }
@@ -177,5 +175,60 @@ impl Events {
                 .as_slice(),
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+
+    #[test]
+    fn test_event_should_run() {
+        let now = Utc::now();
+
+        let event = Event::new(
+            "1".to_string(),
+            "sched1".to_string(),
+            "Test Event".to_string(),
+            "type1".to_string(),
+            EventSchedule::Always,
+            Some(now - Duration::minutes(5)),
+            Some(now + Duration::minutes(5)),
+        );
+        assert!(event.should_run(now));
+
+        let event2 = Event::new(
+            "2".to_string(),
+            "sched2".to_string(),
+            "Test Event 2".to_string(),
+            "type2".to_string(),
+            EventSchedule::Always,
+            Some(now + Duration::minutes(5)),
+            Some(now + Duration::minutes(10)),
+        );
+        assert!(!event2.should_run(now));
+
+        let event3 = Event::new(
+            "3".to_string(),
+            "sched3".to_string(),
+            "Test Event 3".to_string(),
+            "type3".to_string(),
+            EventSchedule::Always,
+            Some(now - Duration::minutes(10)),
+            Some(now - Duration::minutes(5)),
+        );
+        assert!(!event3.should_run(now));
+
+        let event4 = Event::new(
+            "4".to_string(),
+            "sched4".to_string(),
+            "Test Event 4".to_string(),
+            "type4".to_string(),
+            EventSchedule::Always,
+            None,
+            None,
+        );
+        assert!(event4.should_run(now));
     }
 }

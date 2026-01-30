@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use anyhow::{Context, Result, bail};
+use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -27,7 +27,7 @@ pub struct Cli {
 
 impl Cli {
     pub fn run() -> Result<()> {
-        let cli = Cli::parse();
+        let _cli = Cli::parse();
 
         Ok(())
     }
