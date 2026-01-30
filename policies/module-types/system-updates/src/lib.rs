@@ -140,7 +140,7 @@ impl ModuleType0 for SystemUpdateModule {
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // Parse as parameter types
         let p_parameters: PackageParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))
+            serde_path_to_error::deserialize(Value::Object(parameters.data.clone()))
                 .context("Parsing module parameters")?;
         assert!(!p_parameters.event_id.is_empty());
         // Not doing more checks here as we want to send the errors as "system-update reports".

@@ -3,7 +3,7 @@
 use crate::campaign::FullCampaignType;
 use crate::output::ResultOutput;
 use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager, UpdateManager};
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use std::collections::HashMap;
 use windows::Win32::Foundation::VARIANT_BOOL;
 use windows::Win32::System::Com::{
@@ -477,7 +477,7 @@ impl UpdateManager for WindowsUpdateAgent {
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {
-        let mut r = ResultOutput::new(Ok(true));
+        let mut r: ResultOutput<bool> = ResultOutput::new(Err(anyhow!("Error placeholder")));
         let raw_system_info =
             unsafe { CoCreateInstance(&SystemInformation, None, CLSCTX_INPROC_SERVER) };
         let system_info: ISystemInformation = match raw_system_info {

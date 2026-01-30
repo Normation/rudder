@@ -80,7 +80,7 @@ impl From<ValidateResult> for ValidateOutcome {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 /// Promise evaluation outcomes
-pub(crate) enum EvaluateOutcome {
+pub enum EvaluateOutcome {
     /// Satisfied already, no change
     Kept,
     /// Not satisfied before, but fixed

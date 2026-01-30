@@ -102,9 +102,9 @@ mod tests {
     #[test]
     fn test_from_str() {
         assert_eq!(
-            WellKnownCategories::from_str("5C9376AB-8CE6-464A-b136-22113dd69801"),
-            Some(WellKnownCategories::Application)
+            WellKnownCategories::from_str("5C9376AB-8CE6-464A-b136-22113dd69801").unwrap(),
+            WellKnownCategories::Application
         );
-        assert_eq!(WellKnownCategories::from_str("nothing"), None)
+        assert!(WellKnownCategories::from_str("nothing").is_err())
     }
 }
