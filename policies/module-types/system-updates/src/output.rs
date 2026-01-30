@@ -39,16 +39,16 @@ impl<T> ResultOutput<T> {
         }
     }
 
-    pub fn into_err<U>(self) -> ResultOutput<U>
+    pub fn into_err<E>(self, e: E) -> ResultOutput<T>
     where
-        T: std::fmt::Debug,
+        E: Into<anyhow::Error> + std::fmt::Debug,
     {
-        // This is fine as this method forces an error on the inner object,
-        // its inner type will never be used
+        let mut stderr = self.stderr;
+        stderr.push(format!("{:#?}", e));
         ResultOutput {
-            inner: self.inner.map(|_| unreachable!()),
+            inner: Err(e.into()),
             stdout: self.stdout,
-            stderr: self.stderr,
+            stderr,
         }
     }
 

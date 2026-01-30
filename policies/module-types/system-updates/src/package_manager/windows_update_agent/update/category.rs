@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
+use crate::package_manager::windows_update_agent::update::category_collection::WellKnownCategories;
 use anyhow;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
@@ -8,9 +9,15 @@ use windows::Win32::System::UpdateAgent::ICategory;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Category {
-    category_type: String,
-    name: String,
-    id: String,
+    pub category_type: String,
+    pub name: String,
+    pub id: String,
+}
+
+impl Category {
+    pub fn is_security(&self) -> bool {
+        self.id.as_str().to_uppercase() == format!("{}", WellKnownCategories::SecurityUpdates)
+    }
 }
 impl TryFrom<&ICategory> for Category {
     type Error = anyhow::Error;

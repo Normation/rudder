@@ -15,11 +15,15 @@ use anyhow::{Result, bail};
 use chrono::{Duration, SecondsFormat};
 use cli_table::format::{HorizontalLine, Separator, VerticalLine};
 use gumdrop::Options;
+use log::debug;
+use rudder_module_type::cfengine::protocol::EvaluateOutcome;
 use rudder_module_type::{
-    ModuleType0, PolicyMode, inventory::system_node_id, os_release::OsRelease,
-    parameters::Parameters,
+    CheckApplyResult, ModuleType0, Outcome, PolicyMode, inventory::system_node_id,
+    os_release::OsRelease, parameters::Parameters,
 };
-use std::{fs, path::PathBuf};
+use serde_json::{Value, json};
+use std::io::Read;
+use std::{fs, io, path::PathBuf};
 use uuid::Uuid;
 
 #[derive(Debug, Options)]
@@ -40,6 +44,8 @@ enum Command {
     Show(ShowOpts),
     #[options(help = "run an upgrade")]
     Run(RunOpts),
+    #[options(help = "run as a module")]
+    RunModule(RunModuleOpts),
     #[options(help = "drop database content")]
     Clear(ClearOpts),
 }
@@ -79,6 +85,14 @@ struct RunOpts {
     /*
     "package_list": [],
     */
+}
+
+#[derive(Debug, Options)]
+struct RunModuleOpts {
+    #[options(help = "JSON message to pass to the module")]
+    json_input: bool,
+    #[options(help = "force the campaign to run in audit")]
+    audit: bool,
 }
 
 #[derive(Debug, Options)]
@@ -140,6 +154,40 @@ impl Cli {
                 let pid = std::process::id();
                 let mut runner = Runner::new(db, pm, package_parameters, system, pid);
                 runner.run()?;
+            }
+            Some(Command::RunModule(opts)) => {
+                let mut module = SystemUpdateModule::new();
+                // Read from stdin as Powershell makes it very difficult to pass a Json through CLI
+                let mut buffer = String::new();
+                io::stdin().read_to_string(&mut buffer)?;
+                let input = buffer.trim().to_string();
+                if input.is_empty() {
+                    bail!("JSON input must not be empty");
+                }
+                let policy_mode = if opts.audit {
+                    PolicyMode::Audit
+                } else {
+                    PolicyMode::Enforce
+                };
+                let parameters: Parameters = serde_json::from_str(&input)?;
+
+                module.validate(&parameters)?;
+                let (outcome, details) = match module.check_apply(policy_mode, &parameters) {
+                    Ok(Outcome::Success(m)) => {
+                        if let Some(s) = m {
+                            (EvaluateOutcome::Kept, s)
+                        } else {
+                            (EvaluateOutcome::Kept, "".to_string())
+                        }
+                    }
+                    Ok(Outcome::Repaired(m)) => (EvaluateOutcome::Repaired, m),
+                    Err(e) => (EvaluateOutcome::NotKept, format!("{}", e)),
+                };
+                let json = json!({
+                    "result": outcome,
+                    "details": details
+                });
+                println!("{}", serde_json::to_string(&json)?);
             }
             Some(Command::Clear(l)) => {
                 let dir = l.state_dir.unwrap_or(PathBuf::from(MODULE_DIR));

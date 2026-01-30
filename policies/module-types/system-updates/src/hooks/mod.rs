@@ -4,7 +4,7 @@
 use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
 use anyhow::Result;
 use rudder_module_type::{rudder_debug, rudder_error, rudder_info};
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, absolute};
 use std::process::Command;
 use std::{fmt, fs};
 
@@ -44,6 +44,19 @@ pub trait RunHooks: ToString {
     fn create_command(&self, p: &Path) -> Command;
     fn run_dir(&self, path: &Path) -> ResultOutput<()> {
         let mut res = ResultOutput::new(Ok(()));
+        let path = match absolute(path) {
+            Ok(p) => p,
+            Err(e) => {
+                let s = format!(
+                    "The hook directory {} could not be sanitized, due to the following error:\n{}",
+                    path.display(),
+                    e
+                );
+                rudder_debug!("{}", e);
+                res.stderr(s);
+                return res;
+            }
+        };
         if !path.exists() {
             let s = format!(
                 "The hook directory {} does not exist, skipping",
