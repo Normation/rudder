@@ -22,7 +22,7 @@ name = "agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "askama 0.15.1",
+ "askama 0.15.4",
  "chrono",
  "clap",
  "hostname",
@@ -199,6 +199,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "askama"
+version = "0.15.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08e1676b346cadfec169374f949d7490fd80a24193d37d2afce0c047cf695e57"
+dependencies = [
+ "askama_macros",
+ "itoa",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "askama_derive"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -216,12 +229,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "askama_macros"
-version = "0.15.1"
+name = "askama_derive"
+version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "236ce20b77cb13506eaf5024899f4af6e12e8825f390bd943c4c37fd8f322e46"
+checksum = "7661ff56517787343f376f75db037426facd7c8d3049cef8911f1e75016f3a37"
 dependencies = [
- "askama_derive 0.15.1",
+ "askama_parser 0.15.4",
+ "basic-toml",
+ "memchr",
+ "proc-macro2 1.0.106",
+ "quote 1.0.44",
+ "rustc-hash 2.1.1",
+ "serde",
+ "serde_derive",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "askama_macros"
+version = "0.15.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "713ee4dbfd1eb719c2dab859465b01fa1d21cb566684614a713a6b7a99a4e47b"
+dependencies = [
+ "askama_derive 0.15.4",
 ]
 
 [[package]]
@@ -238,9 +268,9 @@ dependencies = [
 
 [[package]]
 name = "askama_parser"
-version = "0.15.1"
+version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3c63392767bb2df6aa65a6e1e3b80fd89bb7af6d58359b924c0695620f1512e"
+checksum = "1d62d674238a526418b30c0def480d5beadb9d8964e7f38d635b03bf639c704c"
 dependencies = [
  "rustc-hash 2.1.1",
  "serde",
@@ -709,7 +739,7 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
 dependencies = [
- "getrandom 0.2.16",
+ "getrandom 0.2.17",
  "once_cell",
  "tiny-keccak",
 ]
@@ -1009,17 +1039,6 @@ checksum = "ececcb659e7ba858fb4f10388c250a7252eb0a27373f1a72b8748afdd248e587"
 dependencies = [
  "powerfmt",
  "serde_core",
-]
-
-[[package]]
-name = "derive_arbitrary"
-version = "1.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e567bd82dcff979e4b03460c307b3cdc9e96fde3d73bed1496d2bc75d9dd62a"
-dependencies = [
- "proc-macro2 1.0.104",
- "quote 1.0.42",
- "syn 2.0.112",
 ]
 
 [[package]]
@@ -2860,16 +2879,6 @@ checksum = "30d5b2194ed13191c1999ae0704b7839fb18384fa22e49b57eeaa97d79ce40da"
 dependencies = [
  "libc",
  "winapi",
-]
-
-[[package]]
-name = "ordered-multimap"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49203cdcae0030493bad186b28da2fa25645fa276a51b6fec8010d281e02ef79"
-dependencies = [
- "dlv-list",
- "hashbrown 0.14.5",
 ]
 
 [[package]]
@@ -5653,6 +5662,7 @@ version = "0.60.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "053e2e040ab57b9dc951b72c264860db7eb3b0200ba345b4e4c3b14f67855ddf"
 dependencies = [
+ "proc-macro2 1.0.106",
  "quote 1.0.44",
  "syn 2.0.114",
 ]
