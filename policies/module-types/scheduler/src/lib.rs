@@ -6,8 +6,7 @@ mod db;
 mod event;
 
 use crate::event::Event;
-use anyhow::{Context, bail};
-use chrono::{DateTime, Utc};
+use anyhow::bail;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, PolicyMode, ValidateResult,
@@ -48,7 +47,7 @@ impl ModuleType0 for SchedulerModule {
         Ok(())
     }
 
-    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+    fn check_apply(&mut self, mode: PolicyMode, _parameters: &Parameters) -> CheckApplyResult {
         if mode != PolicyMode::Enforce {
             bail!("Scheduler module only supports enforce mode");
         }
