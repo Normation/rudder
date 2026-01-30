@@ -3,12 +3,14 @@ module Accounts.ViewUtils exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onCheck)
+import Iso8601
 import List
-import NaturalOrdering as N exposing (compare)
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
-import Accounts.DatePickerUtils exposing (checkIfExpired, checkIfTokenV1, posixToString)
+import Accounts.DatePickerUtils exposing (posixToString, posixOrdering)
+import Ordering exposing (Ordering)
 import String exposing (slice)
+import Time
 import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
 import Maybe.Extra
 
@@ -17,44 +19,29 @@ import Maybe.Extra
 -- DATATABLE
 --
 
-getSortFunction : Model -> Account -> Account -> Order
-getSortFunction model a1 a2 =
+getSortFunction : Model -> Ordering Account
+getSortFunction model =
   let
-    datePickerInfo = model.ui.datePickerInfo
     order = case model.ui.filters.tableFilters.sortBy of
-      Id      -> N.compare a1.id a2.id
-      ExpDate ->
-        let
-          expDate1 = case expirationDate a1.expirationPolicy of
-            Just d  -> (posixToString datePickerInfo d)
-            Nothing -> ""
-          expDate2 = case expirationDate a2.expirationPolicy of
-            Just d  -> (posixToString datePickerInfo d)
-            Nothing -> ""
-        in
-          N.compare expDate1 expDate2
-      CreDate -> N.compare a1.creationDate a2.creationDate
-      _       -> N.compare a1.name a2.name
+      Id      -> Ordering.byField .id
+      Name    -> Ordering.byField .name
+      CreDate -> Ordering.byFieldWith posixOrdering .creationDate
+      LstDate -> Ordering.byFieldWith posixOrdering (.lastAuthenticationDate >> Maybe.withDefault (Time.millisToPosix 0))
+      ExpDate -> Ordering.byFieldWith posixOrdering (.expirationPolicy >> expirationDate >> Maybe.withDefault (Time.millisToPosix 0))
   in
     if model.ui.filters.tableFilters.sortOrder == Asc then
       order
     else
-      case order of
-        LT -> GT
-        EQ -> EQ
-        GT -> LT
+      Ordering.reverse order
 
 searchField : DatePickerInfo -> Account -> List String
 searchField datePickerInfo a =
   List.append [ a.name
   , a.id
   ] ( case a.expirationPolicy of
-      ExpireAtDate d  -> [posixToString datePickerInfo d]
+      ExpireAtDate d  -> [posixToString datePickerInfo.zone d]
       NeverExpire -> []
     )
-
-cleanDate: String -> String
-cleanDate date = slice 0 16 (String.replace "T" " " date)
 
 filterByAuthType : Maybe AuthorizationType -> AuthorizationType -> Bool
 filterByAuthType filterAuthType authType =
@@ -84,8 +71,11 @@ displayAccountsTable model =
       let
         inputId = "toggle-" ++ a.id
         expirationDate = case a.expirationPolicy of
-          ExpireAtDate d  -> posixToString model.ui.datePickerInfo d
-          NeverExpire -> "Never"
+          ExpireAtDate d  -> posixToString model.ui.datePickerInfo.zone d
+          NeverExpire -> "-"
+        lastUsedDate  = case a.lastAuthenticationDate of
+          Just d -> posixToString model.ui.datePickerInfo.zone d
+          Nothing -> "-"
         tokenExists = case a.tokenGenerationDate of
           Just d -> "✓"
           Nothing -> "-"
@@ -101,12 +91,13 @@ displayAccountsTable model =
         ]
         , td []
         [ span [class "token-txt"][ text a.id ] ]
-        , td [class "date"][ text (cleanDate a.creationDate) ]
+        , td [class "date"][ text (posixToString model.ui.datePickerInfo.zone a.creationDate) ]
         , td [class "date"][ text expirationDate ]
+        , td [class "date"][ text lastUsedDate ]
         , td
           [ class "date"
           , style "text-align" "right"
-          , title ("Generated: " ++ (a.tokenGenerationDate |> Maybe.Extra.unpack (\_ -> "-") cleanDate))
+          , title ("Generated: " ++ (a.tokenGenerationDate |> Maybe.Extra.unpack (\_ -> "-") (posixToString model.ui.datePickerInfo.zone)))
           ]
           [
             span [style "padding-right" "5px"] [text tokenExists]
@@ -149,20 +140,21 @@ displayAccountsTable model =
       [ tr [class "head"]
         [ th [class (thClass tableFilters Name    ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Name    )})][ text "Account name"]
         , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"]
-        , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Creation date"]
-        , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expiration date" ]
-        , th [class (thClass tableFilters TknDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters TknDate )})][ text "Token"]
+        , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Created on"]
+        , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expires on" ]
+        , th [class (thClass tableFilters LstDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters LstDate )})][ text "Last used on"]
+        , th [][ text "Token"]
         , th [][ text "Actions" ]
         ]
       ]
     , tbody []
       ( if List.isEmpty model.accounts then
         [ tr[]
-          [ td[class "empty", colspan 4][i [class"fa fa-exclamation-triangle"][], text "There are no API accounts defined"] ]
+          [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "There are no API accounts defined"] ]
         ]
       else if List.isEmpty filteredAccounts then
         [ tr[]
-          [ td[class "empty", colspan 4][i [class"fa fa-exclamation-triangle"][], text "No API accounts match your filters"] ]
+          [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "No API accounts match your filters"] ]
         ]
       else
         List.map (\a -> trAccount a) filteredAccounts

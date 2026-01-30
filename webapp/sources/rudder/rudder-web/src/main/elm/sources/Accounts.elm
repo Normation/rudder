@@ -83,7 +83,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" RW "" Enabled "" TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" RW "" Enabled currentTime TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing Nothing TenantMode.AllAccess Nothing)
 
                         EditAccount a ->
                             Just a
@@ -242,7 +242,7 @@ update msg model =
                 datePicker =
                     ui.datePickerInfo
             in
-            ( { model | ui = { ui | datePickerInfo = { datePicker | picker = SingleDatePicker.openPicker (userDefinedDatePickerSettings datePicker.zone datePicker.currentTime posix) posix (Just posix) datePicker.picker } } }, Cmd.none )
+            ( { model | ui = { ui | datePickerInfo = { datePicker | picker = SingleDatePicker.openPicker (userDefinedDatePickerSettings { zone = datePicker.zone, today = datePicker.currentTime, focusedDate = posix }) posix (Just posix) datePicker.picker } } }, Cmd.none )
 
         UpdatePicker subMsg ->
             let
@@ -261,7 +261,7 @@ update msg model =
                             d
 
                 ( newPicker, maybeNewTime ) =
-                    SingleDatePicker.update (userDefinedDatePickerSettings datePicker.zone datePicker.currentTime selectedDate) subMsg datePicker.picker
+                    SingleDatePicker.update (userDefinedDatePickerSettings { zone = datePicker.zone, today = datePicker.currentTime, focusedDate = selectedDate }) subMsg datePicker.picker
 
                 newModel =
                     case model.editAccount of
@@ -282,19 +282,6 @@ update msg model =
                             { model | ui = { ui | datePickerInfo = { datePicker | picker = newPicker, pickedTime = newTime } }, editAccount = Just newAccount }
             in
             ( newModel, Cmd.none )
-
-        AdjustTimeZone newZone ->
-            let
-                ui =
-                    model.ui
-
-                datePicker =
-                    ui.datePickerInfo
-
-                newModel =
-                    { model | ui = { ui | datePickerInfo = { datePicker | zone = newZone } } }
-            in
-            ( newModel, getAccounts newModel )
 
         Tick newTime ->
             let
