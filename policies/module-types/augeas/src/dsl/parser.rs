@@ -82,6 +82,7 @@ pub enum Expr<'src> {
     /// Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
     DefineNode(String, AugPath<'src>, String),
     Check(AugPath<'src>, CheckExpr),
+    CheckNot(AugPath<'src>, CheckExpr),
     /// Save the changes to the tree.
     Save,
     /// Quit the script.
@@ -201,6 +202,14 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
             Expr::Check(
+                path.into(),
+                parse_check_command(inner_rules.next().unwrap())?,
+            )
+        }
+        Rule::check_not => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            Expr::CheckNot(
                 path.into(),
                 parse_check_command(inner_rules.next().unwrap())?,
             )
@@ -397,16 +406,23 @@ mod tests {
             defnode name /path/to/node value
             
             check /path/to/node len >= 3
+            check_not /path/to/node len >= 3
 
             check /path/to/node password score 3
+            check_not /path/to/node password score 3
             check /path/to/node password tluds 1 2 3 4 5
+            check_not /path/to/node password tluds 1 2 3 4 5
             
             check /path/to/node is ipv4
+            check_not /path/to/node is ipv4
 
             check /pat/to values len < 5
+            check_not /pat/to values len < 5
             
             check /path/to/node values == ["value1", "value2"]
+            check_not /path/to/node values == ["value1", "value2"]
             check /path/to/node values === ["value1", "value2"]
+            check_not /path/to/node values === ["value1", "value2"]
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value".to_string()),
@@ -431,7 +447,19 @@ mod tests {
                 },
                 CheckExpr::Len(GreaterThanOrEqual, 3),
             ),
+            Expr::CheckNot(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::Len(GreaterThanOrEqual, 3),
+            ),
             Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::PasswordScore(Score::Three),
+            ),
+            Expr::CheckNot(
                 AugPath {
                     inner: "/path/to/node",
                 },
@@ -443,7 +471,19 @@ mod tests {
                 },
                 CheckExpr::PasswordLUDS(1, 2, 3, 4, 5),
             ),
+            Expr::CheckNot(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::PasswordLUDS(1, 2, 3, 4, 5),
+            ),
             Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::HasType(ValueType::Ipv4),
+            ),
+            Expr::CheckNot(
                 AugPath {
                     inner: "/path/to/node",
                 },
@@ -453,13 +493,29 @@ mod tests {
                 AugPath { inner: "/pat/to" },
                 CheckExpr::ValuesLen(LessThan, 5),
             ),
+            Expr::CheckNot(
+                AugPath { inner: "/pat/to" },
+                CheckExpr::ValuesLen(LessThan, 5),
+            ),
             Expr::Check(
                 AugPath {
                     inner: "/path/to/node",
                 },
                 ValuesEqual(vec!["value1".to_string(), "value2".to_string()]),
             ),
+            Expr::CheckNot(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                ValuesEqual(vec!["value1".to_string(), "value2".to_string()]),
+            ),
             Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                ValuesEqualOrdered(vec!["value1".to_string(), "value2".to_string()]),
+            ),
+            Expr::CheckNot(
                 AugPath {
                     inner: "/path/to/node",
                 },

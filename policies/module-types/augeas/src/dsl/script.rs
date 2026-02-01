@@ -51,6 +51,7 @@ impl Expr<'_> {
             | Expr::LoadFile(..)
             | Expr::Rename(..) => ExprType::Write,
             Expr::Check(..) => ExprType::Read,
+            Expr::CheckNot(..) => ExprType::Read,
             Expr::Save | Expr::Quit => ExprType::Effect,
             Expr::Get(..) => ExprType::Read,
         }
