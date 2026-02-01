@@ -64,6 +64,7 @@ check_commands = _{
 }
 
 check = { "check" ~ path ~ check_commands }
+check_not = { "check_not" ~ path ~ check_commands }
 
 // Stock Augeas commands
 get = { "get" ~ path }
@@ -88,6 +89,7 @@ other_command = { !("save" | "quit" | "strlen" | "check") ~ (!NEWLINE ~ ANY)+ }
 // Command line
 command = {
     check |
+    check_not |
     get |
     set |
     set_multiple |
