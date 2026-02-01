@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::{
+    AugPath,
     comparator::{Comparison, Number},
     error::format_report_from_span,
     ip::IpRangeChecker,
@@ -216,6 +217,376 @@ impl<'a> Interpreter<'a> {
         ))
     }
 
+    fn check(
+        &self,
+        path: &AugPath,
+        check_expr: &CheckExpr,
+        check_not: bool,
+    ) -> Result<Vec<InterpreterOut>> {
+        let matches = self.aug.matches(path)?;
+        if matches.is_empty() {
+            bail!("No matches for path {}", path);
+        }
+
+        rudder_debug!("Found {} matches for path {}", matches.len(), path);
+
+        let mut values = vec![];
+        for v in matches {
+            let get = self.aug.get(&v)?;
+            let span = self.aug.span(&v)?;
+            if let Some(value) = get {
+                rudder_debug!("Value for match {}: {}", &value, value);
+                values.push((value.clone(), span));
+            } else {
+                bail!("No value for match {}, try adding /*", v);
+            }
+        }
+
+        let values_str = values
+            .iter()
+            .map(|(s, _)| s.as_ref())
+            .collect::<Vec<&str>>();
+
+        let values_res = match check_expr {
+            CheckExpr::ValuesInclude(expected_value) => {
+                let is_ok = values_str.contains(&expected_value.as_ref());
+                let msg = if check_not {
+                    if is_ok {
+                        bail!(
+                            "values '{}' include the unwanted value {}",
+                            values_str.join(", "),
+                            expected_value
+                        )
+                    } else {
+                        format!(
+                            "values '{}' does not include the unwanted value {}",
+                            values_str.join(", "),
+                            expected_value
+                        )
+                    }
+                } else if is_ok {
+                    format!(
+                        "values '{}' include the expected value {}",
+                        values_str.join(", "),
+                        expected_value
+                    )
+                } else {
+                    bail!(
+                        "values '{}' does not include the expected value {}",
+                        values_str.join(", "),
+                        expected_value
+                    )
+                };
+                Some(InterpreterOut::from_out(msg)?)
+            }
+            CheckExpr::ValuesNotInclude(expected_value) => {
+                let is_ok = !values_str.contains(&expected_value.as_ref());
+                let msg = if check_not {
+                    if is_ok {
+                        bail!(
+                            "values '{}' does not include the expected value {}",
+                            values_str.join(", "),
+                            expected_value
+                        )
+                    } else {
+                        format!(
+                            "values '{}' includes the expected value {}",
+                            values_str.join(", "),
+                            expected_value
+                        )
+                    }
+                } else if is_ok {
+                    format!(
+                        "values '{}' does not include the forbidden value {}",
+                        values_str.join(", "),
+                        expected_value
+                    )
+                } else {
+                    bail!(
+                        "values '{}' includes the forbidden value {}",
+                        values_str.join(", "),
+                        expected_value
+                    )
+                };
+                Some(InterpreterOut::from_out(msg)?)
+            }
+            CheckExpr::ValuesEqual(expected_values) => {
+                let expected_sorted = {
+                    let mut v = expected_values.clone();
+                    v.sort();
+                    v
+                };
+                let values_sorted = {
+                    let mut v = values_str.clone();
+                    v.sort();
+                    v
+                };
+
+                let is_ok = expected_sorted == values_sorted;
+                let msg = if check_not {
+                    if is_ok {
+                        bail!(
+                            "values '{}' match the expected values in any order",
+                            values_str.join(", "),
+                        )
+                    } else {
+                        format!(
+                            "values '{}' do not match the expected values in any order '{}'",
+                            values_str.join(", "),
+                            expected_values.join(", ")
+                        )
+                    }
+                } else if is_ok {
+                    format!(
+                        "values '{}' match the expected values in any order",
+                        values_str.join(", ")
+                    )
+                } else {
+                    bail!(
+                        "values '{}' do not match the expected values in any order '{}'",
+                        values_str.join(", "),
+                        expected_values.join(", ")
+                    )
+                };
+                Some(InterpreterOut::from_out(msg)?)
+            }
+            CheckExpr::ValuesEqualOrdered(expected_values) => {
+                let is_ok = *expected_values == values_str;
+                let msg = if check_not {
+                    if is_ok {
+                        bail!(
+                            "values '{}' match the expected values in given order",
+                            values_str.join(", ")
+                        )
+                    } else {
+                        format!(
+                            "values '{}' do not match the expected values in given order '{}'",
+                            values_str.join(", "),
+                            expected_values.join(", ")
+                        )
+                    }
+                } else if is_ok {
+                    format!(
+                        "values '{}' match the expected values in given order",
+                        values_str.join(", ")
+                    )
+                } else {
+                    bail!(
+                        "values '{}' do not match the expected values in given order '{}'",
+                        values_str.join(", "),
+                        expected_values.join(", ")
+                    )
+                };
+                Some(InterpreterOut::from_out(msg)?)
+            }
+            CheckExpr::ValuesIn(expected_values) => {
+                let is_ok = values_str
+                    .iter()
+                    .all(|v| expected_values.iter().map(|va| va.as_str()).contains(v));
+                let msg = if check_not {
+                    if is_ok {
+                        bail!(
+                            "values '{}' is a subset of the allowed values",
+                            values_str.join(", ")
+                        )
+                    } else {
+                        format!(
+                            "values '{}' is not a subset of the allowed values '{}'",
+                            values_str.join(", "),
+                            expected_values.join(", ")
+                        )
+                    }
+                } else if is_ok {
+                    format!(
+                        "values '{}' is a subset of the allowed values",
+                        values_str.join(", ")
+                    )
+                } else {
+                    bail!(
+                        "values '{}' is not a subset of the allowed values '{}'",
+                        values_str.join(", "),
+                        expected_values.join(", ")
+                    )
+                };
+                Some(InterpreterOut::from_out(msg)?)
+            }
+            CheckExpr::ValuesLen(comparator, size) => {
+                let len = values.len();
+                let is_ok = comparator.numeric_compare(&len, size);
+                let msg = if check_not {
+                    if is_ok {
+                        bail!("number of matches {len} matches {comparator} {size}")
+                    } else {
+                        format!("number of matches {len} does not match {comparator} {size}")
+                    }
+                } else if is_ok {
+                    format!("number of matches {len} matches {comparator} {size}")
+                } else {
+                    bail!("number of matches {len} does not match {comparator} {size}")
+                };
+                Some(InterpreterOut::from_out(msg)?)
+            }
+            _ => None,
+        };
+        if let Some(v) = values_res {
+            return Ok(vec![v]);
+        }
+
+        let mut res = vec![];
+        for (value, span) in values {
+            res.push(match check_expr {
+                CheckExpr::HasType(value_type) => {
+                    let msg = if check_not {
+                        if value_type.check(&value).is_ok() {
+                            bail!("type of {value} is {value_type}")
+                        } else if let (Some(s), Some(c)) = (span, &self.file_content) {
+                            bail!(format_report_from_span(
+                                "Type check error",
+                                &format!("type of {value} is NOT {value_type}"),
+                                s,
+                                c,
+                                None,
+                            ))
+                        } else {
+                            format!("type of {value} is NOT {value_type}")
+                        }
+                    } else if value_type.check(&value).is_ok() {
+                        format!("type of {value} is {value_type}")
+                    } else if let (Some(s), Some(c)) = (span, &self.file_content) {
+                        bail!(format_report_from_span(
+                            "Type check error",
+                            &format!("type of {value} is NOT {value_type}"),
+                            s,
+                            c,
+                            None,
+                        ))
+                    } else {
+                        bail!(format!("type of {value} is NOT {value_type}"))
+                    };
+                    InterpreterOut::from_out(msg)?
+                }
+                CheckExpr::PasswordScore(min_score) => {
+                    let policy = PasswordPolicy::MinScore(*min_score);
+                    let msg = if check_not {
+                        match policy.check(value.into()) {
+                            Ok(_) => "The password is too weak",
+                            Err(_) => "The password is not too weak",
+                        }
+                        .to_string()
+                    } else {
+                        policy.check(value.into())?
+                    };
+                    InterpreterOut::from_out(msg)?
+                }
+                CheckExpr::PasswordLUDS(total, lower, upper, digits, special) => {
+                    let policy =
+                        PasswordPolicy::CharsCriteria(*total, *lower, *upper, *digits, *special);
+                    let msg = if check_not {
+                        match policy.check(value.into()) {
+                            Ok(_) => "The password is too weak",
+                            Err(_) => "The password is not too weak",
+                        }
+                        .to_string()
+                    } else {
+                        policy.check(value.into())?
+                    };
+                    InterpreterOut::from_out(msg)?
+                }
+                CheckExpr::Compare(c) => match c {
+                    Comparison::Str(s) => InterpreterOut::from_out(if check_not {
+                        if s.matches(&value) {
+                            bail!("comparison: {value} {} {} is valid", s.comparator, s.value)
+                        } else {
+                            format!(
+                                "comparison: {value} {} {} is invalid",
+                                s.comparator, s.value
+                            )
+                        }
+                    } else if s.matches(&value) {
+                        format!("comparison: {value} {} {} is valid", s.comparator, s.value)
+                    } else {
+                        bail!(
+                            "comparison: {value} {} {} is invalid",
+                            s.comparator,
+                            s.value
+                        )
+                    })?,
+                    Comparison::Num(s) => {
+                        let number = value.parse::<Number>()?;
+
+                        let msg = if check_not {
+                            if s.matches(number)? {
+                                bail!(
+                                    "numeric comparison: {value} {} {} is valid",
+                                    s.comparator,
+                                    s.value
+                                )
+                            } else {
+                                format!(
+                                    "numeric comparison: {value} {} {} is invalid",
+                                    s.comparator, s.value
+                                )
+                            }
+                        } else if s.matches(number)? {
+                            format!(
+                                "numeric comparison: {value} {} {} is valid",
+                                s.comparator, s.value
+                            )
+                        } else {
+                            bail!(
+                                "numeric comparison: {value} {} {} is invalid",
+                                s.comparator,
+                                s.value
+                            )
+                        };
+
+                        InterpreterOut::from_out(msg)?
+                    }
+                },
+                CheckExpr::Len(comparator, size) => {
+                    let len = value.len();
+
+                    let msg = if check_not {
+                        if comparator.numeric_compare(&len, size) {
+                            bail!("length of '{value}', {len} matches {comparator} {size}")
+                        } else {
+                            format!("length of '{value}', {len} does not match {comparator} {size}")
+                        }
+                    } else if comparator.numeric_compare(&len, size) {
+                        format!("length of '{value}', {len} matches {comparator} {size}")
+                    } else {
+                        bail!("length of '{value}', {len} does not match {comparator} {size}")
+                    };
+                    InterpreterOut::from_out(msg)?
+                }
+                CheckExpr::InIpRange(ip_ranges) => {
+                    let range_checker = IpRangeChecker::try_from(ip_ranges)?;
+                    let msg = if check_not {
+                        let result = range_checker.check_range(&value).map(|_| {
+                            format!("IP {value} is not in the configured ranges ({ip_ranges:?})")
+                        });
+
+                        match result {
+                            Ok(success_msg) => success_msg,
+                            Err(_) => {
+                                bail!("IP {value} is in the configured ranges ({ip_ranges:?})")
+                            }
+                        }
+                    } else {
+                        range_checker.check_range(&value).map(|_| {
+                            format!("IP {value} is in the configured ranges ({ip_ranges:?})")
+                        })?
+                    };
+                    InterpreterOut::from_out(msg)?
+                }
+                _ => {
+                    unreachable!()
+                }
+            });
+        }
+        Ok(res)
+    }
+
     // FIXME Vec<Result, we need to treat all matching paths and stack errors.
     fn eval(&mut self, expr: &Expr) -> Result<Vec<InterpreterOut>> {
         rudder_trace!("Running expression: {:?}", expr);
@@ -268,222 +639,8 @@ impl<'a> Interpreter<'a> {
                     "no nodes were created".to_string()
                 })?]
             }
-            Expr::Check(path, check_expr) => {
-                let matches = self.aug.matches(path)?;
-                if matches.is_empty() {
-                    bail!("No matches for path {}", path);
-                }
-
-                rudder_debug!("Found {} matches for path {}", matches.len(), path);
-
-                let mut values = vec![];
-                for v in matches {
-                    let get = self.aug.get(&v)?;
-                    let span = self.aug.span(&v)?;
-                    if let Some(value) = get {
-                        rudder_debug!("Value for match {}: {}", &value, value);
-                        values.push((value.clone(), span));
-                    } else {
-                        bail!("No value for match {}, try adding /*", v);
-                    }
-                }
-
-                let values_str = values
-                    .iter()
-                    .map(|(s, _)| s.as_ref())
-                    .collect::<Vec<&str>>();
-
-                let values_res = match check_expr {
-                    CheckExpr::ValuesInclude(expected_value) => {
-                        let is_ok = values_str.contains(&expected_value.as_ref());
-                        Some(InterpreterOut::from_out(if is_ok {
-                            format!(
-                                "values '{}' include the expected value {}",
-                                values_str.join(", "),
-                                expected_value
-                            )
-                        } else {
-                            bail!(
-                                "values '{}' does not include the expected value {}",
-                                values_str.join(", "),
-                                expected_value
-                            )
-                        })?)
-                    }
-                    CheckExpr::ValuesNotInclude(expected_value) => {
-                        let is_ok = !values_str.contains(&expected_value.as_ref());
-                        Some(InterpreterOut::from_out(if is_ok {
-                            format!(
-                                "values '{}' does not include the forbidden value {}",
-                                values_str.join(", "),
-                                expected_value
-                            )
-                        } else {
-                            bail!(
-                                "values '{}' includes the forbidden value {}",
-                                values_str.join(", "),
-                                expected_value
-                            )
-                        })?)
-                    }
-                    CheckExpr::ValuesEqual(expected_values) => {
-                        let expected_sorted = {
-                            let mut v = expected_values.clone();
-                            v.sort();
-                            v
-                        };
-                        let values_sorted = {
-                            let mut v = values_str.clone();
-                            v.sort();
-                            v
-                        };
-
-                        let is_ok = expected_sorted == values_sorted;
-                        Some(InterpreterOut::from_out(if is_ok {
-                            format!(
-                                "values '{}' match the expected values in any order",
-                                values_str.join(", ")
-                            )
-                        } else {
-                            bail!(
-                                "values '{}' do not match the expected values in any order '{}'",
-                                values_str.join(", "),
-                                expected_values.join(", ")
-                            )
-                        })?)
-                    }
-                    CheckExpr::ValuesEqualOrdered(expected_values) => {
-                        let is_ok = *expected_values == values_str;
-                        Some(InterpreterOut::from_out(if is_ok {
-                            format!(
-                                "values '{}' match the expected values in given order",
-                                values_str.join(", ")
-                            )
-                        } else {
-                            bail!(
-                                "values '{}' do not match the expected values in given order '{}'",
-                                values_str.join(", "),
-                                expected_values.join(", ")
-                            )
-                        })?)
-                    }
-                    CheckExpr::ValuesIn(expected_values) => {
-                        let is_ok = values_str.iter().all(|v| expected_values.iter().map(|va|va.as_str()).contains(v));
-                        Some(InterpreterOut::from_out(if is_ok {
-                            format!(
-                                "values '{}' is a subset of the allowed values",
-                                values_str.join(", ")
-                            )
-                        } else {
-                            bail!(
-                                "values '{}' is not a subset of the allowed values '{}'",
-                                values_str.join(", "),
-                                expected_values.join(", ")
-                            )
-                        })?)
-                    }
-                    CheckExpr::ValuesLen(comparator, size) => {
-                        let len = values.len();
-                        Some(InterpreterOut::from_out(
-                            if comparator.numeric_compare(&len, size) {
-                                format!("number of matches {len} matches {comparator} {size}")
-                            } else {
-                                bail!("number of matches {len} does not match {comparator} {size}")
-                            },
-                        )?)
-                    }
-                    _ => None,
-                };
-                if let Some(v) = values_res {
-                    return Ok(vec![v]);
-                }
-
-                let mut res = vec![];
-                for (value, span) in values {
-                    res.push(match check_expr {
-                        CheckExpr::HasType(value_type) => {
-                            InterpreterOut::from_out(if value_type.check(&value).is_ok() {
-                                format!("type of {value} is {value_type}")
-                            } else if let (Some(s), Some(c)) = (span, &self.file_content) {
-                                bail!(format_report_from_span(
-                                    "Type check error",
-                                    &format!("type of {value} is NOT {value_type}"),
-                                    s,
-                                    c,
-                                    None,
-                                ))
-                            } else {
-                                bail!(format!("type of {value} is NOT {value_type}"))
-                            })?
-                        }
-                        CheckExpr::PasswordScore(min_score) => {
-                            let policy = PasswordPolicy::MinScore(*min_score);
-                            let out = policy.check(value.into())?;
-                            InterpreterOut::from_out(out)?
-                        }
-                        CheckExpr::PasswordLUDS(total, lower, upper, digits, special) => {
-                            let policy = PasswordPolicy::CharsCriteria(
-                                *total, *lower, *upper, *digits, *special,
-                            );
-                            let out = policy.check(value.into())?;
-                            InterpreterOut::from_out(out)?
-                        }
-                        CheckExpr::Compare(c) => match c {
-                            Comparison::Str(s) => InterpreterOut::from_out(if s.matches(&value) {
-                                format!("comparison: {value} {} {} is valid", s.comparator, s.value)
-                            } else {
-                                bail!(
-                                    "comparison: {value} {} {} is invalid",
-                                    s.comparator,
-                                    s.value
-                                )
-                            })?,
-                            Comparison::Num(s) => {
-                                let number = value.parse::<Number>()?;
-
-                                InterpreterOut::from_out(if s.matches(number)? {
-                                    format!(
-                                        "numeric comparison: {value} {} {} is valid",
-                                        s.comparator, s.value
-                                    )
-                                } else {
-                                    bail!(
-                                        "numeric comparison: {value} {} {} is invalid",
-                                        s.comparator,
-                                        s.value
-                                    )
-                                })?
-                            }
-                        },
-                        CheckExpr::Len(comparator, size) => {
-                            let len = value.len();
-
-                            InterpreterOut::from_out(if comparator.numeric_compare(&len, size) {
-                                format!("length of '{value}', {len} matches {comparator} {size}")
-                            } else {
-                                bail!(
-                                    "length of '{value}', {len} does not match {comparator} {size}"
-                                )
-                            })?
-                        }
-                        CheckExpr::InIpRange(ip_ranges) => {
-                            let range_checker = IpRangeChecker::try_from(ip_ranges)?;
-                            InterpreterOut::from_out(range_checker.check_range(&value).map(
-                                |_| {
-                                    format!(
-                                        "IP {value} is in the configured ranges ({ip_ranges:?})"
-                                    )
-                                },
-                            )?)?
-                        }
-                        _ => {
-                            unreachable!()
-                        }
-                    });
-                }
-                res
-            }
-
+            Expr::Check(path, check_expr) => self.check(path, check_expr, false)?,
+            Expr::CheckNot(path, check_expr) => self.check(path, check_expr, true)?,
             Expr::GenericAugeas(cmd) => {
                 let out = match *cmd {
                     "help" => {
