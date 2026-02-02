@@ -67,7 +67,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.softwaremill.quicklens.*
-import org.joda.time.DateTime
+import java.time.Instant
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -148,7 +148,7 @@ class TestBuildNodeConfiguration extends Specification {
       FullActiveTechnique(
         ActiveTechniqueId("common"),
         techniqueName = data.commonTechnique.id.name,
-        acceptationDatetimes = SortedMap(data.commonTechnique.id.version -> DateTime.now),
+        acceptationDatetimes = SortedMap(data.commonTechnique.id.version -> Instant.now),
         techniques = SortedMap(data.commonTechnique.id.version -> data.commonTechnique),
         directives = List(data.commonDirective),
         isEnabled = true,
@@ -158,7 +158,7 @@ class TestBuildNodeConfiguration extends Specification {
       FullActiveTechnique(
         ActiveTechniqueId("rpmPackageInstallation"),
         techniqueName = data.rpmTechnique.id.name,
-        acceptationDatetimes = SortedMap(data.rpmTechnique.id.version -> DateTime.now),
+        acceptationDatetimes = SortedMap(data.rpmTechnique.id.version -> Instant.now),
         techniques = SortedMap(data.rpmTechnique.id.version -> data.rpmTechnique),
         directives = directives.values.toList,
         isEnabled = true,

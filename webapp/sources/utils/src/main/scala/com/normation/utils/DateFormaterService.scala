@@ -42,12 +42,14 @@ import com.normation.errors.PureResult
 import io.scalaland.chimney.*
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.format.SignStyle
+import java.time.temporal.ChronoField.*
 import java.util.TimeZone
 import org.joda.time.DateTime
-import org.joda.time.DateTimeFieldType
 import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
@@ -89,9 +91,6 @@ object DateFormaterService {
     implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
       JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
 
-    implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
-      new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
-
     implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
     implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
@@ -117,8 +116,9 @@ object DateFormaterService {
       .withZoneUTC()
   }
 
-  val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
-  val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
+  val javatimeRfcDateformat:   java.time.format.DateTimeFormatter = java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME
+  val rfcDateformat:           DateTimeFormatter                  = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
+  val rfcDateformatWithMillis: DateTimeFormatter                  = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
 
   val javaDisplayDateFormat: java.time.format.DateTimeFormatter =
     java.time.format.DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ")
@@ -148,13 +148,14 @@ object DateFormaterService {
   def serializeZDT(datetime: ZonedDateTime): String =
     datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
 
-  def serializeInstant(datetime: Instant): String = {
-    ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-  }
+  def serializeOffsetDateTime(offsetDateTime: OffsetDateTime): String =
+    offsetDateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssVV").withZone(ZoneOffset.UTC))
 
-  def toInstant(datetime:  DateTime): Instant   = json.transformDateTimeInstant.transform(datetime)
-  def toDateTime(instant:  Instant):  DateTime  = json.transformInstantDateTime.transform(instant)
-  def toLocalDate(instant: Instant):  LocalDate = json.transformInstantLocalDate.transform(instant)
+  def serializeInstant(instant: Instant): String = instant.toString
+
+  def toDateTime(instant: Instant): DateTime = json.transformInstantDateTime.transform(instant)
+
+  def toLocalDate(instant: Instant): LocalDate = json.transformInstantLocalDate.transform(instant)
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {
@@ -217,6 +218,32 @@ object DateFormaterService {
     }
   }
 
+  private val basicDateTimeFormatter = {
+    val date = new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(YEAR, 4, 10, SignStyle.NEVER)
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendValue(DAY_OF_MONTH, 2)
+      .toFormatter()
+
+    val time = new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .optionalStart
+      .appendValue(SECOND_OF_MINUTE, 2)
+      .optionalStart
+      .appendFraction(NANO_OF_SECOND, 0, 3, true)
+      .appendOffsetId()
+      .toFormatter()
+
+    new java.time.format.DateTimeFormatterBuilder().parseCaseInsensitive
+      .append(date)
+      .appendLiteral('T')
+      .append(time)
+      .toFormatter()
+  }
+
+  def formatAsBasicDateTime(instant: Instant): String = basicDateTimeFormatter.format(instant.atOffset(ZoneOffset.UTC))
+
   def getDisplayDateTimePicker(date: DateTime): String = {
     date.toString(dateFormatTimePicker)
   }
@@ -260,23 +287,27 @@ object DateFormaterService {
   /**
    * For git tags or branches, we can't use ISO8601 valid format since ":" is forbidden.
    * So we use a:
-   * YYYY-MM-dd_HH_mm_ss.SSS
+   * YYYY-MM-dd_HH-mm-ss.SSS
    */
-  val gitTagFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
-    .appendYear(4, 4)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.monthOfYear(), 2)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.dayOfMonth(), 2)
-    .appendLiteral('_')
-    .appendFixedDecimal(DateTimeFieldType.hourOfDay(), 2)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.minuteOfHour(), 2)
-    .appendLiteral('-')
-    .appendFixedDecimal(DateTimeFieldType.secondOfMinute(), 2)
-    .appendLiteral('.')
-    .appendFractionOfSecond(3, 9)
-    .toFormatter()
-    .withZoneUTC()
+  private val gitFormat = {
+    new java.time.format.DateTimeFormatterBuilder()
+      .appendValue(YEAR, 4, 10, SignStyle.NEVER)
+      .appendLiteral('-')
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendLiteral('-')
+      .appendValue(DAY_OF_MONTH, 2)
+      .appendLiteral('_')
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendLiteral('-')
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .appendLiteral('-')
+      .appendValue(SECOND_OF_MINUTE, 2)
+      .appendFraction(MILLI_OF_SECOND, 3, 3, true)
+      .toFormatter()
+  }
+
+  def formatAsGitTag(instant: Instant): String = gitFormat.format(instant.atOffset(ZoneOffset.UTC))
+
+  def parseAsGitTag(input: String): Instant = gitFormat.withZone(ZoneOffset.UTC).parse(input).query(Instant.from)
 
 }

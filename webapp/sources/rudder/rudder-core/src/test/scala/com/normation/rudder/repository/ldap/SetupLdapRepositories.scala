@@ -82,8 +82,8 @@ import com.normation.zio.*
 import com.unboundid.ldap.listener.InMemoryDirectoryServer
 import com.unboundid.ldap.sdk.DN
 import java.io
+import java.time.Instant
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 
@@ -422,7 +422,7 @@ trait SetupLdapRepositories {
         reason:   Option[String]
     ): IOResult[GitArchiveId] = testGitArchiveId(commiter)
 
-    override def getTags(): IOResult[Map[DateTime, GitArchiveId]] = Map().succeed
+    override def getTags(): IOResult[Map[Instant, GitArchiveId]] = Map().succeed
 
     override def archiveNodeGroup(
         nodeGroup: NodeGroup,

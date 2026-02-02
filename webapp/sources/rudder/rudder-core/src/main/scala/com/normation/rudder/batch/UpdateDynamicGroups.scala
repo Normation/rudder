@@ -54,10 +54,12 @@ import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils.DateToIsoString
 import com.normation.zio.*
+import java.time.Duration
 import java.time.Instant
 import net.liftweb.actor.*
 import net.liftweb.common.*
-import org.joda.time.*
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 //Message to send to the updater manager to start a new update of all dynamic groups or get results
 sealed trait GroupUpdateMessage
@@ -259,7 +261,7 @@ class UpdateDynamicGroups(
 
         // log some information
         DynamicGroupLoggerPure.logEffect.debug(
-          s"Dynamic group update in ${new Duration(end.toEpochMilli - start.toEpochMilli).toPeriod().toString} (started at ${DateFormaterService
+          s"Dynamic group update in ${Duration.between(start, end)} (started at ${DateFormaterService
               .serializeInstant(start)}, ended at ${DateFormaterService.serializeInstant(end)})"
         )
 

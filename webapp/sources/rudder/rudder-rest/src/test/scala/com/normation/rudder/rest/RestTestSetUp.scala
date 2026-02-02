@@ -187,7 +187,7 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
-import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
@@ -218,7 +218,6 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.annotation.nowarn
 import scala.collection.MapView
@@ -337,7 +336,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       id = Some(42),
       modificationId = None,
       principal = EventActor("test"),
-      creationDate = DateFormaterService.toInstant(DateTime.parse("2024-12-04T15:30:10Z")),
+      creationDate = DateTime.parse("2024-12-04T15:30:10Z").toJavaInstant,
       details = <test/>,
       reason = None
     )
@@ -659,14 +658,14 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       * The API then provides the logic to transform the Box[Map][DateTime, GitArchiveId] into JSON
       * Here, we want to make these methods returning fake archives for testing the API logic.
       */
-    val fakeArchives:                     Map[DateTime, GitArchiveId]           = Map[DateTime, GitArchiveId](
-      new DateTime("1970-01-01T01:00:00.042Z", DateTimeZone.UTC) -> fakeGitArchiveId
+    val fakeArchives:                     Map[Instant, GitArchiveId]           = Map[Instant, GitArchiveId](
+      Instant.parse("1970-01-01T01:00:00.042Z") -> fakeGitArchiveId
     )
-    override def getFullArchiveTags:      IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
-    override def getGroupLibraryTags:     IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
-    override def getTechniqueLibraryTags: IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
-    override def getRulesTags:            IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
-    override def getParametersTags:       IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getFullArchiveTags:      IOResult[Map[Instant, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getGroupLibraryTags:     IOResult[Map[Instant, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getTechniqueLibraryTags: IOResult[Map[Instant, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getRulesTags:            IOResult[Map[Instant, GitArchiveId]] = ZIO.succeed(fakeArchives)
+    override def getParametersTags:       IOResult[Map[Instant, GitArchiveId]] = ZIO.succeed(fakeArchives)
   }
   val fakeItemArchiveManager = new FakeItemArchiveManager
   val fakeClearCacheService = new FakeClearCacheService

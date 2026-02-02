@@ -175,6 +175,7 @@ response:
                 "kind" : "defect",
                 "description" : "Some explanation",
                 "severity" : "critical",
+                "date" : "2022-01-01T00:00:00Z",
                 "ids" : [
                   "RHSA-2020-4566",
                   "CVE-2021-4034"

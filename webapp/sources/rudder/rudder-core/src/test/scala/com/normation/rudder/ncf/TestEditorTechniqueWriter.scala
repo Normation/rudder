@@ -92,6 +92,7 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.zio.*
 import java.io.File as JFile
 import java.io.InputStream
+import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
@@ -254,7 +255,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
-        datetimes: Map[TechniqueVersion, DateTime]
+        datetimes: Map[TechniqueVersion, Instant]
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def deleteActiveTechnique(
         id:     ActiveTechniqueId,

@@ -250,7 +250,7 @@ class LDAPEntityMapper(
                     inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
                     isPolicyServer = false, // we don't know anymore if it was a policy server
 
-                    creationDate = Instant.ofEpochMilli(0), // we don't know anymore the acceptation date
+                    creationDate = Instant.EPOCH, // we don't know anymore the acceptation date
 
                     ReportingConfiguration(None, None), // we don't know anymore agent run frequency
 

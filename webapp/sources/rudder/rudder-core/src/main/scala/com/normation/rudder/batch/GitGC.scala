@@ -44,7 +44,6 @@ import com.normation.utils.CronParser.*
 import com.normation.zio.*
 import cron4s.CronExpr
 import org.eclipse.jgit.lib.ProgressMonitor
-import org.joda.time.Duration
 import zio.*
 
 /**
@@ -88,15 +87,14 @@ class GitGC(
 
   // must not fail, will be in a cron
   val gitgc: UIO[Unit] = for {
-    t0 <- currentTimeMillis
-    _  <- gitRepo.semaphore
-            .withPermit(IOResult.attempt {
-              gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
-            })
-            .unit
-            .catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
-    t1 <- currentTimeMillis
-    _  <- logger.info(s"git-gc performed on ${gitRepo.rootDirectory.name} in ${new Duration(t1 - t0).toString}")
+    (duration, _) <-
+      gitRepo.semaphore
+        .withPermit(IOResult.attempt {
+          gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
+        })
+        .catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
+        .timed
+    _             <- logger.info(s"git-gc performed on ${gitRepo.rootDirectory.name} in ${duration}")
   } yield ()
 
   // create the schedule gitgc cron or nothing if disabled.

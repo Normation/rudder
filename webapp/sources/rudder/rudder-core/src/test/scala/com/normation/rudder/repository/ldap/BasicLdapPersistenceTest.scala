@@ -46,7 +46,7 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.*
 import com.normation.zio.*
-import org.joda.time.DateTime
+import java.time.Instant
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -116,7 +116,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
     val expected = ActiveTechnique(
       ActiveTechniqueId(tech.value),
       tech,
-      AcceptationDateTime(Map(TechniqueVersion.V1_0 -> DateTime.parse("2023-12-02T17:49:01.013Z"))),
+      AcceptationDateTime(Map(TechniqueVersion.V1_0 -> Instant.parse("2023-12-02T17:49:01.013Z"))),
       List(DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae")),
       security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
     )

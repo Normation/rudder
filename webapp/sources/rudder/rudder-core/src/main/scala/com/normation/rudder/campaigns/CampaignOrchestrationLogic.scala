@@ -37,7 +37,6 @@
 
 package com.normation.rudder.campaigns
 
-import cats.implicits.*
 import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventState.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
@@ -482,7 +481,7 @@ class DefaultCampaignOrchestrationEffects(
           lastEventDate = events match {
                             case Nil => date
                             case _   =>
-                              val maxEventDate = events.maxBy(_.end.getMillis).start
+                              val maxEventDate = events.maxBy(_.end).start
                               if (maxEventDate.isAfter(date)) maxEventDate else date
 
                           }
