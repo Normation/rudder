@@ -150,7 +150,7 @@ class PurgeOldInventoryData(
     case Some(cron) =>
       val schedule = cron.toSchedule
       logger.info(
-        s"Automatic cleaning of file older than ${maxAge.toString} starts for directories: '${cleanDirectories
+        s"Automatic cleaning of file older than ${maxAge.render} starts for directories: '${cleanDirectories
             .map(_.pathAsString)
             .mkString("', '")}' (schedule 'sec min h dayMonth month DayWeek': '${cron.toString}')"
       ) *>
