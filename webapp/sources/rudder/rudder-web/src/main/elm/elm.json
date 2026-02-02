@@ -48,6 +48,7 @@
             "pablohirafuji/elm-markdown": "2.0.6",
             "pablohirafuji/elm-syntax-highlight": "3.7.1",
             "rtfeldman/elm-iso8601-date-strings": "1.1.4",
+            "ryan-haskell/date-format": "1.0.0",
             "toastal/either": "3.6.3",
             "visotype/elm-dom": "1.1.3",
             "webbhuset/elm-json-decode": "1.2.0",

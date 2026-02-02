@@ -1,5 +1,6 @@
 module Accounts.ViewUtils exposing (..)
 
+import DateFormat.Relative
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onCheck)
@@ -10,6 +11,7 @@ import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString, posixOrdering)
 import Ordering exposing (Ordering)
 import String exposing (slice)
+import String.Extra
 import Time
 import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
 import Maybe.Extra
@@ -70,42 +72,44 @@ displayAccountsTable model =
     trAccount a =
       let
         inputId = "toggle-" ++ a.id
+        now = model.ui.datePickerInfo.currentTime
         expirationDate = case a.expirationPolicy of
           ExpireAtDate d  -> posixToString model.ui.datePickerInfo.zone d
           NeverExpire -> "-"
-        lastUsedDate  = case a.lastAuthenticationDate of
-          Just d -> posixToString model.ui.datePickerInfo.zone d
-          Nothing -> "-"
-        tokenExists = case a.tokenGenerationDate of
-          Just d -> "✓"
-          Nothing -> "-"
+        (lastUsedDate, relativeLastUsedDate)  = case a.lastAuthenticationDate of
+          Just d -> (Just d, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d)
+          Nothing -> (Nothing, "-")
+        hasToken = Maybe.Extra.isJust a.tokenGenerationDate
+        modalAction = if hasToken then Regenerate else Create
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
         [ td []
-        [ text a.name
-        , displayAccountDescription a
-        , span [class "badge badge-grey"][ text (getAuthorizationType a.authorizationType) ]
-        , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
-        , (if checkIfTokenV1 a then span[class "badge-disabled"][] else text "")
-        ]
+          [ text a.name
+          , displayAccountDescription a
+          , span [class "badge badge-grey"][ text (getAuthorizationType a.authorizationType) ]
+          , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
+          , (if checkIfTokenV1 a then span[class "badge-disabled"][] else text "")
+          ]
         , td []
-        [ span [class "token-txt"][ text a.id ] ]
+          [ span [class "token-txt"][ text a.id ] ]
         , td [class "date"][ text (posixToString model.ui.datePickerInfo.zone a.creationDate) ]
         , td [class "date"][ text expirationDate ]
-        , td [class "date"][ text lastUsedDate ]
-        , td
-          [ class "date"
-          , style "text-align" "right"
-          , title ("Generated: " ++ (a.tokenGenerationDate |> Maybe.Extra.unpack (\_ -> "-") (posixToString model.ui.datePickerInfo.zone)))
-          ]
-          [
-            span [style "padding-right" "5px"] [text tokenExists]
-          , button
-            [ class "btn btn-default reload-token"
-            , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
-            ]
-            [ span [class "fa fa-repeat"][] ]
+        , td [class "date"]
+          [ span
+            ( lastUsedDate
+                |> Maybe.Extra.unpack
+                  ( \() -> [] )
+                  ( \d ->
+                    [ class "relative-date"
+                    , attribute "data-bs-toggle" "tooltip"
+                    , attribute "data-bs-placement" "top"
+                    , attribute "title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
+                    , onClick (Copy (Iso8601.fromTime d))
+                    ]
+                  )
+            )
+            [ text relativeLastUsedDate ]
           ]
         , td []
           [ button
@@ -126,6 +130,24 @@ displayAccountsTable model =
             , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a))))
             ]
             [ span [class "fa fa-times-circle"] [] ]
+          , span
+            [ attribute "data-bs-toggle" "tooltip"
+            , attribute "data-bs-placement" "top"
+            , attribute "title"
+              ( buildTooltipContent "Token"
+                ( a.tokenGenerationDate
+                    |> Maybe.Extra.unpack
+                       ( \_ -> "Generate a token for this account" )
+                       ( \p -> "Generate a new token, current token was generated on " ++ posixToString model.ui.datePickerInfo.zone p )
+                )
+              )
+            ]
+            [ button
+              [ class "btn btn-default reload-token"
+              , onClick (ToggleEditPopup (Confirm modalAction a.name (CallApi (regenerateToken modalAction a))))
+              ]
+              [ span [class ("fa " ++ if hasToken then "fa-repeat" else "fa-plus-circle")][] ]
+            ]
           ]
         ]
     filters = model.ui.filters
@@ -142,19 +164,18 @@ displayAccountsTable model =
         , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"]
         , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Created on"]
         , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expires on" ]
-        , th [class (thClass tableFilters LstDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters LstDate )})][ text "Last used on"]
-        , th [][ text "Token"]
+        , th [class (thClass tableFilters LstDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters LstDate )})][ text "Last used"]
         , th [][ text "Actions" ]
         ]
       ]
     , tbody []
       ( if List.isEmpty model.accounts then
         [ tr[]
-          [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "There are no API accounts defined"] ]
+          [ td[class "empty", colspan 6][i [class"fa fa-exclamation-triangle"][], text "There are no API accounts defined"] ]
         ]
       else if List.isEmpty filteredAccounts then
         [ tr[]
-          [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "No API accounts match your filters"] ]
+          [ td[class "empty", colspan 6][i [class"fa fa-exclamation-triangle"][], text "No API accounts match your filters"] ]
         ]
       else
         List.map (\a -> trAccount a) filteredAccounts
@@ -180,6 +201,35 @@ displayAccountDescription a =
       , attribute "data-bs-placement" "top"
       , attribute "title" (buildTooltipContent "Description" a.description)
       ][]
+
+
+relativeTimeOptions : DateFormat.Relative.RelativeTimeOptions
+relativeTimeOptions =
+  let
+    default =
+      DateFormat.Relative.defaultRelativeOptions
+
+    -- do not show passing seconds
+    someSecondsAgo _ =
+      "less than a minute ago"
+
+    -- copy of defaultSomeDaysAgo, but show weeks
+    someDaysAgo days =
+      let
+         weeks =
+           days // 7
+      in
+      if days < 2 then
+        "yesterday"
+
+      else if weeks > 0 then
+        String.Extra.pluralize "week" "weeks" weeks ++ " ago"
+
+      else
+        String.fromInt days ++ " days ago"
+
+  in
+  { default | someSecondsAgo = someSecondsAgo, someDaysAgo = someDaysAgo }
 
 
 -- WARNING:
