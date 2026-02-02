@@ -120,17 +120,17 @@ trait AbstractScheduler {
     private val realUpdateInterval: Duration = {
       if (updateInterval < schedulerMinimumIntervalTime) {
         logger.warn(
-          s"Value '${updateInterval}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'"
+          s"Value '${updateInterval.toCoarsest}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'"
         )
         schedulerMinimumIntervalTime
       } else {
         if (updateInterval > schedulerMaximumIntervalTime) {
           logger.warn(
-            s"Value '${updateInterval}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime}'"
+            s"Value '${updateInterval.toCoarsest}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime}'"
           )
           schedulerMaximumIntervalTime
         } else {
-          logger.info(s"Starting [${displayName}] scheduler with a period of ${updateInterval} s")
+          logger.info(s"Starting [${displayName}] scheduler with a period of '${updateInterval.toCoarsest}'")
           updateInterval
         }
       }
