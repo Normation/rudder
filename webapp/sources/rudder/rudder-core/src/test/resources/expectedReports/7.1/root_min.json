@@ -13,13 +13,30 @@
       "st": 4
     }
   },
+  "ss":[{
+    "id" : "rudder-daily-on-4-utc",
+    "e" : true,
+    "s" : {
+      "type" : "daily",
+      "start" : {
+        "hour" : 4,
+        "minute" : 0
+      },
+      "end" : {
+        "hour" : 6,
+        "minute" : 0
+      },
+      "tz" : "UTC"
+    }
+  }
+  ],
   "rs":[
     {
       "rid":"hasPolicyServer-root",
       "ds":[
         {
           "did":"common-hasPolicyServer-root",
-          "s":true,
+          "t":["rudder.system"],
           "cs":[
             {
               "vid":"Update",
@@ -54,6 +71,7 @@
       "ds":[
         {
           "did":"dc0eaf47-356a-4a44-877d-e3873f75385b",
+          "sid": "rudder-daily-on-4-utc",
           "cs":[
             {
               "vid":"Package",
@@ -71,6 +89,7 @@
         },
         {
           "did":"cbc2377f-ce6d-47fe-902b-8d92a484b184",
+          "sid": "rudder-daily-on-4-utc",
           "cs":[
             {
               "bid":"my main component",
@@ -105,7 +124,7 @@
       "ds":[
         {
           "did":"rudder-service-apache-root",
-          "s":true,
+          "t":["rudder.system"],
           "cs":[
             {
               "vid":"Apache service",
@@ -142,7 +161,7 @@
       "ds":[
         {
           "did":"inventory-all",
-          "s":true,
+          "t":["rudder.system"],
           "cs":[
             {
               "vid":"Inventory",

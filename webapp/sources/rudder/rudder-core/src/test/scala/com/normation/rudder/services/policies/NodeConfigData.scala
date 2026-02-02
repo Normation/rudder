@@ -421,7 +421,8 @@ object NodeConfigData {
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration]()
+    parameters = Set[ParameterForConfiguration](),
+    schedules = Nil
   )
 
   val node1NodeConfig: NodeConfiguration = NodeConfiguration(
@@ -430,7 +431,8 @@ object NodeConfigData {
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration]()
+    parameters = Set[ParameterForConfiguration](),
+    schedules = Nil
   )
 
   val node2NodeConfig: NodeConfiguration = NodeConfiguration(
@@ -439,7 +441,8 @@ object NodeConfigData {
     runHooks = List(),
     policies = List[Policy](),
     nodeContext = Map[String, Variable](),
-    parameters = Set[ParameterForConfiguration]()
+    parameters = Set[ParameterForConfiguration](),
+    schedules = Nil
   )
 
   /**
@@ -959,6 +962,7 @@ class TestNodeConfiguration(
       0,
       system,
       policyMode,
+      None, // scheduleId
       BundleOrder(ruleName),
       BundleOrder(directiveName),
       Set()

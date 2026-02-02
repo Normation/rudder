@@ -57,7 +57,7 @@ import com.normation.rudder.ncf.CompilationStatusAllSuccess
 import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
-import com.normation.rudder.services.policies.PromiseGenerationService
+import com.normation.rudder.services.policies.PolicyGenerationService
 import com.normation.zio.*
 import enumeratum.*
 import enumeratum.EnumEntry.*
@@ -176,7 +176,7 @@ trait AsyncDeploymentAgent {
 }
 
 final class AsyncDeploymentActor(
-    deploymentService:             PromiseGenerationService,
+    deploymentService:             PolicyGenerationService,
     eventLogger:                   EventLogDeploymentService,
     deploymentStatusSerialisation: DeploymentStatusSerialisation,
     getGenerationDelay:            () => IOResult[Duration],
