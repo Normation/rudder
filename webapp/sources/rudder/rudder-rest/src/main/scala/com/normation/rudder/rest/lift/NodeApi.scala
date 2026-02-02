@@ -112,6 +112,8 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
+import com.normation.rudder.services.servers.InstanceId
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.utils.StringUuidGenerator
@@ -788,7 +790,8 @@ class NodeApiService(
     pendingNodeQueryProcessor:  QueryChecker,
     getGlobalMode:              () => Box[GlobalPolicyMode],
     relayApiEndpoint:           String,
-    scoreService:               ScoreService
+    scoreService:               ScoreService,
+    instanceIdService:          InstanceIdService
 ) {
 
 /// utility functions ///
@@ -1185,6 +1188,7 @@ class NodeApiService(
         implicit val nodeFact:        NodeFact                       = fact
         implicit val agentRun:        Option[AgentRunWithNodeConfig] = runs.get(nodeId).flatten
         implicit val inventoryStatus: InventoryStatus                = state
+        implicit val instanceId:      InstanceId                     = instanceIdService.instanceId
         detailLevel.transformInto[JRNodeDetailLevel]
       }
     }
@@ -1225,6 +1229,7 @@ class NodeApiService(
           .run(ZSink.collectAllToMap[NodeFact, NodeId](_.id)((a, b) => a))
       runs      <- reportsExecutionRepository.getNodesLastRun(nodeFacts.keySet)
     } yield {
+      implicit val instanceId: InstanceId = instanceIdService.instanceId
       nodeFacts.toChunk.map {
         case (nodeId, nodeFact) =>
           implicit val agentRun:       Option[AgentRunWithNodeConfig] = runs.get(nodeId).flatten

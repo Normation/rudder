@@ -170,6 +170,7 @@ import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.InstanceId
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
@@ -864,7 +865,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         null,
         () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
         "relay",
-        mockNodes.scoreService
+        mockNodes.scoreService,
+        new InstanceIdService(InstanceId("rudder-test-instance"))
       ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(

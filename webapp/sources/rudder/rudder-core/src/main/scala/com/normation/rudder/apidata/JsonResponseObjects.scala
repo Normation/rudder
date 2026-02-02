@@ -79,6 +79,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
@@ -264,6 +265,7 @@ object JsonResponseObjects {
       controllers:                 Option[Chunk[domain.Controller]],
       environmentVariables:        Option[Map[String, String]],
       fileSystems:                 Option[Chunk[domain.FileSystem]],
+      instanceId:                  Option[InstanceId],
       managementTechnologyDetails: Option[JRNodeDetailLevel.ManagementDetails],
       memories:                    Option[Chunk[domain.MemorySlot]],
       networkInterfaces:           Option[Chunk[domain.Network]],
@@ -281,9 +283,10 @@ object JsonResponseObjects {
 
   object JRNodeDetailLevel {
     implicit def transformer(implicit
-        nodeFact: NodeFact,
-        status:   InventoryStatus,
-        agentRun: Option[AgentRunWithNodeConfig]
+        nodeFact:   NodeFact,
+        status:     InventoryStatus,
+        agentRun:   Option[AgentRunWithNodeConfig],
+        instanceId: InstanceId
     ): Transformer[NodeDetailLevel, JRNodeDetailLevel] = {
       val nodeInfo:    NodeInfo               = nodeFact.toNodeInfo
       val securityTag: Option[SecurityTag]    = nodeFact.rudderSettings.security
@@ -358,6 +361,7 @@ object JsonResponseObjects {
             })
           )
         )
+        .withFieldComputed(_.instanceId, levelField(_)("instanceId")(Some(instanceId)))
         .withFieldComputed(
           _.managementTechnologyDetails,
           levelField(_)("managementTechnologyDetails")(Some(nodeFact.transformInto[ManagementDetails]))
@@ -800,9 +804,9 @@ object JsonResponseObjects {
 
   /**
    * Directive as used in techniques/directives API.
-   * 
+   *
    * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
-   * so, BE CAREFUL about compatibility for deserialization 
+   * so, BE CAREFUL about compatibility for deserialization
    */
   final case class JRDirective(
       changeRequestId: Option[String],
@@ -1780,7 +1784,7 @@ object JsonResponseObjects {
    * Group as used in groups API.
    *
    * It is also used to decode archives, see [[com.normation.rudder.rest.lift.JsonResponseObjectDecodes]]
-   * so, BE CAREFUL about compatibility for deserialization 
+   * so, BE CAREFUL about compatibility for deserialization
    */
   final case class JRGroup(
       changeRequestId:                     Option[String] = None,
@@ -2253,6 +2257,7 @@ trait RudderJsonEncoders {
   implicit lazy val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
   implicit lazy val softwareEncoder:          JsonEncoder[domain.Software]     = DeriveJsonEncoder.gen
 
+  implicit lazy val encoderInstanceId:      JsonEncoder[InstanceId]        = JsonEncoder.string.contramap(_.value)
   implicit lazy val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen
 
   implicit lazy val runAnalysisKindEncoder:  JsonEncoder[RunAnalysisKind]   = JsonEncoder[String].contramap(_.entryName)
