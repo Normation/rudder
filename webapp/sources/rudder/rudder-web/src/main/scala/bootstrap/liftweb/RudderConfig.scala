@@ -2300,7 +2300,8 @@ object RudderConfigInit {
               inventoryQueryChecker,
               () => configService.rudder_global_policy_mode().toBox,
               RUDDER_RELAY_API,
-              scoreService
+              scoreService,
+              instanceIdService
             ),
             userPropertyService,
             new NodeApiInheritedProperties(propertiesRepository),
