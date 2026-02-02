@@ -43,9 +43,11 @@ import com.normation.rudder.api.*
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.rest.{ApiAccounts as API, *}
+import com.normation.rudder.rest.RudderJsonResponse.NotFoundError
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
@@ -65,13 +67,15 @@ class ApiAccountApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
-      case API.GetAllAccounts  => GetAllAccounts
-      case API.GetAccount      => GetAccount
-      case API.CreateAccount   => CreateAccount
-      case API.UpdateAccount   => UpdateAccount
-      case API.RegenerateToken => RegenerateToken
-      case API.DeleteToken     => DeleteToken
-      case API.DeleteAccount   => DeleteAccount
+      case API.GetAllAccounts    => GetAllAccounts
+      case API.GetAccount        => GetAccount
+      case API.CreateAccount     => CreateAccount
+      case API.UpdateAccount     => UpdateAccount
+      case API.GetTokenAccount   => GetTokenAccount
+      case API.QueryTokenAccount => QueryTokenAccount
+      case API.RegenerateToken   => RegenerateToken
+      case API.DeleteToken       => DeleteToken
+      case API.DeleteAccount     => DeleteAccount
     }
   }
 
@@ -125,6 +129,56 @@ class ApiAccountApi(
     }
   }
 
+  /**
+   * Attempt to find the "token" of currently authenticated account
+   * (the current token provided with X-Api-Token header)
+   */
+  object GetTokenAccount extends LiftApiModule0 {
+    val schema: API.GetTokenAccount.type = API.GetTokenAccount
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        account <- authzToken.user.account match {
+                     case _: RudderAccount.User =>
+                       // a user token is enabled only if the api-authorizations plugin is enabled
+                       // but it should have prevented accessing this endpoint processing anyway
+                       service.getAccount(ApiAccountId(authzToken.qc.actor.name))
+                     case RudderAccount.Api(account) =>
+                       ZIO.some(account.transformInto[ApiAccountDetails.Public])
+                   }
+      } yield {
+        account
+      }).toLiftResponseOne(
+        params,
+        schema,
+        None
+      )
+    }
+  }
+
+  object QueryTokenAccount extends LiftApiModule0 {
+    val schema: API.QueryTokenAccount.type = API.QueryTokenAccount
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      (for {
+        token   <- ZioJsonExtractor.parseJsonOr400[ApiToken](req)("A valid token must be provided in payload")
+        account <-
+          service
+            .getByToken(ApiTokenHash.fromSecret(token.token))
+            // this may end up in API error logs, so avoid exposing a whole token (which may be related to the system token)
+            .notOptional(s"API account could not be found from token '${token.token.exposeSecretBeginning}'")
+            .mapError(err => NotFoundError(Some(err.msg)))
+      } yield {
+        account
+      }).either
+        .toLiftResponseOneEither[ApiAccountDetails.Public](
+          params,
+          schema,
+          None
+        )
+    }
+  }
+
   object RegenerateToken extends LiftApiModule {
     val schema: API.RegenerateToken.type = API.RegenerateToken
 
@@ -169,12 +223,13 @@ class ApiAccountApi(
  */
 trait ApiAccountApiService {
   def getAccounts(): IOResult[List[ApiAccountDetails.Public]]
-  def getAccount(id:         ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
-  def createAccount(account: NewRestApiAccount)(using QueryContext): IOResult[ApiAccountDetails]
-  def updateAccount(id:      ApiAccountId, data: UpdateApiAccount)(using QueryContext): IOResult[ApiAccountDetails.Public]
-  def regenerateToken(id:    ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
-  def deleteToken(id:        ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
-  def deleteAccount(id:      ApiAccountId)(using QueryContext): IOResult[Option[ApiAccountDetails.Public]]
+  def getAccount(id:          ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
+  def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccountDetails.Public]]
+  def createAccount(account:  NewRestApiAccount)(using QueryContext): IOResult[ApiAccountDetails]
+  def updateAccount(id:       ApiAccountId, data: UpdateApiAccount)(using QueryContext): IOResult[ApiAccountDetails.Public]
+  def regenerateToken(id:     ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
+  def deleteToken(id:         ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
+  def deleteAccount(id:       ApiAccountId)(using QueryContext): IOResult[Option[ApiAccountDetails.Public]]
 }
 
 class ApiAccountApiServiceV1(
@@ -213,6 +268,10 @@ class ApiAccountApiServiceV1(
 
   override def getAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
     getOptPublicApiAccount(id).map(_.map(_.transformInto[ApiAccountDetails.Public]))
+  }
+
+  override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccountDetails.Public]] = {
+    readApi.getByToken(hashedToken).map(_.map(_.transformInto[ApiAccountDetails.Public]))
   }
 
   override def createAccount(data: NewRestApiAccount)(using qc: QueryContext): IOResult[ApiAccountDetails] = {

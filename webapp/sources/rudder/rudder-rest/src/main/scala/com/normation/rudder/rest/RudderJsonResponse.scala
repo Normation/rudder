@@ -38,12 +38,15 @@
 package com.normation.rudder.rest
 
 import com.normation.errors.*
+import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.zio.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
+import net.liftweb.http.Req
 import scala.collection.immutable
+import zio.IO
 import zio.json.*
 
 /*
@@ -129,14 +132,16 @@ object RudderJsonResponse {
     def toLiftErrorResponse(id: Option[String], schema: ResponseSchema)(using
         prettify: Boolean
     ): LiftResponse = this match {
+      case BadRequestError(errorMsg)   => badRequestError(id, schema, errorMsg)
       case UnauthorizedError(errorMsg) => unauthorizedError(id, schema, errorMsg)
       case ForbiddenError(errorMsg)    => forbiddenError(id, schema, errorMsg)
       case NotFoundError(errorMsg)     => notFoundError(id, schema, errorMsg)
     }
   }
+  final case class BadRequestError(errorMsg: Option[String]) extends ResponseError
   final case class UnauthorizedError(errorMsg: Option[String]) extends ResponseError
-  final case class ForbiddenError(errorMsg: Option[String]) extends ResponseError
-  final case class NotFoundError(errorMsg: Option[String])  extends ResponseError
+  final case class ForbiddenError(errorMsg: Option[String])    extends ResponseError
+  final case class NotFoundError(errorMsg: Option[String])     extends ResponseError
 
   //////////////////////////// utility methods to build responses ////////////////////////////
 
@@ -146,12 +151,14 @@ object RudderJsonResponse {
       LiftJsonResponse(json, prettify, 200)
     def internalError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 500)
+    def badRequestError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):   LiftJsonResponse[A] =
+      LiftJsonResponse(json, prettify, 400)
     def unauthorizedError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]): LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 401)
     def notFoundError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 404)
     def forbiddenError[A](json: A)(using prettify: Boolean, encoder: JsonEncoder[A]):    LiftJsonResponse[A] =
-      LiftJsonResponse(json, prettify, 404)
+      LiftJsonResponse(json, prettify, 403)
   }
 
   trait DataContainer[A] {
@@ -226,6 +233,11 @@ object RudderJsonResponse {
         given enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
         generic.internalError(JsonRudderApiResponse.genericError(id, schema, obj, errorMsg))
     }
+  }
+  def badRequestError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
+      prettify: Boolean
+  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+    generic.badRequestError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
   def unauthorizedError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
@@ -339,6 +351,39 @@ object RudderJsonResponse {
           .runNow
       }
 
+      // to create responses with specific API errors, we provide syntax using evidence on type A : Either[_, _]
+      def toLiftResponseOneEither[B: JsonEncoder](
+          params: DefaultParams,
+          schema: ResponseSchema,
+          id:     IdTrace[A]
+      )(using ev: A <:< Either[ResponseError, B]): LiftResponse = {
+        given prettify: Boolean = params.prettify
+        result
+          .fold(
+            err => {
+              ApiLogger.ResponseError.info(err.fullMsg)
+              internalError(None, schema, err.fullMsg)
+            },
+            either => {
+              ev.apply(either) match {
+                case Left(e)  => e.toLiftErrorResponse(id.error, schema)
+                case Right(b) => successOne[B](schema, b, id.success(either))
+              }
+            }
+          )
+          .runNow
+      }
+      def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
+          ev: A <:< Either[ResponseError, B]
+      ): LiftResponse = {
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))
+      }
+      def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
+          ev: A <:< Either[ResponseError, B]
+      ): LiftResponse = {
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), IdTrace.Success(id))
+      }
+
       def toLiftResponseZeroEither(
           params: DefaultParams,
           schema: ResponseSchema,
@@ -413,6 +458,20 @@ object RudderJsonResponse {
         toLiftResponseZero(params, ResponseSchema.fromSchema(schema))
       }
     }
+  }
+}
+
+extension (zioJsonExtractor: ZioJsonExtractor.type) {
+
+  /**
+   * Parse request body or return 'bad request' for use in API
+   */
+  def parseJsonOr400[A: JsonDecoder](req: Req)(mainErrorHint: => String): IO[RudderJsonResponse.BadRequestError, A] = {
+    ZioJsonExtractor
+      .parseJson(req)
+      .toIO
+      .chainError(mainErrorHint)
+      .mapError(err => RudderJsonResponse.BadRequestError(Some(err.fullMsg)))
   }
 }
 
