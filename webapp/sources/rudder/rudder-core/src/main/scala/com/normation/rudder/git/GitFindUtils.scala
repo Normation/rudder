@@ -47,6 +47,8 @@ import com.normation.rudder.git.ZipUtils.Zippable
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
+import java.time.Instant
+import java.time.ZoneOffset
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.lib.Constants as JConstants
@@ -57,8 +59,6 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -151,7 +151,7 @@ object GitFindUtils extends NamedZioLogger {
       ZIO.foreach(git.log().addPath(path).call().asScala) { commit =>
         RevisionInfo(
           Revision(commit.getId.getName),
-          new DateTime(commit.getCommitTime.toLong * 1000, DateTimeZone.UTC),
+          Instant.ofEpochSecond(commit.getCommitTime.toLong).atOffset(ZoneOffset.UTC),
           commit.getAuthorIdent.getName,
           commit.getFullMessage
         ).succeed

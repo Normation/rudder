@@ -30,7 +30,7 @@
 
 package com.normation
 
-import org.joda.time.DateTime
+import java.time.OffsetDateTime
 
 object GitVersion {
 
@@ -55,13 +55,13 @@ object GitVersion {
 
   /**
    * Meta information are associated with a revision:
-   * - date
+   * - date with offset
    * - author
    * - message
    */
   final case class RevisionInfo(
       rev:     Revision,
-      date:    DateTime,
+      date:    OffsetDateTime, // see https://stackoverflow.com/a/78079838
       author:  String,
       message: String
   )

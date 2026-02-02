@@ -380,9 +380,6 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
 
 class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation {
 
-  // we expect acceptation date to be in ISO-8601 format
-  private val dateFormatter = ISODateTimeFormat.dateTime
-
   def unserialise(entry: XNode): Box[ActiveTechnique] = {
     for {
       activeTechnique  <- {
@@ -416,7 +413,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                               ptVersion       <- TechniqueVersion
                                                    .parse(ptVersionName)
                                                    .toBox ?~! s"Error when trying to parse '${ptVersionName}' as a technique version."
-                              acceptationDate <- tryo(dateFormatter.parseDateTime(version.text))
+                              acceptationDate <- tryo(Instant.parse(version.text))
                             } yield {
                               (ptVersion, acceptationDate)
                             }

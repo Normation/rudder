@@ -83,6 +83,7 @@ import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigRenderOptions
 import com.typesafe.config.ConfigValue
@@ -313,7 +314,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.lastInventoryDate, levelField("lastInventoryDate")(nodeInfo.inventoryDate))
         .withFieldComputed(
           _.lastRunDate,
-          levelField(_)("lastRunDate")(agentRun.map(x => DateFormaterService.toInstant(x.agentRunId.date)))
+          levelField(_)("lastRunDate")(agentRun.map(_.agentRunId.date.toJavaInstant))
         )
         .withFieldComputed(_.policyServerId, levelField("policyServerId")(nodeInfo.policyServerId))
         .withFieldComputed(
@@ -756,7 +757,7 @@ object JsonResponseObjects {
   )
   object JRRevisionInfo     {
     def fromRevisionInfo(r: RevisionInfo): JRRevisionInfo = {
-      JRRevisionInfo(r.rev.value, DateFormaterService.serialize(r.date), r.author, r.message)
+      JRRevisionInfo(r.rev.value, DateFormaterService.serializeOffsetDateTime(r.date), r.author, r.message)
     }
   }
 
@@ -2204,7 +2205,6 @@ trait RudderJsonEncoders {
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
   import com.normation.rudder.score.ScoreSerializer.*
-  import com.normation.utils.DateFormaterService.json.*
 
   implicit lazy val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
   implicit lazy val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)

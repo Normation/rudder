@@ -43,6 +43,7 @@ import com.normation.box.*
 import com.normation.errors.*
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.users.UserService
+import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.utils.FileUtils.*
 import com.normation.zio.*
 import java.nio.charset.StandardCharsets
@@ -66,8 +67,6 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.fileupload2.core.FileUploadSizeException
-import org.joda.time.DateTime
-import org.joda.time.Instant
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import zio.ZIO
@@ -95,7 +94,7 @@ class SharedFilesAPI(
   def serialize(file: File):                           IOResult[JValue]       = {
     import net.liftweb.json.JsonDSL.*
     IOResult.attempt(s"Error when serializing file ${file.name}") {
-      val date = new DateTime(Instant.ofEpochMilli(Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow*).toMillis))
+      val date = Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow*).toInstant.toJodaDateTime
       (("name"    -> file.name)
       ~ ("size"   -> (try { file.size }
       catch { case _: NoSuchFileException => 0L }))

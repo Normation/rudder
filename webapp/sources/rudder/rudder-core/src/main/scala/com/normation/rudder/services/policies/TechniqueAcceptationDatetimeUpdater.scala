@@ -56,8 +56,6 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.zio.*
 import net.liftweb.common.Box
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -275,12 +273,11 @@ class TechniqueAcceptationUpdater(
       }
     }
 
-    val acceptationDatetime = DateTime.now(DateTimeZone.UTC)
-
     (for {
       _               <- handleCategoriesUpdate(updatedCategories)
       techLib         <- roActiveTechniqueRepo.getFullDirectiveLibrary()
       activeTechniques = techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
+      now             <- Clock.instant
       accepted        <- techniqueMods.accumulate {
                            case (name, mod) =>
                              (mod, activeTechniques.get(name)) match {
@@ -319,7 +316,7 @@ class TechniqueAcceptationUpdater(
                                  }
 
                                case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
-                                 val versionsMap = mods.keySet.map(v => (v, acceptationDatetime)).toMap
+                                 val versionsMap = mods.keySet.map(v => v -> now).toMap
                                  logPure.debug("Update acceptation datetime for: " + activeTechnique.techniqueName) *>
                                  rwActiveTechniqueRepo
                                    .setAcceptationDatetimes(activeTechnique.id, versionsMap)

@@ -44,15 +44,14 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
+import java.time.Instant
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.joda.time.format.ISODateTimeFormat
 
 final case class StartLibUpdate(actor: EventActor)
 
@@ -117,7 +116,7 @@ class CheckTechniqueLibrary(
         // we have a system context, but we want to have the actor who triggered generation recorded
         implicit val cc = ChangeContext
           .newForRudder(
-            Some(s"Automatic batch update at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime())}")
+            Some(s"Automatic batch update at ${DateFormaterService.formatAsBasicDateTime(Instant.now)}")
           )
           .copy(actor = actor)
         policyPackageUpdater.update() match {

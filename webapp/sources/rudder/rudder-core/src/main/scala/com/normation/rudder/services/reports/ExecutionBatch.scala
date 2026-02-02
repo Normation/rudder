@@ -763,7 +763,7 @@ object ExecutionBatch extends Loggable {
                  *       because we don't have anything else really.
                  */
                 val oldestConfigId   =
-                  nodeConfigIdInfos.get(nodeId).flatten.getOrElse(Seq(currentConfig.configInfo)).minBy(_.creation.getMillis)
+                  nodeConfigIdInfos.get(nodeId).flatten.getOrElse(Seq(currentConfig.configInfo)).minBy(_.creation)
                 val oldestExpiration = oldestConfigId.creation.plus(updateValidityDuration(currentConfig.agentRun))
 
                 // expiration time is based on now as run is invalid and we can't get proper data

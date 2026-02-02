@@ -60,10 +60,10 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import java.io.File
+import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.*
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 
@@ -545,12 +545,12 @@ class ItemArchiveManagerImpl(
     )
   }
 
-  override def getFullArchiveTags: IOResult[Map[DateTime, GitArchiveId]] = this.getTags()
+  override def getFullArchiveTags: IOResult[Map[Instant, GitArchiveId]] = this.getTags()
 
   // groups, technique library and rules may use
   // their own tag or a global one.
 
-  override def getGroupLibraryTags: IOResult[Map[DateTime, GitArchiveId]] = {
+  override def getGroupLibraryTags: IOResult[Map[Instant, GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       groupsTags <- gitNodeGroupArchiver.getTags()
@@ -559,7 +559,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getTechniqueLibraryTags: IOResult[Map[DateTime, GitArchiveId]] = {
+  override def getTechniqueLibraryTags: IOResult[Map[Instant, GitArchiveId]] = {
     for {
       globalTags    <- this.getTags()
       policyLibTags <- gitActiveTechniqueCategoryArchiver.getTags()
@@ -568,7 +568,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getRulesTags: IOResult[Map[DateTime, GitArchiveId]] = {
+  override def getRulesTags: IOResult[Map[Instant, GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       crTags     <- gitRuleArchiver.getTags()
@@ -577,7 +577,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def getParametersTags: IOResult[Map[DateTime, GitArchiveId]] = {
+  override def getParametersTags: IOResult[Map[Instant, GitArchiveId]] = {
     for {
       globalTags <- this.getTags()
       crTags     <- gitParameterArchiver.getTags()
