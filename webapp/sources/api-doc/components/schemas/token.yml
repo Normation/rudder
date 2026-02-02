@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+required:
+  - token
+properties:
+  token:
+    type: string
+    description: The secret token that was generated for your API account
+    example: xKFVqhDJ0UneCq06d7n5dLPcih6dlacV
