@@ -79,6 +79,7 @@ import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -266,6 +267,7 @@ object JsonResponseObjects {
       controllers:                 Option[Chunk[domain.Controller]],
       environmentVariables:        Option[Map[String, String]],
       fileSystems:                 Option[Chunk[domain.FileSystem]],
+      instanceId:                  Option[InstanceId],
       managementTechnologyDetails: Option[JRNodeDetailLevel.ManagementDetails],
       memories:                    Option[Chunk[domain.MemorySlot]],
       networkInterfaces:           Option[Chunk[domain.Network]],
@@ -283,9 +285,10 @@ object JsonResponseObjects {
 
   object JRNodeDetailLevel {
     implicit def transformer(implicit
-        nodeFact: NodeFact,
-        status:   InventoryStatus,
-        agentRun: Option[AgentRunWithNodeConfig]
+        nodeFact:   NodeFact,
+        status:     InventoryStatus,
+        agentRun:   Option[AgentRunWithNodeConfig],
+        instanceId: InstanceId
     ): Transformer[NodeDetailLevel, JRNodeDetailLevel] = {
       val nodeInfo:    NodeInfo               = nodeFact.toNodeInfo
       val securityTag: Option[SecurityTag]    = nodeFact.rudderSettings.security
@@ -368,6 +371,7 @@ object JsonResponseObjects {
             })
           )
         )
+        .withFieldComputed(_.instanceId, levelField(_)("instanceId")(Some(instanceId)))
         .withFieldComputed(
           _.managementTechnologyDetails,
           levelField(_)("managementTechnologyDetails")(Some(nodeFact.transformInto[ManagementDetails]))
@@ -2297,6 +2301,7 @@ trait RudderJsonEncoders {
   implicit lazy val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
   implicit lazy val softwareEncoder:          JsonEncoder[domain.Software]     = DeriveJsonEncoder.gen
 
+  implicit lazy val encoderInstanceId:      JsonEncoder[InstanceId]        = JsonEncoder.string.contramap(_.value)
   implicit lazy val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen
 
   implicit lazy val runAnalysisKindEncoder:  JsonEncoder[RunAnalysisKind]   = JsonEncoder[String].contramap(_.entryName)
