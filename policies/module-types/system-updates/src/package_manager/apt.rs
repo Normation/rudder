@@ -292,13 +292,13 @@ impl UpdateManager for AptPackageManager {
                 FullCampaignType::SoftwareUpdate(p) => self.mark_package_upgrades(p, &mut c),
             });
             if mark_res.inner.is_err() {
-                return mark_res.into_err(None);
+                return mark_res.into();
             }
 
             // Resolve dependencies
             let res_resolve = Self::apt_errors_to_output(c.resolve(true));
             if res_resolve.inner.is_err() {
-                return res_resolve.into_err(None);
+                return res_resolve.into();
             }
 
             // Do the changes

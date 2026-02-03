@@ -68,20 +68,16 @@ fn query_wua(session: &IUpdateSession, query: &str) -> ResultOutput<Collection> 
     ));
     let raw_search_result = unsafe { searcher.Search(&BSTR::from(query)) };
     let search_result = match raw_search_result {
-        Err(e) => {
-            r.stderr(format!("Search failed: {}", e));
-            return r.into_err();
-        }
+        Err(e) => return r.as_err(anyhow!("Search failed: {}", e)),
         Ok(rsr) => rsr,
     };
     let raw_com_updates = unsafe { search_result.Updates() };
     let com_updates = match raw_com_updates {
         Err(e) => {
-            r.stderr(format!(
+            return r.as_err(anyhow!(
                 "Could not retrieve updates from the COM API result: {}",
                 e
             ));
-            return r.into_err();
         }
         Ok(cu) => cu,
     };
@@ -162,10 +158,7 @@ fn download_updates(
     // Download the updates
     let raw_download_result = unsafe { downloader.Download() };
     match raw_download_result {
-        Err(e) => {
-            r.stderr(format!("Could not download the updates: {}", e));
-            r.into_err()
-        }
+        Err(e) => r.as_err(anyhow!("Could not download the update collection: {}", e)),
         Ok(rdr) => ResultOutput {
             inner: DownloadResult::try_from_com(rdr, collection),
             stderr: r.stderr,
@@ -232,10 +225,7 @@ fn install_updates(
     // Install the updates
     let raw_install_result = unsafe { installer.Install() };
     match raw_install_result {
-        Err(e) => {
-            r.stderr(format!("Could not install the updates: {}", e));
-            r.into_err()
-        }
+        Err(e) => r.as_err(anyhow!("Could not install the updates: {}", e)),
         Ok(rir) => ResultOutput {
             inner: InstallationResult::try_from_com(rir, collection),
             stderr: r.stderr,
@@ -258,11 +248,10 @@ impl WindowsUpdateAgent {
 
 impl UpdateManager for WindowsUpdateAgent {
     fn list_installed(&mut self) -> ResultOutput<PackageList> {
-        let mut r = ResultOutput::new(Ok(PackageList::new(HashMap::new())));
+        let mut r: ResultOutput<PackageList> = ResultOutput::new(Err(anyhow!("error placeholder")));
         let updates = match query_wua(&self.session, "IsInstalled=1").inner {
             Err(e) => {
-                r.stderr(format!("Failed to retrieve installed updates {}", e));
-                return r.into_err();
+                return r.as_err(anyhow!("Failed to retrieve installed updates {}", e));
             }
             Ok(u) => u,
         };
@@ -296,10 +285,7 @@ impl UpdateManager for WindowsUpdateAgent {
         let raw_available_updates = query_wua(&self.session, "IsInstalled=0");
         r.log_step(&raw_available_updates);
         let available_updates = match raw_available_updates.inner {
-            Err(ref e) => {
-                r.stderr(format!("Failed to retrieve available updates {}", e));
-                return r.step(raw_available_updates.into_err());
-            }
+            Err(e) => return r.as_err(e.context("Failed to retrieve available updates")),
             Ok(u) => u,
         };
         let updates_to_download = match update_type {
@@ -312,11 +298,9 @@ impl UpdateManager for WindowsUpdateAgent {
                 for i in v {
                     match Article::new(i.name.clone()) {
                         Err(e) => {
-                            r.stderr(format!(
-                                "Could not look for requested update {:?}: {}",
-                                i, e
-                            ));
-                            return r;
+                            return r.as_err(
+                                e.context(format!("Could not look for requested update {:?}", i)),
+                            );
                         }
                         Ok(article) => {
                             white_list.push(article);
@@ -331,21 +315,14 @@ impl UpdateManager for WindowsUpdateAgent {
         let raw_update_download_result = download_updates(&self.session, &updates_to_download);
         r.log_step(&raw_update_download_result);
         let update_download_result = match raw_update_download_result.inner {
-            Err(e) => {
-                r.stderr(format!("Failed to retrieve download status result: {}", e));
-                return r;
-            }
+            Err(e) => return r.as_err(e.context("Failed to retrieve download status result")),
             Ok(x) => x,
         };
         // Update the return type to contain each package download details
         {
             let details = match update_download_result.get_details(&updates_to_download) {
                 Err(e) => {
-                    r.stderr(format!(
-                        "Failed to retrieve download individual results: {}",
-                        e
-                    ));
-                    return r;
+                    return r.as_err(e.context("Failed to retrieve download individual results"));
                 }
                 Ok(d) => d,
             };
@@ -382,8 +359,7 @@ impl UpdateManager for WindowsUpdateAgent {
         ));
         // Early return if 0 download succeeded
         if d_succeeded.is_empty() {
-            r.stderr("No updates could be downloaded, exiting".to_string());
-            return r.into_err();
+            return r.as_err(anyhow!("No updates could be downloaded, exiting"));
         }
 
         // Else proceed to the installation of the successful updates
@@ -398,46 +374,34 @@ impl UpdateManager for WindowsUpdateAgent {
 
         let com_to_install = match raw_to_install {
             Err(e) => {
-                r.stderr(format!("Failed to build the collection of updates to install from the successfully downloaded ones: {}", e));
-                return r.into_err();
+                return r.as_err(e.context("Failed to build the collection of updates to install from the successfully downloaded ones"))
             }
             Ok(rti) => rti,
         };
         // Make it a Collection
         let updates_to_install = match Collection::try_from(com_to_install) {
             Err(e) => {
-                r.stderr(format!("Failed to build the collection of updates to install from the successfully downloaded ones: {}", e));
-                return r.into_err();
+                return r.as_err(e.context("Failed to build the collection of updates to install from the successfully downloaded ones"))
             }
             Ok(c) => c,
         };
         let raw_install_result = install_updates(&self.session, &updates_to_install);
         r.log_step(&raw_install_result);
         let update_install_result = match raw_install_result.inner {
-            Err(e) => {
-                r.stderr(format!("Failed to retrieve install status result: {}", e));
-                return r.into_err();
-            }
+            Err(e) => return r.as_err(e.context("Failed to retrieve install status result")),
             Ok(x) => x,
         };
         // Update the return type to contain each package install details
         {
             let install_details = match update_install_result.get_details(&updates_to_install) {
                 Err(e) => {
-                    r.stderr(format!(
-                        "Failed to retrieve install individual results: {}",
-                        e
-                    ));
-                    return r;
+                    return r.as_err(e.context("Failed to retrieve install individual results"));
                 }
                 Ok(d) => d,
             };
             let details = match &mut r.inner {
                 Ok(Some(d)) => d,
-                _ => {
-                    r.stderr("Internal error: install details map not available".to_string());
-                    return r.into_err();
-                }
+                _ => return r.as_err(anyhow!("Internal error: install details map not available")),
             };
             for (k, v) in install_details {
                 details.entry(k).and_modify(|s| s.push_str(&v)).or_insert(v);
@@ -477,25 +441,21 @@ impl UpdateManager for WindowsUpdateAgent {
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {
-        let mut r: ResultOutput<bool> = ResultOutput::new(Err(anyhow!("Error placeholder")));
+        let r: ResultOutput<bool> = ResultOutput::new(Err(anyhow!("Error placeholder")));
         let raw_system_info =
             unsafe { CoCreateInstance(&SystemInformation, None, CLSCTX_INPROC_SERVER) };
         let system_info: ISystemInformation = match raw_system_info {
             Err(e) => {
-                r.stderr(format!("Could not retrieve the SystemInformation object to detect if a reboot is required: {}", e));
-                return r.into_err();
+                return r.as_err(anyhow!("Could not retrieve the SystemInformation object to detect if a reboot is required {}", e))
             }
             Ok(s) => s,
         };
         let raw_reboot_required = unsafe { system_info.RebootRequired() };
         match raw_reboot_required {
-            Err(e) => {
-                r.stderr(format!(
-                    "Could not detect if the system requires a reboot or not: {}",
-                    e
-                ));
-                r.into_err()
-            }
+            Err(e) => r.as_err(anyhow!(
+                "Could not detect if the system requires a reboot or not: {}",
+                e
+            )),
             Ok(b) => ResultOutput {
                 inner: Ok(b.as_bool()),
                 stderr: r.stderr,
