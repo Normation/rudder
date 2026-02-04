@@ -413,11 +413,11 @@ sealed abstract class SoftwareUpdateKind(override val entryName: String) extends
 }
 
 object SoftwareUpdateKind                                                    extends Enum[SoftwareUpdateKind] {
-  case object None                      extends SoftwareUpdateKind("none")
-  case object Defect                    extends SoftwareUpdateKind("defect")
-  case object Security                  extends SoftwareUpdateKind("security")
-  case object Enhancement               extends SoftwareUpdateKind("enhancement")
-  final case class Other(value: String) extends SoftwareUpdateKind("other")
+  case object None                       extends SoftwareUpdateKind("none")
+  case object Defect                     extends SoftwareUpdateKind("defect")
+  case object Security                   extends SoftwareUpdateKind("security")
+  case object Enhancement                extends SoftwareUpdateKind("enhancement")
+  sealed case class Other(value: String) extends SoftwareUpdateKind("other")
 
   def values: IndexedSeq[SoftwareUpdateKind] = findValues
 
@@ -433,11 +433,11 @@ sealed abstract class SoftwareUpdateSeverity(override val entryName: String) ext
 }
 
 object SoftwareUpdateSeverity extends Enum[SoftwareUpdateSeverity] {
-  case object Low                 extends SoftwareUpdateSeverity("low")
-  case object Moderate            extends SoftwareUpdateSeverity("moderate")
-  case object High                extends SoftwareUpdateSeverity("high")
-  case object Critical            extends SoftwareUpdateSeverity("critical")
-  case class Other(value: String) extends SoftwareUpdateSeverity("other")
+  case object Low                        extends SoftwareUpdateSeverity("low")
+  case object Moderate                   extends SoftwareUpdateSeverity("moderate")
+  case object High                       extends SoftwareUpdateSeverity("high")
+  case object Critical                   extends SoftwareUpdateSeverity("critical")
+  sealed case class Other(value: String) extends SoftwareUpdateSeverity("other")
 
   def values: IndexedSeq[SoftwareUpdateSeverity] = findValues
 
