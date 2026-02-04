@@ -344,7 +344,7 @@ object Role       extends Enum[Role] {
   val ua = A.UserAccount.values
 
   // this is the anonymous custom roles, the one computed on fly for user who have several roles in their attribute
-  final case class Custom(rights: Rights) extends Role {
+  sealed case class Custom(rights: Rights) extends Role {
     val name = "custom" // yes, that should be anonymous, it's for historical reason in the plugin. Will change in 8.2
 
     override def debugString: String = s"anonymousRole:authz[${rights.displayAuthorizations}]"
@@ -370,7 +370,7 @@ object Role       extends Enum[Role] {
   }
 
   // built-in roles
-  final case class Builtin(_name: BuiltinName, rights: Rights) extends Role {
+  sealed case class Builtin(_name: BuiltinName, rights: Rights) extends Role {
     val name = _name.value
   }
 
@@ -409,7 +409,7 @@ object Role       extends Enum[Role] {
   def forRights(rights: Set[AuthorizationType]): Custom = Custom(Rights(rights))
 
   // this is the named custom roles defined in <custom-roles> tag
-  final case class NamedCustom(name: String, permissions: Seq[Role]) extends Role {
+  sealed case class NamedCustom(name: String, permissions: Seq[Role]) extends Role {
     def rights:               Rights = Rights(permissions.flatMap(_.rights.authorizationTypes))
     override def debugString: String = s"${name}:customRole[${permissions.map(_.debugString).mkString(",")}]"
   }
@@ -417,7 +417,7 @@ object Role       extends Enum[Role] {
   // a role that is just an alias for an other, which can be useful to add a relevant name/description
   // NOTE: we use the name of the aliased role for `name` so that Rudder internal resolution works as expected with
   // custom roles etc.
-  final case class Alias(of: Role, aliasName: String, description: String) extends Role {
+  sealed case class Alias(of: Role, aliasName: String, description: String) extends Role {
     override def name:   String = of.name
     override def rights: Rights = of.rights
 
