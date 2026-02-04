@@ -49,10 +49,10 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import enumeratum.*
 import java.lang
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
+import org.json4s.*
+import org.json4s.JsonDSL.*
 import scala.collection.immutable
 
 /**

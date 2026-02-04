@@ -92,6 +92,7 @@ import net.liftweb.util.Vendor
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
+import org.json4s.native.JsonMethods.*
 import org.reflections.Reflections
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
@@ -475,7 +476,7 @@ class Boot extends Loggable {
         () => {
           Full(
             JsonResponse(
-              net.liftweb.json.parse(
+              parse(
                 """{"result": "error"
                   |, "errorDetails": "The request has a JSON content type but the body is not valid JSON"}""".stripMargin
               ),

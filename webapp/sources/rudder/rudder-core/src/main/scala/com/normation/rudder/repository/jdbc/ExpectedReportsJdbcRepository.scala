@@ -55,9 +55,11 @@ import doobie.*
 import doobie.free.connection
 import doobie.implicits.*
 import net.liftweb.common.*
-import net.liftweb.json.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
+import org.json4s.*
+import org.json4s.native.JsonMethods.*
+import org.json4s.native.Serialization
 import scala.annotation.nowarn
 import zio.{System as _, *}
 import zio.interop.catz.*

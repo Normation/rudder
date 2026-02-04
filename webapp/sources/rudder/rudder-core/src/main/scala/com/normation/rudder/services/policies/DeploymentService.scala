@@ -101,15 +101,13 @@ import com.softwaremill.quicklens.*
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
+import org.json4s.*
+import org.json4s.JsonAST.*
 import scala.annotation.nowarn
 import scala.collection.MapView
 import scala.concurrent.duration.FiniteDuration
@@ -1061,7 +1059,7 @@ trait PromiseGeneration_BuildNodeContext {
   // we should get the context to replace the value (PureResult[String] to String)
   def parseJValue(value: JValue, context: InterpolationContext): IOResult[JValue] = {
     def rec(v: JValue): IOResult[JValue] = v match {
-      case JObject(l) => ZIO.foreach(l)(field => rec(field.value).map(x => field.copy(value = x))).map(JObject(_))
+      case JObject(l) => ZIO.foreach(l)(field => rec(field._2).map(x => field.copy(_2 = x))).map(JObject(_))
       case JArray(l)  => ZIO.foreach(l)(v => rec(v)).map(JArray(_))
       case JString(s) =>
         for {

@@ -4,11 +4,7 @@
   "AGENT_RUN_SPLAYTIME":"0",
   "AGENT_RUN_STARTTIME":"00:00:00",
   "AGENT_TYPE":"cfengine-community",
-  "ALLOWED_NETWORKS":[
-    "192.168.12.0/24",
-    "192.168.49.0/24",
-    "127.0.0.1/24"
-  ],
+  "ALLOWED_NETWORKS":["192.168.12.0/24","192.168.49.0/24","127.0.0.1/24"],
   "CFENGINE_OUTPUTS_TTL":"7",
   "COMMUNITYPORT":"5309",
   "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2022-07-25T22:15:39.067+02:00/configuration-repository",
@@ -28,9 +24,7 @@
   "RELAY_SYNC_SHAREDFILES":"false",
   "REPORTING_PROTOCOL":"HTTPS",
   "RUDDER_COMPLIANCE_MODE":"enforce",
-  "RUDDER_DIRECTIVES_INPUTS":[
-    "\"fileTemplate/1_0_e9a1a909_2490_4fc9_95c3_9d0aa01717c9/fileTemplate.cf\",\n\"fileTemplate/1_0_99f4ef91_537b_4e03_97bc_e65b447514cc/fileTemplate.cf\","
-  ],
+  "RUDDER_DIRECTIVES_INPUTS":["\"fileTemplate/1_0_e9a1a909_2490_4fc9_95c3_9d0aa01717c9/fileTemplate.cf\",\n\"fileTemplate/1_0_99f4ef91_537b_4e03_97bc_e65b447514cc/fileTemplate.cf\","],
   "RUDDER_DIRECTIVES_SEQUENCE":"      \"60-rule-technique-std-lib/10-File template 1\" usebundle => set_dry_run_mode(\"false\");\n      \"60-rule-technique-std-lib/10-File template 1\" usebundle => run_e9a1a909_2490_4fc9_95c3_9d0aa01717c9;\n      \"60-rule-technique-std-lib/20-File template 2\" usebundle => set_dry_run_mode(\"false\");\n      \"60-rule-technique-std-lib/20-File template 2\" usebundle => run_99f4ef91_537b_4e03_97bc_e65b447514cc;",
   "RUDDER_NODE_CONFIG_ID":"root-cfg-id",
   "RUDDER_NODE_GROUPS_CLASSES":"\"group_a_group_for_root_only\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_serveurs_______casses\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_policyserver_root\"          expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_policyserver_root\"  expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };",

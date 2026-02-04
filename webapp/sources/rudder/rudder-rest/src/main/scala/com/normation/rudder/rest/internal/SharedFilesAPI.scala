@@ -60,13 +60,9 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.StreamingResponse
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JNull
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.fileupload2.core.FileUploadSizeException
+import org.json4s.*
+import org.json4s.other.JsonUtils.*
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import zio.ZIO
@@ -92,7 +88,7 @@ class SharedFilesAPI(
   }
 
   def serialize(file: File):                           IOResult[JValue]       = {
-    import net.liftweb.json.JsonDSL.*
+    import org.json4s.JsonDSL.*
     IOResult.attempt(s"Error when serializing file ${file.name}") {
       val date = Files.getLastModifiedTime(file.path, File.LinkOptions.noFollow*).toInstant.toJodaDateTime
       (("name"    -> file.name)
@@ -104,7 +100,7 @@ class SharedFilesAPI(
     }
   }
   def errorResponse(message: String, code: Int = 500): LiftResponse           = {
-    import net.liftweb.json.JsonDSL.*
+    import org.json4s.JsonDSL.*
     val content = {
       (("success" -> false)
       ~ ("error"  -> message))
@@ -112,7 +108,7 @@ class SharedFilesAPI(
     JsonResponse(content, Nil, Nil, code)
   }
   val basicSuccessResponse:                            LiftResponse           = {
-    import net.liftweb.json.JsonDSL.*
+    import org.json4s.JsonDSL.*
     val content = {
       (("success" -> true)
       ~ ("error"  -> JNull))
@@ -161,7 +157,7 @@ class SharedFilesAPI(
     IOResult.attemptZIO {
       if (file.exists) {
         if (file.isRegularFile) {
-          import net.liftweb.json.JsonDSL.*
+          import org.json4s.JsonDSL.*
           val result = JObject(List(JField("result", file.contentAsString(using StandardCharsets.UTF_8))))
           JsonResponse(result, List(), List(), 200).succeed
         } else {
@@ -371,8 +367,7 @@ class SharedFilesAPI(
                                 }
                               case item          =>
                                 Unexpected(
-                                  s"a value from array '${itemName}', for action '${actionName}' is not valid, should be a string but is: ${net.liftweb.json
-                                      .compactRender(item)}"
+                                  s"a value from array '${itemName}', for action '${actionName}' is not valid, should be a string but is: ${item.compactRender}"
                                 ).fail
                             }
                             .map(_ => basicSuccessResponse)
@@ -415,8 +410,7 @@ class SharedFilesAPI(
                                   checkPathAndContinue(item, basePath)(removeFile)
                                 case item          =>
                                   Unexpected(
-                                    s"a value from array 'items', for action 'remove' is not valid, should be a string but is: ${net.liftweb.json
-                                        .compactRender(item)}"
+                                    s"a value from array 'items', for action 'remove' is not valid, should be a string but is: ${item.compactRender}"
                                   ).fail
                               }
                               .map(_ => basicSuccessResponse)

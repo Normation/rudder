@@ -45,7 +45,7 @@ import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonDSL.*
+import org.json4s.JsonDSL.*
 
 class RestCompletion(
     completion:  RestCompletionService,

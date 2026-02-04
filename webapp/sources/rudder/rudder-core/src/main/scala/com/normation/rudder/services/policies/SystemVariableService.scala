@@ -71,6 +71,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import org.json4s.other.JsonUtils.*
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval): Box[Map[String, Variable]]
@@ -606,7 +607,7 @@ class SystemVariableServiceImpl(
       }
     }
 
-    import net.liftweb.json.{prettyRender, JObject, JString, JField}
+    import org.json4s.{JObject, JString, JField}
     // Utility method to convert NodeInfo to JSON
     def nodeInfoToJson(nodeInfo: NodeInfo): List[JField] = {
       JField("hostname", JString(nodeInfo.hostname)) ::
@@ -638,7 +639,7 @@ class SystemVariableServiceImpl(
     val varRudderInventoryVariables = {
       systemVariableSpecService
         .get("RUDDER_INVENTORY_VARS")
-        .toVariable(Seq(prettyRender(JObject(nodeInfoToJson(nodeInfo.toNodeInfo)))))
+        .toVariable(Seq(JObject(nodeInfoToJson(nodeInfo.toNodeInfo)).prettyRender))
     }
 
     val baseVariables = {

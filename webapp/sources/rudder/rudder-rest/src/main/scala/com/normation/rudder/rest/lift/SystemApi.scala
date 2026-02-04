@@ -95,13 +95,13 @@ import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL.*
-import net.liftweb.json.JValue
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevWalk
+import org.json4s.JsonAST.JArray
+import org.json4s.JsonAST.JField
+import org.json4s.JsonAST.JObject
+import org.json4s.JsonDSL.*
+import org.json4s.JValue
 import zio.*
 
 class SystemApi(

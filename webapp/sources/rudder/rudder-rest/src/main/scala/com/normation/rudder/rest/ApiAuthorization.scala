@@ -54,7 +54,7 @@ import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
-import net.liftweb.json.JsonDSL.*
+import org.json4s.JsonDSL.*
 
 /*
  * This trait allows to check for authorisation on a given boundedendpoint

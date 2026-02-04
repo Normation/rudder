@@ -94,9 +94,9 @@ class AgentScheduleEditForm(
    * Parse a json input into a cf-agent Scedule
    */
   def parseJsonSchedule(s: String): Box[AgentRunInterval] = {
-    import net.liftweb.json.*
-    val json = parse(s)
-
+    import org.json4s.JsonAST.*
+    val json = org.json4s.native.JsonMethods.parse(s)
+    import org.json4s.jvalue2monadic
     (for {
       case JObject(child) <- json
       case JField("overrides", ov) <- child

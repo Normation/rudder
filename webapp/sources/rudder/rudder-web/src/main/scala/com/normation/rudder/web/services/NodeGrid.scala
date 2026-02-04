@@ -54,9 +54,10 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
+import org.json4s.*
+import org.json4s.native.JsonMethods.*
 import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml.*

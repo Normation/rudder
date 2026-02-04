@@ -383,8 +383,8 @@ object ResolvedNodePropertyHierarchy {
  */
 object JsonPropertyHierarchySerialisation {
 
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
+  import org.json4s.*
+  import org.json4s.JsonDSL.*
 
   implicit class ParentPropertyToJSon(val p: ParentProperty[?]) extends AnyVal {
     def toJson: JValue = {

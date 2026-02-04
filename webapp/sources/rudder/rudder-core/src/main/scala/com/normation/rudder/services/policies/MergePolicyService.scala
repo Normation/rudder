@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
+import org.json4s.other.JsonUtils.*
 
 /*
  * This file contains all the logic that allows to build a List of policies, for a node,
@@ -257,12 +258,12 @@ object MergePolicyService {
             s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter " +
             s"at random for the policy generation."
           )
-          import net.liftweb.json.*
+          import org.json4s.*
           implicit val formats: Formats = DefaultFormats
-          def r(j: JValue) = if (j == JNothing) "{}" else prettyRender(j)
+          def r(j: JValue) = if (j == JNothing) "{}" else j.prettyRender
 
           val jmain = Extraction.decompose(main)
-          PolicyGenerationLogger.error("First directivedraft: " + prettyRender(jmain))
+          PolicyGenerationLogger.error("First directivedraft: " + jmain.prettyRender)
           seq.tail.foreach { x =>
             val diff = jmain.diff(Extraction.decompose(x))
             PolicyGenerationLogger.error(

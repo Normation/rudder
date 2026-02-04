@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.properties
 
 import net.liftweb.common.*
+import org.json4s.other.JsonUtils.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -67,21 +68,15 @@ class NodePropertiesTest extends Specification with Loggable {
 
     val expected = {
       """{
-        |  "jsonArray":[
-        |    "one",
-        |    2,
-        |    true
-        |  ],
+        |  "jsonArray":["one",2,true],
         |  "jsonProp":{
         |    "jsonObject":"ok"
         |  },
-        |  "stringArray":[
-        |    "array"
-        |  ],
+        |  "stringArray":["array"],
         |  "stringSimple":"simple string"
         |}""".stripMargin
     }
-    val json     = net.liftweb.json.prettyRender(props.toDataJson)
+    val json     = props.toDataJson.prettyRender
 
     json === expected
   }

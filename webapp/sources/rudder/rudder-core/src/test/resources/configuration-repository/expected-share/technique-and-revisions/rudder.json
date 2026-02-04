@@ -4,11 +4,7 @@
   "AGENT_RUN_SPLAYTIME":"0",
   "AGENT_RUN_STARTTIME":"00:00:00",
   "AGENT_TYPE":"cfengine-community",
-  "ALLOWED_NETWORKS":[
-    "192.168.12.0/24",
-    "192.168.49.0/24",
-    "127.0.0.1/24"
-  ],
+  "ALLOWED_NETWORKS":["192.168.12.0/24","192.168.49.0/24","127.0.0.1/24"],
   "CFENGINE_OUTPUTS_TTL":"7",
   "COMMUNITYPORT":"5309",
   "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2022-07-25T22:43:30.790+02:00/configuration-repository",

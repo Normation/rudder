@@ -4,11 +4,7 @@
   "AGENT_RUN_SPLAYTIME":"0",
   "AGENT_RUN_STARTTIME":"00:00:00",
   "AGENT_TYPE":"cfengine-community",
-  "ALLOWED_NETWORKS":[
-    "192.168.12.0/24",
-    "192.168.49.0/24",
-    "127.0.0.1/24"
-  ],
+  "ALLOWED_NETWORKS":["192.168.12.0/24","192.168.49.0/24","127.0.0.1/24"],
   "CFENGINE_OUTPUTS_TTL":"7",
   "COMMUNITYPORT":"5309",
   "CONFIGURATION_REPOSITORY_FOLDER":"/tmp/test-rudder-config-repo-2022-07-26T00:12:24.487+02:00/configuration-repository",
@@ -28,9 +24,7 @@
   "RELAY_SYNC_SHAREDFILES":"false",
   "REPORTING_PROTOCOL":"HTTPS",
   "RUDDER_COMPLIANCE_MODE":"enforce",
-  "RUDDER_DIRECTIVES_INPUTS":[
-    "\"test_18205/1.0/test_18205.cf\","
-  ],
+  "RUDDER_DIRECTIVES_INPUTS":["\"test_18205/1.0/test_18205.cf\","],
   "RUDDER_DIRECTIVES_SEQUENCE":"      \"10. Global configuration for all nodes/10. test18205\" usebundle => set_dry_run_mode(\"false\");\n      \"10. Global configuration for all nodes/10. test18205\" usebundle => run_directive1;",
   "RUDDER_NODE_CONFIG_ID":"root-cfg-id",
   "RUDDER_NODE_GROUPS_CLASSES":"\"group_a_group_for_root_only\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_serveurs_______casses\"      expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_policyserver_root\"          expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_policyserver_root\"  expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };\n\"group_special_all\"                expression => \"any\",\n                                         meta => { \"inventory\", \"attribute_name=rudder_groups\" };",

@@ -49,9 +49,9 @@ import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.*
-import net.liftweb.json.JsonDSL.*
 import org.apache.commons.io.FileUtils
+import org.json4s.JsonAST.*
+import org.json4s.JsonDSL.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner

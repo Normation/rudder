@@ -60,6 +60,8 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.joda.time.Duration
+import org.json4s.native.JsonMethods.*
+import org.json4s.other.JsonUtils.*
 import scala.annotation.nowarn
 import zio.json.*
 import zio.json.internal.Write
@@ -630,8 +632,8 @@ object ExpectedReportsSerialisation {
 
 object NodeConfigIdSerializer {
 
-  import net.liftweb.json.*
   import org.joda.time.format.ISODateTimeFormat
+  import org.json4s.*
 
   // date are ISO format
   private val isoDateTime = ISODateTimeFormat.dateTime
@@ -645,7 +647,7 @@ object NodeConfigIdSerializer {
    */
 
   def serialize(ids: Vector[NodeConfigIdInfo]): String = {
-    import net.liftweb.json.JsonDSL.*
+    import org.json4s.JsonDSL.*
 
     // be careful, we can have several time the same id with different creation date
     // we want an array of { begin : id }
@@ -654,7 +656,7 @@ object NodeConfigIdSerializer {
         (creation.toString(isoDateTime) -> id): JObject
     })
 
-    compactRender(m)
+    m.compactRender
   }
 
   /*

@@ -53,9 +53,11 @@ import net.liftweb.common.Box
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.json.*
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.*
+import org.json4s.JsonDSL.*
+import org.json4s.native.JsonMethods.*
+import org.json4s.native.JsonParser
+import org.json4s.other.JsonUtils.*
 import org.junit.runner.RunWith
 import org.specs2.matcher.Expectable
 import org.specs2.matcher.Matcher
@@ -1285,7 +1287,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "correclty return the compacted json string for 1-length" in {
       compare("${node.properties[datacenter]}", ("datacenter", json) :: Nil) must beEqualTo(
-        Right(net.liftweb.json.compactRender(jparse(json)))
+        Right(org.json4s.native.JsonMethods.parse(json.compactRender))
       )
     }
 

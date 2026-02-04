@@ -63,10 +63,11 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.Interval
+import org.json4s.*
+import org.json4s.native.JsonParser
 import scala.collection.MapView
 import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -798,7 +799,7 @@ final case class RuleLine(
 
   private def serializeTags(tags: Tags): JValue = {
     // sort all the tags by name
-    import net.liftweb.json.JsonDSL.*
+    import org.json4s.JsonDSL.*
     val m: JValue = JArray(
       tags.tags.toList.sortBy(_.name.value).map(t => ("key", t.name.value) ~ ("value", t.value.value))
     )

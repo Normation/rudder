@@ -205,7 +205,6 @@ import net.liftweb.http.LiftRulesMocker
 import net.liftweb.http.Req
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
 import net.liftweb.util.FieldError
@@ -218,6 +217,8 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.json4s.JsonAST.JValue
+import org.json4s.other.JsonUtils.*
 import org.specs2.matcher.MatchResult
 import scala.annotation.nowarn
 import scala.collection.MapView
@@ -1354,9 +1355,8 @@ class RestTest(liftRules: LiftRules) {
 
   private def mockJsonRequest(path: String, method: String, data: JValue) = {
     val mockReq = mockRequest(path, method)
-    import net.liftweb.json.JsonAST
 
-    mockReq.body = JsonAST.prettyRender(data).getBytes()
+    mockReq.body = data.prettyRender.getBytes()
     mockReq.contentType = "application/json"
     mockReq
   }

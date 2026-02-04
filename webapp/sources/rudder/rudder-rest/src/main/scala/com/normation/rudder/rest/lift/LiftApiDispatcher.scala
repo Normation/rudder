@@ -45,7 +45,7 @@ import com.normation.rudder.rest.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.JString
+import org.json4s.JsonAST.JString
 import scala.util.control.NonFatal
 
 final case class DefaultParams(

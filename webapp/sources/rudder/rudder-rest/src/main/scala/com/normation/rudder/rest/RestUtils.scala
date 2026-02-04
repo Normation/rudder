@@ -45,10 +45,10 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.*
 import net.liftweb.http.provider.HTTPCookie
-import net.liftweb.json.*
-import net.liftweb.json.JsonAST.RenderSettings
-import net.liftweb.json.JsonDSL.*
 import net.liftweb.util.Helpers.tryo
+import org.json4s.*
+import org.json4s.JsonDSL.*
+import org.json4s.other.JsonUtils.*
 
 /*
  * A JsonResponse able to keep pretty format is asked to.
@@ -62,7 +62,7 @@ case class JsonResponsePrettify(
     prettify: Boolean
 ) extends LiftResponse {
   def toResponse: InMemoryResponse = {
-    val bytes = (if (prettify) RestUtils.render(json) else compactRender(json)).getBytes("UTF-8")
+    val bytes = (if (prettify) json.prettyRender else json.compactRender).getBytes("UTF-8")
     InMemoryResponse(
       bytes,
       ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json; charset=utf-8") :: headers,
@@ -75,7 +75,6 @@ case class JsonResponsePrettify(
 /**
  */
 object RestUtils {
-
   def getCharset(req: Req): String = {
     // copied from `Req.forcedBodyAsJson`
     def r  = """; *charset=(.*)""".r
@@ -126,21 +125,6 @@ object RestUtils {
     }
   }
 
-  /**
-   * Our own JSON render function to extends net.liftweb.json.JsonAst.render function
-   * All code is taken from JsonAst object from lift-json_2.10-2.5.1.jar (dépendency used in rudder 2.10 at least)
-   * and available at: https://github.com/lift/framework/blob/2.5.1/core/json/src/main/scala/net/liftweb/json/JsonAST.scala#L392
-   * What we added:
-   *   - add a new line after each element in array
-   *   - Add a new line at the end and beginning of an array and indent one more level array data
-   *   - space after colon
-   *
-   *   TODO: see if/how it is possible to get the same behaviour
-   */
-  def render(value: JValue): String = {
-    JsonAST.render(value, RenderSettings.pretty.copy(spaceAfterFieldName = true))
-  }
-
   def effectiveResponse(
       id:       Option[String],
       message:  JValue,
@@ -151,7 +135,7 @@ object RestUtils {
     status match {
       case _: RestError =>
         // Log any error
-        ApiLogger.ResponseError.info(compactRender(message))
+        ApiLogger.ResponseError.info(message.compactRender)
       case _ => // Do nothing
     }
     val json = ("action" -> action) ~

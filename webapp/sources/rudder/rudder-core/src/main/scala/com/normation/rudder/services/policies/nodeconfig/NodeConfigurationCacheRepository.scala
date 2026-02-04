@@ -62,10 +62,12 @@ import java.nio.charset.StandardCharsets
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import org.json4s.*
+import org.json4s.JsonDSL.*
+import org.json4s.native.JsonMethods.*
+import org.json4s.other.JsonUtils.*
 import scala.util.control.NonFatal
 import zio.*
 import zio.syntax.*
@@ -92,7 +94,7 @@ object NodeConfigurationHashes {
                 case JArray(arr)      => arr.succeed
                 case x                =>
                   Inconsistency(
-                    s"Can not parse json as a cache of node configuration hashes. Found: ${compactRender(x).take(100)}..."
+                    s"Can not parse json as a cache of node configuration hashes. Found: ${x.compactRender.take(100)}..."
                   ).fail
               }
       // ignore only invalide node config hashses
@@ -101,7 +103,7 @@ object NodeConfigurationHashes {
                   NodeConfigurationHash.extractNodeConfigCache(current) match {
                     case Left((m, j)) =>
                       PolicyGenerationLoggerPure.error(
-                        s"Can not parse following json as node configuration hash: ${m}; corresponding entry will be ignored: ${compactRender(j)}. "
+                        s"Can not parse following json as node configuration hash: ${m}; corresponding entry will be ignored: ${j.compactRender}. "
                       ) *>
                       all.succeed
                     case Right(h)     =>
@@ -182,7 +184,7 @@ object NodeConfigurationHash {
     )
   }
   def toJson(hash: NodeConfigurationHash):   String = {
-    compactRender(toJvalue(hash))
+    toJvalue(hash).compactRender
   }
 
   def extractNodeConfigCache(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
@@ -618,7 +620,7 @@ class LdapNodeConfigurationHashRepository(
               case Right(value)        => Some(value)
               case Left((error, json)) =>
                 logger.info(s"Ignoring node configuration cache info because of deserialization issue: ${error}")
-                logger.debug(s"Json causing node configuration deserialization issue: ${net.liftweb.json.compactRender(json)}")
+                logger.debug(s"Json causing node configuration deserialization issue: ${json.compactRender}")
                 None
             }
           }

@@ -47,7 +47,7 @@ limitations under the License.
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_2.13</artifactId>
+      <artifactId>lift-util_2.13</artifactId>
     </dependency>
     <dependency>
         <groupId>com.lihaoyi</groupId>

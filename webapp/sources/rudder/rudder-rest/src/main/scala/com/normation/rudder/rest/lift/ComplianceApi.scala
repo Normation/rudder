@@ -87,8 +87,8 @@ import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
+import org.json4s.*
+import org.json4s.JsonDSL.*
 import scala.collection.MapView
 import scala.collection.immutable
 import zio.Chunk

@@ -71,8 +71,8 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueFactory
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
+import org.json4s.*
+import org.json4s.JsonDSL.*
 import org.junit.runner.*
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.*

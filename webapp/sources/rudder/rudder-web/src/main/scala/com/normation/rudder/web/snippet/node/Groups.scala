@@ -58,9 +58,10 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.*
 import org.apache.commons.text.StringEscapeUtils
+import org.json4s.*
+import org.json4s.native.JsonParser
 import scala.xml.*
 
 object Groups {

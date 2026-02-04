@@ -52,9 +52,9 @@ import com.normation.rudder.users.UserService
 import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST.*
-import net.liftweb.json.JsonDSL.*
+import org.json4s.JArray
+import org.json4s.JsonAST.*
+import org.json4s.JsonDSL.*
 
 /**
  * A class for the Quicksearch rest endpoint.

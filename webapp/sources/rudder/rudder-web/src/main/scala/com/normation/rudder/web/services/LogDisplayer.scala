@@ -54,11 +54,12 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JsonAST.JString
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
+import org.json4s.*
+import org.json4s.JsonAST.JString
 import scala.collection.*
 
 /**
@@ -94,7 +95,7 @@ class LogDisplayer(
     val refresh = ajaxRefresh(nodeId, runDate, tableId)
     def getEventsInterval(jsonInterval: String): JsCmd = {
       import net.liftweb.util.Helpers.tryo
-      import net.liftweb.json.parse
+      import org.json4s.native.JsonMethods.parse
 
       val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 

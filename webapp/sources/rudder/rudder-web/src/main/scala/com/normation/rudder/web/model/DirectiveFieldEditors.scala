@@ -63,6 +63,7 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import org.joda.time.Period
 import org.joda.time.format.DateTimeFormatter
+import org.json4s.other.JsonUtils.*
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.xml.*
@@ -711,7 +712,9 @@ class PasswordField(
    *
    */
   def parseClient(s: String): Unit   = {
-    import net.liftweb.json.*
+    import org.json4s.native.JsonMethods.*
+    import org.json4s.JsonAST.*
+    import org.json4s.*
     errors = Nil
     val json = parse(s)
     (for {
@@ -744,7 +747,7 @@ class PasswordField(
     }) match {
       case Full(newValue) => set(newValue)
       case eb: EmptyBox =>
-        val fail = eb ?~! s"Error while parsing password input, value received is: ${compactRender(json)}"
+        val fail = eb ?~! s"Error while parsing password input, value received is: ${json.compactRender}"
         logger.error(fail.messageChain)
         errors = errors ::: List(FieldError(this, fail.messageChain))
     }

@@ -55,10 +55,10 @@ import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.Interval
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonDSL.*
 import zio.syntax.ToZio
 
 class RecentChangesAPI(

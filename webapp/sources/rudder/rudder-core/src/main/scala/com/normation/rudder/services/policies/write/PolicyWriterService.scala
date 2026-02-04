@@ -82,10 +82,10 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.json4s.JsonAST.JValue
+import org.json4s.other.JsonUtils.*
 import zio.*
 import zio.syntax.*
 
@@ -293,14 +293,14 @@ class PolicyWriterServiceImpl(
   private def writeNodePropertiesFile(agentNodeConfig: AgentNodeConfiguration) = {
 
     def generateNodePropertiesJson(properties: Seq[NodeProperty]): JValue = {
-      import net.liftweb.json.JsonDSL.*
+      import org.json4s.JsonDSL.*
       ("properties" -> properties.toDataJson)
     }
 
     val path            = Constants.GENERATED_PROPERTY_DIR
     val file            = File(agentNodeConfig.paths.newFolder, path, Constants.GENERATED_PROPERTY_FILE)
     val jsonProperties  = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
-    val propertyContent = JsonAST.prettyRender(jsonProperties)
+    val propertyContent = jsonProperties.prettyRender
 
     for {
       _ <-
@@ -314,7 +314,7 @@ class PolicyWriterServiceImpl(
   private def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
     def generateParametersJson(parameters: Set[ParameterEntry]): JValue = {
       import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-      import net.liftweb.json.JsonDSL.*
+      import org.json4s.JsonDSL.*
       ("parameters" -> parameters.toDataJson)
     }
 
@@ -322,7 +322,7 @@ class PolicyWriterServiceImpl(
     val jsonParameters   = generateParametersJson(
       agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentType))
     )
-    val parameterContent = JsonAST.prettyRender(jsonParameters)
+    val parameterContent = jsonParameters.prettyRender
 
     for {
       _ <- PolicyGenerationLoggerPure.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${file.name}'")
@@ -1105,7 +1105,7 @@ class PolicyWriterServiceImpl(
 
   private def systemVariableToJson(vars: Map[String, Variable]): String = {
     // only keep system variables, sort them by name
-    import net.liftweb.json.*
+    import org.json4s.*
 
     // remove these system vars (perhaps they should not even be there, in fact)
     val filterOut = Set(
@@ -1140,7 +1140,7 @@ class PolicyWriterServiceImpl(
         JField(v.spec.name, value)
     }
 
-    prettyRender(JObject(systemVars))
+    JObject(systemVars).prettyRender
   }
 
   /**

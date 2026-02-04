@@ -48,7 +48,9 @@ import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.*
 import enumeratum.*
-import net.liftweb.json.*
+import org.json4s.*
+import org.json4s.native.JsonMethods.*
+import org.json4s.other.JsonUtils.*
 import scala.annotation.nowarn
 import zio.json
 import zio.json.*
@@ -374,7 +376,7 @@ object GenericProperty {
     value match {
       case JNothing   => ""
       case JString(s) => s
-      case x          => compactRender(x)
+      case x          => x.compactRender
     }
   }
 
@@ -586,10 +588,13 @@ object GenericProperty {
       case JBool(b)         => ConfigValueFactory.fromAnyRef(b)
       case JObject(arr)     => {
         val m = new java.util.HashMap[String, ConfigValue]()
-        arr.foreach(f => m.put(f.name, fromJsonValue(f.value): @nowarn("msg=deprecated")))
+        arr.foreach(f => m.put(f._1, fromJsonValue(f._2): @nowarn("msg=deprecated")))
         ConfigValueFactory.fromMap(m)
       }
       case JArray(arr)      => ConfigValueFactory.fromIterable(arr.map(x => fromJsonValue(x): @nowarn("msg=deprecated")).asJava)
+      case JDecimal(b)      => ConfigValueFactory.fromAnyRef(b)
+      case JLong(b)         => ConfigValueFactory.fromAnyRef(b)
+      case JSet(set)        => ConfigValueFactory.fromIterable(set.map(x => fromJsonValue(x): @nowarn("msg=deprecated")).asJava)
     }
   }
   def fromZioJson(value: zio.json.ast.Json): ConfigValue = {
@@ -771,7 +776,7 @@ object GenericProperty {
    */
   implicit class PropertyToJson(val x: GenericProperty[?]) extends AnyVal {
     def toJsonObj: JObject = {
-      import net.liftweb.json.JsonDSL.*
+      import org.json4s.JsonDSL.*
       (
         ("name"          -> x.name)
         ~ ("value"       -> parse(x.value.render(ConfigRenderOptions.concise())))
@@ -791,9 +796,9 @@ object GenericProperty {
     }
 
     def toDataJson: JObject = {
-      import net.liftweb.json.JsonDSL.*
+      import org.json4s.JsonDSL.*
 
-      props.map(x => JField(x.name, x.jsonValue)).toList.sortBy(_.name)
+      props.map(x => JField(x.name, x.jsonValue)).toList.sortBy(_._1)
     }
   }
 }
@@ -972,8 +977,8 @@ object CompareProperties {
  */
 object JsonPropertySerialisation {
 
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
+  import org.json4s.*
+  import org.json4s.JsonDSL.*
 
   implicit class JsonParameter(val x: ParameterEntry) extends AnyVal {
     def toJson: JObject = (
@@ -990,7 +995,7 @@ object JsonPropertySerialisation {
     }
 
     def toDataJson: JObject = {
-      parameters.map(dataJson(_)).toList.sortBy(_.name)
+      parameters.map(dataJson(_)).toList.sortBy(_._1)
     }
   }
 

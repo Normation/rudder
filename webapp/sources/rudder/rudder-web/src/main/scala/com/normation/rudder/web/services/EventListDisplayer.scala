@@ -50,11 +50,12 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
+import org.json4s.*
+import org.json4s.native.JsonMethods.*
 import scala.xml.*
 
 /**

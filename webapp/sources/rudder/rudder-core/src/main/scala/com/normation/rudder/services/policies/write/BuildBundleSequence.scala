@@ -58,6 +58,7 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
+import org.json4s.native.Serialization
 import scala.collection.immutable.ListMap
 import zio.*
 
@@ -643,7 +644,7 @@ final case class JsonRunHook(
 
 object JsonRunHookSer {
   implicit class ToJson(private val h: NodeRunHook) extends AnyVal {
-    import net.liftweb.json.*
+    import org.json4s.*
     def jsonParam: String = {
       val jh = JsonRunHook(
         ListMap(h.parameters.map(p => (p.name, p.value))*),
