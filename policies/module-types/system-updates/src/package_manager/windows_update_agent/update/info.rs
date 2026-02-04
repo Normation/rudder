@@ -7,6 +7,7 @@ use anyhow::Result;
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use windows::Win32::System::UpdateAgent::*;
+use crate::package_manager::windows_update_agent::kb::Article;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Info {
@@ -115,6 +116,23 @@ impl TryFrom<&IUpdate> for InfoData {
                 .into()
         };
 
+        // Look for the superseded updates
+        let mut superseded_update_ids = vec![];
+        let raw_superseded_collection: IStringCollection = unsafe {
+            u.SupersededUpdateIDs().context(format!("Could not retrieve superseded updates for update {}", update_id))?
+        };
+        let count = unsafe { raw_superseded_collection.Count().context("Failed to get superseded KB count")? };
+        for i in 0..count {
+            let superseded: String = unsafe {
+                raw_superseded_collection
+                    .get_Item(i)
+                    .context(
+                        format!("Failed to get superseded KB ID from update {}", update_id)
+                    )?.to_string()
+            };
+            superseded_update_ids.push(superseded);
+        }
+
         Ok(InfoData {
             update_id,
             revision_number,
@@ -125,7 +143,7 @@ impl TryFrom<&IUpdate> for InfoData {
             is_downloaded,
             is_installed,
             is_mandatory,
-            superseded_update_ids: vec![],
+            superseded_update_ids
         })
     }
 }

@@ -118,6 +118,7 @@ fn download_updates(
         result_code: OperationResultCode::NoStarted,
         update_results: vec![],
     }));
+    r.stdout("\n\n".to_string());
     // Retrieve the update collection to dl
     let com_ptr: IUpdateCollection = match IUpdateCollection::try_from(collection) {
         Err(e) => {
@@ -221,6 +222,7 @@ fn install_updates(
     ));
     collection.iter().for_each(|u| {
         r.stdout(format!("{}, ", u.data.title));
+        r.stdout(format!("superseeding {:?}, ", u.data.superseded_update_ids));
     });
     // Install the updates
     let raw_install_result = unsafe { installer.Install() };
@@ -256,19 +258,9 @@ impl UpdateManager for WindowsUpdateAgent {
             Ok(u) => u,
         };
         r.stdout("Look for installed packages".to_string());
-        r.stdout("Available updates:".to_string());
         updates
             .iter()
-            .for_each(|u| match serde_json::to_string(&u) {
-                Err(e) => {
-                    r.stderr(format!(
-                        "Could not serialize update '{}': {}",
-                        u.data.title, e
-                    ));
-                    r.stdout(format!("  <{}>", u.data.title));
-                }
-                Ok(s) => r.stdout(format!("  {}", s)),
-            });
+            .for_each(|u| r.stdout(format!("  - {}", u.data.title)));
         ResultOutput {
             inner: Ok(updates_to_package_list(updates)),
             stdout: r.stdout,
