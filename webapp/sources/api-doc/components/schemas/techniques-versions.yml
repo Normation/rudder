@@ -15,4 +15,4 @@ items:
         description: Technique version
   example:
     name: userManagement
-    version: ["1.0", "1.2", "3.0"]
+    versions: ["1.0", "1.2", "3.0"]
