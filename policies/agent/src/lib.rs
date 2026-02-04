@@ -7,7 +7,7 @@ use std::path::PathBuf;
 pub mod backends;
 pub use backends::*;
 mod agent_state;
-mod consts;
+mod constants;
 pub use agent_state::*;
 mod config;
 pub use config::*;
