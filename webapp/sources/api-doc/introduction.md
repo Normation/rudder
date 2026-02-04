@@ -26,14 +26,10 @@ be secured just like a password would be.
 
 The accounts are managed in the Web interface. There are three types of accounts:
 
-* **Global API accounts**: they are not linked to a Rudder user, and are managed by Rudder administrators in the _Administration -> API accounts_ page. You should define an expiration date whenever possible.
+* **Global API accounts**: they are not linked to a Rudder user, and are managed by Rudder administrators in the _Administration -> API accounts_ page. You should define an expiration date whenever possible, and the most limited permissions.
 
-![General API tokens settings](assets/api-tokens.png "General API tokens settings")
-
-* **User tokens**: they are linked to a Rudder user, and give the same rights the user has.
+* **User tokens**: they are linked to a Rudder user, and give the same rights the user has. They are configured in the menu opened by clicking on the username in the main menu bar.
 There can be only one token by user. This feature is provided by the `api-authorizatons` plugin.
-
-![User API token](assets/api-user.png "User API token")
 
 * **System token**: it is a special token, not visible in the interface. Its value is postfixed with `-system`
 and is regenerated at each application restart. It is designed to allow running local calls to the API
@@ -55,9 +51,7 @@ two possible privilege levels, read-only or write.
 With the `api-authorizatons` plugin, you also get access to:
 
 * User tokens, which have the same permissions as the user, using the Rudder roles and permissions feature.
-* Custom ACLs on global API accounts. They provide fine-grained permissions on every endpoint:
-
-![Custom API ACL](assets/custom-acl.png "Custom API ACL")
+* Custom ACLs on global API accounts. They provide fine-grained permissions on every endpoint.
 
 As a general principle,
 you should create dedicated tokens with the least privilege level for each different interaction you have with the

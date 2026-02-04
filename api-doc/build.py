@@ -41,6 +41,10 @@ for template in templates:
     with open(source + '/introduction.md', 'r') as content_file:
         intro = content_file.read()
 
+    if ".png" in intro:
+        print("Error: images in API doc break links on Firefox: https://issues.rudder.io/issues/28289")
+        exit(1)
+    
     # Add external content
     main['info']['description'] = intro
 
