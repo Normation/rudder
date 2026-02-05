@@ -3,14 +3,13 @@ port module Groups exposing (..)
 import Browser
 import Dict
 import Dict.Extra
-import Groups.ViewGroupsTable exposing (updateGroupsTableData)
 import Http exposing (..)
 
 
 import GroupRelatedRules.DataTypes exposing (GroupId)
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
-import Groups.Init exposing (init)
+import Groups.Init exposing (init, updateGroupsTableData)
 import Groups.View exposing (view)
 import Groups.ViewUtils exposing (..)
 
@@ -108,7 +107,7 @@ update msg model =
             modelUi = model.ui
             currentGroups = if keepGroups then model.groupsCompliance else Dict.empty
             groupsCompliance = (Dict.Extra.fromListBy (.id >> .value) r) |> Dict.union currentGroups
-          in 
+          in
             ( { model | 
                   groupsCompliance = groupsCompliance
                   , mode = if (model.mode == LoadingTable) then GroupTable else model.mode
