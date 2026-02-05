@@ -154,7 +154,7 @@ fn download_updates(
         collection.len()
     ));
     collection.iter().for_each(|u| {
-        r.stdout(format!("{}, ", u.data.title));
+        r.stdout(format!("  - {}, ", u.data.title));
     });
     // Download the updates
     let raw_download_result = unsafe { downloader.Download() };
@@ -221,8 +221,7 @@ fn install_updates(
         collection.len()
     ));
     collection.iter().for_each(|u| {
-        r.stdout(format!("{}, ", u.data.title));
-        r.stdout(format!("superseeding {:?}, ", u.data.superseded_update_ids));
+        r.stdout(format!("  - {}, ", u.data.title));
     });
     // Install the updates
     let raw_install_result = unsafe { installer.Install() };
@@ -275,7 +274,9 @@ impl UpdateManager for WindowsUpdateAgent {
         let mut r = ResultOutput::new(Ok(None));
         // Compute the updates to install
         let raw_available_updates = query_wua(&self.session, "IsInstalled=0");
-        r.log_step(&raw_available_updates);
+        if raw_available_updates.inner.is_err() {
+            r.log_step(&raw_available_updates);
+        }
         let available_updates = match raw_available_updates.inner {
             Err(e) => return r.as_err(e.context("Failed to retrieve available updates")),
             Ok(u) => u,
@@ -327,7 +328,7 @@ impl UpdateManager for WindowsUpdateAgent {
                 .update_results
                 .into_iter()
                 .partition(|update| matches!(update.result_code, OperationResultCode::Succeeded));
-        r.stdout("Successfully installed updates:".to_string());
+        r.stdout("\nSuccessfully downloaded updates:".to_string());
         if d_succeeded.is_empty() {
             r.stdout(" - None".to_string());
         } else {
@@ -335,8 +336,8 @@ impl UpdateManager for WindowsUpdateAgent {
                 .iter()
                 .for_each(|u| r.stdout(format!(" - {}", u.update.title)));
         };
-        r.stdout("Failed installed updates:".to_string());
-        if d_succeeded.is_empty() {
+        r.stdout("\nFailed downloaded updates:".to_string());
+        if d_failed.is_empty() {
             r.stdout(" - None".to_string());
         } else {
             d_failed
@@ -344,7 +345,7 @@ impl UpdateManager for WindowsUpdateAgent {
                 .for_each(|u| r.stdout(format!(" - {} -> {}", u.update.title, u.h_result)));
         };
         r.stdout(format!(
-            "Download summary: {} success, {} failed, {} total",
+            "\nDownload summary: {} success, {} failed, {} total\n",
             d_succeeded.len(),
             d_failed.len(),
             updates_to_download.len()
@@ -407,7 +408,7 @@ impl UpdateManager for WindowsUpdateAgent {
             .update_results
             .into_iter()
             .partition(|update| matches!(update.result_code, OperationResultCode::Succeeded));
-        r.stdout("Successfully installed updates:".to_string());
+        r.stdout("\nSuccessfully installed updates:".to_string());
         if i_succeeded.is_empty() {
             r.stdout(" - None".to_string());
         } else {
@@ -415,8 +416,8 @@ impl UpdateManager for WindowsUpdateAgent {
                 .iter()
                 .for_each(|u| r.stdout(format!(" - {}", u.update.title)));
         };
-        r.stdout("Failed installed updates:".to_string());
-        if i_succeeded.is_empty() {
+        r.stdout("\nFailed installed updates:".to_string());
+        if i_failed.is_empty() {
             r.stdout(" - None".to_string());
         } else {
             i_failed
@@ -424,7 +425,7 @@ impl UpdateManager for WindowsUpdateAgent {
                 .for_each(|u| r.stdout(format!(" - {} -> {}", u.update.title, u.h_result)));
         };
         r.stdout(format!(
-            "Install summary: {} success, {} failed, {} total",
+            "\nInstall summary: {} success, {} failed, {} total\n",
             i_succeeded.len(),
             i_failed.len(),
             updates_to_install.len()

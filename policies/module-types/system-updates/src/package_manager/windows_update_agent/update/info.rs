@@ -7,7 +7,7 @@ use anyhow::Result;
 use anyhow::{Context, Error};
 use serde::{Deserialize, Serialize};
 use windows::Win32::System::UpdateAgent::*;
-use crate::package_manager::windows_update_agent::kb::Article;
+use windows::core::Interface;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Info {
@@ -41,6 +41,7 @@ pub struct InfoData {
     pub is_installed: bool,
     pub is_mandatory: bool,
     pub superseded_update_ids: Vec<String>,
+    pub is_reboot_required: bool,
 }
 impl TryFrom<&IUpdate> for InfoData {
     type Error = Error;
@@ -115,20 +116,41 @@ impl TryFrom<&IUpdate> for InfoData {
                 ))?
                 .into()
         };
+        // Try to cast the IUpdate object to IUpdate2 as it offers more methods
+        let u2: IUpdate2 = u
+            .cast()
+            .context(format!("Could not cast update {} to IUpdate2", update_id))?;
+        let is_reboot_required = unsafe {
+            u2.RebootRequired()
+                .context(format!(
+                    "Could not retrieve reboot required value from update id {}",
+                    update_id
+                ))?
+                .into()
+        };
 
         // Look for the superseded updates
         let mut superseded_update_ids = vec![];
         let raw_superseded_collection: IStringCollection = unsafe {
-            u.SupersededUpdateIDs().context(format!("Could not retrieve superseded updates for update {}", update_id))?
+            u.SupersededUpdateIDs().context(format!(
+                "Could not retrieve superseded updates for update {}",
+                update_id
+            ))?
         };
-        let count = unsafe { raw_superseded_collection.Count().context("Failed to get superseded KB count")? };
+        let count = unsafe {
+            raw_superseded_collection
+                .Count()
+                .context("Failed to get superseded KB count")?
+        };
         for i in 0..count {
             let superseded: String = unsafe {
                 raw_superseded_collection
                     .get_Item(i)
-                    .context(
-                        format!("Failed to get superseded KB ID from update {}", update_id)
-                    )?.to_string()
+                    .context(format!(
+                        "Failed to get superseded KB ID from update {}",
+                        update_id
+                    ))?
+                    .to_string()
             };
             superseded_update_ids.push(superseded);
         }
@@ -143,7 +165,8 @@ impl TryFrom<&IUpdate> for InfoData {
             is_downloaded,
             is_installed,
             is_mandatory,
-            superseded_update_ids
+            superseded_update_ids,
+            is_reboot_required,
         })
     }
 }
