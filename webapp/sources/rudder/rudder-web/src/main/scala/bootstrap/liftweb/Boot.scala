@@ -833,7 +833,7 @@ class Boot extends Loggable {
     RudderConfig.inventoryWatcher.startGarbageCollection
     // start inventory watchers if needed
     if (RudderConfig.WATCHER_ENABLE) {
-      RudderConfig.inventoryWatcher.startWatcher()
+      RudderConfig.inventoryWatcher.startWatcher().runNow
     } else { // don't start
       InventoryProcessingLogger.debug(
         s"Not automatically starting incoming inventory watcher because 'inventories.watcher.enable'=${RudderConfig.WATCHER_ENABLE}"
