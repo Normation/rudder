@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2025 Normation SAS
+get:
   summary: Get API account for the currently identified token
   description: Return the account as in the GET account endpoint for the authenticated token in X-API-TOKEN header
   operationId: getTokenAccount
