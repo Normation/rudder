@@ -4,7 +4,6 @@ import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (defaultComplianceFilter, getAllComplianceValues)
 import Dict exposing (Dict)
 
-import Groups.ViewUtils exposing (getCategoryName)
 import Html exposing (Html, div, span, text)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
@@ -15,10 +14,9 @@ import Groups.DataTypes exposing (..)
 
 import Html.Attributes exposing (class)
 import Ordering exposing (Ordering)
-import Round
+import Rudder.Filters
 import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), OutMsg(..), buildConfig, buildCustomizations, buildOptions)
-import Rudder.Filters exposing (byValues)
-import Ui.Datatable exposing (defaultTableFilters, Category, SubCategories(..))
+import Ui.Datatable exposing (Category, SubCategories(..))
 
 
 init : { contextPath : String, hasGroupToDisplay : Bool, hasWriteRights : Bool } -> ( Model, Cmd Msg )
@@ -38,7 +36,7 @@ init flags =
       [ getGroupsTree initModel (not flags.hasGroupToDisplay)
       ]
   in
-    ( initModel
+    ( initModel |> updateGroupsTableData
     , Cmd.batch listInitActions
     )
 
@@ -112,41 +110,3 @@ initTable =
         config = buildConfig.newConfig columns |> buildConfig.withOptions options
     in
         Rudder.Table.init config []
-
-
-complianceDataAvailable : ComplianceSummaryValue -> Bool
-complianceDataAvailable compliance =
-    let allComplianceValues = getAllComplianceValues compliance.complianceDetails in
-    if ( allComplianceValues.okStatus.value
-        + allComplianceValues.nonCompliant.value
-        + allComplianceValues.error.value
-        + allComplianceValues.unexpected.value
-        + allComplianceValues.pending.value
-        + allComplianceValues.reportsDisabled.value
-        + allComplianceValues.noReport.value == 0 ) then False else True
-
-entryToStringList : GroupWithCompliance -> List String
-entryToStringList group =
-    [ group.name
-    , group.category |> categoryToString
-    , group.globalCompliance |> complianceToString
-    , group.targetedCompliance |> complianceToString
-    ]
-
-complianceToString : Maybe ComplianceSummaryValue -> String
-complianceToString complianceOpt =
-    case complianceOpt of
-        Just compliance ->
-            if (complianceDataAvailable compliance)
-            then (Round.round 2 compliance.compliance) ++ "%"
-            else "No data available"
-        Nothing ->
-            "Loading..."
-
-categoryToString : Maybe String -> String
-categoryToString category =
-    case category of
-        Nothing -> "Groups"
-        Just "SystemGroups" -> "System groups"
-        Just "GroupRoot" -> "Root of the groups and group categories"
-        Just cat -> cat
