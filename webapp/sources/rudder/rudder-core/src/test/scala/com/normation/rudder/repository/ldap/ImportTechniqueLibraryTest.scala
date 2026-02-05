@@ -34,7 +34,6 @@
  *
  *************************************************************************************
  */
-
 package com.normation.rudder.repository.ldap
 
 import com.normation.ldap.listener.InMemoryDsConnectionProvider
