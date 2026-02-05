@@ -301,7 +301,7 @@ impl UpdateManager for AptPackageManager {
 
             // Resolve dependencies
             let res_resolve = Self::apt_errors_to_output(c.resolve(true));
-            if res_resolve.inner.is_err() {
+            if let Err(e) = res_resolve.inner {
                 return ResultOutput {
                     inner: Err(e),
                     stdout: mark_res.stdout,
