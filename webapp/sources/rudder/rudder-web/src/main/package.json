@@ -37,7 +37,8 @@
     "gulp-sourcemaps": "^3.0.0",
     "gulp-terser": "^2.1.0",
     "merge2": "^1.4.1",
-    "sass": "^1.93.2"
+    "sass": "^1.93.2",
+    "sassdoc": "^2.7.4"
   },
   "overrides": {
     "postcss": "^8.5.6"

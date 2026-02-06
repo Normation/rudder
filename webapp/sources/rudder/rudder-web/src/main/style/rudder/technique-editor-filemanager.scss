@@ -34,7 +34,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 @-webkit-keyframes fadeIn {
   0% {
@@ -273,7 +273,7 @@
 
 .modal .modal-header {
   border-radius: 4px 4px 0 0;
-  background: $rudder-black;
+  background: rudder.$black;
   padding: 1.3em;
   align-items: center;
 }
@@ -459,7 +459,7 @@ textarea.code {
 
 .table-files .selected,
 .iconset .thumbnail.selected {
-  background: $rudder-primary;
+  background: rudder.$primary;
 }
 
 .iconset .thumbnail.selected,
@@ -501,7 +501,7 @@ textarea.code {
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background-color: $rudder-gray-500;
+  background-color: rudder.$gray-500;
 }
 
 .dropdown-menu {
