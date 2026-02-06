@@ -210,12 +210,13 @@ object SupportedApiVersion {
   /*
    * API version are incremented at least one time for each Rudder version.
    * We try to avoid the case where a breaking change would incur an API increment.
-   * We deprecate an API is not the last, and we delete deprecated version on a major
+   * We deprecate an API that is not the last, and we delete deprecated version on a major
    * release, for all but the last of previous major branch.
    */
   lazy val apiVersions: List[ApiVersion] = {
     ApiVersion(21, deprecated = true) ::  // rudder 8.3 - zio-json, api accounts,new authorization model
-    ApiVersion(22, deprecated = false) :: // rudder 9.0 - campaigns, ....
+    ApiVersion(22, deprecated = true) ::  // rudder 9.0 - campaigns, ....
+    ApiVersion(23, deprecated = false) :: // rudder 9.1 - benchmarks csv, ....
     Nil
   }
 
