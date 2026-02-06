@@ -168,9 +168,9 @@ object RestEventLogFilter {
     def toColumnCriteriaFilter: EventLogCriteriaFilter.Column = {
       id match {
         case 0 => EventLogCriteriaFilter.Column.ID
-        case 2 => EventLogCriteriaFilter.Column.CreationDate
-        case 3 => EventLogCriteriaFilter.Column.Principal
-        case 4 => EventLogCriteriaFilter.Column.EventType
+        case 1 => EventLogCriteriaFilter.Column.CreationDate
+        case 2 => EventLogCriteriaFilter.Column.Principal
+        case 3 => EventLogCriteriaFilter.Column.EventType
       }
     }
   }

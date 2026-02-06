@@ -22,7 +22,7 @@ object EventLogCriteriaFilter {
   final case class Search(value: String)
   final case class Order(column: Column, dir: Direction)
   final case class PrincipalFilter(include: Option[NonEmptyList[Principal]], exclude: Option[NonEmptyList[Principal]])
-  final case class Principal(value: String) // TODO: opaque type
+  final case class Principal(value: String)
 
   sealed abstract class Column(val id: Int) extends Lowercase
   object Column                             extends Enum[Column] {
