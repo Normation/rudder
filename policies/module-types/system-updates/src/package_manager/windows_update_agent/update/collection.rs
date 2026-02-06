@@ -7,17 +7,11 @@ use std::ops::Deref;
 use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance};
 use windows::Win32::System::UpdateAgent::{IUpdateCollection, UpdateCollection};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Collection(Vec<Info>);
 impl Collection {
     pub fn new(v: Vec<Info>) -> Self {
         Self(v)
-    }
-}
-
-impl Default for Collection {
-    fn default() -> Self {
-        Self(vec![])
     }
 }
 
@@ -80,7 +74,7 @@ impl TryFrom<IUpdateCollection> for Collection {
                 .context("Could not convert IUpdateCollection to UpdateInfo")?;
             updates.push(info)
         }
-        Ok(Self { 0: updates })
+        Ok(Self(updates))
     }
 }
 

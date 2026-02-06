@@ -78,6 +78,7 @@ impl PackageList {
                     changes.push(action);
                 }
                 Some(i) if i.version == info.version => continue,
+                Some(i) if i.version.is_empty() && info.version.is_empty() => continue,
                 Some(i) => {
                     let action = PackageDiff {
                         id: p.clone(),
