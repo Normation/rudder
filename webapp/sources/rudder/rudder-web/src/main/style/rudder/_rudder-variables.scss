@@ -38,27 +38,27 @@
 /// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (_Create_ & _Save_ in most cases). It is also the color of the Rudder logo. It overrides the `$success` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
-$success   : #13BEB7;
+$success : #13BEB7;
 
 /// Mostly used to highlight an element that does not represent a success/warning/danger, or an important but risk-free action. It overrides the `$primary` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
-$primary   : #337AB7;
+$primary : #337AB7;
 
 /// Used to highlight a warning that requires the user attention (e.g. notifications, warning message, exclamation icons...). It overrides the `$warning` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
-$warning   : #EF9600;
+$warning : #EF9600;
 
 /// Used to highlight a danger that requires the user attention and an action to remedy it (e.g. notifications, error message), or to indicate the danger of an action (e.g. delete an item, regenerate policies...). It overrides the `$danger` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
-$danger    : #DA291C;
+$danger : #DA291C;
 
 /// Applied on informative elements (e.g. icons, border, and text that provides info to user). It overrides the `$info` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
-$info      : #337AB7;
+$info : #337AB7;
 
 // --- GRAY COLORS
 
@@ -95,14 +95,14 @@ $gray-600 : #36474E;
 /// Used as the primary text color. It is also the color of the Rudder logo text and the background color of the sidebar.
 /// @group 2-gray-colors
 /// @type Color
-$black    : #041922;
+$black : #041922;
 
 
 // --- TEXT & LINK
 /// Rudder's primary text color. Its value corresponds to the value of ```$black``` variable. It overrides the `$body-color` Bootstrap variable.
 /// @group 3-text-links
 /// @type Color
-$txt-primary   : $black;
+$txt-primary : $black;
 
 /// Used as a secondary text color to display additional information without drawing too much attention from the user. It is also the main color for neutral icons. It overrides the `$gray-100` Bootstrap variable.
 /// @group 3-text-links
@@ -112,7 +112,7 @@ $txt-secondary : $gray-500;
 /// Used as a tertiary text color, If the secondary color is already used on another nearby text or component. It overrides the `$gray-100` Bootstrap variable.
 /// @group 3-text-links
 /// @type Color
-$txt-light     : $gray-600;
+$txt-light : $gray-600;
 
 /// Used as the text color for links, and to highlight open tab titles (or highlight other navigation elements). It overrides the `$link-color` Bootstrap variable.
 /// @group 3-text-links
@@ -130,32 +130,32 @@ $bg-light-gray : $gray-100;
 /// Used as background color on drag-and-drop handles in the Technique editor
 /// @group 4-background
 /// @type Color
-$bg-gray       : $gray-200;
+$bg-gray : $gray-200;
 
 /// Used as background color on drag-and-drop handles in the Technique editor.
 /// @group 4-background
 /// @type Color
-$bg-dark-gray  : $gray-300;
+$bg-dark-gray : $gray-300;
 
 /// Used as a background color on certain information components
 /// @group 4-background
 /// @type Color
-$bg-info       : #E2F2FF;
+$bg-info : #E2F2FF;
 
 /// Used as a background color on components to highlight dangerous information or an error.
 /// @group 4-background
 /// @type Color
-$bg-danger     : #F8D7DA;
+$bg-danger : #F8D7DA;
 
 /// Light color used as a background to highlight a warning message.
 /// @group 4-background
 /// @type Color
-$bg-warning    : rgba($warning, .08);
+$bg-warning : rgba($warning, .08);
 
 /// A dark, slightly transparent color used to direct the user's focus to a floating component by covering the background of the page.
 /// @group 4-background
 /// @type Color
-$bg-overlay    : rgba($black, .3);
+$bg-overlay : rgba($black, .3);
 
 
 // --- BORDERS & SHADOWS
@@ -168,7 +168,7 @@ $border-color-default : #D6DEEF;
 /// Color of component borders that alert to a danger or error.
 /// @group 5-borders-shadows
 /// @type Color
-$border-color-danger  : #AC2925;
+$border-color-danger : #AC2925;
 
 /// Color of component borders that give a warning message.
 /// @group 5-borders-shadows
@@ -191,7 +191,7 @@ $box-shadow-hover-color : #B3BFD5;
 /// This color refers to and represents the “audit” policy mode.
 /// @group 6-policymode
 /// @type Color
-$audit   : #1384BE;
+$audit : #1384BE;
 
 /// This color refers to and represents the enforce” policy mode.
 /// @group 6-policymode
@@ -204,32 +204,32 @@ $enforce : #13BE7E;
 /// Represents the color for **‘disabled’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-disabled      : $gray-500;
+$color-compliance-disabled : $gray-500;
 
 /// Represents the color for **‘success’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-success       : $success;
+$color-compliance-success : $success;
 
 /// Represents the color for **‘error’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-error         : $danger;
+$color-compliance-error : $danger;
 
 /// Represents the color for **‘pending’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-pending       : #14C3DD;
+$color-compliance-pending : #14C3DD;
 
 /// Represents the color for **‘no report’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-noreport      : $gray-400;
+$color-compliance-noreport : $gray-400;
 
 /// Represents the color for **‘missing’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-missing       : #F2E27D;
+$color-compliance-missing : #F2E27D;
 
 /// Represents the color for **‘not applicable’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
@@ -239,7 +239,7 @@ $color-compliance-notapplicable : #8DCD8D;
 /// Represents the color for **‘non compliant’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
-$color-compliance-noncompliant  : $warning;
+$color-compliance-noncompliant : $warning;
 
 
 // --- SCORES
@@ -284,12 +284,12 @@ $score-color-X : #B1BBCB;
 /// Used on icons, text, and badges to represent **‘security’** packages.
 /// @group 9-packages
 /// @type Color
-$color-package-security    : $danger;
+$color-package-security : $danger;
 
 /// Used on icons, text, and badges to represent **‘bugfix’** packages.
 /// @group 9-packages
 /// @type Color
-$color-package-bugfix      : $warning;
+$color-package-bugfix : $warning;
 
 /// Used on icons, text, and badges to represent **‘enhancement’** packages.
 /// @group 9-packages
@@ -299,12 +299,12 @@ $color-package-enhancement : $success;
 /// Used on icons, text, and badges to represent **‘update’** packages.
 /// @group 9-packages
 /// @type Color
-$color-package-update      : $gray-500;
+$color-package-update : $gray-500;
 
 /// Used on icons, text, and badges to represent **‘up to date’** packages.
 /// @group 9-packages
 /// @type Color
-$color-package-uptodate    : #00A65A;
+$color-package-uptodate : #00A65A;
 
 
 
