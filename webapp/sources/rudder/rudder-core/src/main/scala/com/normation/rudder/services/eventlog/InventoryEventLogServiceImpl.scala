@@ -43,6 +43,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.Control
 import doobie.*
 import net.liftweb.common.*
+import scala.annotation.nowarn
 
 class InventoryEventLogServiceImpl(
     repository: EventLogRepository
@@ -53,9 +54,10 @@ class InventoryEventLogServiceImpl(
    * @return
    */
   def getInventoryEventLogs(): Box[Seq[InventoryEventLog]] = {
-    repository
-      .getEventLogByCriteria(Some(Fragment.const(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode') ")))
-      .toBox match {
+    val eventLogs = repository
+      .getEventLogByCriteria(criteria = Some(Fragment.const(" eventType in ('AcceptNode', 'RefuseNode', 'DeleteNode') ")))
+      .toBox: @nowarn("msg=deprecated")
+    eventLogs match {
       case Full(seq) =>
         Control.traverse(seq) {
           case inventoryLog: InventoryEventLog => Full(inventoryLog)
