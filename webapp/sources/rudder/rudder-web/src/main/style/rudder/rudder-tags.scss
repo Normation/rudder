@@ -34,18 +34,18 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .tab-filter .input-group label {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   padding: 2px 8px 0px 8px;
   font-size: 16px;
 }
 .content-wrapper .btn.updateTable:focus{
-  background-color: $rudder-bg-light-gray;
-  border-color:$rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border-color:rudder.$border-color-default;
   color:#3694d1;
 }
 .content-wrapper .btn.updateTable:focus:hover{
@@ -54,7 +54,7 @@
   border-color: #adadad;
 }
 .content-wrapper .btn-success[disabled]:hover{
-  background-color: $rudder-success;
+  background-color: rudder.$success;
   border-color: #109f9a;
 }
 .panel-footer .tags-container{
@@ -126,7 +126,7 @@
 .input-group-text.addon-json{
   border-left: none;
   border-right: none;
-  background: $rudder-bg-light-gray;
+  background: rudder.$bg-light-gray;
   font-weight: bold;
   cursor:default;
 }
@@ -196,7 +196,7 @@
 .tags-container .btn-group .btn.btn-default.search:hover,
 .tags-container .btn-group .btn.btn-default.search:focus,
 .tags-container .btn-group .btn.btn-default.search:active {
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   box-shadow: none;
 }
 
@@ -212,7 +212,7 @@
 
 .tags-container .btn-group .btn.active {
   box-shadow : none;
-  border-color : $rudder-border-color-default;
+  border-color : rudder.$border-color-default;
 }
 
 .tags-container .btn-group.btn-group-xs .btn:last-of-type {
@@ -233,7 +233,7 @@
   opacity : 1;
 }
 .tags-container .btn-group .btn.btn-default:hover .fa-times{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 
 .tags-container .btn-group .btn.btn-default .fa.fa-tag{
@@ -253,7 +253,7 @@
   line-height: 22px;
   width: 27px;
   text-align: center;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   border-top-left-radius:50%;
   border-bottom-left-radius:50%;
   padding-top: 2px;
@@ -319,7 +319,7 @@
   font-weight:bold;
 }
 .only-tags a:hover{
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 .only-tags > .btn-xs{
   margin-bottom: 5px;
@@ -368,16 +368,16 @@ hr.separator-filter-tree{
   padding-bottom:0;
 }
 .content-wrapper .nav-tabs-filter > li > a.toggleTabFilter{
-  background-color: $rudder-bg-light-gray !important;
-  border:1px solid $rudder-border-color-default !important;
-  color:$rudder-txt-secondary !important;
+  background-color: rudder.$bg-light-gray !important;
+  border:1px solid rudder.$border-color-default !important;
+  color:rudder.$txt-secondary !important;
   cursor:pointer !important;
   padding: 4px 25px 4px 10px;
   position: relative;
   margin-right: 5px;
 }
 .content-wrapper .nav-tabs > li > a.toggleTabFilter:hover{
-  color:$rudder-txt-primary !important;
+  color:rudder.$txt-primary !important;
 }
 .content-wrapper .nav-tabs > li > a.toggleTabFilter >span.fa{
   position: absolute;
@@ -391,8 +391,8 @@ hr.separator-filter-tree{
   margin: 0;
   padding: 8px 10px;
   font-size: 14px;
-  color: $rudder-txt-primary;
-  background-color: $rudder-bg-light-gray;
+  color: rudder.$txt-primary;
+  background-color: rudder.$bg-light-gray;
 }
 .tooltip .tooltip-inner > div.tags-list,
 .tooltip .tooltip-inner > div.tooltip-inner-content {
@@ -403,8 +403,8 @@ hr.separator-filter-tree{
 .tooltip > .tooltip-inner .tags-label{
   padding: 4px 8px;
   border-radius : 20px;
-  background-color: $rudder-bg-gray;
-  color: $rudder-txt-secondary;
+  background-color: rudder.$bg-gray;
+  color: rudder.$txt-secondary;
   display: inline-block;
   cursor: default;
   transition-duration: .2s;
@@ -435,8 +435,8 @@ hr.separator-filter-tree{
 }
 
 .tags-label:hover{
-  background-color: $rudder-bg-dark-gray;
-  color: $rudder-txt-light;
+  background-color: rudder.$bg-dark-gray;
+  color: rudder.$txt-light;
 }
 .tags-table table{
   margin-bottom: 0 !important;
@@ -497,7 +497,7 @@ hr.separator-filter-tree{
 
 .angucomplete-dropdown .angucomplete-title {
   clear: both;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   display: block;
   font-weight: 400;
   line-height: 1.42857;
@@ -514,7 +514,7 @@ hr.separator-filter-tree{
 
 .angucomplete-searching{
   padding: 6px 10px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   font-style: italic;
   cursor: default;
 }

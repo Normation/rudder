@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .rudder-template > .one-col{
   flex: 1;
@@ -46,14 +46,14 @@
 }
 pre.technical-details{
   white-space: pre-wrap;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   border-radius: 4px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   padding: 4px;
 }
 #filterLogs {
   margin-top: 10px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 .btn.showParameters{
   margin-bottom: 10px;

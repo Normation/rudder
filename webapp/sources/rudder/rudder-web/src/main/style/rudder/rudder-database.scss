@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .rudder-template > .one-col{
   flex: 1;
@@ -71,7 +71,7 @@
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid #dcdcdc;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   margin:0;
   transition-duration:.2s;
   opacity:.7;
@@ -96,8 +96,8 @@
   color:#fff;
 }
 #modeSelector > li:last-child > label input:checked + span{
-  background-color: $rudder-danger;
-  border-color: $rudder-danger;
+  background-color: rudder.$danger;
+  border-color: rudder.$danger;
 }
 #modeSelector > li:first-child > label input:checked + span{
   background-color: #3694d1;

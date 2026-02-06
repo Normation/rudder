@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .rudder-template .template-main {
   flex: auto !important;
@@ -118,7 +118,7 @@
 }
 
 .auth {
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   background-color: #E3E6ED;
 }
 
@@ -186,7 +186,7 @@
   width: 26px;
   height: 26px;
   border-radius: 3px;
-  background-color: $rudder-success;
+  background-color: rudder.$success;
   display: inline-flex;
   align-items: center;
   font-size: 20px;
@@ -287,7 +287,7 @@
 }
 
 .invalid-form-field {
-  border: 1px solid $rudder-danger;
+  border: 1px solid rudder.$danger;
   animation: shake .1s linear;
   animation-iteration-count: 3;
 }
@@ -424,7 +424,7 @@
 
 .addBtn {
   margin: 5px 0 0 10px;
-  background-color: $rudder-success;
+  background-color: rudder.$success;
   color: white;
   padding: 2px;
   font-size: 10;
