@@ -3,14 +3,16 @@ use std::collections::HashMap;
 // SPDX-FileCopyrightText: 2026 Normation SAS
 use super::{Collection, InfoData, OperationResultCode};
 use crate::package_manager::PackageId;
-use anyhow::{Error, Result, bail};
+use crate::package_manager::windows_update_agent::update::rudder_hresult::RudderHRESULT;
+use anyhow::{Context, Error, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use windows::Win32::System::UpdateAgent::{IInstallationResult, IUpdateInstallationResult};
+use windows::core::HRESULT;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UpdateInstallationResult {
-    pub h_result: i32,
+    pub h_result: RudderHRESULT,
     pub result_code: OperationResultCode,
     pub reboot_required: bool,
     pub update: InfoData,
@@ -21,10 +23,26 @@ impl UpdateInstallationResult {
         r: IUpdateInstallationResult,
         u: InfoData,
     ) -> Result<UpdateInstallationResult, Error> {
+        let h_result = unsafe {
+            RudderHRESULT::from(HRESULT(
+                r.HResult()
+                    .context("Could not retrieve the install operation HRESULT code")?,
+            ))
+        };
+        let result_code = unsafe {
+            let rc: i32 = r
+                .ResultCode()
+                .context("Could not retrieve the install operation result code")?
+                .0;
+            OperationResultCode::new(rc).context(format!(
+                "Could not instantiate the OperationResultCode object from {}",
+                rc
+            ))?
+        };
         unsafe {
             Ok(Self {
-                h_result: r.HResult()?,
-                result_code: OperationResultCode::new(r.ResultCode()?.0)?,
+                h_result,
+                result_code,
                 reboot_required: r.RebootRequired()?.as_bool(),
                 update: u,
             })
@@ -36,8 +54,8 @@ impl Display for UpdateInstallationResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "h_result: {}, result_code: {}, reboot_required: {}",
-            self.h_result, self.result_code, self.reboot_required
+            "result_code: {}, {}, reboot_required: {}",
+            self.result_code, self.h_result, self.reboot_required
         )
     }
 }
@@ -63,7 +81,7 @@ impl InstallationResult {
         for i in 0..collection.len() {
             h.insert(
                 PackageId::from(collection[i].data.clone()),
-                format!("\nInstall result:\n{}", self.update_results[i].clone()),
+                format!("\nInstall result:\n  - {}", self.update_results[i].clone()),
             );
         }
         Ok(h)
