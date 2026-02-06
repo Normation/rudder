@@ -41,9 +41,11 @@ import com.normation.errors.*
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.rest.lift.DefaultParams
+import com.normation.utils.Csv
 import com.normation.zio.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
+import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import scala.collection.immutable
 import zio.IO
@@ -277,6 +279,33 @@ object RudderJsonResponse {
       def toLiftResponseList(params: DefaultParams, schema: EndpointSchema)(using encoder: JsonEncoder[A]): LiftResponse = {
         toLiftResponseList(params, ResponseSchema.fromSchema(schema))
       }
+
+      def toLiftResponseCsv(params: DefaultParams, schema: ResponseSchema, id: IdTrace[A])(using
+          csv:    Csv[A],
+          header: Csv.Header[A]
+      ): LiftResponse = {
+        import com.normation.utils.Csv.*
+        given prettify: Boolean = params.prettify
+        result
+          .fold(
+            err => {
+              ApiLogger.ResponseError.info(err.fullMsg)
+              internalError(None, schema, err.fullMsg)
+            },
+            a => PlainTextResponse(a.toList.toCsv)
+          )
+          .runNow
+      }
+
+      def toLiftResponseCsv(params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
+          csv:    Csv[A],
+          header: Csv.Header[A]
+      ): LiftResponse = toLiftResponseCsv(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))
+
+      def toLiftResponseCsv(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
+          csv:    Csv[A],
+          header: Csv.Header[A]
+      ): LiftResponse = toLiftResponseCsv(params, ResponseSchema.fromSchema(schema), IdTrace.Success[A](id))
     }
 
     // ADT that matches error or success to determine the id value to use/compute
@@ -416,10 +445,9 @@ object RudderJsonResponse {
       ): LiftResponse = {
         toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), IdTrace.Success[A](id))(using ev)
       }
-
     }
     // when you don't have any response, just a success
-    extension (result: IOResult[Unit]) {
+    extension (result:    IOResult[Unit]) {
       def toLiftResponseZeroUnit(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
         given prettify: Boolean = params.prettify
         result
