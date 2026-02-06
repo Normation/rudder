@@ -35,106 +35,124 @@
 *************************************************************************************
 */
 
-/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (_Create_ & Success in most cases)
+/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (_Create_ & _Save_ in most cases). It is also the color of the Rudder logo. It overrides the `$success` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
 $rudder-success   : #13BEB7;
 
-/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// Mostly used to highlight an element that does not represent a success/warning/danger, or an important but risk-free action. It overrides the `$primary` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
 $rudder-primary   : #337AB7;
 
-/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// Used to highlight a warning that requires the user attention (e.g. notifications, warning message, exclamation icons...). It overrides the `$warning` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
 $rudder-warning   : #EF9600;
 
-/// Here is the Rudder main highlight color. It is used to represent success, or the principal actions of a page (Create & Success in most cases)
+/// Used to highlight a danger that requires the user attention and an action to remedy it (e.g. notifications, error message), or to indicate the danger of an action (e.g. delete an item, regenerate policies...). It overrides the `$danger` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
 $rudder-danger    : #DA291C;
 
-/// Info color is applied on informative elements (e.g. icons, border, and text that provides info to user)
+/// Applied on informative elements (e.g. icons, border, and text that provides info to user). It overrides the `$info` Bootstrap variable.
 /// @group 1-main-colors
 /// @type Color
 $rudder-info      : #337AB7;
 
 // --- GRAY COLORS
 
-/// Use as a light background color (on pages or ‘default’ buttons)
+/// Used as a light background color to differentiate a section on a white background. Also used as the background color for **'default'** buttons. It overrides the `$gray-100` Bootstrap variable.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-gray-100 : #F8F9FC;
-/// TODO
+
+/// Used as the background color for rudder's default badges, and as a background color to highlight items in a list/table/tree when hovering over them. It overrides the `$gray-200` Bootstrap variable.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-gray-200 : #EEF1F9;
-/// TODO
+
+/// Used as background color on drag-and-drop handles in the Technique editor. It overrides the `$gray-300` Bootstrap variable.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-gray-300 : #E1E5EB;
-/// TODO
+
+/// Darkest color used as background on certain sections or page components. It overrides the `$gray-400` Bootstrap variable.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-gray-400 : #B1BBCB;
-/// TODO
+
+/// Only used as background color when hover over badges. It overrides the `$gray-500` Bootstrap variable.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-gray-500 : #72829D;
-/// Mainly used as a lighter text colour
+
+/// Mainly used as a secondary text color. It is also used on non-important icons, or UI elements like badges It overrides the `$gray-600` Bootstrap variable.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-gray-600 : #36474E;
-/// Mainly used as text color. It is also the color of the Rudder logo text and the background color of the sidebar.
+
+/// Used as the primary text color. It is also the color of the Rudder logo text and the background color of the sidebar.
 /// @group 2-gray-colors
 /// @type Color
 $rudder-black    : #041922;
 
+
 // --- TEXT & LINK
-/// Rudder's primary text color. Its value corresponds to the value of ```$rudder-black``` variable.
+/// Rudder's primary text color. Its value corresponds to the value of ```$rudder-black``` variable. It overrides the `$body-color` Bootstrap variable.
 /// @group 3-text-links
 /// @type Color
 $rudder-txt-primary   : $rudder-black;
-/// TODO
+
+/// Used as a secondary text color to display additional information without drawing too much attention from the user. It is also the main color for neutral icons. It overrides the `$gray-100` Bootstrap variable.
 /// @group 3-text-links
 /// @type Color
 $rudder-txt-secondary : $rudder-gray-500;
-/// TODO
+
+/// Used as a tertiary text color, If the secondary color is already used on another nearby text or component. It overrides the `$gray-100` Bootstrap variable.
 /// @group 3-text-links
 /// @type Color
 $rudder-txt-light     : $rudder-gray-600;
-/// TODO
+
+/// Used as the text color for links, and to highlight open tab titles (or highlight other navigation elements). It overrides the `$link-color` Bootstrap variable.
 /// @group 3-text-links
 /// @type Color
 $rudder-txt-link      : #1295C2;
 
+
 // --- BACKGROUNDS
-/// TODO
+
+/// Used as a light background color to differentiate a section on a white background. Also used as the background color for **'default'** buttons.
 /// @group 4-background
 /// @type Color
 $rudder-bg-light-gray : $rudder-gray-100;
-/// TODO
+
+/// Used as background color on drag-and-drop handles in the Technique editor
 /// @group 4-background
 /// @type Color
 $rudder-bg-gray       : $rudder-gray-200;
-/// TODO
+
+/// Used as background color on drag-and-drop handles in the Technique editor.
 /// @group 4-background
 /// @type Color
 $rudder-bg-dark-gray  : $rudder-gray-300;
-/// TODO
+
+/// Used as a background color on certain information components
 /// @group 4-background
 /// @type Color
 $rudder-bg-info       : #E2F2FF;
-/// TODO
+
+/// Used as a background color on components to highlight dangerous information or an error.
 /// @group 4-background
 /// @type Color
 $rudder-bg-danger     : #F8D7DA;
-/// TODO
+
+/// Light color used as a background to highlight a warning message.
 /// @group 4-background
 /// @type Color
 $rudder-bg-warning    : rgba($rudder-warning, .08);
-/// TODO
+
+/// A dark, slightly transparent color used to direct the user's focus to a floating component by covering the background of the page.
 /// @group 4-background
 /// @type Color
 $rudder-bg-overlay    : rgba($rudder-black, .3);
@@ -142,84 +160,161 @@ $rudder-bg-overlay    : rgba($rudder-black, .3);
 
 // --- BORDERS & SHADOWS
 
-/// TODO
+/// Default color of borders that structure pages, sections and UI components in Rudder. It overrides the `$border-color` Bootstrap variable.
 /// @group 5-borders-shadows
 /// @type Color
 $rudder-border-color-default : #D6DEEF;
-/// TODO
+
+/// Color of component borders that alert to a danger or error.
 /// @group 5-borders-shadows
 /// @type Color
 $rudder-border-color-danger  : #AC2925;
-/// TODO
+
+/// Color of component borders that give a warning message.
 /// @group 5-borders-shadows
 /// @type Color
 $rudder-border-color-warning : rgba($rudder-warning, .2);
 
-/// TODO
+/// Color used as box-shadow to highlight components with a white background on a light gray page background (e.g. cards in the dashboard, or the login form)
 /// @group 5-borders-shadows
 /// @type Color
 $rudder-box-shadow-color : #DCE3EF;
 $rudder-box-shadow-hover-color : #B3BFD5;
 
 
-// --- ACCORDIONS
-
-/// Used to highlights accordion border
-/// @group 6-accordions
-/// @type Color
-$rudder-accordion-color-1 : #D1A9DD;
-/// Used to highlights accordion border
-/// @group 6-accordions
-/// @type Color
-$rudder-accordion-color-2 : #A9D6DD;
-/// Used to highlights accordion border
-/// @group 6-accordions
-/// @type Color
-$rudder-accordion-color-3 : #A9B9DD;
-
-
 // --- POLICY MODE
 
 /// This color refers to and represents the “audit” policy mode.
-/// @group 6-accordions
+/// @group 6-policymode
 /// @type Color
 $rudder-audit   : #1384BE;
+
+/// This color refers to and represents the enforce” policy mode.
+/// @group 6-policymode
+/// @type Color
 $rudder-enforce : #13BE7E;
 
 
 // --- COMPLIANCE
-/// TODO
+
+/// Represents the color for **‘disabled’** compliance. It is mostly visible in charts and progress bars.
 /// @group 7-compliance
 /// @type Color
 $color-compliance-disabled      : $rudder-gray-500;
+
+/// Represents the color for **‘success’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-success       : $rudder-success;
+
+/// Represents the color for **‘error’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-error         : $rudder-danger;
+
+/// Represents the color for **‘pending’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-pending       : #14C3DD;
+
+/// Represents the color for **‘no report’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-noreport      : $rudder-gray-400;
+
+/// Represents the color for **‘missing’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-missing       : #F2E27D;
+
+/// Represents the color for **‘not applicable’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-notapplicable : #8DCD8D;
+
+/// Represents the color for **‘non compliant’** compliance. It is mostly visible in charts and progress bars.
+/// @group 7-compliance
+/// @type Color
 $color-compliance-noncompliant  : $rudder-warning;
 
 
 // --- SCORES
-/// TODO
+
+/// Refers to the color of the **‘A’** score badge.
 /// @group 8-scores
 /// @type Color
 $rudder-score-color-A : $rudder-success;
+
+/// Refers to the color of the **‘B’** score badge.
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-B : #68C96A;
+
+/// Refers to the color of the **‘C’** score badge.
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-C : #B3D337;
+
+/// Refers to the color of the **‘D’** score badge.
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-D : #FEDC04;
+
+/// Refers to the color of the **‘E’** score badge.
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-E : #F0940E;
+
+/// Refers to the color of the **‘F’** score badge.
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-F : $rudder-danger;
+
+/// Refers to the color of the **‘X’** score badge.
+/// @group 8-scores
+/// @type Color
 $rudder-score-color-X : #B1BBCB;
 
 
 // --- PACKAGES
-/// TODO
+/// Used on icons, text, and badges to represent **‘security’** packages.
 /// @group 9-packages
 /// @type Color
 $color-package-security    : $rudder-danger;
+
+/// Used on icons, text, and badges to represent **‘bugfix’** packages.
+/// @group 9-packages
+/// @type Color
 $color-package-bugfix      : $rudder-warning;
+
+/// Used on icons, text, and badges to represent **‘enhancement’** packages.
+/// @group 9-packages
+/// @type Color
 $color-package-enhancement : $rudder-success;
+
+/// Used on icons, text, and badges to represent **‘update’** packages.
+/// @group 9-packages
+/// @type Color
 $color-package-update      : $rudder-gray-500;
+
+/// Used on icons, text, and badges to represent **‘up to date’** packages.
+/// @group 9-packages
+/// @type Color
 $color-package-uptodate    : #00A65A;
+
+
+
+// --- ACCORDIONS
+
+/// Used to highlights accordion border.
+/// @group 91-accordions
+/// @type Color
+$rudder-accordion-color-1 : #D1A9DD;
+/// Used to highlights accordion border.
+/// @group 91-accordions
+/// @type Color
+$rudder-accordion-color-2 : #A9D6DD;
+/// Used to highlights accordion border.
+/// @group 91-accordions
+/// @type Color
+$rudder-accordion-color-3 : #A9B9DD;
