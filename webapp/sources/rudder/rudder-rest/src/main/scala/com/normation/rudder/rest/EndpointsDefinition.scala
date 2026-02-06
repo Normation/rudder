@@ -1589,6 +1589,12 @@ object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAcc
     val (action, path) = GET / "apiaccounts" / "token"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
+  case object QueryTokenAccount extends ApiAccounts with OneParam with StartsAtVersion22 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get API account for the queried token value"
+    val (action, path) = GET / "apiaccounts" / "token" / "{token}"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+  }
   case object GetAccount        extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get one API account if it exists"
@@ -1600,12 +1606,6 @@ object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAcc
     val description    = "Create a new API account. If ID is provided and already exists, it's an error"
     val (action, path) = POST / "apiaccounts"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
-  }
-  case object QueryTokenAccount extends ApiAccounts with ZeroParam with StartsAtVersion22 with SortIndex {
-    val z: Int = implicitly[Line].value
-    val description    = "Get API account for the queried token value"
-    val (action, path) = POST / "apiaccounts" / "token"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
   case object UpdateAccount     extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value

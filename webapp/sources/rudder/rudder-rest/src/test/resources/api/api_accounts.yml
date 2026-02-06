@@ -270,14 +270,8 @@ response:
     }
 ---
 description: Get API account for the queried token value
-method: POST
-url: /api/latest/apiaccounts/token
-headers:
-  - "Content-Type: application/json"
-body: >-
-  {
-    "token":"t2-29d5c3cdca39bd7ba81e7e0f88084689"
-  }
+method: GET
+url: /api/latest/apiaccounts/token/t2-29d5c3cdca39bd7ba81e7e0f88084689
 response:
   code: 200
   content: >-
@@ -303,33 +297,9 @@ response:
       }
     }
 ---
-description: Get API account without token in body
-method: POST
-url: /api/latest/apiaccounts/token
-headers:
-  - "Content-Type: application/json"
-body: >-
-  {
-    "toke":"attempt-token"
-  }
-response:
-  code: 400
-  content: >-
-    {
-      "action":"queryTokenAccount",
-      "result":"error",
-      "errorDetails" : "A valid token must be provided in payload; cause was: Unexpected: .token(missing)"
-    }
----
 description: Get API account from a non-existing token
-method: POST
-url: /api/latest/apiaccounts/token
-headers:
-  - "Content-Type: application/json"
-body: >-
-  {
-    "token":"attempt-token"
-  }
+method: GET
+url: /api/latest/apiaccounts/token/attempt-token
 response:
   code: 404
   content: >-

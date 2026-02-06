@@ -156,21 +156,24 @@ class ApiAccountApi(
     }
   }
 
-  object QueryTokenAccount extends LiftApiModule0 {
+  object QueryTokenAccount extends LiftApiModule {
     val schema: API.QueryTokenAccount.type = API.QueryTokenAccount
 
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      (for {
-        token   <- ZioJsonExtractor.parseJsonOr400[ApiToken](req)("A valid token must be provided in payload")
-        account <-
-          service
-            .getByToken(ApiTokenHash.fromSecret(token.token))
-            // this may end up in API error logs, so avoid exposing a whole token (which may be related to the system token)
-            .notOptional(s"API account could not be found from token '${token.token.exposeSecretBeginning}'")
-            .mapError(err => NotFoundError(Some(err.msg)))
-      } yield {
-        account
-      }).either
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        token:      String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      val secret = ApiTokenSecret(token)
+      service
+        .getByToken(ApiTokenHash.fromSecret(secret))
+        // this may end up in API error logs, so avoid exposing a whole token (which may be related to the system token)
+        .notOptional(s"API account could not be found from token '${secret.exposeSecretBeginning}'")
+        .mapError(err => NotFoundError(Some(err.msg)))
+        .either
         .toLiftResponseOneEither[ApiAccountDetails.Public](
           params,
           schema,
