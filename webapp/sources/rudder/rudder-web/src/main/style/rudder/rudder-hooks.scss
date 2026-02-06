@@ -34,7 +34,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .rudder-template > .one-col{
   flex: 1;
@@ -63,10 +63,10 @@
     font-weight: bold;
   }
   h5{
-    color: $rudder-txt-light;
+    color: rudder.$txt-light;
 
     small{
-      color: $rudder-txt-secondary;
+      color: rudder.$txt-secondary;
       margin-left: 8px;
       opacity: .8;
     }
@@ -82,7 +82,7 @@
 
   & > li{
     padding: 8px;
-    background-color: $rudder-bg-light-gray;
+    background-color: rudder.$bg-light-gray;
     border-radius: 5px;
     margin-bottom: 6px;
     font-size: 14px;

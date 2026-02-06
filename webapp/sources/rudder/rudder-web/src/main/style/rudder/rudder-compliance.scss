@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 $bar-radius : 4px;
 
@@ -85,8 +85,8 @@ $bar-stripped-gradient : linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, t
          135deg,
          #eef1f8,
          #eef1f8 10px,
-         $rudder-bg-light-gray 10px,
-         $rudder-bg-light-gray 20px
+         rudder.$bg-light-gray 10px,
+         rudder.$bg-light-gray 20px
        );
        box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
        width: 100%;
@@ -95,43 +95,43 @@ $bar-stripped-gradient : linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, t
 
   .progress-bar-reportsdisabled,
   .compliance-badge.disabled {
-    background-color: $color-compliance-disabled;
+    background-color: rudder.$color-compliance-disabled;
   }
   .progress-bar-success,
   .compliance-badge.success {
-    background-color: $color-compliance-success;
+    background-color: rudder.$color-compliance-success;
   }
   .progress-bar-error,
   .compliance-badge.error {
-    background-color: $color-compliance-error;
+    background-color: rudder.$color-compliance-error;
   }
   .progress-bar-pending,
   .compliance-badge.pending {
-    background-color: $color-compliance-pending;
+    background-color: rudder.$color-compliance-pending;
   }
   .progress-bar-no-report,
   .compliance-badge.no-report {
-    background-color: $color-compliance-noreport;
+    background-color: rudder.$color-compliance-noreport;
   }
   .progress-bar-unknown,
   .compliance-badge.unexpected {
-    background-color: $color-compliance-error;
+    background-color: rudder.$color-compliance-error;
   }
   .progress-bar-missing {
-    background-color: $color-compliance-missing;
+    background-color: rudder.$color-compliance-missing;
   }
   .progress-bar-audit-compliant {
-    background-color: $color-compliance-success;
+    background-color: rudder.$color-compliance-success;
   }
   .progress-bar-audit-noncompliant,
   .compliance-badge.non-compliant {
-    background-color: $color-compliance-noncompliant;
+    background-color: rudder.$color-compliance-noncompliant;
   }
   .progress-bar-audit-notapplicable {
-    background-color: $color-compliance-notapplicable;
+    background-color: rudder.$color-compliance-notapplicable;
   }
   .progress-bar-audit-error {
-    background-color: $color-compliance-error;
+    background-color: rudder.$color-compliance-error;
   }
 }
 /* SMALL COMPLIANCE BADGE */
@@ -252,7 +252,7 @@ $small-prefix : "sm-";
 
 .compliance-score {
   label{
-    color: $rudder-txt-secondary;
+    color: rudder.$txt-secondary;
     font-weight: bold;
     white-space: nowrap;
   }
@@ -265,14 +265,14 @@ $small-prefix : "sm-";
 
 
   .score-explanation {
-    border-left: 2px solid $rudder-border-color-default;
+    border-left: 2px solid rudder.$border-color-default;
     position: relative;
     &:before {
       height: 14px;
       width: 14px;
       background-color: #fff;
-      border-top: 2px solid $rudder-border-color-default;
-      border-right: 2px solid $rudder-border-color-default;
+      border-top: 2px solid rudder.$border-color-default;
+      border-right: 2px solid rudder.$border-color-default;
       transform: rotate(-135deg);
       content: "";
       display: inline-block;
@@ -292,7 +292,7 @@ $small-prefix : "sm-";
   }
 
   .no-compliance{
-    color: $rudder-txt-secondary;
+    color: rudder.$txt-secondary;
     font-size: 1.2em;
     font-weight: bold;
 
@@ -307,7 +307,7 @@ $small-prefix : "sm-";
   label{
     min-width: 125px;
     padding-right: 15px;
-    color: $rudder-txt-secondary;
+    color: rudder.$txt-secondary;
     font-weight: bold;
 
     & + * {
@@ -337,20 +337,20 @@ $small-prefix : "sm-";
   font-weight: 1000 !important;
 
   &.security{
-    background-color: $color-package-security !important;
+    background-color: rudder.$color-package-security !important;
   }
   &.bugfix,
   &.defect{
-    background-color: $color-package-bugfix !important;
+    background-color: rudder.$color-package-bugfix !important;
   }
   &.enhancement{
-    background-color: $color-package-enhancement !important;
+    background-color: rudder.$color-package-enhancement !important;
   }
   &.update{
-    background-color: $color-package-update !important;
+    background-color: rudder.$color-package-update !important;
   }
   &.up-to-date{
-    background-color: $color-package-uptodate !important;
+    background-color: rudder.$color-package-uptodate !important;
   }
 
   & .icon-state {

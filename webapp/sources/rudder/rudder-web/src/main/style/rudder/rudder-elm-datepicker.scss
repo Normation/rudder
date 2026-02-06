@@ -34,7 +34,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 button.form-control.btn-datepicker{
   text-align: left;
@@ -114,7 +114,7 @@ button.form-control.btn-datepicker:disabled {
   outline: 0;
 }
 .elm-datetimepicker-single--calendar-day:hover {
-  background-color: $rudder-bg-info;
+  background-color: rudder.$bg-info;
 }
 .elm-datetimepicker-single--calendar-day.elm-datetimepicker-single--hidden {
   visibility: hidden;
