@@ -4,7 +4,6 @@ import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (defaultComplianceFilter, getAllComplianceValues)
 import Dict exposing (Dict)
 
-import Groups.ViewUtils exposing (getCategoryName)
 import Html exposing (Html, div, span, text)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick)
@@ -13,7 +12,7 @@ import List.Nonempty as NonEmptyList
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
 
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, disabled)
 import Ordering exposing (Ordering)
 import Round
 import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), OutMsg(..), buildConfig, buildCustomizations, buildOptions)
@@ -38,7 +37,7 @@ init flags =
       [ getGroupsTree initModel (not flags.hasGroupToDisplay)
       ]
   in
-    ( initModel
+    ( initModel |> updateGroupsTableData
     , Cmd.batch listInitActions
     )
 
@@ -150,3 +149,46 @@ categoryToString category =
         Just "SystemGroups" -> "System groups"
         Just "GroupRoot" -> "Root of the groups and group categories"
         Just cat -> cat
+
+
+toGroupWithCompliance : Dict String GroupComplianceSummary -> Group -> GroupWithCompliance
+toGroupWithCompliance groupsCompliance group =
+    let
+        compliance =
+            Dict.get group.id.value groupsCompliance
+    in
+    { id = group.id
+    , name = group.name
+    , category = group.category
+    , globalCompliance = Maybe.map .global compliance
+    , targetedCompliance = Maybe.map .targeted compliance
+    }
+
+--TODO: refactor to separate 'lens' and 'business logic'
+updateGroupsTableData : Model -> Model
+updateGroupsTableData model =
+    let
+        groupsList = getElemsWithCompliance model
+        data =
+            List.map
+                (toGroupWithCompliance model.groupsCompliance)
+                groupsList
+
+        table = model.groupsTable
+        size =  table |> Rudder.Table.getRows |> List.length
+        {-
+        FIXME :
+            REALLY ugly fix that ensures that the export button is enabled if and only if
+            table data is available. for some reason, table data is not loaded if the user loads
+            the elm app in the state where a given group's details are displayed on the right pane, e.g.
+            by opening the link rudder/secure/nodeManager/groups#{"groupId":"all-nodes-with-cfengine-agent"}
+            (i.e. without visiting rudder/secure/nodeManager/groups and clicking on the group from the table or the tree).
+        -}
+        isDisabled = size == 0 && (not (model.mode == GroupTable))
+        options =
+            buildOptions.newOptions
+            |> buildOptions.withCsvExport
+                { entryToStringList = entryToStringList, btnAttributes=[ disabled isDisabled ]}
+
+    in
+    {model | groupsTable = Rudder.Table.updateData data model.groupsTable, csvExportOptions = options.csvExport }

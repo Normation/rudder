@@ -10,7 +10,6 @@ import Rudder.Table
 import String
 
 import Groups.DataTypes exposing (..)
-import Groups.ViewGroupsTable exposing (..)
 import Groups.ViewUtils exposing (..)
 
 import Rudder.Filters
