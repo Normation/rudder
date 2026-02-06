@@ -20,7 +20,6 @@
     "jquery-ui-timepicker-addon": "^1.6.3",
     "jsondiffpatch": "^0.7.3",
     "jstree": "^3.3.17",
-    "sassdoc": "^2.7.4",
     "showdown": "^2.1.0",
     "showdown-xss-filter": "^0.2.0",
     "xss": "^1.0.15"
@@ -38,7 +37,8 @@
     "gulp-sourcemaps": "^3.0.0",
     "gulp-terser": "^2.1.0",
     "merge2": "^1.4.1",
-    "sass": "^1.93.2"
+    "sass": "^1.93.2",
+    "sassdoc": "^2.7.4"
   },
   "overrides": {
     "postcss": "^8.5.6"
