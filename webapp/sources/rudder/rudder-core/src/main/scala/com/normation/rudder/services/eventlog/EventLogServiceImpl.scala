@@ -104,7 +104,7 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
 }
 
 object EventLogServiceImpl {
-  implicit private class IOResultSystemError[A](io: IOResult[A]) {
+  extension [A](io: IOResult[A]) {
     def catchSystemErrors: IOResult[A] = io.catchSome {
       case err: SystemError =>
         EventLogsLoggerPure.error(err.fullMsg) *>
