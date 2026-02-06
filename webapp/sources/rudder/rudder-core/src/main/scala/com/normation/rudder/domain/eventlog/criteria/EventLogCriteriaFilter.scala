@@ -36,7 +36,7 @@ object EventLogCriteriaFilter {
     def fromId(id: Int): Either[String, Column] = {
       values
         .find(_.id == id)
-        .toRight(s"Not a valid column id : $id, columns are ${values.map(c => s"${c.id}=${c.entryName}").mkString(",")}")
+        .toRight(s"Not a valid column id : ${id}, columns are ${values.map(c => s"${c.id}=${c.entryName}").mkString(",")}")
     }
   }
 
