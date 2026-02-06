@@ -46,19 +46,19 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechniqueDiff
+import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
 import zio.*
 import zio.syntax.*
 
@@ -71,10 +71,8 @@ trait DeleteEditorTechnique {
   def deleteTechnique(
       techniqueName:    String,
       techniqueVersion: String,
-      deleteDirective:  Boolean,
-      modId:            ModificationId,
-      committer:        QueryContext
-  ): IOResult[Unit]
+      deleteDirective:  Boolean
+  )(implicit changeContext: ChangeContext): IOResult[Unit]
 }
 
 class DeleteEditorTechniqueImpl(
@@ -85,6 +83,8 @@ class DeleteEditorTechniqueImpl(
     techniqueRepository:      TechniqueRepository,
     workflowLevelService:     WorkflowLevelService,
     compilationStatusService: TechniqueCompilationStatusSyncService,
+    techniqueReader:          EditorTechniqueReader,
+    actionLogger:             EventLogRepository,
     baseConfigRepoPath:       String // root of config repos
 ) extends DeleteEditorTechnique {
   // root of technique repository
@@ -93,10 +93,8 @@ class DeleteEditorTechniqueImpl(
   override def deleteTechnique(
       techniqueName:    String,
       techniqueVersion: String,
-      deleteDirective:  Boolean,
-      modId:            ModificationId,
-      qc:               QueryContext
-  ): IOResult[Unit] = {
+      deleteDirective:  Boolean
+  )(implicit changeContext: ChangeContext): IOResult[Unit] = {
 
     def createCr(directive: Directive, rootSection: SectionSpec) = {
       val diff = DeleteDirectiveDiff(TechniqueName(techniqueName), directive)
@@ -108,7 +106,7 @@ class DeleteEditorTechniqueImpl(
         directive.id,
         Some(directive),
         diff,
-        qc.actor,
+        changeContext.actor,
         None
       )
     }
@@ -118,63 +116,72 @@ class DeleteEditorTechniqueImpl(
     }
 
     def removeTechnique(techniqueId: TechniqueId, technique: domain.Technique): IOResult[Unit] = {
-      implicit val cc: ChangeContext = qc.newCC(Some(s"Deleting technique '${techniqueId.serialize}'")).copy(modId = modId)
       for {
-        directives <- readDirectives
-                        .getFullDirectiveLibrary()
-                        .map(
-                          _.allActiveTechniques.values
-                            .filter(_.techniqueName.value == techniqueId.name.value)
-                            .flatMap(_.directives)
-                            .filter(_.techniqueVersion == techniqueId.version)
-                        )
-        categories <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
+        directives       <- readDirectives
+                              .getFullDirectiveLibrary()
+                              .map(
+                                _.allActiveTechniques.values
+                                  .filter(_.techniqueName.value == techniqueId.name.value)
+                                  .flatMap(_.directives)
+                                  .filter(_.techniqueVersion == techniqueId.version)
+                              )
+        categories       <- techniqueRepository.getTechniqueCategoriesBreadCrump(techniqueId)
         // Check if we have directives, and either, make an error, if we don't force deletion, or delete them all, creating a change request
-        _          <- directives match {
-                        case Nil => ZIO.unit
-                        case _   =>
-                          if (deleteDirective) {
-                            val wf = workflowLevelService.getWorkflowService()
-                            for {
-                              cr <- directives
-                                      .map(createCr(_, technique.rootSection))
-                                      .reduceOption(mergeCrs)
-                                      .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
-                              _  <- wf.startWorkflow(cr)
-                            } yield ()
-                          } else {
-                            Unexpected(
-                              s"${directives.size} directives are defined for '${techniqueId.serialize}': please delete them, or force deletion"
-                            ).fail
-                          }
-                      }
-        activeTech <- readDirectives.getActiveTechnique(techniqueId.name)
-        _          <- activeTech match {
-                        case None                  =>
-                          // No active technique found, let's delete it
-                          ().succeed
-                        case Some(activeTechnique) =>
-                          writeDirectives.deleteActiveTechnique(
-                            activeTechnique.id,
-                            modId,
-                            qc.actor,
-                            Some(s"Deleting active technique '${techniqueId.name.value}'")
-                          )
-                      }
+        _                <- directives match {
+                              case Nil => ZIO.unit
+                              case _   =>
+                                if (deleteDirective) {
+                                  val wf = workflowLevelService.getWorkflowService()
+                                  for {
+                                    cr <- directives
+                                            .map(createCr(_, technique.rootSection))
+                                            .reduceOption(mergeCrs)
+                                            .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
+                                    _  <- wf.startWorkflow(cr)(using changeContext.withMsg(s"Deleting technique '${techniqueId.serialize}'"))
+                                  } yield ()
+                                } else {
+                                  Unexpected(
+                                    s"${directives.size} directives are defined for '${techniqueId.serialize}': please delete them, or force deletion"
+                                  ).fail
+                                }
+                            }
+        activeTech       <- readDirectives.getActiveTechnique(techniqueId.name)
+        _                <- activeTech match {
+                              case None                  =>
+                                // No active technique found, let's delete it
+                                ().succeed
+                              case Some(activeTechnique) =>
+                                writeDirectives.deleteActiveTechnique(
+                                  activeTechnique.id,
+                                  changeContext.modId,
+                                  changeContext.actor,
+                                  Some(s"Deleting active technique '${techniqueId.name.value}'")
+                                )
+                            }
+        editorTechniques <- techniqueReader
+                              .getTechnique(BundleName(techniqueId.name.value), techniqueId.version.version.toVersionString)
+                              .notOptional("could not find technique we were deleting")
         // at some point we will likely want to call rudderc when it was the compiler to clean thing in archiver
-        _          <- archiver.deleteTechnique(
-                        techniqueId,
-                        categories.map(_.id.name.value),
-                        modId,
-                        qc.actor,
-                        s"Deleting technique '${techniqueId}'"
-                      )
-        _          <- techLibUpdate
-                        .update()(using cc.withMsg(s"Update Technique library after deletion of technique '${technique.name}'"))
-                        .toIO
-                        .chainError(
-                          s"An error occurred during technique update after deletion of Technique ${technique.name}"
-                        )
+        _                <- archiver.deleteTechnique(
+                              techniqueId,
+                              categories.map(_.id.name.value),
+                              changeContext.modId,
+                              changeContext.actor,
+                              s"Deleting technique '${techniqueId}'"
+                            )
+        diff              = DeleteEditorTechniqueDiff(editorTechniques)
+        eventLogged      <- actionLogger.saveDeleteEditorTechnique(
+                              changeContext.modId,
+                              principal = changeContext.actor,
+                              deleteDiff = diff,
+                              reason = changeContext.message
+                            )
+        _                <- techLibUpdate
+                              .update()
+                              .toIO
+                              .chainError(
+                                s"An error occurred during technique update after deletion of Technique ${technique.name}"
+                              )
       } yield ()
     }
 
@@ -198,8 +205,8 @@ class DeleteEditorTechniqueImpl(
                          .deleteTechnique(
                            techniqueId,
                            cat,
-                           modId,
-                           qc.actor,
+                           changeContext.modId,
+                           changeContext.actor,
                            s"Deleting invalid technique ${techniqueName}/${techniqueVersion}"
                          )
                          .chainError(
@@ -207,11 +214,7 @@ class DeleteEditorTechniqueImpl(
                            s"${techniquesDir.pathAsString}: `rm -rf ${f.pathAsString} && git commit -m 'Deleting invalid technique ${f.pathAsString}' && reload-techniques"
                          )
                      _ <- techLibUpdate
-                            .update()(using
-                              qc.newCC(
-                                Some(s"Update Technique library after deletion of invalid Technique ${techniqueName}")
-                              )
-                            )
+                            .update()
                             .toIO
                             .chainError(
                               s"An error occurred during technique update after deletion of Technique ${techniqueName}"

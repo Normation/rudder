@@ -45,6 +45,7 @@ case object APIAccountCategory             extends EventLogCategory
 case object RudderApplicationLogCategory   extends EventLogCategory
 case object RuleLogCategory                extends EventLogCategory
 case object DirectiveLogCategory           extends EventLogCategory
+case object EditorTechniqueLogCategory     extends EventLogCategory
 case object TechniqueLogCategory           extends EventLogCategory
 case object DeploymentLogCategory          extends EventLogCategory
 case object NodeGroupLogCategory           extends EventLogCategory
@@ -136,6 +137,17 @@ case object DeleteDirectiveEventType extends RollbackEventLogType {
 }
 case object ModifyDirectiveEventType extends RollbackEventLogType {
   def serialize = "DirectiveModified"
+}
+
+// Editor technique related
+case object AddEditorTechniqueEventType    extends RollbackEventLogType {
+  def serialize = "EditorTechniqueAdded"
+}
+case object DeleteEditorTechniqueEventType extends RollbackEventLogType {
+  def serialize = "EditorTechniqueDeleted"
+}
+case object ModifyEditorTechniqueEventType extends RollbackEventLogType {
+  def serialize = "EditorTechniqueModified"
 }
 
 // the generic event related event type
@@ -327,6 +339,9 @@ object ModificationWatchList {
     AddDirectiveEventType,
     DeleteDirectiveEventType,
     ModifyDirectiveEventType,
+    AddEditorTechniqueEventType,
+    DeleteEditorTechniqueEventType,
+    ModifyEditorTechniqueEventType,
     AddNodeGroupEventType,
     DeleteNodeGroupEventType,
     ModifyNodeGroupEventType,
@@ -369,6 +384,9 @@ object EventTypeFactory {
     AddDirectiveEventType,
     DeleteDirectiveEventType,
     ModifyDirectiveEventType,
+    AddEditorTechniqueEventType,
+    DeleteEditorTechniqueEventType,
+    ModifyEditorTechniqueEventType,
     ApplicationStartedEventType,
     ActivateRedButtonEventType,
     ReleaseRedButtonEventType,

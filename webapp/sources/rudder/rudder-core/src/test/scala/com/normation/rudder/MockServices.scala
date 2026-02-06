@@ -47,6 +47,8 @@ import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.CfeCommunity
@@ -75,6 +77,8 @@ import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.secret.Secret
+import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
@@ -116,6 +120,7 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
+import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
@@ -134,6 +139,7 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+import doobie.Fragment
 import java.time.Instant
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
@@ -437,10 +443,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def deleteTechnique(
         techniqueName:    String,
         techniqueVersion: String,
-        deleteDirective:  Boolean,
-        modId:            ModificationId,
-        committer:        QueryContext
-    ): IOResult[Unit] = ZIO.unit
+        deleteDirective:  Boolean
+    )(implicit cc: ChangeContext): IOResult[Unit] = ZIO.unit
   }
 
   val techniqueActiveStatusService: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {
@@ -456,12 +460,73 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def getUpdateAndSync(results:             Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = ZIO.unit
   }
 
+  val eventLogRepo: EventLogRepository = new EventLogRepository {
+    override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
+
+    override def eventLogFactory: EventLogFactory = ???
+
+    override def getEventLogByCriteria(
+        criteria:       Option[Fragment],
+        limit:          Option[Int],
+        orderBy:        List[Fragment],
+        extendedFilter: Option[Fragment]
+    ): IOResult[Seq[EventLog]] = ???
+
+    override def getEventLogById(id: Long): IOResult[EventLog] = {
+      ???
+    }
+
+    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = 0L.succeed
+
+    override def getEventLogByChangeRequest(
+        changeRequest:   ChangeRequestId,
+        xpath:           String,
+        optLimit:        Option[Int],
+        orderBy:         Option[String],
+        eventTypeFilter: List[EventLogFilter]
+    ): IOResult[Vector[EventLog]] = ???
+
+    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = {
+      ZIO.none
+    }
+
+    override def getLastEventByChangeRequest(
+        xpath:           String,
+        eventTypeFilter: List[EventLogFilter]
+    ): IOResult[Map[ChangeRequestId, EventLog]] = ???
+
+    override def saveAddSecret(
+        modId:     ModificationId,
+        principal: EventActor,
+        secret:    Secret,
+        reason:    Option[String]
+    ): IOResult[EventLog] = ZIO.succeed(null)
+
+    override def saveDeleteSecret(
+        modId:     ModificationId,
+        principal: EventActor,
+        secret:    Secret,
+        reason:    Option[String]
+    ): IOResult[EventLog] = ZIO.succeed(null)
+
+    override def saveModifySecret(
+        modId:     ModificationId,
+        principal: EventActor,
+        oldSec:    Secret,
+        newSec:    Secret,
+        reason:    Option[String]
+    ): IOResult[EventLog] = ZIO.succeed(null)
+
+  }
+
   val techniqueWriter = new TechniqueWriterImpl(
     techniqueArchiver,
     techniqueRepo,
     deleteEditorTechnique,
     techniqueCompiler,
     techniqueCompilationCache,
+    editorTechniqueReader,
+    eventLogRepo,
     mockGit.configurationRepositoryRoot.pathAsString
   )
 }

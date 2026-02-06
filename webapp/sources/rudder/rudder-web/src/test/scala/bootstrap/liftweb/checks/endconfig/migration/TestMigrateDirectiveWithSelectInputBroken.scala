@@ -108,6 +108,10 @@ class TestMigrateDirectiveWithSelectInputBroken extends Specification with Conte
     override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = Map.empty[BundleName, GenericMethod].succeed
 
     override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
+
+    override def getTechnique(id: BundleName, version: String): IOResult[Option[EditorTechnique]] =
+      List(editorTech).find(technique => id == technique.id && version == technique.version.value).succeed
+
   }
 
   val directive = Directive(

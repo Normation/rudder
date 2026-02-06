@@ -41,7 +41,6 @@ import better.files.File
 import com.normation.cfclerk.domain.{BundleName as _, *}
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.implicits.*
@@ -227,13 +226,10 @@ class TechniqueApi(
         params:        DefaultParams,
         authzToken:    AuthzToken
     ): LiftResponse = {
-
-      val modId = ModificationId(uuidGen.newUuid)
-
       val content = {
         for {
           force <- extractBoolean("force")(req).map(_.getOrElse(false)).toIO
-          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc)
+          _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force)(using authzToken.qc.newCC())
         } yield {
           // here, up to 8.3 we used to just return: `"data": { "techniques": { "id":...}}`
           // in place of the normalized `"data": { "techniques": [ {"id":...}]}
@@ -275,11 +271,7 @@ class TechniqueApi(
               case Full(bytes) => new String(bytes, charset).fromJson[EditorTechnique].toIO
             }
           _                <- techniqueReader.getMethodsMetadata
-          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using
-                                authzToken.user.qc.newCC(
-                                  Some(s"Update Technique library after creating files for ncf Technique ${technique.name}")
-                                )
-                              )
+          updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique)(using authzToken.qc.newCC())
           json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
           json
@@ -333,7 +325,6 @@ class TechniqueApi(
     import techniqueSerializer.*
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val modId    = ModificationId(uuidGen.newUuid)
       val response = for {
         res                    <- techniqueReader.readTechniquesMetadataFile
         (techniques, _, errors) = res
@@ -343,7 +334,7 @@ class TechniqueApi(
                                       s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
                                     )
                                   }
-        res                    <- techniqueWriter.writeTechniques(techniques, modId, authzToken.qc.actor)
+        res                    <- techniqueWriter.writeTechniques(techniques)(using authzToken.qc.newCC())
         json                   <- ZIO.foreach(res)(_.toJsonAST.toIO)
       } yield {
         json

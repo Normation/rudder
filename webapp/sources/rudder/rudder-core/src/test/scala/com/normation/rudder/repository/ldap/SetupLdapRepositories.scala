@@ -66,6 +66,7 @@ import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
+import com.normation.rudder.ncf.eventlogs.EditorTechniqueXmlSerialisationImpl
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.eventlog.*
 import com.normation.rudder.services.marshalling.*
@@ -277,7 +278,8 @@ trait SetupLdapRepositories {
       new GlobalParameterSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString),
       new APIAccountSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString),
       new GlobalPropertySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString),
-      new SecretSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+      new SecretSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString),
+      new EditorTechniqueXmlSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
     )
 
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed

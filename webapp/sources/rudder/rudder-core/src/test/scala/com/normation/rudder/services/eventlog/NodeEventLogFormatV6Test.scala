@@ -64,7 +64,7 @@ import scala.xml.Elem
 class NodeEventLogFormatV6Test extends Specification {
 
   // we only want to unserialize node properties - all these null, a piece of beauty
-  val eventDetails = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
+  val eventDetails = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null, null)
 
   val event_32_NodePropertiesModified: Elem = <entry><node changeType="modify" fileFormat="6">
     <id>root</id>

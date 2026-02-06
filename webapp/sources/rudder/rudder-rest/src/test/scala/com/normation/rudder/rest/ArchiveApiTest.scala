@@ -333,7 +333,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
           children(
             testDir / s"${archiveName}/techniques/ncf_techniques/test_import_export_archive/1.0"
           ) must containTheSameElementsAs(
-            List("technique.json", "technique.ps1", "technique.cf", "metadata.xml")
+            List("technique.yml")
           )
         )
 
@@ -686,17 +686,11 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
             "technique.yml",
             "technique_with_blocks",
             "1.0",
-            "metadata.xml",
-            "technique.cf",
-            "technique.json",
-            "technique.ps1",
+            "technique.yml",
             "technique.rd",
             "test_import_export_archive",
             "1.0",
-            "metadata.xml",
-            "technique.cf",
-            "technique.json",
-            "technique.ps1",
+            "technique.yml",
             "systemSettings",
             "category.json",
             "misc",

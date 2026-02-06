@@ -53,6 +53,9 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
+import com.normation.rudder.ncf.eventlogs.AddEditorTechnique
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechnique
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechnique
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
@@ -88,6 +91,8 @@ class EventLogDetailsGenerator(
     diffDisplayer:       DiffDisplayer
 ) extends Loggable {
 
+  import com.normation.rudder.web.services.DiffDisplayer.*
+  import com.normation.rudder.web.services.eventlog.TechniqueLogDetails.*
   private val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
 
   // convention: "X" means "ignore"
@@ -151,7 +156,7 @@ class EventLogDetailsGenerator(
           if (actionName == Text(" deleted"))
             Text(name)
           else
-            <a href={changeRequestLink(ChangeRequestId(id))}>{name}</a>
+            <a href={changeRequestLink(ChangeRequestId(id), S.contextPath)}>{name}</a>
 
         case Catch(e) =>
           logger.error(s"could not translate ${idNode} to a correct chage request identifier: ${e.getMessage()}")
@@ -182,6 +187,11 @@ class EventLogDetailsGenerator(
     def secretDesc(x: EventLog, actionName: NodeSeq) = {
       val name = (x.details \ "secret" \ "name").text
       Text(s"Secret ${name} ${actionName}")
+    }
+
+    def editorTechniqueDesc(x: EventLog, actionName: NodeSeq) = {
+      val name = (x.details \ "technique" \ "name").text
+      Text(s"Technique ${name} ${actionName}")
     }
 
     event match {
@@ -240,7 +250,10 @@ class EventLogDetailsGenerator(
       case x: AddSecret                     => secretDesc(x, Text(" added"))
       case x: ModifySecret                  => secretDesc(x, Text(" modified"))
       case x: DeleteSecret                  => secretDesc(x, Text(" deleted"))
-      case _ => Text("Unknow event type")
+      case x: AddEditorTechnique            => editorTechniqueDesc(x, Text(" added"))
+      case x: ModifyEditorTechnique         => editorTechniqueDesc(x, Text(" modified"))
+      case x: DeleteEditorTechnique         => editorTechniqueDesc(x, Text(" deleted"))
+      case _ => Text("Unknown event type")
     }
   }
 
@@ -288,7 +301,7 @@ class EventLogDetailsGenerator(
       }
 
       def errorMessage(e: EmptyBox) = {
-        logger.debug(e ?~! "Error when parsing details.", e)
+        logger.error(e ?~! "Error when parsing details.", e)
         <xml:group>
           <div class="evloglmargin">
             <h5>Details for that node were not in a recognized format.
@@ -407,7 +420,7 @@ class EventLogDetailsGenerator(
                       </li>
                     </ul>{
                     (
-                      "#name" #> mapSimpleDiff(modDiff.modName, modDiff.id) &
+                      "#name" #> mapSimpleDiff(modDiff.modName) &
                       "#priority *" #> mapSimpleDiff(modDiff.modPriority) &
                       "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivated) &
                       "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
@@ -464,6 +477,57 @@ class EventLogDetailsGenerator(
               xml
             }
 
+          ///////// EditorTechnique /////////
+
+          case x: ModifyEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueModifyDetails(x.details) match {
+                case Full(modDiff) =>
+                  techniqueModDetails(modDiff) ++ reasonHtml ++ xmlParameters(event.id)
+
+                case Failure(m, _, _) =>
+                  <p>
+                    {m}
+                  </p>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: AddEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueAddDetails(x.details) match {
+                case Full(diff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{
+                    editorTechniqueDetails(diff.editorTechnique)
+                  }{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
+          case x: DeleteEditorTechnique =>
+            "*" #> {
+              val xml: NodeSeq = logDetailsService.getEditorTechniqueDeleteDetails(x.details) match {
+                case Full(diff) =>
+                  <div class="evloglmargin">
+
+                    {generatedByChangeRequest}{
+                    editorTechniqueDetails(diff.editorTechnique)
+                  }{
+                    reasonHtml
+                  }{xmlParameters(event.id)}
+                  </div>
+                case e: EmptyBox => errorMessage(e)
+              }
+              xml
+            }
+
           ///////// Node Group /////////
 
           case x: ModifyNodeGroup =>
@@ -496,14 +560,14 @@ class EventLogDetailsGenerator(
                             }
                           }
 
-                          ".diffOldValue *" #> mapOptionQuery(diff.oldValue) &
-                          ".diffNewValue *" #> mapOptionQuery(diff.newValue)
+                          ".deleted *" #> mapOptionQuery(diff.oldValue) &
+                          ".added *" #> mapOptionQuery(diff.newValue)
                         }
                       ) &
                       "#nodes" #> (
                         modDiff.modNodeList.map { diff =>
-                          ".diffOldValue *" #> nodeGroupDetails(diff.oldValue) &
-                          ".diffNewValue *" #> nodeGroupDetails(diff.newValue)
+                          ".deleted *" #> nodeGroupDetails(diff.oldValue) &
+                          ".added *" #> nodeGroupDetails(diff.newValue)
                         }
                       )
                     )(groupModDetailsXML)
@@ -660,8 +724,8 @@ class EventLogDetailsGenerator(
                   <div class="evloglmargin">
                     {
                     (
-                      ".diffOldValue *" #> networksToXML(details.oldNetworks) &
-                      ".diffNewValue *" #> networksToXML(details.newNetworks)
+                      ".deleted *" #> networksToXML(details.oldNetworks) &
+                      ".added *" #> networksToXML(details.newNetworks)
                     )(authorizedNetworksXML())
                   }{reasonHtml}{xmlParameters(event.id)}
                   </div>
@@ -970,13 +1034,13 @@ class EventLogDetailsGenerator(
                       </li>
                       <li>
                         <b>Old Value: </b>
-                        <span class="diffOldValue">
+                        <span class="deleted">
                           {diff.oldValue}
                         </span>
                       </li>
                       <li>
                         <b>New Value: </b>
-                        <span class="diffNewValue">
+                        <span class="added">
                           {diff.newValue}
                         </span>
                       </li>
@@ -1004,7 +1068,7 @@ class EventLogDetailsGenerator(
                         <b>Node ID: </b>{modDiff.id.value}
                       </li>
                     </ul>{
-                    mapComplexDiff(modDiff.modAgentRun, <b>Agent Run</b>) { (optAr: Option[AgentRunInterval]) =>
+                    mapComplexDiff(modDiff.modAgentRun, "Agent Run") { (optAr: Option[AgentRunInterval]) =>
                       optAr match {
                         case None     =>
                           <span>No value</span>
@@ -1012,7 +1076,7 @@ class EventLogDetailsGenerator(
                       }
                     }
                   }<div id={"nodepropertiesdiff-" + event.id.getOrElse("unknown")}></div>{
-                    mapComplexDiff(modDiff.modPolicyMode, <b>Policy Mode</b>) { (optMode: Option[PolicyMode]) =>
+                    mapComplexDiff(modDiff.modPolicyMode, "Policy Mode") { (optMode: Option[PolicyMode]) =>
                       optMode match {
                         case None       =>
                           <span>Use global policy mode</span>
@@ -1022,12 +1086,12 @@ class EventLogDetailsGenerator(
                           </span>
                       }
                     }
-                  }{mapComplexDiff(modDiff.modNodeState, <b>Node state</b>)(x => Text(x.name))}{
-                    mapComplexDiff(modDiff.modKeyStatus, <b>Key status</b>)(x => Text(x.value))
-                  }{mapComplexDiff(modDiff.modKeyValue, <b>Key value</b>)(x => Text(x.key))}{reasonHtml}{
+                  }{mapComplexDiff(modDiff.modNodeState, "Node state")(x => Text(x.name))}{
+                    mapComplexDiff(modDiff.modKeyStatus, "Key status")(x => Text(x.value))
+                  }{mapComplexDiff(modDiff.modKeyValue, "Key value")(x => Text(x.key))}{reasonHtml}{
                     xmlParameters(event.id)
                   }{
-                    mapComplexDiff(modDiff.modDocumentation, <b>Description</b>)(x => Text(x))
+                    mapComplexDiff(modDiff.modDocumentation, "Description")(x => Text(x))
                   }
                   </div>
                 case e: EmptyBox =>
@@ -1153,27 +1217,6 @@ class EventLogDetailsGenerator(
         <li><b>Splay time: </b><value id="splaytime"/></li>
       </ul>
     )
-  }
-
-  private def displaySimpleDiff(
-      diff:    Option[SimpleDiff[String]],
-      name:    String,
-      default: String
-  ): NodeSeq = displaySimpleDiff(diff, name).getOrElse(Text(default))
-
-  private def displaySimpleDiff(
-      diff: Option[SimpleDiff[String]],
-      name: String
-  ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
-
-  private def displayFormDiff(
-      diff: SimpleDiff[String],
-      name: String
-  ): NodeSeq = {
-    <pre id={s"result${name}"} style="white-space: pre-line; word-break: break-word; overflow: auto;">
-        <del>-{diff.oldValue}</del>
-        <ins>+{diff.newValue}</ins>
-      </pre>
   }
   private def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
     eventId match {
@@ -1313,33 +1356,6 @@ class EventLogDetailsGenerator(
     "#expirationDate" #> expiration &
     "#accountKind" #> kind &
     "#authz" #> authz)(xml)
-  }
-
-  private def mapSimpleDiffT[T](opt: Option[SimpleDiff[T]], t: T => String) = opt.map { diff =>
-    ".diffOldValue *" #> t(diff.oldValue) &
-    ".diffNewValue *" #> t(diff.newValue)
-  }
-
-  private def mapSimpleDiff[T](opt: Option[SimpleDiff[T]]) = mapSimpleDiffT(opt, (x: T) => x.toString)
-
-  private def mapSimpleDiff[T](opt: Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
-    ".diffOldValue *" #> diff.oldValue.toString &
-    ".diffNewValue *" #> diff.newValue.toString &
-    "#directiveID" #> id.serialize
-  }
-
-  private def mapComplexDiff[T](opt: Option[SimpleDiff[T]], title: NodeSeq)(display: T => NodeSeq) = {
-    opt match {
-      case None       => NodeSeq.Empty
-      case Some(diff) =>
-        <div class="diffElem">
-          {title}
-          <ul class="evlogviewpad">
-            <li><b>Old value:&nbsp;</b><span class="diffOldValue">{display(diff.oldValue)}</span></li>
-            <li><b>New value:&nbsp;</b><span class="diffNewValue">{display(diff.newValue)}</span></li>
-          </ul>
-        </div>
-    }
   }
 
   /*
@@ -1486,16 +1502,6 @@ class EventLogDetailsGenerator(
       {liModDetailsXML("acls", "ACL list")}
     </xml:group>
   }
-
-  private def liModDetailsXML(id: String, name: String) = (
-    <div id={id}>
-      <b>{name} changed: </b>
-      <ul class="evlogviewpad">
-        <li><b>Old value:&nbsp;</b><span class="diffOldValue">old value</span></li>
-        <li><b>New value:&nbsp;</b><span class="diffNewValue">new value</span></li>
-      </ul>
-    </div>
-  )
 
   private def liModDirectiveDetailsXML(id: String, name: String) = (
     <div id={id}>
@@ -1684,15 +1690,10 @@ class EventLogDetailsGenerator(
   private def authorizedNetworksXML() = (
     <div>
       <b>Networks authorized on policy server were updated: </b>
-      <table class="eventLogUpdatePolicy">
-        <thead><tr><th>from:</th><th>to:</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><span class="diffOldValue">old value</span></td>
-            <td><span class="diffNewValue">new value</span></td>
-          </tr>
-        </tbody>
-      </table>
+      <ul class="eventLogUpdatePolicy">
+        <li class="deleted"></li>
+            <li class="added"></li>
+      </ul>
     </div>
   )
 
