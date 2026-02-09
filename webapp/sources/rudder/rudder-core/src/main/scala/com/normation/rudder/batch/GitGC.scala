@@ -43,8 +43,8 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.utils.CronParser.*
 import com.normation.zio.*
 import cron4s.CronExpr
+import java.util.Properties
 import org.eclipse.jgit.lib.ProgressMonitor
-import org.joda.time.Duration
 import zio.*
 
 /**
@@ -55,58 +55,35 @@ import zio.*
  */
 class GitGC(
     gitRepo: GitRepositoryProvider,
-    optCron: Option[CronExpr]
+    optCron: Option[CronExpr],
+    monitor: () => ProgressMonitor
 ) {
 
-  val logger = GitRepositoryLogger
-
-  // this class is necessary to report information about gitgc processing that can be long
-  class LogProgressMonitor extends ProgressMonitor {
-    def start(totalTasks: Int): Unit = {
-      logger.debug(s"Start git-gc on ${gitRepo.rootDirectory.name} for ${totalTasks} tasks")
-    }
-
-    def beginTask(title: String, totalWork: Int): Unit = {
-      logger.debug(s"Start git-gc on ${gitRepo.rootDirectory.name} for ${title}: ${totalWork}")
-    }
-
-    def update(completed: Int): Unit = {
-      logger.trace(s"git-gc completed on ${gitRepo.rootDirectory.name}: ${completed}")
-    }
-
-    def endTask(): Unit = {
-      logger.trace(s"git-gc on ${gitRepo.rootDirectory.name}: task done")
-    }
-
-    def isCancelled = false
-
-    // Added in recent jgit version (at least 6.5.0.202303070854-r)
-    // It can be used to display the duration of logs but we don't it just keep it
-    // If we really want to do it, then we would add a private var and use it in other methods
-    def showDuration(enabled: Boolean): Unit = ()
+  private[batch] def doGC: Properties = {
+    gitRepo.git.gc().setProgressMonitor(monitor()).call
   }
 
   // must not fail, will be in a cron
-  val gitgc: UIO[Unit] = for {
-    t0 <- currentTimeMillis
-    _  <- gitRepo.semaphore
-            .withPermit(IOResult.attempt {
-              gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
-            })
-            .unit
-            .catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
-    t1 <- currentTimeMillis
-    _  <- logger.info(s"git-gc performed on ${gitRepo.rootDirectory.name} in ${new Duration(t1 - t0).toString}")
+  private[batch] val gitgc: UIO[Unit] = for {
+    (duration, _) <-
+      gitRepo.semaphore
+        .withPermit(IOResult.attempt(doGC))
+        .unit
+        .catchAll(err =>
+          GitRepositoryLogger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}", err.cause)
+        )
+        .timed
+    _             <- GitRepositoryLogger.info(s"git-gc performed on ${gitRepo.rootDirectory.name} in ${duration}")
   } yield ()
 
   // create the schedule gitgc cron or nothing if disabled.
   // Must not fail.
   val prog: UIO[Unit] = optCron match {
     case None       =>
-      logger.info(s"Disable automatic git-gc on ${gitRepo.rootDirectory.name} (schedule: '${DISABLED}')")
+      GitRepositoryLogger.info(s"Disable automatic git-gc on ${gitRepo.rootDirectory.name} (schedule: '${DISABLED}')")
     case Some(cron) =>
       val schedule = cron.toSchedule
-      logger.info(
+      GitRepositoryLogger.info(
         s"Automatic git-gc starts on ${gitRepo.rootDirectory.name} (schedule 'sec min h dayMonth month DayWeek': '${cron.toString}')"
       ) *>
       gitgc.schedule(schedule).unit
@@ -115,5 +92,38 @@ class GitGC(
   // start cron
   def start(): Fiber.Runtime[Nothing, Unit] = {
     ZioRuntime.unsafeRun(prog.forkDaemon)
+  }
+}
+
+object GitGC {
+
+  // this class is necessary to report information about gitgc processing that can be long
+  class LogProgressMonitor(path: String) extends ProgressMonitor {
+    override def start(totalTasks: Int): Unit = {
+      GitRepositoryLogger.logEffect.debug(s"Start git-gc on ${path} for ${totalTasks} tasks")
+    }
+
+    override def beginTask(title: String, totalWork: Int): Unit = {
+      GitRepositoryLogger.logEffect.debug(s"Start git-gc on ${path} for ${title}: ${totalWork}")
+    }
+
+    override def update(completed: Int): Unit = {
+      GitRepositoryLogger.logEffect.trace(s"git-gc completed on ${path}: ${completed}")
+    }
+
+    override def endTask(): Unit = {
+      GitRepositoryLogger.logEffect.trace(s"git-gc on ${path}: task done")
+    }
+
+    override def isCancelled = false
+
+    // Added in recent jgit version (at least 6.5.0.202303070854-r)
+    // It can be used to display the duration of logs but we don't it just keep it
+    // If we really want to do it, then we would add a private var and use it in other methods
+    override def showDuration(enabled: Boolean): Unit = ()
+  }
+
+  def make(gitRepo: GitRepositoryProvider, optCron: Option[CronExpr]) = {
+    new GitGC(gitRepo, optCron, () => new LogProgressMonitor(gitRepo.rootDirectory.pathAsString))
   }
 }
