@@ -29,6 +29,8 @@ ignore = [
     "RUSTSEC-2025-0056",
     # rust-pemfile unmaintianed
     "RUSTSEC-2025-0134",
+    # Not affected by DOS
+    "RUSTSEC-2026-0009",
 ]
 
 [bans]
