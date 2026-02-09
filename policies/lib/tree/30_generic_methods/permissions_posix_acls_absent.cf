@@ -130,6 +130,7 @@ bundle agent permissions_posix_acls_absent(path, recursive)
       "acls_binary_present"    expression => "getfacl_present.setfacl_present";
       "is_recursive"           expression => strcmp("true", "${recursive}");
       "files_found"            expression => isgreaterthan("${file_list_length}", "0");
+      "max_range_is_null"      expression => strcmp("${max_range}", "0");
       "path_exists_${indices}" expression => fileexists("${file[${indices}]}");
 
       "acls_found_${indices}"  expression => returnszero("if [ ${const.dollar}(${paths.getfacl} -R --skip-base ${file[${indices}]} | ${wc_path} -c) -ne 0 ]; then /bin/true; else /bin/false; fi 2>/dev/null #${report_data.method_id}", "useshell"),
@@ -147,10 +148,11 @@ bundle agent permissions_posix_acls_absent(path, recursive)
 
 
   methods:
-    acls_binary_present::
+    pass2.acls_binary_present::
       # Nothing to do
       "${report_data.method_id}" usebundle => _classes_success("${inner_class_prefix[${indices}]}"),
-                                        if => "!acls_found_${indices}.path_exists_${indices}";
+                                        if => and( "!acls_found_${indices}",
+                                                   "path_exists_${indices}");
 
       # Executed setfacl -b
       "${report_data.method_id}" usebundle => _classes_repaired("${inner_class_prefix[${indices}]}"),
@@ -184,5 +186,4 @@ bundle agent permissions_posix_acls_absent(path, recursive)
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string}${const.endl}Clean POSIX acls on ${path}", "");
      pass3.!is_recursive.acls_binary_present.!files_found::
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Could not find any file or directory matching ${path}, clean POSIX acl on ${path}", "");
-
 }
