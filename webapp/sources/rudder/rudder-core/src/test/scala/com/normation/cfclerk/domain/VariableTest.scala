@@ -68,7 +68,7 @@ class VariableTest extends Specification {
   val refDescription  = "description"
   val refValue        = "value"
   val refVariableName = Some("variable_name")
-  val dateValue       = "2010-01-16T12:00:00.000+01:00"
+  val dateValue       = "2010-01-16T11:00:00.000Z"
   val listValue       = "value1;value2"
   val defaultValue    = "default_value"
 
@@ -294,7 +294,7 @@ class VariableTest extends Specification {
     beAnInput
     haveType("datetime")
 
-    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(
+    haveValue(ISODateTimeFormat.dateTimeParser.withZoneUTC().parseDateTime(dateValue).toString)(
       dateVariable.copyWithSavedValue(dateValue).orThrow
     )
   }
