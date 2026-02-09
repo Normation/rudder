@@ -160,7 +160,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   // To test with multiple archives, declare more archive in restTestSetup
   // and add their Json representation to the archives list below.
 
-  val dateTimeId = "1970-01-01_01-00-00.042"
+  private val dateTimeId = "1970-01-01_01-00-00.042"
 
   val archive1: JObject = JObject(
     List(

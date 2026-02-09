@@ -83,7 +83,7 @@ response:
       "data" : [
         {
           "id" : 42,
-          "date" : "2024-12-04 15:30:10+0100",
+          "date" : "2024-12-04 14:30:10+0000",
           "actor" : "test",
           "type" : "NodeGroupModified",
           "description" : "Group ",

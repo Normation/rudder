@@ -208,5 +208,6 @@ object DateFormaterService {
     .appendLiteral('.')
     .appendFractionOfSecond(3, 9)
     .toFormatter()
+    .withZoneUTC()
 
 }

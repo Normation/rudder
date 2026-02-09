@@ -50,6 +50,7 @@ import io.scalaland.chimney.Transformer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.NodeSeq
 import zio.Chunk
 import zio.json.*
@@ -71,7 +72,8 @@ final case class RestEventLog(
 object RestEventLog {
 
   // We still have Joda DateTime because we map an event log field using chimney
-  implicit val datetimeEncoder:    JsonEncoder[DateTime]     = JsonEncoder[String].contramap(DateFormaterService.getDisplayDate)
+  implicit val datetimeEncoder:    JsonEncoder[DateTime]     =
+    JsonEncoder[String].contramap(d => DateFormaterService.getDisplayDate(d.withZone(DateTimeZone.UTC)))
   implicit val eventActorEncoder:  JsonEncoder[EventActor]   = JsonEncoder[String].contramap(_.name)
   implicit val descriptionEncoder: JsonEncoder[NodeSeq]      = JsonEncoder[String].contramap(_.toString())
   implicit val encoder:            JsonEncoder[RestEventLog] = DeriveJsonEncoder.gen[RestEventLog]
