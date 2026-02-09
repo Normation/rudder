@@ -74,7 +74,7 @@ const homePage = (
     var complianceGauge = document.getElementById('complianceGauge');
     complianceGauge.getContext('2d').clearRect(0, 0, complianceGauge.width, complianceGauge.height);
     $("#gauge-value").text("") // let blank
-    $(target).attr("title","You only have system rules. They are ignored in Global compliance.")
+    $(target).attr("title","You only have system rules. They are ignored in global compliance.")
     //Display empty gauge
     gauge.set(0)
   } else {
@@ -82,17 +82,17 @@ const homePage = (
     $("#globalCompliance").append(buildComplianceBar(globalCompliance));
 
     var allNodes = nodeCount.active;
-    var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
-    if (nodeCount.active <= 1) {
-      activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> Node."
+    var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> nodes."
+    if (nodeCount.active == 1) {
+      activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> node."
     }
     var stats = "Compliance based on "+ activeNodes
     if (nodeCount.pending !== null) {
       allNodes += nodeCount.pending.nodes;
-      var pendingNodes = nodeCount.pending.nodes + " Nodes"
+      var pendingNodes = nodeCount.pending.nodes + " nodes"
       var verb = "are"
-      if (nodeCount.active <= 1) {
-        pendingNodes = nodeCount.pending.nodes + " Node"
+      if (nodeCount.pending.nodes == 1) {
+        pendingNodes = nodeCount.pending.nodes + " node"
         verb = "is"
       }
       stats += "<br>There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
