@@ -205,6 +205,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
@@ -313,7 +314,7 @@ class RestTestSetUp {
       id = Some(42),
       modificationId = None,
       principal = EventActor("test"),
-      creationDate = DateTime.parse("2024-12-04T15:30:10"),
+      creationDate = DateTime.parse("2024-12-04T15:30:10Z"),
       details = <test/>,
       reason = None
     )
@@ -654,7 +655,7 @@ class RestTestSetUp {
       * Here, we want to make these methods returning fake archives for testing the API logic.
       */
     val fakeArchives:                     Map[DateTime, GitArchiveId]           = Map[DateTime, GitArchiveId](
-      new DateTime(42) -> fakeGitArchiveId
+      new DateTime("1970-01-01T01:00:00.042Z", DateTimeZone.UTC) -> fakeGitArchiveId
     )
     override def getFullArchiveTags:      IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
     override def getGroupLibraryTags:     IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)

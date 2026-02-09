@@ -97,9 +97,9 @@ class ReportLineTest extends Specification {
     }
 
     LogDisplayer.getReportsLineForNode(reports, dirName, ruleName).toJson.toJsCmd.strip() must beEqualTo(
-      """[{"executionDate": "2024-12-14 15:47:53+0100", "runDate": "2024-12-14 15:47:53+0100", "kind": "result", "status": "error", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
-        | {"executionDate": "2024-12-14 15:47:53+0100", "runDate": "2024-12-14 15:47:53+0100", "kind": "audit", "status": "compliant", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
-        | {"executionDate": "2024-12-14 15:47:53+0100", "runDate": "2024-12-14 15:47:53+0100", "kind": "result", "status": "success", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "bar", "message": "message"}
+      """[{"executionDate": "2024-12-14 14:47:53+0000", "runDate": "2024-12-14 14:47:53+0000", "kind": "result", "status": "error", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
+        | {"executionDate": "2024-12-14 14:47:53+0000", "runDate": "2024-12-14 14:47:53+0000", "kind": "audit", "status": "compliant", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
+        | {"executionDate": "2024-12-14 14:47:53+0000", "runDate": "2024-12-14 14:47:53+0000", "kind": "result", "status": "success", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "bar", "message": "message"}
         |]""".stripMargin.replaceAll("\n", "").strip()
     )
   }
