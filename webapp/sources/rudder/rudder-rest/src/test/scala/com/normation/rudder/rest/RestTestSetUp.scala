@@ -314,7 +314,7 @@ class RestTestSetUp {
       id = Some(42),
       modificationId = None,
       principal = EventActor("test"),
-      creationDate = DateTime.parse("2024-12-04T15:30:10"),
+      creationDate = DateTime.parse("2024-12-04T15:30:10Z"),
       details = <test/>,
       reason = None
     )
