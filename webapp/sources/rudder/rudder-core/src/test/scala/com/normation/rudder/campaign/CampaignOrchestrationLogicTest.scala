@@ -62,7 +62,8 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
   // the windows for exec "run" state
   private def runWindow(d: DateTime) = (d.minusMinutes(1), d.plusMinutes(1))
 
-  private val now: DateTime = DateTime.now(DateTimeZone.UTC)
+  private val now: DateTime =
+    DateFormaterService.parseDate("2026-01-17T14:26:42Z").getOrElse(throw new RuntimeException("Bad test init"))
 
   private val c0: TestCampaign = TestCampaign(
     CampaignInfo(
@@ -256,7 +257,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("all orchestration tests")(
-      test("When there is no handler, a campaign even should stop immediately") {
+      test("When there is no handler, a campaign event should stop immediately") {
         for {
           _ <- Effects.reset(eb0)
           _ <- TestClock.setTime(now.toJavaInstant)
@@ -266,7 +267,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         } yield {
           assert(e.state.value)(equalTo(CampaignEventStateType.FailureType))
         }
-      },
+      } @@ TestAspect.timeout(Duration(2, TimeUnit.SECONDS)) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS)),
       test("if before date-1h then stop at schedule") {
         for {
           _ <- Effects.reset(eb0)
@@ -277,8 +278,8 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         } yield {
           assert(e.state.value)(equalTo(CampaignEventStateType.ScheduledType))
         }
-      },
-      suite("When we have a campaign handler")(
+      } @@ TestAspect.timeout(Duration(2, TimeUnit.SECONDS)) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS)),
+      test("When we have a campaign handler we reach end and all states are reached")(
         for {
           _ <- Effects.reset(eb0)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
@@ -287,31 +288,23 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
           t <- Effects.eventTrail.get
-        } yield Chunk(
-          test("progress to the end successfully") {
-            assert(e.state.value)(equalTo(CampaignEventStateType.FinishedType))
-          },
-          test("all state must have been saved") {
-            import com.normation.rudder.campaigns.CampaignEventState.*
-
-            assert(t.reverse.map(_.state))(
-              equalTo(
-                List(
-                  Scheduled,
-                  PreHooks(HookResults(Nil)),
-                  PreHooks(HookResults(HookResult(e.id.value, 0, "pre-hooks", "", "") :: Nil)),
-                  Running,
-                  PostHooks(FinishedType, HookResults(Nil)),
-                  PostHooks(FinishedType, HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
-                  Finished,
-                  Scheduled
-                )
-              )
-            )
-          }
-        )
-      ) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS)),
-      suite("When an pre-hook is in error, switch to failure state but do exec post-hooks")(
+        } yield assertTrue(e.state.value == CampaignEventStateType.FinishedType) && assertTrue {
+          import com.normation.rudder.campaigns.CampaignEventState.*
+          t.reverse.map(_.state) == List(
+            Scheduled,
+            PreHooks(HookResults(Nil)),
+            PreHooks(HookResults(HookResult(e.id.value, 0, "pre-hooks", "", "") :: Nil)),
+            Running,
+            PostHooks(FinishedType, HookResults(Nil)),
+            PostHooks(FinishedType, HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
+            Finished,
+            Scheduled
+          )
+        }
+      ) @@ TestAspect.timeout(Duration(2, TimeUnit.SECONDS)) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS)),
+      test(
+        "When an pre-hook is in error, switch to failure state but do exec post-hooks, progress to finish state and all state must have been saved, and we skip from pre-hook to post-hook"
+      )(
         for {
           _ <- Effects.reset(eb1)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
@@ -320,29 +313,19 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e1.id)).notOptional("missing event in store")
           t <- Effects.eventTrail.get
-        } yield Chunk(
-          test("progress to the end in a failure state") {
-            assert(e.state.value)(equalTo(CampaignEventStateType.FailureType))
-          },
-          test("all state must have been saved, and we skip from pre-hook to post-hook") {
-            import com.normation.rudder.campaigns.CampaignEventState.*
-
-            assert(t.reverse.map(_.state))(
-              equalTo(
-                List(
-                  Scheduled,
-                  PreHooks(HookResults(Nil)),
-                  PreHooks(HookResults(HookResult(e.id.value, 1, "pre-hooks", "", "") :: Nil)),
-                  PostHooks(FailureType, HookResults(Nil)),
-                  PostHooks(FailureType, HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
-                  Failure("pre-hooks were in error and post-hooks completed successfully", ""),
-                  Scheduled
-                )
-              )
-            )
-          }
-        )
-      ) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS))
+        } yield assertTrue(e.state.value == CampaignEventStateType.FailureType) && assertTrue {
+          import com.normation.rudder.campaigns.CampaignEventState.*
+          t.reverse.map(_.state) == List(
+            Scheduled,
+            PreHooks(HookResults(Nil)),
+            PreHooks(HookResults(HookResult(e.id.value, 1, "pre-hooks", "", "") :: Nil)),
+            PostHooks(FailureType, HookResults(Nil)),
+            PostHooks(FailureType, HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
+            Failure("pre-hooks were in error and post-hooks completed successfully", ""),
+            Scheduled
+          )
+        }
+      ) @@ TestAspect.timeout(Duration(2, TimeUnit.SECONDS)) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS))
     ) @@ TestAspect.sequential @@ TestAspect.timeout(Duration(2, TimeUnit.SECONDS))
   }
 

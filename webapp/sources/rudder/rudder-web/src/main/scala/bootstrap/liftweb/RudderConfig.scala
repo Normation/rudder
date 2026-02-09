@@ -1948,7 +1948,7 @@ object RudderConfigInit {
         .make(RUDDER_GIT_ROOT_FACT_REPO)
         .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
     }
-    lazy val gitFactRepoGC       = new GitGC(gitFactRepoProvider, RUDDER_GIT_GC)
+    lazy val gitFactRepoGC       = GitGC.make(gitFactRepoProvider, RUDDER_GIT_GC)
     gitFactRepoGC.start()
     lazy val gitFactStorage      = if (RUDDER_GIT_FACT_WRITE_NODES) {
       val r = new GitNodeFactStorageImpl(gitFactRepoProvider, Some(RUDDER_GROUP_OWNER_CONFIG_REPO), RUDDER_GIT_FACT_COMMIT_NODES)
@@ -2652,7 +2652,7 @@ object RudderConfigInit {
     lazy val gitConfigRepo                = GitRepositoryProviderImpl
       .make(RUDDER_GIT_ROOT_CONFIG_REPO)
       .runOrDie(err => new RuntimeException(s"Error when creating git configuration repository: " + err.fullMsg))
-    lazy val gitConfigRepoGC              = new GitGC(gitConfigRepo, RUDDER_GIT_GC)
+    lazy val gitConfigRepoGC              = GitGC.make(gitConfigRepo, RUDDER_GIT_GC)
     lazy val gitRevisionProviderImpl      = {
       new LDAPGitRevisionProvider(rwLdap, rudderDitImpl, gitConfigRepo, RUDDER_TECHNIQUELIBRARY_GIT_REFS_PATH)
     }
