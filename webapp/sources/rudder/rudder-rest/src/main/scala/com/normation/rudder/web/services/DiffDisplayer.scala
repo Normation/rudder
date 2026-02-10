@@ -47,8 +47,10 @@ import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import net.liftweb.util.Helpers.*
 import scala.xml.Elem
 import scala.xml.NodeSeq
+import scala.xml.Text
 
 trait DiffItem[T] {
 
@@ -101,6 +103,69 @@ final case class Modified[T](
 
   def display(implicit displayer: T => NodeSeq): NodeSeq =
     delete.display ++ add.display
+}
+
+object DiffDisplayer {
+  def liModDetailsXML(id: String, name: String) = {
+    <div id={id}><b>{name}</b>
+      <ul>
+        <li class="deleted"></li>
+        <li class="added"></li>
+      </ul>
+    </div>
+  }
+
+  def mapSimpleDiffT[T](opt: Option[SimpleDiff[T]], t: T => String) = opt.map { diff =>
+    ".deleted *" #> t(diff.oldValue) &
+    ".added *" #> t(diff.newValue)
+  }
+
+  def mapSimpleDiff[T](opt: Option[SimpleDiff[T]]) = mapSimpleDiffT(opt, (x: T) => x.toString)
+
+  def mapSimpleDiff[T](opt: Option[SimpleDiff[T]], id: DirectiveId) = opt.map { diff =>
+    ".deleted *" #> diff.oldValue.toString &
+    ".added *" #> diff.newValue.toString &
+    "#directiveID" #> id.serialize
+  }
+
+  def mapComplexDiff[T](opt: Option[SimpleDiff[T]], title: String)(display: T => NodeSeq) = {
+    opt match {
+      case None       => NodeSeq.Empty
+      case Some(diff) =>
+        <div id={title}><b>{title}:</b>
+          <ul>
+            <li class="deleted">-{diff.oldValue}</li>
+            <li class="added">+{diff.newValue}</li>
+          </ul>
+          </div>
+    }
+  }
+  def displaySimpleDiffT[T](
+      diff: Option[SimpleDiff[T]],
+      name: String
+  )(display: T => String): NodeSeq = mapComplexDiff(diff, name)(display.andThen(Text(_)))
+
+  def displaySimpleDiff(
+      diff:    Option[SimpleDiff[String]],
+      name:    String,
+      default: String
+  ): NodeSeq = displaySimpleDiff(diff, name).getOrElse(Text(default))
+
+  def displaySimpleDiff(
+      diff: Option[SimpleDiff[String]],
+      name: String
+  ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
+
+  def displayFormDiff(
+      diff: SimpleDiff[String],
+      name: String
+  ): NodeSeq = {
+    <b>{name}:</b> ++
+    <ul>
+      <li class="deleted">-{diff.oldValue}</li>
+      <li class="added">+{diff.newValue}</li>
+    </ul>
+  }
 }
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
