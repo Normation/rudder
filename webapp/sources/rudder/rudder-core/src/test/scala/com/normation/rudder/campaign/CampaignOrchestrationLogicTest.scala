@@ -41,6 +41,7 @@ import com.normation.errors.*
 import com.normation.rudder.*
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
+import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.zio.*
 import java.util.UUID
