@@ -67,6 +67,7 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
@@ -118,9 +119,11 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // doobie is only defined in DBCommon
   def doobie: Doobie
 
-  val dateFormat: DateTimeFormatter = ISODateTimeFormat.dateTime()
+  // tests files under /test/resources/historical-inventories are formatted with specific format, and with +0200 offset, so we need this format
+  val dateFormat: DateTimeFormatter =
+    ISODateTimeFormat.dateTime().withZone(DateTimeZone.forOffsetHours(2))
 
-  val testDir: File = File(s"/tmp/test-rudder-migrate-historical-inventories-${dateFormat.print(DateTime.now())}")
+  val testDir: File = File(s"/tmp/test-rudder-migrate-historical-inventories-${dateFormat.print(DateTime.now(DateTimeZone.UTC))}")
 
   //////////// set-up auto test cleaning ////////////
   def cleanTmpFiles():     Unit = {
@@ -312,7 +315,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   "check that deletion of old deleted works as expected" >> {
     // during migration, we set the deletion time at "now" to avoid having to query the whole evenl log base.
     // So to test cleaning, we must say before "now" (which is after the migration now)
-    val res = testFactLog.deleteFactIfDeleteEventBefore(DateTime.now()).runNow
+    val res = testFactLog.deleteFactIfDeleteEventBefore(DateTime.now(DateTimeZone.UTC)).runNow
     res must containTheSameElementsAs(deleteBefore)
   }
 

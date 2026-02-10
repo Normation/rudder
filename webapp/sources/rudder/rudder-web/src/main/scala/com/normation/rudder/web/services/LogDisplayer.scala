@@ -287,8 +287,8 @@ final case class ReportLine(
 
   def json(freshName: () => String): js.JsObj = {
     JsObj(
-      ("executionDate", DateFormaterService.getDisplayDate(executionDate)),
-      ("runDate", DateFormaterService.getDisplayDate(runDate)),
+      ("executionDate", DateFormaterService.getDisplayDate(executionDate.withZone(DateTimeZone.UTC))),
+      ("runDate", DateFormaterService.getDisplayDate(runDate.withZone(DateTimeZone.UTC))),
       ("kind", kind),
       ("status", status),
       ("ruleName", escapeHTML(ruleName)),
