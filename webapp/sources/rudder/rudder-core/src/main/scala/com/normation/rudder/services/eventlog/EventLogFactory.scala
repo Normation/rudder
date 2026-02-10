@@ -56,6 +56,13 @@ import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.ncf.eventlogs.AddEditorTechnique
+import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechnique
+import com.normation.rudder.ncf.eventlogs.DeleteEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.EditorTechniqueXmlSerialisation
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechnique
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechniqueDiff
 import com.normation.rudder.services.marshalling.*
 import java.time.Instant
 import net.liftweb.util.Helpers.*
@@ -127,6 +134,35 @@ trait EventLogFactory {
       reason:         Option[String]
   ): ModifyDirective
 
+  def getAddEditorTechniqueFromDiff(
+      id:             Option[Int] = None,
+      modificationId: Option[ModificationId] = None,
+      principal:      EventActor,
+      addDiff:        AddEditorTechniqueDiff,
+      creationDate:   Instant = Instant.now(),
+      severity:       Int = 100,
+      reason:         Option[String]
+  ): AddEditorTechnique
+
+  def getDeleteEditorTechniqueFromDiff(
+      id:             Option[Int] = None,
+      modificationId: Option[ModificationId] = None,
+      principal:      EventActor,
+      deleteDiff:     DeleteEditorTechniqueDiff,
+      creationDate:   Instant = Instant.now(),
+      severity:       Int = 100,
+      reason:         Option[String]
+  ): DeleteEditorTechnique
+
+  def getModifyEditorTechniqueFromDiff(
+      id:             Option[Int] = None,
+      modificationId: Option[ModificationId] = None,
+      principal:      EventActor,
+      modifyDiff:     ModifyEditorTechniqueDiff,
+      creationDate:   Instant = Instant.now(),
+      severity:       Int = 100,
+      reason:         Option[String]
+  ): ModifyEditorTechnique
   def getAddNodeGroupFromDiff(
       id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
@@ -343,14 +379,15 @@ trait EventLogFactory {
 }
 
 class EventLogFactoryImpl(
-    ruleXmlserializer:       RuleSerialisation,
-    DirectiveXmlSerializer:  DirectiveSerialisation,
-    GroupXmlSerializer:      NodeGroupSerialisation,
-    techniqueXmlSerializer:  ActiveTechniqueSerialisation,
-    parameterXmlSerializer:  GlobalParameterSerialisation,
-    apiAccountXmlSerializer: APIAccountSerialisation,
-    propertySerializer:      GlobalPropertySerialisation,
-    secretXmlSerializer:     SecretSerialisation
+    ruleXmlserializer:         RuleSerialisation,
+    DirectiveXmlSerializer:    DirectiveSerialisation,
+    GroupXmlSerializer:        NodeGroupSerialisation,
+    techniqueXmlSerializer:    ActiveTechniqueSerialisation,
+    parameterXmlSerializer:    GlobalParameterSerialisation,
+    apiAccountXmlSerializer:   APIAccountSerialisation,
+    propertySerializer:        GlobalPropertySerialisation,
+    secretXmlSerializer:       SecretSerialisation,
+    editorTechniqueSerializer: EditorTechniqueXmlSerialisation
 ) extends EventLogFactory {
 
   /////
@@ -558,6 +595,89 @@ class EventLogFactoryImpl(
       )
     }
     ModifyDirective(
+      EventLogDetails(
+        id = id,
+        modificationId = modificationId,
+        principal = principal,
+        details = details,
+        creationDate = creationDate,
+        reason = reason,
+        severity = severity
+      )
+    )
+  }
+
+  /////
+  ///// EditorTechnique /////
+  /////
+
+  override def getAddEditorTechniqueFromDiff(
+      id:             Option[Int] = None,
+      modificationId: Option[ModificationId] = None,
+      principal:      EventActor,
+      addDiff:        AddEditorTechniqueDiff,
+      creationDate:   Instant = Instant.now(),
+      severity:       Int = 100,
+      reason:         Option[String]
+  ): AddEditorTechnique = {
+    val details = EventLog.withContent(
+      editorTechniqueSerializer.serialise(
+        addDiff.editorTechnique
+      ) % ("changeType" -> "add")
+    )
+    AddEditorTechnique(
+      EventLogDetails(
+        id = id,
+        modificationId = modificationId,
+        principal = principal,
+        details = details,
+        creationDate = creationDate,
+        reason = reason,
+        severity = severity
+      )
+    )
+  }
+
+  override def getDeleteEditorTechniqueFromDiff(
+      id:             Option[Int] = None,
+      modificationId: Option[ModificationId] = None,
+      principal:      EventActor,
+      deleteDiff:     DeleteEditorTechniqueDiff,
+      creationDate:   Instant = Instant.now(),
+      severity:       Int = 100,
+      reason:         Option[String]
+  ): DeleteEditorTechnique = {
+    val details = EventLog.withContent(
+      editorTechniqueSerializer.serialise(
+        deleteDiff.editorTechnique
+      ) % ("changeType" -> "delete")
+    )
+    DeleteEditorTechnique(
+      EventLogDetails(
+        id = id,
+        modificationId = modificationId,
+        principal = principal,
+        details = details,
+        creationDate = creationDate,
+        reason = reason,
+        severity = severity
+      )
+    )
+  }
+
+  override def getModifyEditorTechniqueFromDiff(
+      id:             Option[Int] = None,
+      modificationId: Option[ModificationId] = None,
+      principal:      EventActor,
+      modifyDiff:     ModifyEditorTechniqueDiff,
+      creationDate:   Instant = Instant.now(),
+      severity:       Int = 100,
+      reason:         Option[String]
+  ): ModifyEditorTechnique = {
+    val details = EventLog.withContent {
+      editorTechniqueSerializer.serialiseDiff(modifyDiff)
+    }
+    ModifyEditorTechnique(
       EventLogDetails(
         id = id,
         modificationId = modificationId,

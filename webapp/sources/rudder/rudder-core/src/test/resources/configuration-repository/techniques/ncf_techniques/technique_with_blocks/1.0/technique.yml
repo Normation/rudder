@@ -1,0 +1,40 @@
+id: technique_with_blocks
+name: technique with blocks
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: 341e4fd0-e900-4ae4-947c-ecd164b1744a
+    name: First block
+    reporting:
+      mode: weighted
+    items:
+      - id: 6077d281-ebd7-432f-bdcc-d377431f0ecc
+        name: File absent
+        method: ''
+        params:
+          path: /tmp/block1
+      - id: 73a5de0e-a4a7-41aa-aa97-2daa193d9f44
+        name: inner block
+        reporting:
+          mode: weighted
+        items:
+          - id: 0f6032bd-0735-419c-90db-ae434f47e1fd
+            name: File absent
+            method: ''
+            params:
+              path: /tmp/block1_1
+          - id: d9313380-26b2-469a-83d1-734f568d6a5a
+            name: Command execution
+            method: ''
+            params:
+              command: /bin/true
+  - id: 9ca0e832-7ea9-435e-add0-46b792244698
+    name: Command execution
+    method: ''
+    params:
+      command: '/bin/true #root1'
+  - id: eec2c63b-8811-4ea0-93b9-334ee54baea3
+    name: File absent
+    method: ''
+    params:
+      path: /tmp/root2

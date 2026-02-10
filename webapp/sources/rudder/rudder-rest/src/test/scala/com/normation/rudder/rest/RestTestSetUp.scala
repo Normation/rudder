@@ -117,7 +117,6 @@ import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
-import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -391,7 +390,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     ): IOResult[EventLog] = ZIO.succeed(null)
 
   }
-  val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
+  val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null, null)
   val modificationService = new ModificationService(null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
@@ -991,6 +990,10 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       (techniques, methods, List(Inconsistency("for test"))).succeed
     override def getMethodsMetadata:        IOResult[Map[BundleName, GenericMethod]] = methods.succeed
     override def updateMethodsMetadataFile: IOResult[CmdResult]                      = CmdResult(0, "", "").succeed
+
+    override def getTechnique(id: BundleName, version: String): IOResult[Option[EditorTechnique]] =
+      techniques.find(technique => id == technique.id && version == technique.version.value).succeed
+
   }
 
   val techniqueSerializer: TechniqueSerializer = new TechniqueSerializer(new BasicParameterTypeService)
@@ -1003,14 +1006,21 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     mockTechniques.techniqueCompiler
   )
 
-  val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
-    mockTechniques.techniqueArchiver,
-    fakeUpdatePTLibService,
-    mockTechniques.deleteEditorTechnique,
-    mockTechniques.techniqueCompiler,
-    mockTechniques.techniqueCompilationCache,
-    mockGitRepo.configurationRepositoryRoot.pathAsString
-  )
+  val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriter {
+
+    override def deleteTechnique(techniqueName: String, techniqueVersion: String, deleteDirective: Boolean)(implicit
+        cc: ChangeContext
+    ): IOResult[Unit] = ().succeed
+
+    override def writeTechniqueAndUpdateLib(technique: EditorTechnique)(implicit cc: ChangeContext): IOResult[EditorTechnique] =
+      technique.succeed
+
+    override def writeTechnique(technique: EditorTechnique)(implicit cc: ChangeContext): IOResult[EditorTechnique] =
+      technique.succeed
+
+    override def writeTechniques(techniques: List[EditorTechnique])(implicit cc: ChangeContext): IOResult[List[EditorTechnique]] =
+      techniques.succeed
+  }
 
   val resourceFileService: ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())

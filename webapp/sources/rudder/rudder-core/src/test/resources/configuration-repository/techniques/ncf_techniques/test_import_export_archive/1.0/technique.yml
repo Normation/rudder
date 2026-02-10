@@ -1,0 +1,10 @@
+id: test_import_export_archive
+name: test import/export archive
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: 483b4b60-f940-4b65-834a-4d8ddd085c34
+    name: Command execution
+    method: command_execution
+    params:
+      command: touch /tmp/toto

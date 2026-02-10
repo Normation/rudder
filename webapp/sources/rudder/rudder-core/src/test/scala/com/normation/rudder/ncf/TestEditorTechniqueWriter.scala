@@ -555,6 +555,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = methods.succeed
 
     override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
+
+    override def getTechnique(id: BundleName, version: String): IOResult[Option[EditorTechnique]] =
+      (if (id == technique.id && version == technique.version.value) then Some (technique) else None).succeed
   }
 
   val compiler = new RuddercTechniqueCompiler(

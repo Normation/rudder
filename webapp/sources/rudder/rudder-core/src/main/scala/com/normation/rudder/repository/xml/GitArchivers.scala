@@ -458,7 +458,7 @@ class TechniqueArchiverImpl(
     val techniquePath    = gitRepo.rootDirectory / techniqueGitPath
 
     (for {
-      res       <- techniqueCompiler.migrateCompileIfNeeded(techniquePath)
+      res       <- techniqueCompiler.compileAtPath(techniquePath)
       _         <- ZIO.when(res.isError) {
                      Unexpected(
                        s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
