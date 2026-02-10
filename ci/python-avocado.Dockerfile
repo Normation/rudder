@@ -5,7 +5,8 @@ ARG USER_ID=1000
 COPY ci/user.sh .
 RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y python3-jinja2 git wget gnupg2 make pipx ;\
-    pipx install avocado-framework
+    pipx install avocado-framework;\
+    pipx inject avocado-framework "setuptools<81" --force
 
 # Accept all OSes
 ENV UNSUPPORTED=y
