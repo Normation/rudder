@@ -5,8 +5,6 @@ function {{ id|technique_name }} {
         [parameter(Mandatory = $true)]
         [string]$reportId,
         [parameter(Mandatory = $true)]
-        [string]$directiveId,
-        [parameter(Mandatory = $true)]
         [string]$techniqueName,
 {% for p in parameters %}
         [parameter(Mandatory = ${{ !p.constraints.allow_empty }})]
@@ -21,6 +19,13 @@ function {{ id|technique_name }} {
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 {% if has_resources %}
     Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
 {% endif %}
