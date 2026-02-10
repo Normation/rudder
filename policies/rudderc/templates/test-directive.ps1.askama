@@ -3,5 +3,11 @@ function Call_directives {
   $system_classes.SetCondition({{ condition|canonify_condition }})
 {% endfor %}
 
-  {{ bundle_name }} -ReportId "test@@0@@test" -TechniqueName "{{ technique_name }}" {{ params }} -PolicyMode ([Rudder.PolicyMode]::{{ policy_mode }}) -DirectiveId "{{ directive_id }}"
+  BeginDirectiveCall -Name @'
+{{ technique_name }}
+'@ -Id '{{ directive_id }}'
+  {{ bundle_name }} -ReportId "test@@{{ directive_id }}@@0" -TechniqueName "{{ technique_name }}" {{ params }} -PolicyMode ([Rudder.PolicyMode]::{{ policy_mode }})
+  EndDirectiveCall -Name @'
+{{ technique_name }}
+'@ -Id '{{ directive_id }}'
 }
