@@ -1587,7 +1587,8 @@ object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAcc
     val z: Int = implicitly[Line].value
     val description    = "Get API account for the currently identified token"
     val (action, path) = GET / "apiaccounts" / "token"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    // see https://issues.rudder.io/issues/28320
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: AuthorizationType.UserAccount.Read :: Nil
   }
   case object QueryTokenAccount extends ApiAccounts with OneParam with StartsAtVersion22 with SortIndex  {
     val z: Int = implicitly[Line].value
