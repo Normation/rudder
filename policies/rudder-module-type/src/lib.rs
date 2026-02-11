@@ -16,6 +16,8 @@ pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
 pub mod runner;
+#[cfg(feature = "splay")]
+pub mod splay;
 
 pub use rudder_cli as cli;
 
@@ -114,6 +116,16 @@ pub trait ModuleType0 {
     /// We pass a generic `serde_json::Value`. This allows the module type to chose how to treat it,
     /// either parse it completely into structs or leave some generic parts (arbitrary key value, etc.).
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult;
+
+    /// Same as `check_apply`, but also returns classes to set on the agent.
+    fn check_apply_with_classes(
+        &mut self,
+        mode: PolicyMode,
+        parameters: &Parameters,
+    ) -> (CheckApplyResult, Vec<String>) {
+        let result = self.check_apply(mode, parameters);
+        (result, vec![])
+    }
 
     /// Run before normal executor termination,
     ///
