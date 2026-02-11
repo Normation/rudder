@@ -572,7 +572,7 @@ class ChangeRequestChangesUnserialisationImpl(
             date                               <- getAndTransformChildRec(
                                                     changeNode,
                                                     "date",
-                                                    date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
+                                                    date => ISODateTimeFormat.dateTimeParser().withZoneUTC().parseDateTime(date.text)
                                                   )
             reason                              = (changeNode \\ "reason").headOption.map(_.text)
             diff                               <- getAndParseChildRec(changeNode, "diff", _.attribute("action").headOption.map(_.text))

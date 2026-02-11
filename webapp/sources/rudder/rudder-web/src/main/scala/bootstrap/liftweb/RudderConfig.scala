@@ -2583,7 +2583,7 @@ object RudderConfigInit {
       ruleUnserialisation,
       globalParameterUnserialisation,
       techniqueRepository,
-      sectionSpecParser
+      new SectionSpecParser(variableSpecParser, validateReporting = false)
     )
 
     lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
