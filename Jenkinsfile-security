@@ -33,8 +33,8 @@ pipeline {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('webapp/sources') {
-                        sh script: 'mvn --batch-mode -DnvdApiKey=$NVD_API_KEY -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
-                        sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
+                        sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always -DnvdApiKey=$NVD_API_KEY -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
+                        sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always license:aggregate-third-party-report', label: 'list webapp dependencies'
                     }
                 }
             }

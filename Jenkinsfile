@@ -464,7 +464,7 @@ pipeline {
                         steps {
                             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                 dir('webapp/sources') {
-                                    sh script: 'mvn clean test --batch-mode', label: "webapp tests"
+                                    sh script: 'mvn clean test --batch-mode -Djansi.passthrough=true -Dstyle.color=always', label: "webapp tests"
                                 }
                             }
                         }
@@ -618,7 +618,7 @@ pipeline {
                                 ) {
                                     // we need to use $MVN_COMMAND to get the settings file path
                                     // we no longer need to execute tests
-                                    sh script: '$MVN_CMD -DskipTests --update-snapshots clean package deploy', label: "webapp deploy"
+                                    sh script: '$MVN_CMD -DskipTests --update-snapshots -Djansi.passthrough=true -Dstyle.color=always clean package deploy', label: "webapp deploy"
                                 }
                             }
                         }
