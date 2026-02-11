@@ -2,10 +2,19 @@ package com.normation.rudder.services.marshalling
 
 import com.normation.BoxSpecMatcher
 import com.normation.GitVersion
+import com.normation.cfclerk.domain.Constraint
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
+import com.normation.cfclerk.domain.ReportingLogic.WeightedReport
+import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersionHelper
+import com.normation.cfclerk.domain.TextareaVType
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
+import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
+import com.normation.eventlog.EventActor
 import com.normation.rudder.api.AccountToken
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccount
@@ -23,21 +32,35 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.ChangeRequestInfo
+import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
+import com.normation.rudder.domain.workflows.DirectiveChange
+import com.normation.rudder.domain.workflows.DirectiveChangeItem
+import com.normation.rudder.domain.workflows.DirectiveChanges
+import com.normation.rudder.domain.workflows.GlobalParameterChanges
+import com.normation.rudder.domain.workflows.NodeGroupChanges
+import com.normation.rudder.domain.workflows.RuleChanges
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
+import com.normation.utils.DateFormaterService
 import java.time.Instant
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import scala.collection.immutable.HashMap
 import scala.xml.Elem
 import zio.Chunk
 
@@ -58,7 +81,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
   val nodeGroupSerialisation = new NodeGroupSerialisationImpl("6")
 
   val variableSpecParser = new VariableSpecParser
-  val sectionSpecParser  = new SectionSpecParser(variableSpecParser)
+  val sectionSpecParser  = new SectionSpecParser(variableSpecParser, validateReporting = false)
 
   val testNodeConfiguration = new TestNodeConfiguration("")
 
@@ -74,12 +97,18 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
   val techniqueName = "TEST_Technique"
   val directiveId   = "1234567-aaaa-bbbb-cccc-ddddddddddd"
 
+  // Simple directive that maps to the directive value
   val directiveXML: Elem = <directive fileFormat="6">
     <id>{directiveId}</id>
     <displayName>Test Directive name</displayName>
     <techniqueName>{techniqueName}</techniqueName>
     <techniqueVersion>1.0</techniqueVersion>
-    <section name="sections"/>
+    <section name="sections">
+      <var name="B93EEC04-0AC2-4A6B-850A-A1A45FF665BF">a</var>
+      <var name="49539815-6EE3-462B-B553-30D55F341D3C">b</var>
+      <var name="56EFCD1B-1B1E-4CAC-A7E0-911F640CC8D0">c</var>
+      <var name="8575EF95-063A-4958-ABF5-126F6B2EECA4">d</var>
+    </section>
     <shortDescription>see my description</shortDescription>
     <longDescription></longDescription>
     <priority>5</priority>
@@ -93,7 +122,12 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
   val directive: Directive = Directive(
     DirectiveId(DirectiveUid(directiveId)),
     TechniqueVersionHelper("1.0"),
-    Map(),
+    Map(
+      "B93EEC04-0AC2-4A6B-850A-A1A45FF665BF" -> List("a"),
+      "49539815-6EE3-462B-B553-30D55F341D3C" -> List("b"),
+      "56EFCD1B-1B1E-4CAC-A7E0-911F640CC8D0" -> List("c"),
+      "8575EF95-063A-4958-ABF5-126F6B2EECA4" -> List("d")
+    ),
     "Test Directive name",
     "see my description",
     None,
@@ -105,13 +139,136 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
   )
 
+  val directiveSectionSpec: SectionSpec = {
+    SectionSpec(
+      name = CfclerkXmlConstants.SECTION_ROOT_NAME,
+      children = List(
+        SectionSpec(
+          name = "Technique parameters",
+          children = List(
+            InputVariableSpec(
+              "56EFCD1B-1B1E-4CAC-A7E0-911F640CC8D0",
+              "Rudder version",
+              None,
+              "Rudder agent version to install",
+              false,
+              true,
+              Constraint(TextareaVType()),
+              None
+            ),
+            InputVariableSpec(
+              "B93EEC04-0AC2-4A6B-850A-A1A45FF665BF",
+              "Rudder repository",
+              None,
+              "Rudder repository to use, i.e. repository.rudder.io (public) or download.rudder.io (private)",
+              false,
+              true,
+              Constraint(TextareaVType()),
+              None
+            ),
+            InputVariableSpec(
+              "8575EF95-063A-4958-ABF5-126F6B2EECA4",
+              "Rudder licence",
+              None,
+              "Your company's Rudder licence name, or leave empty for public repository",
+              false,
+              true,
+              Constraint(TextareaVType()),
+              None
+            ),
+            InputVariableSpec(
+              "49539815-6EE3-462B-B553-30D55F341D3C",
+              "Licence password",
+              None,
+              "Your company's Rudder licence password or leave empty for public repository",
+              false,
+              true,
+              Constraint(TextareaVType()),
+              None
+            )
+          )
+        ),
+        SectionSpec(
+          // parent section (block), without componentKey
+          name = "10 - Node is Debian / Ubuntu family",
+          isMultivalued = true,
+          isComponent = true,
+          reportingLogic = Some(WeightedReport),
+          children = List(
+            SectionSpec(
+              name = "10-030 Rudder packages GPG signing key installed",
+              isMultivalued = true,
+              isComponent = true,
+              componentKey = Some("expectedReportKey 10-030 Rudder packages GPG signing key installed"),
+              children = List(
+                PredefinedValuesVariableSpec(
+                  "expectedReportKey 10-030 Rudder packages GPG signing key installed",
+                  "Expected Report key names for component 10-030 Rudder packages GPG signing key installed",
+                  None,
+                  ("/etc/apt/trusted.gpg.d/rudder_release_key.gpg", List()),
+                  constraint = Constraint(),
+                  id = None
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  val changeRequestSerialisation: ChangeRequestChangesSerialisationImpl = {
+    val directiveSerialisation = new DirectiveSerialisationImpl("6")
+    val sectionSpecWriter      = new SectionSpecWriterImpl
+    new ChangeRequestChangesSerialisationImpl(
+      "6",
+      null,
+      directiveSerialisation,
+      null,
+      null,
+      null,
+      sectionSpecWriter
+    )
+  }
+
+  val changeRequest = {
+    ConfigurationChangeRequest(
+      ChangeRequestId(1),
+      None,
+      ChangeRequestInfo("directive change", "My directive change"),
+      Map(
+        DirectiveId(DirectiveUid(directiveId)) -> DirectiveChanges(
+          DirectiveChange(
+            Some((TechniqueName(techniqueName), directive, None)),
+            DirectiveChangeItem(
+              EventActor("test"),
+              DateFormaterService.parseDate("2023-02-02T00:00:00Z").toOption.getOrElse(throw new Exception("invalid date")),
+              Some(s"directive ${directiveId} change reason"),
+              ModifyToDirectiveDiff(
+                TechniqueName(techniqueName),
+                directive,
+                Some(directiveSectionSpec)
+              )
+            ),
+            List.empty
+          ),
+          List.empty
+        )
+      ),
+      Map.empty,
+      Map.empty,
+      Map.empty
+    )
+  }
+
   "when unserializing, we" should {
-    "be able to correctly unserialize a directive " in {
-      val unserialized = directiveUnserialisation.unserialise(directiveXML)
+    "be able to correctly unserialize a given directive " in {
+      val actual = directiveUnserialisation.unserialise(directiveXML)
 
-      val expected = (TechniqueName(techniqueName), directive, SectionVal(Map(), Map()))
+      val expectedSectionVal = SectionVal(HashMap(), directive.parameters.view.mapValues(_.head).toMap)
+      val expected           = (TechniqueName(techniqueName), directive, expectedSectionVal)
 
-      unserialized must beRight(expected)
+      actual must beRight(expected)
     }
 
     "be able to correctly unserialize a change request" in {
@@ -139,6 +296,37 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       </changeRequest>
 
       changeRequestChangesUnserialisation.unserialise(change) must beRight
+    }
+
+    "be able to correctly unserialize idempotently" in {
+      import com.softwaremill.quicklens.*
+      // https://issues.rudder.io/issues/27974: "reporting" logic is not serialized, componentKey is not present,
+      // but unserialization must still succeed.
+      // 1. The unserialized change request has no reporting logic upon serialization, and therefore upon unserialization too.
+      // 2. The directive has no parameters when serialized, this looks like a bug...
+      val serialized   = changeRequestSerialisation.serialise(changeRequest)
+      val actual       = changeRequestChangesUnserialisation.unserialise(serialized)
+      val expectedPair = changeRequest.directives.head
+        // 1.
+        .modify(_._2.changes.firstChange.diff.when[ModifyToDirectiveDiff].rootSection.each.children)
+        .using(_.modify(_.each.when[SectionSpec].reportingLogic).setTo(None))
+        // 2.
+        .modify(_._2.changes.initialState.each._2.parameters)
+        .setTo(Map.empty)
+
+      actual must beRight(
+        beLike[
+          (
+              Map[DirectiveId, DirectiveChanges],
+              Map[NodeGroupId, NodeGroupChanges],
+              Map[RuleId, RuleChanges],
+              Map[String, GlobalParameterChanges]
+          )
+        ] {
+          case (directiveChange, _, _, _) =>
+            directiveChange must havePair(expectedPair)
+        }
+      )
     }
   }
 
