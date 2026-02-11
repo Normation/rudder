@@ -48,7 +48,6 @@ import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.workflows.GlobalParameterChanges
 import com.normation.rudder.domain.workflows.NodeGroupChanges
 import com.normation.rudder.domain.workflows.RuleChanges
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.tenants.SecurityTag
