@@ -159,6 +159,7 @@ bundle agent permissions_user_acl_present(path, recursive, user, ace)
       "pass1"                  expression => "any";
       "is_recursive"           expression => strcmp("true", "${recursive}");
       "files_found"            expression => isgreaterthan("${file_list_length}", "0");
+      "max_range_is_null"      expression => strcmp("${max_range}", "0");
       "path_exists_${indices}" expression => fileexists("${file[${indices}]}");
       "isdir_${indices}"       expression => isdir("${file[${indices}]}");
       "isrecursive_${indices}" expression => "isdir_${file[${indices}]}.is_recursive";
