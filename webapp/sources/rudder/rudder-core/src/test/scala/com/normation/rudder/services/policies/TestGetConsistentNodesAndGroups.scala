@@ -52,6 +52,7 @@ import com.normation.rudder.services.policies.NodeConfigData.fact1
 import com.normation.rudder.services.policies.NodeConfigData.fact2
 import com.normation.rudder.services.policies.NodeConfigData.factRoot
 import com.normation.rudder.services.policies.NodeConfigData.rootId
+import com.normation.rudder.services.policies.fetchinfo.GetConsistentNodesAndGroups
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.junit.runner.RunWith
