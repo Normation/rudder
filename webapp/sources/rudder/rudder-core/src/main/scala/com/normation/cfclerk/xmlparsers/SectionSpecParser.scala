@@ -43,7 +43,7 @@ import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
 import net.liftweb.common.*
 import scala.xml.*
 
-class SectionSpecParser(variableParser: VariableSpecParser) extends Loggable {
+class SectionSpecParser(variableParser: VariableSpecParser, validateReporting: Boolean = true) extends Loggable {
 
   def parseSectionsInPolicy(policy: Node, id: TechniqueId, policyName: String): Either[LoadTechniqueError, SectionSpec] = {
     val sections = policy \\ SECTIONS_ROOT
@@ -153,7 +153,7 @@ class SectionSpecParser(variableParser: VariableSpecParser) extends Loggable {
 
     val cid = (root \ ("@id")).headOption.map(_.text)
 
-    val composition = (root \ ("@reporting")).headOption.map(_.text) match {
+    val reporting = (root \ ("@reporting")).headOption.map(_.text) match {
       case null | Some("") | None => None
       case Some(x)                =>
         ReportingLogic.parse(x) match {
@@ -199,10 +199,20 @@ class SectionSpecParser(variableParser: VariableSpecParser) extends Loggable {
       isComponent                = ("true" == Utils
                                      .getAttributeText(root, SECTION_IS_COMPONENT, "false")
                                      .toLowerCase || expectedReportComponentKey.isDefined)
-      /**
-     * A key must be define if and only if we are in a multivalued, component section.
-     */
-      _                         <- if (isMultivalued && isComponent && effectiveComponentKey.isEmpty && composition.isEmpty) {
+      /*
+       * A key must be defined if and only if we are in a multivalued, component section.
+       * This is historically a constraint on reporting, but since 7.0 with reporting by block,
+       * we may bypass checking reporting attributes for change requests of directives :
+       *  - system/old techniques have component keys
+       *  - editor techniques have mandatory reporting defined on blocks, but were never written by SectionSpecWriter (bug)
+       * See https://issues.rudder.io/issues/27974
+       */
+      isInvalidReportingState    = {
+        val isMultivaluedComponent = isMultivalued && isComponent
+        val isInvalidReporting     = effectiveComponentKey.isEmpty && reporting.isEmpty
+        validateReporting && isMultivaluedComponent && isInvalidReporting
+      }
+      _                         <- if (isInvalidReportingState) {
                                      Left(
                                        LoadTechniqueError.Parsing(
                                          "Section '%s' is multivalued and is component. A componentKey attribute must be specified".format(name)
@@ -217,7 +227,7 @@ class SectionSpecParser(variableParser: VariableSpecParser) extends Loggable {
                                      displayPriority,
                                      description,
                                      children,
-                                     composition,
+                                     reporting,
                                      cid
                                    )
       res                       <- if (isMultivalued) sectionSpec.cloneVariablesInMultivalued

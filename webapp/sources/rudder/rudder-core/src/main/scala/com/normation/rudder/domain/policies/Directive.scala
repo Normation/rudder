@@ -346,7 +346,7 @@ object SectionVal {
 
     def buildMonoSectionWithoutMultivaluedParent(spec: SectionSpec): SectionVal = {
       val variables = spec.getDirectVariables.map { vspec =>
-        // we can have a empty value for a variable, for non mandatory ones
+        // we can have an empty value for a variable, for non-mandatory ones
         (vspec.name, allValues.getOrElse(vspec.name, Seq(""))(0))
       }.toMap
 

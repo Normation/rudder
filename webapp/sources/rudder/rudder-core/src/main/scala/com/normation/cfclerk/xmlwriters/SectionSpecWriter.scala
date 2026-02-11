@@ -54,6 +54,8 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
 
     // add ComponentKey attribute
     section.componentKey.map(key => xml % Attribute(SECTION_COMPONENT_KEY, Text(key), Null)).getOrElse(xml)
+    // no "reporting" attribute serialized for change requests: it is not useful, but we need not to rely on it upon parsing,
+    // see https://issues.rudder.io/issues/27974
 
   }
   private def serializeVariable(variable: SectionVariableSpec): NodeSeq = {
