@@ -46,6 +46,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.nodes.EngineOption
 import com.normation.rudder.services.nodes.PropertyEngineServiceImpl
 import com.normation.rudder.services.nodes.RudderPropertyEngine
+import com.normation.rudder.services.policies.fetchinfo.NodeContextBuilderImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
@@ -118,10 +119,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
   val compiler      = new InterpolatedValueCompilerImpl(propertyEngineService)
   val lookupService = new RuleValServiceImpl(compiler)
   val data          = new TestNodeConfiguration()
-  val buildContext: PromiseGeneration_BuildNodeContext = new PromiseGeneration_BuildNodeContext {
-    override def interpolatedValueCompiler: InterpolatedValueCompiler = compiler
-    override def systemVarService:          SystemVariableService     = data.systemVariableService
-  }
+  val buildContext  = new NodeContextBuilderImpl(compiler, data.systemVariableService)
 
   val context: ParamInterpolationContext = ParamInterpolationContext(
     parameters = Map(),

@@ -163,7 +163,17 @@ final case class RoReportsExecutionRepositoryImpl(
         case (Some(id), Some(config), Some(begin), end, Some(json)) =>
           ExpectedReportsSerialisation.parseJsonNodeExpectedReports(json) match {
             case Full(x) =>
-              Some(NodeExpectedReports(NodeId(id), NodeConfigId(config), begin, end, x.modes, x.ruleExpectedReports, x.overrides))
+              Some(
+                NodeExpectedReports(
+                  NodeId(id),
+                  NodeConfigId(config),
+                  begin,
+                  end,
+                  x.modes,
+                  x.ruleExpectedReports,
+                  x.overrides
+                )
+              )
             case eb: EmptyBox =>
               val e = eb ?~! s"Error when deserialising node configuration for node with ID: ${id}, configId: ${config}"
               logger.error(e.messageChain)
