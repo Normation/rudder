@@ -19,16 +19,13 @@ use std::env;
 
 pub const RUDDER_LENS_LIB: &str = "/var/rudder/lib/lenses";
 
-pub const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
-pub const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const MODULE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const MODULE_FEATURES: [&str; 0] = [];
 
 impl ModuleType0 for Augeas {
     fn metadata(&self) -> ModuleTypeMetadata {
-        let meta = include_str!("../rudder_module_type.yml");
-        let docs = include_str!("../README.md");
-        ModuleTypeMetadata::from_metadata(meta)
-            .expect("invalid metadata")
-            .documentation(docs)
+        ModuleTypeMetadata::new(MODULE_NAME, Vec::from(MODULE_FEATURES))
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {

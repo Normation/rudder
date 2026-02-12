@@ -24,6 +24,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+pub const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const MODULE_FEATURES: [&str; 0] = [];
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct TemplateParameters {
@@ -258,11 +261,7 @@ impl Template {
 
 impl ModuleType0 for Template {
     fn metadata(&self) -> ModuleTypeMetadata {
-        let meta = include_str!("../rudder_module_type.yml");
-        let docs = include_str!("../README.md");
-        ModuleTypeMetadata::from_metadata(meta)
-            .expect("invalid metadata")
-            .documentation(docs)
+        ModuleTypeMetadata::new(MODULE_NAME, Vec::from(MODULE_FEATURES))
     }
 
     fn init(&mut self) -> rudder_module_type::ProtocolResult {

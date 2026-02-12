@@ -142,7 +142,7 @@ impl CfengineRunner {
         let info = promise.metadata();
 
         // Send my header
-        let my_header = Header::new(info.name.clone(), info.version.parse().unwrap()).to_string();
+        let my_header = Header::new(info.name.to_string(), info.agent_version.parse()?).to_string();
         Self::write_line(&mut output, &my_header)?;
 
         let mut initialized = false;

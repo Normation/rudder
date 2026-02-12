@@ -31,7 +31,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{env, path::PathBuf, str::FromStr};
 
-const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const MODULE_FEATURES: [&str; 0] = [];
 
 // Same as the python implementation
 #[cfg(unix)]
@@ -130,11 +131,7 @@ impl SystemUpdateModule {
 
 impl ModuleType0 for SystemUpdateModule {
     fn metadata(&self) -> ModuleTypeMetadata {
-        let meta = include_str!("../rudder_module_type.yml");
-        let docs = include_str!("../README.md");
-        ModuleTypeMetadata::from_metadata(meta)
-            .expect("invalid metadata")
-            .documentation(docs)
+        ModuleTypeMetadata::new(MODULE_NAME, Vec::from(MODULE_FEATURES))
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
