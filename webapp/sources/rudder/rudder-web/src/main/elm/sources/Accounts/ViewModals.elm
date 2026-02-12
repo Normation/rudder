@@ -251,18 +251,23 @@ displayModal model =
                     (title, subTitle, btnClass) = case modalType of
                         Delete ->
                             ( "Delete API account '" ++ name ++ "'"
-                            , "delete"
+                            , "delete an API account"
                             , "danger"
                             )
                         Regenerate ->
                             ( "Regenerate token of API account '" ++ name ++ "'"
-                            , "regenerate token of"
+                            , "regenerate token of an API account"
+                            , "primary"
+                            )
+                        Create ->
+                            ( "Create token of API account '" ++ name ++ "'"
+                            , "create a token for this API account"
                             , "primary"
                             )
                 in
                     ( title
                     , div []
-                        [ h5 [ class "text-center" ] [ text ("You are about to " ++ subTitle ++ " an API account.") ]
+                        [ h5 [ class "text-center" ] [ text ("You are about to " ++ subTitle ++ ".") ]
                         , div [ class "alert alert-warning" ]
                             [ i [ class "fa fa-exclamation-triangle" ] []
                             , text "If you continue, any scripts using this will no longer be able to connect to Rudder's API."

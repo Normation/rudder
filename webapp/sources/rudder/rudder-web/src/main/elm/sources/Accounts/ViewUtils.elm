@@ -80,6 +80,7 @@ displayAccountsTable model =
           Just d -> (Just (posixToString model.ui.datePickerInfo.zone d), DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d)
           Nothing -> (Nothing, "-")
         hasToken = Maybe.Extra.isJust a.tokenGenerationDate
+        modalAction = if hasToken then Regenerate else Create
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
@@ -132,7 +133,7 @@ displayAccountsTable model =
             ]
             [ button
               [ class "btn btn-default reload-token"
-              , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
+              , onClick (ToggleEditPopup (Confirm modalAction a.name (CallApi (regenerateToken modalAction a))))
               ]
               [ span [class ("fa " ++ if hasToken then "fa-repeat" else "fa-plus-circle")][] ]
             ]
@@ -197,26 +198,27 @@ relativeTimeOptions =
     default =
       DateFormat.Relative.defaultRelativeOptions
 
+    -- do not show passing seconds
+    someSecondsAgo _ =
+      "less than a minute ago"
+
+    -- copy of defaultSomeDaysAgo, but show weeks
     someDaysAgo days =
       let
-        ( weeks, leftDays ) =
-          ( days // 7, modBy 7 days )
+         weeks =
+           days // 7
       in
       if days < 2 then
         "yesterday"
 
       else if weeks > 0 then
-        String.concat
-        [ String.Extra.pluralize "week" "weeks" weeks
-        , if leftDays == 0 then "" else String.Extra.pluralize "day" "days" leftDays
-        , " ago"
-        ]
+        String.Extra.pluralize "week" "weeks" weeks ++ " ago"
 
       else
         String.fromInt days ++ " days ago"
 
   in
-  { default | someDaysAgo = someDaysAgo }
+  { default | someSecondsAgo = someSecondsAgo, someDaysAgo = someDaysAgo }
 
 
 -- WARNING:

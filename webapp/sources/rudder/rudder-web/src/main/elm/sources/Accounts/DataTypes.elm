@@ -25,7 +25,7 @@ type ModalState
 type ConfirmModalType
     = Delete
     | Regenerate
-    --| Create
+    | Create
 
 
 type SortBy
