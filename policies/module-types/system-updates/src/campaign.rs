@@ -198,8 +198,8 @@ fn update(
         Ok(ref l) => Some(l.clone()),
         _ => None,
     };
-    report.step(before);
     if report.is_err() {
+        report.step(before);
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok((report, false));
     }
@@ -224,10 +224,10 @@ fn update(
         _ => None,
     };
     let after_failed = after.inner.is_err();
-    report.step(after);
     // The report can be in error state, we only want to fail
     // if the package listing failed.
     if after_failed {
+        report.step(after);
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok((report, false));
     }

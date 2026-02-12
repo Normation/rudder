@@ -16,6 +16,8 @@ mod operation_result_code;
 pub use operation_result_code::OperationResultCode;
 
 mod installation_result;
+mod rudder_hresult;
+
 pub use installation_result::InstallationResult;
 pub use installation_result::UpdateInstallationResult;
 

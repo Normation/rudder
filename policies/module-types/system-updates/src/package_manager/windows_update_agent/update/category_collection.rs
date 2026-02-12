@@ -5,6 +5,7 @@ use anyhow;
 use anyhow::{Context, bail};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::ops::Deref;
 use std::str::FromStr;
 use windows::Win32::System::UpdateAgent::ICategoryCollection;
 
@@ -17,6 +18,12 @@ impl CategoryCollection {
     }
 }
 
+impl Deref for CategoryCollection {
+    type Target = Vec<Category>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 impl TryFrom<&ICategoryCollection> for CategoryCollection {
     type Error = anyhow::Error;
     fn try_from(c: &ICategoryCollection) -> Result<Self, Self::Error> {
@@ -102,9 +109,19 @@ mod tests {
     #[test]
     fn test_from_str() {
         assert_eq!(
-            WellKnownCategories::from_str("5C9376AB-8CE6-464A-b136-22113dd69801"),
-            Some(WellKnownCategories::Application)
+            WellKnownCategories::from_str("5C9376AB-8CE6-464A-b136-22113dd69801").unwrap(),
+            WellKnownCategories::Application
         );
-        assert_eq!(WellKnownCategories::from_str("nothing"), None)
+        assert!(WellKnownCategories::from_str("nothing").is_err())
+    }
+
+    #[test]
+    fn test_is_security_updates() {
+        let c1 = Category {
+            category_type: "".to_string(),
+            name: "".to_string(),
+            id: "0FA1201D-4330-4FA8-8AE9-B877473B6441".to_string(),
+        };
+        assert!(c1.is_security())
     }
 }
