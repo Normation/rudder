@@ -14,12 +14,12 @@
 //!
 //! We prioritize the first one whenever possible, as it is more user-friendly.
 
-use crate::{CRATE_NAME, CRATE_VERSION};
+use crate::{MODULE_NAME, MODULE_VERSION};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::{fmt::Display, sync::LazyLock};
 
-static SOURCE_NAME: LazyLock<String> = LazyLock::new(|| format!("{CRATE_NAME}/{CRATE_VERSION}"));
+static SOURCE_NAME: LazyLock<String> = LazyLock::new(|| format!("{MODULE_NAME}/{MODULE_VERSION}"));
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize)]
 /// The outcome of a module call.

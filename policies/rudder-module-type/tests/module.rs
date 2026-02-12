@@ -12,8 +12,7 @@ struct Test {}
 
 impl ModuleType0 for Test {
     fn metadata(&self) -> ModuleTypeMetadata {
-        let raw = include_str!("rudder_module_type.yml");
-        ModuleTypeMetadata::from_metadata(raw).expect("invalid metadata")
+        ModuleTypeMetadata::new("rudder-module-test", vec![])
     }
 
     fn check_apply(&mut self, _mode: PolicyMode, _attributes: &Parameters) -> CheckApplyResult {

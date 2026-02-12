@@ -10,7 +10,7 @@ use anyhow::Result;
 use gumdrop::Options;
 use raugeas::Flags;
 use rudder_module_augeas::{
-    CRATE_NAME, CRATE_VERSION,
+    MODULE_NAME, MODULE_VERSION,
     augeas::Augeas,
     dsl::{interpreter::Interpreter, repl},
 };
@@ -147,7 +147,7 @@ pub struct Cli {
 /// rudder-module-augeas 8.3.0 (augeas: 1.14.1)
 /// ```
 fn version(augeas_version: String) -> String {
-    format!("{CRATE_NAME} {CRATE_VERSION} (augeas: {augeas_version})")
+    format!("{MODULE_NAME} {MODULE_VERSION} (augeas: {augeas_version})")
 }
 
 impl Cli {

@@ -19,35 +19,23 @@ pub mod runner;
 
 pub use rudder_cli as cli;
 
-/// Information about the module type to pass to the library
+/// Information about the module type to pass to the library.
 ///
 /// These fields are the fields required by the library and need to be
 /// implemented by all promise types.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Default, Clone)]
 pub struct ModuleTypeMetadata {
-    name: String,
-    version: String,
-    description: String,
-    /// Markdown formatted documentation
-    documentation: Option<String>,
-    metadata: Option<String>,
+    name: &'static str,
+    features: Vec<&'static str>,
+    agent_version: &'static str,
 }
 
 impl ModuleTypeMetadata {
-    /// Load metadata from yaml content
-    pub fn from_metadata(metadata: &'static str) -> Result<Self> {
-        let parsed: Self = serde_yaml::from_str(metadata)?;
-        Ok(ModuleTypeMetadata {
-            metadata: Some(metadata.to_string()),
-            ..parsed
-        })
-    }
-
-    /// Override documentation
-    pub fn documentation(self, docs: &'static str) -> Self {
-        ModuleTypeMetadata {
-            documentation: Some(docs.to_string()),
-            ..self
+    pub fn new(name: &'static str, features: Vec<&'static str>) -> Self {
+        Self {
+            name,
+            features,
+            agent_version: env!("CARGO_PKG_VERSION"),
         }
     }
 }
@@ -183,45 +171,22 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     if cli_cfg.version {
         println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         exit(0)
-    } else if cli_cfg.yaml {
-        let info = module_type.metadata();
-        if let Some(m) = info.metadata {
-            println!("{m}");
-            exit(0)
-        } else {
-            println!("Missing metadata information");
-            exit(1)
-        }
     } else if cli_cfg.info {
-        let info = module_type.metadata();
-        println!(
-            "Rudder module type: {} v{} (program: {} v{})\n{}",
-            info.name,
-            info.version,
-            env!("CARGO_PKG_NAME"),
-            env!("CARGO_PKG_VERSION"),
-            info.description
-        );
+        let metadata = module_type.metadata();
+        println!("{}", serde_json::to_string(&metadata)?);
         exit(0)
     }
 
-    #[cfg(target_family = "unix")]
-    {
-        use crate::cfengine::CfengineRunner;
-        CfengineRunner::new().run(module_type)?;
-        Ok(())
-    }
-    #[cfg(not(target_family = "unix"))]
-    unimplemented!("Only Unix-like systems are supported");
+    use crate::cfengine::CfengineRunner;
+    CfengineRunner::new().run(module_type)?;
+    Ok(())
 }
 
 #[derive(Debug, Options)]
 // version and description are taken from Cargo.toml
 pub struct CliConfiguration {
-    #[options(help = "display information about the module type")]
+    #[options(help = "print JSON information about the module type")]
     pub info: bool,
-    #[options(help = "display the module type specification in yaml format")]
-    pub yaml: bool,
     /// Automatically used by the help flag
     #[options(help = "print help message")]
     help: bool,
