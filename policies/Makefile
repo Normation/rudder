@@ -19,3 +19,4 @@ check: lint
 	$(MAKE) cargo-test PACKAGE=rudder-module-template
 	$(MAKE) cargo-test PACKAGE=rudder-module-commands
 	$(MAKE) cargo-test PACKAGE=rudder-module-inventory
+	$(MAKE) cargo-test PACKAGE=rudder-module-secedit
