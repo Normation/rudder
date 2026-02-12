@@ -1234,7 +1234,9 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     if (columnName =="Property" || columnName =="Software") {
       columns.push(allColumns[columnName](escapedValue, checked))
       localStorage.setItem(cacheId, JSON.stringify(columns))
-      params["ajax"] = {
+      // space is not supported in API escaping, see https://issues.rudder.io/issues/28050
+      const hasSpace = value.trim().indexOf(' ') > 0;
+      params["ajax"] = hasSpace ? null : {
           "url" : contextPath + "/secure/api/nodes/details/"+columnName.toLowerCase()+"/"+escapedValue
         , "type" : "POST"
         , "contentType": "application/json"
@@ -1263,6 +1265,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
       }
 
       createTable(gridId,[], columns, params, contextPath, refresh, "nodes");
+      if (hasSpace) refresh();
     } else {
       if ( columnName =="Score details" ) {
         columns.push(allColumns[columnName](escapedValue))
