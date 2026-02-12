@@ -4,7 +4,7 @@ use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::{collections::HashMap, path::Path, process::Command, process::Stdio};
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 #[derive(Debug, Default, Serialize)]
 pub enum Outcome {
@@ -43,7 +43,7 @@ pub struct Secedit {
 impl Secedit {
     pub fn new(tmpdir: &str) -> Result<Self> {
         Ok(Self {
-            tmp_dir: TempDir::new_in(tmpdir, "rudder-module-secedit")?,
+            tmp_dir: TempDir::new_in(tmpdir)?,
         })
     }
 
