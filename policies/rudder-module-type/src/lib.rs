@@ -425,3 +425,38 @@ pub mod atomic_file_write {
         }
     }
 }
+
+pub mod utf16_file {
+    use anyhow::Result;
+    use std::{
+        fs::{File, write},
+        io::{Read, Seek, SeekFrom, Write},
+        path::Path,
+    };
+
+    pub fn read_utf16_file(path: &Path) -> Result<String> {
+        let mut file = File::open(path)?;
+        let mut buffer = Vec::new();
+
+        file.seek(SeekFrom::Start(2))?;
+        file.read_to_end(&mut buffer)?;
+        let data = String::from_utf16(
+            &buffer
+                .chunks(2)
+                .map(|chunk| u16::from_ne_bytes([chunk[0], chunk.get(1).copied().unwrap_or(0)]))
+                .collect::<Vec<u16>>(),
+        )?;
+
+        Ok(data)
+    }
+
+    pub fn write_utf16_file(path: &Path, buffer: &str) -> Result<()> {
+        let mut utf8_buf = Vec::new();
+        for b in buffer.encode_utf16() {
+            utf8_buf.write_all(&b.to_le_bytes())?;
+        }
+        write(path, utf8_buf)?;
+
+        Ok(())
+    }
+}
