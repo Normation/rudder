@@ -6,7 +6,7 @@ function Call_directives {
   BeginDirectiveCall -Name @'
 {{ technique_name }}
 '@ -Id '{{ directive_id }}'
-  {{ bundle_name }} -ReportId "test@@{{ directive_id }}@@0" -TechniqueName "{{ technique_name }}" {{ params }} -PolicyMode ([Rudder.PolicyMode]::{{ policy_mode }})
+  {{ bundle_name }} -ReportId "rule_id@@{{ directive_id }}@@method_id" -TechniqueName "{{ technique_name }}" {{ params }} -PolicyMode ([Rudder.PolicyMode]::{{ policy_mode }})
   EndDirectiveCall -Name @'
 {{ technique_name }}
 '@ -Id '{{ directive_id }}'

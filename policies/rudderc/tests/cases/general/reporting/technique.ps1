@@ -13,6 +13,13 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
@@ -23,6 +30,7 @@
 
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d908"
+    $resultId=$directiveId + '-' + "a86ce2e5-d5b6-45cc-87e8-c11cca71d908"
     try {
         $componentKey = @'
 htop
@@ -37,7 +45,7 @@ No block without condition
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'a86ce2e5-d5b6-45cc-87e8-c11cca71d908'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -62,7 +70,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'a86ce2e5-d5b6-45cc-87e8-c11cca71d908' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -71,10 +79,11 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'a86ce2e5-d5b6-45cc-87e8-c11cca71d908' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "b86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $resultId=$directiveId + '-' + "b86ce2e5-d5b6-45cc-87e8-c11cca71d907"
     try {
         $componentKey = @'
 htop
@@ -89,7 +98,7 @@ No block with condition
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'b86ce2e5-d5b6-45cc-87e8-c11cca71d907'
+            ResultId = $resultId
         }
         
         $class = "debian"
@@ -118,7 +127,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b86ce2e5-d5b6-45cc-87e8-c11cca71d907' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -127,10 +136,11 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'b86ce2e5-d5b6-45cc-87e8-c11cca71d907' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c12"
+    $resultId=$directiveId + '-' + "df06e919-02b7-41a7-a03f-4239592f3c12"
     try {
         $componentKey = @'
 ntp
@@ -145,7 +155,7 @@ NTP service
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'df06e919-02b7-41a7-a03f-4239592f3c12'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -170,7 +180,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'df06e919-02b7-41a7-a03f-4239592f3c12' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -179,10 +189,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'df06e919-02b7-41a7-a03f-4239592f3c12' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c45"
+    $resultId=$directiveId + '-' + "df06e919-02b7-41a7-a03f-4239592f3c45"
     try {
         $componentKey = @'
 ntp
@@ -197,7 +208,7 @@ NTP service
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'df06e919-02b7-41a7-a03f-4239592f3c45'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -222,7 +233,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'df06e919-02b7-41a7-a03f-4239592f3c45' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -231,10 +242,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'df06e919-02b7-41a7-a03f-4239592f3c45' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c14"
+    $resultId=$directiveId + '-' + "cf06e919-02b7-41a7-a03f-4239592f3c14"
     try {
         $componentKey = @'
 ntp
@@ -249,7 +261,7 @@ NTP service
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'cf06e919-02b7-41a7-a03f-4239592f3c14'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -274,7 +286,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c14' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -283,10 +295,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c14' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c13"
+    $resultId=$directiveId + '-' + "cf06e919-02b7-41a7-a03f-4239592f3c13"
     try {
         $componentKey = @'
 ntp
@@ -301,7 +314,7 @@ NTP service
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'cf06e919-02b7-41a7-a03f-4239592f3c13'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -326,7 +339,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c13' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -335,10 +348,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c13' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c21"
+    $resultId=$directiveId + '-' + "cf06e919-02b7-41a7-a03f-4239592f3c21"
     try {
         $componentKey = @'
 ntp
@@ -353,7 +367,7 @@ Enabled reporting
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'cf06e919-02b7-41a7-a03f-4239592f3c21'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -378,7 +392,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c21' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -387,10 +401,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c21' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "c76686bb-79ab-4ae5-b45f-108492ab4101"
+    $resultId=$directiveId + '-' + "c76686bb-79ab-4ae5-b45f-108492ab4101"
     try {
         $componentKey = @'
 ntp
@@ -405,7 +420,7 @@ Disabled reporting
             ReportId = $reportId
             DisableReporting = $true
             TechniqueName = $techniqueName
-            MethodId = 'c76686bb-79ab-4ae5-b45f-108492ab4101'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -430,7 +445,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodId 'c76686bb-79ab-4ae5-b45f-108492ab4101' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -439,10 +454,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodId 'c76686bb-79ab-4ae5-b45f-108492ab4101' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "df06e919-02b7-41a7-a03f-4239592f3c21"
+    $resultId=$directiveId + '-' + "df06e919-02b7-41a7-a03f-4239592f3c21"
     try {
         $componentKey = @'
 ntp
@@ -457,7 +473,7 @@ Enabled reporting
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'df06e919-02b7-41a7-a03f-4239592f3c21'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -482,7 +498,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'df06e919-02b7-41a7-a03f-4239592f3c21' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -491,10 +507,11 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'df06e919-02b7-41a7-a03f-4239592f3c21' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "d76686bb-79ab-4ae5-b45f-108492ab4101"
+    $resultId=$directiveId + '-' + "d76686bb-79ab-4ae5-b45f-108492ab4101"
     try {
         $componentKey = @'
 ntp
@@ -509,7 +526,7 @@ Disabled reporting
             ReportId = $reportId
             DisableReporting = $true
             TechniqueName = $techniqueName
-            MethodId = 'd76686bb-79ab-4ae5-b45f-108492ab4101'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -534,7 +551,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodId 'd76686bb-79ab-4ae5-b45f-108492ab4101' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -543,7 +560,7 @@ ntp
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodId 'd76686bb-79ab-4ae5-b45f-108492ab4101' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$true -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

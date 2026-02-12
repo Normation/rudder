@@ -16,6 +16,13 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 
     Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
 
@@ -28,6 +35,7 @@
 
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $resultId=$directiveId + '-' + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
     try {
         $componentKey = @'
 htop
@@ -42,7 +50,7 @@ Ensure correct ntp configuration
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907'
+            ResultId = $resultId
         }
         
         $class = "false"
@@ -71,7 +79,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -80,10 +88,11 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "cf06e919-02b7-41a7-a03f-4239592f3c12"
+    $resultId=$directiveId + '-' + "cf06e919-02b7-41a7-a03f-4239592f3c12"
     try {
         $componentKey = @'
 /bin/true "# 
@@ -102,7 +111,7 @@ NTP service
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'cf06e919-02b7-41a7-a03f-4239592f3c12'
+            ResultId = $resultId
         }
         
         $class = "linux.fedora"
@@ -130,7 +139,7 @@ vars.node.inventory.os.fullName
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c12' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -139,7 +148,7 @@ vars.node.inventory.os.fullName
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'cf06e919-02b7-41a7-a03f-4239592f3c12' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

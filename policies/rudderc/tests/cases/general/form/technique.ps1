@@ -55,6 +55,13 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
@@ -65,6 +72,7 @@
 
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $resultId=$directiveId + '-' + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
     try {
         $componentKey = @'
 htop
@@ -79,7 +87,7 @@ Ensure correct ntp configuration
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907'
+            ResultId = $resultId
         }
         
         $class = "debian"
@@ -108,7 +116,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -117,7 +125,7 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

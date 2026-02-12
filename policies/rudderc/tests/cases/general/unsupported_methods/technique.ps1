@@ -13,6 +13,13 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
@@ -23,6 +30,7 @@
 
 
     $reportId=$reportIdBase + "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532"
+    $resultId=$directiveId + '-' + "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532"
     try {
         $componentKey = @'
 bob
@@ -37,7 +45,7 @@ Linux user group on Windows
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = '82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532'
+            ResultId = $resultId
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -48,7 +56,7 @@ Linux user group on Windows
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -57,10 +65,11 @@ Linux user group on Windows
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a"
+    $resultId=$directiveId + '-' + "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a"
     try {
         $componentKey = @'
 Write-Host "hello world"
@@ -75,7 +84,7 @@ Powershell exec on Linux
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = '0a9dcb32-e310-488c-b3e8-cbcfc6ae284a'
+            ResultId = $resultId
         }
         
         $class = "linux"
@@ -105,7 +114,7 @@ success
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '0a9dcb32-e310-488c-b3e8-cbcfc6ae284a' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -114,7 +123,7 @@ success
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '0a9dcb32-e310-488c-b3e8-cbcfc6ae284a' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName
