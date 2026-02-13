@@ -138,9 +138,9 @@ impl Cli {
                     .get()?;
                 let package_parameters = RunnerParameters {
                     campaign_type: if opts.security {
-                        FullCampaignType::SecurityUpdate
+                        FullCampaignType::new_security()
                     } else {
-                        FullCampaignType::SystemUpdate
+                        FullCampaignType::new_system()
                     },
                     event_id: Uuid::new_v4().to_string(),
                     campaign_name: opts.name.unwrap_or("CLI".to_string()),

@@ -227,7 +227,7 @@ mod tests {
 
     fn default_runner_parameters() -> RunnerParameters {
         RunnerParameters {
-            campaign_type: FullCampaignType::SystemUpdate,
+            campaign_type: FullCampaignType::new_system(),
             event_id: "".to_string(),
             campaign_name: "".to_string(),
             schedule: FullSchedule::Immediate,
