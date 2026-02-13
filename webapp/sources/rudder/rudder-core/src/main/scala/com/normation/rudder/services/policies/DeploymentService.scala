@@ -1297,6 +1297,8 @@ trait PolicyGenerationHookService {
       errorMessage:     String,
       errorMessagePath: String
   ): Box[Unit]
+
+  def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit
 }
 
 class PolicyGenerationHookServiceImpl(
@@ -1312,7 +1314,7 @@ class PolicyGenerationHookServiceImpl(
    */
   private val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
 
-  def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
+  override def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
     this.codeHooks.append(hook)
   }
 
