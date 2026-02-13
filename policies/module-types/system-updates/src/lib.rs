@@ -254,7 +254,7 @@ mod tests {
             ],
             exclude_list: vec![PackageSpec::new(
                 "htop".to_string(),
-                Some("1.14.0-0ubuntu1.7".to_string()),
+                Some("2.3.4".to_string()),
                 None,
             )],
             report_file: Some(PathBuf::from("/tmp/report.json")),

@@ -71,21 +71,46 @@ impl RunnerParameters {
 }
 
 #[derive(Clone, Debug)]
-pub enum FullCampaignType {
-    /// Install all available upgrades
-    SystemUpdate(Vec<PackageSpec>),
-    /// Install all available security upgrades
-    SecurityUpdate(Vec<PackageSpec>),
-    /// Install the updates from the provided package list
-    SoftwareUpdate(Vec<PackageSpec>, Vec<PackageSpec>),
+pub struct FullCampaignType {
+    pub include: CampaignTarget,
+    pub exclude: Vec<PackageSpec>,
 }
 
 impl FullCampaignType {
-    pub fn new(c: CampaignType, p: Vec<PackageSpec>, exclude: Vec<PackageSpec>) -> Self {
-        match c {
-            CampaignType::SystemUpdate => FullCampaignType::SystemUpdate(exclude),
-            CampaignType::SecurityUpdate => FullCampaignType::SecurityUpdate(exclude),
-            CampaignType::SoftwareUpdate => FullCampaignType::SoftwareUpdate(p, exclude),
+    pub fn new_security() -> Self {
+        Self {
+            include: CampaignTarget::SecurityUpdate,
+            exclude: Vec::new(),
+        }
+    }
+
+    pub fn new_system() -> Self {
+        Self {
+            include: CampaignTarget::SystemUpdate,
+            exclude: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum CampaignTarget {
+    /// Install all available upgrades
+    SystemUpdate,
+    /// Install all available security upgrades
+    SecurityUpdate,
+    /// Install the updates from the provided package list
+    List(Vec<PackageSpec>),
+}
+
+impl FullCampaignType {
+    pub fn new(c: CampaignType, include: Vec<PackageSpec>, exclude: Vec<PackageSpec>) -> Self {
+        FullCampaignType {
+            include: match c {
+                CampaignType::SystemUpdate => CampaignTarget::SystemUpdate,
+                CampaignType::SecurityUpdate => CampaignTarget::SecurityUpdate,
+                CampaignType::SoftwareUpdate => CampaignTarget::List(include),
+            },
+            exclude,
         }
     }
 }

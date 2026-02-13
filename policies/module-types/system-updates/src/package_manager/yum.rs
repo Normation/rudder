@@ -6,6 +6,7 @@ use std::process::Command;
 
 use anyhow::Result;
 
+use crate::campaign::CampaignTarget;
 use crate::output::{CommandBehavior, CommandCapture};
 use crate::package_manager::{PackageId, PackageManager};
 use crate::{
@@ -117,10 +118,11 @@ impl UpdateManager for YumPackageManager {
         &mut self,
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
-        match update_type {
-            FullCampaignType::SystemUpdate(e) => self.full_upgrade(e),
-            FullCampaignType::SecurityUpdate(e) => self.security_upgrade(e),
-            FullCampaignType::SoftwareUpdate(p, e) => self.software_upgrade(p, e),
+        let ex = &update_type.exclude;
+        match update_type.include {
+            CampaignTarget::SystemUpdate => self.full_upgrade(&ex),
+            CampaignTarget::SecurityUpdate => self.security_upgrade(&ex),
+            CampaignTarget::List(ref p) => self.software_upgrade(p, &ex),
         }
     }
 
