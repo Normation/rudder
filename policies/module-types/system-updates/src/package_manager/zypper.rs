@@ -4,8 +4,9 @@
 use std::collections::HashMap;
 use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
+use crate::campaign::CampaignTarget;
 use crate::output::{CommandBehavior, CommandCapture};
 use crate::package_manager::{PackageId, PackageManager};
 use crate::{
@@ -107,10 +108,19 @@ impl UpdateManager for ZypperPackageManager {
         &mut self,
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
-        match update_type {
-            FullCampaignType::SystemUpdate => self.full_upgrade(),
-            FullCampaignType::SecurityUpdate => self.security_upgrade(),
-            FullCampaignType::SoftwareUpdate(p) => self.software_upgrade(p),
+        if !update_type.exclude.is_empty() {
+            return ResultOutput::new_output(
+                Err(anyhow!(
+                    "Excluding packages is not supported with zypper, aborting upgrade"
+                )),
+                Vec::new(),
+                Vec::new(),
+            );
+        }
+        match update_type.include {
+            CampaignTarget::SystemUpdate => self.full_upgrade(),
+            CampaignTarget::SecurityUpdate => self.security_upgrade(),
+            CampaignTarget::List(ref p) => self.software_upgrade(p),
         }
     }
 

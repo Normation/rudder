@@ -21,6 +21,12 @@
         "version": "1.14.0-0ubuntu1.7"
       }
     ],
+    "exclude_list": [
+      {
+        "name": "htop",
+        "version": "2.3.4"
+      }
+    ],
     "report_file": "/tmp/report.json",
     "schedule_file": "/tmp/schedule.json"
   },

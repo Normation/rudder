@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
-use crate::campaign::FullCampaignType;
+use crate::campaign::{CampaignTarget, FullCampaignType};
 use crate::output::ResultOutput;
 use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager, UpdateManager};
 use anyhow::{Result, anyhow};
@@ -272,6 +272,16 @@ impl UpdateManager for WindowsUpdateAgent {
         &mut self,
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+        if !update_type.exclude.is_empty() {
+            return ResultOutput::new_output(
+                Err(anyhow!(
+                    "Excluding packages is not supported with Windows Update Agent, aborting upgrade"
+                )),
+                Vec::new(),
+                Vec::new(),
+            );
+        }
+
         let mut r = ResultOutput::new(Ok(None));
         // Compute the updates to install
         let raw_available_updates = query_wua(&self.session, "IsInstalled=0");
@@ -282,12 +292,12 @@ impl UpdateManager for WindowsUpdateAgent {
             Err(e) => return r.into_err(e.context("Failed to retrieve available updates")),
             Ok(u) => u,
         };
-        let updates_to_download = match update_type {
-            FullCampaignType::SystemUpdate => available_updates.filter_collection(|_| true),
-            FullCampaignType::SecurityUpdate => available_updates.filter_collection(|i| {
+        let updates_to_download = match update_type.include {
+            CampaignTarget::SystemUpdate => available_updates.filter_collection(|_| true),
+            CampaignTarget::SecurityUpdate => available_updates.filter_collection(|i| {
                 i.data.categories.iter().any(|c: &Category| c.is_security())
             }),
-            FullCampaignType::SoftwareUpdate(v) => {
+            CampaignTarget::List(ref v) => {
                 let mut white_list = Vec::new();
                 for i in v {
                     match Article::new(i.name.clone()) {

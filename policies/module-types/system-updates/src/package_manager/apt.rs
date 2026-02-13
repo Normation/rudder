@@ -28,6 +28,7 @@ use rudder_module_type::os_release::OsRelease;
 #[cfg(feature = "apt-compat")]
 use rust_apt_compat as rust_apt;
 
+use crate::campaign::CampaignTarget;
 use rust_apt::{
     Cache, PackageSort,
     cache::Upgrade,
@@ -272,15 +273,25 @@ impl UpdateManager for AptPackageManager {
         &mut self,
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+        if !update_type.exclude.is_empty() {
+            return ResultOutput::new_output(
+                Err(anyhow!(
+                    "Excluding packages is not supported with apt, aborting upgrade"
+                )),
+                Vec::new(),
+                Vec::new(),
+            );
+        }
+
         let cache = self.cache();
         if let Ok(mut c) = cache.inner {
             //if c.get_changes(false).peekable().next().is_some() {
             //    c.clear()
             //}
 
-            let mark_res = AptPackageManager::apt_errors_to_output(match update_type {
-                FullCampaignType::SystemUpdate => self.mark_all_upgrades(&mut c),
-                FullCampaignType::SecurityUpdate => {
+            let mark_res = AptPackageManager::apt_errors_to_output(match update_type.include {
+                CampaignTarget::SystemUpdate => self.mark_all_upgrades(&mut c),
+                CampaignTarget::SecurityUpdate => {
                     let security_origins = match self.distribution.security_origins() {
                         Ok(origins) => origins,
                         // Fail loudly if not supported
@@ -289,7 +300,7 @@ impl UpdateManager for AptPackageManager {
                     debug!("Allowed origins: {:?}", security_origins);
                     self.mark_security_upgrades(&mut c, &security_origins)
                 }
-                FullCampaignType::SoftwareUpdate(p) => self.mark_package_upgrades(p, &mut c),
+                CampaignTarget::List(ref p) => self.mark_package_upgrades(p, &mut c),
             });
             if let Err(e) = mark_res.inner {
                 return ResultOutput {

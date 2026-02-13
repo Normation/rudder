@@ -42,6 +42,7 @@ impl RunnerParameters {
             campaign_type: FullCampaignType::new(
                 package_parameters.campaign_type,
                 package_parameters.package_list,
+                package_parameters.exclude_list,
             ),
             event_id: package_parameters.event_id,
             campaign_name: package_parameters.campaign_name,
@@ -57,6 +58,7 @@ impl RunnerParameters {
             campaign_type: FullCampaignType::new(
                 package_parameters.campaign_type,
                 package_parameters.package_list,
+                package_parameters.exclude_list,
             ),
             event_id: package_parameters.event_id,
             campaign_name: package_parameters.campaign_name,
@@ -69,21 +71,46 @@ impl RunnerParameters {
 }
 
 #[derive(Clone, Debug)]
-pub enum FullCampaignType {
+pub struct FullCampaignType {
+    pub include: CampaignTarget,
+    pub exclude: Vec<PackageSpec>,
+}
+
+impl FullCampaignType {
+    pub fn new_security() -> Self {
+        Self {
+            include: CampaignTarget::SecurityUpdate,
+            exclude: Vec::new(),
+        }
+    }
+
+    pub fn new_system() -> Self {
+        Self {
+            include: CampaignTarget::SystemUpdate,
+            exclude: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum CampaignTarget {
     /// Install all available upgrades
     SystemUpdate,
     /// Install all available security upgrades
     SecurityUpdate,
     /// Install the updates from the provided package list
-    SoftwareUpdate(Vec<PackageSpec>),
+    List(Vec<PackageSpec>),
 }
 
 impl FullCampaignType {
-    pub fn new(c: CampaignType, p: Vec<PackageSpec>) -> Self {
-        match c {
-            CampaignType::SystemUpdate => FullCampaignType::SystemUpdate,
-            CampaignType::SecurityUpdate => FullCampaignType::SecurityUpdate,
-            CampaignType::SoftwareUpdate => FullCampaignType::SoftwareUpdate(p),
+    pub fn new(c: CampaignType, include: Vec<PackageSpec>, exclude: Vec<PackageSpec>) -> Self {
+        FullCampaignType {
+            include: match c {
+                CampaignType::SystemUpdate => CampaignTarget::SystemUpdate,
+                CampaignType::SecurityUpdate => CampaignTarget::SecurityUpdate,
+                CampaignType::SoftwareUpdate => CampaignTarget::List(include),
+            },
+            exclude,
         }
     }
 }
