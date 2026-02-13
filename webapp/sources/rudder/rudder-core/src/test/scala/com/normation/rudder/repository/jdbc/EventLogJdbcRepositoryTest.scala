@@ -89,7 +89,7 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
     EventLogJdbcRepository.getEventLogCountSQL(
       Some(
         defaultFilter.copy(principal =
-          Some(EventLogCriteriaFilter.PrincipalFilter(Some(NonEmptyList.of(EventLogCriteriaFilter.Principal("rudder"))), None))
+          Some(EventLogCriteriaFilter.PrincipalFilter(Some(NonEmptyList.of(EventActor("rudder"))), None))
         )
       )
     )
@@ -98,7 +98,7 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
     EventLogJdbcRepository.getEventLogCountSQL(
       Some(
         defaultFilter.copy(principal =
-          Some(EventLogCriteriaFilter.PrincipalFilter(None, Some(NonEmptyList.of(EventLogCriteriaFilter.Principal("rudder")))))
+          Some(EventLogCriteriaFilter.PrincipalFilter(None, Some(NonEmptyList.of(EventActor("rudder")))))
         )
       )
     )

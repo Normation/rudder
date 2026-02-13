@@ -1,6 +1,7 @@
 package com.normation.rudder.domain.eventlog.criteria
 
 import cats.data.NonEmptyList
+import com.normation.eventlog.EventActor
 import enumeratum.Enum
 import enumeratum.EnumEntry.Lowercase
 import enumeratum.EnumEntry.Uppercase
@@ -18,11 +19,9 @@ case class EventLogCriteriaFilter(
 
 object EventLogCriteriaFilter {
 
-  final case class Actor(include: Option[List[String]], exclude: Option[List[String]])
   final case class Search(value: String)
   final case class Order(column: Column, dir: Direction)
-  final case class PrincipalFilter(include: Option[NonEmptyList[Principal]], exclude: Option[NonEmptyList[Principal]])
-  final case class Principal(value: String)
+  final case class PrincipalFilter(include: Option[NonEmptyList[EventActor]], exclude: Option[NonEmptyList[EventActor]])
 
   sealed abstract class Column(val id: Int) extends Lowercase
   object Column                             extends Enum[Column] {

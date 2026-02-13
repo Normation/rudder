@@ -48,7 +48,6 @@ import com.normation.eventlog.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter
-import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Principal
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.PrincipalFilter
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.repository.EventLogRepository
@@ -94,8 +93,8 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
     val excludePrincipals = filter
       .flatMap(f => f.principal)
       .flatMap(_.exclude)
-      .map(_.append(Principal("rudder")))
-      .getOrElse(NonEmptyList.of(Principal("rudder")))
+      .map(_.append(EventActor("rudder")))
+      .getOrElse(NonEmptyList.of(EventActor("rudder")))
     val includePrincipals = filter.flatMap(f => f.principal).flatMap(_.include)
     filter.map(f => {
       f.copy(principal = Some(PrincipalFilter(includePrincipals, Some(excludePrincipals))))

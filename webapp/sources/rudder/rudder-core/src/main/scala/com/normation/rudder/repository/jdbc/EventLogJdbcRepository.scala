@@ -357,6 +357,8 @@ object EventLogJdbcRepository {
 
     val limit = filter.map(f => fr"LIMIT" ++ Fragment.const(f.length.toString)).getOrElse(Fragment.empty)
 
+    val offset = filter.map(f => fr"OFFSET" ++ Fragment.const(f.start.toString)).getOrElse(Fragment.empty)
+
     val (from, where) = filterToFromAndWhere(filter)
 
     sql"""
@@ -365,6 +367,7 @@ object EventLogJdbcRepository {
          |  ${where}
          |  ${orderBy}
          |  ${limit}
+         |  ${offset}
          |""".stripMargin.query[(String, EventLogDetails)]
   }
 
