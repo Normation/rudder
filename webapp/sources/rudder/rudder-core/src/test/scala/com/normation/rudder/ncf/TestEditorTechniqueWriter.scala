@@ -572,9 +572,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReader() {
-    override def readTechniquesMetadataFile
-        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
-      (List(technique), methods, Nil).succeed
+    override def readTechniquesMetadataFile: IOResult[ReadEditorTechnique] = {
+      ReadEditorTechnique(List(technique), methods, Nil, Nil).succeed
     }
 
     override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = methods.succeed

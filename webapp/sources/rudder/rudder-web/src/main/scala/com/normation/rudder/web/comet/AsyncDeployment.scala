@@ -50,10 +50,8 @@ import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.ncf.CompilationStatus
-import com.normation.rudder.ncf.CompilationStatusAllSuccess
-import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.ncf.EditorTechniqueError
+import com.normation.rudder.ncf.EditorTechniqueStatus
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService
@@ -78,21 +76,22 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  private var compilationStatus:         CompilationStatus                                                                               = CompilationStatusAllSuccess
-  private var nodeProperties:            Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
-  private var groupProperties:           Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
-  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
+  private var techniqueStatus:           EditorTechniqueStatus                           = EditorTechniqueStatus.AllSuccess
+  private var nodeProperties:            Map[NodeId, ResolvedNodePropertyHierarchy]      = Map.empty
+  private var groupProperties:           Map[NodeGroupId, ResolvedNodePropertyHierarchy] = Map.empty
+  private def globalStatus
+      : (CurrentDeploymentStatus, EditorTechniqueStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
     (
       deploymentStatus.current,
-      compilationStatus,
+      techniqueStatus,
       NodeConfigurationStatus.fromProperties(nodeProperties),
       GroupConfigurationStatus.fromProperties(groupProperties)
     )
   }
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:               Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
-  def havePerm(perm: AuthorizationType): Boolean                                                                                         = {
+  private val currentUser:               Option[RudderUserDetail]                        = FindCurrentUser.get()
+  def havePerm(perm: AuthorizationType): Boolean                                         = {
     currentUser match {
       case None    => false
       case Some(u) => u.checkRights(perm)
@@ -109,7 +108,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       nodeProperties = msg.nodeProperties
       groupProperties = msg.groupProperties
       // we want to completely ignore rendering of disabled techniques, so we can directly adapt the received message
-      compilationStatus = CompilationStatus.ignoreDisabledTechniques(msg.compilationStatus)
+      techniqueStatus = EditorTechniqueStatus.ignoreDisabledTechniques(msg.techniqueStatus)
       reRender()
   }
 
@@ -187,19 +186,19 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     deploymentStatus.processing match {
       case IdleDeployer =>
         globalStatus match {
-          case (_: ErrorStatus, _, _, _)                 =>
+          case (_: ErrorStatus, _, _, _)                  =>
             "bg-error"
-          case (_, _: CompilationStatusErrors, _, _)     =>
+          case (_, _: EditorTechniqueStatus.Errors, _, _) =>
             "bg-error"
-          case (_, _, NodeConfigurationStatus.Error, _)  =>
+          case (_, _, NodeConfigurationStatus.Error, _)   =>
             "bg-error"
-          case (_, _, _, GroupConfigurationStatus.Error) =>
+          case (_, _, _, GroupConfigurationStatus.Error)  =>
             "bg-error"
-          case (NoStatus, _, _, _)                       =>
+          case (NoStatus, _, _, _)                        =>
             "bg-neutral"
           case (
                 _: SuccessStatus,
-                CompilationStatusAllSuccess,
+                EditorTechniqueStatus.AllSuccess,
                 NodeConfigurationStatus.Success,
                 GroupConfigurationStatus.Success
               ) =>
@@ -508,10 +507,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       val btnId = techniqueBtnId(error)
       scriptLinkButton(btnId, link)
     }
-    compilationStatus match {
-      case CompilationStatusAllSuccess                =>
+    techniqueStatus match {
+      case EditorTechniqueStatus.AllSuccess                =>
         NodeSeq.Empty
-      case CompilationStatusErrors(techniquesInError) =>
+      case EditorTechniqueStatus.Errors(techniquesInError) =>
         val buttonSetup: JsCmd = techniquesInError.map(techniqueLinkScript).foldLeft(Noop)(_ & _)
         partialUpdate(buttonSetup)
         <li class="card border-start-0 border-end-0 border-top-0">

@@ -99,7 +99,7 @@ class CheckNcfTechniqueUpdate(
         _   <- if (res.allErrors.isEmpty) ().succeed
                else {
                  BootstrapLogger.error(
-                   s"An error occurred while reading techniques during update bootstrap: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                   s"An error occurred while reading techniques during update bootstrap: ${res.allErrors.map(_.msg).mkString("\n ->", "\n ->", "")}"
                  )
                }
 
@@ -139,7 +139,7 @@ class CheckNcfTechniqueUpdate(
         flagDeleted <- IOResult.attempt(ncfTechniqueUpdateFlag.delete())
         _           <- BootstrapLogger.info("Ended editor techniques update")
       } yield {
-        techniques
+        res.techniques
       }
     }
 

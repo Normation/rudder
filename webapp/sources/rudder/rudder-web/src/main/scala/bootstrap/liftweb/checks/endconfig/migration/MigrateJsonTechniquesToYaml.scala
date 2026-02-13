@@ -57,11 +57,11 @@ import zio.*
  * Controlled by presence of flag file /opt/rudder/etc/force_ncf_technique_update
  */
 class MigrateJsonTechniquesToYaml(
-                                   techniqueWriter:                   TechniqueWriter,
-                                   uuidGen:                           StringUuidGenerator,
-                                   techLibUpdate:                     UpdateTechniqueLibrary,
-                                   techniqueCompilationStatusService: ReadEditorTechniqueCheckResult,
-                                   rootConfigRepoDir:                 String
+    techniqueWriter:                   TechniqueWriter,
+    uuidGen:                           StringUuidGenerator,
+    techLibUpdate:                     UpdateTechniqueLibrary,
+    techniqueCompilationStatusService: ReadEditorTechniqueCheckResult,
+    rootConfigRepoDir:                 String
 ) extends BootstrapChecks {
 
   object TechniqueMigrationLogger extends NamedZioLogger {

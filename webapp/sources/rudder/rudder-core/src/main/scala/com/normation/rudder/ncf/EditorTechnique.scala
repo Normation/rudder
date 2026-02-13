@@ -115,10 +115,32 @@ final case class EditorTechnique(
     tags:          Map[String, Json],
     internalId:    Option[String]
 ) {
+
   /**
    * Path relative to git root
    */
   val path: java.nio.file.Path = (File("techniques") / category / id.value / version.value).path
+}
+
+final case class EditorTechniquePath(categoryDir: File, id: BundleName, version: Version) {
+  def toPath:            java.nio.file.Path = (categoryDir / id.value / version.value).path
+  def path:              String             = toPath.toString
+  override def toString: String             = path
+}
+object EditorTechniquePath                                                                {
+  def apply(yamlFile: File): Option[EditorTechniquePath] = {
+    for {
+      version     <- yamlFile.parentOption
+      id          <- version.parentOption
+      categoryDir <- id.parentOption
+    } yield {
+      EditorTechniquePath(
+        categoryDir,
+        BundleName(id.name),
+        Version(version.name)
+      )
+    }
+  }
 }
 
 object EditorTechnique {
@@ -126,7 +148,6 @@ object EditorTechnique {
   /*
    * Check for agreement between technique id from path and technique id from descriptor since the technique may
    * have been put in Rudder by hand by a dev (see https: //issues.rudder.io/issues/23474)
-   * TODO: test this method
    */
   def checkTechniqueIdConsistency(techniqueBaseDirectory: File, techniqueDescriptor: EditorTechnique): Either[String, Unit] = {
     Either.cond(
@@ -138,10 +159,6 @@ object EditorTechnique {
       s"Please change either technique directory or the descriptor information so that they " +
       s"match one other each others."
     )
-  }
-  
-  extension (self: EditorTechnique) {
-    def matchesPath(file: File): Boolean = file.isSamePathAs(File(self.path))
   }
 }
 

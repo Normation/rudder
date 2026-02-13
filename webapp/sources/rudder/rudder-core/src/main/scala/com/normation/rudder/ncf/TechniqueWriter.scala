@@ -101,7 +101,7 @@ class TechniqueWriterImpl(
     techLibUpdate:            UpdateTechniqueLibrary,
     deleteService:            DeleteEditorTechnique,
     compiler:                 TechniqueCompiler,
-    compilationStatusService: TechniqueCompilationStatusSyncService,
+    compilationStatusService: TechniqueCompilationSyncService,
     baseConfigRepoPath:       String // root of config repos
 ) extends TechniqueWriter {
 
@@ -150,7 +150,7 @@ class TechniqueWriterImpl(
     for {
       updated                     <- ZIO.foreach(techniques)(compileArchiveTechnique(_, modId, committer, syncStatus = false))
       (updatedTechniques, results) = updated.unzip
-      _                           <- compilationStatusService.getUpdateAndSync(Some(results))
+      _                           <- compilationStatusService.syncCompilation(results)
     } yield {
       updatedTechniques
     }
@@ -180,7 +180,7 @@ class TechniqueWriterImpl(
         TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_1 - time_0}ms")
       compiled         <- compiler.compileTechnique(techniqueWithResourceUpdated)
       compilationResult = EditorTechniqueCompilationResult.from(techniqueWithResourceUpdated, compiled)
-      _                <- compilationStatusService.syncOne(compilationResult)
+      _                <- compilationStatusService.syncOneCompilation(compilationResult)
       time_3           <- currentTimeMillis
       id               <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
       // resources files are missing the "resources/" prefix

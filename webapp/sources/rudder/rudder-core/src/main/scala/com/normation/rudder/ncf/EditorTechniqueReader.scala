@@ -8,6 +8,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.RuddercLogger
+import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.hooks.Cmd
@@ -30,8 +31,8 @@ import zio.ZIO.*
 import zio.json.*
 import zio.syntax.*
 
-final case class EditorTechniqueParsingError(file: File, errorMsg: String) extends RudderError {
-  override def msg: String = s"Error when parsing technique file : ${file.pathAsString}: ${errorMsg}"
+final case class EditorTechniqueParsingError(path: EditorTechniquePath, errorMsg: String) extends RudderError {
+  override def msg: String = s"Error when parsing technique file : ${path.path}: ${errorMsg}"
 }
 
 final case class ReadEditorTechnique(
@@ -105,15 +106,20 @@ class EditorTechniqueReaderImpl(
               editorTechnique        = {
                 parsedEditorTechnique
                   .flatTap(EditorTechnique.checkTechniqueIdConsistency(file.parent, _))
-                  .leftMap(EditorTechniqueParsingError(file, _))
+                  .leftMap(err =>
+                    EditorTechniquePath(file).fold[File | EditorTechniqueParsingError](file)(EditorTechniqueParsingError(_, err))
+                  )
               }
             } yield editorTechnique)
               .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
               .fold(
                 e => (accT, accP, e :: accE),
                 {
-                  case Right(t) => (t :: accT, accP, accE)
-                  case Left(p)  => (accT, p :: accP, accE)
+                  case Right(t)                             => (t :: accT, accP, accE)
+                  case Left(p: EditorTechniqueParsingError) => (accT, p :: accP, accE)
+                  case Left(f: File)                        =>
+                    TechniqueReaderLoggerPure.logEffect.warn(s"Technique file could not be parsed : ${f}")
+                    (accT, accP, accE)
                 }
               )
         }
