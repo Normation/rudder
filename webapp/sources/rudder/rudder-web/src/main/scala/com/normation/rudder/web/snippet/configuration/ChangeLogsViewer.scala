@@ -64,7 +64,7 @@ class ChangeLogsViewer extends DispatchSnippet with Loggable {
       None,
       None,
       None,
-      Some(EventLogCriteriaFilter.Order(ID, Direction.Asc))
+      Some(EventLogCriteriaFilter.Order(ID, Direction.Desc))
     )
     eventLogService
       .getUserEventLogs(Some(filter))

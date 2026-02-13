@@ -41,9 +41,7 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogType
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Column
-import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Column.ID
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Direction
-import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Direction.Asc
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Order
 import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Search
 import com.normation.rudder.domain.properties.NodeProperty
@@ -53,12 +51,10 @@ import doobie.util.Write
 import enumeratum.Enum
 import enumeratum.EnumEntry.Lowercase
 import io.scalaland.chimney.Transformer
-
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import org.joda.time.DateTime
-
 import scala.xml.NodeSeq
 import zio.Chunk
 import zio.json.*
