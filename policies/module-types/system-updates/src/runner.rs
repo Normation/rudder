@@ -153,7 +153,7 @@ impl Runner {
 }
 #[cfg(test)]
 mod tests {
-    use crate::package_manager::PackageId;
+    use crate::package_manager::{PackageId, PackageSpec};
     use crate::{
         RebootType, Schedule, ScheduleParameters,
         campaign::{FullCampaignType, FullSchedule, RunnerParameters},

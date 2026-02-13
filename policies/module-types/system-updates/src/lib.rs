@@ -32,7 +32,7 @@ use serde_json::Value;
 use std::{env, path::PathBuf, str::FromStr};
 
 pub const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
-pub const MODULE_FEATURES: [&str; 0] = [];
+pub const MODULE_FEATURES: [&str; 1] = ["excludes"];
 
 // Same as the python implementation
 #[cfg(unix)]
@@ -109,6 +109,9 @@ pub struct PackageParameters {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub package_list: Vec<PackageSpec>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub exclude_list: Vec<PackageSpec>,
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub report_file: Option<PathBuf>,
@@ -212,6 +215,7 @@ mod tests {
             schedule: Schedule::Immediate,
             reboot_type: RebootType::AsNeeded,
             package_list: vec![],
+            exclude_list: vec![],
             report_file: None,
             schedule_file: None,
         };
@@ -248,6 +252,11 @@ mod tests {
                     None,
                 ),
             ],
+            exclude_list: vec![PackageSpec::new(
+                "htop".to_string(),
+                Some("1.14.0-0ubuntu1.7".to_string()),
+                None,
+            )],
             report_file: Some(PathBuf::from("/tmp/report.json")),
             schedule_file: Some(PathBuf::from("/tmp/schedule.json")),
         };

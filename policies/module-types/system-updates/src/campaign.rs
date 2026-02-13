@@ -42,6 +42,7 @@ impl RunnerParameters {
             campaign_type: FullCampaignType::new(
                 package_parameters.campaign_type,
                 package_parameters.package_list,
+                package_parameters.exclude_list,
             ),
             event_id: package_parameters.event_id,
             campaign_name: package_parameters.campaign_name,
@@ -57,6 +58,7 @@ impl RunnerParameters {
             campaign_type: FullCampaignType::new(
                 package_parameters.campaign_type,
                 package_parameters.package_list,
+                package_parameters.exclude_list,
             ),
             event_id: package_parameters.event_id,
             campaign_name: package_parameters.campaign_name,
@@ -71,19 +73,19 @@ impl RunnerParameters {
 #[derive(Clone, Debug)]
 pub enum FullCampaignType {
     /// Install all available upgrades
-    SystemUpdate,
+    SystemUpdate(Vec<PackageSpec>),
     /// Install all available security upgrades
-    SecurityUpdate,
+    SecurityUpdate(Vec<PackageSpec>),
     /// Install the updates from the provided package list
-    SoftwareUpdate(Vec<PackageSpec>),
+    SoftwareUpdate(Vec<PackageSpec>, Vec<PackageSpec>),
 }
 
 impl FullCampaignType {
-    pub fn new(c: CampaignType, p: Vec<PackageSpec>) -> Self {
+    pub fn new(c: CampaignType, p: Vec<PackageSpec>, exclude: Vec<PackageSpec>) -> Self {
         match c {
-            CampaignType::SystemUpdate => FullCampaignType::SystemUpdate,
-            CampaignType::SecurityUpdate => FullCampaignType::SecurityUpdate,
-            CampaignType::SoftwareUpdate => FullCampaignType::SoftwareUpdate(p),
+            CampaignType::SystemUpdate => FullCampaignType::SystemUpdate(exclude),
+            CampaignType::SecurityUpdate => FullCampaignType::SecurityUpdate(exclude),
+            CampaignType::SoftwareUpdate => FullCampaignType::SoftwareUpdate(p, exclude),
         }
     }
 }

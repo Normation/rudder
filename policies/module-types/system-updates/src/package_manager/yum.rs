@@ -47,10 +47,21 @@ impl YumPackageManager {
         res
     }
 
-    fn full_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+    fn package_specs_as_exclude_argument(p: &[PackageSpec]) -> Vec<String> {
+        p.iter()
+            .map(|p| format!("--exclude={}", Self::package_spec_as_argument(p)))
+            .collect::<Vec<_>>()
+    }
+
+    fn full_upgrade(
+        &mut self,
+        excludes: &[PackageSpec],
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         // https://serverfault.com/a/1075175
         let mut c = Command::new("yum");
-        c.arg("--assumeyes").arg("update");
+        c.arg("--assumeyes")
+            .args(Self::package_specs_as_exclude_argument(excludes))
+            .arg("update");
         ResultOutput::command(
             c,
             CommandBehavior::FailOnErrorCode,
@@ -60,10 +71,16 @@ impl YumPackageManager {
     }
 
     /// `yum install yum-plugin-security` is only necessary on RHEL < 7, which are not supported.
-    fn security_upgrade(&mut self) -> ResultOutput<Option<HashMap<PackageId, String>>> {
+    fn security_upgrade(
+        &mut self,
+        excludes: &[PackageSpec],
+    ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         // See https://access.redhat.com/solutions/10021
         let mut c = Command::new("yum");
-        c.arg("--assumeyes").arg("--security").arg("update");
+        c.arg("--assumeyes")
+            .arg("--security")
+            .args(Self::package_specs_as_exclude_argument(excludes))
+            .arg("update");
         ResultOutput::command(
             c,
             CommandBehavior::FailOnErrorCode,
@@ -75,9 +92,11 @@ impl YumPackageManager {
     fn software_upgrade(
         &mut self,
         packages: &[PackageSpec],
+        excludes: &[PackageSpec],
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let mut c = Command::new("yum");
         c.arg("--assumeyes")
+            .args(Self::package_specs_as_exclude_argument(excludes))
             .arg("update")
             .args(packages.iter().map(Self::package_spec_as_argument));
         ResultOutput::command(
@@ -99,9 +118,9 @@ impl UpdateManager for YumPackageManager {
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         match update_type {
-            FullCampaignType::SystemUpdate => self.full_upgrade(),
-            FullCampaignType::SecurityUpdate => self.security_upgrade(),
-            FullCampaignType::SoftwareUpdate(p) => self.software_upgrade(p),
+            FullCampaignType::SystemUpdate(e) => self.full_upgrade(e),
+            FullCampaignType::SecurityUpdate(e) => self.security_upgrade(e),
+            FullCampaignType::SoftwareUpdate(p, e) => self.software_upgrade(p, e),
         }
     }
 
@@ -158,6 +177,30 @@ mod tests {
         assert_eq!(
             YumPackageManager::package_spec_as_argument(&p),
             "foo-1.0.x86_64"
+        );
+    }
+
+    #[test]
+    fn test_package_specs_as_exclude_argument() {
+        let specs = vec![
+            PackageSpec {
+                name: "foo".to_string(),
+                version: Some("1.0".to_string()),
+                architecture: Some("x86_64".to_string()),
+            },
+            PackageSpec {
+                name: "bar".to_string(),
+                version: None,
+                architecture: None,
+            },
+        ];
+        let expected = vec![
+            "--exclude=foo-1.0.x86_64".to_string(),
+            "--exclude=bar".to_string(),
+        ];
+        assert_eq!(
+            YumPackageManager::package_specs_as_exclude_argument(&specs),
+            expected
         );
     }
 }
