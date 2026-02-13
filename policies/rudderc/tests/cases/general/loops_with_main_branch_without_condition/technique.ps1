@@ -13,6 +13,13 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
@@ -23,6 +30,7 @@
 
 
     $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9-0"
+    $resultId=$directiveId + '-' + "845f731a-2800-41c8-967e-7d1ce89bd1b9-0"
     try {
         $componentKey = @'
 /home/bob/.vimrc
@@ -37,7 +45,7 @@ Do something
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = '845f731a-2800-41c8-967e-7d1ce89bd1b9-0'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -63,7 +71,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-0' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -72,10 +80,11 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-0' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9-1"
+    $resultId=$directiveId + '-' + "845f731a-2800-41c8-967e-7d1ce89bd1b9-1"
     try {
         $componentKey = @'
 /home/bob/.bashrc
@@ -90,7 +99,7 @@ Do something
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = '845f731a-2800-41c8-967e-7d1ce89bd1b9-1'
+            ResultId = $resultId
         }
         
         $class = "a_condition_evaluated_at_runtime"
@@ -120,7 +129,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-1' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -129,7 +138,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId '845f731a-2800-41c8-967e-7d1ce89bd1b9-1' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

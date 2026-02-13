@@ -16,6 +16,13 @@
     }
     BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
     $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
+    $splitReportId = $reportId -Split '@@'
+    $directiveId = if ($splitReportId.Count -ge 2) {
+        $splitReportId[1]
+    } else {
+        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
+        ''
+    }
 
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
@@ -26,6 +33,7 @@
 
 
     $reportId=$reportIdBase + "d982a7e6-494a-40a5-aea1-7d9a185eed61"
+    $resultId=$directiveId + '-' + "d982a7e6-494a-40a5-aea1-7d9a185eed61"
     try {
         $componentKey = @'
 /some/path
@@ -40,7 +48,7 @@ File content
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
-            MethodId = 'd982a7e6-494a-40a5-aea1-7d9a185eed61'
+            ResultId = $resultId
         }
         
         $methodParams = @{
@@ -89,7 +97,7 @@ vars.node.properties.name.key
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd982a7e6-494a-40a5-aea1-7d9a185eed61' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -98,7 +106,7 @@ vars.node.properties.name.key
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd982a7e6-494a-40a5-aea1-7d9a185eed61' -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName
