@@ -120,9 +120,9 @@ impl UpdateManager for YumPackageManager {
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
         let ex = &update_type.exclude;
         match update_type.include {
-            CampaignTarget::SystemUpdate => self.full_upgrade(&ex),
-            CampaignTarget::SecurityUpdate => self.security_upgrade(&ex),
-            CampaignTarget::List(ref p) => self.software_upgrade(p, &ex),
+            CampaignTarget::SystemUpdate => self.full_upgrade(ex),
+            CampaignTarget::SecurityUpdate => self.security_upgrade(ex),
+            CampaignTarget::List(ref p) => self.software_upgrade(p, ex),
         }
     }
 
