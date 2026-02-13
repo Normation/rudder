@@ -18,7 +18,7 @@ limitations under the License.
 
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
-  <version>8.3.9-SNAPSHOT</version>
+  <version>8.3.9</version>
   <packaging>pom</packaging>
 
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
@@ -416,9 +416,9 @@ limitations under the License.
 
     <!-- Libraries version that MUST be used in all children project -->
 
-    <current-year>2025</current-year>
+    <current-year>2026</current-year>
     <rudder-major-version>8.3</rudder-major-version>
-    <rudder-version>8.3.9-SNAPSHOT</rudder-version>
+    <rudder-version>8.3.9</rudder-version>
 
     <servlet-version>5.0.0</servlet-version>
     <scala-version>2.13.16</scala-version>
