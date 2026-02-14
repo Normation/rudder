@@ -40,7 +40,9 @@ package com.normation.rudder.web.snippet.configuration
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.EventLog
-import doobie.*
+import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter
+import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Column.ID
+import com.normation.rudder.domain.eventlog.criteria.EventLogCriteriaFilter.Direction
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
@@ -50,12 +52,24 @@ class ChangeLogsViewer extends DispatchSnippet with Loggable {
    * Be careful, that page used to be named "Event Logs" and so the
    * internal service still use that nomenclature.
    */
-  private val repos     = RudderConfig.eventLogRepository
-  private val eventList = RudderConfig.eventListDisplayer
-  private val gridName  = "changeLogsGrid"
+  private val eventLogService = RudderConfig.eventLogCoreService
+  private val eventList       = RudderConfig.eventListDisplayer
+  private val gridName        = "changeLogsGrid"
 
   def getLastEvents: Box[Seq[EventLog]] = {
-    repos.getEventLogByCriteria(None, Some(1000), List(Fragment.const("id DESC"))).toBox
+    val filter = EventLogCriteriaFilter(
+      start = 0,
+      length = 1000,
+      None,
+      None,
+      None,
+      None,
+      Some(EventLogCriteriaFilter.Order(ID, Direction.Desc))
+    )
+    eventLogService
+      .getUserEventLogs(Some(filter))
+      .toBox
+
   }
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
