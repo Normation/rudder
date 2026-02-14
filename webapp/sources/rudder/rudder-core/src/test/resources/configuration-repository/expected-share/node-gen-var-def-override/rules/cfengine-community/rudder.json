@@ -1,4 +1,4 @@
-{":[
+{
   "AGENT_RUN_INTERVAL" : "5",
   "AGENT_RUN_SCHEDULE" : "\"Min01\", \"Min06\", \"Min11\", \"Min16\", \"Min21\", \"Min26\", \"Min31\", \"Min36\", \"Min41\", \"Min46\", \"Min51\", \"Min56\"",
   "AGENT_RUN_SPLAYTIME" : "4",
