@@ -173,6 +173,10 @@ update msg model =
                             ( CopyToken (exposeToken account.token)
                             , "regenerated token of"
                             )
+                        Create ->
+                            ( CopyToken (exposeToken account.token)
+                            , "created token for"
+                            )
 
                 newModel =
                     { model | ui = { ui | modalState = modalState } }
@@ -188,7 +192,10 @@ update msg model =
                             "Deleting"
 
                         Regenerate ->
-                            "regenerating token of"
+                            "Regenerating token of"
+
+                        Create ->
+                            "Creating token for"
             in
             processApiError (action ++ " API account") err model
 

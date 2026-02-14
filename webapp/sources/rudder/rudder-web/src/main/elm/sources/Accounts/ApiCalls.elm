@@ -67,8 +67,8 @@ deleteAccount account model =
   in
     req
 
-regenerateToken : Account -> Model -> Cmd Msg
-regenerateToken account model =
+regenerateToken : ConfirmModalType -> Account -> Model -> Cmd Msg
+regenerateToken action account model =
   let
     req =
       request
@@ -76,7 +76,7 @@ regenerateToken account model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["apiaccounts", account.id, "token", "regenerate"] []
         , body    = emptyBody
-        , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo.zone)
+        , expect  = Detailed.expectJson (ConfirmActionAccount action) (decodePostAccount model.ui.datePickerInfo.zone)
         , timeout = Nothing
         , tracker = Nothing
         }
