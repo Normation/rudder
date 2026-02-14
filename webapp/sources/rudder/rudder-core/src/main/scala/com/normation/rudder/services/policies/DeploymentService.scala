@@ -485,7 +485,7 @@ class PolicyGenerationUpdateDynGroupImpl(getComputeDynGroups: () => IOResult[Boo
 
     def awaitEndGroup: IOResult[Unit] = for {
       isIdle <- IOResult.attempt(updateDynamicGroups.isIdle())
-      _      <- ZIO.when(isIdle)(ZIO.sleep(50.millis) *> awaitEndGroup)
+      _      <- ZIO.unless(isIdle)(ZIO.sleep(50.millis) *> awaitEndGroup)
     } yield ()
 
     // Trigger a manual update if one is not pending (otherwise it goes in infinite loop)
