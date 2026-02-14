@@ -34,7 +34,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 @use 'sass:color';
 
 .filemanager-container{
@@ -44,7 +44,7 @@
   left: 0;
   right: 0;
   z-index: 99999;
-  background-color: $rudder-bg-overlay;
+  background-color: rudder.$bg-overlay;
 }
 
 .fm-simple-screen {
@@ -70,8 +70,8 @@
 .fm-bar {
   display: flex;
   align-items: center;
-  background-color: $rudder-bg-light-gray;
-  border-bottom: 1px solid $rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border-bottom: 1px solid rudder.$border-color-default;
   padding: 0 12px;
 }
 
@@ -84,7 +84,7 @@
 }
 
 .fm-arrow > svg > path:last-child{
-  fill: $rudder-gray-500;
+  fill: rudder.$gray-500;
 }
 
 .fm-arrow:focus {
@@ -94,7 +94,7 @@
 .fm-text {
   flex-grow: 1;
   margin-left: 10px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   font-weight: 500;
 }
 
@@ -161,7 +161,7 @@
 }
 
 .fm-file:hover {
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 
 .fm-selected {
@@ -210,18 +210,18 @@
   justify-content: flex-end;
   align-items: center;
   padding: 0 12px;
-  background-color: $rudder-bg-light-gray;
-  border-top: 1px solid $rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border-top: 1px solid rudder.$border-color-default;
 }
 
 .fm-control button {
     margin-left: 7px;
     padding: 5px 10px;
     border-radius: 4px;
-    color: $rudder-txt-primary;
+    color: rudder.$txt-primary;
     background-color: #FFFFFF;
     cursor: pointer;
-    border: 1px solid $rudder-border-color-default;
+    border: 1px solid rudder.$border-color-default;
 }
 
 .fm-helper {
@@ -249,7 +249,7 @@
   position: fixed;
   width: 150px;
   padding: 5px 0;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   background-color: #FFFFFF;
   border-radius: 4px;
 }
@@ -265,7 +265,7 @@
 }
 
 .fm-context-menu button:hover {
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 
 .fm-context-menu .disabled {
@@ -305,7 +305,7 @@
   z-index: 1;
   width: 100%;
   height: 100%;
-  background-color: $rudder-bg-overlay;
+  background-color: rudder.$bg-overlay;
 }
 
 .fm-modal {
@@ -352,13 +352,13 @@
 .fm-bar-actions .btn{
   font-size: 16px;
   background-color: transparent !important;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 
 /* SEARCH FILTER */
 .dropdown-menu.search-dropdown{
   padding: 10px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   width: 250px;
 }
 
@@ -373,7 +373,7 @@
   width: 320px;
   height: 100%;
   background-color: #fafafa;
-  border-right: 1px solid $rudder-border-color-default;
+  border-right: 1px solid rudder.$border-color-default;
 }
 
 .fm-filetree ul{
@@ -390,19 +390,19 @@
   align-items: center;
   padding: 6px 0;
   cursor: pointer;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   position: relative;
   padding-left: 24px;
 }
 
 .fm-filetree ul li a:hover{
-  background-color: $rudder-bg-gray;
-  color: $rudder-txt-primary;
+  background-color: rudder.$bg-gray;
+  color: rudder.$txt-primary;
 }
 .fm-filetree ul li a:before,
 .fm-filetree ul ul:before{
   content: "";
-  border-left: 2px solid $rudder-border-color-default;
+  border-left: 2px solid rudder.$border-color-default;
   display: block;
   position: absolute;
   height: 100%;
