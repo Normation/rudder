@@ -211,6 +211,11 @@ trait NodeFactRepository {
   }
 
   /*
+   * Changing the node state is special: ignoring it must by-pass consistency checks to allow to remove nodes
+   */
+  def setNodeState(nodeId: NodeId, state: NodeState)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC]
+
+  /*
    * Define security tag for the node if change context allows it.
    */
   def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC]
@@ -742,6 +747,23 @@ class CoreNodeFactRepository(
   override def save(nodeFact: NodeFact)(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
     ZIO.foreachDiscard(savePreChecks)(_(nodeFact)) *>
     internalSave(Left(nodeFact))
+  }
+
+  override def setNodeState(nodeId: NodeId, state: NodeState)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = {
+    get(nodeId)(using cc.toQC)
+      .notOptional(s"Node with ID '${nodeId.value}' was not found")
+      .flatMap { n =>
+        if (n.rudderSettings.state == state) NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none), cc).succeed
+        else {
+          val updated = n.modify(_.rudderSettings.state).setTo(state)
+          state match {
+            // ignored by-pass consistency check so that we can remove a node form policy generation without deleting it,
+            // even if the node is in some inconsistent state. It was already there so that ok.
+            case NodeState.Ignored => internalSave(Left(NodeFact.fromMinimal(updated)))(using cc, SelectFacts.none)
+            case _                 => save(updated)
+          }
+        }
+      }
   }
 
   override def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit

@@ -38,6 +38,7 @@ package com.normation.rudder.services.policies.nodeconfig
 
 import better.files.*
 import com.normation.GitVersion
+import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -166,13 +167,13 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
   sequential
 
   "when nothing was written, we should get an empty success" >> {
-    configHashesRepo.getAll() must beEqualTo(Full(Map()))
+    configHashesRepo.getAll().toBox must beEqualTo(Full(Map()))
   }
 
   "write hashes" should {
     "get them back" in {
-      configHashesRepo.save(s1)
-      configHashesRepo.getAll().map(_.values.toSet).forceGet must containTheSameElementsAs(s1.toList)
+      (configHashesRepo.save(s1) *>
+      configHashesRepo.getAll().map(_.values.toSet)).toBox.forceGet must containTheSameElementsAs(s1.toList)
     }
 
     "be written sorted" in {
@@ -188,13 +189,13 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     }
 
     "keep existing and update given ones" in {
-      configHashesRepo.save(Set(h1_1, h3_0))
-      configHashesRepo.getAll().map(_.values).forceGet must containTheSameElementsAs(List(h1_1, h0_0, h2_0, h3_0))
+      (configHashesRepo.save(Set(h1_1, h3_0)) *>
+      configHashesRepo.getAll().map(_.values)).toBox.forceGet must containTheSameElementsAs(List(h1_1, h0_0, h2_0, h3_0))
     }
 
     "does nothing if nothing saved" in {
-      configHashesRepo.save(Set())
-      configHashesRepo.getAll().map(_.values).forceGet must containTheSameElementsAs(List(h1_1, h0_0, h2_0, h3_0))
+      (configHashesRepo.save(Set()) *>
+      configHashesRepo.getAll().map(_.values)).toBox.forceGet must containTheSameElementsAs(List(h1_1, h0_0, h2_0, h3_0))
     }
 
     "still be written sorted" in {
@@ -211,17 +212,17 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     }
 
     "correctly delete selected" in {
-      configHashesRepo.deleteNodeConfigurations(Set(h2_0.id))
-      configHashesRepo.getAll().map(_.values).forceGet must containTheSameElementsAs(List(h1_1, h0_0, h3_0))
+      (configHashesRepo.deleteNodeConfigurations(Set(h2_0.id)) *>
+      configHashesRepo.getAll().map(_.values)).toBox.forceGet must containTheSameElementsAs(List(h1_1, h0_0, h3_0))
     }
 
     "correctly keep only selected" in {
-      configHashesRepo.onlyKeepNodeConfiguration(Set(h0_0.id))
-      configHashesRepo.getAll().map(_.values).forceGet must containTheSameElementsAs(List(h0_0))
+      (configHashesRepo.onlyKeepNodeConfiguration(Set(h0_0.id)) *>
+      configHashesRepo.getAll().map(_.values)).toBox.forceGet must containTheSameElementsAs(List(h0_0))
     }
     "correctly delete all" in {
-      configHashesRepo.deleteAllNodeConfigurations()
-      configHashesRepo.getAll().map(_.values).forceGet must containTheSameElementsAs(Nil)
+      (configHashesRepo.deleteAllNodeConfigurations() *>
+      configHashesRepo.getAll().map(_.values)).toBox.forceGet must containTheSameElementsAs(Nil)
     }
   }
 

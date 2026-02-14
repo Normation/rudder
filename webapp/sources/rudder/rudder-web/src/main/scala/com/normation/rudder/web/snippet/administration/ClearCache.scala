@@ -38,6 +38,7 @@
 package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.box.*
 import com.normation.rudder.users.CurrentUser
 import net.liftweb.*
 import net.liftweb.common.*
@@ -45,8 +46,8 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*
+import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
-import util.Helpers.*
 
 class ClearCache extends DispatchSnippet with Loggable {
 
@@ -59,7 +60,7 @@ class ClearCache extends DispatchSnippet with Loggable {
     // JsCmd which will be sent back to the browser
     // as part of the response
     def process(): JsCmd = {
-      val createNotification = clearCacheService.action(CurrentUser.actor) match {
+      val createNotification = clearCacheService.action(CurrentUser.actor).toBox match {
         case empty: EmptyBox =>
           val e = empty ?~! "Error while clearing caches"
           JsRaw(s"""createErrorNotification("${e.messageChain}")""") // JsRaw ok, no user inputs

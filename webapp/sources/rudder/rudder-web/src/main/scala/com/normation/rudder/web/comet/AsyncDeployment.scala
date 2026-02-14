@@ -40,6 +40,7 @@ package com.normation.rudder.web.comet
 import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
@@ -357,7 +358,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       SHtml.ajaxButton(
         "Regenerate",
         () => {
-          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor) match {
+          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor).toBox match {
             case Full(_) => // ok
             case eb: EmptyBox =>
               val err = eb ?~! "Error when trying to start policy generation"

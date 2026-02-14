@@ -1266,7 +1266,7 @@ class SystemApiService11(
     implicit val prettify = params.prettify
     val dest              = ManualStartDeployment(newModId, qc.actor, "Policy regenerate asked by REST request")
 
-    clearCacheService.action(qc.actor)
+    clearCacheService.action(qc.actor).runNow
     asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
   }

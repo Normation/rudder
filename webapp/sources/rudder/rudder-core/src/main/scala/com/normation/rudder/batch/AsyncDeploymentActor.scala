@@ -563,7 +563,6 @@ final class AsyncDeploymentActor(
                _   <- PolicyGenerationLoggerPure.manager.debug(s"Policy generation starts now!")
                res <- deploymentService
                         .deploy()
-                        .toIO
                         .foldZIO(
                           err =>
                             PolicyGenerationLoggerPure.manager.error(s"Error when updating policy, reason was: ${err.fullMsg}") *>
