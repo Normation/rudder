@@ -137,7 +137,7 @@ trait PolicyGenerationService {
    * Return the list of node IDs actually updated.
    *
    */
-  def deploy(): Box[Set[NodeId]]
+  def deploy(): IOResult[Set[NodeId]]
 
 }
 
@@ -192,7 +192,7 @@ class PolicyGenerationServiceImpl(
    * Return the list of node IDs actually updated.
    *
    */
-  override def deploy(): Box[Set[NodeId]] = {
+  override def deploy(): IOResult[Set[NodeId]] = {
     PolicyGenerationLogger.info("Start policy generation, checking updated rules")
 
     val initialTime    = System.currentTimeMillis
@@ -204,7 +204,7 @@ class PolicyGenerationServiceImpl(
     import scala.jdk.CollectionConverters.*
     val systemEnv  = HookEnvPairs.build(System.getenv.asScala.toSeq*)
 
-    val result = (for {
+    val result: IOResult[Set[NodeId]] = for {
       (timeRunPreGenHooks, _) <- promiseGenerationHookService.runPreHooks(generationTime, systemEnv).timed
       _                       <- PolicyGenerationLoggerPure.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks.render}")
 
@@ -407,38 +407,45 @@ class PolicyGenerationServiceImpl(
                 }
     } yield {
       result
-    }).toBox
+    }
 
     // if result is a failure, execute policy generation failure hooks
-    result match {
-      case f: Failure =>
-        // in case of a failed generation, run corresponding hooks
-        val failureHooksTime       = System.currentTimeMillis
-        val exceptionInfo          = f.rootExceptionCause
-          .map(ex => s"\n\nException linked to failure: ${ex.getMessage}\n  ${ex.getStackTrace.map(_.toString).mkString("\n  ")}")
-          .getOrElse("")
-        promiseGenerationHookService
-          .runFailureHooks(
-            generationTime,
-            new DateTime(failureHooksTime, DateTimeZone.UTC),
-            systemEnv,
-            f.messageChain + exceptionInfo,
-            GENERATION_FAILURE_MSG_PATH
-          )
-          .toBox match {
-          case f: Failure =>
-            PolicyGenerationLogger.error(s"Failure when executing policy generation failure hooks: ${f.messageChain}")
-          case _ => //
-        }
-        val timeRunFailureGenHooks = (System.currentTimeMillis - failureHooksTime)
-        PolicyGenerationLogger.timing.debug(s"Generation-failure hooks ran in ${timeRunFailureGenHooks} ms")
-      case _ => //
+    result.tapError { err =>
+      // in case of a failed generation, run corresponding hooks
+      Clock
+        .currentTime(TimeUnit.MILLISECONDS)
+        .flatMap(failureHooksTime => {
+          promiseGenerationHookService
+            .runFailureHooks(
+              generationTime,
+              new DateTime(failureHooksTime, DateTimeZone.UTC),
+              systemEnv,
+              err.fullMsg,
+              GENERATION_FAILURE_MSG_PATH
+            )
+            .catchAll(err =>
+              PolicyGenerationLoggerPure.error(s"Failure when executing policy generation failure hooks: ${err.fullMsg}")
+            )
+            .timed
+            .flatMap((t, _) => PolicyGenerationLoggerPure.timing.debug(s"Generation-failure hooks ran in ${t.render}"))
+        }) *> completionLog("failed after", initialTime)
     }
-    val completion = if (result.isDefined) "succeeded in" else "failed after"
-    PolicyGenerationLogger.timing.info(
-      s"Policy generation ${completion}: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime)))
-    )
-    result
+      .tap(_ => completionLog("succeeded in", initialTime))
+  }
+
+  private def completionLog(completion: String, initialTime: Long): IOResult[Unit] = {
+    Clock
+      .currentTime(TimeUnit.MILLISECONDS)
+      .flatMap { t =>
+        effectUioUnit(
+          println(
+            s"******* initialTime: ${initialTime} ; current time: ${t} ; period: ${periodFormatter.print(new Period(t - initialTime))}"
+          )
+        ) *>
+        PolicyGenerationLoggerPure.timing.info(
+          s"Policy generation ${completion}: %10s".format(Duration.fromMillis(t - initialTime).render)
+        )
+      }
   }
 
   private val periodFormatter = {
@@ -840,7 +847,7 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
+trait PolicyGeneration_updateAndWriteRule {
 
   def nodeConfigurationService:  NodeConfigurationHashRepository
   def woRuleRepo:                WoRuleRepository
@@ -1018,7 +1025,7 @@ trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PolicyGeneration_setExpectedReports extends PolicyGenerationService {
+trait PolicyGeneration_setExpectedReports {
   def complianceCache:                FindNewNodeStatusReports
   def confExpectedRepo:               UpdateExpectedReportsRepository
   def cachedNodeConfigurationService: CachedNodeConfigurationService
