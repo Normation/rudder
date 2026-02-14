@@ -47,6 +47,7 @@ use crate::{
 };
 
 const PACKAGES_FOLDER: &str = "/var/rudder/packages";
+const PACKAGE_CONTENT_DEFAULT_FOLDER: &str = "/opt/rudder/share/plugins";
 const DEFAULT_LOG_FOLDER: &str = "/var/log/rudder/rudder-pkg/";
 const LICENSES_FOLDER: &str = "/opt/rudder/etc/plugins/licenses";
 const WEBAPP_XML_PATH: &str = "/opt/rudder/share/webapps/rudder.xml";
