@@ -459,8 +459,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   // all other apis
 
   class FakeClearCacheService extends ClearCacheService {
-    override def action(actor:                           EventActor): Box[String] = null
-    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): Box[Unit] = null
+    override def action(actor:                           EventActor): IOResult[Unit] = ZIO.unit
+    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): IOResult[Unit] = ZIO.unit
   }
 
   val fakeNotArchivedElements: NotArchivedElements =
