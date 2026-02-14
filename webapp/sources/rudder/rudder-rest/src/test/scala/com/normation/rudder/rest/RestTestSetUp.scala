@@ -113,6 +113,7 @@ import com.normation.rudder.ncf.MethodParameter
 import com.normation.rudder.ncf.ParameterId
 import com.normation.rudder.ncf.ParameterType
 import com.normation.rudder.ncf.ParameterType.BasicParameterTypeService
+import com.normation.rudder.ncf.ReadEditorTechnique
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.ResourceFileState
@@ -987,11 +988,10 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     val techniques: List[EditorTechnique]          = List(tech(0), tech(2))
     val methods:    Map[BundleName, GenericMethod] = List(gm(0), gm(1), gm(2)).map(gm => (gm.id, gm)).toMap
 
-    override def readTechniquesMetadataFile
-        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] =
-      (techniques, methods, List(Inconsistency("for test"))).succeed
-    override def getMethodsMetadata:        IOResult[Map[BundleName, GenericMethod]] = methods.succeed
-    override def updateMethodsMetadataFile: IOResult[CmdResult]                      = CmdResult(0, "", "").succeed
+    override def readTechniquesMetadataFile: IOResult[ReadEditorTechnique]            =
+      ReadEditorTechnique(techniques, methods, List.empty, List(Inconsistency("for test"))).succeed
+    override def getMethodsMetadata:         IOResult[Map[BundleName, GenericMethod]] = methods.succeed
+    override def updateMethodsMetadataFile:  IOResult[CmdResult]                      = CmdResult(0, "", "").succeed
   }
 
   val techniqueSerializer: TechniqueSerializer = new TechniqueSerializer(new BasicParameterTypeService)

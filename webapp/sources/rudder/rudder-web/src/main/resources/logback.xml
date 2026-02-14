@@ -426,7 +426,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <!--
     Log about configuration information for the status of some specific parts of Rudder
   -->
-  <logger name="status" level="info">
+  <logger name="status" level="trace">
     <appender-ref ref="STDOUT" />
   </logger>
 

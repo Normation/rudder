@@ -572,9 +572,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   }
 
   val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReader() {
-    override def readTechniquesMetadataFile
-        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] = {
-      (List(technique), methods, Nil).succeed
+    override def readTechniquesMetadataFile: IOResult[ReadEditorTechnique] = {
+      ReadEditorTechnique(List(technique), methods, Nil, Nil).succeed
     }
 
     override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = methods.succeed
@@ -588,7 +587,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         RuddercResult.Fail(42, Chunk.empty, "error:see implementation of test", "", "").succeed
       }
     },
-    _.path,
+    _.path.toString,
     basePath
   )
 
