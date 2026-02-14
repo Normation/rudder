@@ -8,6 +8,7 @@ use format_serde_error::SerdeError;
 use rudder_commons::methods::{self, Methods};
 use tracing::{error, trace};
 
+use crate::compiler::check_foreach_keys_consistency;
 use crate::{
     compiler::user_error,
     ir::{
@@ -25,6 +26,9 @@ pub fn read(input: &str, resolve_loops: bool) -> Result<Technique> {
     // * A second manual conversion to get the precise type.
     let policy: DeserTechnique =
         serde_yaml::from_str(input).map_err(|err| SerdeError::new(input.to_string(), err))?;
+    // Validate the foreach consistency here as the loops metadata are lost when converted to
+    // Technique object
+    check_foreach_keys_consistency(&policy)?;
     let policy = policy.to_technique(resolve_loops)?;
 
     trace!("Parsed input:\n{:#?}", policy);
