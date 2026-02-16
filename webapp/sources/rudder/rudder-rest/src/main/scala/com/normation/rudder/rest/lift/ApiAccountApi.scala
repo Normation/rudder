@@ -43,7 +43,6 @@ import com.normation.rudder.api.*
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.rest.{ApiAccounts as API, *}
-import com.normation.rudder.rest.RudderJsonResponse.NotFoundError
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.tenants.QueryContext
@@ -67,15 +66,14 @@ class ApiAccountApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
-      case API.GetAllAccounts    => GetAllAccounts
-      case API.GetAccount        => GetAccount
-      case API.CreateAccount     => CreateAccount
-      case API.UpdateAccount     => UpdateAccount
-      case API.GetTokenAccount   => GetTokenAccount
-      case API.QueryTokenAccount => QueryTokenAccount
-      case API.RegenerateToken   => RegenerateToken
-      case API.DeleteToken       => DeleteToken
-      case API.DeleteAccount     => DeleteAccount
+      case API.GetAllAccounts  => GetAllAccounts
+      case API.GetAccount      => GetAccount
+      case API.CreateAccount   => CreateAccount
+      case API.UpdateAccount   => UpdateAccount
+      case API.GetTokenAccount => GetTokenAccount
+      case API.RegenerateToken => RegenerateToken
+      case API.DeleteToken     => DeleteToken
+      case API.DeleteAccount   => DeleteAccount
     }
   }
 
@@ -153,32 +151,6 @@ class ApiAccountApi(
         schema,
         None
       )
-    }
-  }
-
-  object QueryTokenAccount extends LiftApiModule {
-    val schema: API.QueryTokenAccount.type = API.QueryTokenAccount
-
-    override def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        token:      String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      val secret = ApiTokenSecret(token)
-      service
-        .getByToken(ApiTokenHash.fromSecret(secret))
-        // this may end up in API error logs, so avoid exposing a whole token (which may be related to the system token)
-        .notOptional(s"API account could not be found from token '${secret.exposeSecretBeginning}'")
-        .mapError(err => NotFoundError(Some(err.msg)))
-        .either
-        .toLiftResponseOneEither[ApiAccountDetails.Public](
-          params,
-          schema,
-          None
-        )
     }
   }
 

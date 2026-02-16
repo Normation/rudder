@@ -269,46 +269,6 @@ response:
       }
     }
 ---
-description: Get API account for the queried token value
-method: GET
-url: /api/latest/apiaccounts/token/t2-29d5c3cdca39bd7ba81e7e0f88084689
-response:
-  code: 200
-  content: >-
-    {
-      "action":"queryTokenAccount",
-      "result":"success",
-      "data" : {
-        "accounts" : [
-          {
-            "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
-            "name":"account 2",
-            "description":"this is a demo account with only compliance and rules (GET) access",
-            "status": "disabled",
-            "creationDate": "2025-02-10T16:37:19Z",
-            "expirationPolicy": "datetime",
-            "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generatedv2",
-            "tokenGenerationDate":"2025-02-10T16:37:19Z",
-            "tenants":"-",
-            "authorizationType":"none"
-          }
-        ]
-      }
-    }
----
-description: Get API account from a non-existing token
-method: GET
-url: /api/latest/apiaccounts/token/attempt-token
-response:
-  code: 404
-  content: >-
-    {
-      "action":"queryTokenAccount",
-      "result":"error",
-      "errorDetails" : "API account could not be found from token 'atte[SHORTENED ApiTokenSecret]'"
-    }
----
 description: Create a new API account for current test user
 method: POST
 url: /secure/api/apiaccounts

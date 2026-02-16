@@ -152,8 +152,6 @@ paths:
     $ref: paths/api-accounts/id.yml
   "/apiaccounts/token":
     $ref: paths/api-accounts/token-account.yml
-  "/apiaccounts/token/{token}":
-    $ref: paths/api-accounts/query-token-account.yml
   "/apiaccounts/${apiAccountId}/regenerate":
     $ref: paths/api-accounts/regenerate-token.yml
   "/scaleoutrelay/promote/{nodeId}":
