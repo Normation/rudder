@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use windows::Win32::System::UpdateAgent::*;
 use windows::core::Interface;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Info {
     #[serde(skip)]
     pub com_ptr: Option<IUpdate>,
