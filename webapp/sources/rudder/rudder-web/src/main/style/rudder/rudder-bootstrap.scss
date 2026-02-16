@@ -36,32 +36,32 @@
 */
 
 @use 'sass:color';
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 // --- COLORS
-$primary    : $rudder-primary;
-$success    : $rudder-success;
-$warning    : $rudder-warning;
-$danger     : $rudder-danger;
-$info       : $rudder-info;
-$dark       : $rudder-gray-500;
+$primary    : rudder.$primary;
+$success    : rudder.$success;
+$warning    : rudder.$warning;
+$danger     : rudder.$danger;
+$info       : rudder.$info;
+$dark       : rudder.$gray-500;
 
-$gray-100 : $rudder-gray-100;
-$gray-200 : $rudder-gray-200;
-$gray-300 : $rudder-gray-300;
-$gray-400 : $rudder-gray-400;
-$gray-500 : $rudder-gray-500;
-$gray-600 : $rudder-gray-600;
+$gray-100 : rudder.$gray-100;
+$gray-200 : rudder.$gray-200;
+$gray-300 : rudder.$gray-300;
+$gray-400 : rudder.$gray-400;
+$gray-500 : rudder.$gray-500;
+$gray-600 : rudder.$gray-600;
 
-$body-color : $rudder-txt-primary;
-$link-color : $rudder-txt-link;
-$tooltip-color: $rudder-txt-primary;
+$body-color : rudder.$txt-primary;
+$link-color : rudder.$txt-link;
+$tooltip-color: rudder.$txt-primary;
 $tooltip-opacity: 1;
 
-$border-color: $rudder-border-color-default;
-$border-color-translucent: $rudder-border-color-default;
+$border-color: rudder.$border-color-default;
+$border-color-translucent: rudder.$border-color-default;
 
-$nav-underline-link-active-color: $rudder-txt-primary;
+$nav-underline-link-active-color: rudder.$txt-primary;
 
 // --- FONTS
 // $font-size-root affects the value of `rem`, which is used for as well font sizes, paddings, and margins
@@ -90,24 +90,24 @@ $modal-md: 600px;
   &.btn-success {
     color: #fff !important;
     &:hover, &:focus, &:active, &:visited{
-      background-color: color.scale($rudder-success, $lightness: -10%);
+      background-color: color.scale(rudder.$success, $lightness: -10%);
     }
   }
   &.btn-danger,
   &.btn-default {
-    background-color: $rudder-bg-light-gray;
-    border: 1px solid $rudder-border-color-default;
-    color: $rudder-txt-primary;
+    background-color: rudder.$bg-light-gray;
+    border: 1px solid rudder.$border-color-default;
+    color: rudder.$txt-primary;
     .fa{
-      color: $rudder-txt-secondary;
+      color: rudder.$txt-secondary;
       transition-duration: .2s;
     }
   }
   &.btn-danger {
     &:focus, &:active, &:hover, &:visited{
       color: #fff !important;
-      background-color: $rudder-danger;
-      border-color: $rudder-border-color-danger;
+      background-color: rudder.$danger;
+      border-color: rudder.$border-color-danger;
       .fa{
         color: #fff;
       }
@@ -129,7 +129,7 @@ $modal-md: 600px;
 
 // --- FORM-CONTROL
 .form-control::placeholder{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   opacity: .8;
 }
 
@@ -154,7 +154,7 @@ $modal-md: 600px;
     bottom: 0;
     left: 0;
     height: 2px;
-    background-color: $rudder-border-color-default;
+    background-color: rudder.$border-color-default;
     z-index: 0;
   }
   .nav-link {
@@ -163,7 +163,7 @@ $modal-md: 600px;
   }
   .nav-link.active, .show>.nav-link {
     font-weight: normal;
-    border-bottom-color: $rudder-txt-link;
+    border-bottom-color: rudder.$txt-link;
   }
 }
 // -- CHECKBOX/RADIO OVERRIDE

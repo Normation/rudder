@@ -34,7 +34,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 .rudder-template > .one-col{
   flex: 1;
@@ -58,7 +58,7 @@
   transition: background-color .2s;
 }
 .checklist-container .check:hover {
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 
 .global-msg {
@@ -87,8 +87,8 @@
   background-color: #81D674;
 }
 .warning-light {
-  background-color: $rudder-warning;
+  background-color: rudder.$warning;
 }
 .critical-light {
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }

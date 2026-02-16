@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 // Override Rudder template
 .rudder-template {
@@ -58,7 +58,7 @@
   margin: 0 !important;
   border-bottom: none !important;
   padding: 15px 15px 10px;
-  color: $rudder-txt-primary !important;
+  color: rudder.$txt-primary !important;
   font-size: 24px !important;
 }
 
@@ -96,7 +96,7 @@ form select.selectField {
   padding: 0 15px;
   margin-bottom: 8px;
   font-size: 1.2em;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 
 #nodeDetails {
@@ -106,7 +106,7 @@ form select.selectField {
 
 #nodeGroups {
   flex: 30;
-  border-left: 2px solid $rudder-border-color-default;
+  border-left: 2px solid rudder.$border-color-default;
   margin-top: -15px;
 }
 .jstree-anchor > i.jstree-icon.fa.fa-folder,
@@ -117,12 +117,12 @@ form select.selectField {
 #nodeGroups > h3 {
   display: flex;
   align-items: center;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   padding: 15px 15px 10px !important;
   margin: 0;
   font-size: 1.3rem;
-  background-color: $rudder-bg-light-gray;
-  border-bottom: 1px solid $rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border-bottom: 1px solid rudder.$border-color-default;
 }
 
 .node-state{
@@ -165,7 +165,7 @@ form select.selectField {
     }
   }
   &.preparing-eol{
-    background-color: $rudder-warning;
+    background-color: rudder.$warning;
     &:after{
       content : "Preparing EOL";
     }
@@ -173,7 +173,7 @@ form select.selectField {
 }
 .machine-os-info {
   font-size: .8rem;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 
   .icon-info{
     font-size : 1rem;
@@ -192,7 +192,7 @@ form select.selectField {
     left: 2px;
     width: 8px;
     height: 8px;
-    background-color: $rudder-txt-secondary;
+    background-color: rudder.$txt-secondary;
     border-radius: 50%;
   }
   &:before{
@@ -221,7 +221,7 @@ form select.selectField {
   margin-bottom: 15px;
 }
 #nodeDetails h3{
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   display: block;
   margin-bottom: 10px;
   font-size: 1.3rem;
@@ -274,9 +274,9 @@ form select.selectField {
 pre.display-keys{
   padding: 12px;
   border-top-left-radius: 0;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   border-radius: 0px 4px 4px 4px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
   display: inline-block;
 }
 pre.display-keys > label:first-child{
@@ -316,22 +316,22 @@ pre.display-keys > label{
   & > .nav-item {
     & > button {
       transition-duration: .2s;
-      background-color: $rudder-bg-light-gray;
-      border: 1px solid $rudder-border-color-default;
+      background-color: rudder.$bg-light-gray;
+      border: 1px solid rudder.$border-color-default;
       padding: 6px 10px;
-      color: $rudder-txt-secondary;
+      color: rudder.$txt-secondary;
       position:relative;
       text-align: left;
       width: 100%;
 
       &:hover{
         background-color:#fff;
-        color: $rudder-txt-link;
+        color: rudder.$txt-link;
       }
 
       &.active {
         background-color: #fff;
-        color: $rudder-txt-primary;
+        color: rudder.$txt-primary;
         &:after{
           content: "";
           position: absolute;
@@ -340,8 +340,8 @@ pre.display-keys > label{
           display: block;
           width: 10px;
           height: 10px;
-          border-top: 1px solid $rudder-border-color-default;
-          border-right: 1px solid $rudder-border-color-default;
+          border-top: 1px solid rudder.$border-color-default;
+          border-right: 1px solid rudder.$border-color-default;
           transform: rotate(45deg);
           background-color: #fff;
         }
@@ -364,14 +364,14 @@ pre.display-keys > label{
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid #e1e3e6;
-  border-left: 4px solid $rudder-info;
+  border-left: 4px solid rudder.$info;
   max-width: 780px;
   padding: 10px;
   margin-bottom: 20px;
   font-size: 14px;
 }
 .info-card .card-info h4{
-  color: $rudder-primary;
+  color: rudder.$primary;
   margin-top: 0;
   padding-left: 30px;
   position: relative;
@@ -383,11 +383,11 @@ pre.display-keys > label{
   left: 0;
 }
 .info-card.critical{
-  border-left-color: $rudder-danger;
+  border-left-color: rudder.$danger;
   background-color: #ff040908;
 }
 .info-card.critical .card-info h4{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 
 /* PROPERIES TAB */
@@ -397,7 +397,7 @@ pre.display-keys > label{
 }
 #inventoryVariables .dataTable tr.head th.sorting{
   cursor: default !important;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 #inventoryVariables .dataTable tr:hover .btn-clipboard{
   visibility: visible;
@@ -503,7 +503,7 @@ div.serverDetail {
 .border-success {
   border-left-width: 5px;
   border-left-style: solid;
-  border-left-color: $rudder-success;
+  border-left-color: rudder.$success;
   border-radius: 5px;
 }
 
@@ -519,7 +519,7 @@ div.serverDetail {
   color: #c9302c;
 }
 .fa-check-custom {
-  color: $rudder-success;
+  color: rudder.$success;
 }
 
 /* TECHNICAL LOGS TAB */

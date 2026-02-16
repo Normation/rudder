@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 
 
 $doughnut-size : 200px;
@@ -49,7 +49,7 @@ $doughnut-size : 200px;
 /* === CARD === */
  .homePage .card{
   border-radius: 12px;
-  box-shadow: 0 6px 16px 2px $rudder-box-shadow-color;
+  box-shadow: 0 6px 16px 2px rudder.$box-shadow-color;
   border: none !important;
   overflow: hidden;
 }
@@ -72,7 +72,7 @@ $doughnut-size : 200px;
     i{
       opacity: 0;
       transform: rotate(45deg);
-      color: $rudder-txt-link;
+      color: rudder.$txt-link;
       font-size: 1.6rem;
       position: relative;
       right: 20px;
@@ -83,7 +83,7 @@ $doughnut-size : 200px;
 
   }
   &:hover {
-    box-shadow: 0 6px 14px 0px $rudder-box-shadow-hover-color;
+    box-shadow: 0 6px 14px 0px rudder.$box-shadow-hover-color;
 
     .icon-link-container i{
       opacity: 1;
@@ -93,11 +93,11 @@ $doughnut-size : 200px;
 }
 
 .highlight{
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
   font-weight:700;
 }
 .node-chart h4 {
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
   margin-bottom: 15px;
   font-size: 1.3em;
 }
@@ -108,7 +108,7 @@ $doughnut-size : 200px;
   }
   & > a {
     .badge{
-      background-color: $rudder-gray-400;
+      background-color: rudder.$gray-400;
       display: inline-flex;
       justify-content: center;
       align-items: center;
@@ -118,7 +118,7 @@ $doughnut-size : 200px;
 
     &:hover {
       & .badge{
-         background-color: $rudder-gray-500;
+         background-color: rudder.$gray-500;
          opacity:1;
        }
     }
@@ -141,8 +141,8 @@ $doughnut-size : 200px;
     135deg,
     #eef1f8,
     #eef1f8 10px,
-    $rudder-bg-light-gray 10px,
-    $rudder-bg-light-gray 20px
+    rudder.$bg-light-gray 10px,
+    rudder.$bg-light-gray 20px
   );
   box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
 }
@@ -166,8 +166,8 @@ $doughnut-size : 200px;
     135deg,
     #eef1f8,
     #eef1f8 10px,
-    $rudder-bg-light-gray 10px,
-    $rudder-bg-light-gray 20px
+    rudder.$bg-light-gray 10px,
+    rudder.$bg-light-gray 20px
   );
   display: flex;
   justify-content: center;
@@ -191,14 +191,14 @@ $doughnut-size : 200px;
     border-radius:4px;
     display: flex;
     align-items: flex-end;
-    color: $rudder-txt-light;
+    color: rudder.$txt-light;
     font-weight: 500;
     min-width : 100px;
     padding: 4px;
 
     &:hover{
-      background-color: $rudder-bg-light-gray;
-      color: $rudder-txt-primary;
+      background-color: rudder.$bg-light-gray;
+      color: rudder.$txt-primary;
     }
 
     .legend-square{

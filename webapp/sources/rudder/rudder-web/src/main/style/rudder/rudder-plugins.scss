@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 @use 'sass:color';
 
 @import "../../node_modules/bootstrap/scss/functions";
@@ -87,7 +87,7 @@ $spinner-height-sm: $spinner-width-sm;
 
     // in combination with datatable classes
     &.table-filter {
-      border-bottom: 2px solid $rudder-border-color-default !important;
+      border-bottom: 2px solid rudder.$border-color-default !important;
       padding-bottom: 10px !important;
       border-top: 0 !important;
       margin-top: 0 !important;
@@ -150,14 +150,14 @@ $spinner-height-sm: $spinner-width-sm;
       margin: 10px 0;
 
       &.plugin-card-disabled {
-        background-color: $rudder-bg-light-gray;
+        background-color: rudder.$bg-light-gray;
       }
 
       &.plugin-card-missing-license {
         opacity: 95%;
 
         & .badge.float-end {
-          background-color: $rudder-border-color-default;
+          background-color: rudder.$border-color-default;
         }
       }
 
@@ -185,7 +185,7 @@ $spinner-height-sm: $spinner-width-sm;
 
         & .plugin-doc-icon {
           margin-left: 0.6rem;
-          color: $rudder-info;
+          color: rudder.$info;
           opacity: 0.8;
           &:hover {
             opacity: 1;
@@ -197,14 +197,14 @@ $spinner-height-sm: $spinner-width-sm;
         font-size: $default-font-size;
 
         & .plugin-technical-info {
-          color: $rudder-txt-secondary;
+          color: rudder.$txt-secondary;
 
           & .badge.badge-type {
             opacity: 0.75;
             border-radius: 0.25rem;
 
             &.plugin-webapp + &.plugin-integration{
-              background-color: $rudder-gray-500;
+              background-color: rudder.$gray-500;
               font-weight: 600 !important;
             }
           }
@@ -233,7 +233,7 @@ $spinner-height-sm: $spinner-width-sm;
             }
 
             &.callout-danger {
-              background-color: $rudder-bg-danger;
+              background-color: rudder.$bg-danger;
 
               & .fa.fa-warning {
                 color: #58151c;
@@ -255,7 +255,7 @@ $spinner-height-sm: $spinner-width-sm;
           padding-bottom: 1em;
         }
         & .list-group li {
-          background: $rudder-bg-light-gray;
+          background: rudder.$bg-light-gray;
         }
       }
     }
@@ -295,7 +295,7 @@ $spinner-height-sm: $spinner-width-sm;
   margin-left: 15px;
   display: inline-block;
   background-color: #FFEAD1;
-  color: $rudder-warning;
+  color: rudder.$warning;
   padding: 5px;
   border-radius: 3px;
   font-size: 12px;

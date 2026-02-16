@@ -35,7 +35,7 @@
 */
 
 // --- MODULES
-@use 'rudder-variables' as *;
+@use 'rudder-variables' as rudder;
 @use 'sass:color';
 
 /* === RESET === */
@@ -73,7 +73,7 @@ ul {
   background-color: #fbeae9;
 }
 .content-wrapper .rudder-template .jstree .jstree-anchor:hover {
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 .content-wrapper .rudder-template .jstree .jstree-node a.jstree-anchor{
   color: inherit;
@@ -107,15 +107,15 @@ ul {
 }
 .main-details .well{
   padding: 6px 12px;
-  background-color: $rudder-bg-light-gray;
-  border: 1px solid $rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border: 1px solid rudder.$border-color-default;
   box-shadow: none !important;
 }
 .fit-height{
   height: 100% !important;
 }
 .btn.btn-outline-primary {
-  border: 1px solid $rudder-primary;
+  border: 1px solid rudder.$primary;
   background-color: #fff;
   transition-duration: .2s;
   height: 34px;
@@ -131,11 +131,11 @@ ul {
 }
 .btn.btn-outline-primary:hover {
   color: #fff;
-  background-color: $rudder-primary;
+  background-color: rudder.$primary;
 }
 .form-control:disabled {
   background-color: #e6e9f1;
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
 }
 /* === TEMPLATE === */
 .flex-container{
@@ -156,7 +156,7 @@ ul {
 .rudder-template .header-title .title-icon{
   font-size: 0.8em;
   margin-right: 8px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 .rudder-template .header-title h1{
   padding: 0;
@@ -175,11 +175,11 @@ ul {
 .rudder-template .header-subtitle{
   font-size: .8rem;
   font-weight: normal;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   margin-top: 4px;
 
   .clipboard{
-    color: $rudder-txt-secondary;
+    color: rudder.$txt-secondary;
     transition-duration: .2s;
     padding: 4px;
     cursor: pointer;
@@ -192,7 +192,7 @@ ul {
     }
 
     &:hover{
-      background-color: $rudder-bg-light-gray;
+      background-color: rudder.$bg-light-gray;
 
       .ion-clipboard{
         opacity: 1;
@@ -210,7 +210,7 @@ ul {
     margin-left: 10px;
 
     &.btn-default:hover{
-      background-color: $rudder-bg-gray;
+      background-color: rudder.$bg-gray;
     }
   }
 
@@ -219,7 +219,7 @@ ul {
 
     & > .tooltip-inner
     &.bottom .tooltip-arrow{
-      border-bottom-color: $rudder-border-color-default;
+      border-bottom-color: rudder.$border-color-default;
     }
 
     & > .tooltip-inner {
@@ -234,7 +234,7 @@ ul {
       }
 
       .text-warning{
-        color: $rudder-warning;
+        color: rudder.$warning;
       }
     }
   }
@@ -244,10 +244,10 @@ ul {
 
   .dropdown-toggle{
     &:not(.btn-success){
-      border: 1px solid $rudder-border-color-default;
+      border: 1px solid rudder.$border-color-default;
     }
     &:not(.btn-success):hover{
-      background-color: $rudder-bg-gray;
+      background-color: rudder.$bg-gray;
     }
   }
 }
@@ -258,38 +258,38 @@ ul {
     padding: 10px 14px;
     transition-duration: .2s;
     cursor: pointer;
-    color: $rudder-txt-secondary;
+    color: rudder.$txt-secondary;
     background-color: #fff;
 
     &:hover{
-      color: $rudder-txt-primary;
-      background-color: $rudder-bg-light-gray;
+      color: rudder.$txt-primary;
+      background-color: rudder.$bg-light-gray;
     }
 
     &.action-success {
-      color: $rudder-success;
+      color: rudder.$success;
       &:hover {
         color: #fff;
-        background-color: $rudder-success;
+        background-color: rudder.$success;
         border-color: #109f9a;
       }
     }
 
     &.action-primary {
-      color: $rudder-primary;
+      color: rudder.$primary;
       &:hover {
         color: #fff;
-        background-color: $rudder-primary;
+        background-color: rudder.$primary;
         border-color: #2e6da4;
       }
     }
 
     &.action-danger {
-      color: $rudder-danger;
+      color: rudder.$danger;
       &:hover{
         color: #fff;
-        background-color: $rudder-danger;
-        border-color: $rudder-danger;
+        background-color: rudder.$danger;
+        border-color: rudder.$danger;
       }
     }
 
@@ -320,7 +320,7 @@ ul {
 }
 
 .header-title span.badge-disabled {
-  background-color: $rudder-gray-400;
+  background-color: rudder.$gray-400;
   font-size: 0.6em;
   color: #fff;
   font-weight: bold;
@@ -348,8 +348,8 @@ ul {
 
 .header-buttons .dropdown-menu.dropdown-message {
   padding: 10px;
-  background-color: $rudder-bg-light-gray;
-  border: 1px solid $rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border: 1px solid rudder.$border-color-default;
   width: 450px;
   font-size: 14px;
 }
@@ -397,14 +397,14 @@ ul {
   min-width: 24px;
 }
 .badge-resources > .nb-resources.new{
-  background-color: $rudder-success;
+  background-color: rudder.$success;
   color: #fff;
 }
 .badge-resources > .nb-resources.new:before {
   content: "+";
 }
 .badge-resources > .nb-resources.del{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
   color: #fff;
 }
 .badge-resources > .nb-resources.del:before {
@@ -421,7 +421,7 @@ ul {
   min-width: 22px;
 }
 .nb-resources.warning {
-  background-color: $rudder-warning;
+  background-color: rudder.$warning;
 }
 .nb-resources.warning > .fa{
   margin-left: 4px;
@@ -436,17 +436,17 @@ ul {
   background-color: #fff;
   position: relative;
   z-index: 1;
-  box-shadow: -8px 0px 10px 10px $rudder-box-shadow-color;
+  box-shadow: -8px 0px 10px 10px rudder.$box-shadow-color;
 }
 .rudder-template .template-sidebar.sidebar-right{
-  box-shadow: 8px 0px 10px 10px $rudder-box-shadow-color;
+  box-shadow: 8px 0px 10px 10px rudder.$box-shadow-color;
 }
 #headerBar ~ .content-wrapper .rudder-template .template-sidebar{
   height: calc(100VH - 80px);
 }
 .rudder-template .template-sidebar .sidebar-header{
   padding: 15px;
-  border-bottom: 2px solid $rudder-border-color-default;
+  border-bottom: 2px solid rudder.$border-color-default;
 
   &:has(.filters-container:not(.d-none)){
     padding-bottom: 0;
@@ -465,7 +465,7 @@ ul {
 .hide-right .sidebar-right{
   -ms-flex: 0 0 50px;
   flex: 0 0 50px;
-  background-color: $rudder-bg-dark-gray;
+  background-color: rudder.$bg-dark-gray;
   cursor: pointer;
 }
 .show-right .sidebar-left::before,
@@ -532,7 +532,7 @@ ul {
   border-top-left-radius : 4px;
   border-bottom-left-radius : 4px;
   background-color: #ededed;
-  border-color: $rudder-border-color-default;
+  border-color: rudder.$border-color-default;
 }
 .sidebar-right .filters-container .input-group > .input-group-text + .form-control {
   display: flex;
@@ -590,8 +590,8 @@ ul {
 .rudder-template .filters-container{
   margin: 0 -15px;
   padding: 15px;
-  border-top: 1px solid $rudder-border-color-default;
-  background-color: $rudder-bg-light-gray;
+  border-top: 1px solid rudder.$border-color-default;
+  background-color: rudder.$bg-light-gray;
   position: relative;
   display: flex;
 }
@@ -606,12 +606,12 @@ ul {
   position: absolute;
   width: 10px;
   height: 10px;
-  border-left: 1px solid $rudder-border-color-default;
-  border-top: 1px solid $rudder-border-color-default;
+  border-left: 1px solid rudder.$border-color-default;
+  border-top: 1px solid rudder.$border-color-default;
   transform: rotate(45deg);
   top: -6px;
   right: 24px;
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 .rudder-template .sidebar-navbar + .filters-container:before,
 .rudder-template .filters-container.hidden:before{
@@ -620,7 +620,7 @@ ul {
 .rudder-template .template-main-header .filters-container {
   margin: 0;
   padding: 15px;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   border-radius: var(--bs-border-radius);
 }
 .rudder-template .template-main-header .filters-container:before {
@@ -632,10 +632,10 @@ ul {
   background-color: #fff;
 }
 .tags-container .btn-group.btn-group-xs .btn.btn-default:first-of-type{
-  border: 1px solid $rudder-border-color-default !important;
+  border: 1px solid rudder.$border-color-default !important;
 }
 .tags-container .btn-group.btn-group-xs .btn.btn-default:last-of-type{
-  border: 1px solid $rudder-border-color-default !important;
+  border: 1px solid rudder.$border-color-default !important;
 }
 .tags-container .btn-group.delete-action .btn.btn-default:first-of-type{
   border-top-right-radius: 20px;
@@ -690,7 +690,7 @@ ul {
 }
 .rudder-template .main-header .header-description{
   margin-top: 10px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 .rudder-template .main-header .header-description p{
   margin-bottom: 6px;
@@ -711,7 +711,7 @@ ul {
 }
 
 .rudder-template .main-navbar ul > li > .fa-times {
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   padding: 3px 4px;
   margin-left: 4px;
   position: relative;
@@ -725,7 +725,7 @@ ul {
 .rudder-template .main-navbar ul > li > .badge,
 .rudder-template .template-main .main-details .badge,
 .rudder-template .badge{
-  background-color: $rudder-gray-400;
+  background-color: rudder.$gray-400;
   color: #fff;
   font-weight: 1000;
   margin-left: 4px;
@@ -796,17 +796,17 @@ ul {
   font-size: 24px;
 }
 .rudder-template .template-main h3.title-section{
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
   padding: 5px 0 !important;
   display: block;
   margin-bottom: 10px;
   line-height: inherit;
   border: 0;
-  border-bottom: 2px solid $rudder-border-color-default;
+  border-bottom: 2px solid rudder.$border-color-default;
   font-size: 20px;
 }
 .rudder-template .show-compliance > .text-muted {
-  background: $rudder-bg-light-gray;
+  background: rudder.$bg-light-gray;
   padding: 10px;
   font-size: 14px;
 }
@@ -823,7 +823,7 @@ ul {
   font-size: 14px;
 }
 .rudder-template .explanation-text{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   margin-bottom: 20px;
 }
 .rudder-template .explanation-text > ul > li{
@@ -898,7 +898,7 @@ ul {
   background-color: #fff;
   border-radius: 4px;
   color: #555;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
 }
 
 
@@ -914,7 +914,7 @@ ul {
 }
 .rudder-template .template-main .dataTable tr.details,
 .rudder-template .template-main .dataTable tr.details + tr{
-  border-top: 1px solid $rudder-border-color-default;
+  border-top: 1px solid rudder.$border-color-default;
 }
 .rudder-template .template-main .dataTable.compliance-table tr td:first-child,
 .rudder-template .template-main .main-table .dataTable.compliance-table tbody > tr > td:first-child{
@@ -930,7 +930,7 @@ ul {
   text-rendering: auto;
   line-height: 1;
   font-weight: 900;
-  color: $rudder-gray-400;
+  color: rudder.$gray-400;
   font-size: 22px;
   position: absolute;
 }
@@ -953,18 +953,18 @@ ul {
 }
 .rudder-template .dataTable > tbody > tr:nth-child(even),
 .filemanager-container .dataTable > tbody > tr:nth-child(even){
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 .rudder-template .dataTable > tbody > tr:nth-child(even):hover,
 .filemanager-container .dataTable > tbody > tr:nth-child(even):hover{
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 .rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr.is-expired {
-  background-color: $rudder-bg-warning;
+  background-color: rudder.$bg-warning;
 }
 .rudder-template .template-main .main-table > .table-container > .dataTable > tbody > tr.is-expired > td.date{
   font-weight: bold;
-  color: $rudder-warning;
+  color: rudder.$warning;
 }
 .rudder-template .tab-table-content .dataTable > tbody > tr > td.dataTables_empty{
   padding: 12px 15px;
@@ -977,8 +977,8 @@ ul {
 }
 .rudder-template .dataTable td.empty{
   padding: 20px 15px;
-  background-color: $rudder-bg-warning;
-  color: $rudder-warning;
+  background-color: rudder.$bg-warning;
+  color: rudder.$warning;
 }
 .rudder-template .dataTable td.empty .fa:first-child,
 .rudder-template .callout-fade :not(.marker) .fa:first-child,
@@ -988,7 +988,7 @@ ul {
 }
 .rudder-template .dataTable td .disabled {
   cursor: help;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 .rudder-template .dataTable td .disabled > .fa{
   margin-left: 4px;
@@ -1029,7 +1029,7 @@ ul {
   height: calc(100vh - 80px);
 }
 .rudder-template .one-col .main-header:not(:has(+ .main-navbar)){
-  border-bottom: 2px solid $rudder-border-color-default;
+  border-bottom: 2px solid rudder.$border-color-default;
 }
 .rudder-template .one-col-main {
   display: flex;
@@ -1074,25 +1074,25 @@ ul {
   transition-duration: .1s;
 }
 .rudder-template .one-col .sidebar-left ul.nav > li > a.active:before {
-  background-color: $rudder-txt-link;
+  background-color: rudder.$txt-link;
 }
 .rudder-template .one-col .sidebar-left ul.nav > li > a.active  {
   opacity: 1;
-  color: $rudder-txt-primary;
+  color: rudder.$txt-primary;
 }
 .rudder-template .one-col .sidebar-left ul.nav > li > a:not(.active):hover {
   opacity: 1;
-  color: $rudder-txt-link;
+  color: rudder.$txt-link;
 }
 .rudder-template .one-col h3.page-title,
 .rudder-template .one-col .inner-portlet h3.page-title {
-  color: $rudder-txt-primary !important;
-  border-bottom: 2px solid $rudder-border-color-default;
+  color: rudder.$txt-primary !important;
+  border-bottom: 2px solid rudder.$border-color-default;
   margin-top: 20px;
 }
 .rudder-template h3.page-title.foldable .fa {
   font-size: .8em;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   margin-left: 10px;
 }
 .rudder-template h3.page-title.foldable.folded .fa-chevron-down {
@@ -1102,7 +1102,7 @@ ul {
   margin-top: 20px;
   font-weight: bold !important;
   font-size: 1.2em !important;
-  color: $rudder-txt-secondary !important;
+  color: rudder.$txt-secondary !important;
 }
 .rudder-template .one-col .main-details > .inner-portlet:first-child h3.page-title,
 .rudder-template .one-col .main-details > div:first-child > .inner-portlet:first-child h3.page-title {
@@ -1133,7 +1133,7 @@ ul {
 .row > .tree-edit {
   display: flex;
   margin: -10px 0;
-  border-left: 1px solid $rudder-border-color-default;
+  border-left: 1px solid rudder.$border-color-default;
 }
 .row > .tree-edit > .tree-container{
   width: 100%;
@@ -1145,19 +1145,19 @@ ul {
   overflow: auto;
 }
 .row > .tree-edit > .tree-container .header-filter + .jstree{
-  border-top: 1px solid $rudder-border-color-default;
+  border-top: 1px solid rudder.$border-color-default;
 }
 .content-wrapper .rudder-template .tree-edit > .tree-container .jstree .jstree-anchor {
   cursor: default;
 }
 .tree-container .tree-heading {
-  background-color: $rudder-bg-light-gray;
-  color: $rudder-txt-secondary;
+  background-color: rudder.$bg-light-gray;
+  color: rudder.$txt-secondary;
   margin: 0 calc(var(--bs-gutter-x)*-0.5);
   padding: 15px;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
 }
 .tree-container .tree-heading > .fa{
   font-size: 19px;
@@ -1184,20 +1184,20 @@ ul {
   margin: 15px -15px 0 -15px;
   width: calc(100% + 30px);
   padding: 15px;
-  background-color: $rudder-bg-light-gray;
-  border-top: 2px solid $rudder-border-color-default;
+  background-color: rudder.$bg-light-gray;
+  border-top: 2px solid rudder.$border-color-default;
   justify-content: space-between;
 }
 
 .list-container .list-heading{
   display: flex;
   justify-content: space-between;
-  border-bottom: 4px solid $rudder-success;
+  border-bottom: 4px solid rudder.$success;
   padding-bottom: 6px;
   margin-bottom: 14px;
 }
 .list-container .list-heading.except{
-  border-bottom: 4px solid $rudder-danger;
+  border-bottom: 4px solid rudder.$danger;
 }
 .list-container .list-heading .btn-actions .btn{
   margin-left: 10px;
@@ -1239,9 +1239,9 @@ ul {
       line-height: 6px;
       font-size: 10px;
       cursor: ns-resize;
-      border-top: 1px $rudder-border-color-default solid;
+      border-top: 1px rudder.$border-color-default solid;
       text-align: center;
-      background-color: $rudder-bg-light-gray;
+      background-color: rudder.$bg-light-gray;
 
       &:active {
         cursor: ns-resize;
@@ -1253,7 +1253,7 @@ ul {
   }
 }
 .jstree span.badge-disabled {
-  background-color: $rudder-gray-400;
+  background-color: rudder.$gray-400;
   font-size: 0.7em;
   color: #fff;
   font-weight: bold;
@@ -1309,7 +1309,7 @@ ul {
   background-color: #fff;
 }
 .rudder-template .template-main .main-table > .table-container.skeleton-loading .dataTable > tbody > tr:nth-child(even):hover {
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 .rudder-template ul.skeleton-loading li > i,
 .rudder-template ul.skeleton-loading li > span,
@@ -1406,7 +1406,7 @@ $nbRows: 20;
   width: auto;
 }
 .rudder-template .callout-fade .fa-warning{
-  color: $rudder-warning;
+  color: rudder.$warning;
 }
 .rudder-template .toggle-checkbox-container .callout-fade label {
   font-weight: normal;
@@ -1426,7 +1426,7 @@ $nbRows: 20;
   margin-right: 3px;
 }
 .rudder-template .toggle-checkbox-container .callout-fade.callout-warning .badge{
-  background-color: $rudder-warning !important;
+  background-color: rudder.$warning !important;
 }
 .acl-category .toggle-checkbox + .category-header .fa-caret-down,
 .rudder-template .toggle-checkbox + .callout-fade label .fa-caret-down{
@@ -1437,7 +1437,7 @@ $nbRows: 20;
   display: inline-block;
   transition-duration: .2s;
   transition-property: transform;
-  color: $rudder-gray-400;
+  color: rudder.$gray-400;
   opacity: .8;
   margin-left: 10px;
 }
@@ -1481,10 +1481,10 @@ $nbRows: 20;
   align-items: baseline;
 }
 .rudder-template .toggle-checkbox:checked + .callout-fade ul li:nth-child(even){
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 .rudder-template .toggle-checkbox:checked + .callout-fade ul li:hover{
-  background-color: $rudder-bg-info !important;
+  background-color: rudder.$bg-info !important;
 }
 
 /* === BTN GOTO === */
@@ -1557,21 +1557,21 @@ label.custom-toggle:hover .custom-toggle-group > label{
   box-shadow: inset 0 0 8px 4px #16293240
 }
 label.custom-toggle .custom-toggle-group > label:first-child{
-  background-color: $rudder-success;
+  background-color: rudder.$success;
   color: #fff;
   padding-right: 16px;
 }
 label.custom-toggle.toggle-secondary .custom-toggle-group > label:first-child {
-  background-color: $rudder-txt-link;
+  background-color: rudder.$txt-link;
 }
 label.custom-toggle .custom-toggle-group > label:last-child{
-  background-color: $rudder-bg-gray;
-  color: $rudder-txt-light;
+  background-color: rudder.$bg-gray;
+  color: rudder.$txt-light;
   padding-left: 16px;
 }
 label.custom-toggle .custom-toggle-group > span {
   background: #fff;
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   display: inline-block;
   min-width: 12px;
   border-radius: 4px;
@@ -1598,7 +1598,7 @@ label > .warning-info{
   margin-left:4px;
   background: transparent;
   border: none;
-  color: $rudder-warning;
+  color: rudder.$warning;
 }
 
 .rudder-template .clipboard-list > li:hover .btn-goto{
@@ -1617,28 +1617,28 @@ label > .warning-info{
   flex: 40;
 }
 .rudder-template .section-with-doc .section-right .doc{
-  border-left: 1px solid $rudder-border-color-default;
+  border-left: 1px solid rudder.$border-color-default;
   padding-left: 15px;
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   transition: color .2s;
   height: 100%;
 }
 .rudder-template .section-with-doc .section-right .doc:hover{
-  color: $rudder-txt-light;
+  color: rudder.$txt-light;
 }
 .rudder-template .section-with-doc .section-right .doc .marker {
   font-size: 1.4em;
   transition: opacity .2s;
 }
 .rudder-template .section-with-doc .section-right .doc.doc-info .marker{
-  color: $rudder-primary;
+  color: rudder.$primary;
   opacity: .6;
 }
 .rudder-template .section-with-doc .section-right .doc.doc-info:hover .marker{
   opacity: 1;
 }
 .rudder-template .section-with-doc .section-right .doc.doc-info:hover b {
-  color: $rudder-primary;
+  color: rudder.$primary;
 }
 @media (max-width:1200px) {
   .rudder-template .section-with-doc{
@@ -1662,14 +1662,14 @@ label > .warning-info{
 }
 h4.list-title{
   font-size: 16px;
-  border-bottom: 4px solid $rudder-success;
+  border-bottom: 4px solid rudder.$success;
   padding-bottom: 6px;
   margin-bottom: 14px;
   margin-top: 14px;
 }
 
 h4.list-title.except{
-  border-bottom-color: $rudder-danger;
+  border-bottom-color: rudder.$danger;
 }
 
 .section-title > .badge{
@@ -1681,14 +1681,14 @@ h4.list-title.except{
   background-color: #8fbb2c;
 }
 .section-title > .badge.exclude{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }
 ul.applied-list{
   display: flex;
   flex-direction: column;
 }
 ul.applied-list > li {
-  border: 1px solid $rudder-border-color-default;
+  border: 1px solid rudder.$border-color-default;
   padding: 10px;
   padding-left: 14px;
   display: block;
@@ -1703,11 +1703,11 @@ ul.applied-list > li {
   box-shadow: 0px 5px 4px -3px rgba(0,0,0,.1);
 }
 ul.applied-list > li.is-disabled{
-  background-color: $rudder-bg-light-gray;
+  background-color: rudder.$bg-light-gray;
 }
 
 ul.applied-list > li > .border{
-  background-color: $rudder-border-color-default;
+  background-color: rudder.$border-color-default;
   position: absolute;
   top: -1px;
   bottom: -1px;
@@ -1716,26 +1716,26 @@ ul.applied-list > li > .border{
   transition-duration: .2s;
 }
 ul.applied-list > li:not(.unknown):hover > .border{
-  background-color: $rudder-gray-400;
+  background-color: rudder.$gray-400;
 }
 ul.applied-list > li > .target-remove:hover + .border{
-  background-color: $rudder-danger !important;
+  background-color: rudder.$danger !important;
 }
 ul.applied-list > li.new {
   background-color: #ecfdf9;
 }
 ul.applied-list > li.new > .border{
-  background-color: rgba($rudder-success, .65);
+  background-color: rgba(rudder.$success, .65);
 }
 ul.applied-list > li.unknown {
-  background-color: $rudder-bg-warning;
-  color: $rudder-warning;
+  background-color: rudder.$bg-warning;
+  color: rudder.$warning;
 }
 ul.applied-list > li.unknown > .border{
-  background-color: $rudder-warning;
+  background-color: rudder.$warning;
 }
 ul.applied-list > li.new:hover > .border{
-  background-color: $rudder-success;
+  background-color: rudder.$success;
 }
 .except + ul.applied-list > li.new {
   background-color: #faeae9;
@@ -1744,12 +1744,12 @@ ul.applied-list > li.new:hover > .border{
   background-color: #deaeab;
 }
 .except + ul.applied-list > li.new:hover > .border{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
 }
 
 .applied-list > li.empty {
-  border-left: 4px solid $rudder-gray-400;
-  color: $rudder-txt-secondary;
+  border-left: 4px solid rudder.$gray-400;
+  color: rudder.$txt-secondary;
   font-style: italic;
 }
 
@@ -1766,25 +1766,25 @@ ul.applied-list > li:last-of-type {
   align-items: baseline;
 }
 ul.applied-list > li > span.fa{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   margin-right: 6px;
 }
 ul.applied-list > li.unknown > span.fa,
 ul.applied-list > li.unknown > a{
-  color: $rudder-warning;
+  color: rudder.$warning;
 }
 ul.applied-list > li .rudder-label{
   margin-right: 4px;
 }
 
 ul.applied-list > li .icon-info{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
   transition-duration: .2s;
   margin-right: 5px;
 }
 
 ul.applied-list > li:hover .icon-info{
-  color: $rudder-txt-link;
+  color: rudder.$txt-link;
 }
 
 ul.applied-list > li > span.target-remove,
@@ -1797,18 +1797,18 @@ ul.applied-list > li > span.warning-sign{
   transition: .2s;
   background-color: #fff;
   color: #7f8c9e;
-  border-left: 1px solid $rudder-border-color-default;
+  border-left: 1px solid rudder.$border-color-default;
   opacity: .6;
   cursor: pointer;
 }
 ul.applied-list > li > span.warning-sign{
   color: #fff;
-  background-color: $rudder-gray-400;
+  background-color: rudder.$gray-400;
   opacity: 1;
   cursor: default;
 }
 ul.applied-list > li > span.target-remove:hover{
-  background-color: $rudder-danger;
+  background-color: rudder.$danger;
   color: #fff;
 }
 
@@ -1842,10 +1842,10 @@ ul.applied-list > .add-target > .fa{
 }
 
 .jstree ul > li .action-icon{
-  color: $rudder-success;
+  color: rudder.$success;
 }
 .jstree ul > li .action-icon.except{
-  color: $rudder-danger;
+  color: rudder.$danger;
 }
 .jstree ul > li .action-icon:before{
   content: "\f055";
@@ -1853,7 +1853,7 @@ ul.applied-list > .add-target > .fa{
 #directiveTree ul > li.included .action-icon,
 #groupTree ul > li.included .action-icon.accept,
 #groupTree ul > li.excluded .action-icon.except{
-  color: $rudder-txt-secondary;
+  color: rudder.$txt-secondary;
 }
 #directiveTree ul > li.included .action-icon:before{
   content: "\f00d";
@@ -1870,9 +1870,9 @@ ul.applied-list > .add-target > .fa{
 
 /* === ALERT MESSAGE === */
 .rudder-template .alert-warning {
-  color: $rudder-warning;
-  background-color: $rudder-bg-warning;
-  border-color: $rudder-border-color-warning;
+  color: rudder.$warning;
+  background-color: rudder.$bg-warning;
+  border-color: rudder.$border-color-warning;
   margin-top: 12px;
   font-weight: bold;
 }
@@ -1933,7 +1933,7 @@ ul.applied-list > .add-target > .fa{
   border-radius: 4px;
 }
 .callout-cr p:first-child > .fa:hover{
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 .callout-cr ul {
   margin-left: 0;
@@ -1944,14 +1944,14 @@ ul.applied-list > .add-target > .fa{
 }
 .callout-cr ul li a {
   padding: 8px 0;
-  border-bottom: 1px solid $rudder-border-color-default;
+  border-bottom: 1px solid rudder.$border-color-default;
   display: block;
 }
 .callout-cr ul li:last-child a {
   border-bottom: none;
 }
 .callout-cr ul li a:hover {
-  background-color: $rudder-bg-gray;
+  background-color: rudder.$bg-gray;
 }
 .callout-cr ul li a .badge{
   margin-left: 0;
