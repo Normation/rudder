@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 use super::Info;
+use crate::package_manager::windows_update_agent::kb::ArticleCollection;
 use anyhow::{Context, Error, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
@@ -24,6 +25,15 @@ impl Collection {
             .0
             .into_iter()
             .filter(|n| predicate(n))
+            .collect::<Vec<Info>>();
+        Collection(v)
+    }
+
+    pub fn filter_out_excludes(self, excludes: &ArticleCollection) -> Collection {
+        let v = self
+            .0
+            .into_iter()
+            .filter(|n| n.data.kbs.iter().any(|i| excludes.contains(i)))
             .collect::<Vec<Info>>();
         Collection(v)
     }

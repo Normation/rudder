@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use windows::Win32::System::UpdateAgent::IStringCollection;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ArticleCollection(Vec<Article>);
+pub struct ArticleCollection(pub Vec<Article>);
 
 impl ArticleCollection {
     pub fn new() -> Self {

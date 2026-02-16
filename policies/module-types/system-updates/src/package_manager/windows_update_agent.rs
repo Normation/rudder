@@ -18,7 +18,7 @@ use windows::core::BSTR;
 mod kb;
 mod update;
 
-use crate::package_manager::windows_update_agent::kb::Article;
+use crate::package_manager::windows_update_agent::kb::{Article, ArticleCollection};
 use crate::package_manager::windows_update_agent::update::{
     Category, Collection, InfoData, InstallationResult, UpdateDownloadResult,
     UpdateInstallationResult,
@@ -292,11 +292,20 @@ impl UpdateManager for WindowsUpdateAgent {
             Err(e) => return r.into_err(e.context("Failed to retrieve available updates")),
             Ok(u) => u,
         };
+        let try_excludes = update_type
+            .exclude
+            .iter()
+            .map(|ex| Article::new(ex.name.clone()))
+            .collect::<Result<Vec<Article>>>();
+        let excludes = match try_excludes {
+            Err(e) => return r.into_err(e.context("Failed to parse the 'excludes' update list")),
+            Ok(ex) => ArticleCollection(ex),
+        };
         let updates_to_download = match update_type.include {
-            CampaignTarget::SystemUpdate => available_updates.filter_collection(|_| true),
-            CampaignTarget::SecurityUpdate => available_updates.filter_collection(|i| {
-                i.data.categories.iter().any(|c: &Category| c.is_security())
-            }),
+            CampaignTarget::SystemUpdate => available_updates.filter_out_excludes(&excludes),
+            CampaignTarget::SecurityUpdate => available_updates
+                .filter_collection(|i| i.data.categories.iter().any(|c: &Category| c.is_security()))
+                .filter_out_excludes(&excludes),
             CampaignTarget::List(ref v) => {
                 let mut white_list = Vec::new();
                 for i in v {
@@ -313,6 +322,7 @@ impl UpdateManager for WindowsUpdateAgent {
                 }
                 available_updates
                     .filter_collection(|i| i.data.kbs.iter().any(|x| white_list.contains(x)))
+                    .filter_out_excludes(&excludes)
             }
         };
         // Download the available updates
