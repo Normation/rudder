@@ -494,6 +494,41 @@ pipeline {
         stage('Publish') {
             when { not { changeRequest() } }
             parallel {
+                stage('graphic-charter') {
+                    agent {
+                        dockerfile {
+                            label 'generic-docker'
+                            filename 'webapp/sources/Dockerfile'
+                            args '-u 0:0'
+                        }
+                    }
+                    when { not { branch 'master' } }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('webapp/sources/rudder/rudder-web/src/main') {
+                                sh script: './build.sh', label: 'build graphic charter'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" sassdoc/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/graphic-charter/', label: "publish graphic charter"
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Publish - graphic charter")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error when publishing graphic charter - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('relayd-man') {
                     agent {
                         dockerfile {
