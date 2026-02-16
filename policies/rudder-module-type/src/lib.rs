@@ -343,7 +343,7 @@ pub mod diff {
     }
 }
 
-/// We could use https://crates.io/crates/atomic-write-file for more advanced use-cases
+/// We could use <https://crates.io/crates/atomic-write-file> for more advanced use-cases
 /// (larger files, std-like interface, etc.), but this is enough for our current needs.
 pub mod atomic_file_write {
     use std::fs;

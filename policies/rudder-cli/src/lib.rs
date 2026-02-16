@@ -10,12 +10,12 @@ use std::ops::Range;
 use std::panic;
 use std::process::exit;
 
-// taken from https://github.com/yamafaktory/jql/commit/12f5110b3443c33c09cf60d03fe638c2c266de98
+// taken from <https://github.com/yamafaktory/jql/commit/12f5110b3443c33c09cf60d03fe638c2c266de98>
 // under MIT/Apache 2 license
 
 /// Use a custom hook to manage broken pipe errors.
 ///
-/// See https://github.com/rust-lang/rust/issues/46016 for cause.
+/// See <https://github.com/rust-lang/rust/issues/46016> for cause.
 pub fn custom_panic_hook_ignore_sigpipe() {
     // Take the hook.
     let hook = panic::take_hook();

@@ -388,8 +388,7 @@ pipeline {
                         dockerfile {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            // FIXME: replace by Rudder version once 9.0 builds
-                            additionalBuildArgs  "--build-arg RUDDER_VER=8.3-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet'
                         }
                     }
@@ -494,6 +493,40 @@ pipeline {
         stage('Publish') {
             when { not { changeRequest() } }
             parallel {
+                stage('rust-dev-doc') {
+                    agent {
+                        dockerfile {
+                            label 'generic-docker'
+                            filename 'policies/Dockerfile'
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
+                            // mount cache
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                        }
+                    }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh script: 'make dev-doc', label: 'rust dev doc'
+                            withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/rust/', label: 'publish techniques docs'
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Publish - Rust dev docs")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error while publishing rust dev docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('graphic-charter') {
                     agent {
                         dockerfile {
@@ -682,7 +715,7 @@ pipeline {
                         dockerfile {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=8.3-nightly"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
                         }

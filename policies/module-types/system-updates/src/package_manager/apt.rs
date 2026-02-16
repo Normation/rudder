@@ -40,11 +40,11 @@ use rust_apt::{
 use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Command};
 
 /// References:
-/// * https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html
-/// * https://www.debian.org/doc/manuals/debian-handbook/sect.apt-get.en.html#sect.apt-upgrade
-/// * https://help.ubuntu.com/community/AutomaticSecurityUpdates
-/// * https://www.debian.org/doc/manuals/securing-debian-manual/security-update.en.html
-/// * https://wiki.debian.org/UnattendedUpgrades
+/// * <https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html>
+/// * <https://www.debian.org/doc/manuals/debian-handbook/sect.apt-get.en.html#sect.apt-upgrade>
+/// * <https://help.ubuntu.com/community/AutomaticSecurityUpdates>
+/// * <https://www.debian.org/doc/manuals/securing-debian-manual/security-update.en.html>
+/// * <https://wiki.debian.org/UnattendedUpgrades>
 ///
 /// Our reference model is unattended-upgrades, which is the only “official” way to handle automatic upgrades.
 /// We need to be compatible with:
@@ -110,7 +110,7 @@ impl AptPackageManager {
     /// Parses the batch output of needrestart.
     /// It conveniently exposes a stable parsing-friendly output.
     ///
-    /// https://github.com/liske/needrestart/blob/master/README.batch.md
+    /// <https://github.com/liske/needrestart/blob/master/README.batch.md>
     pub fn parse_services_to_restart(output: &[String]) -> Result<Vec<String>> {
         let svc_re = Regex::new(r"NEEDRESTART-SVC:\s*(\S+)\s*")?;
 
