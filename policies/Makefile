@@ -5,6 +5,8 @@ include ../cargo.mk
 
 check-methods-unix:
 	$(MAKE) cargo-test PACKAGE=lib FEATURES=test-unix
+check-methods-windows:
+	$(MAKE) cargo-test PACKAGE=lib FEATURES=test-windows
 
 check: lint
 	cd rudderc && make check
