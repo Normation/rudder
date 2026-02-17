@@ -1,5 +1,6 @@
 def failedBuild = false
 def version = "9.1"
+def latestVersion = true
 
 def slackResponse = null
 def changeUrl = env.CHANGE_URL
@@ -493,6 +494,42 @@ pipeline {
         stage('Publish') {
             when { not { changeRequest() } }
             parallel {
+                stage('adr-doc') {
+                    agent {
+                        dockerfile {
+                            label 'generic-docker'
+                            filename 'ci/common.Dockerfile'
+                            // mount cache
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                        }
+                    }
+                    when { expression { latestVersion == true } }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir("adr") {
+                                sh script: 'make', label: 'build adr doc'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" book/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/adr/', label: 'publish techniques docs'
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Publish - Rust ADR docs")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error while publishing ADR docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('rust-dev-doc') {
                     agent {
                         dockerfile {
@@ -503,6 +540,7 @@ pipeline {
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
+                    when { not { branch 'master' } }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh script: 'make dev-doc', label: 'rust dev doc'
@@ -642,7 +680,7 @@ pipeline {
                             args '-u 0:0'
                         }
                     }
-                    when { branch 'master' }
+                    when { expression { latestVersion == true } }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([sshUserPrivateKey(credentialsId: 'repository-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
