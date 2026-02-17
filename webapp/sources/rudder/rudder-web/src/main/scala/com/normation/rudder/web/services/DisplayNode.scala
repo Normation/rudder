@@ -701,74 +701,116 @@ object DisplayNode extends Loggable {
    */
   private def displaySecurityInfo(nodeFact: NodeFact)(implicit qc: QueryContext): NodeSeq = {
 
-    val checked     = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
+    val securityTokenStatus = (nodeFact.rudderSettings.status, nodeFact.rudderSettings.keyStatus) match {
       case (AcceptedInventory, CertifiedKey) =>
         <span>
-                <span class="fa fa-check text-success" data-bs-toggle="tooltip" title="Inventories for this Node must be signed with this key"></span>
-              </span>
+          Locked
+          <span class="fa fa-check text-success" data-bs-toggle="tooltip" title="Inventories for this node must be signed with the specified key"></span>
+        </span>
       case (AcceptedInventory, UndefinedKey) =>
         <span>
-                <span class="fa fa-exclamation-triangle text-warning" data-bs-toggle="tooltip" title="Certificate for this node has been reset, next inventory will be trusted automatically"></span>
-              </span>
+          Unlocked
+          <span class="fa fa-exclamation-triangle text-warning" data-bs-toggle="tooltip" title="The certificate lock for this node has been reset; the next inventory will be trusted automatically"></span>
+        </span>
       case _                                 => // not accepted inventory? Should not get there
         NodeSeq.Empty
     }
-    val nodeId      = nodeFact.id
-    val publicKeyId = s"publicKey-${nodeId.value}"
-    val cfKeyHash   = nodeFactRepository.get(nodeId).either.runNow match {
-      case Right(Some(nodeFact_)) if (nodeFact_.keyHashCfengine.nonEmpty) =>
-        <div><label>Key hash:</label> <samp>{nodeFact_.keyHashCfengine}</samp></div>
-      case _                                                              => NodeSeq.Empty
-    }
-    val curlHash    = nodeFactRepository.get(nodeId).either.runNow match {
-      case Right(Some(nodeFact_)) if (nodeFact_.keyHashCfengine.nonEmpty) =>
-        <div><label>Key hash:</label> <samp>sha256//{nodeFact_.keyHashBase64Sha256}</samp></div>
-      case _                                                              => NodeSeq.Empty
-    }
 
-    val agent     = nodeFact.rudderAgent
-    val tokenKind = agent.securityToken match {
-      case _: Certificate => "Certificate"
-    }
-    <div class="security-info" id={"security-" + nodeFact.id.value}>{
+    val agent = nodeFact.rudderAgent
+
+    <div class="security-info" id={"security-" + nodeFact.id.value}>
+      <h3>Security information</h3>
+
+      <div><label>Security token status: </label>{securityTokenStatus}</div>
+      <div>{
+      if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
+        <div>
+            <p>
+              Inventory updates and reports must be signed with the specified security token in order to be accepted.
+              <br/>
+              You can <b>reset</b> the lock status of this node's security token by clicking the button below :
+              <br/>
+            </p>
+            {resetSecurityToken(nodeFact)}
+          </div>
+      } else NodeSeq.Empty
+    }</div>
+
+      {
+      // Certificate fingerprint and expiration date
       agent.securityToken match {
         case c: Certificate =>
           c.cert.either.runNow match {
             case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
             case Right(cert) => (
-              <div><label>Fingerprint (sha1): </label> <samp>{
+              <div><label>Security token fingerprint (sha1): </label> <samp>{
                 SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
               }</samp></div>
-                    <div><label>Expiration date: </label> {
+                <div><label>Security token expiration date: </label> {
                 DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
               }</div>
             )
           }
       }
     }
-        {curlHash}
-        {cfKeyHash}
-        <button type="button" class="toggle-security-info btn btn-default" onclick={
-      s"$$('#${publicKeyId}').toggle(300); $$(this).toggleClass('opened'); return false;"
-    }> <b>{tokenKind}</b> {checked} </button>
-      <div>
-        {
-      if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
-        SHtml.ajaxButton(
-          "Reset status to be able to accept a different key",
-          () => resetKeyStatus(nodeFact)
-        ) % ("class", "btn btn-default btn-sm")
-      } else NodeSeq.Empty
-    }
-        <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-      Script(OnLoad(JsRaw(s"""initBsTooltips();"""))) // JsRaw ok, const
-    }
-      </div>
     </div>
   }
 
+  private def resetSecurityToken(nodeFact: NodeFact)(implicit qc: QueryContext): NodeSeq = {
+
+    val popupContent = {
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title text-start">
+              Reset security token for node '{nodeFact.id.value}'
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-xl-12">
+                <h4 class="text-center">
+                  Are you sure you want to reset the lock on this node's security token ?
+                </h4>
+                <p>
+                  This action will unlock the status of the security token for this node, making the security token modifiable.
+                  <br/>
+                  <br/>
+                  The server will automatically trust the next incoming inventory.
+                  The token with which it is signed will become the new security token for this node, and subsequent inventories, reports and policies will need to be signed with the same token.
+                  <br/>
+                  <br/>
+                  While the security token status is unlocked, incoming reports and policies will only be accepted if they are signed with current security token.
+                  <br/>
+                  <br/>
+                  Only proceed if you are sure that the next inventory will come from the correct system.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="text-align:center">
+            <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
+            {
+        // confirmation button
+        SHtml.ajaxButton(
+          "Reset security token",
+          () => resetKeyStatus(nodeFact) & JsRaw(""" hideBsModal("basePopup") """)
+        ) % ("class", "btn btn-danger")
+      }
+          </div>
+        </div>
+      </div>
+    }
+    SHtml.ajaxButton(
+      "Reset security token",
+      () => SetHtml("basePopup", popupContent) & JsRaw("""initBsModal("basePopup")"""), // JsRaw ok, const
+      ("class", "btn btn-default btn-sm")
+    )
+  }
+
   /*
-   * Reset key status for given node and redisplay it's security <div>
+   * Reset key status for given node and redisplay its security <div>
    */
   private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
