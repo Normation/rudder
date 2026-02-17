@@ -37,8 +37,6 @@ bundle common rudder_roles
 
       "rudder_global_audit_mode"      not => strcmp("&RUDDER_COMPLIANCE_MODE&", "enforce");
 
-      "rudder_verify_certs"    expression => strcmp("&RUDDER_VERIFY_CERTIFICATES&", "true");
-
       # full compliance is the default mode
       "full_compliance" not => "changes_only|reports_disabled";
 }
