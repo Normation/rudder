@@ -3,7 +3,6 @@ port module Groups exposing (..)
 import Browser
 import Dict
 import Dict.Extra
-import Groups.ViewGroupsTable exposing (updateGroupsTableData)
 import Http exposing (..)
 
 
@@ -108,7 +107,7 @@ update msg model =
             modelUi = model.ui
             currentGroups = if keepGroups then model.groupsCompliance else Dict.empty
             groupsCompliance = (Dict.Extra.fromListBy (.id >> .value) r) |> Dict.union currentGroups
-          in 
+          in
             ( { model | 
                   groupsCompliance = groupsCompliance
                   , mode = if (model.mode == LoadingTable) then GroupTable else model.mode
@@ -190,10 +189,10 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
             let
                 (newModel, newMsg) = update parentMsg ({model | groupsTable = groupsTable})
             in
-            (newModel, Cmd.batch [newMsg, tabMsg])
+            (newModel, Cmd.batch [tabMsg, newMsg])
 
         Just CsvExportRequested ->
-            (model, Task.perform ExportCsvWithCurrentDate Time.now)
+            ({model | groupsTable = groupsTable}, Task.perform ExportCsvWithCurrentDate Time.now)
 
         _ ->
             ( {model | groupsTable = groupsTable}, tabMsg )
