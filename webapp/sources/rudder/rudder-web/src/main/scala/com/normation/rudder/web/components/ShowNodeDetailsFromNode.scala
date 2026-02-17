@@ -123,14 +123,9 @@ class ShowNodeDetailsFromNode(
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
-      oldNode <- nodeFactRepo
-                   .get(nodeId)
-                   .notOptional(s"Node with ID '${nodeId.value}' was not found")
-                   .toBox // we can't change the state of a missing node
-      newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
-      result  <- nodeFactRepo
-                   .save(newNode)(using qc.newCC().copy(modId = modId))
-                   .toBox
+      _ <- nodeFactRepo
+             .setNodeState(nodeId, nodeState)(using qc.newCC().copy(modId = modId))
+             .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
       nodeState
