@@ -5,10 +5,10 @@
 //! level possible.
 //!
 //! For a broad list of sample `/etc/os-release` files, see
-//! https://github.com/chef/os_release.
+//! <https://github.com/chef/os_release>.
 //!
 //! For the specs, see:
-//! https://www.freedesktop.org/software/systemd/man/latest/os-release.html
+//! <https://www.freedesktop.org/software/systemd/man/latest/os-release.html>
 
 use std::{
     fs::File,

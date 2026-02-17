@@ -15,8 +15,8 @@ use zxcvbn::{Score, feedback::Feedback, zxcvbn};
 pub enum PasswordPolicy {
     /// Scores are between zero and four.
     ///
-    /// * https://github.com/dropbox/zxcvbn
-    /// * https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler
+    /// * <https://github.com/dropbox/zxcvbn>
+    /// * <https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler>
     ///
     /// Any score less than 3 should be considered too weak.
     MinScore(Score),

@@ -154,7 +154,7 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
     }
 }
 
-/// Adapted from warp: https://github.com/seanmonstar/warp/blob/376c80528fbf783dfb2825f8686698c3a51ac6d4/src/filters/fs.rs#L111
+/// Adapted from warp: <https://github.com/seanmonstar/warp/blob/376c80528fbf783dfb2825f8686698c3a51ac6d4/src/filters/fs.rs#L111>
 fn sanitize_path(base: impl AsRef<Path>, tail: &str) -> Result<PathBuf, Error> {
     let mut buf = PathBuf::from(base.as_ref());
     let p = match percent_decode_str(tail).decode_utf8() {

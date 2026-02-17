@@ -22,6 +22,7 @@ CARGO_NEXTEST_VER   := 0.9.122
 # Specific CI behavior
 ifeq ($(CI),1)
 export RUSTFLAGS=--deny warnings
+export RUSTDOCFLAGS=--deny warnings
 export CARGO_TERM_COLOR=always
 export RUSTUP_TERM_COLOR=always
 # faster cold builds
@@ -105,7 +106,7 @@ else
 endif
 
 dev-doc:
-	cargo doc --document-private-items --open
+	cargo doc --no-deps --document-private-items --features=apt
 
 lint:
 	cargo fmt --all -- --check
