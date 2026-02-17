@@ -226,7 +226,8 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
         cc: ChangeContext
     ): IOResult[NodeFactChangeEventCC] = ???
     def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
-    def delete(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
+    def delete(nodeId:                NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
+    override def setNodeState(nodeId: NodeId, state:       NodeState)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
   }
 
   // We want to ignore rules that are defined in `MockRules` because they may target all nodes and pollute our compliance tests
