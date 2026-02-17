@@ -20,6 +20,8 @@ cd "$(dirname "$0")"
 if [ "$RELEASE" = true ]; then
   # Ensure clean state for release
   rm -rf node_modules
+  echo "nodejs: $(node --version)"
+  echo "npm: $(npm --version)"
 fi
 
 # Ensure correct versions
