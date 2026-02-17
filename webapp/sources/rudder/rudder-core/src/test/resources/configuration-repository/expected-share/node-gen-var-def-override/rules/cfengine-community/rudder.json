@@ -35,7 +35,6 @@
   "RUDDER_REPORT_MODE":"full-compliance",
   "RUDDER_SYSTEM_DIRECTIVES_INPUTS":"\"common/1.0/common.cf\",\n\"common/1.0/cf-serverd.cf\",\n\"common/1.0/update.cf\",\n\"rudder-directives.cf\",\n\"rudder-system-directives.cf\",\n\"common/1.0/rudder-parameters.cf\",\n\"common/1.0/rudder-groups.cf\",\n\"common/1.0/hooks.cf\",\n\"common/1.0/cron-setup.cf\",\n\"common/1.0/site.cf\",\n\"common/1.0/monitoring.cf\",\n\"common/1.0/restart-services.cf\",\n\"common/1.0/internal-security.cf\",\n\"common/1.0/environment-variables.cf\",\n\"common/1.0/properties.cf\",\n\"common/1.0/reporting-http.cf\",\n\"inventory/1.0/fusionAgent.cf\",",
   "RUDDER_SYSTEM_DIRECTIVES_SEQUENCE":"      \"Rudder system policy: daily inventory/Inventory\" usebundle => set_dry_run_mode(\"false\");\n      \"Rudder system policy: daily inventory/Inventory\" usebundle => run_inventory_all;",
-  "RUDDER_VERIFY_CERTIFICATES":"false",
   "SEND_METRICS":"no",
   "SERVER_VERSION":"7.0.0",
   "SHARED_FILES_FOLDER":"/var/rudder/configuration-repository/shared-files",
