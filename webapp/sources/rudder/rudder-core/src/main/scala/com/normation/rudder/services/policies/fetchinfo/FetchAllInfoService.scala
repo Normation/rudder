@@ -39,6 +39,7 @@ package com.normation.rudder.services.policies.fetchinfo
 import com.normation.errors.*
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.*
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
@@ -61,6 +62,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.services.policies.FetchAllInfo
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.policies.RuleVal
@@ -73,7 +75,8 @@ import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.utils.ParseMaxParallelism
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
-import zio.{System as _, *}
+import zio.*
+import zio.System as _
 import zio.syntax.*
 
 /**
@@ -212,8 +215,6 @@ class FetchAllInfoServiceImpl(
     } yield rawRuleVals
   }
 
-  val fetch0Time = System.currentTimeMillis
-
   def fetchAll(): IOResult[FetchAllInfo] = {
     implicit val qc: QueryContext = QueryContext.systemQC
 
@@ -263,12 +264,16 @@ class FetchAllInfoServiceImpl(
         getScriptEngineEnabled().chainError("Could not get if we should use the script engine to evaluate directive parameters")
       globalComplianceMode        <- complianceModeService.getGlobalComplianceMode
       globalPolicyMode            <- getGlobalPolicyMode().chainError("Cannot get the Global Policy Mode (Enforce or Verify)")
-      nodeConfigCaches            <- nodeConfigurationService.getAll().toIO.chainError("Cannot get the Configuration Cache")
+      nodeConfigCaches            <- nodeConfigurationService.getAll().chainError("Cannot get the Configuration Cache")
       allNodeModes                 = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
+      // for now, schedules are not configurable, so we only have one, hardcoded.
+      schedules                    = Map(
+                                       SystemDirectiveSchedule.dailyOn4UTC.info.id -> SystemDirectiveSchedule.dailyOn4UTC
+                                     )
 
       fetchAllTime <- currentTimeMillis
       timeFetchAll  = fetchAllTime - fetch0Time
-      _            <- PolicyGenerationLoggerPure.timing.debug(s"All relevant information fetched in ${timeFetchAll - fetch0Time} ms.")
+      _            <- PolicyGenerationLoggerPure.timing.debug(s"All relevant information fetched in ${timeFetchAll} ms.")
 
       _ = logMetrics(nodeFacts, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
       /////
@@ -338,9 +343,26 @@ class FetchAllInfoServiceImpl(
         errors,
         maxParallelism,
         jsTimeout,
-        generationContinueOnError
+        generationContinueOnError,
+        schedules
       )
     }
   }
 
+}
+
+/*
+ * For now, we only have ONE directive schedule, and it's a daily one during the night.
+ */
+object SystemDirectiveSchedule {
+
+  val dailyOn4UTC = DirectiveSchedule(
+    CampaignInfo(
+      CampaignId("rudder-daily-on-4-utc"),
+      "Rudder system daily directive schedule",
+      "A daily schedule used by Rudder infrequent checks",
+      com.normation.rudder.campaigns.Enabled,
+      Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone("UTC")))
+    )
+  )
 }

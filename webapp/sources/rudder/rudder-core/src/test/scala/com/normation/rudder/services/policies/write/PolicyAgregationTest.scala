@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.ComponentId
+import com.normation.rudder.services.policies.IfVarClass
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.PolicyId
@@ -151,9 +152,11 @@ class PolicyAgregationTest extends Specification {
       priority = 5,
       isSystem = false,
       policyMode = None,
+      scheduleId = None,
       ruleOrder = BundleOrder(id.ruleId.serialize),
       directiveOrder = BundleOrder(id.directiveId.serialize),
-      overrides = Set()
+      overrides = Set(),
+      ifVarClass = Some(IfVarClass("campaign-test-xx"))
     )
   }
 

@@ -170,6 +170,7 @@ final case class RoReportsExecutionRepositoryImpl(
                   begin,
                   end,
                   x.modes,
+                  x.schedules,
                   x.ruleExpectedReports,
                   x.overrides
                 )
