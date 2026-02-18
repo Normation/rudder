@@ -1,0 +1,7 @@
+[book]
+title = "Rudder ADR"
+authors = ["Rudder developpers"]
+language = "en"
+src = "."
+[output.html]
+no-section-label = true

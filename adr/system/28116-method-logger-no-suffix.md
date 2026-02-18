@@ -1,4 +1,4 @@
-# [Simpler method logger without suffix]
+# Simpler method logger without suffix
 
 - Status: accepted
 - Deciders: AMO, MHA
