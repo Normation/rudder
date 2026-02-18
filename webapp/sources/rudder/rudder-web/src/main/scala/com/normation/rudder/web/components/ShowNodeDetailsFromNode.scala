@@ -123,6 +123,7 @@ class ShowNodeDetailsFromNode(
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
+      _ <- nodeFactRepo.setNodeState(nodeId, nodeState)(using qc.newCC().copy(modId = modId)).toBox
       _ <- nodeFactRepo
              .setNodeState(nodeId, nodeState)(using qc.newCC().copy(modId = modId))
              .toBox

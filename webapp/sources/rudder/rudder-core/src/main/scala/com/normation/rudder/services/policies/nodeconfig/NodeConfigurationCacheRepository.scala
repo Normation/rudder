@@ -39,7 +39,6 @@ package com.normation.rudder.services.policies.nodeconfig
 
 import better.files.File
 import cats.implicits.*
-import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.*
@@ -59,8 +58,6 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.zio.*
 import java.nio.charset.StandardCharsets
-import net.liftweb.common.Box
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
@@ -378,70 +375,66 @@ trait NodeConfigurationHashRepository {
    * Delete node config by its id.
    * Returned deleted ids.
    */
-  def deleteNodeConfigurations(nodeIds: Set[NodeId]): Box[Set[NodeId]]
+  def deleteNodeConfigurations(nodeIds: Set[NodeId]): IOResult[Unit]
 
   /**
    * delete all node configuration
    */
-  def deleteAllNodeConfigurations(): Box[Unit]
+  def deleteAllNodeConfigurations(): IOResult[Unit]
 
   /**
    * Inverse of delete: delete all node configuration not
    * given in the argument.
    */
-  def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): Box[Set[NodeId]]
+  def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): IOResult[Set[NodeId]]
 
   /**
    * Return all known NodeConfigurationHash
    */
-  def getAll(): Box[Map[NodeId, NodeConfigurationHash]]
+  def getAll(): IOResult[Map[NodeId, NodeConfigurationHash]]
 
   /**
    * Update or add NodeConfigurationHash from parameters.
    * No existing NodeConfigurationHash is deleted.
    * Return newly cache node configuration.
    */
-  def save(NodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]]
+  def save(NodeConfigurationHash: Set[NodeConfigurationHash]): IOResult[Set[NodeId]]
 }
 
 class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepository {
 
-  private val repository = scala.collection.mutable.Map[NodeId, NodeConfigurationHash]()
+  private val repository = Ref.make(Map[NodeId, NodeConfigurationHash]()).runNow
 
   /**
    * Delete a node by its id
    */
-  def deleteNodeConfigurations(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
-    repository --= nodeIds
-    Full(nodeIds)
+  override def deleteNodeConfigurations(nodeIds: Set[NodeId]): IOResult[Unit] = {
+    repository.update(_ -- nodeIds)
   }
 
   /**
    * delete all node configuration
    */
-  def deleteAllNodeConfigurations(): Box[Unit] = {
-    val values = repository.keySet
-    repository.clear()
-
-    Full(values.toSet)
+  override def deleteAllNodeConfigurations(): IOResult[Unit] = {
+    repository.set(Map())
   }
 
   /**
    * Inverse of delete: delete all node configuration not
    * given in the argument.
    */
-  def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
-    val remove = repository.keySet.diff(nodeIds)
-    repository --= remove
-    Full(nodeIds)
+  override def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
+    repository.update { current =>
+      val remove = current.keySet.diff(nodeIds)
+      current -- remove
+    }.as(nodeIds)
   }
 
-  def getAll(): Box[Map[NodeId, NodeConfigurationHash]] = Full(repository.toMap)
+  override def getAll(): IOResult[Map[NodeId, NodeConfigurationHash]] = repository.get
 
-  def save(NodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
+  override def save(NodeConfigurationHash: Set[NodeConfigurationHash]): IOResult[Set[NodeId]] = {
     val toAdd = NodeConfigurationHash.map(c => (c.id, c)).toMap
-    repository ++= toAdd
-    Full(toAdd.keySet)
+    repository.update(current => current ++ toAdd).as(toAdd.keySet)
   }
 }
 
@@ -525,7 +518,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
 
   ///// interface implementation /////
 
-  override def deleteAllNodeConfigurations(): Box[Unit] = {
+  override def deleteAllNodeConfigurations(): IOResult[Unit] = {
     timeLog(s => s"Deleting node configuration hashes took ${s}")(
       semaphore.withPermits(1)(
         IOResult
@@ -534,36 +527,36 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
           )
           .unit
       )
-    ).toBox
+    )
   }
 
-  override def deleteNodeConfigurations(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
+  override def deleteNodeConfigurations(nodeIds: Set[NodeId]): IOResult[Unit] = {
     timeLog(s => s"Deleting up to ${nodeIds.size} node configuration hashes from cache took ${s}")(semaphore.withPermits(1) {
       for {
         hashes <- nonAtomicRead()
         updated = NodeConfigurationHashes(hashes.hashes.filterNot(c => nodeIds.contains(c.id)))
         _      <- nonAtomicWrite(updated)
-      } yield nodeIds
-    }).toBox
+      } yield ()
+    })
   }
 
-  override def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
+  override def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
     timeLog(s => s"Keeping at most ${nodeIds.size} node configuration hashes from cache took ${s}")(semaphore.withPermits(1) {
       for {
         hashes <- nonAtomicRead()
         updated = NodeConfigurationHashes(hashes.hashes.filter(c => nodeIds.contains(c.id)))
         _      <- nonAtomicWrite(updated)
       } yield nodeIds
-    }).toBox
+    })
   }
 
-  override def getAll(): Box[Map[NodeId, NodeConfigurationHash]] = {
+  override def getAll(): IOResult[Map[NodeId, NodeConfigurationHash]] = {
     timeLog(s => s"Get all node configuration hashes took ${s}")(semaphore.withPermits(1) {
       nonAtomicRead().map(h => h.hashes.map(x => (x.id, x)).toMap)
-    }).toBox
+    })
   }
 
-  override def save(hashes: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
+  override def save(hashes: Set[NodeConfigurationHash]): IOResult[Set[NodeId]] = {
     val nodeIds = hashes.map(_.id)
     timeLog(s => s"Updating node configuration hashes took ${s}")(
       if (hashes.size == 0) nodeIds.succeed
@@ -577,7 +570,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
           } yield nodeIds
         }
       }
-    ).toBox
+    )
   }
 }
 
@@ -652,30 +645,26 @@ class LdapNodeConfigurationHashRepository(
   /**
    * Delete node config by its id
    */
-  def deleteNodeConfigurations(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
-    for {
-      _ <- deleteCacheMatching(nodeConfig => nodeIds.contains(nodeConfig.id))
-    } yield {
-      nodeIds
-    }
-  }.toBox
+  override def deleteNodeConfigurations(nodeIds: Set[NodeId]): IOResult[Unit] = {
+    deleteCacheMatching(nodeConfig => nodeIds.contains(nodeConfig.id)).unit
+  }
 
   /**
    * Inverse of delete: delete all node configuration not
    * given in the argument.
    */
-  def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): Box[Set[NodeId]] = {
+  override def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
     for {
       _ <- deleteCacheMatching(nodeConfig => !nodeIds.contains(nodeConfig.id))
     } yield {
       nodeIds
     }
-  }.toBox
+  }
 
   /**
    * delete all node configuration
    */
-  def deleteAllNodeConfigurations(): Box[Unit] = {
+  override def deleteAllNodeConfigurations(): IOResult[Unit] = {
     for {
       ldap    <- ldapCon
       deleted <- ldap.delete(rudderDit.NODE_CONFIGS.dn)
@@ -683,9 +672,9 @@ class LdapNodeConfigurationHashRepository(
     } yield {
       ()
     }
-  }.toBox
+  }
 
-  def getAll(): Box[Map[NodeId, NodeConfigurationHash]] = {
+  override def getAll(): IOResult[Map[NodeId, NodeConfigurationHash]] = {
     for {
       ldap        <- ldapCon
       entry       <- ldap.get(rudderDit.NODE_CONFIGS.dn)
@@ -693,9 +682,9 @@ class LdapNodeConfigurationHashRepository(
     } yield {
       nodeConfigs.map(x => (x.id, x)).toMap
     }
-  }.toBox
+  }
 
-  def save(caches: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
+  override def save(caches: Set[NodeConfigurationHash]): IOResult[Set[NodeId]] = {
     val updatedIds = caches.map(_.id)
     for {
       ldap          <- ldapCon
@@ -708,5 +697,5 @@ class LdapNodeConfigurationHashRepository(
     } yield {
       updatedIds
     }
-  }.toBox
+  }
 }

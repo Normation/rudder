@@ -396,7 +396,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
   }
   val policyGeneration: PolicyGenerationService   = new PolicyGenerationService {
-    override def deploy(): Box[Set[NodeId]] = Full(Set())
+    override def deploy(): IOResult[Set[NodeId]] = Set().succeed
   }
   val bootGuard:        Promise[Nothing, Unit]    = (for {
     p <- Promise.make[Nothing, Unit]
@@ -466,8 +466,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   // all other apis
 
   class FakeClearCacheService extends ClearCacheService {
-    override def action(actor:                           EventActor): Box[String] = null
-    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): Box[Unit] = null
+    override def action(actor:                           EventActor): IOResult[Unit] = ZIO.unit
+    override def clearNodeConfigurationCache(storeEvent: Boolean, actor: EventActor): IOResult[Unit] = ZIO.unit
   }
 
   val fakeNotArchivedElements: NotArchivedElements =
