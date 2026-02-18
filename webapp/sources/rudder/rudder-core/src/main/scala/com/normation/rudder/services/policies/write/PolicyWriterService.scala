@@ -1054,7 +1054,7 @@ class PolicyWriterServiceImpl(
     val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
     for {
       _ <- path
-             .createParentsAndWrite(systemVariableToJson(variables) + "\n", isRootServer)
+             .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables) + "\n", isRootServer)
              .chainError(
                s"Can not write json parameter file at path '${path.pathAsString}'"
              )
@@ -1101,46 +1101,6 @@ class PolicyWriterServiceImpl(
     } yield {
       AgentSpecificFile(rootPem.pathAsString) :: AgentSpecificFile(relayPem.pathAsString) :: Nil
     }
-  }
-
-  private def systemVariableToJson(vars: Map[String, Variable]): String = {
-    // only keep system variables, sort them by name
-    import net.liftweb.json.*
-
-    // remove these system vars (perhaps they should not even be there, in fact)
-    val filterOut = Set(
-      "SUB_NODES_ID",
-      "SUB_NODES_KEYHASH",
-      "SUB_NODES_NAME",
-      "SUB_NODES_SERVER",
-      "MANAGED_NODES_CERT_UUID",
-      "MANAGED_NODES_CERT_CN",
-      "MANAGED_NODES_CERT_DN",
-      "MANAGED_NODES_CERT_PEM",
-      "MANAGED_NODES_ADMIN",
-      "MANAGED_NODES_ID",
-      "MANAGED_NODES_IP",
-      "MANAGED_NODES_KEY",
-      "MANAGED_NODES_NAME",
-      "COMMUNITY",
-      "RUDDER_INVENTORY_VARS",
-      "BUNDLELIST",
-      "INPUTLIST"
-    )
-
-    val systemVars = vars.toList.sortBy(_._2.spec.name).collect {
-      case (_, v: SystemVariable) if (!filterOut.contains(v.spec.name)) =>
-        // if the variable is multivalued, create an array, else just a String
-        // special case for RUDDER_DIRECTIVES_INPUTS - also an array
-        val value = if (v.spec.multivalued || v.spec.name == "RUDDER_DIRECTIVES_INPUTS") {
-          JArray(v.values.toList.map(JString))
-        } else {
-          JString(v.values.headOption.getOrElse(""))
-        }
-        JField(v.spec.name, value)
-    }
-
-    prettyRender(JObject(systemVars))
   }
 
   /**
@@ -1409,4 +1369,77 @@ class PolicyWriterServiceImpl(
       }
     }
   }
+}
+
+/*
+ * Methods and functions related to writing `rudder.json` file content
+ */
+object RudderJsonPolicyFile {
+
+  /**
+   * Transform the list of given (system) variable and scheduled events into to string
+   * content for `rudder.json` file.
+   * The format of the file content is:
+   *
+   * {
+   *   "AGENT_RUN_INTERVAL":"5",
+   *   "AGENT_RUN_SCHEDULE":" \"Min00\", \"Min05\", \"Min10\", \"Min15\", \"Min20\", \"Min25\", \"Min30\", \"Min35\", \"Min40\", \"Min45\", \"Min50\", \"Min55\" ",
+   *   ...
+   *   "ALLOWED_NETWORKS":["192.168.12.0/24","192.168.49.0/24","127.0.0.1/24"],
+   *   ...
+   *   "events": [ { "schedule": "once", "id": "600abb6b-c294-4ba1-9014-944b67d59935", "schedule_id": "df6ebe63-a13a-484f-9add-57836517947a",
+   *     "name": "CIS RHEL9 - 2025/12/01",
+   *     "type": "benchmark",
+   *     "not_before": "2025-12-01T11:23:05+01:00",
+   *     "not_after": "2025-12-01T23:23:05+01:00"
+   *   },
+   *   ...
+   * }
+   */
+  def systemVariableToJson(
+      vars: Map[String, Variable]
+  ): String = {
+
+    // remove these system vars (perhaps they should not even be there, in fact)
+    val filterOut = Set(
+      "SUB_NODES_ID",
+      "SUB_NODES_KEYHASH",
+      "SUB_NODES_NAME",
+      "SUB_NODES_SERVER",
+      "MANAGED_NODES_CERT_UUID",
+      "MANAGED_NODES_CERT_CN",
+      "MANAGED_NODES_CERT_DN",
+      "MANAGED_NODES_CERT_PEM",
+      "MANAGED_NODES_ADMIN",
+      "MANAGED_NODES_ID",
+      "MANAGED_NODES_IP",
+      "MANAGED_NODES_KEY",
+      "MANAGED_NODES_NAME",
+      "COMMUNITY",
+      "RUDDER_INVENTORY_VARS",
+      "BUNDLELIST",
+      "INPUTLIST"
+    )
+
+    import zio.json.*
+    import zio.json.ast.*
+
+    // we have dedicated json encoder here, since we need to be compatible with historical data
+    val systemVars: List[(String, Json)] = vars.toList.collect {
+      case (_, v: SystemVariable) if (!filterOut.contains(v.spec.name)) =>
+        // if the variable is multivalued, create an array, else just a String
+        // special case for RUDDER_DIRECTIVES_INPUTS - also an array
+        val value = if (v.spec.multivalued || v.spec.name == "RUDDER_DIRECTIVES_INPUTS") {
+          Json.Arr(Chunk.fromIterable(v.values.map(Json.Str(_))))
+        } else {
+          Json.Str(v.values.headOption.getOrElse(""))
+        }
+        (v.spec.name, value)
+    }
+
+    val all = Chunk.fromIterable(systemVars).sortBy(_._1)
+
+    Json.Obj(all).toJsonPretty
+  }
+
 }
