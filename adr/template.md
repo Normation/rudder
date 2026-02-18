@@ -1,4 +1,4 @@
-# [short title of solved problem and solution]
+# Short title of solved problem and solution
 
 <!-- file name: {REDMINE-ID}-{DESCRIPTION}.md, like 23456-zio-json.md -->
 
