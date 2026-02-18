@@ -3,7 +3,11 @@ use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde::Serialize;
 use serde_json::{Map, Value};
-use std::{collections::HashMap, path::Path, process::Command, process::Stdio};
+use std::{
+    collections::HashMap,
+    path::Path,
+    process::{Command, Stdio},
+};
 use tempfile::TempDir;
 
 #[derive(Debug, Default, Serialize)]
@@ -79,19 +83,22 @@ impl Secedit {
             .display()
             .to_string();
 
-        let cmd = format!("/import /db {} /cfg {}", db, config.as_path().display());
-        invoke_with_args(&cmd)?;
+        let config = config.as_path().display().to_string();
+        let cmd = vec!["/import", "/db", &db, "/cfg", &config];
+        invoke_with_args(cmd)?;
 
-        let cmd = format!("/configure /db {}", db);
-        invoke_with_args(&cmd)?;
+        let cmd = vec!["/configure", "/db", &db];
+        invoke_with_args(cmd)?;
 
         Ok(())
     }
 
     fn export(&self) -> Result<Ini> {
         let template_config = self.tmp_dir.path().join("template.ini");
-        let cmd = format!("/export /cfg {}", template_config.as_path().display());
-        invoke_with_args(&cmd)?;
+        let config = template_config.as_path().display().to_string();
+
+        let cmd = vec!["/export", "/cfg", &config];
+        invoke_with_args(cmd)?;
 
         parse_config(&template_config)
     }
@@ -110,19 +117,22 @@ fn parse_config(path: &Path) -> Result<Ini> {
     Ok(template)
 }
 
-fn invoke_with_args(args: &str) -> Result<()> {
+fn invoke_with_args(args: Vec<&str>) -> Result<()> {
     const COMMAND: &str = "secedit.exe";
     let mut cmd = Command::new(COMMAND);
 
     if !args.is_empty() {
-        cmd.args(args.split_whitespace());
+        cmd.args(&args);
     }
 
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
     let output = match cmd.spawn() {
         Ok(task) => task,
-        Err(e) => bail!("Failed to execute command '{COMMAND} {args}' {e}"),
+        Err(e) => bail!(
+            "Failed to execute command '{COMMAND} {}' {e}",
+            args.join(" ")
+        ),
     }
     .wait_with_output()?;
 
