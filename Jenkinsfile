@@ -53,8 +53,14 @@ pipeline {
                         }
                         sh script: 'cp target/debug/rudder-module-* /opt/rudder/bin/'
                         sh script: ''
+                        dir('dsc') {
+                            git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                            sh script: 'make ncf NCF_OUTPUT=$(pwd)/../policies/lib/ncf', label: 'install local Windows agent'
+                        }
                         dir("policies") {
                             sh script: 'make check-methods-unix', label: 'methods tests'
+                            sh script: 'make check-methods-windows', label: 'methods tests'
                         }
                     }
                     post {

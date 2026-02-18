@@ -10,6 +10,7 @@ use anyhow::Context;
 use indexmap::IndexMap;
 use rudder_commons::PolicyMode;
 use rudder_commons::report::Report;
+#[cfg(not(feature = "test-windows"))]
 use rudderc::backends::unix::Unix;
 use rudderc::backends::unix::cfengine::CfAgentResult;
 use rudderc::backends::{Backend, Windows};
@@ -127,12 +128,14 @@ impl MethodTestSuite {
         test_technique
     }
 
-    pub fn execute(self, library_folder: PathBuf, workdir: PathBuf) -> ExecutionResult {
+    pub fn execute(self, _library_folder: PathBuf, workdir: PathBuf) -> ExecutionResult {
         let technique = self.prepare_execution(&workdir);
         #[cfg(feature = "test-windows")]
-        let policy_library_folder = PathBuf::from(WINDOWS_LIB_FOLDER);
+        let policy_library_folder = PathBuf::from(WINDOWS_LIB_FOLDER)
+            .canonicalize()
+            .expect("The library folder does not exist");
         #[cfg(not(feature = "test-windows"))]
-        let policy_library_folder = library_folder;
+        let policy_library_folder = _library_folder;
         let fake_agent = FakeAgentBuilder::new(workdir.clone())
             .verbosity(Verbosity::Verbose)
             .library_folder(policy_library_folder)
