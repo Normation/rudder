@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogFilter
+import com.normation.eventlog.EventLogRequest
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.AddApiAccountDiff
 import com.normation.rudder.api.DeleteApiAccountDiff
@@ -581,7 +582,13 @@ trait EventLogRepository {
   /**
    * Returns eventlog matching criteria
    * For the moment it only a string, it should be something else in the future
+   *
+   * The method is deprecated because it uses Fragment type as parameter which leads to bring a dependency
+   * on doobie library in calling modules. Although only the data access layers/modules should depend on doobie.
+   * 
+   * Use getEventLogByCriteria(filter: Option[EventLogRequest]) instead
    */
+  @Deprecated(since = "9.1", forRemoval = true)
   def getEventLogByCriteria(
       criteria:       Option[Fragment],
       limit:          Option[Int] = None,
@@ -589,9 +596,11 @@ trait EventLogRepository {
       extendedFilter: Option[Fragment] = None
   ): IOResult[Seq[EventLog]]
 
+  def getEventLogByCriteria(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]]
+
   def getEventLogById(id: Long): IOResult[EventLog]
 
-  def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment] = None): IOResult[Long]
+  def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long]
 
   def getEventLogByChangeRequest(
       changeRequest:   ChangeRequestId,

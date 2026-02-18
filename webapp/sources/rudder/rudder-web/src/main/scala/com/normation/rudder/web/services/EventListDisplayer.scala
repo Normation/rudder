@@ -38,12 +38,14 @@ package com.normation.rudder.web.services
 
 import com.normation.box.*
 import com.normation.eventlog.EventLog
-import com.normation.rudder.repository.*
+import com.normation.eventlog.EventLogRequest
+import com.normation.eventlog.EventLogRequest.Column.ID
+import com.normation.eventlog.EventLogRequest.Direction.Desc
+import com.normation.eventlog.EventLogRequest.Order
+import com.normation.rudder.services.eventlog.EventLogService
 import com.normation.rudder.web.StaticResourceRewrite
 import com.normation.rudder.web.lift.JsCommands.*
 import com.normation.rudder.web.snippet.WithNonce
-import doobie.*
-import doobie.implicits.*
 import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
@@ -61,7 +63,7 @@ import scala.xml.*
  * Used to display the event list, in the pending modification (AsyncDeployment),
  * or in the administration EventLogsViewer
  */
-class EventListDisplayer(repos: EventLogRepository, staticResourceRewrite: StaticResourceRewrite) extends Loggable {
+class EventListDisplayer(service: EventLogService, staticResourceRewrite: StaticResourceRewrite) extends Loggable {
 
   given StaticResourceRewrite = staticResourceRewrite
 
@@ -90,39 +92,40 @@ class EventListDisplayer(repos: EventLogRepository, staticResourceRewrite: Stati
       val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 
       displayEvents(for {
-        parsed        <- tryo(
-                           parse(jsonInterval)
-                         ) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
-        startStr      <- parsed \ "start" match {
-                           case JString(startStr) if startStr.nonEmpty =>
-                             val date =
-                               tryo(DateTime.parse(startStr, format)) ?~! s"Error when trying to parse start date '${startStr}"
-                             date match {
-                               case Full(d) => Full(Some(new Timestamp(d.getMillis)))
-                               case eb: EmptyBox =>
-                                 eb ?~! s"Invalid start date"
-                             }
-                           case _                                      => Full(None)
-                         }
-        endStr        <- parsed \ "end" match {
-                           case JString(endStr) if endStr.nonEmpty =>
-                             val date = tryo(DateTime.parse(endStr, format)) ?~! s"Error when trying to parse end date '${endStr}"
-                             date match {
-                               case Full(d) => Full(Some(new Timestamp(d.getMillis)))
-                               case eb: EmptyBox =>
-                                 eb ?~! s"Invalid end date"
-                             }
-                           case _                                  => Full(None)
-                         }
-        whereStatement = (startStr, endStr) match {
-                           case (None, None)             => None
-                           case (Some(start), None)      => Some(fr" creationdate > ${start}")
-                           case (None, Some(end))        => Some(fr" creationdate < ${end}")
-                           case (Some(start), Some(end)) =>
-                             val orderedDate = if (start.after(end)) (end, start) else (start, end)
-                             Some(fr" creationdate > ${orderedDate._1} and creationdate < ${orderedDate._2} ")
-                         }
-        logs          <- repos.getEventLogByCriteria(whereStatement, None, List(Fragment.const("id DESC"))).toBox
+        parsed   <- tryo(
+                      parse(jsonInterval) // TODO use zio-json
+                    ) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON data structure with fields 'start' and 'end'"
+        startStr <- parsed \ "start" match {
+                      case JString(startStr) if startStr.nonEmpty =>
+                        val date =
+                          tryo(DateTime.parse(startStr, format)) ?~! s"Error when trying to parse start date '${startStr}"
+                        date match {
+                          case Full(d) => Full(Some(new Timestamp(d.getMillis)))
+                          case eb: EmptyBox =>
+                            eb ?~! s"Invalid start date"
+                        }
+                      case _                                      => Full(None)
+                    }
+        endStr   <- parsed \ "end" match {
+                      case JString(endStr) if endStr.nonEmpty =>
+                        val date = tryo(DateTime.parse(endStr, format)) ?~! s"Error when trying to parse end date '${endStr}"
+                        date match {
+                          case Full(d) => Full(Some(new Timestamp(d.getMillis)))
+                          case eb: EmptyBox =>
+                            eb ?~! s"Invalid end date"
+                        }
+                      case _                                  => Full(None)
+                    }
+        filter    = EventLogRequest(
+                      0,
+                      0,
+                      None,
+                      startStr.map(_.toInstant),
+                      endStr.map(_.toInstant),
+                      None,
+                      Some(Order(ID, Desc))
+                    )
+        logs     <- service.getUserEventLogs(Some(filter)).toBox
       } yield {
         logs
       })
