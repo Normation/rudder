@@ -16,5 +16,8 @@ summary:
 build: summary
 	mdbook build
 
+open: build
+	xdg-open book/index.html
+
 clean:
 	rm -rf SUMMARY.md book
