@@ -83,15 +83,14 @@ import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
-import com.normation.utils.Control.*
+import com.normation.zio.*
 import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.format.PeriodFormatterBuilder
 import scala.concurrent.duration.FiniteDuration
 import zio.{System as _, *}
 import zio.syntax.*
@@ -103,11 +102,10 @@ trait PromiseGenerationHooks {
 
   /*
    * Hooks to call before deployment start.
-   * This one is synchronised, so that deployment will
+   * This one is synchronized, so that deployment will
    * wait for its completion AND success.
-   * So
    */
-  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
+  def beforeDeploymentSync(generationTime: DateTime): IOResult[Unit]
 }
 
 /**
@@ -137,7 +135,7 @@ trait PolicyGenerationService {
    * Return the list of node IDs actually updated.
    *
    */
-  def deploy(): Box[Set[NodeId]]
+  def deploy(): IOResult[Set[NodeId]]
 
 }
 
@@ -192,43 +190,39 @@ class PolicyGenerationServiceImpl(
    * Return the list of node IDs actually updated.
    *
    */
-  override def deploy(): Box[Set[NodeId]] = {
+  override def deploy(): IOResult[Set[NodeId]] = {
     PolicyGenerationLogger.info("Start policy generation, checking updated rules")
 
-    val initialTime = System.currentTimeMillis
-
+    val initialTime    = System.currentTimeMillis
     val generationTime = new DateTime(initialTime, DateTimeZone.UTC)
-    val rootNodeId     = Constants.ROOT_POLICY_SERVER_ID
+
+    val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
     // we need to add the current environment variables to the script context
     // plus the script environment variables used as script parameters
     import scala.jdk.CollectionConverters.*
-    val systemEnv      = HookEnvPairs.build(System.getenv.asScala.toSeq*)
+    val systemEnv  = HookEnvPairs.build(System.getenv.asScala.toSeq*)
 
-    val result = for {
+    val result: IOResult[Set[NodeId]] = for {
+      (timeRunPreGenHooks, _) <- promiseGenerationHookService.runPreHooks(generationTime, systemEnv).timed
+      _                       <- PolicyGenerationLoggerPure.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks.render}")
 
-      _                 <- promiseGenerationHookService.runPreHooks(generationTime, systemEnv)
-      timeRunPreGenHooks = (System.currentTimeMillis - initialTime)
-      _                  = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunPreGenHooks} ms")
+      (timeDynGroups, _) <- policyGenerationUpdateDynGroup.checkUpdate().timed
+      _                  <- PolicyGenerationLoggerPure.timing.debug(s"Check update dynamic groups ran in ${timeDynGroups.render}")
 
-      _ <- policyGenerationUpdateDynGroup.checkUpdate().toBox
+      (timeRunStartedGenHooks, _) <- promiseGenerationHookService.runStartedHooks(generationTime, systemEnv).timed
+      _                           <- PolicyGenerationLoggerPure.timing.debug(
+                                       s"Policy-generation-started scripts hooks ran in ${timeRunStartedGenHooks.render}"
+                                     )
 
-      startedGenHooksTime    = System.currentTimeMillis
-      _                     <- promiseGenerationHookService.runStartedHooks(generationTime, systemEnv)
-      timeRunStartedGenHooks = (System.currentTimeMillis - startedGenHooksTime)
-      _                      = PolicyGenerationLogger.timing.debug(s"Pre-policy-generation scripts hooks ran in ${timeRunStartedGenHooks} ms")
-
-      codePreGenHooksTime = System.currentTimeMillis
-      _                  <- promiseGenerationHookService.beforeDeploymentSync(generationTime)
-      timeCodePreGenHooks = (System.currentTimeMillis - codePreGenHooksTime)
-      _                   = PolicyGenerationLogger.timing.debug(
-                              s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks} ms, start getting all generation related data."
-                            )
+      (timeCodePreGenHooks, _) <- promiseGenerationHookService.beforeDeploymentSync(generationTime).timed
+      _                        <- PolicyGenerationLoggerPure.timing.debug(
+                                    s"Pre-policy-generation modules hooks in ${timeCodePreGenHooks.render}, start getting all generation related data."
+                                  )
 
       // Objects need to be created in separate for {} yield to be garbage collectable,
       // otherwise they remain in the scope and are not freed.
       // We need to limit scope like that as necessary to free memory during policy generation
 
-      fetch0Time       = System.currentTimeMillis
       (
         updatedNodesId,
         updatedNodeInfo,
@@ -240,220 +234,212 @@ class PolicyGenerationServiceImpl(
         timeBuildConfig,
         timeWriteNodeConfig,
         timeSetExpectedReport
-      )               <- for {
-                           (
-                             updatedNodeConfigIds,
-                             allNodeConfigurations,
-                             allNodeConfigsInfos,
-                             updatedNodesId,
-                             updatedNodeInfo,
-                             globalPolicyMode,
-                             allNodeModes,
-                             allErrors,
-                             errorNodes,
-                             timeFetchAll,
-                             timeRuleVal,
-                             timeBuildConfig,
-                             maxParallelism
-                           ) <- for {
-                                  FetchAllInfo(
-                                    activeNodeIds,
-                                    ruleVals,
-                                    nodeContexts,
-                                    allNodeModes,
-                                    scriptEngineEnabled,
-                                    globalPolicyMode,
-                                    nodeConfigCaches,
-                                    timeFetchAll,
-                                    timeRuleVal,
-                                    errors,
-                                    maxParallelism,
-                                    jsTimeout,
-                                    generationContinueOnError
-                                  )                    <- fetchAllInfoService.fetchAll().toBox
-                                  buildConfigTime       = System.currentTimeMillis
-                                  /// here, we still have directive by directive info
-                                  filteredTechniques    = getFilteredTechnique()
-                                  configsAndErrors     <- buildNodeConfigurationService
-                                                            .buildNodeConfigurations(
-                                                              activeNodeIds,
-                                                              ruleVals,
-                                                              nodeContexts,
-                                                              allNodeModes,
-                                                              filteredTechniques,
-                                                              scriptEngineEnabled,
-                                                              globalPolicyMode,
-                                                              maxParallelism,
-                                                              jsTimeout,
-                                                              generationContinueOnError
-                                                            )
-                                                            .toBox ?~! "Cannot build target configuration node"
-                                  /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
-                                  allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
-                                  allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
-                                  errorNodes            = activeNodeIds -- allNodeConfigurations.keySet
+      )                     <- for {
+                                 (
+                                   updatedNodeConfigIds,
+                                   allNodeConfigurations,
+                                   allNodeConfigsInfos,
+                                   updatedNodesId,
+                                   updatedNodeInfo,
+                                   globalPolicyMode,
+                                   allNodeModes,
+                                   allErrors,
+                                   errorNodes,
+                                   timeFetchAll,
+                                   timeRuleVal,
+                                   timeBuildConfig,
+                                   maxParallelism
+                                 ) <- for {
+                                        FetchAllInfo(
+                                          activeNodeIds,
+                                          ruleVals,
+                                          nodeContexts,
+                                          allNodeModes,
+                                          scriptEngineEnabled,
+                                          globalPolicyMode,
+                                          nodeConfigCaches,
+                                          timeFetchAll,
+                                          timeRuleVal,
+                                          errors,
+                                          maxParallelism,
+                                          jsTimeout,
+                                          generationContinueOnError
+                                        )                    <- fetchAllInfoService.fetchAll()
+                                        buildConfigTime      <- Clock.nanoTime
+                                        /// here, we still have directive by directive info
+                                        filteredTechniques    = getFilteredTechnique()
+                                        configsAndErrors     <- buildNodeConfigurationService
+                                                                  .buildNodeConfigurations(
+                                                                    activeNodeIds,
+                                                                    ruleVals,
+                                                                    nodeContexts,
+                                                                    allNodeModes,
+                                                                    filteredTechniques,
+                                                                    scriptEngineEnabled,
+                                                                    globalPolicyMode,
+                                                                    maxParallelism,
+                                                                    jsTimeout,
+                                                                    generationContinueOnError
+                                                                  )
+                                                                  .chainError("Cannot build target configuration node")
+                                        /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
+                                        allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
+                                        allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
+                                        errorNodes            = activeNodeIds -- allNodeConfigurations.keySet
 
-                                  timeBuildConfig = (System.currentTimeMillis - buildConfigTime)
-                                  _               = PolicyGenerationLogger.timing.debug(
-                                                      s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values."
-                                                    )
+                                        buildConfigTime2 <- Clock.nanoTime
+                                        timeBuildConfig   = buildConfigTime2 - buildConfigTime
+                                        _                <-
+                                          PolicyGenerationLoggerPure.timing.debug(
+                                            s"Node's target configuration built in ${Duration.Finite(timeBuildConfig).render}, start to update rule values."
+                                          )
 
-                                  allNodeConfigsInfos = allNodeConfigurations.map { case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo) }
-                                  allNodeConfigsId    = allNodeConfigsInfos.keysIterator.toSet
+                                        allNodeConfigsInfos = allNodeConfigurations.map { case (nodeid, nodeconfig) => (nodeid, nodeconfig.nodeInfo) }
+                                        allNodeConfigsId    = allNodeConfigsInfos.keysIterator.toSet
 
-                                  updatedNodeConfigIds = getNodesConfigVersion(allNodeConfigurations, nodeConfigCaches, generationTime)
-                                  updatedNodesId       = updatedNodeConfigIds.keySet.toSeq.toSet
-                                  updatedNodeInfo      = allNodeConfigurations.collect {
-                                                           case (nodeId, nodeconfig) if (updatedNodesId.contains(nodeId)) =>
-                                                             (nodeId, nodeconfig.nodeInfo)
-                                                         }
+                                        updatedNodeConfigIds = getNodesConfigVersion(allNodeConfigurations, nodeConfigCaches, generationTime)
+                                        updatedNodesId       = updatedNodeConfigIds.keySet.toSeq.toSet
+                                        updatedNodeInfo      = allNodeConfigurations.collect {
+                                                                 case (nodeId, nodeconfig) if (updatedNodesId.contains(nodeId)) =>
+                                                                   (nodeId, nodeconfig.nodeInfo)
+                                                               }
 
-                                  // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
-                                  _                   <- forgetOtherNodeConfigurationState(allNodeConfigsId) ?~! "Cannot clean the configuration cache"
+                                        // WHY DO WE NEED TO FORGET OTHER NODES CACHE INFO HERE ?
+                                        _                   <- forgetOtherNodeConfigurationState(allNodeConfigsId).chainError("Cannot clean the configuration cache")
 
-                                } yield {
-                                  (
-                                    updatedNodeConfigIds,
-                                    allNodeConfigurations,
-                                    allNodeConfigsInfos,
-                                    updatedNodesId,
-                                    updatedNodeInfo,
-                                    globalPolicyMode,
-                                    allNodeModes,
-                                    allErrors,
-                                    errorNodes,
-                                    timeFetchAll,
-                                    timeRuleVal,
-                                    timeBuildConfig,
-                                    maxParallelism
-                                  )
-                                }
-                           ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
+                                      } yield {
+                                        (
+                                          updatedNodeConfigIds,
+                                          allNodeConfigurations,
+                                          allNodeConfigsInfos,
+                                          updatedNodesId,
+                                          updatedNodeInfo,
+                                          globalPolicyMode,
+                                          allNodeModes,
+                                          allErrors,
+                                          errorNodes,
+                                          timeFetchAll,
+                                          timeRuleVal,
+                                          timeBuildConfig,
+                                          maxParallelism
+                                        )
+                                      }
+                                 ///// so now we have everything for each updated nodes, we can start writing node policies and then expected reports
 
-                           writeTime           = System.currentTimeMillis
-                           _                  <- writeNodeConfigurations(
-                                                   rootNodeId,
-                                                   updatedNodeConfigIds,
-                                                   allNodeConfigurations,
-                                                   allNodeConfigsInfos,
-                                                   globalPolicyMode,
-                                                   generationTime,
-                                                   maxParallelism
-                                                 ) ?~! "Cannot write nodes configuration"
-                           timeWriteNodeConfig = (System.currentTimeMillis - writeTime)
-                           _                   = PolicyGenerationLogger.timing.debug(
-                                                   s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports."
-                                                 )
+                                 (timeWriteNodeConfig, _) <- writeNodeConfigurations(
+                                                               rootNodeId,
+                                                               updatedNodeConfigIds,
+                                                               allNodeConfigurations,
+                                                               allNodeConfigsInfos,
+                                                               globalPolicyMode,
+                                                               generationTime,
+                                                               maxParallelism
+                                                             ).toIO.chainError("Cannot write nodes configuration").timed
+                                 _                        <- PolicyGenerationLoggerPure.timing.debug(
+                                                               s"Node configuration written in ${timeWriteNodeConfig.render}, start to update expected reports."
+                                                             )
 
-                           reportTime            = System.currentTimeMillis
-                           expectedReports       = computeExpectedReports(allNodeConfigurations, updatedNodeConfigIds, generationTime, allNodeModes)
-                           timeSetExpectedReport = (System.currentTimeMillis - reportTime)
-                           _                     = PolicyGenerationLogger.timing.debug(s"Reports computed in ${timeSetExpectedReport} ms")
-                         } yield {
-                           (
-                             updatedNodesId,
-                             updatedNodeInfo,
-                             expectedReports,
-                             allErrors,
-                             errorNodes,
-                             timeFetchAll,
-                             timeRuleVal,
-                             timeBuildConfig,
-                             timeWriteNodeConfig,
-                             timeSetExpectedReport
-                           )
-                         }
-      saveExpectedTime = System.currentTimeMillis
-      _               <- saveExpectedReports(expectedReports) ?~! "Error when saving expected reports"
-      timeSaveExpected = (System.currentTimeMillis - saveExpectedTime)
-      _                = PolicyGenerationLogger.timing.debug(s"Node expected reports saved in base in ${timeSaveExpected} ms.")
+                                 reportTime           <- Clock.nanoTime
+                                 expectedReports       = computeExpectedReports(allNodeConfigurations, updatedNodeConfigIds, generationTime, allNodeModes)
+                                 reportTime2          <- Clock.nanoTime
+                                 timeSetExpectedReport = reportTime2 - reportTime
+                                 _                    <- PolicyGenerationLoggerPure.timing.debug(
+                                                           s"Reports computed in ${Duration.Finite(timeSetExpectedReport).render}"
+                                                         )
+                               } yield {
+                                 (
+                                   updatedNodesId,
+                                   updatedNodeInfo,
+                                   expectedReports,
+                                   allErrors,
+                                   errorNodes,
+                                   timeFetchAll,
+                                   timeRuleVal,
+                                   timeBuildConfig,
+                                   timeWriteNodeConfig,
+                                   timeSetExpectedReport
+                                 )
+                               }
+      (timeSaveExpected, _) <- saveExpectedReports(expectedReports).toIO.chainError("Error when saving expected reports").timed
+      _                     <- PolicyGenerationLoggerPure.timing.debug(s"Node expected reports saved in base in ${timeSaveExpected.render}")
 
       // invalidate compliance caches
       invalidationActions = expectedReports.map(x => (x.nodeId, CacheExpectedReportAction.UpdateNodeConfiguration(x.nodeId, x)))
-      _                  <- invalidateComplianceCache(invalidationActions).toBox
+      _                  <- invalidateComplianceCache(invalidationActions)
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
-      postHooksTime       = System.currentTimeMillis
-      _                  <- promiseGenerationHookService.runPostHooks(
-                              generationTime,
-                              new DateTime(postHooksTime, DateTimeZone.UTC),
-                              updatedNodeInfo,
-                              systemEnv,
-                              UPDATED_NODE_IDS_PATH
-                            )
-      timeRunPostGenHooks = (System.currentTimeMillis - postHooksTime)
-      _                   = PolicyGenerationLogger.timing.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
+      postHooksTime            <- Clock.currentTime(TimeUnit.MILLISECONDS)
+      (timeRunPostGenHooks, _) <- promiseGenerationHookService
+                                    .runPostHooks(
+                                      generationTime,
+                                      new DateTime(postHooksTime, DateTimeZone.UTC),
+                                      updatedNodeInfo,
+                                      systemEnv,
+                                      UPDATED_NODE_IDS_PATH
+                                    )
+                                    .timed
+
+      _ <- PolicyGenerationLoggerPure.timing.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks.render}")
 
       /// now, if there was failed config or failed write, time to show them
 
       _       = {
         PolicyGenerationLogger.timing.info("Timing summary:")
-        PolicyGenerationLogger.timing.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks))
-        PolicyGenerationLogger.timing.info("Run pre-gen modules hooks     : %10s ms".format(timeCodePreGenHooks))
-        PolicyGenerationLogger.timing.info("Fetch all information         : %10s ms".format(timeFetchAll))
-        PolicyGenerationLogger.timing.info("Build current rule values     : %10s ms".format(timeRuleVal))
-        PolicyGenerationLogger.timing.info("Build target configuration    : %10s ms".format(timeBuildConfig))
-        PolicyGenerationLogger.timing.info("Write node configurations     : %10s ms".format(timeWriteNodeConfig))
-        PolicyGenerationLogger.timing.info("Save expected reports         : %10s ms".format(timeSetExpectedReport))
-        PolicyGenerationLogger.timing.info("Run post generation hooks     : %10s ms".format(timeRunPostGenHooks))
-        PolicyGenerationLogger.timing.info("Number of nodes updated       : %10s   ".format(updatedNodesId.size))
+        PolicyGenerationLogger.timing.info("Run pre-gen scripts hooks  : %10s ms".format(timeRunPreGenHooks.toMillis))
+        PolicyGenerationLogger.timing.info("Run pre-gen modules hooks  : %10s ms".format(timeCodePreGenHooks.toMillis))
+        PolicyGenerationLogger.timing.info("Fetch all information      : %10s ms".format(timeFetchAll))
+        PolicyGenerationLogger.timing.info("Build current rule values  : %10s ms".format(timeRuleVal))
+        PolicyGenerationLogger.timing.info("Build target configuration : %10s ms".format(timeBuildConfig / 1_000_000))
+        PolicyGenerationLogger.timing.info("Write node configurations  : %10s ms".format(timeWriteNodeConfig.toMillis))
+        PolicyGenerationLogger.timing.info("Save expected reports      : %10s ms".format(timeSetExpectedReport / 1_000_000))
+        PolicyGenerationLogger.timing.info("Run post generation hooks  : %10s ms".format(timeRunPostGenHooks.toMillis))
+        PolicyGenerationLogger.timing.info("Number of nodes updated    : %10s   ".format(updatedNodesId.size))
         if (errorNodes.nonEmpty) {
           PolicyGenerationLogger.warn(s"Nodes in errors (${errorNodes.size}): '${errorNodes.map(_.value).mkString("','")}'")
         }
       }
       result <- if (allErrors.isEmpty) {
-                  Full(updatedNodesId)
+                  updatedNodesId.succeed
                 } else {
-                  Failure(s"Generation ended but some nodes were in errors: ${allErrors.mkString(" ; ")}")
+                  Unexpected(s"Generation ended but some nodes were in errors: ${allErrors.mkString(" ; ")}").fail
                 }
     } yield {
       result
     }
+
     // if result is a failure, execute policy generation failure hooks
-    result match {
-      case f: Failure =>
-        // in case of a failed generation, run corresponding hooks
-        val failureHooksTime       = System.currentTimeMillis
-        val exceptionInfo          = f.rootExceptionCause
-          .map(ex => s"\n\nException linked to failure: ${ex.getMessage}\n  ${ex.getStackTrace.map(_.toString).mkString("\n  ")}")
-          .getOrElse("")
-        promiseGenerationHookService.runFailureHooks(
-          generationTime,
-          new DateTime(failureHooksTime, DateTimeZone.UTC),
-          systemEnv,
-          f.messageChain + exceptionInfo,
-          GENERATION_FAILURE_MSG_PATH
-        ) match {
-          case f: Failure =>
-            PolicyGenerationLogger.error(s"Failure when executing policy generation failure hooks: ${f.messageChain}")
-          case _ => //
-        }
-        val timeRunFailureGenHooks = (System.currentTimeMillis - failureHooksTime)
-        PolicyGenerationLogger.timing.debug(s"Generation-failure hooks ran in ${timeRunFailureGenHooks} ms")
-      case _ => //
+    result.tapError { err =>
+      // in case of a failed generation, run corresponding hooks
+      Clock
+        .currentTime(TimeUnit.MILLISECONDS)
+        .flatMap(failureHooksTime => {
+          promiseGenerationHookService
+            .runFailureHooks(
+              generationTime,
+              new DateTime(failureHooksTime, DateTimeZone.UTC),
+              systemEnv,
+              err.fullMsg,
+              GENERATION_FAILURE_MSG_PATH
+            )
+            .catchAll(err =>
+              PolicyGenerationLoggerPure.error(s"Failure when executing policy generation failure hooks: ${err.fullMsg}")
+            )
+            .timed
+            .flatMap((t, _) => PolicyGenerationLoggerPure.timing.debug(s"Generation-failure hooks ran in ${t.render}"))
+        }) *> completionLog("failed after", initialTime)
     }
-    val completion = if (result.isDefined) "succeeded in" else "failed after"
-    PolicyGenerationLogger.timing.info(
-      s"Policy generation ${completion}: %10s".format(periodFormatter.print(new Period(System.currentTimeMillis - initialTime)))
-    )
-    result
-  }
-  private val periodFormatter = {
-    new PeriodFormatterBuilder()
-      .appendDays()
-      .appendSuffix(" day", " days")
-      .appendSeparator(" ")
-      .appendHours()
-      .appendSuffix(" hour", " hours")
-      .appendSeparator(" ")
-      .appendMinutes()
-      .appendSuffix(" min", " min")
-      .appendSeparator(" ")
-      .appendSeconds()
-      .appendSuffix(" s", " s")
-      .toFormatter()
+      .tap(_ => completionLog("succeeded in", initialTime))
   }
 
+  private def completionLog(completion: String, initialTime: Long): IOResult[Unit] = {
+    Clock
+      .currentTime(TimeUnit.MILLISECONDS)
+      .flatMap { t =>
+        PolicyGenerationLoggerPure.timing.info(
+          s"Policy generation ${completion}: %10s".format(Duration.fromMillis(t - initialTime).render)
+        )
+      }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -837,7 +823,7 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
+trait PolicyGeneration_updateAndWriteRule {
 
   def nodeConfigurationService:  NodeConfigurationHashRepository
   def woRuleRepo:                WoRuleRepository
@@ -851,20 +837,20 @@ trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
   def purgeDeletedNodes(
       allNodes:       Set[NodeId],
       allNodeConfigs: Map[NodeId, NodeConfiguration]
-  ): Box[Map[NodeId, NodeConfiguration]] = {
+  ): IOResult[Map[NodeId, NodeConfiguration]] = {
     val nodesToDelete = allNodeConfigs.keySet -- allNodes
     for {
-      deleted <- nodeConfigurationService.deleteNodeConfigurations(nodesToDelete)
+      _ <- nodeConfigurationService.deleteNodeConfigurations(nodesToDelete)
     } yield {
       allNodeConfigs -- nodesToDelete
     }
   }
 
-  def forgetOtherNodeConfigurationState(keep: Set[NodeId]): Box[Set[NodeId]] = {
+  def forgetOtherNodeConfigurationState(keep: Set[NodeId]): IOResult[Set[NodeId]] = {
     nodeConfigurationService.onlyKeepNodeConfiguration(keep)
   }
 
-  def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = nodeConfigurationService.getAll()
+  def getNodeConfigurationHash(): IOResult[Map[NodeId, NodeConfigurationHash]] = nodeConfigurationService.getAll()
 
   /**
    * Look what are the node configuration updated compared to information in cache
@@ -999,7 +985,7 @@ trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
       // #10625 : that should be one logic-level up (in the main generation for loop)
 
       toCache    = allNodeConfigs.view.filterKeys(updated.contains(_)).values.toSet
-      _         <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime)))
+      _         <- nodeConfigurationService.save(toCache.map(x => NodeConfigurationHash(x, generationTime))).toBox
       ldapWrite1 = (DateTime.now.getMillis - ldapWrite0)
       _          = {
         PolicyGenerationLogger.timing.debug(
@@ -1015,7 +1001,7 @@ trait PolicyGeneration_updateAndWriteRule extends PolicyGenerationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait PolicyGeneration_setExpectedReports extends PolicyGenerationService {
+trait PolicyGeneration_setExpectedReports {
   def complianceCache:                FindNewNodeStatusReports
   def confExpectedRepo:               UpdateExpectedReportsRepository
   def cachedNodeConfigurationService: CachedNodeConfigurationService
@@ -1276,9 +1262,9 @@ object RuleExpectedReportBuilder extends Loggable {
 final case class SortedNodeIds(servers: Seq[String], nodes: Seq[String])
 
 trait PolicyGenerationHookService {
-  def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
-  def runPreHooks(generationTime:          DateTime, systemEnv: HookEnvPairs): Box[Unit]
-  def runStartedHooks(generationTime:      DateTime, systemEnv: HookEnvPairs): Box[Unit]
+  def beforeDeploymentSync(generationTime: DateTime): IOResult[Unit]
+  def runPreHooks(generationTime:          DateTime, systemEnv: HookEnvPairs): IOResult[Unit]
+  def runStartedHooks(generationTime:      DateTime, systemEnv: HookEnvPairs): IOResult[Unit]
   /*
    * Post generation hooks
    */
@@ -1288,7 +1274,7 @@ trait PolicyGenerationHookService {
       updatedNodeInfos: Map[NodeId, CoreNodeFact],
       systemEnv:        HookEnvPairs,
       nodeIdsPath:      String
-  ): Box[Unit]
+  ): IOResult[Unit]
 
   def runFailureHooks(
       generationTime:   DateTime,
@@ -1296,9 +1282,9 @@ trait PolicyGenerationHookService {
       systemEnv:        HookEnvPairs,
       errorMessage:     String,
       errorMessagePath: String
-  ): Box[Unit]
+  ): IOResult[Unit]
 
-  def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit
+  def appendPreGenCodeHook(hook: PromiseGenerationHooks): IOResult[Unit]
 }
 
 class PolicyGenerationHookServiceImpl(
@@ -1312,25 +1298,29 @@ class PolicyGenerationHookServiceImpl(
   /*
    * Plugin hooks
    */
-  private val codeHooks = collection.mutable.Buffer[PromiseGenerationHooks]()
+  private val codeHooks = Ref.make(Chunk.empty[PromiseGenerationHooks]).runNow
 
-  override def appendPreGenCodeHook(hook: PromiseGenerationHooks): Unit = {
-    this.codeHooks.append(hook)
+  override def appendPreGenCodeHook(hook: PromiseGenerationHooks): IOResult[Unit] = {
+    this.codeHooks.update(_.appended(hook))
   }
 
   /*
    * plugins hooks
    */
-  override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = {
-    traverse(codeHooks.toSeq)(_.beforeDeploymentSync(generationTime)).map(_ => ())
+  override def beforeDeploymentSync(generationTime: DateTime): IOResult[Unit] = {
+    for {
+      hs <- codeHooks.get
+      _  <- PolicyGenerationLoggerPure.debug(s"Executing ${hs.size} code/plugin pre-generation hooks")
+      _  <- ZIO.foreachDiscard(hs)(_.beforeDeploymentSync(generationTime))
+    } yield ()
   }
 
   /*
    * Pre generation hooks
    */
-  def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
+  override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     IOResult[Unit] = {
     val name = "policy-generation-pre-start"
-    (for {
+    for {
       preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       res      <-
         RunHooks.syncRun(
@@ -1347,25 +1337,25 @@ class PolicyGenerationHookServiceImpl(
         }
     } yield {
       res
-    }).toBox
+    }
   }
   /*
    * Pre generation hooks
    */
-  def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
+  override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): IOResult[Unit] = {
     val name = "policy-generation-started"
-    (for {
+    for {
       // fetch all
       preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       _        <-
         RunHooks.asyncRun(name, preHooks, HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)), systemEnv)
-    } yield ()).toBox
+    } yield ()
   }
 
   /**
    * Mitigation for ticket https://issues.rudder.io/issues/15011
    * If we have too many nodes (~3500, see ticket for details), we hit the Linux/JVM
-   * plateform MAX_ARG limit. This will fail the generation with a return code of
+   * platform MAX_ARG limit. This will fail the generation with a return code of
    * Int.MIN_VALUE.
    * So, the correct solution is to always write node IDS in a file, and give hooks
    * the path to the file.
@@ -1374,7 +1364,7 @@ class PolicyGenerationHookServiceImpl(
    * So, we continue to set the RUDDER_NODE_IDS parameter if:
    * - there is user hooks for post policy generation,
    * - there is less than 3000 updated nodes,
-   * - the rudder configuration parameter for compability mode is not set (default).
+   * - the rudder configuration parameter for compatibility mode is not set (default).
    *
    * If the configuration parameter is set to false, we never write it (to take care of
    * cases where the limit would be lower for unknown reasons).
@@ -1498,7 +1488,7 @@ class PolicyGenerationHookServiceImpl(
       updatedNodeInfos: Map[NodeId, CoreNodeFact],
       systemEnv:        HookEnvPairs,
       nodeIdsPath:      String
-  ): Box[Unit] = {
+  ): IOResult[Unit] = {
     val sortedNodeIds = getSortedNodeIds(updatedNodeInfos)
     val name          = "policy-generation-finished"
     for {
@@ -1530,7 +1520,7 @@ class PolicyGenerationHookServiceImpl(
                          )
 
     } yield ()
-  }.toBox
+  }
 
   /*
    * Write a sourcable file with the sorted list of updated NodeIds in RUDDER_NODE_IDS variable.
@@ -1578,7 +1568,7 @@ class PolicyGenerationHookServiceImpl(
       systemEnv:        HookEnvPairs,
       errorMessage:     String,
       errorMessagePath: String
-  ): Box[Unit] = {
+  ): IOResult[Unit] = {
     val name = "policy-generation-failed"
     for {
       written      <- writeErrorMessageForHook(errorMessagePath, errorMessage, generationTime, endTime)
@@ -1595,7 +1585,7 @@ class PolicyGenerationHookServiceImpl(
                         systemEnv
                       )
     } yield ()
-  }.toBox
+  }
 
 }
 

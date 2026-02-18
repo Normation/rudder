@@ -212,8 +212,6 @@ class FetchAllInfoServiceImpl(
     } yield rawRuleVals
   }
 
-  val fetch0Time = System.currentTimeMillis
-
   def fetchAll(): IOResult[FetchAllInfo] = {
     implicit val qc: QueryContext = QueryContext.systemQC
 
@@ -263,12 +261,12 @@ class FetchAllInfoServiceImpl(
         getScriptEngineEnabled().chainError("Could not get if we should use the script engine to evaluate directive parameters")
       globalComplianceMode        <- complianceModeService.getGlobalComplianceMode
       globalPolicyMode            <- getGlobalPolicyMode().chainError("Cannot get the Global Policy Mode (Enforce or Verify)")
-      nodeConfigCaches            <- nodeConfigurationService.getAll().toIO.chainError("Cannot get the Configuration Cache")
+      nodeConfigCaches            <- nodeConfigurationService.getAll().chainError("Cannot get the Configuration Cache")
       allNodeModes                 = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
 
       fetchAllTime <- currentTimeMillis
       timeFetchAll  = fetchAllTime - fetch0Time
-      _            <- PolicyGenerationLoggerPure.timing.debug(s"All relevant information fetched in ${timeFetchAll - fetch0Time} ms.")
+      _            <- PolicyGenerationLoggerPure.timing.debug(s"All relevant information fetched in ${timeFetchAll} ms.")
 
       _ = logMetrics(nodeFacts, allRules, directiveLib, groupLib, allParameters, nodeConfigCaches)
       /////
