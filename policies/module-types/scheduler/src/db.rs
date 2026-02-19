@@ -11,13 +11,12 @@ use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
 use rusqlite::{self, Connection, Row};
 use std::fmt::{Display, Formatter};
-#[cfg(unix)]
-use std::os::unix::prelude::PermissionsExt;
 use std::{
     fs,
-    fs::Permissions,
     path::{Path, PathBuf},
 };
+#[cfg(unix)]
+use std::{fs::Permissions, os::unix::prelude::PermissionsExt};
 
 const DB_EXTENSION: &str = "sqlite";
 
@@ -218,6 +217,7 @@ mod tests {
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
 
+    #[cfg(unix)]
     use std::{ops::Add, os::unix::prelude::PermissionsExt};
 
     fn test_event(id: &str) -> Event {
