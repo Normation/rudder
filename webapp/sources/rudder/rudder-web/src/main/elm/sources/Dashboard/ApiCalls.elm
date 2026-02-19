@@ -5,6 +5,7 @@ import Url.Builder exposing (QueryParameter)
 import Http.Detailed as Detailed
 import Dashboard.DataTypes exposing (..)
 import Dashboard.JsonDecoder exposing (..)
+import Dashboard.JsonEncoder exposing (..)
 
 
 getUrl: Model -> List String -> List QueryParameter -> String
@@ -16,10 +17,10 @@ getActivities model =
   let
     req =
       request
-        { method  = "GET"
+        { method  = "POST"
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
-        , url     = getUrl model [ "apiaccounts" ] []
-        , body    = emptyBody
+        , url     = getUrl model [ "eventlog" ] []
+        , body    = encodeRestEventLogFilter |> jsonBody
         , expect  = Detailed.expectJson GetActivities decodeGetActivities
         , timeout = Nothing
         , tracker = Nothing

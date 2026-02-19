@@ -11,15 +11,14 @@ import List
 view : Model -> Html Msg
 view model =
     let
-        txt = test
         activities = model.activities
     in
-    div [ ]
-        [ text txt
+    div []
+        [ test
         , ul[]
             ( activities
                 |> List.map( \a ->
-                    li[][text a.name]
+                    li[][text a.description]
                 )
             )
         ]

@@ -42,15 +42,10 @@ update msg model =
 
         GetActivities res ->
             case res of
-                Ok ( metadata, apiResult ) ->
+                Ok ( metadata, activities ) ->
                     let
                         modelUi =
                             model.ui
-
-                        activities =
-                            apiResult.activities
-
-
                     in
                     ( { model | activities = activities, ui = { modelUi | loadingActivities = False } }
                     , Cmd.none

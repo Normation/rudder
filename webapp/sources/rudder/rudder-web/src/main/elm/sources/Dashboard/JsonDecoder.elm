@@ -9,21 +9,16 @@ import String exposing (join, split)
 -- GENERAL
 
 
-decodeGetActivities : Decoder ApiResult
+decodeGetActivities : Decoder (List Activity)
 decodeGetActivities =
-    at [ "data" ] decodeResult
-
+    at [ "data" ] (list decodeActivity)
 
 decodeActivity : Decoder Activity
 decodeActivity =
     succeed Activity
         |> required "id" string
-        |> required "name" string
-
-decodeResult : Decoder ApiResult
-decodeResult =
-    succeed ApiResult
-        |> required "activities" (list decodeActivity)
+        |> required "description" string
+        |> required "date" string
 
 decodeErrorDetails : String -> ( String, String )
 decodeErrorDetails json =

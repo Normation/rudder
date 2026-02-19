@@ -9,11 +9,30 @@ import Http.Detailed
 
 type alias Activity =
     { id : String
-    , name : String
+    , description : String
+    , date : String
     }
 
 type alias UI =
     { loadingActivities : Bool
+    }
+
+{--
+final case class RestEventLogFilter(
+    draw:      Int,
+    start:     Int,
+    length:    Int,
+    search:    Option[EventLogRequest.Search],
+    startDate: Option[LocalDateTime],
+    endDate:   Option[LocalDateTime],
+    principal: Option[EventLogRequest.PrincipalFilter],
+    order:     Chunk[EventLogRequest.Order]
+)
+--}
+type alias RestEventLogFilter =
+    { draw: Int
+    , start: Int
+    , length: Int
     }
 
 type alias Model =
@@ -22,10 +41,6 @@ type alias Model =
     , ui : UI
     }
 
-type alias ApiResult =
-    { activities : List Activity
-    }
-
 type Msg
     = CallApi (Model -> Cmd Msg)
-    | GetActivities (Result (Http.Detailed.Error String) ( Http.Metadata, ApiResult ))
+    | GetActivities (Result (Http.Detailed.Error String) ( Http.Metadata, (List Activity) ))
