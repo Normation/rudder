@@ -216,9 +216,10 @@ mod tests {
     use crate::event::EventSchedule;
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
+    use std::ops::Add;
 
     #[cfg(unix)]
-    use std::{ops::Add, os::unix::prelude::PermissionsExt};
+    use std::os::unix::prelude::PermissionsExt;
 
     fn test_event(id: &str) -> Event {
         Event::new(
