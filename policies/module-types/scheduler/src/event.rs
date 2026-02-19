@@ -210,9 +210,8 @@ mod tests {
 
         let events: Events =
             serde_json::from_str(&read_to_string("tests/events.json").unwrap()).unwrap();
-        let class_always =
-            Class::from_str("schedule_df6ebe63_a13a_484f_9add_57836517947a").unwrap();
-        let class_once = Class::from_str("schedule_e27fd139_5961_4cb2_8314_1d16ddf0de92").unwrap();
+        let class_always = Class::canonify("schedule_df6ebe63_a13a_484f_9add_57836517947a");
+        let class_once = Class::canonify("schedule_e27fd139_5961_4cb2_8314_1d16ddf0de92");
 
         let classes = events.clone().update(&mut db, now).unwrap();
         assert_eq!(classes, vec![class_once, class_always.clone()]);
