@@ -14,7 +14,7 @@ use reqwest::{
 };
 use secrecy::ExposeSecret;
 use tempfile::tempdir;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::license::Licenses;
 use crate::{
@@ -195,6 +195,7 @@ impl Repository {
             rudder_version.major, rudder_version.minor
         );
         self.download_unsafe(&remote_index, &PathBuf::from(REPOSITORY_INDEX_PATH))?;
+        info!("Repository index updated");
 
         // Update the licenses
         if let Some(user) = self.get_username() {
@@ -213,8 +214,9 @@ impl Repository {
                 )
             }
             Licenses::update_from_archive(local_archive_path, license_folder)?;
+            info!("Licenses updated")
         } else {
-            warn!("Not updating licenses as no configured credentials were found")
+            info!("Not updating licenses as no configured credentials were found")
         }
         Ok(())
     }
