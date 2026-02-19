@@ -97,6 +97,13 @@ const homePage = (
   })
 
   initBsTooltips();
+
+  // Init Dashboard Elm application
+  const mainActivity = document.getElementById("activity-app")
+  const initValues = {
+      contextPath: contextPath,
+  };
+  const app = Elm.Dashboard.init({node: mainActivity, flags: initValues});
 }
 
 const onClickDoughnuts = (e, active, currentChart, id, data) => {
@@ -154,6 +161,8 @@ const onClickDoughnuts = (e, active, currentChart, id, data) => {
 
       window.location = contextPath + "/secure/nodeManager/nodes#" +  JSON.stringify(jsonHashSearch);;
     }
+
+
 }
 
 const homePageInventory = (
