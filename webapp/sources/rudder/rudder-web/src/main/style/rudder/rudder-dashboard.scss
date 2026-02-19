@@ -37,7 +37,6 @@
 
 @use 'rudder-variables' as rudder;
 
-
 $doughnut-size : 200px;
 
 .homePage > .container-fluid{
@@ -210,10 +209,26 @@ $doughnut-size : 200px;
 }
 
 .activity-container{
-  min-width: 20%;
+  width: 30%;
 
   .card-body{
     max-height: 370px;
     overflow: auto;
+    padding: 0;
+  }
+  .activity-item{
+    $v-spacer : rudder.$spacer*0.5;
+    $h-spacer : 40px;
+    padding: $v-spacer rudder.$spacer $v-spacer $h-spacer;
+
+    &:first-child{
+      padding-top: rudder.$spacer;
+    }
+    &:last-child{
+      padding-bottom: rudder.$spacer;
+    }
+    .activity-desc p{
+      margin-bottom: 0;
+    }
   }
 }
