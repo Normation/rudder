@@ -278,17 +278,14 @@ pub fn run_inner(args: Args) -> Result<()> {
         } => {
             if check {
                 repo.test_connection()?;
-            } else {
-                if if_available {
-                    if repo.test_connection().is_err() {
-                        info!("Repository is not reachable, stopping");
-                    } else {
-                        repo.update(&webapp)?;
-                    }
+            } else if if_available {
+                if repo.test_connection().is_err() {
+                    info!("Repository is not reachable, stopping");
                 } else {
                     repo.update(&webapp)?;
                 }
-                info!("Index and licenses successfully updated")
+            } else {
+                repo.update(&webapp)?;
             }
         }
         Command::Enable {
