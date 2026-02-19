@@ -315,7 +315,7 @@ class FetchAllInfoServiceImpl(
                                                   )
       nodeContextsTime                         <- currentTimeMillis
       activeNodeIds                             = ruleVals.foldLeft(Set[NodeId]()) { case (s, r) => s ++ r.nodeIds }
-      scheduleData                             <- scheduleManagement.updateSchedules(Instant.ofEpochMilli(buildConfigTime.millis.toMillis), schedules)
+      scheduleData                             <- scheduleManagement.updateSchedules(Instant.ofEpochMilli(fetch0Time.millis.toMillis), schedules)
       NodesContextResult(nodeContexts, errors) <-
         nodeContextService
           .getNodeContexts(
@@ -326,8 +326,7 @@ class FetchAllInfoServiceImpl(
             allParameters.toList,
             globalAgentRun,
             globalComplianceMode,
-            globalPolicyMode,
-            schedules
+            globalPolicyMode
           )
           .chainError("Could not get node interpolation context")
       timeNodeContexts                         <- currentTimeMillis
@@ -349,7 +348,7 @@ class FetchAllInfoServiceImpl(
         maxParallelism,
         jsTimeout,
         generationContinueOnError,
-        schedules
+        scheduleData
       )
     }
   }

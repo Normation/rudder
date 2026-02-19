@@ -115,7 +115,7 @@ case class DirectiveScheduleEvent(
     id:        CampaignId,
     eventId:   String,
     eventType: String, // for documentation, "benchmarks", etc
-    name:      String, // name of the schedule that created that event, ie info.name
+    name:      String, // schedule name + event information
     notBefore: Instant,
     notAfter:  Instant
 ) derives JsonCodec

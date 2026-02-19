@@ -50,14 +50,17 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
+import com.normation.rudder.services.policies.SystemVariableService.*
 import com.normation.templates.STVariable
 import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.collection.immutable.ArraySeq
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 case class PrepareTemplateTimer(
@@ -95,7 +98,8 @@ trait PrepareTemplateVariables {
       rudderIdCsvTag:    String,
       globalPolicyMode:  GlobalPolicyMode,
       generationTime:    DateTime,
-      timer:             PrepareTemplateTimer
+      timer:             PrepareTemplateTimer,
+      scheduledEvents:   Seq[DirectiveScheduleEvent]
   ): IOResult[AgentNodeWritableConfiguration]
 
 }
@@ -105,8 +109,7 @@ trait PrepareTemplateVariables {
  * into a set of templates and variables that could be filled to string template.
  */
 class PrepareTemplateVariablesImpl(
-    techniqueRepository: TechniqueRepository, // only for getting reports file content
-
+    techniqueRepository:       TechniqueRepository, // only for getting reports file content
     systemVariableSpecService: SystemVariableSpecService,
     buildBundleSequence:       BuildBundleSequence,
     agentRegister:             AgentRegister
@@ -121,10 +124,9 @@ class PrepareTemplateVariablesImpl(
       rudderIdCsvTag:    String,
       globalPolicyMode:  GlobalPolicyMode,
       generationTime:    DateTime,
-      timer:             PrepareTemplateTimer
+      timer:             PrepareTemplateTimer,
+      scheduledEvents:   Seq[DirectiveScheduleEvent]
   ): IOResult[AgentNodeWritableConfiguration] = {
-
-    import com.normation.rudder.services.policies.SystemVariableService.*
 
     val nodeId = agentNodeConfig.config.nodeInfo.id
 
@@ -145,7 +147,8 @@ class PrepareTemplateVariablesImpl(
         .toVariable(if (agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
       systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString)),
       systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value)),
-      systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name))
+      systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name)),
+      createScheduledEventsVariable(scheduledEvents)
     ).map(x => (x.spec.name, x)).toMap
 
     val agentNodeProps = AgentNodeProperties(
@@ -309,6 +312,10 @@ class PrepareTemplateVariablesImpl(
     } yield {
       preparedTechniques
     }
+  }
+
+  private[write] def createScheduledEventsVariable(scheduledEvents: Seq[DirectiveScheduleEvent]): SystemVariable = {
+    systemVariableSpecService.get("POLICY_SCHEDULE_EVENTS").toVariable(scheduledEvents.map(_.toJson))
   }
 
   // Create a STVariable from a Variable

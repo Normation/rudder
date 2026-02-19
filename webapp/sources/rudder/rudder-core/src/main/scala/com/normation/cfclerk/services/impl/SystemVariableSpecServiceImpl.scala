@@ -413,6 +413,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
     ),
+    // this is a late filled system variable, like the bundle sequence/etc
     SystemVariableSpec(
       "POLICY_SCHEDULE_EVENTS",
       "List of schedule events for directives",
