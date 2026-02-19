@@ -211,4 +211,9 @@ $doughnut-size : 200px;
 
 .activity-container{
   min-width: 20%;
+
+  .card-body{
+    max-height: 370px;
+    overflow: auto;
+  }
 }

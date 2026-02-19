@@ -104,6 +104,9 @@ const homePage = (
       contextPath: contextPath,
   };
   const app = Elm.Dashboard.init({node: mainActivity, flags: initValues});
+  app.ports.errorNotification.subscribe(function (str) {
+    createErrorNotification(str)
+  });
 }
 
 const onClickDoughnuts = (e, active, currentChart, id, data) => {

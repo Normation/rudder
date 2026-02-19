@@ -16,7 +16,7 @@ decodeGetActivities =
 decodeActivity : Decoder Activity
 decodeActivity =
     succeed Activity
-        |> required "id" string
+        |> required "id" int
         |> required "description" string
         |> required "date" string
 

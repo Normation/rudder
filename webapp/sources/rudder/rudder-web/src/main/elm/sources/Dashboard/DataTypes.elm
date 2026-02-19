@@ -8,7 +8,7 @@ import Http.Detailed
 --
 
 type alias Activity =
-    { id : String
+    { id : Int
     , description : String
     , date : String
     }
