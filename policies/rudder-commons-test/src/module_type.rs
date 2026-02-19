@@ -46,7 +46,7 @@ pub mod unix {
 
         let cfe_outcome = match outcome {
             Ok(Outcome::Success(_)) => "kept",
-            Ok(Outcome::Repaired(_)) => "repaired",
+            Ok(Outcome::Repaired(_, _)) => "repaired",
             Err(_) => "error",
         };
         cmd.assert()
