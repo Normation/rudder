@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::fs::File;
 use std::{collections::HashMap, fs, path::Path};
 use tar::Archive;
-use tracing::info;
+use tracing::debug;
 
 /// Very simple signature file reader.
 /// We mainly need to extract expiration date for each plugin.
@@ -70,7 +70,7 @@ impl Licenses {
     ///
     /// Don't remove anything, only replace by new files present in the archive.
     pub fn update_from_archive(local_archive_path: &Path, license_folder: &Path) -> Result<()> {
-        info!("Installing licenses");
+        debug!("Installing licenses");
         fs::create_dir_all(license_folder)?;
         let file = File::open(local_archive_path)?;
         let mut archive = Archive::new(GzDecoder::new(file));
