@@ -11,10 +11,11 @@ use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
 use rusqlite::{self, Connection, Row};
 use std::fmt::{Display, Formatter};
+#[cfg(unix)]
+use std::os::unix::prelude::PermissionsExt;
 use std::{
     fs,
     fs::Permissions,
-    os::unix::prelude::PermissionsExt,
     path::{Path, PathBuf},
 };
 
@@ -91,6 +92,7 @@ impl EventDatabase {
             );
             let conn = Connection::open(full_path.as_path());
             // Set lowest permissions
+            #[cfg(unix)]
             fs::set_permissions(full_path.as_path(), Permissions::from_mode(0o600))?;
             conn
         } else {
@@ -237,6 +239,7 @@ mod tests {
         let db_name = EventDatabase::db_name();
         let p = t.path().join(db_name);
         assert!(p.exists());
+        #[cfg(unix)]
         assert_eq!(p.metadata().unwrap().permissions().mode(), 0o100600);
     }
 
