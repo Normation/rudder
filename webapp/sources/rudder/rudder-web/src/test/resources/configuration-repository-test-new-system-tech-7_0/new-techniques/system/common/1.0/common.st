@@ -15,6 +15,7 @@ bundle common system_common {
                             string => "&CONFIGURATION_REPOSITORY_FOLDER&";
     "rudder_node_config_id" string => "&RUDDER_NODE_CONFIG_ID&";
     "agent_run_interval"    string => "&AGENT_RUN_INTERVAL&";
+    "schedule_events"       string => '&MODULE_PARAM_SCHEDULE&';
 
   classes:
 &if(INITIAL)&

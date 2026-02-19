@@ -41,6 +41,7 @@ import better.files.*
 import cats.data.NonEmptyList
 import com.normation.box.*
 import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueTemplate
@@ -88,6 +89,8 @@ import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import zio.*
+import zio.json.*
+import zio.json.ast.*
 import zio.syntax.*
 
 /**
@@ -548,7 +551,8 @@ class PolicyWriterServiceImpl(
                                                                                                     Policy.TAG_OF_RUDDER_ID,
                                                                                                     globalPolicyMode,
                                                                                                     generationTime,
-                                                                                                    prepareTimer
+                                                                                                    prepareTimer,
+                                                                                                    scheduledEvents
                                                                                                   )
                                                                                                   .chainError(
                                                                                                     s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.fqdn}' (${agentNodeConfig.config.nodeInfo.id.value})"
@@ -575,7 +579,7 @@ class PolicyWriterServiceImpl(
                                 fillTimer          <- FillTemplateTimer.make()
                                 beforeWritingTime  <- currentTimeMillis
                                 promiseWritten     <- writePolicies(preparedTemplates, writeTimer, fillTimer)
-                                others             <- writeOtherResources(preparedTemplates, writeTimer, globalPolicyMode, resources, scheduledEvents)
+                                others             <- writeOtherResources(preparedTemplates, writeTimer, globalPolicyMode, resources)
                                 promiseWrittenTime <- currentTimeMillis
                                 _                  <- timingLogger.debug(s"Policies written in ${promiseWrittenTime - beforeWritingTime} ms")
                                 nanoToMillis        = 1000 * 1000
@@ -829,8 +833,7 @@ class PolicyWriterServiceImpl(
       preparedTemplates: Seq[AgentNodeWritableConfiguration],
       writeTimer:        WriteTimer,
       globalPolicyMode:  GlobalPolicyMode,
-      resources:         Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo],
-      scheduledEvents:   Seq[DirectiveScheduleEvent]
+      resources:         Map[(TechniqueResourceId, AgentType), TechniqueResourceCopyInfo]
   )(implicit timeout: Duration, maxParallelism: Int): IOResult[Unit] = {
     parallelSequence(preparedTemplates) { prepared =>
       val isRootServer   = prepared.agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID
@@ -870,7 +873,7 @@ class PolicyWriterServiceImpl(
       } yield ()
       val writeJSON  = for {
         t0 <- currentTimeNanos
-        _  <- writeSystemVarJson(prepared.paths, prepared.systemVariables, scheduledEvents)
+        _  <- writeSystemVarJson(prepared.paths, prepared.systemVariables)
         t1 <- currentTimeNanos
         _  <- writeTimer.writeJSON.update(_ + t1 - t0)
       } yield ()
@@ -1053,15 +1056,14 @@ class PolicyWriterServiceImpl(
   }
 
   private def writeSystemVarJson(
-      paths:           NodePoliciesPaths,
-      variables:       Map[String, Variable],
-      scheduledEvents: Seq[DirectiveScheduleEvent]
+      paths:     NodePoliciesPaths,
+      variables: Map[String, Variable]
   ): IOResult[List[AgentSpecificFile]] = {
     val path         = File(paths.newFolder, filepaths.SYSTEM_VARIABLE_JSON)
     val isRootServer = paths.nodeId == Constants.ROOT_POLICY_SERVER_ID
     for {
       _ <- path
-             .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables, scheduledEvents) + "\n", isRootServer)
+             .createParentsAndWrite(RudderJsonPolicyFile.systemVariableToJson(variables) + "\n", isRootServer)
              .chainError(
                s"Can not write json parameter file at path '${path.pathAsString}'"
              )
@@ -1403,10 +1405,7 @@ object RudderJsonPolicyFile {
    *   ...
    * }
    */
-  def systemVariableToJson(
-      vars:            Map[String, Variable],
-      scheduledEvents: Seq[DirectiveScheduleEvent]
-  ): String = {
+  def systemVariableToJson(vars: Map[String, Variable]): String = {
 
     // remove these system vars (perhaps they should not even be there, in fact)
     val filterOut = Set(
@@ -1429,32 +1428,38 @@ object RudderJsonPolicyFile {
       "INPUTLIST"
     )
 
-    import zio.json.*
-    import zio.json.ast.*
-
     // we have dedicated json encoder here, since we need to be compatible with historical data
     val systemVars: List[(String, Json)] = vars.toList.collect {
       case (_, v: SystemVariable) if (!filterOut.contains(v.spec.name)) =>
         // if the variable is multivalued, create an array, else just a String
         // special case for RUDDER_DIRECTIVES_INPUTS - also an array
         val value = if (v.spec.multivalued || v.spec.name == "RUDDER_DIRECTIVES_INPUTS") {
-          Json.Arr(Chunk.fromIterable(v.values.map(Json.Str(_))))
+          Json.Arr(Chunk.fromIterable(v.values.map(stringToJson(v.spec, _))))
         } else {
-          Json.Str(v.values.headOption.getOrElse(""))
+          stringToJson(v.spec, v.values.headOption.getOrElse(""))
         }
         (v.spec.name, value)
     }
 
-    val events = {
-      (
-        "events",
-        Json.Arr(Chunk.fromIterable(scheduledEvents.sortBy(_.id.value)).map(_.toJsonAST.getOrElse(Json.Str(""))))
-      )
-    }
+    Json.Obj(Chunk.fromIterable(systemVars.sortBy(_._1))).toJsonPretty
+  }
 
-    val all = Chunk.fromIterable(systemVars).appended(events).sortBy(_._1)
+  /*
+   * System variable are stored as string. When we write them into rudder.json,
+   * we can either write them as a json string, so that " are escaped, or as
+   * serialized json so that we have a real JSON sub-structure.
+   * The choice is directed by "serializeAsJson" value
+   */
+  def stringToJson(spec: SystemVariableSpec, value: String): Json = {
 
-    Json.Obj(all).toJsonPretty
+    if (spec.serializeAsJson) {
+      value.fromJson[Json] match {
+        case Left(err) =>
+          PolicyGenerationLogger.error(s"Variable '${spec.name}' value is not valid JSON, using it as a string")
+          Json.Str(value)
+        case Right(v)  => v
+      }
+    } else Json.Str(value)
   }
 
 }

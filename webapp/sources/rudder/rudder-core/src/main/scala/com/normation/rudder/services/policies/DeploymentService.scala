@@ -163,7 +163,7 @@ case class FetchAllInfo(
     maxParallelism:            Int,
     jsTimeout:                 FiniteDuration,
     generationContinueOnError: Boolean,
-    schedules:                 Map[CampaignId, DirectiveSchedule]
+    schedules:                 ScheduleData
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -271,7 +271,7 @@ class PolicyGenerationServiceImpl(
                                           maxParallelism,
                                           jsTimeout,
                                           generationContinueOnError,
-                                          schedules
+                                          scheduleData
                                         )                    <- fetchAllInfoService.fetchAll()
                                         buildConfigTime      <- Clock.nanoTime
                                         /// here, we still have directive by directive info
@@ -396,14 +396,14 @@ class PolicyGenerationServiceImpl(
 
       _       = {
         PolicyGenerationLogger.timing.info("Timing summary:")
-        PolicyGenerationLogger.timing.info("Run pre-gen scripts hooks     : %10s ms".format(timeRunPreGenHooks.toMillis))
-        PolicyGenerationLogger.timing.info("Run pre-gen modules hooks     : %10s ms".format(timeCodePreGenHooks.toMillis))
+        PolicyGenerationLogger.timing.info("Run pre-gen scripts hooks  : %10s ms".format(timeRunPreGenHooks.toMillis))
+        PolicyGenerationLogger.timing.info("Run pre-gen modules hooks  : %10s ms".format(timeCodePreGenHooks.toMillis))
         PolicyGenerationLogger.timing.info("Fetch all information      : %10s ms".format(timeFetchAll))
         PolicyGenerationLogger.timing.info("Build current rule values  : %10s ms".format(timeRuleVal))
-        PolicyGenerationLogger.timing.info("Build target configuration    : %10s ms".format(timeBuildConfig / 1_000_000))
-        PolicyGenerationLogger.timing.info("Write node configurations     : %10s ms".format(timeWriteNodeConfig.toMillis))
-        PolicyGenerationLogger.timing.info("Save expected reports         : %10s ms".format(timeSetExpectedReport / 1_000_000))
-        PolicyGenerationLogger.timing.info("Run post generation hooks     : %10s ms".format(timeRunPostGenHooks.toMillis))
+        PolicyGenerationLogger.timing.info("Build target configuration : %10s ms".format(timeBuildConfig / 1_000_000))
+        PolicyGenerationLogger.timing.info("Write node configurations  : %10s ms".format(timeWriteNodeConfig.toMillis))
+        PolicyGenerationLogger.timing.info("Save expected reports      : %10s ms".format(timeSetExpectedReport / 1_000_000))
+        PolicyGenerationLogger.timing.info("Run post generation hooks  : %10s ms".format(timeRunPostGenHooks.toMillis))
         PolicyGenerationLogger.timing.info("Number of nodes updated    : %10s   ".format(updatedNodesId.size))
         if (errorNodes.nonEmpty) {
           PolicyGenerationLogger.warn(s"Nodes in errors (${errorNodes.size}): '${errorNodes.map(_.value).mkString("','")}'")
@@ -469,15 +469,34 @@ case class ScheduleData(
   def all = upToDate ++ updated
 }
 
+object ScheduleData {
+  def empty: ScheduleData = ScheduleData(Map(), Map(), Map())
+}
+
+trait ScheduleRepository {
+
+  def getAll(): IOResult[Seq[DirectiveSchedule]]
+}
+
+class NoopScheduleRepository extends ScheduleRepository {
+  override def getAll(): IOResult[Seq[DirectiveSchedule]] = Nil.succeed
+}
+
 trait ScheduleManagement {
 
   // create schedule events for given schedule.
   // This can come from elsewhere (workflow engine, etc).
-  def updateSchedules(now: Instant, schedules: Map[CampaignId, DirectiveSchedule]): IOResult[ScheduleData]
+  def updateSchedules(now: Instant, schedules: Seq[DirectiveSchedule]): IOResult[ScheduleData]
 
-  // save and update workflow events for these schedules
-//  def saveUpdatedSchedule(schedules: Map[CampaignId, JsonDirectiveSchedule]): IOResult[Unit]
+}
 
+/*
+ * A version of the schedule management that always returns nothing.
+ */
+class NoopScheduleManagement extends ScheduleManagement {
+  override def updateSchedules(now: Instant, schedules: Seq[DirectiveSchedule]): IOResult[ScheduleData] = {
+    ScheduleData.empty.succeed
+  }
 }
 
 /*
@@ -778,13 +797,11 @@ object BuildNodeConfiguration extends BuildNodeConfigurationService {
 
                             nodeSchedules <- ZIO.foreach(policies.flatMap(p => p.scheduleId.map(id => (id, p.id))).distinctBy(_._1)) {
                                                case (sid, pid) =>
-                                                 schedules.get(sid) match {
-                                                   case None    =>
-                                                     Inconsistency(
-                                                       s"Error: policy '${pid.getReportId}' requires a schedule with id '${sid.serialize}' which is not available"
-                                                     ).fail
-                                                   case Some(s) => s.succeed
-                                                 }
+                                                 schedules
+                                                   .get(sid)
+                                                   .notOptional(
+                                                     s"Error: policy '${pid.getReportId}' requires a schedule with id '${sid.serialize}' which is not available"
+                                                   )
                                              }
                           } yield {
                             // we have the node mode

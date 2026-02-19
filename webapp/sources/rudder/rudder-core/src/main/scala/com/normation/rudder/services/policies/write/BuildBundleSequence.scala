@@ -155,7 +155,7 @@ object BuildBundleSequence {
       ifvarclass match {
         case None                           => ""
         case Some(x) if x.value.length == 0 => ""
-        case Some(x)                        => s",\n${" " * Math.max(0, indent)}if => ${x}"
+        case Some(x)                        => s",\n${" " * Math.max(0, indent)}if => ${x.value}"
       }
     }
 

@@ -261,7 +261,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
       CampaignId("test-schedule"),
       "test-schedule-1",
       "benchmarks",
-      "A daily test schedule for bencmarks",
+      "A daily test schedule for benchmarks",
       Instant.parse("2026-02-15T14:26:42Z"),
       Instant.parse("2026-02-15T16:26:42Z")
     )

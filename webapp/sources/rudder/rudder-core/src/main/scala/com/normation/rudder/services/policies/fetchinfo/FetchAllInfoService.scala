@@ -68,6 +68,7 @@ import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.RuleValService
 import com.normation.rudder.services.policies.ScheduleManagement
+import com.normation.rudder.services.policies.ScheduleRepository
 import com.normation.rudder.services.policies.WriteCertificatesPemService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
@@ -109,6 +110,7 @@ class FetchAllInfoServiceImpl(
     nodeContextService:           NodeContextBuilder,
     writeCertificatesPemService:  WriteCertificatesPemService,
     ruleValGeneratedHookService:  RuleValGeneratedHookService,
+    scheduleRepository:           ScheduleRepository,
     scheduleManagement:           ScheduleManagement,
     // this need to be function to avoid circular definition in RudderConfig
     getScriptEngineEnabled:       () => IOResult[FeatureSwitch],
@@ -269,10 +271,8 @@ class FetchAllInfoServiceImpl(
       globalPolicyMode            <- getGlobalPolicyMode().chainError("Cannot get the Global Policy Mode (Enforce or Verify)")
       nodeConfigCaches            <- nodeConfigurationService.getAll().chainError("Cannot get the Configuration Cache")
       allNodeModes                 = buildNodeModes(nodeFacts, globalComplianceMode, globalAgentRun, globalPolicyMode)
-      // for now, schedules are not configurable, so we only have one, hardcoded.
-      schedules                    = Map(
-                                       SystemDirectiveSchedule.dailyOn4UTC.info.id -> SystemDirectiveSchedule.dailyOn4UTC
-                                     )
+      schedules                   <- scheduleRepository.getAll()
+      scheduleData                <- scheduleManagement.updateSchedules(Instant.ofEpochMilli(fetch0Time.millis.toMillis), schedules)
 
       fetchAllTime <- currentTimeMillis
       timeFetchAll  = fetchAllTime - fetch0Time
@@ -315,7 +315,6 @@ class FetchAllInfoServiceImpl(
                                                   )
       nodeContextsTime                         <- currentTimeMillis
       activeNodeIds                             = ruleVals.foldLeft(Set[NodeId]()) { case (s, r) => s ++ r.nodeIds }
-      scheduleData                             <- scheduleManagement.updateSchedules(Instant.ofEpochMilli(buildConfigTime.millis.toMillis), schedules)
       NodesContextResult(nodeContexts, errors) <-
         nodeContextService
           .getNodeContexts(
@@ -326,8 +325,7 @@ class FetchAllInfoServiceImpl(
             allParameters.toList,
             globalAgentRun,
             globalComplianceMode,
-            globalPolicyMode,
-            schedules
+            globalPolicyMode
           )
           .chainError("Could not get node interpolation context")
       timeNodeContexts                         <- currentTimeMillis
@@ -349,7 +347,7 @@ class FetchAllInfoServiceImpl(
         maxParallelism,
         jsTimeout,
         generationContinueOnError,
-        schedules
+        scheduleData
       )
     }
   }

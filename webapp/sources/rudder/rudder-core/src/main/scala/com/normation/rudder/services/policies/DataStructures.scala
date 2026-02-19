@@ -470,7 +470,7 @@ object IfVarClass {
   }
 
   // create the name of the variable from a CampaignId
-  def fromScheduleId(id: CampaignId): IfVarClass = apply("schedule_" + id.serialize)
+  def fromScheduleId(id: CampaignId): IfVarClass = apply(s"schedule_${id.serialize}_run")
 
   given JsonCodec[IfVarClass] = JsonCodec.string.transformOrFail(s => Right(IfVarClass(s)), _.value)
 
