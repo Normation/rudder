@@ -225,6 +225,15 @@ checkBlocksOnError methodElems =
           _ -> Nothing
       )
 
+showTechniqueError : TechniqueError -> Html Msg
+showTechniqueError error =
+  div [class "jumbotron"]
+      [ h1 [] [ i [ class "fa fa-warning" ] [], text "Technique file is invalid" ]
+      , h2 [] [ text "At ", em [] [ text error.errorPath ] ]
+      , p [] [ text "Error details :" ]
+      , p [] [ pre [] [ text error.errorMsg ] ]
+      ]
+
 showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> TechniqueEditInfo -> Html Msg
 showTechnique model technique origin ui editInfo =
   let
@@ -545,6 +554,10 @@ view model =
 
                 TechniqueDetails technique state uiInfo editInfo ->
                   showTechnique model technique state uiInfo editInfo
+
+                TechniqueErrorDetails error ->
+                  showTechniqueError error
+
     classes = "rudder-template " ++ if model.genericMethodsOpen then "show-right" else "show-left"
 
 

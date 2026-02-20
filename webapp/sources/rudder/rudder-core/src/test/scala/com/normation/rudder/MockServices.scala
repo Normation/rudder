@@ -87,10 +87,13 @@ import com.normation.rudder.ncf.DeleteEditorTechnique
 import com.normation.rudder.ncf.EditorTechniqueCompilationResult
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.EditorTechniqueReaderImpl
+import com.normation.rudder.ncf.EditorTechniqueStatus
+import com.normation.rudder.ncf.EditorTechniqueYamlReader
+import com.normation.rudder.ncf.EditorTechniqueYamlReaderImpl
 import com.normation.rudder.ncf.GenericMethod
 import com.normation.rudder.ncf.GitResourceFileService
 import com.normation.rudder.ncf.ReadEditorTechniqueActiveStatus
-import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.rudder.ncf.ReadEditorTechniqueCheckResult
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.RuddercOptions
@@ -98,8 +101,8 @@ import com.normation.rudder.ncf.RuddercResult
 import com.normation.rudder.ncf.RuddercService
 import com.normation.rudder.ncf.RuddercTechniqueCompiler
 import com.normation.rudder.ncf.TechniqueActiveStatus
-import com.normation.rudder.ncf.TechniqueCompilationStatusService
-import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
+import com.normation.rudder.ncf.TechniqueCheckStatusService
+import com.normation.rudder.ncf.TechniqueCompilationSyncService
 import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.properties.InMemoryPropertiesRepository
@@ -388,8 +391,11 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
   val techniqueCompiler = new RuddercTechniqueCompiler(
     rudderc,
-    _.path,
+    _.path.toString,
     mockGit.configurationRepositoryRoot.pathAsString
+  )
+  val editorTechniqueYamlReader: EditorTechniqueYamlReader = new EditorTechniqueYamlReaderImpl(
+    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo))
   )
 
   val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
@@ -400,7 +406,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     null,
     "UTF-8",
     "test",
-    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo)),
+    editorTechniqueYamlReader,
     null,
     "no-cmd",
     "no-methods",
@@ -411,7 +417,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def updateMethodsMetadataFile: IOResult[CmdResult]              = Inconsistency("this should not be called").fail
   }
 
-  val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+  val compilationStatusService: ReadEditorTechniqueCheckResult = new TechniqueCheckStatusService(
     editorTechniqueReader,
     techniqueCompiler
   )
@@ -448,11 +454,11 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def getActiveStatuses(): IOResult[Map[BN, TechniqueActiveStatus]] = Map.empty.succeed
   }
 
-  val techniqueCompilationCache: TechniqueCompilationStatusSyncService = new TechniqueCompilationStatusSyncService {
-    override def syncOne(result:                       EditorTechniqueCompilationResult):               IOResult[Unit] = ZIO.unit
-    override def syncTechniqueActiveStatus(bundleName: ncf.BundleName):                                 IOResult[Unit] = ZIO.unit
-    override def unsyncOne(id:                         (ncf.BundleName, Version)):                      IOResult[Unit] = ZIO.unit
-    override def getUpdateAndSync(results:             Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = ZIO.unit
+  val techniqueCompilationCache: TechniqueCompilationSyncService = new TechniqueCompilationSyncService {
+    override def syncOneCompilation(result: EditorTechniqueCompilationResult):     IOResult[EditorTechniqueStatus] =
+      EditorTechniqueStatus.AllSuccess.succeed
+    override def syncCompilation(results: List[EditorTechniqueCompilationResult]): IOResult[EditorTechniqueStatus] =
+      EditorTechniqueStatus.AllSuccess.succeed
   }
 
   val techniqueWriter = new TechniqueWriterImpl(

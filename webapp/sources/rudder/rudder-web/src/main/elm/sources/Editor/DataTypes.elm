@@ -97,6 +97,14 @@ type alias CompilationOutput =
   , stderr:     String
   }
 
+type alias TechniqueError =
+  { id            : TechniqueId
+  , version       : String
+  , category      : Maybe String
+  , errorMsg      : String
+  , errorPath     : String
+  }
+
 type alias Technique =
   { id            : TechniqueId
   , version       : String
@@ -204,6 +212,7 @@ type DropElement = StartList | AfterElem (Maybe CallId) MethodElem | InBlock Met
 
 type alias Model =
   { techniques         : List Technique
+  , errors             : List TechniqueError
   , methods            : Dict String Method
   , categories         : TechniqueCategory
   , drafts             : Dict String Draft
@@ -293,7 +302,7 @@ type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | 
 type MethodBlockTab = BlockConditions | BlockReporting | Children  | BlockForEach
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
-type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
+type Mode = Introduction | TechniqueErrorDetails TechniqueError | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
 
 type CheckMode = Import String | EditYaml String | CheckJson Technique
 
@@ -301,7 +310,8 @@ type CheckMode = Import String | EditYaml String | CheckJson Technique
 -- all events in the event loop
 type Msg =
     SelectTechnique (Either Technique Draft)
-  | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
+  | SelectTechniqueError TechniqueError
+  | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List (Either TechniqueError Technique) ))
   | GetDirectives   (Result (Http.Detailed.Error String) ( Http.Metadata, List Directive ))
   | GetYaml         (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
