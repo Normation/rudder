@@ -60,7 +60,7 @@ class MigrateJsonTechniquesToYaml(
     techniqueWriter:                   TechniqueWriter,
     uuidGen:                           StringUuidGenerator,
     techLibUpdate:                     UpdateTechniqueLibrary,
-    techniqueCompilationStatusService: ReadEditorTechniqueCompilationResult,
+    techniqueCompilationStatusService: ReadEditorTechniqueCheckResult,
     rootConfigRepoDir:                 String
 ) extends BootstrapChecks {
 

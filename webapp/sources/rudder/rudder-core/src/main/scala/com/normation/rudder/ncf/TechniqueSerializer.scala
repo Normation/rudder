@@ -107,6 +107,20 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     editorTechnique.toJsonAST.map(_.merge(Json(("source", Json.Str("editor")) :: output*)))
   }
 
+  /**
+   * Only some fields of the technique are known for an error, we need error details
+   */
+  def serializeEditorTechniqueParsingError(error: EditorTechniqueParsingError): Json = {
+    Json(
+      "id"        -> Json.Str(error.path.id.value),
+      "version"   -> Json.Str(error.path.version.value),
+      "category"  -> Json.Str(error.path.category),
+      "source"    -> Json.Str("editor"),
+      "errorMsg"  -> Json.Str(error.errorMsg),
+      "errorPath" -> Json.Str(error.path.path)
+    )
+  }
+
   def serializeMethodMetadata(method: GenericMethod): Json = {
 
     def serializeMethodParameter(param: MethodParameter): Json = {

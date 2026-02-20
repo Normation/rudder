@@ -56,8 +56,8 @@ import com.normation.rudder.services.policies.PropertyParserTokens.Property
 import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
 import com.normation.rudder.services.policies.PropertyParserTokens.Token
 import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
+import java.nio.file.Paths
 import java.util.regex.Pattern
-import zio.ZIO
 import zio.json.SnakeCase
 import zio.json.ast.Json
 import zio.json.jsonDiscriminator
@@ -116,7 +116,34 @@ final case class EditorTechnique(
     tags:          Map[String, Json],
     internalId:    Option[String]
 ) {
-  val path: String = s"techniques/${category}/${id.value}/${version.value}"
+
+  /**
+   * Path relative to git root. The path is relative since we don't have base path of configuration repository.
+   * Better files reasons over absolute paths, so we have to keep relative paths here and use NIO API.
+   */
+  val path: java.nio.file.Path = Paths.get("techniques").resolve(category).resolve(id.value).resolve(version.value)
+}
+
+final case class EditorTechniquePath(categoryDir: File, id: BundleName, version: Version) {
+  def category:          String             = categoryDir.name
+  def toPath:            java.nio.file.Path = (categoryDir / id.value / version.value).path
+  def path:              String             = toPath.toString
+  override def toString: String             = path
+}
+object EditorTechniquePath                                                                {
+  def apply(yamlFile: File): Option[EditorTechniquePath] = {
+    for {
+      version     <- yamlFile.parentOption
+      id          <- version.parentOption
+      categoryDir <- id.parentOption
+    } yield {
+      EditorTechniquePath(
+        categoryDir,
+        BundleName(id.name),
+        Version(version.name)
+      )
+    }
+  }
 }
 
 object EditorTechnique {
@@ -125,20 +152,16 @@ object EditorTechnique {
    * Check for agreement between technique id from path and technique id from descriptor since the technique may
    * have been put in Rudder by hand by a dev (see https: //issues.rudder.io/issues/23474)
    */
-  def checkTechniqueIdConsistency(techniqueBaseDirectory: File, techniqueDescriptor: EditorTechnique): IOResult[Unit] = {
-    ZIO
-      .when(!techniqueBaseDirectory.path.endsWith(techniqueDescriptor.path)) {
-        ZIO.fail(
-          Inconsistency(
-            s"Technique descriptor at path '${techniqueBaseDirectory.pathAsString}' contains a technique 'id' or " +
-            s"'version' attribute that does not match the conventional path of the technique " +
-            s"which must be: '.../category/parts/.../{techniqueId}/{techniqueVersion}/technique.yml'. " +
-            s"Please change either technique directory or the descriptor information so that they " +
-            s"match one other each others."
-          )
-        )
-      }
-      .unit
+  def checkTechniqueIdConsistency(techniqueBaseDirectory: File, techniqueDescriptor: EditorTechnique): Either[String, Unit] = {
+    Either.cond(
+      !techniqueBaseDirectory.path.endsWith(techniqueDescriptor.path),
+      (),
+      s"Technique descriptor at path '${techniqueBaseDirectory.pathAsString}' contains a technique 'id' or " +
+      s"'version' attribute that does not match the conventional path of the technique " +
+      s"which must be: '.../category/parts/.../{techniqueId}/{techniqueVersion}/technique.yml'. " +
+      s"Please change either technique directory or the descriptor information so that they " +
+      s"match one other each others."
+    )
   }
 }
 

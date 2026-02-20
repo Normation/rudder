@@ -86,7 +86,7 @@ class EditorTechniqueSerialisationTest extends Specification with JsonSpecMatche
 
     val s = Resource.getAsString("configuration-repository/techniques/ncf_techniques/a_simple_yaml_technique/1.0/technique.yml")
 
-    val t = yaml.yamlToEditorTechnique(s).runNow
+    val t = yaml.yamlToEditorTechnique(s).runNow.toOption.get
 
     val json = serializer.serializeEditorTechnique(t, None).toOption.get
 

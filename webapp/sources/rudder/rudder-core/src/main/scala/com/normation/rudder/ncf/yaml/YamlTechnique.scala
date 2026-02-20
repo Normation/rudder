@@ -47,6 +47,7 @@ import com.normation.rudder.ncf.*
 import zio.json.*
 import zio.json.ast.Json
 import zio.json.yaml.*
+import zio.syntax.*
 
 /*
  * Here we provide the datatype used to communicate with rudderc
@@ -97,6 +98,8 @@ case class TechniqueParameter(
 )
 
 object YamlTechniqueSerializer {
+  final private case class YamlTechniqueParsingError(msg: String) extends RudderError
+
   implicit val encoderParameterId:        JsonEncoder[ParameterId]        = JsonEncoder[String].contramap(_.value)
   implicit val encoderFieldParameterId:   JsonFieldEncoder[ParameterId]   = JsonFieldEncoder[String].contramap(_.value)
   implicit val encoderBundleName:         JsonEncoder[BundleName]         = JsonEncoder[String].contramap(_.value)
@@ -299,10 +302,12 @@ class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
 
   def fromYml(yaml: String): Either[String, Technique] = yaml.fromYaml[Technique]
 
-  def yamlToEditorTechnique(yaml: String): IOResult[EditorTechnique] = {
-    for {
-      t         <- yaml.fromYaml[EditorTechnique].left.map(Inconsistency(_)).toIO
+  def yamlToEditorTechnique(yaml: String): IOResult[Either[String, EditorTechnique]] = {
+    (for {
+      t         <- yaml.fromYaml[EditorTechnique].left.map(YamlTechniqueParsingError(_)).toIO
       resources <- resourceFileService.getResources(t)
-    } yield t.copy(resources = resources)
+    } yield {
+      Right(t.copy(resources = resources))
+    }).catchSome { case err: YamlTechniqueParsingError => Left(err.msg).succeed }
   }
 }

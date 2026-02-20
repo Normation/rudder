@@ -94,18 +94,17 @@ class CheckNcfTechniqueUpdate(
 
     def updateNcfTechniques = {
       for {
-        _                            <- BootstrapLogger.info("Started editor techniques update")
-        res                          <- techniqueReader.readTechniquesMetadataFile
-        (techniques, methods, errors) = res
-        _                            <- if (errors.isEmpty) ().succeed
-                                        else {
-                                          BootstrapLogger.error(
-                                            s"An error occurred while reading techniques during update bootstrap: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
-                                          )
-                                        }
+        _   <- BootstrapLogger.info("Started editor techniques update")
+        res <- techniqueReader.readTechniquesMetadataFile
+        _   <- if (res.allErrors.isEmpty) ().succeed
+               else {
+                 BootstrapLogger.error(
+                   s"An error occurred while reading techniques during update bootstrap: ${res.allErrors.map(_.msg).mkString("\n ->", "\n ->", "")}"
+                 )
+               }
 
         techniquesWithResources <-
-          ZIO.foreach(techniques) { technique =>
+          ZIO.foreach(res.techniques) { technique =>
             // Keep only non New Resources
             resourceFileService
               .getResources(technique)
@@ -140,7 +139,7 @@ class CheckNcfTechniqueUpdate(
         flagDeleted <- IOResult.attempt(ncfTechniqueUpdateFlag.delete())
         _           <- BootstrapLogger.info("Ended editor techniques update")
       } yield {
-        techniques
+        res.techniques
       }
     }
 
