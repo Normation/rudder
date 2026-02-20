@@ -40,6 +40,8 @@ package com.normation.rudder.services.policies.write
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
+import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl.ModParamSchedule
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Certificate
@@ -315,7 +317,9 @@ class PrepareTemplateVariablesImpl(
   }
 
   private[write] def createScheduledEventsVariable(scheduledEvents: Seq[DirectiveScheduleEvent]): SystemVariable = {
-    systemVariableSpecService.get("POLICY_SCHEDULE_EVENTS").toVariable(scheduledEvents.map(_.toJson))
+    // we use PolicyScheduleEvents to maintain API compat with agent
+    val sysvarEvents = SystemVariableSpecServiceImpl.ModParamSchedule(scheduledEvents)
+    systemVariableSpecService.get("MODULE_PARAM_SCHEDULE").toVariable(Seq(sysvarEvents.toJsonPretty))
   }
 
   // Create a STVariable from a Variable

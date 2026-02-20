@@ -134,7 +134,7 @@ class PrepareTemplateVariableTest extends Specification {
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => run_directive2;
       "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => set_dry_run_mode("false");
       "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3,
-                                                                                                 if => schedule_da687546_d546_4a06_8153_eb5cd28c0b0e;
+                                                                                                 if => schedule_da687546_d546_4a06_8153_eb5cd28c0b0e_run;
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");
@@ -237,7 +237,7 @@ bundle agent run_directive5
       "Global configuration for all nodes/RUG / YaST package manager configuration (ZMD)" usebundle => run_directive2;
       "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => set_dry_run_mode("false");
       "Nodes only/Name resolution version \"3.0\" and counting"                           usebundle => run_directive3,
-                                                                                                 if => schedule_da687546_d546_4a06_8153_eb5cd28c0b0e;
+                                                                                                 if => schedule_da687546_d546_4a06_8153_eb5cd28c0b0e_run;
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => set_dry_run_mode("false");
       "Nodes only/Package \\\"management\\\" for Debian"                                  usebundle => run_directive4;
       "Nodes only/Package \\\\\"management\\\\\" for Debian - again"                      usebundle => set_dry_run_mode("false");

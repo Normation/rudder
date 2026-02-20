@@ -15,7 +15,19 @@ bundle common system_common {
                             string => "/tmp/test-rudder-config-repo-2022-07-26T00:12:24.487+02:00/configuration-repository";
     "rudder_node_config_id" string => "root-cfg-id";
     "agent_run_interval"    string => "5";
-
+    "schedule_events"       string => '{
+  "events" : [
+    {
+      "schedule" : "once",
+      "id" : "test-schedule-1",
+      "scheduleId" : "test-schedule",
+      "name" : "A daily test schedule for benchmarks",
+      "type" : "benchmarks",
+      "notBefore" : "2026-02-15T14:26:42Z",
+      "notAfter" : "2026-02-15T16:26:42Z"
+    }
+  ]
+}';
     "cf_serverd_service_name" string => "rudder-cf-serverd";
 
   classes:
