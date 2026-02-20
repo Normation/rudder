@@ -79,14 +79,14 @@ trait DeleteEditorTechnique {
 }
 
 class DeleteEditorTechniqueImpl(
-    archiver:                 TechniqueArchiver,
-    techLibUpdate:            UpdateTechniqueLibrary,
-    readDirectives:           RoDirectiveRepository,
-    writeDirectives:          WoDirectiveRepository,
-    techniqueRepository:      TechniqueRepository,
-    workflowLevelService:     WorkflowLevelService,
-    compilationStatusService: TechniqueCompilationStatusSyncService,
-    baseConfigRepoPath:       String // root of config repos
+    archiver:             TechniqueArchiver,
+    techLibUpdate:        UpdateTechniqueLibrary,
+    readDirectives:       RoDirectiveRepository,
+    writeDirectives:      WoDirectiveRepository,
+    techniqueRepository:  TechniqueRepository,
+    workflowLevelService: WorkflowLevelService,
+    syncService:          TechniqueCheckSyncService,
+    baseConfigRepoPath:   String // root of config repos
 ) extends DeleteEditorTechnique {
   // root of technique repository
   val techniquesDir: File = File(baseConfigRepoPath) / "techniques"
@@ -239,7 +239,7 @@ class DeleteEditorTechniqueImpl(
                        case None            => removeInvalidTechnique(techniquesDir, techniqueId)
                      }
 
-      _ <- compilationStatusService.unsyncOne(
+      _ <- syncService.unsyncOne(
              BundleName(techniqueName) -> new Version(techniqueVersion)
            ) // to delete the status of the technique
     } yield ()
