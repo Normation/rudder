@@ -154,7 +154,7 @@ object EditorTechnique {
    */
   def checkTechniqueIdConsistency(techniqueBaseDirectory: File, techniqueDescriptor: EditorTechnique): Either[String, Unit] = {
     Either.cond(
-      !techniqueBaseDirectory.path.endsWith(techniqueDescriptor.path),
+      techniqueBaseDirectory.path.endsWith(techniqueDescriptor.path),
       (),
       s"Technique descriptor at path '${techniqueBaseDirectory.pathAsString}' contains a technique 'id' or " +
       s"'version' attribute that does not match the conventional path of the technique " +
