@@ -180,7 +180,7 @@ impl Cli {
                             (EvaluateOutcome::Kept, "".to_string())
                         }
                     }
-                    Ok(Outcome::Repaired(m)) => (EvaluateOutcome::Repaired, m),
+                    Ok(Outcome::Repaired(m, _)) => (EvaluateOutcome::Repaired, m),
                     Err(e) => (EvaluateOutcome::NotKept, format!("{}", e)),
                 };
                 let json = json!({

@@ -1,0 +1,33 @@
+[
+    {
+      "schedule": "once",
+      "id": "600abb6b-c294-4ba1-9014-944b67d59935",
+      "schedule_id": "df6ebe63-a13a-484f-9add-57836517947a",
+      "name": "CIS RHEL9 - 2025/12/01",
+      "type": "benchmark",
+      "not_before": "2025-12-01T11:23:05+01:00",
+      "not_after": "2025-12-01T23:23:05+01:00"
+    },
+    {
+      "schedule": "once",
+      "id": "b214ae9f-638f-4d82-a432-daeeb6bd8d59",
+      "schedule_id": "e27fd139-5961-4cb2-8314-1d16ddf0de92",
+      "name": "CIS RHEL9 - 2025/12/01",
+      "type": "benchmark",
+      "not_before": "2025-12-01T11:23:05+01:00"
+    },
+    {
+      "schedule": "always",
+      "id": "b4f0e7e8-3767-4746-abf7-4a5e21f5dd47",
+      "type": "benchmark",
+      "schedule_id": "df6ebe63-a13a-484f-9add-57836517947a",
+      "name": "System update debug"
+    },
+    {
+      "schedule": "never",
+      "id": "1c0cc85c-2452-4c5d-b77d-0cd213e34616",
+      "type": "benchmark",
+      "schedule_id": "df6ebe63-a13a-484f-9add-57836517947a",
+      "name": "System update debug"
+    }
+]
