@@ -84,3 +84,11 @@ update msg model =
             (newModel, Cmd.none)
         Err err ->
           (model, Cmd.none)
+
+    ToggleHideUnusedTechniques newHideUnusedTechniques ->
+      let
+        newModel = {model | hideUnusedTechniques = newHideUnusedTechniques}
+        encodedFilters = encodeFilters newModel
+      in
+      (newModel, searchTree encodedFilters)
+      

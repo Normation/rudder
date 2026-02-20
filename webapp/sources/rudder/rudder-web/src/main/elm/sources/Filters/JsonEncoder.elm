@@ -10,5 +10,6 @@ encodeFilters model =
   object (
     [ ( "filter" , string (String.trim model.filter) )
     , ( "tags"   , list encodeTag model.tags )
+    , ( "hideUnusedTechniques", bool model.hideUnusedTechniques)
     ]
   )

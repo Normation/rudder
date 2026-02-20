@@ -78,9 +78,9 @@ $.jstree.plugins.searchtag = function (options, parent) {
           }
         }, this));
   };
-  this.searchtag = function (str, tags, filteringTagsOptions, skip_async, show_only_matches, inside, append, show_only_matches_children) {
+  this.searchtag = function (str, tags, hideUnusedTechniques, filteringTagsOptions, skip_async, show_only_matches, inside, append, show_only_matches_children) {
     this.show_all();
-    if((!Array.isArray(tags) || tags.length<=0)&&(str === false || $.trim(str.toString()) === "")) {
+    if((!Array.isArray(tags) || tags.length<=0)&&(str === false || $.trim(str.toString()) === "")&&(hideUnusedTechniques===false)) {
       return this.clear_search();
     }
     inside = this.get_node(inside);
@@ -116,6 +116,7 @@ $.jstree.plugins.searchtag = function (options, parent) {
       if(v.text && !v.state.hidden && (!s.search_leaves_only || (v.state.loaded && v.children.length === 0)) && (!s.search_callback && f.search(v.text).isMatch) ) {
         var directiveTags = v.data.jstree.type=="directive" ? v.data.jstree.tags : false;
         if(tags.length>0){
+          // directive instance
           if(directiveTags){
             for(var j=0 ; j<tags.length ; j++){
               containsTags = false;
@@ -135,7 +136,7 @@ $.jstree.plugins.searchtag = function (options, parent) {
               p = p.concat(v.parents);
             }
           }
-        }else{
+        }else if (directiveTags || hideUnusedTechniques===false){
           r.push(i);
           p = p.concat(v.parents);
         }

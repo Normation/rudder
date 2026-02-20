@@ -19,7 +19,7 @@ subscriptions model =
 init : { contextPath : String, objectType : String } -> ( Model, Cmd Msg )
 init flags =
   let
-    initModel = Model flags.contextPath flags.objectType (Tag "" "") [] "" [] [] True
+    initModel = Model flags.contextPath flags.objectType (Tag "" "") [] "" [] [] True False
   in
     ( initModel
     , Cmd.none
