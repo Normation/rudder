@@ -80,6 +80,10 @@ $nav-underline-border-width : 0.2rem;
 $modal-md: 600px;
 
 
+// --- SPACERS
+$spacer : rudder.$spacer;
+
+
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
 /* --- BUTTONS

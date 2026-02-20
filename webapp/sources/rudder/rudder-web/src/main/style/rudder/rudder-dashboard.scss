@@ -37,7 +37,6 @@
 
 @use 'rudder-variables' as rudder;
 
-
 $doughnut-size : 200px;
 
 .homePage > .container-fluid{
@@ -205,6 +204,92 @@ $doughnut-size : 200px;
       $size : 16px;
       height: $size;
       width: $size;
+    }
+  }
+}
+
+.activity-container{
+  width: 30%;
+
+  .card-body{
+    max-height: 370px;
+    overflow: auto;
+    padding: 0;
+  }
+  .activity-item{
+    $v-spacer : rudder.$spacer*0.5;
+    $h-spacer : 40px;
+    padding: $v-spacer rudder.$spacer $v-spacer $h-spacer;
+    position: relative;
+
+    &:first-child{
+      padding-top: rudder.$spacer;
+    }
+    &:last-child{
+      padding-bottom: rudder.$spacer;
+    }
+    .activity-desc p{
+      margin-bottom: 0;
+    }
+
+    &:before{
+      $width : 2px;
+      content:"";
+      position: absolute;
+      height: 100%;
+      border-left : $width solid rudder.$border-color-default;
+      left : $h-spacer*0.5 - $width*0.5;
+      top: 0;
+    }
+    &:nth-last-child(2):before{
+      height: 50%;
+    }
+    &.no-activity{
+      &.no-activity:before{
+        height: 50%;
+        border-left-style: dashed;
+      }
+      &:after{
+        top: calc(50% - 8px);
+      }
+    }
+    &:not(.no-activity):last-child{
+      padding: 0;
+      &:hover{
+        &:after{
+          border-color: rudder.$bg-light-gray;
+        }
+      }
+      a {
+        padding: 16px rudder.$spacer 16px $h-spacer;
+        &:hover{
+          background-color: rudder.$bg-light-gray;
+        }
+      }
+      &:before{
+        top: -50%;
+        border-left-style : dashed;
+      }
+      &:after{
+        top: calc(50% - 8px);
+      }
+
+      .fas{
+        transform: rotate(45deg);
+        color: rudder.$txt-link;
+      }
+    }
+    &:after{
+      $size : 16px;
+      content: "";
+      position: absolute;
+      height: $size;
+      width: $size;
+      border-radius: 50%;
+      background-color: #d6deef;
+      border: 4px solid #fff;
+      left : ($h-spacer*0.5)-($size*0.5);
+      top: calc(50% + 2px);
     }
   }
 }
