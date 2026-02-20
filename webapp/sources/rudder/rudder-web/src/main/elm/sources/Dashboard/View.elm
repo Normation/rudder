@@ -42,5 +42,18 @@ view model =
                     ]
     in
         div []
-            [ ul[class "activity-list d-flex flex-column mb-0"] ( List.map activityItem model.activities )
+            [ ul[class "activity-list d-flex flex-column mb-0"]
+                ( List.append
+                    ( model.activities
+                    |> List.reverse
+                    |> List.map activityItem
+                    )
+                    [ li[class "activity-item d-flex flex-column w-100"]
+                        [ a[href (model.contextPath ++ "/secure/configurationManager/changeLogs")]
+                            [ text "See all change logs"
+                            , i[class "fas fa-long-arrow-alt-up ms-2"][]
+                            ]
+                        ]
+                    ]
+                )
             ]
