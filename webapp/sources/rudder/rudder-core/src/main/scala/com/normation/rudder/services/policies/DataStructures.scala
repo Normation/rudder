@@ -68,6 +68,7 @@ import com.normation.cfclerk.domain.VTypeConstraint
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.policies.DirectiveId
@@ -79,6 +80,7 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.typesafe.config.ConfigValue
 import java.time.Instant
 import scala.collection.immutable.TreeMap
@@ -285,7 +287,9 @@ final case class NodeConfiguration(
     runHooks:    List[NodeRunHook],
     // environment variable for that server
     nodeContext: Map[String, Variable],
-    parameters:  Set[ParameterForConfiguration]
+    parameters:  Set[ParameterForConfiguration],
+    // the list of schedules for directives in that node - on schedule can be referred in several policies
+    schedules:   List[JsonDirectiveSchedule]
 ) {
   def isRootServer: Boolean = nodeInfo.id == Constants.ROOT_POLICY_SERVER_ID
 
@@ -453,6 +457,26 @@ object PolicyTechnique {
 }
 
 /*
+ * A bundle exec condition, translated into an `ifvarclass`
+ */
+opaque type IfVarClass = String
+
+object IfVarClass {
+  // ifvarclass uses the same escape as BundleName
+  def apply(s: String): IfVarClass = BundleName.escape(s)
+
+  extension (x: IfVarClass) {
+    def value: String = x
+  }
+
+  // create the name of the variable from a CampaignId
+  def fromScheduleId(id: CampaignId): IfVarClass = apply(s"schedule_${id.serialize}_run")
+
+  given JsonCodec[IfVarClass] = JsonCodec.string.transformOrFail(s => Right(IfVarClass(s)), _.value)
+
+}
+
+/*
  *
  * A policy is a technique bound to one or more directives in the context of a
  * nodes and rules.
@@ -493,9 +517,11 @@ final case class Policy(
     policyVars:          NonEmptyList[PolicyVars],
     priority:            Int,
     policyMode:          Option[PolicyMode],
+    scheduleId:          Option[CampaignId],
     ruleOrder:           BundleOrder,
     directiveOrder:      BundleOrder,
-    overrides:           Set[PolicyId] // a set of other draft overridden by that one
+    overrides:           Set[PolicyId], // a set of other draft overridden by that one
+    ifVarClass:          Option[IfVarClass]
 ) {
 
   // here, it is extremely important to keep sorted order
@@ -587,12 +613,14 @@ final case class ParsedPolicyDraft(
     priority:          Int,
     isSystem:          Boolean,
     policyMode:        Option[PolicyMode],
+    scheduleId:        Option[CampaignId],
     trackerVariable:   TrackerVariable,
     variables:         InterpolationContext => IOResult[Map[ComponentId, Variable]],
     originalVariables: Map[ComponentId, Variable], // the original variable, unexpanded
 
     ruleOrder:      BundleOrder,
-    directiveOrder: BundleOrder
+    directiveOrder: BundleOrder,
+    ifVarClass:     Option[IfVarClass]
 ) {
 
   def toBoundedPolicyDraft(expandedVars: Map[ComponentId, Variable]): BoundPolicyDraft = {
@@ -608,9 +636,11 @@ final case class ParsedPolicyDraft(
       priority = priority,
       isSystem = isSystem,
       policyMode = policyMode,
+      scheduleId = scheduleId,
       ruleOrder = ruleOrder,
       directiveOrder = directiveOrder,
-      overrides = Set()
+      overrides = Set(),
+      ifVarClass = ifVarClass
     )
   }
 
@@ -637,9 +667,11 @@ final case class BoundPolicyDraft(
     priority:        Int,
     isSystem:        Boolean,
     policyMode:      Option[PolicyMode],
+    scheduleId:      Option[CampaignId],
     ruleOrder:       BundleOrder,
     directiveOrder:  BundleOrder,
-    overrides:       Set[PolicyId] // a set of other draft overridden by that one
+    overrides:       Set[PolicyId], // a set of other draft overridden by that one
+    ifVarClass:      Option[IfVarClass]
 ) {
 
   /**
@@ -773,9 +805,11 @@ final case class BoundPolicyDraft(
           ),
           priority,
           policyMode,
+          scheduleId,
           ruleOrder,
           directiveOrder,
-          overrides
+          overrides,
+          ifVarClass
         )
       }).left
         .map(_.deduplicate.msg)

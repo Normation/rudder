@@ -237,6 +237,7 @@ class TestBuildNodeConfiguration extends Specification {
         nodeContexts.ok,
         allNodeModes,
         Map(),
+        Map(),
         scriptEngineEnabled,
         globalPolicyMode,
         maxParallelism,

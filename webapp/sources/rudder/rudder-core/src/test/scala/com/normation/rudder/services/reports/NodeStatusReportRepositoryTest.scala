@@ -88,7 +88,7 @@ class NodeStatusReportRepositoryTest extends Specification {
   // a list of node, one node by type of reports, in a triplet:
   // (node, expired report, still ok report)
   def expected(id: String, endDate: Option[DateTime]): NodeExpectedReports =
-    NodeExpectedReports(NodeId(id), NodeConfigId(id), beginDate, endDate, null, Nil, Nil)
+    NodeExpectedReports(NodeId(id), NodeConfigId(id), beginDate, endDate, null, Nil, Nil, Nil)
 
   def initReportEachKind(endDate: Option[DateTime], runDate: DateTime): List[(NodeId, NodeStatusReport)] = {
     def buildOne(id: String)(f: NodeExpectedReports => RunAndConfigInfo) = {

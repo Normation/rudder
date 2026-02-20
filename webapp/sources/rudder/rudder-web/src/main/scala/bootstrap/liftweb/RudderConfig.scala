@@ -3179,6 +3179,7 @@ object RudderConfigInit {
         better.files.File("/var/rudder/lib/ssl/allnodescerts.pem")
       )
       val buildNodeContext        = new NodeContextBuilderImpl(interpolationCompiler, systemVariableService)
+      val scheduleManagement      = new NoopScheduleManagement()
       val fetchAllInfoServiceImpl = new FetchAllInfoServiceImpl(
         roLdapRuleRepository,
         nodeFactRepository,
@@ -3194,6 +3195,7 @@ object RudderConfigInit {
         buildNodeContext,
         writeCertificate,
         ruleValGeneratedHookService,
+        scheduleManagement,
         () => configService.rudder_featureSwitch_directiveScriptEngine(),
         () => configService.rudder_global_policy_mode(),
         () => configService.rudder_generation_max_parallelism(),

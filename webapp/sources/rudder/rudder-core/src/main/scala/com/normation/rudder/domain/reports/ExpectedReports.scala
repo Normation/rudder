@@ -40,6 +40,7 @@ package com.normation.rudder.domain.reports
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -54,6 +55,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.PolicyId
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -88,6 +90,7 @@ final case class NodeExpectedReports(
     beginDate:           DateTime,
     endDate:             Option[DateTime],
     modes:               NodeModeConfig,
+    schedules:           List[JsonDirectiveSchedule],
     ruleExpectedReports: List[RuleExpectedReports],
     overrides:           List[OverriddenPolicy]
 ) {
@@ -125,6 +128,7 @@ final case class DirectiveExpectedReports(
     directiveId: DirectiveId,
     policyMode:  Option[PolicyMode],
     policyTypes: PolicyTypes,
+    scheduleId:  Option[CampaignId],
     components:  List[ComponentExpectedReport]
 )
 
@@ -205,6 +209,7 @@ object ExpectedReportsSerialisation {
    */
   final case class JsonNodeExpectedReports private[reports] (
       modes:               NodeModeConfig,
+      schedules:           List[JsonDirectiveSchedule],
       ruleExpectedReports: List[RuleExpectedReports],
       overrides:           List[OverriddenPolicy]
   )
@@ -462,6 +467,7 @@ object ExpectedReportsSerialisation {
         did: DirectiveId,
         pm:  Option[PolicyMode],
         t:   Option[PolicyTypes],
+        sid: Option[CampaignId],
         cs:  List[JsonComponentExpectedReport7_1]
     ) {
       def transform: DirectiveExpectedReports = {
@@ -471,7 +477,7 @@ object ExpectedReportsSerialisation {
             case None        => PolicyTypes.rudderBase
           }
         }
-        DirectiveExpectedReports(did, pm, ct, cs.map(_.transform))
+        DirectiveExpectedReports(did, pm, ct, sid, cs.map(_.transform))
       }
     }
     implicit class _JsonDirectiveExpectedReports8_2(x: DirectiveExpectedReports) {
@@ -482,6 +488,7 @@ object ExpectedReportsSerialisation {
           x.directiveId,
           x.policyMode,
           t,
+          x.scheduleId,
           x.components.map(_.transform)
         )
       }
@@ -500,15 +507,17 @@ object ExpectedReportsSerialisation {
     @jsonExplicitEmptyCollections(encoding = false, decoding = false) // needed for compat for ss
     final case class JsonNodeExpectedReports7_1(
         ms: JsonModes7_1,
+        ss: List[JsonDirectiveSchedule],
         rs: List[JsonRuleExpectedReports7_1],
         os: List[JsonOverrides7_1]
     ) extends JsonNodeExpectedReportV {
-      def transform: JsonNodeExpectedReports = JsonNodeExpectedReports(ms.transform, rs.map(_.transform), os.map(_.transform))
+      def transform: JsonNodeExpectedReports = JsonNodeExpectedReports(ms.transform, ss, rs.map(_.transform), os.map(_.transform))
     }
     implicit class _JsonNodeExpecteReports7_1(x: JsonNodeExpectedReports)        {
       def transform = {
         JsonNodeExpectedReports7_1(
           x.modes.transform,
+          x.schedules,
           x.ruleExpectedReports.map(_.transform),
           x.overrides.map(_.transform)
         )
@@ -616,7 +625,7 @@ object ExpectedReportsSerialisation {
   implicit class NodeToJson(val n: NodeExpectedReports) extends AnyVal {
     import Version7_1.*
     private def toJson7_1 = {
-      JsonNodeExpectedReports(n.modes, n.ruleExpectedReports, n.overrides).transform
+      JsonNodeExpectedReports(n.modes, n.schedules, n.ruleExpectedReports, n.overrides).transform
     }
     def toJson            = toJson7_1.toJsonPretty
     def toCompactJson     = toJson7_1.toJson
