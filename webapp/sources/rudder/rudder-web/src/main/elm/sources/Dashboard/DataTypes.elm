@@ -2,6 +2,7 @@ module Dashboard.DataTypes exposing (..)
 
 import Http exposing (Error)
 import Http.Detailed
+import Time exposing (Posix, Zone)
 
 --
 -- All our data types
@@ -9,26 +10,12 @@ import Http.Detailed
 
 type alias Activity =
     { id : Int
+    , actor : String
     , description : String
-    , date : String
+    , actType : String
+    , date : Maybe Posix
     }
 
-type alias UI =
-    { loadingActivities : Bool
-    }
-
-{--
-final case class RestEventLogFilter(
-    draw:      Int,
-    start:     Int,
-    length:    Int,
-    search:    Option[EventLogRequest.Search],
-    startDate: Option[LocalDateTime],
-    endDate:   Option[LocalDateTime],
-    principal: Option[EventLogRequest.PrincipalFilter],
-    order:     Chunk[EventLogRequest.Order]
-)
---}
 type alias RestEventLogFilter =
     { draw: Int
     , start: Int
@@ -38,9 +25,12 @@ type alias RestEventLogFilter =
 type alias Model =
     { contextPath : String
     , activities : List Activity
-    , ui : UI
+    , currentTime : Posix
+    , zone : Zone
     }
 
 type Msg
     = CallApi (Model -> Cmd Msg)
     | GetActivities (Result (Http.Detailed.Error String) ( Http.Metadata, (List Activity) ))
+    | Tick Posix
+    | Copy String

@@ -244,7 +244,16 @@ $doughnut-size : 200px;
     &:nth-last-child(2):before{
       height: 50%;
     }
-    &:last-child{
+    &.no-activity{
+      &.no-activity:before{
+        height: 50%;
+        border-left-style: dashed;
+      }
+      &:after{
+        top: calc(50% - 8px);
+      }
+    }
+    &:not(.no-activity):last-child{
       padding: 0;
       &:hover{
         &:after{

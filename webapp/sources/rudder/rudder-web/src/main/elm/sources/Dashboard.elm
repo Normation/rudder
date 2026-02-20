@@ -43,24 +43,23 @@ update msg model =
         GetActivities res ->
             case res of
                 Ok ( metadata, activities ) ->
-                    let
-                        modelUi =
-                            model.ui
-                    in
-                    ( { model | activities = activities, ui = { modelUi | loadingActivities = False } }
-                    , Cmd.none
+                    ( { model | activities = activities }
+                    , initTooltips ""
                     )
 
                 Err err ->
                     processApiError "Getting activities list" err model
 
+        Tick newTime ->
+            ( { model | currentTime = newTime }, Cmd.none )
+
+        Copy s ->
+            ( model, copy s )
+
 
 processApiError : String -> Detailed.Error String -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
     let
-        modelUi =
-            model.ui
-
         message =
             case err of
                 Detailed.BadUrl url ->
@@ -82,4 +81,4 @@ processApiError apiName err model =
                 Detailed.BadBody metadata body msg ->
                     msg
     in
-    ( { model | ui = { modelUi | loadingActivities = False } }, errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message) )
+    ( model, errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message) )

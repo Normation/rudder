@@ -102,10 +102,19 @@ const homePage = (
   const mainActivity = document.getElementById("activity-app")
   const initValues = {
       contextPath: contextPath,
+      timeZone: localStorage.getItem('timeZone') ?? 'UTC',
   };
   const app = Elm.Dashboard.init({node: mainActivity, flags: initValues});
   app.ports.errorNotification.subscribe(function (str) {
     createErrorNotification(str)
+  });
+  app.ports.copy.subscribe(function (str) {
+    copy(str);
+  });
+  app.ports.initTooltips.subscribe(function (msg) {
+    setTimeout(function () {
+      initBsTooltips();
+    }, 600);
   });
 }
 

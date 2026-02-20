@@ -2,12 +2,17 @@ module Dashboard.View exposing (..)
 
 import Dashboard.DataTypes exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, href, attribute, style)
+import Html.Events exposing (onClick)
 import Markdown
 import Markdown.Config exposing (Options, defaultOptions)
--- import DateFormat.Relative
+import DateFormat.Relative
 import List
-
+import Maybe.Extra
+import Iso8601
+import Accounts.ViewUtils exposing (relativeTimeOptions)
+import Accounts.DatePickerUtils exposing (posixToString)
+import Compliance.Utils exposing (buildTooltipContent)
 
 view : Model -> Html Msg
 view model =
@@ -33,27 +38,54 @@ view model =
         activityItem : Activity -> Html Msg
         activityItem a =
             let
-               -- (activityDate, relativeActivityDate) = (a.date, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now a.date)
-               (activityDate, relativeActivityDate) = (a.date, a.date)
+                (activityDate, relativeActivityDate) = case a.date of
+                    Just d -> (Just d, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions model.currentTime d)
+                    Nothing -> (Nothing, "-")
             in
                 li[class "activity-item d-flex flex-column w-100"]
-                    [ span[class "activity-date text-secondary"][text relativeActivityDate]
+                    [ div[]
+                        [ span
+                            ( activityDate
+                                |> Maybe.Extra.unpack
+                                    ( \() -> [] )
+                                    ( \d ->
+                                        [ class "relative-date"
+                                        , attribute "data-bs-toggle" "tooltip"
+                                        , attribute "data-bs-placement" "top"
+                                        , attribute "title" (buildTooltipContent (a.actType) (posixToString model.zone d))
+                                        , onClick (Copy (Iso8601.fromTime d))
+                                        ]
+                                    )
+                            )
+                            [ text relativeActivityDate ]
+                        , span[class "activity-actor text-secondary"]
+                            [ text (", by " ++ a.actor) ]
+                        ]
                     , span[class "activity-desc"] (displayDescription a.description)
                     ]
     in
         div []
-            [ ul[class "activity-list d-flex flex-column mb-0"]
-                ( List.append
-                    ( model.activities
-                    |> List.reverse
-                    |> List.map activityItem
-                    )
-                    [ li[class "activity-item d-flex flex-column w-100"]
-                        [ a[href (model.contextPath ++ "/secure/configurationManager/changeLogs")]
-                            [ text "See all change logs"
-                            , i[class "fas fa-long-arrow-alt-up ms-2"][]
-                            ]
+            [ ul [class "activity-list d-flex flex-column mb-0"]
+                ( if List.isEmpty model.activities then
+                    [ li[class "activity-item d-flex no-activity text-info align-items-baseline"]
+                        [ i [class "fa fa-info-circle fs-5 me-2"][]
+                        , text "There have been no activities yet."
                         ]
                     ]
+                else
+                    ( List.append
+                        ( model.activities
+                        |> List.sortBy .id
+                        |> List.reverse
+                        |> List.map activityItem
+                        )
+                        [ li[class "activity-item d-flex flex-column w-100"]
+                            [ a[href (model.contextPath ++ "/secure/configurationManager/changeLogs")]
+                                [ text "See all change logs"
+                                , i[class "fas fa-long-arrow-alt-up ms-2"][]
+                                ]
+                            ]
+                        ]
+                    )
                 )
             ]
