@@ -129,7 +129,7 @@
     toggleTree('#activeTechniquesTree', this);
   });
   filterApp.ports.searchTree.subscribe(function(filters) {
-    $("#activeTechniquesTree").jstree("searchtag", filters.filter, filters.tags, {"key":false , "value":false});
+    $("#activeTechniquesTree").jstree("searchtag", filters.filter, filters.tags, filters.hideUnusedTechniques, {"key":false , "value":false});
   });
   filterApp.ports.sendFilterTags.subscribe(function(tags) {
     if (typeof tagsApp === "undefined") return false;

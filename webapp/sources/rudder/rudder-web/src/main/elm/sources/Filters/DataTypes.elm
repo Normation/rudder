@@ -17,6 +17,7 @@ type alias Model =
   , completionKeys   : List CompletionValue
   , completionValues : List CompletionValue
   , showMore    : Bool
+  , hideUnusedTechniques : Bool
   }
 
 type Msg
@@ -29,3 +30,4 @@ type Msg
   | UpdateTag Completion Tag
   | UpdateTags Action (List Tag)
   | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
+  | ToggleHideUnusedTechniques Bool
