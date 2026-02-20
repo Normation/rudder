@@ -12,6 +12,7 @@ import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.Constants.XML_TAG_EDITOR_TECHNIQUE
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.Constraints
 import com.normation.rudder.ncf.EditorTechnique
@@ -324,6 +325,7 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
     (entry \ "constraints").headOption match {
       case None              => Full(None)
       case Some(constraints) =>
+        println(constraints)
         for {
           allowEmpty      <- getFromToOption((constraints \ "allowEmpty").headOption, s => tryo(s.text.toBoolean))
           allowWhitespace <- getFromToOption((constraints \ "allowWhiteSpace").headOption, s => tryo(s.text.toBoolean))
@@ -366,6 +368,18 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
     }
   }
 
+  def unserialiseCallParametersDiff(entry: Node): PureResult[(ParameterId, Option[SimpleDiff[String]])] = {
+    import com.normation.rudder.services.eventlog.EventLogDetailsService.*
+    implicit val entryType: XmlEntryType = XmlEntryType("parameter")
+
+    for {
+      key   <- getAndTransformChild(entry, "id", _.text.trim).map(ParameterId(_))
+      value <- getFromToString((entry \ "value").headOption).toPureResult
+    } yield {
+      (key, value)
+    }
+  }
+
   def unserialiseTechniqueCallModifyDiff(call: Node): Box[ModifyTechniqueCallDiff] = {
     import com.normation.rudder.services.eventlog.EventLogDetailsService.*
     for {
@@ -382,10 +396,11 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
       policyMode       <- getFromToOption((call \ "policyMode").headOption, s => PolicyMode.parse(s.text).toBox)
       foreachName      <- getFromToOption((call \ "foreachName").headOption, s => Full(s.text))
       foreach          <- getFromToOption((call \ "foreach").headOption, s => unserialiseForeach(s.head).toBox)
-      parameters       <- getFromTo(
-                            (call \ "parameters").headOption,
+      parameters       <- (call \ "parameters" \ "parameter").accumulatePure(unserialiseCallParametersDiff).toBox
+
+      /*(call \ "parameters").headOption,
                             s => (s \ "parameter").accumulatePure(unserialiseCallParameters).toBox.map(_.toMap)
-                          )
+                          )*/
     } yield {
       ModifyTechniqueCallDiff(
         method,
@@ -394,7 +409,7 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
         component,
         condition,
         disableReporting,
-        parameters,
+        parameters.toMap,
         policyMode,
         foreach,
         foreachName
