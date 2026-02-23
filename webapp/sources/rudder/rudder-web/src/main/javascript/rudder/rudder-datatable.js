@@ -51,6 +51,20 @@ $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
     } );
 }
 
+DataTable.render.zonedDateTime =  function (serverTimezone) {
+    return function ( data, type, row ) {
+        if ( type === 'display' ) {
+            const timeZone = serverTimezone ?? "UTC"
+            const date = changeTimezone(new Date(data), timeZone)
+            // date from `changeTimezone` has kept the browser zone information, need to reset it before display
+            const currentOffset = date.getTimezoneOffset()*60*1000
+            const adjusted = new Date(date.getTime() - currentOffset)
+            return displayDateTime(adjusted, timeZone)
+        }
+        return data;
+    };
+};
+
 // This function allows to compare sorted arrays, which javascript cannot do naturally ...
 const equalsCheck = (a, b) =>
     a.length === b.length &&
@@ -1932,7 +1946,7 @@ function createChangesTable(gridId, data, contextPath, refresh) {
  *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
  *   }
  */
-function createEventLogTable(gridId, data, contextPath, refresh) {
+function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone) {
 
   var columns = [ {
     "width"       : "10%"
@@ -1964,10 +1978,15 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
   , "orderable": false
   } ];
 
+
   var params =
   { "filter" : true
   , "processing" : true
   , "serverSide" : true
+  , "columnDefs": [{
+      targets: 1,
+      render: DataTable.render.zonedDateTime(serverTimezone)
+    }]
   , "ajax" :
     { "type" : "POST"
     , "contentType": "application/json"

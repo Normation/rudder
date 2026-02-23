@@ -40,6 +40,8 @@
 
 var isLoggedIn = true;
 
+var dateOptions = Intl.DateTimeFormat().resolvedOptions();
+
 /* Event handler function */
 
 var entityMap = {
@@ -737,12 +739,30 @@ function initDatePickers(id, action, endDate = new Date(), timezone = null, hour
   });
 }
 
+/*
+ * Adjust time component of the date to have the time of the given IANA timezone name, without updating the date Zone.
+ * WARNING: this means the Date object is not with the right time. Temporal API is long awaited : https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal
+ * Use toLocaleString() (without options) on this date object to obtain localized date with the provided timezone
+ */
 function changeTimezone(date, ianatz) {
-  var invdate = new Date(date.toLocaleString('en-US', {
+  const invdate = new Date(date.toLocaleString('en-US', {
     timeZone: ianatz
-  }));
-  var diff = date.getTime() - invdate.getTime();
+  }))
+  const diff = date.getTime() - invdate.getTime()
   return new Date(date.getTime() - diff);
+}
+
+/*
+ * Get the date almost like the ISO8601, except that it's for display and it needs no millis
+ * See https://stackoverflow.com/a/34053886.
+ * We display offsets, so we need to use public, until Temporal API is available.
+ */
+function displayDateTime(date = new Date(), timeZone = dateOptions.timeZone) {
+  // get current offset
+  const format = Intl.DateTimeFormat(undefined, { timeZone, timeZoneName: "longOffset" });
+  const [_, gmtOffset] = format.format(date).split("GMT")
+  const offset = gmtOffset == "" ? "Z" : gmtOffset
+  return date.toISOString().replace('T', ' ').replace(/\..*$/, offset);
 }
 
 /**

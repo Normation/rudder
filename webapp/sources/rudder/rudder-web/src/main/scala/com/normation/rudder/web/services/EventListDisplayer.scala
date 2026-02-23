@@ -148,7 +148,7 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
        '${currentTimezone}',
        ${hoursBeforeNow}
      );
-     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
+     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs, '${currentTimezone}')
      refreshEventLogs();
     """)))) // JsRaw ok, escaped
   }
