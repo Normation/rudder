@@ -196,7 +196,6 @@ class EventLogService(
 
     (for {
       event <- repo.getEventLogById(id)
-      _     <- EventLogsLoggerPure.info(event.details.toString)
       crId  <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
 
       htmlDetails        = eventLogDetailGenerator.displayDetails(event, crId.flatten)
