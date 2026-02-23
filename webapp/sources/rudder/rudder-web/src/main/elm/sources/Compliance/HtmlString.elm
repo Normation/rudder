@@ -1,10 +1,12 @@
 module Compliance.HtmlString exposing (..)
 
 import Compliance.DataTypes exposing (ComplianceDetails, ComplianceFilters)
-import Compliance.Utils exposing (buildTooltipContent, filterCompliance, getAllComplianceValues, sumPercent)
+import Compliance.Utils exposing (filterCompliance, getAllComplianceValues, sumPercent)
 import Html.String exposing (..)
 import Html.String.Attributes exposing (..)
 import String exposing (fromFloat)
+
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
 buildComplianceBar : ComplianceFilters -> ComplianceDetails -> Html msg

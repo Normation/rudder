@@ -1,12 +1,12 @@
 module Accounts.DataTypes exposing (..)
 
-import Accounts.DatePickerUtils as DatePickerUtils exposing (isBefore)
 import Http exposing (Error)
 import Http.Detailed
 import Json.Decode as D exposing (..)
-import SingleDatePicker exposing (DatePicker, Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
+import SingleDatePicker exposing (DatePicker, Settings, TimePickerVisibility(..))
 import Time exposing (Posix, Zone)
 import Ui.Datatable exposing (TableFilters)
+import Utils.DateUtils exposing (isBefore)
 
 
 --
@@ -233,7 +233,7 @@ updateExpirationPolicy f account =
 checkIfExpired : DatePickerInfo -> Account -> Bool
 checkIfExpired datePickerInfo account =
   case account.expirationPolicy of
-    ExpireAtDate p -> DatePickerUtils.isBefore { date = p, reference = datePickerInfo.currentTime }
+    ExpireAtDate p -> isBefore { date = p, reference = datePickerInfo.currentTime }
     NeverExpire -> False
 
 checkIfTokenV1 : Account -> Bool

@@ -5,7 +5,6 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
-import String
 import Tuple3
 import Dict
 

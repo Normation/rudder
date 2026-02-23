@@ -19,7 +19,7 @@ import Compliance.DataTypes exposing (..)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (..)
 import Ui.Datatable exposing (SortOrder(..), sortTable, thClass, Category, getAllCats, getAllElems, getSubElems)
-
+import Utils.TooltipUtils exposing (buildTooltipContent, htmlEscape)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -552,17 +552,6 @@ buildHtmlStringTag tag =
     in
     tagOpen ++ tagIcon ++ tagKey ++ tagSep ++ tagVal ++ tagClose
 
-
-htmlEscape : String -> String
-htmlEscape s =
-    String.replace "&" "&amp;" s
-        |> String.replace ">" "&gt;"
-        |> String.replace "<" "&lt;"
-        |> String.replace "\"" "&quot;"
-        |> String.replace "'" "&#x27;"
-        |> String.replace "\\" "&#x2F;"
-
-
 buildTagsTree : List Tag -> Html Msg
 buildTagsTree tags =
     let
@@ -655,31 +644,6 @@ badgePolicyModeNoGlobal policyMode =
                      "Unknown policy mode"
     in
     span [ class ("treeGroupName rudder-label label-sm label-" ++ policyMode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg) ] []
-
-
-
-
-
-
--- WARNING:
---
--- Here the content is an HTML so it need to be already escaped.
-
-
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-    let
-        headingTag =
-            "<h4 class='tags-tooltip-title'>"
-
-        contentTag =
-            "</h4><div class='tooltip-inner-content'>"
-
-        closeTag =
-            "</div>"
-    in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag
-
 
 buildIncludeList : Maybe Rule -> Category Group -> Model -> Bool -> Bool -> RuleTarget -> Html Msg
 buildIncludeList originRule groupsTree model editMode includeBool ruleTarget =

@@ -14,7 +14,7 @@ import Json.Decode as Decode
 import Json.Encode
 
 import Compliance.DataTypes exposing (..)
-
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -460,19 +460,6 @@ displayComplianceFilters complianceFilters updateAction =
     text ""
   )
 
--- WARNING:
---
--- Here the content is an HTML so it need to be already escaped.
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'><pre>"
-    closeTag   = "</pre></div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag
-
-
 badgePolicyMode : String -> String -> Html msg
 badgePolicyMode globalPolicyMode policyMode =
   let
@@ -506,21 +493,12 @@ badgeSkipped { overridingRuleId, overridingRuleName } =
   let
     msg =
       "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId ++ ")."
-
-    buildTooltip : String -> String -> String
-    buildTooltip title content =
-      let
-        headingTag = "<h4 class='tags-tooltip-title'>"
-        contentTag = "</h4><div class='tooltip-inner-content'>"
-        closeTag   = "</div>"
-      in
-        headingTag ++ title ++ contentTag ++ content ++ closeTag
   in
     span
     [ class "treeGroupName rudder-label label-sm label-skipped"
     , attribute "data-bs-toggle" "tooltip"
     , attribute "data-bs-placement" "bottom"
-    , title (buildTooltip "Skipped directive" msg)
+    , title (buildTooltipContent "Skipped directive" msg)
     ] []
 
 

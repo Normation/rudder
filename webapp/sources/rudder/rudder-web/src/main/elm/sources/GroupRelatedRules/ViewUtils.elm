@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import GroupRelatedRules.DataTypes exposing (..)
 import Rules.DataTypes exposing (missingCategoryId)
 import Ui.Datatable exposing (Category, SubCategories(..), getSubElems, getAllCats)
-
+import Utils.TooltipUtils exposing (buildTooltipContent, htmlEscape)
 
 -- get all missing categories
 getAllMissingCats: Category a -> List (Category a)
@@ -61,14 +61,6 @@ badgeIncludedExcluded model ruleId =
       Just m -> span [class ("treeGroupName rudder-label label-sm " ++ labelClass), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Included/Excluded" m)][]
       Nothing -> text ""
 
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag
 
 buildTagsTree : List Tag -> Html Msg
 buildTagsTree tags =
@@ -99,14 +91,7 @@ buildHtmlStringTag tag =
   in
     tagOpen ++ tagIcon ++ tagKey ++ tagSep ++ tagVal ++ tagClose
 
-htmlEscape : String -> String
-htmlEscape s =
-  String.replace "&" "&amp;" s
-    |> String.replace ">" "&gt;"
-    |> String.replace "<" "&lt;"
-    |> String.replace "\"" "&quot;"
-    |> String.replace "'" "&#x27;"
-    |> String.replace "\\" "&#x2F;"
+
 
 filterTags : List Tag -> List Tag -> Bool
 filterTags ruleTags tags =

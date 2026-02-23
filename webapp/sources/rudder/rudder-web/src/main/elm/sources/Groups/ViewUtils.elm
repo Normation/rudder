@@ -46,15 +46,6 @@ generateLoadingList =
   , li[][i[][], span[][]]
   ]
 
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag
-
 foldedClass : Filters -> String -> String
 foldedClass filters catId =
   if List.member catId filters.folded then

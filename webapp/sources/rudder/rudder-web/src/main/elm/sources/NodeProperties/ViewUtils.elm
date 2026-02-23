@@ -16,6 +16,9 @@ import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ApiCalls exposing (deleteProperty, findPropertyUsage)
 
+import Utils.TooltipUtils exposing (buildTooltipContent)
+
+
 searchString : String -> String
 searchString str = str
   |> String.toLower
@@ -545,15 +548,3 @@ showModal model =
           ]
         ]
       ]
-
--- WARNING:
---
--- Here the content is an HTML so it need to be already escaped.
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag

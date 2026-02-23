@@ -1,7 +1,7 @@
 module Groups.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, href, id, placeholder, style, tabindex, title, type_, value)
+import Html.Attributes exposing (attribute, class, href, id, placeholder, style, title, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra exposing (onClickPreventDefault)
 import NaturalOrdering as N
@@ -14,7 +14,7 @@ import Groups.ViewUtils exposing (..)
 
 import Rudder.Filters
 import Ui.Datatable exposing (filterSearch, Category, generateLoadingTable)
-
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 view : Model -> Html Msg
 view model = 

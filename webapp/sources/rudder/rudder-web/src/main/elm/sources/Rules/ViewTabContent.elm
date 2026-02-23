@@ -4,14 +4,14 @@ import Dict
 import Dict.Extra
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onCheck)
+import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
 import Maybe.Extra
 import Set
-import NaturalOrdering as N exposing (compareOn, compare)
-import NaturalOrdering as N exposing (compareOn, compare)
+import NaturalOrdering as N exposing (compareOn)
 import Tuple3
+import Html.Events.Extra exposing (onClickPreventDefault)
 
 import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports
@@ -22,8 +22,7 @@ import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (badgePolicyMode, defaultComplianceFilter, displayComplianceFilters, filterDetailsByCompliance)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..), filterSearch, Category, getSubElems, getAllElems, generateLoadingTable)
-import Html.Events.Extra exposing (onClickPreventDefault)
-
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 --
 -- This file contains all methods to display the details of the selected rule.

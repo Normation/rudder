@@ -1,6 +1,5 @@
 module Editor.ViewTechniqueList exposing (..)
 
-import Compliance.Utils exposing (buildTooltipContent)
 import Dict
 import Either exposing (Either(..))
 import Html exposing (..)
@@ -9,9 +8,11 @@ import Html.Events exposing (..)
 import Html.Events.Extra exposing (onClickPreventDefault)
 import List.Extra
 import Maybe.Extra
-import NaturalOrdering as N exposing (compare)
-import Editor.DataTypes exposing (..)
+import NaturalOrdering as N
 import String.Extra
+
+import Editor.DataTypes exposing (..)
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 --
 -- This file deals with the technique list UI

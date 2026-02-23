@@ -8,7 +8,6 @@ import List.Extra
 import String.Extra
 
 import Score.DataTypes exposing (..)
-import Compliance.Utils exposing (buildTooltipContent)
 
 scoreLabel : ScoreValue -> String
 scoreLabel score =

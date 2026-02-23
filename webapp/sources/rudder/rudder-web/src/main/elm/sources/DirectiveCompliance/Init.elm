@@ -1,10 +1,8 @@
 module DirectiveCompliance.Init exposing (..)
 
-import Dict exposing (Dict)
 
 import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
-import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (defaultComplianceFilter)
 import Ui.Datatable exposing (defaultTableFilters )
 

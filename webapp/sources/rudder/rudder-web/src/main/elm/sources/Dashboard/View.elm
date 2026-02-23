@@ -2,7 +2,7 @@ module Dashboard.View exposing (..)
 
 import Dashboard.DataTypes exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (class, href, attribute, style)
+import Html.Attributes exposing (class, href, attribute)
 import Html.Events exposing (onClick)
 import Markdown
 import Markdown.Config exposing (Options, defaultOptions)
@@ -10,9 +10,10 @@ import DateFormat.Relative
 import List
 import Maybe.Extra
 import Iso8601
-import Accounts.ViewUtils exposing (relativeTimeOptions)
-import Accounts.DatePickerUtils exposing (posixToString)
-import Compliance.Utils exposing (buildTooltipContent)
+
+import Utils.DateUtils exposing (relativeTimeOptions, posixToString)
+import Utils.TooltipUtils exposing (buildTooltipContent)
+
 
 view : Model -> Html Msg
 view model =

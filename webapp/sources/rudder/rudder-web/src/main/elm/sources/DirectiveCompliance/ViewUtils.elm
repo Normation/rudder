@@ -20,7 +20,6 @@ import Compliance.Utils exposing (..)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..))
 
-
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
   custom "click"
@@ -241,17 +240,6 @@ searchFieldNodeCompliance n =
   [ n.nodeId.value
   , n.name
   ]
-
-
-htmlEscape : String -> String
-htmlEscape s =
-  String.replace "&" "&amp;" s
-    |> String.replace ">" "&gt;"
-    |> String.replace "<" "&lt;"
-    |> String.replace "\"" "&quot;"
-    |> String.replace "'" "&#x27;"
-    |> String.replace "\\" "&#x2F;"
-
 
 buildComplianceReport : List Report -> Html Msg
 buildComplianceReport reports =
