@@ -1,4 +1,5 @@
-FROM rust:1.93.0-trixie
+# bookwork to be compatible with both old and new APT APIs
+FROM rust:1.93.0-bookworm
 LABEL ci=rudder/policies/agent.Dockerfile
 
 ARG USER_ID=1000
