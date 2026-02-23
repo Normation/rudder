@@ -18,7 +18,7 @@ ENV RUSTC_WRAPPER="sccache"
 # we need cf-promises, the easiest way is to install an agent
 RUN <<EOF
 set -e
-if [ "$INSTALL_PWSH" = "1"] then;
+if [ "$INSTALL_PWSH" = "1"]; then
   wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/powershell_7.4.0-1.deb_amd64.deb
   apt-get install ./powershell_7.4.0-1.deb_amd64.deb
   pwsh -Command Install-Module -Name PSScriptAnalyzer -RequiredVersion $PSANALYZER_VERSION -Scope AllUsers -Confirm:\$false -Force
