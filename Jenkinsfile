@@ -447,8 +447,9 @@ pipeline {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
+                                // Skip Windows & rudderc tests, focus on agent side
                                 sh script: 'make check-modules', label: 'modules test'
-                                sh script: 'make check-methods-unix', label: 'modules test'
+                                sh script: 'make check-methods-unix', label: 'linux methods test'
                             }
                         }
                     }
