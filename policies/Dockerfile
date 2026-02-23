@@ -15,5 +15,5 @@ RUN ./rust.sh
 ENV RUSTC_WRAPPER="sccache"
 ENV INSTALL_PWSH=1
 
-COPY policies/setup.sh .
+COPY setup.sh .
 RUN ./setup.sh
