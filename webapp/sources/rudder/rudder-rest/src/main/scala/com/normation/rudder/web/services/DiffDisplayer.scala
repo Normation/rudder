@@ -134,8 +134,8 @@ object DiffDisplayer {
       case Some(diff) =>
         <div id={title}><b>{title}:</b>
           <ul>
-            <li class="deleted">-{diff.oldValue}</li>
-            <li class="added">+{diff.newValue}</li>
+            <li class="deleted">-{display(diff.oldValue)}</li>
+            <li class="added">+{display(diff.newValue)}</li>
           </ul>
           </div>
     }

@@ -1,6 +1,7 @@
 package com.normation.rudder.web.services.eventlog
 
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.eventlogs.*
 import scala.xml.NodeSeq
@@ -112,7 +113,7 @@ object TechniqueLogDetails {
         <li><b>Condition:&nbsp;</b>{block.condition}</li>
         <li><b>Reporting:&nbsp;</b>{block.reportingLogic.value}</li>
         <li><b>Policy mode:&nbsp;</b>{block.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue)}</li>
-        <li><b>Loop:&nbsp;</b>{block.foreach.map(f => foreachdetails(f, block.foreachName))}</li>
+        <li><b>Loop:&nbsp;</b>{block.foreach.map(f => foreachdetails(f, block.foreachName)).getOrElse(Text(""))}</li>
         <li><b>Children:</b>{methodElemDetails(block.calls)}</li>
       </ul>
     </div>
@@ -143,12 +144,12 @@ object TechniqueLogDetails {
     <div>
       <ul class="ms-3 evlogviewpad">
         <li><b>ID:&nbsp;</b>{call.id}</li>
-        <li><b>Method:&nbsp;</b>{call.method}</li>
+        <li><b>Method:&nbsp;</b>{call.method.value}</li>
         <li><b>Component:&nbsp;</b>{call.component}</li>
         <li><b>Condition:&nbsp;</b>{call.condition}</li>
         <li><b>Reporting disabled:&nbsp;</b>{call.disabledReporting}</li>
         <li><b>Policy mode:&nbsp;</b>{call.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue)}</li>
-        <li><b>Loop:&nbsp;</b>{call.foreach.map(f => foreachdetails(f, call.foreachName))}</li>
+        <li><b>Loop:&nbsp;</b>{call.foreach.map(f => foreachdetails(f, call.foreachName)).getOrElse(Text(""))}</li>
         <li><b>Parameters:&nbsp;</b>{call.parameters.map(callParametersDetails.tupled)}</li>
       </ul>
     </div>
@@ -195,7 +196,11 @@ object TechniqueLogDetails {
       case DeleteTechniqueParameterDiff(techniqueParameter) =>
         <li class="deleted">{techniqueParameterDetails(techniqueParameter)}</li>
       case diff: ModifyTechniqueParameterDiff =>
-        <ul class="ms-3">
+        if (diff.isEmpty) {
+          NodeSeq.Empty
+        } else {
+          <li>
+          <ul class="ms-3">
           <li>
             <b>ID: </b>{diff.id.value}
           </li>
@@ -208,6 +213,8 @@ object TechniqueLogDetails {
           <div>{displaySimpleDiffT(diff.modMayBeEmpty, "May be empty")(_.toString)}</div>
           {"" /*<li><b>Constraint:&nbsp;</b>{methodElemDetails(technique.calls)}</li>*/}
         </ul>
+          </li>
+        }
     }
   }
 
@@ -218,7 +225,10 @@ object TechniqueLogDetails {
       case AddTechniqueBlockDiff(block)    => <li class="added">{blockDetails(block)}</li>
       case DeleteTechniqueBlockDiff(block) => <li class="deleted">{blockDetails(block)}</li>
       case diff: ModifyTechniqueCallDiff  =>
-        <ul class="ms-3">
+        if (diff.isEmpty) {
+          NodeSeq.Empty
+        } else {
+          <li><ul class="ms-3">
           <li>
             <b>Call ID: </b>{diff.id}
           </li>
@@ -228,17 +238,22 @@ object TechniqueLogDetails {
           <div>{displaySimpleDiff(diff.modComponent, "Name").getOrElse(NodeSeq.Empty)}</div>
           <div>{displaySimpleDiff(diff.modCondition, "Condition").getOrElse(NodeSeq.Empty)}</div>
           <div>{displaySimpleDiffT(diff.modPolicyMode, "PolicyMode")(_.map(_.name).getOrElse(PolicyMode.defaultValue))}</div>
-          <div>{displaySimpleDiffT(diff.modeDisableReporting, "Reporting disabled")(_.toString)}</div>
+          <div>{displaySimpleDiffT(diff.modDisableReporting, "Reporting disabled")(_.toString)}</div>
           <div>{
-          mapComplexDiff(diff.modForeach, "Loop")(
-            _.map(foreachdetails(_, diff.modForeachName.flatMap(_.oldValue))).getOrElse(NodeSeq.Empty)
-          )
-        }</div>
-          <div>{mapComplexDiff(diff.modParameters, "Parameters")(_.map(callParametersDetails.tupled).toSeq)}</div>
+            mapComplexDiff(diff.modForeach, "Loop")(
+              _.map(foreachdetails(_, diff.modForeachName.flatMap(_.oldValue))).getOrElse(NodeSeq.Empty)
+            )
+          }</div>
+          <div>{callParameterDetails(diff.modParameters)}</div>
 
         </ul>
+        </li>
+        }
       case diff: ModifyTechniqueBlockDiff =>
-        <ul class="ms-3">
+        if (diff.isEmpty) {
+          NodeSeq.Empty
+        } else {
+          <li><ul class="ms-3">
           <li>
             <b>Block ID: </b>{diff.id}
           </li>
@@ -248,16 +263,33 @@ object TechniqueLogDetails {
           <div>{displaySimpleDiff(diff.modComponent, "Name").getOrElse(NodeSeq.Empty)}</div>
           <div>{displaySimpleDiff(diff.modCondition, "Condition").getOrElse(NodeSeq.Empty)}</div>
           <div>{displaySimpleDiffT(diff.modPolicyMode, "PolicyMode")(_.map(_.name).getOrElse(PolicyMode.defaultValue))}</div>
-          <div>{displaySimpleDiffT(diff.modeReportingLogic, "Reporting")(_.value)}</div>
+          <div>{displaySimpleDiffT(diff.modReportingLogic, "Reporting")(_.value)}</div>
           <div>{
-          mapComplexDiff(diff.modForeach, "Loop")(
-            _.map(foreachdetails(_, diff.modForeachName.flatMap(_.oldValue))).getOrElse(NodeSeq.Empty)
-          )
-        }</div>
+            mapComplexDiff(diff.modForeach, "Loop")(
+              _.map(foreachdetails(_, diff.modForeachName.flatMap(_.oldValue))).getOrElse(NodeSeq.Empty)
+            )
+          }</div>
           <div>{methodElemDiffDetails(diff.modCalls)}</div>
 
-        </ul>
+        </ul></li>
+        }
     }
+  }
+
+  private def callParameterDetails(params: Map[ParameterId, Option[SimpleDiff[String]]]) = {
+    if (params.isEmpty) {
+      NodeSeq.Empty
+    } else {
+      <b>Parameters:</b> ++ <ul class="ms-3">
+        {
+        params.flatMap { param =>
+          param._2.map(diff => <li><b>Parameter:&nbsp;</b>{param._1.value}</li>
+              <li>{displaySimpleDiff(Some(diff), "Value").getOrElse(Text(""))}</li>)
+        }
+      }
+      </ul>
+    }
+
   }
 
   private def parametersDiffDetails(params: Seq[TechniqueParameterDiff]) = {
@@ -265,10 +297,7 @@ object TechniqueLogDetails {
     else {
       <b>Parameters:</b> ++ <ul class="ms-3">
         {
-        params.map { param =>
-          <li>{parameterModDetails(param)}
-        </li>
-        }
+        params.map(param => { parameterModDetails(param) })
       }</ul>
     }
 
@@ -279,10 +308,7 @@ object TechniqueLogDetails {
     else {
       <b>Calls:</b> ++ <ul class="ms-3">
       {
-        calls.map { call =>
-          <li>{methodElemModDetails(call)}
-        </li>
-        }
+        calls.map(call => methodElemModDetails(call))
       }</ul>
     }
 
