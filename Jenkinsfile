@@ -325,7 +325,7 @@ pipeline {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             script {
-                                docker.image('postgres:11-bullseye').withRun('-u 0:0 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
+                                docker.image('postgres:13-trixie').withRun('-u 0:0 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
                                     docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
                                           .inside("-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet --link=${c.id}:postgres") {
                                         dir('relay/sources/relayd') {
@@ -426,6 +426,40 @@ pipeline {
                                 errors.add("Tests - policies")
                                 slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
                                 slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
+                stage('policies-arm') {
+                    agent {
+                        dockerfile {
+                            label 'generic-arm-docker'
+                            filename 'policies/agent.Dockerfile'
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                        }
+                    }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('policies') {
+                                // Skip Windows & rudderc tests, focus on agent side
+                                sh script: 'make check-modules', label: 'modules test'
+                                sh script: 'make check-methods-unix', label: 'linux methods test'
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - policies arm")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error during policies arm tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
                             }
                         }
                         cleanup {

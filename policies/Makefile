@@ -8,12 +8,14 @@ check-methods-unix:
 check-methods-windows:
 	$(MAKE) cargo-test PACKAGE=lib FEATURES=test-windows
 
-check: lint
+check: lint check-modules
 	cd rudderc && make check
 	$(MAKE) cargo-test PACKAGE=agent
 	$(MAKE) cargo-test PACKAGE=rudder_cli
 	$(MAKE) cargo-test PACKAGE=rudder_commons
 	$(MAKE) cargo-test PACKAGE=rudder-report
+
+check-modules:
 	$(MAKE) cargo-test PACKAGE=rudder-module-system-updates
 	$(MAKE) cargo-test PACKAGE=rudder-module-system-updates FEATURES=apt
 	$(MAKE) cargo-test PACKAGE=rudder-module-system-updates FEATURES=apt-compat
