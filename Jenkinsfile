@@ -435,6 +435,38 @@ pipeline {
                         }
                     }
                 }
+                stage('policies-arm') {
+                    agent {
+                        dockerfile {
+                            label 'generic-arm-docker'
+                            filename 'policies/Dockerfile'
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                        }
+                    }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('policies') {
+                                sh script: 'make check-modules', label: 'modules test'
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - policies arm")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error during policies arm tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
             }
         }
         stage("Compatibility tests") {
