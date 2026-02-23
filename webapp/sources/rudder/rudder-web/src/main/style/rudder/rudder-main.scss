@@ -2254,6 +2254,7 @@ table a > i.fa-pencil:hover{
 /// Class to mark a relative date that can be hovered to show the actual value, which can copied to clipboard
 span.relative-date {
   color: rudder.$txt-secondary;
+  cursor: pointer;
 }
 
 /* DATEPICKERS */
