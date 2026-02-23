@@ -14,8 +14,7 @@ RUN ./rust.sh
 
 ENV RUSTC_WRAPPER="sccache"
 
-# we need cf-promises
-# the easiest way is to install an agent
+# we need cf-promises, the easiest way is to install an agent
 RUN <<EOF
 set -e
 wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/powershell_7.4.0-1.deb_amd64.deb
