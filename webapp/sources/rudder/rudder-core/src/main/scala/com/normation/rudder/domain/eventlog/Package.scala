@@ -43,4 +43,6 @@ package object eventlog {
 
   val RudderEventActor: EventActor = EventActor("rudder")
 
+  val RudderSystemEventActor: EventActor = EventActor("Rudder system account")
+
 }
