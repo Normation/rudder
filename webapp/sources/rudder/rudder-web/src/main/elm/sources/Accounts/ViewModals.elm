@@ -2,7 +2,6 @@ module Accounts.ViewModals exposing (..)
 
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
-import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (parseTenants)
 import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
@@ -10,6 +9,9 @@ import Html.Attributes exposing (checked, class, disabled, for, id, name, placeh
 import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra exposing (Interval(..), add)
+import Utils.DateUtils exposing (posixToString)
+import Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
+
 
 buildModal : String -> Html Msg -> Html Msg -> Html Msg
 buildModal modalTitle modalBody modalBtn =

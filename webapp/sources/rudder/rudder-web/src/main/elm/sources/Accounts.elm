@@ -4,7 +4,6 @@ import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes as TenantMode exposing (..)
 import Accounts.DataTypes as Token exposing (..)
 import Accounts.DataTypes as TokenState exposing (..)
-import Accounts.DatePickerUtils exposing (..)
 import Accounts.Init exposing (..)
 import Accounts.JsonDecoder exposing (decodeErrorDetails)
 import Accounts.JsonEncoder exposing (encodeAccountTenants, encodeTokenAcl)
@@ -14,10 +13,11 @@ import Browser
 import Http.Detailed as Detailed
 import Random
 import Result
-import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
-import Time.Extra as Time exposing (Interval(..), add)
+import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
+import Time.Extra exposing (Interval(..), add)
 import UUID
 import Maybe.Extra
+import Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
 
 
 

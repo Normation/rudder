@@ -223,16 +223,6 @@ searchFieldNodeCompliance n =
   ]
 
 
-htmlEscape : String -> String
-htmlEscape s =
-  String.replace "&" "&amp;" s
-    |> String.replace ">" "&gt;"
-    |> String.replace "<" "&lt;"
-    |> String.replace "\"" "&quot;"
-    |> String.replace "'" "&#x27;"
-    |> String.replace "\\" "&#x2F;"
-
-
 buildComplianceReport : List Report -> Html Msg
 buildComplianceReport reports =
   let

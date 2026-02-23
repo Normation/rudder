@@ -12,7 +12,7 @@ import String.Extra
 import Dom exposing (..)
 import Dom.DragDrop as DragDrop
 
-import Compliance.Utils exposing (buildTooltipContent)
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
 import Editor.DataTypes exposing (..)
@@ -28,21 +28,12 @@ getTooltipContent method =
   let
     description = case method.description of
         "" -> ""
-        d  -> "<div class='description'>"++ htmlEscape d ++"</div>"
+        d  -> "<div class='description'>"++ d ++"</div>"
     deprecation = case method.deprecated of
       Nothing -> ""
-      Just  m -> "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"++ htmlEscape m ++"</div></div>"
+      Just  m -> "<div class='deprecated-info'><div>This generic method is <b>deprecated</b>.</div> <div class='deprecated-message'><b>↳</b>"++ m ++"</div></div>"
   in
-    buildTooltipContent ("Method '<b>"++ htmlEscape method.name ++"</b>'") (description ++ deprecation)
-
-htmlEscape : String -> String
-htmlEscape s =
-  String.replace "&" "&amp;" s
-    |> String.replace ">" "&gt;"
-    |> String.replace "<" "&lt;"
-    |> String.replace "\"" "&quot;"
-    |> String.replace "'" "&#x27;"
-    |> String.replace "\\" "&#x2F;"
+    buildTooltipContent ("Method '<b>"++ method.name ++"</b>'") (description ++ deprecation)
 
 methodsList: Model -> Html Msg
 methodsList model =

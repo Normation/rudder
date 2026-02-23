@@ -1,8 +1,6 @@
 module UserManagement.View exposing (..)
 
 import Dict.Extra
-import UserManagement.ApiCalls exposing (deleteUser)
-import UserManagement.DataTypes exposing (..)
 import Dict exposing (Dict, keys)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, disabled, for, href, id, placeholder, required, style, tabindex, type_, value, colspan, checked, title)
@@ -14,6 +12,11 @@ import Set
 import String exposing (isEmpty)
 import NaturalOrdering as N
 import Json.Encode exposing (encode)
+import UserManagement.ApiCalls exposing (deleteUser)
+import UserManagement.DataTypes exposing (..)
+
+import Utils.TooltipUtils exposing (buildTooltipContent)
+
 
 view : Model -> Html Msg
 view model =
@@ -973,12 +976,3 @@ getSortFunction model u1 u2 =
                   (Nothing, Nothing) -> EQ
                   (Just l1, Just l2) -> checkOrder (N.compare l1 l2)
           _ -> checkOrder (N.compare u1.login u2.login)
-
-buildTooltipContent : String -> String -> String
-buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
-    headingTag ++ title ++ contentTag ++ content ++ closeTag

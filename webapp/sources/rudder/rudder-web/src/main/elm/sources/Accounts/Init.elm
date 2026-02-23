@@ -2,7 +2,6 @@ port module Accounts.Init exposing (..)
 
 import Accounts.ApiCalls exposing (getAccounts)
 import Accounts.DataTypes exposing (..)
-import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (decodePortAcl)
 import Dict
 import Json.Decode exposing (..)
@@ -12,6 +11,7 @@ import Time exposing (Month(..), Posix, Zone)
 import TimeZone
 
 import Ui.Datatable exposing (defaultTableFilters)
+import Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
 
 
 -- PORTS / SUBSCRIPTIONS

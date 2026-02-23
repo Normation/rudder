@@ -8,7 +8,7 @@ import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import String.Extra
 
-import Compliance.Utils exposing (buildTooltipContent)
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 port sendHtml : String -> Cmd msg
 port getValue : (Value -> msg) -> Sub msg

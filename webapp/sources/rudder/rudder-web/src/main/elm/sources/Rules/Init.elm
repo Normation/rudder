@@ -9,14 +9,14 @@ import Html.Events exposing (onClick)
 import List.Nonempty as NonEmptyList
 import Ordering exposing (Ordering)
 import Round
-import Rudder.Filters
 import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), buildConfig, buildCustomizations, buildOptions)
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 
 import Compliance.Utils exposing (defaultComplianceFilter)
-import Rules.ViewUtils exposing (badgePolicyModeNoGlobal, buildTagsTree, buildTooltipContent)
+import Rules.ViewUtils exposing (badgePolicyModeNoGlobal, buildTagsTree)
 import Ui.Datatable exposing (defaultTableFilters, Category, SubCategories(..))
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
 init : { contextPath : String, hasWriteRights : Bool, canReadChanqeRequest : Bool } -> ( Model, Cmd Msg )

@@ -18,6 +18,7 @@ import GroupCompliance.DataTypes exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (..)
 import Ui.Datatable exposing (SortOrder(..))
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
 isGlobalCompliance : Model -> Bool
