@@ -440,7 +440,7 @@ pipeline {
                         dockerfile {
                             label 'generic-arm-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg INSTALL_PWSH=0"
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
