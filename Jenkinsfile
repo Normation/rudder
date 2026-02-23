@@ -448,6 +448,7 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
                                 sh script: 'make check-modules', label: 'modules test'
+                                sh script: 'make check-methods-unix', label: 'modules test'
                             }
                         }
                     }
