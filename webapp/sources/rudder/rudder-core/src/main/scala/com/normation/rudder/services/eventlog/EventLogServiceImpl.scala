@@ -89,11 +89,12 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
   }
 
   private def excludeRudderEventLogs(filter: Option[EventLogRequest]) = {
+    val rudderActors      = NonEmptyList.of(RudderEventActor, RudderSystemEventActor)
     val excludePrincipals = filter
       .flatMap(f => f.principal)
       .flatMap(_.exclude)
-      .map(_.append(RudderEventActor))
-      .getOrElse(NonEmptyList.of(RudderEventActor))
+      .map(_.concatNel(rudderActors))
+      .getOrElse(rudderActors)
     val includePrincipals = filter.flatMap(f => f.principal).flatMap(_.include)
     filter.map(f => {
       f.copy(principal = Some(PrincipalFilter(includePrincipals, Some(excludePrincipals))))
