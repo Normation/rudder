@@ -277,7 +277,7 @@ class EditorTechniqueXmlSerialisationImpl(xmlVersion: String) extends EditorTech
           Nil ++
           modifyDiff.modComponent.map(x => SimpleDiff.stringToXml(<component/>, x)).getOrElse(NodeSeq.Empty) ++
           modifyDiff.modCondition.map(x => SimpleDiff.stringToXml(<condition/>, x)).getOrElse(NodeSeq.Empty) ++
-          modifyDiff.modeReportingLogic
+          modifyDiff.modReportingLogic
             .map(x => SimpleDiff.toXml(<reportingLogic/>, x)(rl => Text(rl.value)))
             .getOrElse(NodeSeq.Empty) ++
           modifyDiff.modPolicyMode
@@ -302,13 +302,21 @@ class EditorTechniqueXmlSerialisationImpl(xmlVersion: String) extends EditorTech
           Nil ++
           modifyDiff.modComponent.map(x => SimpleDiff.stringToXml(<component/>, x)).getOrElse(NodeSeq.Empty) ++
           modifyDiff.modCondition.map(x => SimpleDiff.stringToXml(<condition/>, x)).getOrElse(NodeSeq.Empty) ++
-          modifyDiff.modeDisableReporting.map(x => SimpleDiff.booleanToXml(<disableReporting/>, x)).getOrElse(NodeSeq.Empty) ++
+          modifyDiff.modDisableReporting.map(x => SimpleDiff.booleanToXml(<disableReporting/>, x)).getOrElse(NodeSeq.Empty) ++
           modifyDiff.modPolicyMode
             .map(x => SimpleDiff.toXml(<policyMode/>, x)(rl => Text(rl.map(_.name).getOrElse(PolicyMode.defaultValue))))
             .getOrElse(NodeSeq.Empty) ++
-          modifyDiff.modParameters
-            .map(x => SimpleDiff.toXml(<parameters/>, x)(_.toList.map(serializeMethodParameter.tupled)))
-            .getOrElse(NodeSeq.Empty) ++
+          (if (modifyDiff.modParameters.isEmpty) NodeSeq.Empty
+           else
+             <parameters>{
+               modifyDiff.modParameters.flatMap {
+                 case (pid, optDiff) =>
+                   optDiff.map(diff => <parameter>
+                    <id>{pid.value}</id>
+                    {SimpleDiff.stringToXml(<value/>, diff)}
+                  </parameter>)
+               }
+             }</parameters>) ++
           modifyDiff.modForeachName.map(x => SimpleDiff.optionToXml(<foreachName/>, x)(Text(_))).getOrElse(NodeSeq.Empty) ++
           modifyDiff.modForeach.map(x => SimpleDiff.optionToXml(<foreach/>, x)(serializeForeach)).getOrElse(NodeSeq.Empty)
         )

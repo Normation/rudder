@@ -89,23 +89,25 @@ final case class ModifyEditorTechniqueDiff(
   }
 }
 
-sealed trait TechniqueBlockDiff
-final case class AddTechniqueBlockDiff(methodBlock: MethodBlock)    extends TechniqueBlockDiff
-final case class DeleteTechniqueBlockDiff(methodBlock: MethodBlock) extends TechniqueBlockDiff
+sealed trait TechniqueBlockDiff { def isEmpty: Boolean }
+final case class AddTechniqueBlockDiff(methodBlock: MethodBlock)    extends TechniqueBlockDiff { def isEmpty = false }
+final case class DeleteTechniqueBlockDiff(methodBlock: MethodBlock) extends TechniqueBlockDiff { def isEmpty = false }
 final case class ModifyTechniqueBlockDiff(
-    id:                 String,
-    component:          String,
-    modComponent:       Option[SimpleDiff[String]],
-    modCondition:       Option[SimpleDiff[String]],
-    modeReportingLogic: Option[SimpleDiff[ReportingLogic]],
-    modCalls:           List[TechniqueBlockDiff | TechniqueCallDiff],
-    modPolicyMode:      Option[SimpleDiff[Option[PolicyMode]]],
-    modForeach:         Option[SimpleDiff[Option[List[Map[String, String]]]]],
-    modForeachName:     Option[SimpleDiff[Option[String]]]
+    id:                String,
+    component:         String,
+    modComponent:      Option[SimpleDiff[String]],
+    modCondition:      Option[SimpleDiff[String]],
+    modReportingLogic: Option[SimpleDiff[ReportingLogic]],
+    modCalls:          List[TechniqueBlockDiff | TechniqueCallDiff],
+    modPolicyMode:     Option[SimpleDiff[Option[PolicyMode]]],
+    modForeach:        Option[SimpleDiff[Option[List[Map[String, String]]]]],
+    modForeachName:    Option[SimpleDiff[Option[String]]]
 ) extends TechniqueBlockDiff {
   def needDeployment: Boolean = {
-    modCalls.nonEmpty || modPolicyMode.isDefined || modeReportingLogic.isDefined
+    modCalls.nonEmpty || modPolicyMode.isDefined || modReportingLogic.isDefined
   }
+  def isEmpty:        Boolean = modComponent.isEmpty && modCondition.isEmpty && modReportingLogic.isEmpty && modCalls.isEmpty &&
+    modPolicyMode.isEmpty && modForeach.isEmpty && modForeachName.isEmpty
 }
 
 object ModifyTechniqueBlockDiff {
@@ -125,27 +127,45 @@ object ModifyTechniqueBlockDiff {
 
 }
 
-sealed trait TechniqueCallDiff
-final case class AddTechniqueCallDiff(methodBlock: MethodCall)    extends TechniqueCallDiff
-final case class DeleteTechniqueCallDiff(methodBlock: MethodCall) extends TechniqueCallDiff
+sealed trait TechniqueCallDiff { def isEmpty: Boolean }
+final case class AddTechniqueCallDiff(methodBlock: MethodCall)    extends TechniqueCallDiff { def isEmpty = false }
+final case class DeleteTechniqueCallDiff(methodBlock: MethodCall) extends TechniqueCallDiff { def isEmpty = false }
 final case class ModifyTechniqueCallDiff(
-    method:               BundleName,
-    id:                   String,
-    component:            String,
-    modComponent:         Option[SimpleDiff[String]],
-    modCondition:         Option[SimpleDiff[String]],
-    modeDisableReporting: Option[SimpleDiff[Boolean]],
-    modParameters:        Option[SimpleDiff[Map[ParameterId, String]]],
-    modPolicyMode:        Option[SimpleDiff[Option[PolicyMode]]],
-    modForeach:           Option[SimpleDiff[Option[List[Map[String, String]]]]],
-    modForeachName:       Option[SimpleDiff[Option[String]]]
+    method:              BundleName,
+    id:                  String,
+    component:           String,
+    modComponent:        Option[SimpleDiff[String]],
+    modCondition:        Option[SimpleDiff[String]],
+    modDisableReporting: Option[SimpleDiff[Boolean]],
+    modParameters:       Map[ParameterId, Option[SimpleDiff[String]]],
+    modPolicyMode:       Option[SimpleDiff[Option[PolicyMode]]],
+    modForeach:          Option[SimpleDiff[Option[List[Map[String, String]]]]],
+    modForeachName:      Option[SimpleDiff[Option[String]]]
 ) extends TechniqueCallDiff {
   def needDeployment: Boolean = {
-    modParameters.isDefined || modPolicyMode.isDefined
+    modParameters.nonEmpty || modPolicyMode.isDefined
   }
+  def isEmpty:        Boolean = modComponent.isEmpty && modCondition.isEmpty && modDisableReporting.isEmpty && modParameters.isEmpty &&
+    modPolicyMode.isEmpty && modForeach.isEmpty && modForeachName.isEmpty
 }
 
 object ModifyTechniqueCallDiff {
+
+  def methodCallParameterDiff(oldParams: Map[ParameterId, String], newParams: Map[ParameterId, String]) = {
+    val allKeys = oldParams.keySet ++ newParams.keySet
+
+    (for {
+      key <- allKeys
+    } yield {
+      (oldParams.get(key), newParams.get(key)) match {
+        case (None, None)                             => (key, None)
+        case (Some(v), None)                          => (key, Some(SimpleDiff(v, "")))
+        case (None, Some(v))                          => (key, Some(SimpleDiff("", v)))
+        case (Some(vOld), Some(vNew)) if vOld == vNew => (key, None)
+        case (Some(vOld), Some(vNew))                 => (key, Some(SimpleDiff(vOld, vNew)))
+      }
+    }).toMap
+  }
   def apply(old: MethodCall, update: MethodCall): ModifyTechniqueCallDiff = {
     ModifyTechniqueCallDiff(
       old.method,
@@ -154,7 +174,7 @@ object ModifyTechniqueCallDiff {
       SimpleDiff.createDiff(old, update)(_.component),
       SimpleDiff.createDiff(old, update)(_.condition),
       SimpleDiff.createDiff(old, update)(_.disabledReporting),
-      SimpleDiff.createDiff(old, update)(_.parameters),
+      methodCallParameterDiff(old.parameters, update.parameters),
       SimpleDiff.createDiff(old, update)(_.policyMode),
       SimpleDiff.createDiff(old, update)(_.foreach),
       SimpleDiff.createDiff(old, update)(_.foreachName)
@@ -315,6 +335,8 @@ final case class ModifyTechniqueParameterDiff(
   def needDeployment: Boolean = {
     modName.isDefined || modConstraints.isDefined
   }
+  def isEmpty:        Boolean = modName.isEmpty && modDocumentation.isEmpty && modDescription.isEmpty && modMayBeEmpty.isEmpty &&
+    modConstraints.isEmpty
 }
 
 final case class DeleteTechniqueParameterDiff(techniqueParameter: TechniqueParameter) extends TechniqueParameterDiff
