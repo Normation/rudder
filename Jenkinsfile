@@ -439,8 +439,8 @@ pipeline {
                     agent {
                         dockerfile {
                             label 'generic-arm-docker'
-                            filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg INSTALL_PWSH=0"
+                            filename 'policies/agent.Dockerfile'
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
