@@ -156,7 +156,7 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
      '${currentTimezone}',
      ${hoursBeforeNow}
    );
-   createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
+   createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs, '${currentTimezone}')
    refreshEventLogs();
   """)) // JsRaw ok, escaped
     )

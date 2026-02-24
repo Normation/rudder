@@ -13,7 +13,7 @@ type alias Activity =
     , actor : String
     , description : String
     , actType : String
-    , date : Maybe Posix
+    , date : Posix
     }
 
 type alias RestEventLogFilter =
