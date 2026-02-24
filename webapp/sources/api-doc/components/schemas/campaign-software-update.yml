@@ -17,19 +17,11 @@ properties:
       $ref: ./rule-targets.yml
   softwareUpdate:
     type: array
-    description: List of all software to update
+    description: List of all software packages to update
     items:
-      type: object
-      properties:
-        name:
-          type : string
-          description: Name of the package  to update
-          example: htop
-        version:
-          type : string
-          description: Target version of the package to update to
-          example: "49.3"
-        arch:
-          type : string
-          description: Architecture of the package to update
-          example: "x64"
+      $ref: ./package-spec.yml
+  excludedPackages:
+    type: array
+    description: List of software packages to omit from the update
+    items:
+      $ref: ./package-spec.yml
