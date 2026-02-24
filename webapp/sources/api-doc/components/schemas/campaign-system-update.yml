@@ -16,3 +16,8 @@ properties:
     description: List of all  groups of node to target the campaign
     items:
       $ref: ./rule-targets.yml
+  excludedPackages:
+    type: array
+    description: List of system packages to omit from the update
+    items:
+      $ref: ./package-spec.yml

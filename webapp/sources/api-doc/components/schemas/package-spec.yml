@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2020 Normation SAS
+type: object
+description: System or software package specification
+properties:
+  name:
+    type : string
+    description: Name of the package
+    example: htop
+  version:
+    type : string
+    description: Target version of the package
+    example: "49.3"
+  arch:
+    type : string
+    description: Architecture of the package
+    example: "x64"
