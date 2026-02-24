@@ -48,13 +48,13 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
+import com.normation.rudder.eventlog.EventActor
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.CompilationStatus
 import com.normation.rudder.ncf.CompilationStatusAllSuccess
 import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.ncf.EditorTechniqueError
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
@@ -78,10 +78,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  private var compilationStatus:         CompilationStatus                                                                               = CompilationStatusAllSuccess
-  private var nodeProperties:            Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
-  private var groupProperties:           Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
-  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
+  private var compilationStatus: CompilationStatus                                                                               = CompilationStatusAllSuccess
+  private var nodeProperties:    Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
+  private var groupProperties:   Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
+  private def globalStatus:      (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
     (
       deploymentStatus.current,
       compilationStatus,
@@ -91,8 +91,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:               Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
-  def havePerm(perm: AuthorizationType): Boolean                                                                                         = {
+  private val currentUser:       Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
+  private val actor = currentUser match {
+    case None    => EventActor("unknown")
+    case Some(u) => u.qc.actor
+  }
+
+  def havePerm(perm: AuthorizationType): Boolean = {
     currentUser match {
       case None    => false
       case Some(u) => u.checkRights(perm)
@@ -357,7 +362,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       SHtml.ajaxButton(
         "Regenerate",
         () => {
-          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor) match {
+          clearCacheService.clearNodeConfigurationCache(storeEvent = true, actor) match {
             case Full(_) => // ok
             case eb: EmptyBox =>
               val err = eb ?~! "Error when trying to start policy generation"
