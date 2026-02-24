@@ -41,6 +41,7 @@ import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
 import com.normation.box.*
+import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
@@ -55,7 +56,6 @@ import com.normation.rudder.ncf.CompilationStatusAllSuccess
 import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.ncf.EditorTechniqueError
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
@@ -79,10 +79,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  private var compilationStatus:         CompilationStatus                                                                               = CompilationStatusAllSuccess
-  private var nodeProperties:            Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
-  private var groupProperties:           Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
-  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
+  private var compilationStatus:                                         CompilationStatus                                                                               = CompilationStatusAllSuccess
+  private var nodeProperties:                                            Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
+  private var groupProperties:                                           Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
+  private def globalStatus:                                              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
     (
       deploymentStatus.current,
       compilationStatus,
@@ -92,11 +92,14 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:               Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
-  def havePerm(perm: AuthorizationType): Boolean                                                                                         = {
+  private val currentUser:                                               Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
+  private def havePerm[A](perm: AuthorizationType)(a: EventActor ?=> A): Option[A]                                                                                       = {
     currentUser match {
-      case None    => false
-      case Some(u) => u.checkRights(perm)
+      case None    => Option.empty
+      case Some(u) => {
+        given EventActor = u.qc.actor
+        Option.when(u.checkRights(perm))(a)
+      }
     }
   }
 
@@ -221,7 +224,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
     def showGeneratePoliciesPopup:          NodeSeq = {
       val callback = () => Run("initBsModal('generatePoliciesDialog')") // JsRaw ok, const
-      if (havePerm(AuthorizationType.Deployer.Write)) {
+      havePerm(AuthorizationType.Deployer.Write) {
         <li class="list-group-item p-0">{
           SHtml.ajaxButton(
             Text("Regenerate all policies"),
@@ -230,7 +233,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           )
         }
         </li>
-      } else NodeSeq.Empty
+      }.getOrElse(NodeSeq.Empty)
     }
 
     def commonStatement(
@@ -354,11 +357,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def fullPolicyGeneration: NodeSeq = {
-    if (havePerm(AuthorizationType.Deployment.Write)) {
+    havePerm(AuthorizationType.Deployment.Write) {
       SHtml.ajaxButton(
         "Regenerate",
         () => {
-          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor).toBox match {
+          clearCacheService.clearNodeConfigurationCache(storeEvent = true, summon[EventActor]).toBox match {
             case Full(_) => // ok
             case eb: EmptyBox =>
               val err = eb ?~! "Error when trying to start policy generation"
@@ -368,7 +371,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         },
         ("class", "btn btn-danger")
       )
-    } else NodeSeq.Empty
+    }.getOrElse(NodeSeq.Empty)
   }
 
   private def showGroups(hasLastBottomBorder: Boolean): NodeSeq = {
@@ -548,7 +551,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def layout = {
-    if (havePerm(AuthorizationType.Deployment.Read)) {
+    havePerm(AuthorizationType.Deployment.Read) {
       // We have to compute in reverse order to know if the bottom border should be specialized
       val compilation = showCompilation
       val nodes       = showNodes(hasLastBottomBorder = compilation.isEmpty)
@@ -570,7 +573,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </ul>
       </li> ++ errorPopup ++ generatePoliciesPopup)
 
-    } else NodeSeq.Empty
+    }.getOrElse(NodeSeq.Empty)
   }
 
   private def errorPopup = {

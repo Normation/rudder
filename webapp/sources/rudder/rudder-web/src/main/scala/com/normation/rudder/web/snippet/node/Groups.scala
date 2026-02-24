@@ -39,7 +39,7 @@ package com.normation.rudder.web.snippet.node
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.plugins.SecureExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -76,18 +76,16 @@ object Groups {
 
 }
 
-class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with Loggable {
+class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
   import Groups.*
 
-  private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
+  private val getFullGroupLibrary   = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private val linkUtil              = RudderConfig.linkUtil
 
-  private var boxGroupLib = getFullGroupLibrary().toBox
+  private var boxGroupLib = CurrentUser.queryContext.withQCOr(Empty)(getFullGroupLibrary().toBox)
 
-  val mainDispatch: Map[String, NodeSeq => NodeSeq] = {
-    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-
+  val mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq] = {
     Map(
       "head"           -> head,
       "detailsPopup"   -> { (_: NodeSeq) => NodeGroupForm.staticBody },
@@ -95,6 +93,8 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
       "groupHierarchy" -> groupHierarchy(boxGroupLib)
     )
   }
+
+  private val checkRights = CurrentUser.checkRights
 
   // the current nodeGroupCategoryForm component
   private val nodeGroupCategoryForm = new LocalSnippet[NodeGroupCategoryForm]
@@ -334,7 +334,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
         )
 
         nodeGroupForm.set(Full(form))
-        form.dispatch("showForm")(NodeSeq.Empty);
+        form.dispatch("showForm")(NodeSeq.Empty)
 
       case CategoryForm(category) =>
         val form = new NodeGroupCategoryForm(htmlId_item, category, rootCategory, onSuccessCallback())
@@ -356,7 +356,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
 
   // that must be separated from refreshTree/refreshRightPanel
   // to avoid duplicate refresh or useless one (when only displaying without modification)
-  private def refreshGroupLib(): Unit = {
+  private def refreshGroupLib()(using qc: QueryContext): Unit = {
     boxGroupLib = getFullGroupLibrary().toBox
   }
 
@@ -409,7 +409,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             // build jstree and
             // init bind callback to move
             JsRaw(s"""
-        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(
+        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${checkRights(
                 AuthorizationType.Group.Edit
               )});
         if(${foldCategories}){
@@ -444,7 +444,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   /**
    * Create the popup
    */
-  private def createPopup: NodeSeq = {
+  private def createPopup(using qc: QueryContext): NodeSeq = {
     creationPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -530,7 +530,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
             (category.id.value, result)
           }) match {
             case Full((id, res)) =>
-              refreshGroupLib()
+              refreshGroupLib()(using cc.toQC)
               (
                 refreshTree(htmlTreeNodeId(id))(using cc.toQC)
                 & OnLoad(

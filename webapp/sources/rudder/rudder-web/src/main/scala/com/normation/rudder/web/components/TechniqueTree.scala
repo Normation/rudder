@@ -44,10 +44,10 @@ import com.normation.errors
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.policies.*
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import org.apache.commons.text.StringEscapeUtils
@@ -65,19 +65,19 @@ class TechniqueTree(
     htmlId_activeTechniquesTree: String,
     techniqueId:                 ActiveTechniqueId,
     switchStatusFilter:          ModificationStatus
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // find Technique
   val techniqueRepository       = RudderConfig.techniqueRepository
   val activeTechniqueRepository = RudderConfig.roDirectiveRepository
   val dependencyService         = RudderConfig.dependencyAndDeletionService
   val ruleRepository            = RudderConfig.roRuleRepository
-  val getGrouLib: () => errors.IOResult[FullNodeGroupCategory] = () =>
-    RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
+  def getGroupLib: () => QueryContext ?=> errors.IOResult[FullNodeGroupCategory] =
+    () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
 
-  def tree(): NodeSeq = {
+  def tree()(using qc: QueryContext): NodeSeq = {
 
     (for {
       parents            <- activeTechniqueRepository.activeTechniqueBreadCrump(techniqueId).toBox
@@ -87,7 +87,7 @@ class TechniqueTree(
                             }
       activeTechnique    <- activeTechniqueRepository.getActiveTechniqueByActiveTechnique(techniqueId).toBox.flatMap(Box(_))
       technique          <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
-      dep                <- dependencyService.techniqueDependencies(techniqueId, getGrouLib().toBox, switchStatusFilter)
+      dep                <- dependencyService.techniqueDependencies(techniqueId, getGroupLib().toBox, switchStatusFilter)
     } yield {
       categoryNode(rootCat, subCats, dep, technique, activeTechnique)
     }) match {
