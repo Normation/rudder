@@ -976,7 +976,9 @@ object DisplayNode extends Loggable {
           }</tr>
           </thead>
           <tbody class="toggle-color">{
-            seq.flatMap(x => <tr>{columns.flatMap { case (header, renderLine) => <td>{renderLine(x)}</td> }}</tr>)
+            seq.flatMap(x =>
+              <tr>{columns.flatMap { case (header, renderLine) => <td class="text-break">{renderLine(x)}</td> }}</tr>
+            )
           }</tbody>
           </table>
       }
