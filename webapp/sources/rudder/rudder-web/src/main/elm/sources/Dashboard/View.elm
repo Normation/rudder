@@ -8,7 +8,6 @@ import Markdown
 import Markdown.Config exposing (Options, defaultOptions)
 import DateFormat.Relative
 import List
-import Maybe.Extra
 import Iso8601
 
 import Utils.DateUtils exposing (relativeTimeOptions, posixToString)
@@ -39,25 +38,18 @@ view model =
         activityItem : Activity -> Html Msg
         activityItem a =
             let
-                (activityDate, relativeActivityDate) = case a.date of
-                    Just d -> (Just d, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions model.currentTime d)
-                    Nothing -> (Nothing, "-")
+                (activityDate, relativeActivityDate) =
+                    (a.date, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions model.currentTime a.date)
             in
                 li[class "activity-item d-flex flex-column w-100"]
                     [ div[]
                         [ span
-                            ( activityDate
-                                |> Maybe.Extra.unpack
-                                    ( \() -> [] )
-                                    ( \d ->
-                                        [ class "relative-date"
-                                        , attribute "data-bs-toggle" "tooltip"
-                                        , attribute "data-bs-placement" "top"
-                                        , attribute "title" (buildTooltipContent (a.actType) (posixToString model.zone d))
-                                        , onClick (Copy (Iso8601.fromTime d))
-                                        ]
-                                    )
-                            )
+                            [ class "relative-date"
+                            , attribute "data-bs-toggle" "tooltip"
+                            , attribute "data-bs-placement" "top"
+                            , attribute "title" (buildTooltipContent (a.actType) (posixToString model.zone activityDate))
+                            , onClick (Copy (Iso8601.fromTime activityDate))
+                            ]
                             [ text relativeActivityDate ]
                         , span[class "activity-actor text-secondary"]
                             [ text (", by " ++ a.actor) ]
