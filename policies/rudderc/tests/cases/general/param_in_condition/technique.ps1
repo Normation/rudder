@@ -2,7 +2,8 @@
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
-        [string]$reportId,
+        [Alias('reportId')]
+        [string]$reportIdentifier,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 
@@ -10,20 +11,9 @@
         [string]$file,
         [Rudder.PolicyMode]$policyMode
     )
-    $techniqueParams = @{
-
-        "file" = $file
-    }
-    BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
-    $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $splitReportId = $reportId -Split '@@'
-    $directiveId = if ($splitReportId.Count -ge 2) {
-        $splitReportId[1]
-    } else {
-        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
-        ''
-    }
-
+    BeginTechniqueCall -Name $techniqueName -Parameters $PSBoundParameters
+    $reportIdBase = $reportIdentifier.Substring(0, $reportIdentifier.Length - 1)
+    Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
         ComponentKey = 'None'
@@ -32,8 +22,8 @@
     }
 
 
-    $reportId=$reportIdBase + "9e763779-9f33-44bc-ad73-1c5d5732301c"
-    $resultId=$directiveId + '-' + "9e763779-9f33-44bc-ad73-1c5d5732301c"
+    $identifier=$reportIdBase + '9e763779-9f33-44bc-ad73-1c5d5732301c'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-9e763779-9f33-44bc-ad73-1c5d5732301c'
     try {
         $componentKey = @'
 /tmp/
@@ -47,10 +37,18 @@ vars.param_in_condition.file
 Check if a file exists
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = '9e763779-9f33-44bc-ad73-1c5d5732301c'
+          report_id = '9e763779_9f33_44bc_ad73_1c5d5732301c'
+          result_id = $resultId
+          identifier = $identifier
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -61,8 +59,9 @@ Check if a file exists
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -70,11 +69,11 @@ Check if a file exists
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "e8362340-dc50-4231-9b7f-748b51e9fa07"
-    $resultId=$directiveId + '-' + "e8362340-dc50-4231-9b7f-748b51e9fa07"
+    $identifier=$reportIdBase + 'e8362340-dc50-4231-9b7f-748b51e9fa07'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-e8362340-dc50-4231-9b7f-748b51e9fa07'
     try {
         $componentKey = @'
 echo "May be executed or not"
@@ -86,10 +85,18 @@ echo "May be executed or not"
 Execute only if...
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'e8362340-dc50-4231-9b7f-748b51e9fa07'
+          report_id = 'e8362340_dc50_4231_9b7f_748b51e9fa07'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $class = ('file_check_exists__tmp_' + ([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
@@ -101,8 +108,9 @@ vars.param_in_condition.file
 echo "May be executed or not"
 '@
                 
+                PolicyMode = $policyMode
             }
-            $call = Command-Execution @methodParams -PolicyMode $policyMode
+            $call = Command-Execution @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -115,8 +123,9 @@ echo "May be executed or not"
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -124,7 +133,7 @@ echo "May be executed or not"
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName
