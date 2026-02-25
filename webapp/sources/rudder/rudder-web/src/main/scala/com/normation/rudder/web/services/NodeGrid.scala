@@ -239,10 +239,10 @@ final class NodeGrid(
     "#lines *" #> lines).apply(tableTemplate)
   }
   private val datatableXml = {
-    <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
-      <td class="curspoint"><span class="hostname listopen"></span></td>
-      <td class="fullos curspoint"></td>
-      <td class="curspoint"><ul class="ips"></ul></td>
+    <tr class="nodetr cursorPointer" jsuuid="id" nodeid="nodeid" nodestatus="status">
+      <td class="cursorPointer"><span class="hostname listopen"></span></td>
+      <td class="fullos cursorPointer"></td>
+      <td class="cursorPointer"><ul class="ips mb-0"></ul></td>
       <td class="other"></td>
     </tr>
   }

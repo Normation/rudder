@@ -93,7 +93,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       "tbody *" #> ("tr" #> params.map { param =>
         val lineHtmlId = Helpers.nextFuncName
         ".parameterLine [jsuuid]" #> lineHtmlId &
-        ".parameterLine [class]" #> Text("curspoint") &
+        ".parameterLine [class]" #> Text("cursorPointer") &
         ".name *" #> <b>{param.name}</b> &
         ".value *" #> <pre class="json-beautify">{param.valueAsString}</pre> &
         ".description *" #> <span><ul class="ms-2"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
