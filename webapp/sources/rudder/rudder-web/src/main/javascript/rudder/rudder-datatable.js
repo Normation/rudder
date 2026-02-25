@@ -1662,7 +1662,7 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
         row = $(row);
         row.attr("id",data.id);
         if (data.hasDetails) {
-          row.addClass("curspoint");
+          row.addClass("cursorPointer");
           // Remove all previously added callbacks on row or you will get problems
           row.unbind();
           // Add callback to open the line

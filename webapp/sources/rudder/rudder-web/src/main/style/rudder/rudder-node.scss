@@ -220,6 +220,7 @@ form select.selectField {
 .accounts-info{
   margin-bottom: 15px;
 }
+
 #nodeDetails h3{
   color: rudder.$txt-primary;
   display: block;
@@ -540,3 +541,22 @@ div.serverDetail {
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
 }
 
+/* PENDING NODES */
+.dataTable {
+  .rudder-info:first-child{
+    display: none;
+  }
+  .status-info{
+    margin-top: 1rem;
+  }
+
+  tr.displayPastInventory {
+    background-color: #fff !important;
+    border-top: 1px solid $rudder-border-color-default;
+    border-bottom: 1px solid $rudder-border-color-default;
+
+    td.displayPastInventory{
+      padding: 0 !important;
+    }
+  }
+}
