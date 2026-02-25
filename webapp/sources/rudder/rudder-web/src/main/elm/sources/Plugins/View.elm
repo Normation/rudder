@@ -358,7 +358,7 @@ displayPluginsSection totalCount pluginsModel =
         listContent =
             div [ class "plugins-list" ]
                 (if List.isEmpty plugins then
-                    [ div [ class "plugins-list callout-fade callout-warning overflow-scroll text-warning" ]
+                    [ div [ class "plugins-list callout-fade callout-warning text-warning" ]
                         [ i [ class "fa fa-exclamation-triangle me-2" ] []
                         , em [] [ text "No plugin matches your filters" ]
                         ]
@@ -369,7 +369,7 @@ displayPluginsSection totalCount pluginsModel =
                 )
     in
     div [ class "main-table" ]
-        [ div [ class "table-container plugins-container" ]
+        [ div [ class "table-container plugins-container my-0" ]
             [ div [ class "dataTables_wrapper_top sticky-top table-filter plugins-actions" ]
                 [ div [ class "plugins-actions-filters" ]
                     (div [] (displaySelectAll totalCount pluginsModel)
