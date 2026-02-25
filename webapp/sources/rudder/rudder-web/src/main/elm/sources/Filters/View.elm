@@ -19,7 +19,7 @@ view model =
     div [ id "directiveFilter" ]
     [ div [ class "header-filter"]
       [ div [ class "filter-auto-width"]
-        [ div [ class "input-group search-addon main-filter"]
+        [ div [ class "input-group search-addon main-filter pb-0"]
           [ button [ type_ "button", class "btn btn-sm btn-default", onClick ToggleTree]
             [ span [ class "fa fa-folder fa-folder-open"][]
             ]
