@@ -125,7 +125,7 @@ object PendingHistoryGrid extends Loggable {
   def display(entries: Seq[EventLog]): NodeSeq = {
 
     val historyLine = {
-      <tr class= "curspoint">
+      <tr class= "cursorPointer">
           <td><span class="listopen date"></span></td>
           <td class="name"></td>
           <td class="os"></td>
