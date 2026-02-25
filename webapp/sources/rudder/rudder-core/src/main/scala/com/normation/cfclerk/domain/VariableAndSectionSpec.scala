@@ -217,17 +217,20 @@ sealed trait VariableSpec {
 // A SystemVariable is automatically filled by Rudder
 // It has the RAW constraint, meaning it is *NOT* escaped
 final case class SystemVariableSpec(
-    override val name:   String,
-    val description:     String,
-    variableName:        Option[String] = None,
-    val longDescription: String = "",
-    val valueslabels:    Seq[ValueLabel] = Seq(),
-    val multivalued:     Boolean, // we expect that by default the variable will be checked
+    override val name: String,
+    description:       String,
+    variableName:      Option[String] = None,
+    longDescription:   String = "",
+    valueslabels:      Seq[ValueLabel] = Seq(),
+    multivalued:       Boolean, // we expect that by default the variable will be checked
 
-    val checked: Boolean = true, // A system variable is always of the "raw" type, meaning it won't be escaped
+    checked: Boolean = true, // A system variable is always of the "raw" type, meaning it won't be escaped
 
-    val constraint: Constraint = Constraint(RawVType),
-    val id:         Option[String] = None
+    constraint:      Constraint = Constraint(RawVType),
+    id:              Option[String] = None,
+    // should that string should be considered real json and written as that in
+    // rudder.json ?
+    serializeAsJson: Boolean = false
 ) extends VariableSpec {
 
   override type T = SystemVariableSpec

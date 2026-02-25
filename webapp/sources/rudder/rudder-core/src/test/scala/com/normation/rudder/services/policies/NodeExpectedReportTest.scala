@@ -251,9 +251,11 @@ class NodeExpectedReportTest extends Specification {
     ),
     priority = 0,
     policyMode = None,
+    scheduleId = None,
     ruleOrder = BundleOrder("1"),
     directiveOrder = BundleOrder("1"),
-    overrides = Set()
+    overrides = Set(),
+    ifVarClass = Some(IfVarClass("campaign-test-xx"))
   )
 
   val p2_id: PolicyId = PolicyId(r2, d3, TechniqueVersionHelper("1.0"))
@@ -274,9 +276,11 @@ class NodeExpectedReportTest extends Specification {
     ),
     priority = 0,
     policyMode = None,
+    scheduleId = None,
     ruleOrder = BundleOrder("1"),
     directiveOrder = BundleOrder("1"),
-    overrides = Set()
+    overrides = Set(),
+    ifVarClass = Some(IfVarClass("campaign-test-xx"))
   )
 
   val p3_id: PolicyId = PolicyId(r2, d4, TechniqueVersionHelper("1.0"))
@@ -297,9 +301,11 @@ class NodeExpectedReportTest extends Specification {
     ),
     priority = 0,
     policyMode = None,
+    scheduleId = None,
     ruleOrder = BundleOrder("1"),
     directiveOrder = BundleOrder("1"),
-    overrides = Set()
+    overrides = Set(),
+    ifVarClass = Some(IfVarClass("campaign-test-xx"))
   )
 
   // compare and json of expected reports with the one produced by RuleExpectedReports.
@@ -462,9 +468,11 @@ class NodeExpectedReportTest extends Specification {
       ),
       priority = 0,
       policyMode = None,
+      scheduleId = None,
       ruleOrder = BundleOrder("1"),
       directiveOrder = BundleOrder("1"),
-      overrides = Set()
+      overrides = Set(),
+      ifVarClass = Some(IfVarClass("campaign-test-xx"))
     )
 
     "return the expected expected reports" in {

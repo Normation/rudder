@@ -55,6 +55,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypes
+import com.normation.rudder.services.policies.IfVarClass
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
@@ -133,9 +134,15 @@ object BuildBundleSequence {
     }
   }
 
-  // a Bundle is a BundleName and a Rudder Id that will
-  // be used to identify reports for that bundle
-  final case class Bundle(id: Option[PolicyId], name: BundleName, params: List[BundleParam]) {
+  /*
+   * A Bundle is a BundleName and a Rudder ID that will be used to identify reports for that bundle.
+   * By convention, the bundle name looks like: `run_${directiveId};`.
+   * The bundle can have parameters, which are appended to the bundle name: `run_${directiveId}("foo","bar");`.
+   * Optionally, the bundle can have a run condition in the form of an `ifvarclass` expression. If so, it is
+   * appended to the command after a comma:
+   *   `run_${directiveId}("foo","bar"), ifvarclass => ${ifvarclass expression};`
+   */
+  final case class Bundle(id: Option[PolicyId], name: BundleName, params: List[BundleParam], ifvarclass: Option[IfVarClass]) {
     def callParams(escape: String => String): String = {
       if (params.nonEmpty) {
         params.map(_.quote(escape)).mkString("(", ",", ")")
@@ -144,7 +151,16 @@ object BuildBundleSequence {
       }
     }
 
-    def callBundle(escape: String => String): String = s"${name.value}${callParams(escape)}"
+    def callIfVarClass(indent: Int): String = {
+      ifvarclass match {
+        case None                           => ""
+        case Some(x) if x.value.length == 0 => ""
+        case Some(x)                        => s",\n${" " * Math.max(0, indent)}if => ${x.value}"
+      }
+    }
+
+    def callBundle(escape: String => String, indent: Int): String =
+      s"${name}${callParams(escape)}${callIfVarClass(indent)}"
   }
 
   object Bundle {
@@ -156,9 +172,9 @@ object BuildBundleSequence {
       }
     }
     val audit:                                                 Bundle =
-      Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true", "mode", None) :: Nil)
+      Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("true", "mode", None) :: Nil, None)
     val enforce:                                               Bundle =
-      Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("false", "mode", None) :: Nil)
+      Bundle.apply(None, BundleName("""set_dry_run_mode"""), BundleParam.DoubleQuote("false", "mode", None) :: Nil, None)
   }
 
   /*
@@ -167,7 +183,7 @@ object BuildBundleSequence {
    * from the technique/directive name.
    *
    * A list of bundle can be preceded and followed by some set-up bundles.
-   * Typically to set/unset some technique related classes.
+   * Typically, to set/unset some technique related classes.
    *
    * Each bundle can be preceded/followed by other bundle.
    *
@@ -188,7 +204,8 @@ object BuildBundleSequence {
       post:                  List[Bundle],
       policyTypes:           PolicyTypes,
       policyMode:            PolicyMode,
-      enableMethodReporting: Boolean
+      enableMethodReporting: Boolean,
+      ifVarClass:            Option[IfVarClass]
   ) {
     val contextBundle: List[Bundle] = main
       .map(_.id)
@@ -205,19 +222,21 @@ object BuildBundleSequence {
               ("", "component", None),
               ("", "value", None),
               (id.directiveId.serialize ++ id.ruleId.serialize, "report_id", None)
-            ).map((BundleParam.DoubleQuote.apply).tupled)
+            ).map((BundleParam.DoubleQuote.apply).tupled),
+            None
           ) :: Nil
       }
       .flatten
 
     val methodReportingState: List[Bundle] = {
       val bundleToUse = if (enableMethodReporting) "enable_reporting" else "disable_reporting"
-      Bundle(None, BundleName(bundleToUse), Nil) :: Nil
+      Bundle(None, BundleName(bundleToUse), Nil, None) :: Nil
 
     }
 
     val runBundle: Bundle = {
-      Bundle(None, BundleName(s"run_${directiveId.serialize.replaceAll("[-+]", "_")}"), Nil)
+      // these are the main bundle sequence chain, so here we add the `ifVarClass`. It's the only place where we need them
+      Bundle(None, BundleName(s"run_${directiveId.serialize}"), Nil, ifVarClass)
     }
 
     // here, since we use "policyTypes.isSystem", it means that system update, hardening pack, etc will respect policy mode
@@ -226,7 +245,7 @@ object BuildBundleSequence {
       contextBundle ::: pre ::: methodReportingState ::: main ::: post ::: (cleanReportingBundle :: Nil)
   }
 
-  val cleanReportingBundle: Bundle = Bundle(None, BundleName(s"""clean_reporting_context"""), Nil)
+  val cleanReportingBundle: Bundle = Bundle(None, BundleName(s"""clean_reporting_context"""), Nil, None)
 
   /*
    * Some Techniques don't have any bundle (at least common).
@@ -303,7 +322,7 @@ class BuildBundleSequence(
       // map to correct variables
       vars              <- ZIO.collectAll(
                              List(
-                               // this one is CFengine specific and kept for historical reason
+                               // this one is CFEngine specific and kept for historical reason
                                systemVariableSpecService
                                  .get("INPUTLIST")
                                  .map(v => (v.name, SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))))
@@ -412,7 +431,10 @@ class BuildBundleSequence(
         for {
           vars <- getVars(policy.technique.generationMode, policy.technique.rootSection, policy.expandedVars)
         } yield {
-          List(Bundle(Some(policy.id), bundleName, vars))
+          // here, we are processing the bundle composing a technique that will be translated
+          // into `bundle agen run_xxx { mehtods: yyyy }` - the yyy part. So here, we don't
+          // want the if, it is enough to have it in the main bundle chain.
+          List(Bundle(Some(policy.id), bundleName, vars, None))
         }
       } else {
         val msg =
@@ -447,7 +469,8 @@ class BuildBundleSequence(
         Nil,
         policy.technique.policyTypes,
         policyMode,
-        policy.technique.useMethodReporting
+        policy.technique.useMethodReporting,
+        None
       )
     }
   }
@@ -479,35 +502,9 @@ object CfengineBundleVariables {
   }
 
   /*
-   * Each bundle must be preceded by the correct "set_dry_mode" mode,
-   * and we always end with a "set_dry_mode("false")".
-   * Also, promiser must be different for all items so that cfengine
-   * doesn't try to avoid to do the set, so we are using the technique
-   * promiser.
-   * We need to finish by a remove dry run, as hooks expect to be in enforce mode
-   */ /*
-  implicit final class DryRunManagement(bundles: List[TechniqueBundles]) {
-    def addDryRunManagement: List[TechniqueBundles] = bundles match {
-      case Nil  => Nil
-      case list => list.map { tb =>
-                       val pre = tb.policyMode match {
-                         case PolicyMode.Audit  => audit
-                         case PolicyMode.Enforce => enforce
-                       }
-                       tb.copy(pre = pre :: Nil)
-                   //always remove dry mode in last action
-                   } ::: ( cleanup("remove_dry_run_mode") :: Nil )
-    }
-  }*/
-
-  // Create a remove dry run bundle also for after the hooks - so that we ensure that ending of
-  // system technique are not in Audit mode.
-  // val cleanupDryRunForSystem: List[TechniqueBundles] = cleanup("remove_dry_run_mode_for_system") :: Nil
-
-  /*
    * Method for formating list of "promiser usebundle => bundlename;"
    *
-   * For the CFengine agent, we are waiting ONE string of the fully
+   * For the CFEngine agent, we are waiting ONE string of the fully
    * formatted result, ie. something like: """
    *  "Rule1/directive one"                         usebundle => fetchFusionTools;
    *  "Rule1/some other directive with a long name" usebundle => doInventory;
@@ -539,7 +536,8 @@ object CfengineBundleVariables {
       if (cleanDryRunEnd) {
         val promiser = "clean_mode"
         s"""\n      "${promiser}"${" " * Math.max(0, alignWidth - promiser.size)} usebundle => ${Bundle.enforce.callBundle(
-            escape
+            escape,
+            alignWidth
           )};""" :: Nil
       } else {
         Nil
@@ -554,7 +552,10 @@ object CfengineBundleVariables {
             // We want to add the spaces so it is correctly aligned for Rudder agent
             // We used to have the variable correctly indented in rudder-directives but this prevent using multi-line variables
             // See #12824 for more details
-            s"""      "${promiser}"${" " * Math.max(0, alignWidth - promiser.size)} usebundle => ${bundle.callBundle(escape)};"""
+            s"""      "${promiser}"${" " * Math.max(0, alignWidth - promiser.size)} usebundle => ${bundle.callBundle(
+                escape,
+                alignWidth + 9 + 7 // usebundle length, and "if" is 7 more char
+              )};"""
           }
       }.mkString("\n") :: escapedCleanDryRunEnd
     } else {
@@ -565,7 +566,10 @@ object CfengineBundleVariables {
       if (bundleSeq.nonEmpty) {
         bundleSeq.map { bundle =>
           val subBundles = bundle.bundleSequence.map { b =>
-            s"""      "${CFEngineAgentSpecificGeneration.escape(bundle.promiser.value)}" usebundle => ${b.callBundle(escape)};"""
+            s"""      "${CFEngineAgentSpecificGeneration.escape(bundle.promiser.value)}" usebundle => ${b.callBundle(
+                escape,
+                0 // we don't have ifvarclass here, so we don't need to set indent
+              )};"""
           }
           s"""bundle agent ${bundle.runBundle.name.value}
              |{
@@ -598,7 +602,7 @@ object CfengineBundleVariables {
       case RunHook.Kind.Post => "post-run-hook"
     }
     import BundleParam.*
-    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param", None))) :: Nil)
+    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param", None)), None) :: Nil)
   }
 
   /*

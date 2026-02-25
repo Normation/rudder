@@ -3194,6 +3194,8 @@ object RudderConfigInit {
         buildNodeContext,
         writeCertificate,
         ruleValGeneratedHookService,
+        new NoopScheduleRepository(),
+        new NoopScheduleManagement(),
         () => configService.rudder_featureSwitch_directiveScriptEngine(),
         () => configService.rudder_global_policy_mode(),
         () => configService.rudder_generation_max_parallelism(),

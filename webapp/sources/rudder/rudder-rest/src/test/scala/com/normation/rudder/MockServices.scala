@@ -776,6 +776,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
               GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Unoverridable),
               None
             ),
+            Nil,
             List.empty,
             List.empty
           ),

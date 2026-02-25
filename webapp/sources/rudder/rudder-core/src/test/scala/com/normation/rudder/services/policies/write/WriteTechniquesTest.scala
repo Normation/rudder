@@ -48,6 +48,7 @@ import com.normation.cfclerk.domain.TechniqueResourceIdByPath
 import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -59,6 +60,8 @@ import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.schedule.DirectiveScheduleEvent
+import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
@@ -69,10 +72,12 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.TestNodeConfiguration
+import com.normation.rudder.services.policies.fetchinfo.SystemDirectiveSchedule
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
+import io.scalaland.chimney.syntax.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -251,6 +256,17 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
   import testSystemData.*
   import testSystemData.data.*
 
+  val schedule: Seq[DirectiveScheduleEvent] = Seq(
+    DirectiveScheduleEvent(
+      CampaignId("test-schedule"),
+      "test-schedule-1",
+      "benchmarks",
+      "A daily test schedule for benchmarks",
+      Instant.parse("2026-02-15T14:26:42Z"),
+      Instant.parse("2026-02-15T16:26:42Z")
+    )
+  )
+
   /*
    * put regex for line you don't want to be compared for difference
    */
@@ -345,7 +361,8 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> NodeConfigId("root-cfg-id")),
         globalPolicyMode,
         DateTime.now(DateTimeZone.UTC),
-        parallelism
+        parallelism,
+        schedule
       )
     }
 
@@ -459,7 +476,8 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           Map(root.id -> NodeConfigId("root-cfg-id")),
           globalPolicyMode,
           DateTime.now(DateTimeZone.UTC),
-          parallelism
+          parallelism,
+          schedule
         )
         .openOrThrowException("Can not write template!")
 
@@ -485,7 +503,8 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           Map(root.id -> NodeConfigId("root-cfg-id")),
           globalPolicyMode,
           DateTime.now(DateTimeZone.UTC),
-          parallelism
+          parallelism,
+          schedule
         )
         .openOrThrowException("Can not write template!")
 
@@ -520,7 +539,8 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
         globalPolicyMode,
         DateTime.now(DateTimeZone.UTC),
-        parallelism
+        parallelism,
+        schedule
       )
 
       (written must beFull) and
@@ -559,7 +579,8 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
         globalPolicyMode,
         DateTime.now(DateTimeZone.UTC),
-        parallelism
+        parallelism,
+        schedule
       )
 
       (written must beFull) and
@@ -612,7 +633,8 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-sys-bool-false-cfg-id")),
         globalPolicyMode,
         DateTime.now(DateTimeZone.UTC),
-        parallelism
+        parallelism,
+        schedule
       )
 
       (written must beFull) and
@@ -653,7 +675,8 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500")),
         globalPolicyMode,
         DateTime.now(DateTimeZone.UTC),
-        parallelism
+        parallelism,
+        schedule
       )
 
       (written must beFull) and
@@ -733,7 +756,8 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
         Map(root.id -> NodeConfigId("root-cfg-id")),
         globalPolicyMode,
         DateTime.now(DateTimeZone.UTC),
-        parallelism
+        parallelism,
+        schedule
       )
     }
 
@@ -826,7 +850,8 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
       val date = "2025-10-27T13:29:49.974Z"
       val node = NodeConfigData.rootNodeConfig.copy(
         nodeInfo = NodeConfigData.rootNodeConfig.nodeInfo
-          .copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date))
+          .copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date)),
+        schedules = List(SystemDirectiveSchedule.dailyOn4UTC.transformInto[JsonDirectiveSchedule])
       )
       logger.log(List(node)).either.runNow must beRight
       NodeConfigurationLogger.getLogFile(f, node.nodeInfo).contentAsString must equalsJsonSemantic(
@@ -899,7 +924,25 @@ class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatche
             "policies": [],
             "runHooks": [],
             "nodeContext": {},
-            "parameters": []
+            "parameters": [],
+            "schedules": [
+              {
+                "id" : "rudder-daily-on-4-utc",
+                "e" : true,
+                "s" : {
+                  "type" : "daily",
+                  "start" : {
+                    "hour" : 4,
+                    "minute" : 0
+                  },
+                  "end" : {
+                    "hour" : 6,
+                    "minute" : 0
+                  },
+                  "tz" : "UTC"
+                }
+              }
+            ]
           }"""
       )
 

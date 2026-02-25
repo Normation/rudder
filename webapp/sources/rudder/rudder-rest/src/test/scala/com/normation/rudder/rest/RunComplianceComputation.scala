@@ -633,6 +633,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
               GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Unoverridable),
               None
             ),
+            Nil,
             List.empty,
             List.empty
           ),

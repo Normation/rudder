@@ -41,11 +41,19 @@ import com.normation.cfclerk.domain.BasicStringVType
 import com.normation.cfclerk.domain.BooleanVType
 import com.normation.cfclerk.domain.Constraint
 import com.normation.cfclerk.domain.IntegerVType
+import com.normation.cfclerk.domain.RawVType
 import com.normation.cfclerk.domain.RegexConstraint
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.services.MissingSystemVariable
 import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.schedule.DirectiveScheduleEvent
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
+import java.time.Instant
+import zio.Chunk
+import zio.json.JsonCodec
 
 class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
@@ -411,6 +419,14 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "Only allow communications over HTTPS",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
+    ),
+    // this is a late filled system variable, like the bundle sequence/etc
+    SystemVariableSpec(
+      "MODULE_PARAM_SCHEDULE",
+      "List of schedule events for directives",
+      multivalued = false,
+      constraint = Constraint(mayBeEmpty = true, typeName = RawVType),
+      serializeAsJson = true
     )
   )
 
@@ -419,4 +435,47 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
   override def get(varName: String): Either[MissingSystemVariable, SystemVariableSpec] =
     varSpecsMap.get(varName).toRight(MissingSystemVariable(varName))
   override def getAll():             Seq[SystemVariableSpec]                           = varSpecs
+}
+
+object SystemVariableSpecServiceImpl {
+  /*
+   * The awaited data structure for the MODULE_PARAM_SCHEDULE variable - it's an hard API with agent,
+   * any change here need update in the schedule module.
+   * '{ "event": [
+   *     {
+   *       "id": "600abb6b-c294-4ba1-9014-944b67d59935",
+   *       "scheduleId": "df6ebe63-a13a-484f-9add-57836517947a",
+   *       ...
+   *     }
+   *   ]
+   *  }'
+   */
+  final case class ModParamScheduleEvent(
+      schedule:   String,     // schedule kind: once, daily...
+      id:         String,     // this is the event ID, not the schedul id
+      scheduleId: CampaignId, // this is the schedule id
+      name:       String,     // schedule name + event information
+      `type`:     String,     // for documentation, "benchmarks", etc
+      notBefore:  Instant,
+      notAfter:   Instant
+  ) derives JsonCodec
+
+  final case class ModParamSchedule(events: Chunk[ModParamScheduleEvent]) derives JsonCodec
+
+  object ModParamSchedule {
+
+    implicit val transformDirectiveScheduleEvent: Transformer[DirectiveScheduleEvent, ModParamScheduleEvent] = {
+      Transformer
+        .define[DirectiveScheduleEvent, ModParamScheduleEvent]
+        .withFieldConst(_.schedule, "once")
+        .withFieldComputed(_.id, _.eventId)
+        .withFieldComputed(_.scheduleId, _.id)
+        .withFieldComputed(_.`type`, _.eventType)
+        .buildTransformer
+    }
+
+    def apply(events: Seq[DirectiveScheduleEvent]): ModParamSchedule = {
+      ModParamSchedule(Chunk.fromIterable(events.map(_.transformInto[ModParamScheduleEvent])))
+    }
+  }
 }
