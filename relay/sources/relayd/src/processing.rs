@@ -6,7 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Error;
+use anyhow::{bail, Error};
+use bytesize::ByteSize;
 use sha2::{Digest, Sha256};
 use tokio::fs::{remove_file, rename};
 use tracing::debug;
@@ -64,6 +65,33 @@ async fn failure(file: ReceivedFile, directory: RootDirectory) -> Result<(), Err
             .join(file.file_name().expect("not a file"))
     );
     Ok(())
+}
+
+/// Returns Ok if the file is smaller than the limit, otherwise moves it to the failed directory
+/// and returns an error.
+async fn ensure_file_size_limit(
+    file: ReceivedFile,
+    limit: ByteSize,
+    directory: PathBuf,
+) -> Result<(), Error> {
+    match file.metadata().map(|m| m.len()) {
+        Ok(size) => {
+            if size > limit.as_u64() {
+                failure(file.clone(), directory).await?;
+                bail!(
+                    "skipping {:#?} as it is too large ({} bytes > {})",
+                    file,
+                    size,
+                    limit
+                );
+            } else {
+                Ok(())
+            }
+        }
+        Err(e) => {
+            bail!("skipping {:#?} as it could not be read: {}", file, e);
+        }
+    }
 }
 
 /// Computes an id from a file name. It is added as key-value in tracing and allows following a file across relays
