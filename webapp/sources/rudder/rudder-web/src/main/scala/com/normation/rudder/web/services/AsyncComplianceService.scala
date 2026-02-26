@@ -47,7 +47,6 @@ import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.users.CurrentUser
 import net.liftweb.common.*
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
@@ -77,7 +76,7 @@ class AsyncComplianceService(
     val jsContainer: String
 
     // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[Kind, Option[ComplianceLevel]]]
+    def computeCompliance(): IOResult[Map[Kind, Option[ComplianceLevel]]]
 
     final protected def toCompliance(id: Kind, reports: Iterable[RuleNodeStatusReport]): (Kind, Some[ComplianceLevel]) = {
       // BE CAREFUL: reports may be a SET - and it's likely that
@@ -103,8 +102,6 @@ class AsyncComplianceService(
 
     // Compute compliance level for all rules in  a future so it will be displayed asynchronously
     val futureCompliance: Future[Box[Map[Kind, Option[ComplianceLevel]]]] = {
-      implicit val qc: QueryContext = CurrentUser.queryContext
-
       Future {
         if (empty) {
           Full(Map())
@@ -125,13 +122,14 @@ class AsyncComplianceService(
   private class RuleCompliance(
       val nodeIds: Set[NodeId],
       val ruleIds: Set[RuleId]
-  ) extends ComplianceBy[RuleId] {
+  )(using qc: QueryContext)
+      extends ComplianceBy[RuleId] {
     def value(key: RuleId): String = key.serialize
     val jsContainer: String  = "ruleCompliances"
     def empty:       Boolean = ruleIds.isEmpty
 
     // Compute compliance
-    def computeCompliance()(implicit qc: QueryContext): IOResult[Map[RuleId, Option[ComplianceLevel]]] = {
+    def computeCompliance(): IOResult[Map[RuleId, Option[ComplianceLevel]]] = {
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
@@ -183,7 +181,7 @@ class AsyncComplianceService(
     })
   }
 
-  def complianceByRule(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId: String): JsCmd = {
+  def complianceByRule(nodeIds: Set[NodeId], ruleIds: Set[RuleId], tableId: String)(using qc: QueryContext): JsCmd = {
     val kind = new RuleCompliance(nodeIds, ruleIds)
     compliance(kind, tableId)
 

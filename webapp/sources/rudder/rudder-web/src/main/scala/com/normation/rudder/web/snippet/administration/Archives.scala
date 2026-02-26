@@ -66,7 +66,7 @@ import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.Text
 
-class Archives extends DispatchSnippet with Loggable {
+class Archives extends SecureDispatchSnippet with Loggable {
 
   private val DL_NAME = "Download as zip"
 
@@ -76,9 +76,8 @@ class Archives extends DispatchSnippet with Loggable {
   private val systemApiService: SystemApiService11 = RudderConfig.systemApiService
 
   private val noElements = NotArchivedElements(Seq(), Seq(), Seq())
-  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "allForm"              => allForm
     case "rulesForm"            => rulesForm
     case "groupLibraryForm"     => groupLibraryForm
@@ -131,7 +130,7 @@ class Archives extends DispatchSnippet with Loggable {
     )
   }
 
-  private def rulesForm = {
+  private def rulesForm(using qc: QueryContext) = {
     actionFormBuilder(
       formName = "rulesForm",
       archiveButtonId = "exportRulesButton",
@@ -153,7 +152,7 @@ class Archives extends DispatchSnippet with Loggable {
     )
   }
 
-  private def directiveLibraryForm = {
+  private def directiveLibraryForm(using qc: QueryContext) = {
     actionFormBuilder(
       formName = "directiveLibraryForm",
       archiveButtonId = "exportDirectiveLibraryButton",
@@ -199,7 +198,7 @@ class Archives extends DispatchSnippet with Loggable {
     )
   }
 
-  private def parametersForm = {
+  private def parametersForm(using qc: QueryContext) = {
     actionFormBuilder(
       formName = "parametersForm",
       archiveButtonId = "exportParametersButton",

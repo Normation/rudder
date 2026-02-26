@@ -40,12 +40,12 @@ package com.normation.rudder.web.components
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -71,7 +71,7 @@ class RuleCategoryTree(
     editPopup:               RuleCategory => JsCmd,
     deletePopup:             RuleCategory => JsCmd,
     updateComponent:         () => JsCmd
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   private val roRuleCategoryRepository = RudderConfig.roRuleCategoryRepository
   private val woRuleCategoryRepository = RudderConfig.woRuleCategoryRepository
@@ -95,9 +95,9 @@ class RuleCategoryTree(
   }
   def resetSelected: Unit         = selectedCategoryId = rootCategory.id
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "tree" => { _ => tree() } }
 
-  def refreshTree(newRoot: Box[RuleCategory]): JsCmd = {
+  def refreshTree(newRoot: Box[RuleCategory])(using qc: QueryContext): JsCmd = {
     val html = newRoot match {
       case Full(newRoot) =>
         root = newRoot
@@ -149,7 +149,7 @@ class RuleCategoryTree(
   }
   private val isDirectiveApplication = directive.isDefined
 
-  private def moveCategory(arg: String): JsCmd = {
+  private def moveCategory(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
@@ -168,7 +168,7 @@ class RuleCategoryTree(
                   category,
                   destCatId,
                   ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
+                  qc.actor,
                   reason = None
                 )
                 .chainError(
@@ -196,7 +196,7 @@ class RuleCategoryTree(
     }
   }
 
-  def tree(): NodeSeq = {
+  def tree()(using qc: QueryContext): NodeSeq = {
 
     val treeFun = if (isDirectiveApplication) "buildRuleCategoryTreeNoDnD" else "buildRuleCategoryTree"
     <ul>{

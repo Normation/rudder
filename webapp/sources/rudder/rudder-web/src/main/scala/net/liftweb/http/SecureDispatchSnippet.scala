@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2026 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -34,50 +34,31 @@
  *
  *************************************************************************************
  */
+package net.liftweb.http
 
-package com.normation.plugins
-
-import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
+import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
-import scala.xml.NodeSeq
 
-/**
- * Default implementation of extendable snippet that use RuddercConfig to get the extension
+/*
+ * Secured version of a dispatch snippet with respect to tenants, by providing a query context.
  */
-trait DefaultExtendableSnippet[T] extends ExtendableSnippet[T] {
-  self: T =>
+trait SecureDispatchSnippet extends DispatchSnippet { self: Loggable =>
 
-  private def extensionRegister = RudderConfig.snippetExtensionRegister
+  /**
+   * Dispatch function, with a QueryContext already provided
+   * Implementations can just use it, ?=> here is just a syntax sugar
+   */
+  def secureDispatch: QueryContext ?=> DispatchIt
 
-  override def beforeSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]] = {
-    PluginLogger.trace(s"Looking for pre-extension for snippet '${extendsAt.value}'")
-    extensionRegister.getBeforeRenderExtension(this.extendsAt)
+  override def dispatch: DispatchIt = {
+    CurrentUser.queryContext.withQCOr(loggedInsecureDispatch)(secureDispatch)
   }
 
-  override def afterSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]] = {
-    PluginLogger.trace(s"Looking for post-extension for snippet '${extendsAt.value}'")
-    extensionRegister.getAfterRenderExtension(this.extendsAt)
-  }
-
-}
-
-/**
- * For tenants security on snippets extensions. Same as [[SecureDispatchSnippet]]
- */
-trait SecureExtendableSnippet[T] extends DefaultExtendableSnippet[T] with DispatchSnippet {
-  self: T =>
-
-  def mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq]
-
-  def mainDispatch: Map[String, NodeSeq => NodeSeq] =
-    CurrentUser.queryContext.withQCOr(loggedInsecureMainDispatch)(mainSecureDispatch)
-
-  private def loggedInsecureMainDispatch: Map[String, NodeSeq => NodeSeq] = {
-    logger.warn(s"Extendable snippet can't be accessed in current security context (user is not authenticated)")
-    Map.empty
+  private def loggedInsecureDispatch: DispatchIt = {
+    logger.warn(s"Snippet can't be accessed in current security context (user is not authenticated)")
+    PartialFunction.empty
   }
 
 }

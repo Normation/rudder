@@ -45,6 +45,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
 import com.normation.rudder.users.CurrentUser
@@ -99,7 +100,7 @@ class TechniqueEditForm(
     // there are call by name to have the context matching their execution when called
     onSuccessCallback:   () => JsCmd = { () => Noop },
     onFailureCallback:   () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
   import TechniqueEditForm.*
 
   // find Technique
@@ -133,9 +134,11 @@ class TechniqueEditForm(
 
   //////////////////////////// public methods ////////////////////////////
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { (_: NodeSeq) => showForm() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "showForm" => { (_: NodeSeq) => showForm() }
+  }
 
-  def showForm(): NodeSeq = {
+  def showForm()(using qc: QueryContext): NodeSeq = {
     (
       "#editForm" #> showCrForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
@@ -143,7 +146,7 @@ class TechniqueEditForm(
     )(body)
   }
 
-  def showRemovePopupForm(): NodeSeq = {
+  def showRemovePopupForm()(using qc: QueryContext): NodeSeq = {
     currentActiveTechnique match {
       case e: EmptyBox => NodeSeq.Empty
       case Full(activeTechnique_) =>
@@ -337,7 +340,7 @@ class TechniqueEditForm(
     updateFormClientSide()
   }
 
-  private def onFailureRemovePopup(): JsCmd = {
+  private def onFailureRemovePopup()(using qc: QueryContext): JsCmd = {
     formTrackerRemovePopup.addFormError(error("There was a problem with your request"))
     updateRemoveFormClientSide()
   }
@@ -347,7 +350,7 @@ class TechniqueEditForm(
     updateDisableFormClientSide()
   }
 
-  private def updateRemoveFormClientSide(): JsCmd = {
+  private def updateRemoveFormClientSide()(using qc: QueryContext): JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""initBsModal("deleteActionDialog");""") // JsRaw ok, const
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv
@@ -361,7 +364,7 @@ class TechniqueEditForm(
 
   ///////////// Delete /////////////
 
-  private def deleteButton(id: ActiveTechniqueId): Elem = {
+  private def deleteButton(id: ActiveTechniqueId)(using qc: QueryContext): Elem = {
 
     def deleteActiveTechnique(): JsCmd = {
       if (formTrackerRemovePopup.hasErrors) {
@@ -370,7 +373,7 @@ class TechniqueEditForm(
         JsRaw("hideBsModal('deleteActionDialog');") & { // JsRaw ok, const
           val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.actor, crReasonsRemovePopup.map(_.get))
+            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, qc.actor, crReasonsRemovePopup.map(_.get))
             deploy  <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Policy update request sent")

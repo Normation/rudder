@@ -55,6 +55,7 @@ import com.normation.zio.*
 import net.liftweb.*
 import net.liftweb.common.*
 import net.liftweb.http.*
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -62,7 +63,7 @@ import net.liftweb.util.CssSel
 import scala.xml.NodeSeq
 import util.Helpers.*
 
-class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
+class EditPolicyServerAllowedNetwork extends SecureDispatchSnippet with Loggable {
 
   private val psService            = RudderConfig.policyServerManagementService
   private val eventLogService      = RudderConfig.eventLogRepository
@@ -87,9 +88,8 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   // we need to store that out of the form, so that the changes are persisted at redraw
   private val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "render" =>
-      implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
       val policyServers = nodeFactRepo
         .getAll()
         .map(_.collect { case (id, f) if (f.rudderSettings.kind.isPolicyServer) => id }.toSeq)

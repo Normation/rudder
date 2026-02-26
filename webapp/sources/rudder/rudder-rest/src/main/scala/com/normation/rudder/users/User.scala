@@ -158,9 +158,8 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
     case None    => Rights.forAuthzs(AuthorizationType.NoRights)
   }
 
-  //  This is used only in snippets. It could be a more generic query context, which could be empty, which impacts snippets
-  def queryContext: QueryContext =
-    getCurrentUser.map(_.qc).getOrElse(QueryContext(EventActor("unknown"), NodeSecurityContext.None))
+  // should generally not be used, if you need a `QueryContext` in snippets, you should inherit `SecureDispatchSnippet`
+  def queryContext: Option[QueryContext] = getCurrentUser.map(_.qc)
 
   def nodePerms: NodeSecurityContext = getCurrentUser.map(_.nodePerms).getOrElse(NodeSecurityContext.None)
 

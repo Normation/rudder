@@ -43,6 +43,7 @@ import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.RuleModAction
@@ -53,7 +54,7 @@ import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
 import java.time.Instant
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -103,7 +104,7 @@ class RuleModificationValidationPopup(
     onSuccessCallBack: (Either[Rule, ChangeRequestId]) => JsCmd = { x => Noop },
     onFailureCallback: () => JsCmd = { () => Noop },
     parentFormTracker: Option[FormTracker] = None
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   import RuleModificationValidationPopup.*
 
@@ -112,9 +113,11 @@ class RuleModificationValidationPopup(
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent() }
+  }
 
-  def popupContent(): NodeSeq = {
+  def popupContent()(using qc: QueryContext): NodeSeq = {
     import RuleModAction.*
     val (buttonName, classForButton) = (validationNeeded, changeRequest.action) match {
       case (false, Update)  => ("Update", "btn-success")
@@ -226,7 +229,7 @@ class RuleModificationValidationPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
@@ -250,7 +253,7 @@ class RuleModificationValidationPopup(
     }
   }
 
-  def onSubmit(): JsCmd = {
+  def onSubmit()(using qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure
     } else {
@@ -264,14 +267,14 @@ class RuleModificationValidationPopup(
                     changeRequest.newRule,
                     changeRequest.previousRule,
                     diff,
-                    CurrentUser.actor,
+                    qc.actor,
                     crReasons.map(_.get)
                   )
           id   <- workflowService
                     .startWorkflow(cr)(using
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
-                        CurrentUser.actor,
+                        qc.actor,
                         Instant.now(),
                         crReasons.map(_.get),
                         None,
@@ -300,7 +303,7 @@ class RuleModificationValidationPopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }

@@ -47,7 +47,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrCloneRulePopup
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -67,9 +67,8 @@ class RuleDisplayer(
     showRulePopup:       (Option[Rule]) => JsCmd,
     columnCompliance:    DisplayColumn,
     graphRecentChanges:  DisplayColumn
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
-  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
   private val ruleRepository       = RudderConfig.roRuleRepository
   private val roCategoryRepository = RudderConfig.roRuleCategoryRepository
 
@@ -88,7 +87,7 @@ class RuleDisplayer(
     getRootCategory()
   }
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => NodeSeq.Empty } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => NodeSeq.Empty } }
 
   // refresh the rule grid
   private def refreshGrid(implicit qc: QueryContext) = {
@@ -97,19 +96,31 @@ class RuleDisplayer(
 
   private val ruleCategoryTree = {
     root.map(
-      new RuleCategoryTree(
-        "categoryTree",
-        _,
-        directive,
-        (() => check()),
-        ((c: RuleCategory) => showCategoryPopup(Some(c))),
-        ((c: RuleCategory) => showDeleteCategoryPopup(c)),
-        () => refreshGrid
-      )
+      CurrentUser.queryContext.withQCOr(
+        new RuleCategoryTree(
+          "categoryTree",
+          _,
+          directive,
+          (() => Noop),
+          ((c: RuleCategory) => Noop),
+          ((c: RuleCategory) => Noop),
+          () => Noop
+        )
+      ) {
+        new RuleCategoryTree(
+          "categoryTree",
+          _,
+          directive,
+          (() => check()),
+          ((c: RuleCategory) => showCategoryPopup(Some(c))),
+          ((c: RuleCategory) => showDeleteCategoryPopup(c)),
+          () => refreshGrid
+        )
+      }
     )
   }
 
-  def includeSubCategory:   Elem    = {
+  def includeSubCategory:                           Elem    = {
     SHtml.ajaxCheckbox(
       true,
       value => OnLoad(JsRaw(s"""
@@ -118,7 +129,7 @@ class RuleDisplayer(
       ("id", "includeCheckbox")
     ) // JsRaw ok, no user inputs
   }
-  def actionButtonCategory: NodeSeq = {
+  def actionButtonCategory(using qc: QueryContext): NodeSeq = {
     if (directive.isEmpty) {
       SHtml.ajaxButton(
         "Add category",
@@ -130,7 +141,7 @@ class RuleDisplayer(
     }
   }
 
-  def displaySubcategories:                               NodeSeq = {
+  def displaySubcategories:                                                       NodeSeq = {
     <ul class="form-group list-sm">
       <li class="rudder-form">
         <div class="input-group">
@@ -148,7 +159,7 @@ class RuleDisplayer(
       </li>
     </ul>
   }
-  def viewCategories(ruleCategoryTree: RuleCategoryTree): NodeSeq = {
+  def viewCategories(ruleCategoryTree: RuleCategoryTree)(using qc: QueryContext): NodeSeq = {
     <div id="treeParent">
       {displaySubcategories}
       <div id="categoryTree">
@@ -210,7 +221,7 @@ class RuleDisplayer(
 
   }
 
-  def display: NodeSeq = {
+  def display(using qc: QueryContext): NodeSeq = {
     val columnToFilter = {
       if (directive.isDefined) 3 else 2
     }
@@ -340,7 +351,7 @@ class RuleDisplayer(
     }
   }
 
-  def ruleCreationPopup(ruleToClone: Option[Rule]): NodeSeq = {
+  def ruleCreationPopup(ruleToClone: Option[Rule])(using qc: QueryContext): NodeSeq = {
     ruleCategoryTree match {
       case Full(ruleCategoryTree) =>
         val root = ruleCategoryTree.getRoot
@@ -361,7 +372,7 @@ class RuleDisplayer(
   }
 
   // Popup
-  private def creationPopup(category: Option[RuleCategory], ruleCategoryTree: RuleCategoryTree) = {
+  private def creationPopup(category: Option[RuleCategory], ruleCategoryTree: RuleCategoryTree)(using qc: QueryContext) = {
     val rootCategory = ruleCategoryTree.getRoot
     new RuleCategoryPopup(
       rootCategory,
@@ -377,7 +388,7 @@ class RuleDisplayer(
   /**
     * Create the popup
     */
-  private def showCategoryPopup(category: Option[RuleCategory]): JsCmd = {
+  private def showCategoryPopup(category: Option[RuleCategory])(using qc: QueryContext): JsCmd = {
     val popupHtml = {
       ruleCategoryTree match {
         case Full(ruleCategoryTree) =>
@@ -399,7 +410,7 @@ class RuleDisplayer(
   /**
     * Create the delete popup
     */
-  private def showDeleteCategoryPopup(category: RuleCategory): JsCmd = {
+  private def showDeleteCategoryPopup(category: RuleCategory)(using qc: QueryContext): JsCmd = {
     val popupHtml = {
       ruleCategoryTree match {
         case Full(ruleCategoryTree) =>

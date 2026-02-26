@@ -74,6 +74,7 @@ import enumeratum.EnumEntry
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import net.liftweb.http.*
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -99,7 +100,7 @@ object JsonDirectiveRId {
  * Techniques are classify by categories in a tree.
  *
  */
-class DirectiveManagement extends DispatchSnippet with Loggable {
+class DirectiveManagement extends SecureDispatchSnippet with Loggable {
   import DirectiveManagement.*
 
   private val techniqueRepository = RudderConfig.techniqueRepository
@@ -112,17 +113,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private val configRepo          = RudderConfig.configurationRepository
   private val dependencyService   = RudderConfig.dependencyAndDeletionService
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-
-    {
-      case "head"                 => { _ => head() }
-      case "userLibrary"          => { _ => displayDirectiveLibrary() }
-      case "showDirectiveDetails" => { _ => initDirectiveDetails() } // Used in directiveManagement.html
-      case "techniqueDetails"     => { xml =>
-        techniqueDetails = initTechniqueDetails()
-        techniqueDetails.apply(xml)
-      }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "head"                 => { _ => head() }
+    case "userLibrary"          => { _ => displayDirectiveLibrary() }
+    case "showDirectiveDetails" => { _ => initDirectiveDetails() } // Used in directiveManagement.html
+    case "techniqueDetails"     => { xml =>
+      techniqueDetails = initTechniqueDetails()
+      techniqueDetails.apply(xml)
     }
   }
 
@@ -147,8 +144,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   /**
    * Head information (JsTree dependencies,...)
    */
-  def head(): NodeSeq = {
-    implicit val qc: QueryContext = CurrentUser.queryContext
+  def head()(using qc: QueryContext): NodeSeq = {
     (
       <head>
         {WithNonce.scriptWithNonce(Script(OnLoad(parseJsArg())))}

@@ -41,10 +41,11 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -63,19 +64,19 @@ class TechniqueCategoryEditForm(
     rootCategoryId:    ActiveTechniqueCategoryId,
     onSuccessCallback: () => JsCmd = { () => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   private val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
   private val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
   private val uuidGen                           = RudderConfig.stringUuidGenerator
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   private var currentCategory = givenCategory
   def getCategory             = currentCategory
 
-  def showForm(): NodeSeq = {
+  def showForm()(using qc: QueryContext): NodeSeq = {
     <div id={htmlId_form} class="object-details">
       <div class="section-title">Category details</div>
         {categoryDetailsForm}
@@ -107,12 +108,12 @@ class TechniqueCategoryEditForm(
     </div>
   }
 
-  private def deleteCategory(): JsCmd = {
+  private def deleteCategory()(using qc: QueryContext): JsCmd = {
     activeTechniqueCategoryRepository
       .deleteCategory(
         currentCategory.id,
         ModificationId(uuidGen.newUuid),
-        CurrentUser.actor,
+        qc.actor,
         Some("User deleted technique category from UI")
       )
       .toBox match {

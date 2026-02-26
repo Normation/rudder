@@ -50,7 +50,6 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.reports.NodeChanges
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.JsTableData
@@ -89,7 +88,7 @@ class RuleGrid(
     directiveApplication: Option[DirectiveApplicationManagement],
     columnCompliance:     DisplayColumn,
     graphRecentChanges:   DisplayColumn
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   import RuleGrid.*
 
@@ -152,12 +151,8 @@ class RuleGrid(
     "reports-report"
   )
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "rulesGrid" => {
-      implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-
-      (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false)
-    }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false) }
   }
 
   /**

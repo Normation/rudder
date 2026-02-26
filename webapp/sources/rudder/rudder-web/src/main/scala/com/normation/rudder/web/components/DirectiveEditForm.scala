@@ -101,7 +101,7 @@ class DirectiveEditForm(
     onFailureCallback:       () => JsCmd = { () => Noop },
     onRemoveSuccessCallBack: () => JsCmd = { () => Noop },
     displayTechniqueDetails: ActiveTechniqueId => JsCmd = { _ => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   import DirectiveEditForm.*
 
@@ -139,9 +139,8 @@ class DirectiveEditForm(
       throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")
     )
   val directiveApp = new DirectiveApplicationManagement(directive, rules, rootCategory)
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "showForm" => { _ => showForm()(using CurrentUser.queryContext) }
-  }
+
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
@@ -197,7 +196,7 @@ class DirectiveEditForm(
       ("#deprecation-warning [class+]" #> "d-none")
   }
 
-  def updateRuleDisplayer() = {
+  def updateRuleDisplayer()(using qc: QueryContext) = {
     val ruleDisplayer = {
       new RuleDisplayer(
         Some(directiveApp),
@@ -407,7 +406,7 @@ class DirectiveEditForm(
 
   }
 
-  private def clonePopup(): JsCmd = {
+  private def clonePopup()(using qc: QueryContext): JsCmd = {
     SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
     JsRaw(s""" initBsModal("basePopup"); """)
   }
@@ -902,7 +901,7 @@ class DirectiveEditForm(
     }
   }
 
-  private def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique): NodeSeq = {
+  private def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique)(using qc: QueryContext): NodeSeq = {
 
     val popup = new CreateCloneDirectivePopup(
       technique.name,

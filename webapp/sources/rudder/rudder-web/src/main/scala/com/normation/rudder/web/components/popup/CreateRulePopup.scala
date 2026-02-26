@@ -44,16 +44,16 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.Templates
 import net.liftweb.http.js.*
@@ -69,7 +69,7 @@ class CreateOrCloneRulePopup(
     selectedCategory:  RuleCategoryId,
     onSuccessCallback: (Rule) => JsCmd = { (rule: Rule) => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // Load the template from the popup
   def templatePath: List[String] = List("templates-hidden", "Popup", "createRule")
@@ -89,9 +89,11 @@ class CreateOrCloneRulePopup(
   private val userPropertyService        = RudderConfig.userPropertyService
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => _ => popupContent() }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => _ => popupContent()
+  }
 
-  def popupContent(): NodeSeq = {
+  def popupContent()(using qc: QueryContext): NodeSeq = {
 
     SHtml.ajaxForm(
       (
@@ -200,11 +202,11 @@ class CreateOrCloneRulePopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -223,7 +225,7 @@ class CreateOrCloneRulePopup(
       }
 
       val createRule = {
-        woRuleRepository.create(rule, ModificationId(uuidGen.newUuid), CurrentUser.actor, reason.map(_.get)).toBox match {
+        woRuleRepository.create(rule, ModificationId(uuidGen.newUuid), qc.actor, reason.map(_.get)).toBox match {
           case Full(x)          =>
             onSuccessCallback(rule) & closePopup()
           case Empty            =>
@@ -242,7 +244,7 @@ class CreateOrCloneRulePopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     updateFormClientSide()
   }
 

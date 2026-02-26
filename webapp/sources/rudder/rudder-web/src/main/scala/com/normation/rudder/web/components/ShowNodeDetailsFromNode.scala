@@ -41,7 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.plugins.SecureExtendableSnippet
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeState
@@ -67,7 +67,6 @@ import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
 import java.time.Instant
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*
@@ -94,7 +93,7 @@ object ShowNodeDetailsFromNode {
 class ShowNodeDetailsFromNode(
     val nodeId: NodeId,
     groupLib:   FullNodeGroupCategory
-) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
+) extends SecureExtendableSnippet[ShowNodeDetailsFromNode] {
   import ShowNodeDetailsFromNode.*
 
   private val roAgentRunsRepository = RudderConfig.roAgentRunsRepository
@@ -170,9 +169,7 @@ class ShowNodeDetailsFromNode(
     }).toBox
   }
 
-  def mainDispatch: Map[String, NodeSeq => NodeSeq] = {
-    implicit val qc: QueryContext = CurrentUser.queryContext
-
+  def mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq] = {
     Map(
       "popupDetails"    -> { (_: NodeSeq) => privateDisplay(true, Summary) },
       "popupCompliance" -> { (_: NodeSeq) => privateDisplay(true, Compliance) },

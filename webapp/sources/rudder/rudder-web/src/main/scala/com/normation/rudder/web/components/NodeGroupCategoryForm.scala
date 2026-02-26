@@ -43,6 +43,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.FormTracker
@@ -50,7 +51,7 @@ import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -71,7 +72,7 @@ class NodeGroupCategoryForm(
     rootCategory:      FullNodeGroupCategory,
     onSuccessCallback: (String) => JsCmd = { (String) => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   var _nodeGroupCategory: NodeGroupCategory = nodeGroupCategory.copy()
 
@@ -79,6 +80,7 @@ class NodeGroupCategoryForm(
   private val woGroupCategoryRepository  = RudderConfig.woNodeGroupRepository
   private val uuidGen                    = RudderConfig.stringUuidGenerator
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private val checkRights                = CurrentUser.checkRights
 
   val categories: Seq[NodeGroupCategory] = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
     case eb: EmptyBox =>
@@ -96,9 +98,9 @@ class NodeGroupCategoryForm(
     case _       => ""
   }
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
-  def showForm(): NodeSeq = {
+  def showForm()(using qc: QueryContext): NodeSeq = {
     val html = SHtml.ajaxForm(
       <div class="main-container">
         <div class="main-header">
@@ -155,12 +157,12 @@ class NodeGroupCategoryForm(
          } else {
            (
              "directive-save" #> (
-               if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
+               if (checkRights(AuthorizationType.Group.Edit))
                  SHtml.ajaxSubmit("Update", onSubmit, ("class", "btn btn-success"))
                else NodeSeq.Empty
              )
              & "directive-delete" #> (
-               if (CurrentUser.checkRights(AuthorizationType.Group.Write)) deleteButton
+               if (checkRights(AuthorizationType.Group.Write)) deleteButton
                else NodeSeq.Empty
              )
            )
@@ -182,7 +184,7 @@ class NodeGroupCategoryForm(
    * Delete button is only enabled is that category
    * has zero child and is not a system category
    */
-  private def deleteButton: NodeSeq = {
+  private def deleteButton(using qc: QueryContext): NodeSeq = {
 
     if (
       parentCategory.isDefined && !_nodeGroupCategory.isSystem && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty
@@ -224,12 +226,12 @@ class NodeGroupCategoryForm(
     }
   }
 
-  private def onDelete(): JsCmd = {
+  private def onDelete()(using qc: QueryContext): JsCmd = {
     woGroupCategoryRepository
       .delete(
         _nodeGroupCategory.id,
         ModificationId(uuidGen.newUuid),
-        CurrentUser.actor,
+        qc.actor,
         Some("Node Group category deleted by user from UI")
       )
       .toBox match {
@@ -299,22 +301,22 @@ class NodeGroupCategoryForm(
 
   private val formTracker = new FormTracker(name, description, container)
 
-  private def updateFormClientSide: JsCmd = {
+  private def updateFormClientSide(using qc: QueryContext): JsCmd = {
     SetHtml(htmlIdCategory, showForm())
   }
 
   private def error(msg: String) = <span class="col-sm-12 errors-container">{msg}</span>
 
-  private def onSuccess: JsCmd = {
+  private def onSuccess(using qc: QueryContext): JsCmd = {
     updateFormClientSide
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
     updateFormClientSide & JsRaw("""scrollToElement("notifications","#ajaxItemContainer");""") // JsRaw OK, no user input
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {

@@ -69,7 +69,7 @@ import com.normation.zio.UnsafeRun
 import java.time.Instant
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -208,7 +208,7 @@ class ModificationValidationPopup(
     onCreateSuccessCallBack: (Either[Directive, ChangeRequestId]) => JsCmd = { x => Noop },
     onCreateFailureCallBack: () => JsCmd = { () => Noop },
     parentFormTracker:       FormTracker
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   import ModificationValidationPopup.*
 
@@ -223,10 +223,9 @@ class ModificationValidationPopup(
   // function to read state of things
   private val getGroupLib = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "popupContent" =>
       _ => {
-        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
         popupContent()
       }
   }
@@ -521,7 +520,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private def saveChangeRequest(): JsCmd = scala.util.boundary {
+  private def saveChangeRequest()(using qc: QueryContext): JsCmd = scala.util.boundary {
     // we only have quick change request now
     val purecr = item match {
       case Left(
@@ -541,7 +540,7 @@ class ModificationValidationPopup(
           ChangeRequestService.createChangeRequestFromRules(
             changeRequestName.get,
             crReasons.map(_.get).getOrElse(""),
-            CurrentUser.actor,
+            qc.actor,
             crReasons.map(_.get),
             baseRules,
             updatedRules
@@ -560,7 +559,7 @@ class ModificationValidationPopup(
               directive.id,
               optOriginal,
               diff,
-              CurrentUser.actor,
+              qc.actor,
               crReasons.map(_.get),
               baseRules,
               updatedRules
@@ -579,7 +578,7 @@ class ModificationValidationPopup(
             )(using
               ChangeContext(
                 ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
+                qc.actor,
                 Instant.now(),
                 crReasons.map(_.get),
                 None,
@@ -606,7 +605,7 @@ class ModificationValidationPopup(
             nodeGroup,
             optOriginal,
             _,
-            CurrentUser.actor,
+            qc.actor,
             crReasons.map(_.get)
           )
         )
@@ -618,7 +617,7 @@ class ModificationValidationPopup(
               .startWorkflow(cr)(using
                 ChangeContext(
                   ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
+                  qc.actor,
                   Instant.now(),
                   crReasons.map(_.get),
                   None,
@@ -675,7 +674,7 @@ class ModificationValidationPopup(
       directive:         Directive,
       activeTechniqueId: ActiveTechniqueId,
       why:               Option[String]
-  ): JsCmd = {
+  )(using qc: QueryContext): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why).either.runNow match {
       case Right(optChanges) =>
