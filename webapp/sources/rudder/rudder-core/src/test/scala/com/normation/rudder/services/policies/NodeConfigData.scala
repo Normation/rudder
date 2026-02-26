@@ -249,7 +249,7 @@ object NodeConfigData {
     rootId,
     None,
     rootHostname,
-    Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
+    Linux(LinuxType.Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
     MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
     RudderSettings(
       UndefinedKey,
@@ -279,7 +279,7 @@ object NodeConfigData {
     id1,
     None,
     hostname1,
-    Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
+    Linux(LinuxType.Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
     MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
     RudderSettings(
       UndefinedKey,
@@ -311,7 +311,7 @@ object NodeConfigData {
       AcceptedInventory,
       node1.localAdministratorAccountName,
       node1.hostname,
-      Linux(Debian, "test machine", new Version("1.0"), None, new Version("3.42")),
+      Linux(LinuxType.Debian, "test machine", new Version("1.0"), None, new Version("3.42")),
       root.id,
       UndefinedKey
     ),
@@ -345,7 +345,13 @@ object NodeConfigData {
     NodeId("node-dsc"),
     None,
     "node-dsc.localhost",
-    Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012")),
+    Windows(
+      WindowsType.Windows2012,
+      "Windows 2012 youpla boom",
+      new Version("2012"),
+      Some("sp1"),
+      new Version("win-kernel-2012")
+    ),
     MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
     RudderSettings(
       UndefinedKey,
@@ -458,7 +464,7 @@ object NodeConfigData {
       id,
       None,
       s"Node-${id}",
-      Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
+      Linux(LinuxType.Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
       MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None),
       RudderSettings(
         UndefinedKey,

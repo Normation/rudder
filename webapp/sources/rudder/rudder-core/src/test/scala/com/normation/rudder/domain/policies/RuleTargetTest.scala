@@ -1,8 +1,8 @@
 package com.normation.rudder.domain.policies
 
 import com.normation.JsonSpecMatcher
-import com.normation.inventory.domain.Debian
 import com.normation.inventory.domain.Linux
+import com.normation.inventory.domain.LinuxType.Debian
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.domain.Version

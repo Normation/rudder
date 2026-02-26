@@ -699,26 +699,7 @@ class InventoryMapper(
 
       case Linux(os, osFullName, osVersion, osServicePack, kernelVersion) =>
         val linux = dit.NODES.NODE.linuxModel(server.main.id)
-        os match {
-          case Debian      => linux.addValues(A_OS_NAME, A_OS_DEBIAN)
-          case Kali        => linux.addValues(A_OS_NAME, A_OS_KALI)
-          case Ubuntu      => linux.addValues(A_OS_NAME, A_OS_UBUNTU)
-          case Redhat      => linux.addValues(A_OS_NAME, A_OS_REDHAT)
-          case Centos      => linux.addValues(A_OS_NAME, A_OS_CENTOS)
-          case Fedora      => linux.addValues(A_OS_NAME, A_OS_FEDORA)
-          case Suse        => linux.addValues(A_OS_NAME, A_OS_SUZE)
-          case Android     => linux.addValues(A_OS_NAME, A_OS_ANDROID)
-          case Oracle      => linux.addValues(A_OS_NAME, A_OS_ORACLE)
-          case Scientific  => linux.addValues(A_OS_NAME, A_OS_SCIENTIFIC)
-          case Slackware   => linux.addValues(A_OS_NAME, A_OS_SLACKWARE)
-          case Mint        => linux.addValues(A_OS_NAME, A_OS_MINT)
-          case AmazonLinux => linux.addValues(A_OS_NAME, A_OS_AMAZON_LINUX)
-          case RockyLinux  => linux.addValues(A_OS_NAME, A_OS_ROCKY_LINUX)
-          case AlmaLinux   => linux.addValues(A_OS_NAME, A_OS_ALMA_LINUX)
-          case Raspbian    => linux.addValues(A_OS_NAME, A_OS_RASPBIAN)
-          case Tuxedo      => linux.addValues(A_OS_NAME, A_OS_TUXEDO)
-          case _           => linux.addValues(A_OS_NAME, A_OS_UNKNOWN_LINUX)
-        }
+        linux.addValues(A_OS_NAME, os.name)
         linux
 
       case Windows(
@@ -733,25 +714,7 @@ class InventoryMapper(
             productId
           ) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
-        os match {
-          case WindowsXP     => win.addValues(A_OS_NAME, A_OS_WIN_XP)
-          case WindowsVista  => win.addValues(A_OS_NAME, A_OS_WIN_VISTA)
-          case WindowsSeven  => win.addValues(A_OS_NAME, A_OS_WIN_SEVEN)
-          case Windows10     => win.addValues(A_OS_NAME, A_OS_WIN_10)
-          case Windows11     => win.addValues(A_OS_NAME, A_OS_WIN_11)
-          case Windows2000   => win.addValues(A_OS_NAME, A_OS_WIN_2000)
-          case Windows2003   => win.addValues(A_OS_NAME, A_OS_WIN_2003)
-          case Windows2008   => win.addValues(A_OS_NAME, A_OS_WIN_2008)
-          case Windows2008R2 => win.addValues(A_OS_NAME, A_OS_WIN_2008_R2)
-          case Windows2012   => win.addValues(A_OS_NAME, A_OS_WIN_2012)
-          case Windows2012R2 => win.addValues(A_OS_NAME, A_OS_WIN_2012_R2)
-          case Windows2016   => win.addValues(A_OS_NAME, A_OS_WIN_2016)
-          case Windows2016R2 => win.addValues(A_OS_NAME, A_OS_WIN_2016_R2)
-          case Windows2019   => win.addValues(A_OS_NAME, A_OS_WIN_2019)
-          case Windows2022   => win.addValues(A_OS_NAME, A_OS_WIN_2022)
-          case Windows2025   => win.addValues(A_OS_NAME, A_OS_WIN_2025)
-          case _             => win.addValues(A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
-        }
+        win.addValues(A_OS_NAME, os.name)
         win.setOpt(userDomain, A_WIN_USER_DOMAIN, (x: String) => x)
         win.setOpt(registrationCompany, A_WIN_COMPANY, (x: String) => x)
         win.setOpt(productKey, A_WIN_KEY, (x: String) => x)
@@ -888,25 +851,7 @@ class InventoryMapper(
       osFullName     = entry(A_OS_FULL_NAME).getOrElse("")
       osServicePack  = entry(A_OS_SERVICE_PACK)
       osDetails     <- if (entry.isA(OC_WINDOWS_NODE)) {
-                         val os                  = osName match {
-                           case A_OS_WIN_XP      => WindowsXP
-                           case A_OS_WIN_VISTA   => WindowsVista
-                           case A_OS_WIN_SEVEN   => WindowsSeven
-                           case A_OS_WIN_10      => Windows10
-                           case A_OS_WIN_11      => Windows11
-                           case A_OS_WIN_2000    => Windows2000
-                           case A_OS_WIN_2003    => Windows2003
-                           case A_OS_WIN_2008    => Windows2008
-                           case A_OS_WIN_2008_R2 => Windows2008R2
-                           case A_OS_WIN_2012    => Windows2012
-                           case A_OS_WIN_2012_R2 => Windows2012R2
-                           case A_OS_WIN_2016    => Windows2016
-                           case A_OS_WIN_2016_R2 => Windows2016R2
-                           case A_OS_WIN_2019    => Windows2019
-                           case A_OS_WIN_2022    => Windows2022
-                           case A_OS_WIN_2025    => Windows2025
-                           case _                => UnknownWindowsType
-                         }
+                         val os                  = WindowsType.parseFromLdap(osName)
                          val userDomain          = entry(A_WIN_USER_DOMAIN)
                          val registrationCompany = entry(A_WIN_COMPANY)
                          val productKey          = entry(A_WIN_KEY)
@@ -926,26 +871,7 @@ class InventoryMapper(
                          )
 
                        } else if (entry.isA(OC_LINUX_NODE)) {
-                         val os = osName match {
-                           case A_OS_DEBIAN       => Debian
-                           case A_OS_KALI         => Kali
-                           case A_OS_UBUNTU       => Ubuntu
-                           case A_OS_REDHAT       => Redhat
-                           case A_OS_CENTOS       => Centos
-                           case A_OS_FEDORA       => Fedora
-                           case A_OS_SUZE         => Suse
-                           case A_OS_ORACLE       => Oracle
-                           case A_OS_SCIENTIFIC   => Scientific
-                           case A_OS_ANDROID      => Android
-                           case A_OS_SLACKWARE    => Slackware
-                           case A_OS_MINT         => Mint
-                           case A_OS_AMAZON_LINUX => AmazonLinux
-                           case A_OS_ROCKY_LINUX  => RockyLinux
-                           case A_OS_ALMA_LINUX   => AlmaLinux
-                           case A_OS_RASPBIAN     => Raspbian
-                           case A_OS_TUXEDO       => Tuxedo
-                           case _                 => UnknownLinuxType
-                         }
+                         val os = LinuxType.parseFromLdap(osName)
                          Right(Linux(os, osFullName, osVersion, osServicePack, kernelVersion))
 
                        } else if (entry.isA(OC_NODE)) {

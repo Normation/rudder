@@ -192,7 +192,7 @@ class TestInventory extends Specification {
       "root",
       "localhost",
       Linux(
-        Debian,
+        LinuxType.Debian,
         "foo",
         new Version("1.0"),
         None,
@@ -464,7 +464,7 @@ class TestInventory extends Specification {
           "administrator",
           "localhost",
           Windows(
-            Windows2012,
+            WindowsType.Windows2012,
             "foo",
             new Version("1.0"),
             None,

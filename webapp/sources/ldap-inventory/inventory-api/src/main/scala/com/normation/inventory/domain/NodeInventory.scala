@@ -40,6 +40,7 @@ package com.normation.inventory.domain
 import enumeratum.*
 import java.net.InetAddress
 import java.time.Instant
+import org.apache.commons.lang3.Strings
 import zio.json.*
 import zio.json.ast.*
 
@@ -144,104 +145,124 @@ sealed trait OsType {
   def kernelName: String
   def name:       String // name is normalized and not destined to be printed - use localization for that
   override def toString = kernelName
+  // display name is the brand name used in UI for human
+  def displayName: String
 }
 
 object UnknownOSType extends OsType {
-  val kernelName = "N/A"
-  val name       = "N/A"
+  override val kernelName  = "N/A"
+  override val name        = "N/A"
+  override val displayName = "N/A"
 }
 
-sealed abstract class WindowsType extends OsType {
-  override val kernelName = "Windows"
-}
-object WindowsType {
-  val allKnownTypes: List[WindowsType] = (
-    WindowsXP
-      :: WindowsVista
-      :: WindowsSeven
-      :: Windows10
-      :: Windows11
-      :: Windows2000
-      :: Windows2003
-      :: Windows2008
-      :: Windows2008R2
-      :: Windows2012
-      :: Windows2012R2
-      :: Windows2016
-      :: Windows2016R2
-      :: Windows2019
-      :: Windows2022
-      :: Windows2025
-      :: Nil
-  )
-}
-
-case object UnknownWindowsType extends WindowsType { val name = "Windows"       }
-case object WindowsXP          extends WindowsType { val name = "WindowsXP"     }
-case object WindowsVista       extends WindowsType { val name = "WindowsVista"  }
-case object WindowsSeven       extends WindowsType { val name = "WindowsSeven"  }
-case object Windows10          extends WindowsType { val name = "Windows10"     }
-case object Windows11          extends WindowsType { val name = "Windows11"     }
-case object Windows2000        extends WindowsType { val name = "Windows2000"   }
-case object Windows2003        extends WindowsType { val name = "Windows2003"   }
-case object Windows2008        extends WindowsType { val name = "Windows2008"   }
-case object Windows2008R2      extends WindowsType { val name = "Windows2008R2" }
-case object Windows2012        extends WindowsType { val name = "Windows2012"   }
-case object Windows2012R2      extends WindowsType { val name = "Windows2012R2" }
-case object Windows2016        extends WindowsType { val name = "Windows2016"   }
-case object Windows2016R2      extends WindowsType { val name = "Windows2016R2" }
-case object Windows2019        extends WindowsType { val name = "Windows2019"   }
-case object Windows2022        extends WindowsType { val name = "Windows2022"   }
-case object Windows2025        extends WindowsType { val name = "Windows2025"   }
-
-/**
- * Specific Linux subtype (distribution)
+/*
+ * All the case for windows. We have three place where we need to use a "string" name:
+ * - for the object "name" - the historic identifier. It's also used for LDAP serialisation
+ * - and when we parse an inventory - this must be decidable and is kind of "contains", so parsing
+ *   need to take care of order for similar name like 2012/2012 r2.
+ * - and for the UI "brand" name.
  */
-sealed abstract class LinuxType extends OsType {
-  override val kernelName = "Linux"
-}
-object LinuxType {
-  val allKnownTypes: List[LinuxType] = (
-    Debian
-      :: Ubuntu
-      :: Kali
-      :: Redhat
-      :: Centos
-      :: Fedora
-      :: Suse
-      :: Android
-      :: UnknownLinuxType
-      :: Oracle
-      :: Scientific
-      :: Slackware
-      :: Mint
-      :: AmazonLinux
-      :: RockyLinux
-      :: AlmaLinux
-      :: Raspbian
-      :: Tuxedo
-      :: Nil
-  )
+sealed abstract class WindowsType(override val entryName: String, val inventoryParseKey: String)(
+    val displayName: String = entryName
+) extends EnumEntry with OsType {
+  override val kernelName = "Windows"
+  def name: String = entryName // for compat
 }
 
-case object UnknownLinuxType extends LinuxType { val name = "UnknownLinux" }
-case object Debian           extends LinuxType { val name = "Debian"       }
-case object Kali             extends LinuxType { val name = "Kali"         }
-case object Ubuntu           extends LinuxType { val name = "Ubuntu"       }
-case object Redhat           extends LinuxType { val name = "Redhat"       }
-case object Centos           extends LinuxType { val name = "Centos"       }
-case object Fedora           extends LinuxType { val name = "Fedora"       }
-case object Suse             extends LinuxType { val name = "Suse"         }
-case object Android          extends LinuxType { val name = "Android"      }
-case object Oracle           extends LinuxType { val name = "Oracle"       }
-case object Scientific       extends LinuxType { val name = "Scientific"   }
-case object Slackware        extends LinuxType { val name = "Slackware"    }
-case object Mint             extends LinuxType { val name = "Mint"         }
-case object AmazonLinux      extends LinuxType { val name = "AmazonLinux"  }
-case object RockyLinux       extends LinuxType { val name = "RockyLinux"   }
-case object AlmaLinux        extends LinuxType { val name = "AlmaLinux"    }
-case object Raspbian         extends LinuxType { val name = "Raspbian"     }
-case object Tuxedo           extends LinuxType { val name = "Tuxedo"       }
+object WindowsType extends Enum[WindowsType] {
+
+  case object WindowsXP     extends WindowsType("WindowsXP", "xp")("Windows XP")
+  case object WindowsVista  extends WindowsType("WindowsVista", "vista")("Windows Vista")
+  case object WindowsSeven  extends WindowsType("WindowsSeven", "seven")("Windows Seven")
+  case object Windows10     extends WindowsType("Windows10", "10")("Windows 10")
+  case object Windows11     extends WindowsType("Windows11", "11")("Windows 11")
+  case object Windows2000   extends WindowsType("Windows2000", "2000")("Windows 2000")
+  case object Windows2003   extends WindowsType("Windows2003", "2003")("Windows 2003")
+  case object Windows2008   extends WindowsType("Windows2008", "2008")("Windows 2008")
+  case object Windows2008R2 extends WindowsType("Windows2008R2", "2008 r2")("Windows 2008 R2")
+  case object Windows2012   extends WindowsType("Windows2012", "2012")("Windows 2012")
+  case object Windows2012R2 extends WindowsType("Windows2012R2", "2012 r2")("Windows 2012 R2")
+  case object Windows2016   extends WindowsType("Windows2016", "2016")("Windows 2016")
+  case object Windows2016R2 extends WindowsType("Windows2016R2", "2016 r2")("Windows 2016 R2")
+  case object Windows2019   extends WindowsType("Windows2019", "2019")("Windows 2019")
+  case object Windows2022   extends WindowsType("Windows2022", "2022")("Windows 2022")
+  case object Windows2025   extends WindowsType("Windows2025", "2025")("Windows 2025")
+
+  case object UnknownWindowsType extends WindowsType("UnknownWindows", "Unknown Windows")("Other Windows version")
+
+  def values: IndexedSeq[WindowsType] = findValues
+
+  def allKnownTypes: List[WindowsType] = values.filterNot(_ == UnknownWindowsType).toList
+
+  /*
+   * Given a Windows OS string, how to find the OS ?
+   */
+  def parseFromInventory(osString: String): OsType = {
+    values.collect { case t if Strings.CI.contains(osString, t.inventoryParseKey) => t }
+      // if there is several matches, like in 2016/2016 r2, takes the longest key
+      .sortBy(-_.inventoryParseKey.length)
+      .headOption
+      .getOrElse(UnknownWindowsType)
+  }
+
+  def parseFromLdap(os: String): OsType = {
+    withNameInsensitiveOption(os).getOrElse(LinuxType.UnknownLinuxType)
+  }
+}
+
+/*
+ * Specific Linux subtype (distribution)
+ * We have three places where we need to use a "string" name:
+ * - for the object "name" - the historic identifier. It's also used for LDAP serialisation
+ * - and when we parse an inventory - this must be decidable
+ * - and for the UI "brand" name. In a lot of case for Linux, it's the same of the identifier.
+ */
+sealed abstract class LinuxType(override val entryName: String, val inventoryParseKey: String)(
+    val displayName: String = entryName
+) extends EnumEntry with OsType {
+  override val kernelName = "Linux"
+  def name: String = entryName // for compat
+}
+
+object LinuxType extends Enum[LinuxType] {
+
+  case object AlmaLinux   extends LinuxType("AlmaLinux", "almalinux")()
+  case object AmazonLinux extends LinuxType("AmazonLinux", "amazon linux")("Amazon Linux")
+  case object Android     extends LinuxType("Android", "android")()
+  case object Centos      extends LinuxType("Centos", "centos")("CentOS")
+  case object Debian      extends LinuxType("Debian", "debian")()
+  case object Fedora      extends LinuxType("Fedora", "fedora")()
+  case object Kali        extends LinuxType("Kali", "kali")()
+  case object Mint        extends LinuxType("Mint", "mint")()
+  case object Oracle      extends LinuxType("Oracle", "oracle")("Oracle Linux Server")
+  case object Raspbian    extends LinuxType("Raspbian", "raspbian")()
+  case object Redhat      extends LinuxType("Redhat", "redhat")("Red Hat")
+  case object RockyLinux  extends LinuxType("RockyLinux", "rocky")("Rocky Linux")
+  case object Scientific  extends LinuxType("Scientific", "scientific")("Scientific Linux")
+  case object Slackware   extends LinuxType("Slackware", "slackware")()
+  case object Suse        extends LinuxType("Suse", "suse")("SUSE")
+  case object Tuxedo      extends LinuxType("Tuxedo", "tuxedo")("TUXEDO OS")
+  case object Ubuntu      extends LinuxType("Ubuntu", "ubuntu")()
+
+  case object UnknownLinuxType extends LinuxType("UnknownLinux", "Unknown Linux")("Other Linux")
+
+  def values: IndexedSeq[LinuxType] = findValues
+
+  def allKnownTypes: List[LinuxType] = values.filterNot(_ == UnknownLinuxType).toList
+
+  /*
+   * Given a Windows OS string, how to find the OS ?
+   */
+  def parseFromInventory(osString: String): OsType = {
+    values
+      .find(t => Strings.CI.contains(osString, t.inventoryParseKey))
+      .getOrElse(UnknownLinuxType)
+  }
+
+  def parseFromLdap(os: String): OsType = {
+    withNameInsensitiveOption(os).getOrElse(WindowsType.UnknownWindowsType)
+  }
+}
 
 /**
  * The different OS type. For now, we know:
@@ -295,43 +316,10 @@ object ParseOSType {
     (osType.toLowerCase, osName.toLowerCase, fullName.toLowerCase) match {
       case ("mswin32", _, x) =>
         // in windows, relevant information are in the fullName string
-        if (x.contains("xp")) WindowsXP
-        else if (x.contains("vista")) WindowsVista
-        else if (x.contains("seven")) WindowsSeven
-        else if (x.contains("10")) Windows10
-        else if (x.contains("11")) Windows11
-        else if (x.contains("2000")) Windows2000
-        else if (x.contains("2003")) Windows2003
-        else if (x.contains("2008 r2")) Windows2008R2 // must be before 2008 for obvious reason
-        else if (x.contains("2008")) Windows2008
-        else if (x.contains("2012 r2")) Windows2012R2
-        else if (x.contains("2012")) Windows2012
-        else if (x.contains("2016 r2")) Windows2016R2
-        else if (x.contains("2016")) Windows2016
-        else if (x.contains("2019")) Windows2019
-        else if (x.contains("2022")) Windows2022
-        else if (x.contains("2025")) Windows2025
-        else UnknownWindowsType
+        WindowsType.parseFromInventory(x)
 
       case ("linux", x, _) =>
-        if (x.contains("debian")) Debian
-        else if (x.contains("ubuntu")) Ubuntu
-        else if (x.contains("kali")) Kali
-        else if (x.contains("redhat")) Redhat
-        else if (x.contains("centos")) Centos
-        else if (x.contains("fedora")) Fedora
-        else if (x.contains("suse")) Suse
-        else if (x.contains("android")) Android
-        else if (x.contains("oracle")) Oracle
-        else if (x.contains("scientific")) Scientific
-        else if (x.contains("slackware")) Slackware
-        else if (x.contains("mint")) Mint
-        else if (x.contains("amazon linux")) AmazonLinux
-        else if (x.contains("rocky")) RockyLinux
-        else if (x.contains("almalinux")) AlmaLinux
-        else if (x.contains("raspbian")) Raspbian
-        else if (x.contains("tuxedo")) Tuxedo
-        else UnknownLinuxType
+        LinuxType.parseFromInventory(x)
 
       case _ => UnknownOSType
     }

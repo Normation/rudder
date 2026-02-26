@@ -54,8 +54,8 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Linux
+import com.normation.inventory.domain.LinuxType.RockyLinux
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.RockyLinux
 import com.normation.inventory.domain.Version as IVersion
 import com.normation.plugins.*
 import com.normation.rudder.*

@@ -473,7 +473,7 @@ object DisplayNode extends Loggable {
          |<div class='tooltip-content'>
          |  <ul>
          |    <li><b>Type:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.os.kernelName)}</li>
-         |    <li><b>Name:</b> ${StringEscapeUtils.escapeHtml4(S.?("os.name." + sm.node.main.osDetails.os.name))}</li>
+         |    <li><b>Name:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.os.displayName)}</li>
          |    <li><b>Version:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.version.value)}</li>
          |    <li><b>Service pack:</b> ${StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.servicePack.getOrElse("None"))}</li>
          |    <li><b>Architecture:</b> ${StringEscapeUtils.escapeHtml4(sm.node.archDescription.getOrElse("None"))}</li>
@@ -971,7 +971,7 @@ object DisplayNode extends Loggable {
           ("Policy server ID", StringEscapeUtils.escapeHtml4(sm.node.main.policyServerId.value)),
           ("Operating system detailed name", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.fullName)),
           ("Operating system type", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.os.kernelName)),
-          ("Operating system name", StringEscapeUtils.escapeHtml4(S.?("os.name." + sm.node.main.osDetails.os.name))),
+          ("Operating system name", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.os.displayName)),
           ("Operating system version", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.version.value)),
           ("Operating system service pack", StringEscapeUtils.escapeHtml4(sm.node.main.osDetails.servicePack.getOrElse("None"))),
           ("Operating system architecture description", StringEscapeUtils.escapeHtml4(sm.node.archDescription.getOrElse("None"))),
@@ -1400,7 +1400,7 @@ object DisplayNodeJson {
   ) {
     def toJsonEscaped: String = OsDetailsJson(
       StringEscapeUtils.unescapeEcmaScript(fullName),
-      StringEscapeUtils.unescapeEcmaScript(S.?("os.name." + name)),
+      StringEscapeUtils.unescapeEcmaScript(name),
       StringEscapeUtils.unescapeEcmaScript(version),
       StringEscapeUtils.unescapeEcmaScript(servicePack),
       StringEscapeUtils.unescapeEcmaScript(kernelVersion)
@@ -1410,7 +1410,7 @@ object DisplayNodeJson {
   object OsDetailsJson {
     implicit val transformer: Transformer[OsDetails, OsDetailsJson] = Transformer
       .define[OsDetails, OsDetailsJson]
-      .withFieldComputed(_.name, _.os.name)
+      .withFieldComputed(_.name, _.os.displayName)
       .withFieldComputed(_.servicePack, _.servicePack.getOrElse("None"))
       .buildTransformer
 
@@ -1427,7 +1427,7 @@ object DisplayNodeJson {
     implicit val transformer: Transformer[Option[MachineInventory], MachineJson] = Transformer
       .define[Option[MachineInventory], MachineJson]
       .withFieldComputed(_.manufacturer, _.flatMap(_.manufacturer.map(_.name)).getOrElse(""))
-      .withFieldComputed(_.machineType, DisplayNode.displayMachineType(_).text.toString)
+      .withFieldComputed(_.machineType, DisplayNode.displayMachineType(_).text)
       .buildTransformer
 
     implicit val encoder: JsonEncoder[MachineJson] = DeriveJsonEncoder.gen[MachineJson]
