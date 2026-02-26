@@ -133,6 +133,10 @@
 .wbBaseFieldLabel .tw-bs .ruddericon {
     top: -2px;
 }
+
+#tagForm label{
+  font-weight: normal;
+}
 #technicalDetails > .directiveTechnicalInfo:first-child{
   margin-top:0;
 }
@@ -382,6 +386,17 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
 
 
 /* === FOLDABLE SECTIONS === */
+.groupFieldset{
+  & + .groupFieldset {
+    margin-top: 2rem;
+  }
+  &.foldedSection + .groupFieldset {
+    margin-top: 1rem;
+  }
+  &.foldableSection div.section-title {
+    margin-bottom: 0;
+  }
+}
 .section-title {
   font-size: 22px;
   cursor: default;
@@ -434,7 +449,7 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
 .foldableSection .foldableSection > .section-title{
   border-bottom: none;
   color: rudder.$txt-light;
-  margin-bottom: 8px;
+  margin-bottom: 8px !important;
   transition-duration: .2s;
   cursor: pointer;
 }
@@ -450,9 +465,9 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
 .sectionFieldset.foldableSection:before{
   content:"";
   position: absolute;
-  top: 30px;
+  top: 34px;
   bottom: 0;
-  left: 12.5px;
+  left: 10px;
   width: 2px;
   background-color: rudder.$border-color-default;
   transition: background-color .2s;
@@ -472,9 +487,14 @@ div.unfoldedSection div.section-title:before,div.foldedSection div.section-title
 table.directiveGroupDef{
   border-left: 2px solid rudder.$border-color-default;
   transition: border-left-color .2s;
-}
-table.directiveGroupDef:hover{
-  border-left-color: rudder.$success;
+
+  &:hover{
+    border-left-color: rudder.$success;
+  }
+
+  & > tbody > tr:first-child > td:first-child .section-title{
+    margin-top : 10px;
+  }
 }
 
 div.unfoldedSection div.section-title:before,
