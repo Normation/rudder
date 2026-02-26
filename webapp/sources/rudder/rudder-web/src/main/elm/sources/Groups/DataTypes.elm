@@ -69,12 +69,10 @@ getSubElems cat =
 
 type alias UI =
   { groupFilters   : Filters
-  , modal          : ModalState
   , hasWriteRights : Bool
   , loadingGroups  : Bool
   }
 
-type ModalState = NoModal | ExternalModal
 
 type alias Filters =
   { tableFilters : TableFilters SortBy
