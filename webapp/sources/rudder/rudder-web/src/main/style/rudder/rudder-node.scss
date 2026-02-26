@@ -552,8 +552,8 @@ div.serverDetail {
 
   tr.displayPastInventory {
     background-color: #fff !important;
-    border-top: 1px solid $rudder-border-color-default;
-    border-bottom: 1px solid $rudder-border-color-default;
+    border-top: 1px solid rudder.$border-color-default;
+    border-bottom: 1px solid rudder.$border-color-default;
 
     td.displayPastInventory{
       padding: 0 !important;
