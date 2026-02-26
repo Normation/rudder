@@ -188,9 +188,36 @@ impl Rpkg {
         db.is_installed(self)
     }
 
+    /// Means the plugin:
+    ///
+    /// * Is installed
+    /// * Contains a jar
+    /// * The jar is not enabed
+    pub fn is_disabled(&self, db: &Database, webapp: &Webapp) -> Result<bool> {
+        let is_installed = db.is_installed(self);
+        let enabled_jars = webapp.jars()?;
+
+        let is_disabled = is_installed
+            && self
+                .metadata
+                .jar_files
+                .iter()
+                .any(|jar| !enabled_jars.contains(jar));
+
+        Ok(is_disabled)
+    }
+
     pub fn install(&self, force: bool, db: &mut Database, webapp: &mut Webapp) -> Result<()> {
         debug!("Installing rpkg file '{}'...", self.path.display());
         let is_upgrade = self.is_installed(db);
+
+        // We want to allow a plugin to add a webapp component on upgrade, so only enabling
+        // already enabled plugin is not right. We need to specifically check
+        // for disabled webapp plugins.
+        let is_disabled = self
+            .is_disabled(db, webapp)
+            .context("Checking for enabled plugins")?;
+
         // Verify webapp compatibility
         if !webapp.version.is_compatible(&self.metadata.version) && !force {
             bail!(
