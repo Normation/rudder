@@ -384,6 +384,7 @@ function createRuleTable(gridId, data, checkboxColumn, actionsColumn, compliance
     , "sTitle" : "<input id='checkAll' type='checkbox'></input>"
     , "sWidth": "5%"
     , "bSortable": true
+    , "type": "html-utf8"
     , "orderDataType": "dom-checkbox"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
