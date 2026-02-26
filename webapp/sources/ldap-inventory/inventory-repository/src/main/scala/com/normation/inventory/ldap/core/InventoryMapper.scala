@@ -918,6 +918,7 @@ class InventoryMapper(
                            case A_OS_WIN_VISTA   => WindowsVista
                            case A_OS_WIN_SEVEN   => WindowsSeven
                            case A_OS_WIN_10      => Windows10
+                           case A_OS_WIN_11      => Windows11
                            case A_OS_WIN_2000    => Windows2000
                            case A_OS_WIN_2003    => Windows2003
                            case A_OS_WIN_2008    => Windows2008
