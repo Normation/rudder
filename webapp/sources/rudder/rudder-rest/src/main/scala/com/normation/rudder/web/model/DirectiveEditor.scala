@@ -509,7 +509,7 @@ final case class MultivaluedSectionField(
     <lift:authz role="directive_write">
       <div class="textright directiveDeleteGroup">{
       if (!readOnlySection) {
-        val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "btn btn-danger") :: Nil
+        val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "btn btn-danger mt-2") :: Nil
         SHtml.ajaxSubmit(
           s"Delete '${name} #${i + 1}'",
           { () =>
