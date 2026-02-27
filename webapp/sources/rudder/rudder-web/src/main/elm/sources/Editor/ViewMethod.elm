@@ -721,11 +721,6 @@ callBody model ui techniqueUi call pid =
               |> appendChild
                 ( element "div"
                   |> addClass "form-group mb-0"
-                  |> appendChild
-                    ( element "div"
-                      |> addClass "title-input-name"
-                      |> appendText "Name"
-                    )
                   |> appendChildConditional
                     ( element "div"
                       |> appendChildList
