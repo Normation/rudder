@@ -101,7 +101,7 @@ attributetype ( RudderAttributes:111
   DESC 'Unique identifier for a Rule category'
   SUP uuid )
 
-attributetype ( RudderAttributes:111
+attributetype ( RudderAttributes:112
   NAME 'scheduleId'
   DESC 'Unique identifier for a schedule'
   SUP uuid )
