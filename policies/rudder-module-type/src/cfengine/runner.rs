@@ -180,13 +180,14 @@ impl CfengineRunner {
                 }
                 Ok(Request::Evaluate(req)) => {
                     set_max_level(req.log_level);
-                    let result: EvaluateOutcome = promise
-                        .check_apply(req.attributes.action_policy.into(), &req.attributes)
-                        .into();
+                    let result =
+                        promise.check_apply(req.attributes.action_policy.into(), &req.attributes);
+                    let (outcome, classes) = EvaluateOutcome::from_res(result);
+
                     Self::write_json(
                         &mut output,
                         &mut logger,
-                        EvaluateResponse::new(&req, result, vec![]),
+                        EvaluateResponse::new(&req, outcome, classes),
                     )?
                 }
                 Ok(Request::Terminate(_req)) => {

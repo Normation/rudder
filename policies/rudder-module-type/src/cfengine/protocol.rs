@@ -19,6 +19,14 @@ pub struct Class {
     inner: String,
 }
 
+impl Class {
+    pub fn canonify(s: &str) -> Self {
+        Class {
+            inner: s.replace(|c: char| !ALLOWED_CHAR_CLASS.contains(c), "_"),
+        }
+    }
+}
+
 impl FromStr for Class {
     type Err = Error;
 
@@ -91,24 +99,24 @@ pub enum EvaluateOutcome {
     Error,
 }
 
-impl From<CheckApplyResult> for EvaluateOutcome {
-    fn from(item: CheckApplyResult) -> Self {
-        match item {
+impl EvaluateOutcome {
+    pub fn from_res(res: CheckApplyResult) -> (Self, Vec<Class>) {
+        match res {
             Ok(Outcome::Success(m)) => {
                 if let Some(i) = m {
                     rudder_info!("{}", i);
                 }
-                EvaluateOutcome::Kept
+                (EvaluateOutcome::Kept, vec![])
             }
-            Ok(Outcome::Repaired(m)) => {
+            Ok(Outcome::Repaired(m, c)) => {
                 rudder_info!("{}", m);
-                EvaluateOutcome::Repaired
+                (EvaluateOutcome::Repaired, c)
             }
             Err(e) => {
                 // Use Debug to show full anyhow error stack.
                 // Only log in debug level as there is already a report written.
                 rudder_debug!("{:#}", e);
-                EvaluateOutcome::NotKept
+                (EvaluateOutcome::NotKept, vec![])
             }
         }
     }
@@ -344,6 +352,16 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<EvaluateRequest>(val).unwrap(),
             ref_val
+        );
+    }
+
+    #[test]
+    fn it_canonifies_classes() {
+        assert_eq!(
+            Class::canonify("my class!@#"),
+            Class {
+                inner: "my_class___".to_string()
+            }
         );
     }
 }

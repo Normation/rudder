@@ -367,7 +367,7 @@ impl Augeas {
         }
         //Kept cases
         Ok(if modified {
-            Outcome::Repaired(format!("File {} modified", p.path.display()))
+            Outcome::repaired(format!("File {} modified", p.path.display()))
         } else {
             Outcome::Success(Some(format!("File {} already correct", p.path.display())))
         })

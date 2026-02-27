@@ -14,6 +14,7 @@ members = [
            "policies/module-types/system-updates",
            "policies/module-types/template",
            "policies/module-types/secedit",
+           "policies/module-types/scheduler",
            "policies/lib",
            "relay/sources/relayd",
            "relay/sources/rudder-package"]
