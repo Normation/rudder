@@ -259,6 +259,7 @@ type alias MethodCallUiInfo =
   , tab        : MethodCallTab
   , validation : ValidationState MethodCallParamError
   , foreachUI  : ForeachUI
+  , editName   : Bool
   }
 
 type alias MethodBlockUiInfo =

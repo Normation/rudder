@@ -10,7 +10,6 @@ import File.Download
 import File.Select
 import Http.Detailed as Detailed
 import Json.Decode exposing ( Value )
-import Json.Encode
 import List.Extra
 import Maybe.Extra
 import Random
@@ -21,8 +20,8 @@ import UUID
 import Editor.ApiCalls exposing (..)
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
-import Editor.JsonEncoder exposing (encodeDraft, encodeExportTechnique)
-import Editor.JsonDecoder exposing (decodeDraft, decodeErrorDetails, decodeTechnique)
+import Editor.JsonEncoder exposing (encodeDraft)
+import Editor.JsonDecoder exposing (decodeDraft, decodeErrorDetails)
 import Editor.MethodConditions exposing (..)
 import Editor.MethodElemUtils exposing (..)
 import Editor.ViewMethod exposing ( accumulateErrorConstraint )
@@ -140,15 +139,6 @@ subscriptions model =
                     Nothing -> Ignore
                   )
         ]
-
-defaultMethodUiInfo : Maybe MethodCall -> MethodCallUiInfo
-defaultMethodUiInfo call =
-  let
-    (foreachName, foreach) = case call of
-      Just c -> (c.foreachName, c.foreach)
-      Nothing -> (Nothing, Nothing)
-  in
-    MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach foreachName foreach))
 
 defaultBlockUiInfo : MethodBlock -> MethodBlockUiInfo
 defaultBlockUiInfo block =
