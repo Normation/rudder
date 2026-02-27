@@ -21,6 +21,13 @@
       "type": "string",
       "pattern": "[a-zA-Z0-9_]+"
     },
+    "foreach_columns_order": {
+      "type": "array",
+      "title": "Display order of the foreach columns in the UI",
+      "items": {
+        "type": "string"
+      }
+    },
     "uuid": {
       "type": "string",
       "format": "uuid"
@@ -342,6 +349,9 @@
         },
         "foreach": {
           "$ref": "#/$defs/foreach"
+        },
+        "foreach_columns_order": {
+          "$ref": "#/$defs/foreach_columns_order"
         }
       },
       "required": [
@@ -429,6 +439,9 @@
         },
         "foreach": {
           "$ref": "#/$defs/foreach"
+        },
+        "foreach_columns_order": {
+          "$ref": "#/$defs/foreach_columns_order"
         }
       },
       "required": [
