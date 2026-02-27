@@ -9,7 +9,6 @@ use crate::{
     db::{Event, PackageDatabase},
     package_manager::{LinuxPackageManager, PackageManager},
     runner::Runner,
-    system::{System, Systemd},
 };
 use anyhow::{Result, bail};
 use chrono::{Duration, SecondsFormat};
@@ -137,9 +136,8 @@ impl Cli {
                     schedule_file: None,
                 };
                 let db = PackageDatabase::new(Some(state_dir.as_path()))?;
-                let system: Box<dyn System> = Box::new(Systemd::new());
                 let pid = std::process::id();
-                let mut runner = Runner::new(db, pm, package_parameters, system, pid);
+                let mut runner = Runner::new(db, pm, package_parameters, pid);
                 runner.run()?;
             }
             Some(Command::Clear(l)) => {

@@ -107,7 +107,7 @@ impl LinuxPackageManager for ZypperPackageManager {
         }
     }
 
-    fn reboot_pending(&self) -> ResultOutput<bool> {
+    fn is_reboot_pending(&self) -> ResultOutput<bool> {
         let mut c = Command::new("zypper");
         c.arg("ps").arg("-s");
         let res = ResultOutput::command(
@@ -141,5 +141,9 @@ impl LinuxPackageManager for ZypperPackageManager {
             Err(e) => Err(e),
         };
         ResultOutput::new_output(res, o, e)
+    }
+
+    fn restart_services(&self) -> ResultOutput<()> {
+        todo!()
     }
 }
