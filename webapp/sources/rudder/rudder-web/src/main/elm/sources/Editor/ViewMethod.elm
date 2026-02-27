@@ -491,7 +491,7 @@ methodDetail method call parentId ui model =
       |> addClass "method-details"
       |> appendChild ( element "div"
         |> appendChild ( element "ul"
-          |> addClass "tabs-list"
+          |> addClass "tabs-list mt-1 mb-3"
           |> appendChildList
             [ element "li"
               |> addClass (activeClass CallParameters)
@@ -710,35 +710,83 @@ callBody model ui techniqueUi call pid =
                                   ]
                                ])
       )
+
     methodName = case ui.mode of
-                   Opened -> element "div"
-                             |> addClass "method-name"
-                             |> appendChild
-                                ( element "div"
-                                    |> addClass ("component-name-wrapper")
-                                    |> appendChild
-                                       ( element "div"
-                                         |> addClass "form-group"
-                                         |> appendChildList
-                                           [ element "div"
-                                             |> addClass "title-input-name"
-                                             |> appendText "Name"
-                                           , element "input"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", class "form-control", value call.component,  placeholder "A friendly name for this component" ]
-                                             |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }) Nothing)
-                                           ]
-                                       )
-                                )
-                   Closed -> element "div"
-                             |> addClass "method-name"
-                             |> appendChild
-                                ( element "span"
-                                  |> addClass "name-content"
-                                  |> appendText  (if (String.isEmpty call.component) then method.name else call.component )
-                                  |> addActionStopPropagation ("mousedown" , DisableDragDrop)
-                                  |> addActionStopPropagation ("click" , DisableDragDrop)
-                                  |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
-                                )
+      Opened ->
+        element "div"
+          |> addClass "method-name"
+          |> appendChild
+            ( element "div"
+              |> addClass "component-name-wrapper"
+              |> appendChild
+                ( element "div"
+                  |> addClass "form-group mb-0"
+                  |> appendChild
+                    ( element "div"
+                      |> addClass "title-input-name"
+                      |> appendText "Name"
+                    )
+                  |> appendChildConditional
+                    ( element "div"
+                      |> appendChildList
+                        [ element "span"
+                          |> appendTextConditional call.component (not (String.isEmpty call.component))
+                          |> appendChildConditional ( element "span"
+                            |> addClass "text-secondary"
+                            |> appendText method.name
+                          ) (String.isEmpty call.component)
+                        , element "button"
+                          |> addClass "btn btn-default ms-2"
+                          |> addAttributeList
+                            [ onFocus DisableDragDrop
+                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                            , stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | editName = True}, True))
+                            ]
+                          |> appendChild (element "i" |> addClass "fa fa-pencil")
+
+                        ]
+                    )
+                    (not ui.editName)
+                  |> appendChildConditional
+                    ( element "div"
+                      |> addClass "d-flex"
+                      |> appendChildList
+                        [ element "input"
+                          |> addAttributeList
+                            [ readonly (not model.hasWriteRights)
+                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                            , onFocus DisableDragDrop
+                            , type_ "text"
+                            , name "component"
+                            , class "form-control"
+                            , value call.component
+                            , placeholder method.name
+                            ]
+                          |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }) Nothing)
+                        , element "button"
+                          |> addClass "btn btn-default ms-2"
+                          |> addAttributeList
+                            [ onFocus DisableDragDrop
+                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                            , stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | editName = False}, True))
+                            ]
+                          |> appendChild (element "i" |> addClass "fa fa-check")
+                        ]
+                    )
+                    (ui.editName)
+                )
+            )
+      Closed ->
+        element "div"
+          |> addClass "method-name"
+          |> appendChild
+            ( element "span"
+              |> addClass "name-content"
+              |> appendText  (if (String.isEmpty call.component) then method.name else call.component )
+              |> addActionStopPropagation ("mousedown" , DisableDragDrop)
+              |> addActionStopPropagation ("click" , DisableDragDrop)
+              |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
+            )
 
     methodContent = element "div"
                     |> addClass  "method-param flex-form"
