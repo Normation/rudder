@@ -9,6 +9,7 @@ use std::{
 };
 
 use anyhow::Error;
+use openssl::x509::store::X509Store;
 use tokio::{
     signal::unix::{signal, SignalKind},
     sync::RwLock,
@@ -225,6 +226,8 @@ pub struct JobConfig {
     /// Sub relays
     // TODO could be lazily created
     pub downstream_clients: RwLock<HashMap<NodeId, HttpClient>>,
+    pub ca_store: X509Store,
+    pub validate_certificates: bool,
     handle: LogHandle,
 }
 
@@ -268,13 +271,15 @@ impl JobConfig {
             Some(&cfg.general.nodes_certs_file),
         )?;
 
+        let auth_model = cfg.peer_authentication()?;
+        let ca_store = auth_model.to_x509store()?;
+        let validate_certificates = auth_model.validate_certs();
+
         // HTTP clients
         //
-        let model = cfg.peer_authentication()?;
-
         debug!("Creating HTTP client for upstream");
         let builder = HttpClient::builder(cfg.general.https_idle_timeout);
-        let upstream_client = match &model {
+        let upstream_client = match &auth_model {
             PeerAuthentication::CertPinning => {
                 let cert = fs::read(&cfg.output.upstream.server_certificate_file)?;
                 builder.pinned(vec![cert])
@@ -292,7 +297,7 @@ impl JobConfig {
             debug!("Creating HTTP client for '{}'", id);
             let builder = HttpClient::builder(cfg.general.https_idle_timeout);
 
-            let client = match &model {
+            let client = match &auth_model {
                 PeerAuthentication::CertPinning => {
                     let certs = match certs {
                         Some(stack) => stack
@@ -323,6 +328,8 @@ impl JobConfig {
             handle,
             upstream_client: RwLock::new(upstream_client),
             downstream_clients: RwLock::new(downstream_clients),
+            ca_store,
+            validate_certificates,
         }))
     }
 

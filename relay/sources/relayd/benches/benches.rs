@@ -11,11 +11,12 @@ use std::{
 use criterion::{criterion_group, criterion_main, Criterion};
 use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
+use openssl::x509::store::X509StoreBuilder;
 use openssl::{stack::Stack, x509::X509};
 use rudder_relayd::{
     configuration::main::DatabaseConfig,
     data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
-    input::signature,
+    input::verify_signature,
     output::database::{
         schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
         *,
@@ -76,7 +77,9 @@ fn bench_signature_runlog(c: &mut Criterion) {
 
     c.bench_function("verify runlog signature", move |b| {
         b.iter(|| {
-            black_box(signature(&data, &certs).unwrap());
+            black_box(
+                verify_signature(&data, &certs, &X509StoreBuilder::new().unwrap().build()).unwrap(),
+            );
         })
     });
 }
