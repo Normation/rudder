@@ -40,7 +40,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -58,7 +57,6 @@ import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigValue
@@ -66,6 +64,7 @@ import com.typesafe.config.ConfigValueType
 import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -78,16 +77,16 @@ class CreateOrUpdateGlobalParameterPopup(
     change:            GlobalParamChangeRequest,
     onSuccessCallback: (Either[GlobalParameter, ChangeRequestId], WorkflowService, String) => JsCmd,
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   private val workflowLevelService = RudderConfig.workflowLevelService
   private val userPropertyService  = RudderConfig.userPropertyService
   private val uuidGen              = RudderConfig.stringUuidGenerator
-  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-  private val actor:       EventActor   = CurrentUser.actor
-  private val contextPath: String       = S.contextPath
+  private val contextPath: String = S.contextPath
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent() }
+  }
 
   /* Text variation for
    * - Global Parameter
@@ -171,10 +170,10 @@ class CreateOrUpdateGlobalParameterPopup(
                                param,
                                change.previousGlobalParam,
                                diff,
-                               CurrentUser.actor,
+                               qc.actor,
                                paramReasons.map(_.get)
                              )
-          workflowService <- workflowLevelService.getForGlobalParam(actor, change)
+          workflowService <- workflowLevelService.getForGlobalParam(qc.actor, change)
           id              <- workflowLevelService
                                .getWorkflowService()
                                .startWorkflow(cr)(using

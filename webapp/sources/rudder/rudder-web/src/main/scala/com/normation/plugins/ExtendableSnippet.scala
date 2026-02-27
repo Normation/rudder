@@ -37,6 +37,7 @@
 
 package com.normation.plugins
 
+import net.liftweb.common.Loggable
 import net.liftweb.http.*
 import scala.reflect.ClassTag
 import scala.xml.NodeSeq
@@ -116,7 +117,7 @@ trait PluginExtensionPoint[T] extends SnippetExtensionPoint[T] {
  * }
  *
  */
-trait ExtendableSnippet[T] extends DispatchSnippet {
+trait ExtendableSnippet[T] extends DispatchSnippet with Loggable {
   self: T =>
 
   // reminder:

@@ -42,14 +42,14 @@ import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -61,7 +61,7 @@ import scala.xml.*
 class CreateActiveTechniqueCategoryPopup(
     onSuccessCallback: () => JsCmd = { () => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // Load the template from the popup
   def popupTemplate: NodeSeq = ChooseTemplate(
@@ -75,9 +75,9 @@ class CreateActiveTechniqueCategoryPopup(
 
   private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
 
-  def popupContent(html: NodeSeq): NodeSeq = {
+  def popupContent(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     SHtml.ajaxForm(
       (
         "item-itemname" #> categoryName.toForm_!
@@ -133,11 +133,11 @@ class CreateActiveTechniqueCategoryPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml("createActiveTechniquesCategoryContainer", popupContent(NodeSeq.Empty))
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -152,7 +152,7 @@ class CreateActiveTechniqueCategoryPopup(
           ),
           ActiveTechniqueCategoryId(categoryContainer.get),
           ModificationId(uuidGen.newUuid),
-          CurrentUser.actor,
+          qc.actor,
           Some("user created a new category")
         )
         .toBox match {
@@ -171,7 +171,7 @@ class CreateActiveTechniqueCategoryPopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }

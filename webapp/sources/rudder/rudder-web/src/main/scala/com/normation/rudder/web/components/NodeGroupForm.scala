@@ -41,7 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
-import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.plugins.SecureExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.nodes.*
@@ -106,9 +106,8 @@ class NodeGroupForm(
       (NodeGroup) => Noop
     },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with DefaultExtendableSnippet[NodeGroupForm] with Loggable {
+) extends SecureExtendableSnippet[NodeGroupForm] {
   import NodeGroupForm.*
-  implicit private val qc: QueryContext = CurrentUser.queryContext
 
   private val nodeFactRepo               = RudderConfig.nodeFactRepository
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
@@ -122,8 +121,10 @@ class NodeGroupForm(
   private val nodeGroupForm         = new LocalSnippet[NodeGroupForm]
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
+  private val checkRights = CurrentUser.checkRights
+
   private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
-  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)(using CurrentUser.queryContext)
+  private var srvList: Box[Seq[CoreNodeFact]] = CurrentUser.queryContext.withQCOr(Full(Nil))(getNodeList(nodeGroup))
 
   private def setSearchNodeComponent: Unit = {
     searchNodeComponent.set(
@@ -162,7 +163,7 @@ class NodeGroupForm(
 
   setSearchNodeComponent
 
-  def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
+  def mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq] = Map(
     "showForm"  -> { (_: NodeSeq) => showForm() },
     "showGroup" -> { (_: NodeSeq) =>
       searchNodeComponent.get match {
@@ -182,7 +183,7 @@ class NodeGroupForm(
       </div>
   }
 
-  def showForm(): NodeSeq = {
+  def showForm()(using qc: QueryContext): NodeSeq = {
     val html = SHtml.ajaxForm(body)
 
     (nodeGroup match {
@@ -282,13 +283,13 @@ class NodeGroupForm(
     Script(JsRaw(s"""$$("${progressBarSelector}").html(${complianceHtml});"""))
   }
 
-  private def showFormNodeGroup(nodeGroup: NodeGroup): CssSel = {
+  private def showFormNodeGroup(nodeGroup: NodeGroup)(using qc: QueryContext): CssSel = {
     val nodesSel     = "#gridResult" #> NodeSeq.Empty
     val nodes        = nodesSel(searchNodeComponent.get match {
       case Full(req) => req.buildQuery(true)
       case eb: EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
     })
-    val groupClone   = if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+    val groupClone   = if (checkRights(AuthorizationType.Group.Write)) {
       <li>
         {
         SHtml.ajaxButton(
@@ -302,7 +303,7 @@ class NodeGroupForm(
       </li>
     } else NodeSeq.Empty
     val groupDisable = {
-      if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+      if (checkRights(AuthorizationType.Group.Write)) {
         val btnText   = if (nodeGroup.isEnabled) { "Disable" }
         else { "Enable" }
         val btnIcon   = if (nodeGroup.isEnabled) { "fa fa-ban" }
@@ -339,7 +340,11 @@ class NodeGroupForm(
       & "#group-name *" #> {
         Text(groupNameString) ++ (if (nodeGroup.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>)
       }
-      & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
+      & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(
+        pendingChangeRequestXml,
+        nodeGroup.id,
+        checkRights
+      )
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group">
                       <label class="wbBaseFieldLabel">Group ID</label>
@@ -382,7 +387,7 @@ class NodeGroupForm(
           </ul>
         </div>)
       & "group-save" #> {
-        if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) {
+        if (checkRights(AuthorizationType.Group.Edit)) {
           <span class="save-tooltip-container">
                       {
             SHtml.ajaxOnSubmit(onSubmit)(
@@ -413,7 +418,9 @@ class NodeGroupForm(
     )
   }
 
-  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None, allowCloning: Boolean = true): CssSel = {
+  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None, allowCloning: Boolean = true)(using
+      QueryContext
+  ): CssSel = {
     val groupClone  = (if (allowCloning) systemGroupCloneButton() else NodeSeq.Empty)
     val groupDelete = group.map(systemGroupDeleteButton).getOrElse(NodeSeq.Empty)
 
@@ -504,8 +511,8 @@ class NodeGroupForm(
     }
   }
 
-  private def systemGroupCloneButton() = {
-    if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+  private def systemGroupCloneButton()(using qc: QueryContext) = {
+    if (checkRights(AuthorizationType.Group.Write)) {
       <li>
         {
         SHtml.ajaxButton(
@@ -548,7 +555,7 @@ class NodeGroupForm(
     intro ++ tabProperties
   }
 
-  private def loadComplianceBar(isGlobalCompliance: Boolean): Option[Json.Arr] = {
+  private def loadComplianceBar(isGlobalCompliance: Boolean)(using qc: QueryContext): Option[Json.Arr] = {
     val target = nodeGroup match {
       case Left(value)  => value
       case Right(value) => GroupTarget(value.id)
@@ -636,18 +643,18 @@ class NodeGroupForm(
 
   private val formTracker = new FormTracker(List(groupName, groupDescription, groupContainer, groupStatic))
 
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml(htmlIdCategory, showForm())
   }
 
   private def error(msg: String) = <span class="error">{msg}</span>
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
     updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#ajaxItemContainer");""") // JsRaw OK, no user input
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
     // submit can be done only for node group, not system one
     nodeGroup match {
       case Left(target) => Noop
@@ -809,7 +816,7 @@ class NodeGroupForm(
     }
   }
 
-  private def onSubmitDisable(action: DGModAction): JsCmd = {
+  private def onSubmitDisable(action: DGModAction)(using qc: QueryContext): JsCmd = {
     // submit can be done only for node group, not system one
     nodeGroup match {
       case Left(target) => Noop
@@ -855,7 +862,7 @@ class NodeGroupForm(
     }
   }
 
-  private def onSubmitDelete(): JsCmd = {
+  private def onSubmitDelete()(using qc: QueryContext): JsCmd = {
     nodeGroup match {
       case Left(_)   => Noop
       case Right(ng) =>
@@ -879,14 +886,14 @@ class NodeGroupForm(
       newGroup:           NodeGroup,
       newCategory:        Option[NodeGroupCategoryId],
       dependingSubgroups: Option[String] // if Some, string contains a message with the groups
-  ): JsCmd = {
+  )(using qc: QueryContext): JsCmd = {
 
     val optOriginal = nodeGroup.toOption
     val change      = NodeGroupChangeRequest(action, newGroup, newCategory, optOriginal)
     val errMsg      = s"Error when getting the validation workflow for changes in group '${change.newGroup.name}'"
 
     workflowLevelService
-      .getForNodeGroup(CurrentUser.actor, change)
+      .getForNodeGroup(qc.actor, change)
       .chainError(errMsg)
       .either
       .runNow match {
@@ -938,10 +945,10 @@ class NodeGroupForm(
     }
   }
 
-  def createPopup(name: String):     JsCmd = {
+  def createPopup(name: String):                             JsCmd = {
     JsRaw(s"""initBsModal("${name}");""") // JsRaw ok, const
   }
-  private def showCloneGroupPopup(): JsCmd = {
+  private def showCloneGroupPopup()(using qc: QueryContext): JsCmd = {
 
     val popupSnippet = new LocalSnippet[CreateCloneGroupPopup]
     popupSnippet.set(
@@ -962,17 +969,18 @@ class NodeGroupForm(
     createPopup("createCloneGroupPopup")
   }
 
-  private def displayACategory(category: NodeGroupCategory): JsCmd = {
+  private def displayACategory(category: NodeGroupCategory)(using qc: QueryContext): JsCmd = {
     refreshRightPanel(CategoryForm(category))
   }
 
-  private def refreshRightPanel(panel: RightPanel): JsCmd = SetHtml(htmlId_item, setAndShowRightPanel(panel))
+  private def refreshRightPanel(panel: RightPanel)(using qc: QueryContext): JsCmd =
+    SetHtml(htmlId_item, setAndShowRightPanel(panel))
 
   /**
    *  Manage the state of what should be displayed on the right panel.
    * It could be nothing, a group edit form, or a category edit form.
    */
-  private def setAndShowRightPanel(panel: RightPanel): NodeSeq = {
+  private def setAndShowRightPanel(panel: RightPanel)(using qc: QueryContext): NodeSeq = {
     panel match {
       case NoPanel                 => NodeSeq.Empty
       case GroupForm(group, catId) =>

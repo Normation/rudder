@@ -2,16 +2,17 @@ package com.normation.rudder.web.components
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import scala.xml.NodeSeq
 
-class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
+class AgentPolicyModeEditForm extends SecureDispatchSnippet with Loggable {
 
   // Html template
   def agentPolicyModeTemplate: NodeSeq = ChooseTemplate(
@@ -19,7 +20,7 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
     "agentpolicymode-form"
   )
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "cfagentPolicyModeConfiguration" => (xml) => cfagentPolicyModeConfiguration(None)
   }
 

@@ -60,7 +60,6 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.score.ScoreValue.NoScore
-import com.normation.rudder.users.CurrentUser
 import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -120,7 +119,7 @@ object HomePageUtils {
   }
 }
 
-class HomePage extends StatefulSnippet {
+class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable {
 
   private val nodeFactRepo     = RudderConfig.nodeFactRepository
   private val ldap             = RudderConfig.roLDAPConnectionProvider
@@ -130,9 +129,8 @@ class HomePage extends StatefulSnippet {
   private val scoreService     = RudderConfig.rci.scoreService
   private val directiveRepo    = RudderConfig.roDirectiveRepository
 
-  override val dispatch: DispatchIt = {
+  override val secureDispatch: QueryContext ?=> DispatchIt = {
 
-    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
     // get one coherent view of nodes for the whole page
 
     val nodes: Map[NodeId, CoreNodeFact] = nodeFactRepo

@@ -45,9 +45,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
@@ -99,7 +99,7 @@ class TechniqueEditForm(
     // there are call by name to have the context matching their execution when called
     onSuccessCallback:   () => JsCmd = { () => Noop },
     onFailureCallback:   () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
   import TechniqueEditForm.*
 
   // find Technique
@@ -133,9 +133,11 @@ class TechniqueEditForm(
 
   //////////////////////////// public methods ////////////////////////////
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { (_: NodeSeq) => showForm() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "showForm" => { (_: NodeSeq) => showForm() }
+  }
 
-  def showForm(): NodeSeq = {
+  def showForm()(using qc: QueryContext): NodeSeq = {
     (
       "#editForm" #> showCrForm() &
       "#removeActionDialog" #> showRemovePopupForm() &
@@ -143,7 +145,7 @@ class TechniqueEditForm(
     )(body)
   }
 
-  def showRemovePopupForm(): NodeSeq = {
+  def showRemovePopupForm()(using qc: QueryContext): NodeSeq = {
     currentActiveTechnique match {
       case e: EmptyBox => NodeSeq.Empty
       case Full(activeTechnique_) =>
@@ -162,7 +164,7 @@ class TechniqueEditForm(
     }
   }
 
-  def showDisactivatePopupForm(): NodeSeq = {
+  def showDisactivatePopupForm()(using qc: QueryContext): NodeSeq = {
     currentActiveTechnique match {
       case e: EmptyBox => NodeSeq.Empty
       case Full(activeTechnique_) =>
@@ -184,7 +186,7 @@ class TechniqueEditForm(
     }
   }
 
-  def showCrForm(): NodeSeq = {
+  def showCrForm()(using qc: QueryContext): NodeSeq = {
     (
       ClearClearable &
       // all the top level action are displayed only if the template is on the user library
@@ -317,7 +319,7 @@ class TechniqueEditForm(
 
   ////////////// Callbacks //////////////
 
-  private def onSuccess(): JsCmd = {
+  private def onSuccess()(using qc: QueryContext): JsCmd = {
     // MUST BE THIS WAY, because the parent may change some reference to JsNode
     // and so, our AJAX could be broken
     cleanTrackers()
@@ -332,28 +334,28 @@ class TechniqueEditForm(
     formTrackerDisactivatePopup.clean
   }
 
-  private def onFailure(): JsCmd = {
+  private def onFailure()(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }
 
-  private def onFailureRemovePopup(): JsCmd = {
+  private def onFailureRemovePopup()(using qc: QueryContext): JsCmd = {
     formTrackerRemovePopup.addFormError(error("There was a problem with your request"))
     updateRemoveFormClientSide()
   }
 
-  private def onFailureDisablePopup(): JsCmd = {
+  private def onFailureDisablePopup()(using qc: QueryContext): JsCmd = {
     formTrackerDisactivatePopup.addFormError(error("There was a problem with your request"))
     updateDisableFormClientSide()
   }
 
-  private def updateRemoveFormClientSide(): JsCmd = {
+  private def updateRemoveFormClientSide()(using qc: QueryContext): JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""initBsModal("deleteActionDialog");""") // JsRaw ok, const
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv
   }
 
-  private def updateDisableFormClientSide(): JsCmd = {
+  private def updateDisableFormClientSide()(using qc: QueryContext): JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""initBsModal("disableActionDialog")""") // JsRaw ok, const
     Replace("disableActionDialog", this.showDisactivatePopupForm()) &
     jsDisplayRemoveDiv
@@ -361,7 +363,7 @@ class TechniqueEditForm(
 
   ///////////// Delete /////////////
 
-  private def deleteButton(id: ActiveTechniqueId): Elem = {
+  private def deleteButton(id: ActiveTechniqueId)(using qc: QueryContext): Elem = {
 
     def deleteActiveTechnique(): JsCmd = {
       if (formTrackerRemovePopup.hasErrors) {
@@ -370,7 +372,7 @@ class TechniqueEditForm(
         JsRaw("hideBsModal('deleteActionDialog');") & { // JsRaw ok, const
           val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.actor, crReasonsRemovePopup.map(_.get))
+            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, qc.actor, crReasonsRemovePopup.map(_.get))
             deploy  <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Policy update request sent")
@@ -404,7 +406,7 @@ class TechniqueEditForm(
 
   ///////////// Enable / disable /////////////
 
-  private def disableButton(activeTechnique: ActiveTechnique): Elem = {
+  private def disableButton(activeTechnique: ActiveTechnique)(using qc: QueryContext): Elem = {
     def switchActivation(status: Boolean)(): JsCmd = {
       if (formTrackerDisactivatePopup.hasErrors) {
         onFailureDisablePopup()
@@ -450,7 +452,7 @@ class TechniqueEditForm(
    * - display a "click on a category" message if not set in user lib and no category previously chosen
    * - else display an add button to add in the current category
    */
-  def showTechniqueUserCategory(technique: Technique): NodeSeq = {
+  def showTechniqueUserCategory(technique: Technique)(using qc: QueryContext): NodeSeq = {
     <div id={htmlId_addToActiveTechniques}>Client category: {
       findUserBreadCrump(technique) match {
         case Some(listCat) =>
@@ -475,7 +477,7 @@ class TechniqueEditForm(
                   techniqueRepository.getTechniqueVersions(technique.id.name).toSeq,
                   technique.policyTypes,
                   ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
+                  qc.actor,
                   Some("User added a technique from UI")
                 )
 
@@ -557,18 +559,18 @@ class TechniqueEditForm(
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
 
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml(htmlId_technique, this.showCrForm())
   }
 
   private def error(msg: String) = <span class="error">{msg}</span>
 
-  private def statusAndDeployTechnique(activeTechnique: ActiveTechnique, status: Boolean): JsCmd = {
+  private def statusAndDeployTechnique(activeTechnique: ActiveTechnique, status: Boolean)(using qc: QueryContext): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     (for {
       save   <-
         (rwActiveTechniqueRepository
-          .changeStatus(activeTechnique.id, status, modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
+          .changeStatus(activeTechnique.id, status, modId, qc.actor, crReasonsDisablePopup.map(_.get))
         <* techniqueCompilationStatusService.syncTechniqueActiveStatus(BundleName(activeTechnique.techniqueName.value))).toBox
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)

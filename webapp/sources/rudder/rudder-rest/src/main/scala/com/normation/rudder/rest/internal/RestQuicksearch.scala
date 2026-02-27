@@ -47,10 +47,10 @@ import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.UserService
 import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.*
+import net.liftweb.http.LiftResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonAST.*
@@ -84,30 +84,31 @@ class RestQuicksearch(
 
   final private val MAX_RES_BY_KIND = 10
 
+  given prettify:            Boolean      = false
+  private def errorResponse: LiftResponse = toJsonError(None, s"Quicksearch can't be accessed in current security context")
+
   serve {
-    case Get("secure" :: "api" :: "quicksearch" :: Nil, req) => {
-      implicit val prettify = false
-      implicit val action: String       = "completeTagsValue"
-      implicit val qc:     QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+    case Get("secure" :: "api" :: "quicksearch" :: Nil, req) =>
+      userService.getCurrentUser.map(_.qc).withQCOr(errorResponse) {
+        given action: String = "completeTagsValue"
+        OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
+          val token = req.params.get("value") match {
+            case Some(value :: Nil) => value
+            case None               => ""
+            // Should not happen, but for now make one token from it, maybe we should only take head ?
+            case Some(values)       => values.mkString("")
+          }
+          val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
+          quicksearch.search(token, limit).toBox match {
+            case eb: EmptyBox =>
+              val e = eb ?~! s"Error when looking for object containing '${token}'"
+              toJsonError(None, e.messageChain)
 
-      OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
-        val token = req.params.get("value") match {
-          case Some(value :: Nil) => value
-          case None               => ""
-          // Should not happen, but for now make one token from it, maybe we should only take head ?
-          case Some(values)       => values.mkString("")
-        }
-        val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
-        quicksearch.search(token, limit).toBox match {
-          case eb: EmptyBox =>
-            val e = eb ?~! s"Error when looking for object containing '${token}'"
-            toJsonError(None, e.messageChain)
-
-          case Full(results) =>
-            toJsonResponse(None, prepare(results, limit.getOrElse(MAX_RES_BY_KIND)))
+            case Full(results) =>
+              toJsonResponse(None, prepare(results, limit.getOrElse(MAX_RES_BY_KIND)))
+          }
         }
       }
-    }
   }
 
   private def filter(results: Set[QuickSearchResult]) = {

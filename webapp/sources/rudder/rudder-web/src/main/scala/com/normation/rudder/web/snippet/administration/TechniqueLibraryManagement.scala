@@ -45,6 +45,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.*
 import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPopup
@@ -55,9 +56,9 @@ import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.S
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import net.liftweb.http.js.*
@@ -78,7 +79,7 @@ import scala.xml.*
  * Techniques are classify by categories in a tree.
  *
  */
-class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
+class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
 
   import TechniqueLibraryManagement.*
 
@@ -99,7 +100,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   // Technique Library to Active Technique Library
   private val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  private val checkRights = CurrentUser.checkRights
+
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "head"                   => { _ => head() }
     case "systemLibrary"          => { _ => systemLibrary() }
     case "userLibrary"            => { _ => userLibrary() }
@@ -120,7 +123,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private val techniqueId: Box[String] = S.param("techniqueId")
 
   // create a new Technique edit form and update currentTechniqueDetails
-  private def updateCurrentTechniqueDetails(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]) = {
+  private def updateCurrentTechniqueDetails(technique: Option[Technique], activeTechnique: Option[ActiveTechnique])(using
+      qc: QueryContext
+  ) = {
     currentTechniqueDetails.set(
       Full(
         new TechniqueEditForm(
@@ -136,7 +141,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   }
 
   // create a new Technique edit form and update currentTechniqueDetails
-  private def updateCurrentTechniqueCategoryDetails(category: ActiveTechniqueCategory) = {
+  private def updateCurrentTechniqueCategoryDetails(category: ActiveTechniqueCategory)(using qc: QueryContext) = {
     currentTechniqueCategoryDetails.set(
       rootCategoryId.map { rootCategoryId =>
         new TechniqueCategoryEditForm(
@@ -156,11 +161,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     TechniqueEditForm.staticInit
   }
 
-  private def setCreationPopup: Unit = {
+  private def setCreationPopup(using qc: QueryContext): Unit = {
     creationPopup.set(Full(new CreateActiveTechniqueCategoryPopup(onSuccessCallback = { () => refreshTree() })))
   }
 
-  private def setGiveReasonPopup(s: ActiveTechniqueId, d: ActiveTechniqueCategoryId): Unit = {
+  private def setGiveReasonPopup(s: ActiveTechniqueId, d: ActiveTechniqueCategoryId)(using qc: QueryContext): Unit = {
     giveReasonPopup.set(
       Full(
         new GiveReasonPopup(
@@ -177,7 +182,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Create the popup
    */
-  private def createPopup: NodeSeq = {
+  private def createPopup(using qc: QueryContext): NodeSeq = {
     creationPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -188,7 +193,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Create the reason popup
    */
-  private def createReasonPopup: NodeSeq = {
+  private def createReasonPopup(using qc: QueryContext): NodeSeq = {
     giveReasonPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -204,7 +209,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * belonging at most to one category.
    * Categories are ordered in trees of subcategories.
    */
-  def systemLibrary(): NodeSeq = {
+  def systemLibrary()(using qc: QueryContext): NodeSeq = {
     <div id={htmlId_techniqueLibraryTree} class="row">
       <ul>{jsTreeNodeOf_ptCategory(techniqueRepository.getTechniqueLibrary).toXml}</ul>
       {WithNonce.scriptWithNonce(Script(OnLoad(buildReferenceLibraryJsTree)))}
@@ -214,7 +219,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   /**
    * Display the actions bar of the user library
    */
-  def userLibraryAction(): NodeSeq = {
+  def userLibraryAction()(using qc: QueryContext): NodeSeq = {
     SHtml.ajaxButton("Add category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-default pull-right"))
   }
 
@@ -225,7 +230,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * belonging at most to one category.
    * Categories are ordered in trees of subcategories.
    */
-  def userLibrary(): NodeSeq = {
+  def userLibrary()(using qc: QueryContext): NodeSeq = {
     <div id={htmlId_activeTechniquesTree} class="row">{
       val xml = {
         roActiveTechniqueRepository.getActiveTechniqueLibrary.toBox match {
@@ -348,7 +353,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }</div>
   }
 
-  def showBottomPanel: NodeSeq = {
+  def showBottomPanel(using qc: QueryContext): NodeSeq = {
     (for {
       ptName    <- techniqueId
       technique <- techniqueRepository.getLastTechniqueByName(TechniqueName(ptName))
@@ -370,7 +375,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Configure a Rudder internal Technique to be usable in the
    * user Technique (private) library.
    */
-  def showTechniqueDetails(): NodeSeq = {
+  def showTechniqueDetails()(using qc: QueryContext): NodeSeq = {
     currentTechniqueDetails.get match {
       case e: EmptyBox =>
         <div id={htmlId_bottomPanel}>
@@ -381,7 +386,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  def showUserCategoryDetails(): NodeSeq = {
+  def showUserCategoryDetails()(using qc: QueryContext): NodeSeq = {
     currentTechniqueCategoryDetails.get match {
       case e: EmptyBox =>
         <div id={
@@ -393,7 +398,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
 
-  private def moveTechnique(arg: String): JsCmd = {
+  private def moveTechnique(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
@@ -416,7 +421,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                                    activeTechnique.id,
                                    ActiveTechniqueCategoryId(destCatId),
                                    ModificationId(uuidGen.newUuid),
-                                   CurrentUser.actor,
+                                   qc.actor,
                                    Some("User moved active technique from UI")
                                  )
                                  .toBox ?~! "Error while trying to move active technique with requested id '%s' to category id '%s'"
@@ -444,7 +449,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private def moveCategory(arg: String): JsCmd = {
+  private def moveCategory(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
@@ -462,7 +467,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                           ActiveTechniqueCategoryId(destCatId),
                           None,
                           ModificationId(uuidGen.newUuid),
-                          CurrentUser.actor,
+                          qc.actor,
                           Some("User moved active technique category from UI")
                         )
                         .toBox ?~! "Error while trying to move category with requested id %s into new parent: %s".format(
@@ -496,7 +501,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private def bindTechnique(arg: String): JsCmd = {
+  private def bindTechnique(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
@@ -521,7 +526,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                             techniqueRepository.getTechniqueVersions(ptName).toSeq,
                             policyTypes = PolicyTypes.rudderBase,
                             modId = ModificationId(uuidGen.newUuid),
-                            actor = CurrentUser.actor,
+                            actor = qc.actor,
                             reason = Some("Active technique added by user from UI")
                           )
                           .toBox
@@ -552,7 +557,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private def onSuccessReasonPopup(id: ActiveTechniqueId): JsCmd = {
+  private def onSuccessReasonPopup(id: ActiveTechniqueId)(using qc: QueryContext): JsCmd = {
     val jsStr = """setTimeout(function() { $("[activeTechniqueId=%s]")
       .attempt("highlight", {}, 2000)}, 100)"""
     refreshTree() &
@@ -565,18 +570,18 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     Alert(errorMessage.format(srcActiveTechId, destCatId))
   }
 
-  private def refreshTree(): JsCmd = {
+  private def refreshTree()(using qc: QueryContext): JsCmd = {
     Replace(htmlId_techniqueLibraryTree, systemLibrary()) &
     Replace(htmlId_activeTechniquesTree, userLibrary()) &
     OnLoad(After(TimeSpan(100), JsRaw("""initBsTooltips();"""))) // JsRaw ok, const
   }
 
-  private def refreshActiveTreeLibrary(): JsCmd = {
+  private def refreshActiveTreeLibrary()(using qc: QueryContext): JsCmd = {
     Replace(htmlId_activeTechniquesTree, userLibrary()) &
     OnLoad(After(TimeSpan(100), JsRaw("""initBsTooltips();"""))) // JsRaw ok, const
   }
 
-  private def refreshBottomPanel(id: ActiveTechniqueId): JsCmd = {
+  private def refreshBottomPanel(id: ActiveTechniqueId)(using qc: QueryContext): JsCmd = {
     for {
       activeTechnique <- roActiveTechniqueRepository.getActiveTechniqueByActiveTechnique(id).toBox.flatMap(Box(_))
       technique       <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
@@ -610,13 +615,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(
       htmlId_activeTechniquesTree,
       htmlId_techniqueLibraryTree,
-      CurrentUser.checkRights(AuthorizationType.Technique.Write),
+      checkRights(AuthorizationType.Technique.Write),
       S.contextPath
     )
   ) // JsRaw ok, escaped
 
   // ajax function that update the bottom of the page when a Technique is clicked
-  private def onClickTemplateNode(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]): JsCmd = {
+  private def onClickTemplateNode(technique: Option[Technique], activeTechnique: Option[ActiveTechnique])(using
+      qc: QueryContext
+  ): JsCmd = {
     updateCurrentTechniqueDetails(technique, activeTechnique)
 
     // update UI
@@ -630,7 +637,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    *   - Techniques
    * - no action can be done with such node.
    */
-  private def jsTreeNodeOf_ptCategory(category: TechniqueCategory): JsTreeNode = {
+  private def jsTreeNodeOf_ptCategory(category: TechniqueCategory)(using qc: QueryContext): JsTreeNode = {
 
     def jsTreeNodeOf_pt(technique: Technique): JsTreeNode = new JsTreeNode {
 
@@ -708,7 +715,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * @param category
    * @return
    */
-  private def jsTreeNodeOf_uptCategory(category: ActiveTechniqueCategory): JsTreeNode = {
+  private def jsTreeNodeOf_uptCategory(category: ActiveTechniqueCategory)(using qc: QueryContext): JsTreeNode = {
     /*
      * Transform a ActiveTechnique into a JsTree leaf
      */
@@ -793,7 +800,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       }
     }
 
-    def onClickUserCategory(): JsCmd = {
+    def onClickUserCategory()(using qc: QueryContext): JsCmd = {
       updateCurrentTechniqueCategoryDetails(category)
       // update UI
       // update template details only if it is open
@@ -841,7 +848,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private def showCreateActiveTechniqueCategoryPopup(): JsCmd = {
+  private def showCreateActiveTechniqueCategoryPopup()(using qc: QueryContext): JsCmd = {
     setCreationPopup
 
     // update UI
@@ -854,7 +861,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private def showGiveReasonPopup(
       sourceActiveTechniqueId: ActiveTechniqueId,
       destCatId:               ActiveTechniqueCategoryId
-  ): JsCmd = {
+  )(using qc: QueryContext): JsCmd = {
 
     setGiveReasonPopup(sourceActiveTechniqueId, destCatId)
     // update UI
@@ -863,13 +870,13 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     JsRaw("""initBsModal("createActiveTechniquePopup")""") // JsRaw ok, const
   }
 
-  private def reloadTechniqueLibrary(isTechniqueLibraryPage: Boolean): NodeSeq = {
+  private def reloadTechniqueLibrary(isTechniqueLibraryPage: Boolean)(using qc: QueryContext): NodeSeq = {
 
     def initJs    = SetHtml("techniqueLibraryUpdateInterval", <span>{updateTecLibInterval}</span>)
     def process() = {
       val createNotification = updatePTLibService.update(
         ModificationId(uuidGen.newUuid),
-        CurrentUser.actor,
+        qc.actor,
         Some("Technique library reloaded by user")
       ) match {
         case Full(x) =>

@@ -41,7 +41,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
 import net.liftweb.common.*
@@ -57,7 +56,7 @@ import scala.xml.*
  * A simple service that displays a NodeDetail widget from
  * a list of LDIF entries
  */
-class NodeHistoryViewer extends StatefulSnippet {
+class NodeHistoryViewer extends SecureDispatchSnippet with StatefulSnippet with Loggable {
   lazy val historyRepos  = RudderConfig.inventoryHistoryJdbcRepository
   lazy val agentRuns     = RudderConfig.roAgentRunsRepository
   lazy val configService = RudderConfig.configService
@@ -68,12 +67,9 @@ class NodeHistoryViewer extends StatefulSnippet {
   // id of html element to update
   var hid = ""
 
-  var dispatch: DispatchIt = { case "render" => render }
+  val secureDispatch: QueryContext ?=> DispatchIt = { case "render" => _ => render }
 
-  def render(xml: NodeSeq): NodeSeq = {
-
-    implicit val qc: QueryContext = CurrentUser.queryContext
-
+  def render(using qc: QueryContext): NodeSeq = {
     S.attr("uuid") match {
       case Full(s) => // new id of id change, init for that id
         initState(s)

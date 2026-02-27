@@ -43,7 +43,6 @@ import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
@@ -57,7 +56,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.*
 import scala.xml.*
 
-object PendingHistoryGrid extends Loggable {
+object PendingHistoryGrid extends SecureDispatchSnippet with Loggable {
 
   val history           = RudderConfig.inventoryHistoryJdbcRepository
   val agentRuns         = RudderConfig.roAgentRunsRepository
@@ -74,9 +73,9 @@ object PendingHistoryGrid extends Loggable {
     case Full(n)                  => n
   }
 
-  def displayAndInit(): NodeSeq = {
-    implicit val qc: QueryContext = CurrentUser.queryContext
+  def secureDispatch: QueryContext ?=> DispatchIt = { case "displayAndInit" => _ => displayAndInit() }
 
+  private def displayAndInit()(using qc: QueryContext): NodeSeq = {
     logService.getInventoryEventLogs() match {
       case Empty   => display(Seq[InventoryEventLog]()) ++ Script(initJs())
       case Full(x) =>

@@ -1684,6 +1684,16 @@ object QueryContext {
 
   // for system queries (when rudder needs to look-up things)
   implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, NodeSecurityContext.All)
+
+  // For places where a query context may be required (UI snippets), provide a way to recover from unknown
+  extension (opt: Option[QueryContext]) {
+    def withQCOr[A](fallback: => A)(withQC: QueryContext ?=> A): A = opt match {
+      case None     =>
+        fallback
+      case Some(qc) =>
+        withQC(using qc)
+    }
+  }
 }
 
 /*

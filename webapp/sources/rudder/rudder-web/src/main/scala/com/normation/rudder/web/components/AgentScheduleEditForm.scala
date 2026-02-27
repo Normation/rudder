@@ -37,14 +37,15 @@
 
 package com.normation.rudder.web.components
 
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.snippet.WithNonce
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -60,7 +61,7 @@ class AgentScheduleEditForm(
     saveConfigureCallback:    AgentRunInterval => Box[Unit],
     startNewPolicyGeneration: () => Unit,
     getGlobalConfiguration:   () => Option[Box[AgentRunInterval]] = () => None
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // Html template
   def agentScheduleTemplate: NodeSeq = ChooseTemplate(
@@ -68,7 +69,9 @@ class AgentScheduleEditForm(
     "schedule-agentschedule"
   )
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
+  }
 
   def submit(jsonSchedule: String): JsRaw = {
     parseJsonSchedule(jsonSchedule) match {

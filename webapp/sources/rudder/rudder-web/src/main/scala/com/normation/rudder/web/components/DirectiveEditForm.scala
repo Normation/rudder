@@ -101,7 +101,7 @@ class DirectiveEditForm(
     onFailureCallback:       () => JsCmd = { () => Noop },
     onRemoveSuccessCallBack: () => JsCmd = { () => Noop },
     displayTechniqueDetails: ActiveTechniqueId => JsCmd = { _ => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   import DirectiveEditForm.*
 
@@ -131,6 +131,8 @@ class DirectiveEditForm(
     }
   }
 
+  private val checkRights = CurrentUser.checkRights
+
   val rules:        List[Rule]   = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
   val rootCategory: RuleCategory = roRuleCategoryRepo
     .getRootCategory()
@@ -139,9 +141,8 @@ class DirectiveEditForm(
       throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")
     )
   val directiveApp = new DirectiveApplicationManagement(directive, rules, rootCategory)
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "showForm" => { _ => showForm()(using CurrentUser.queryContext) }
-  }
+
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
@@ -197,7 +198,7 @@ class DirectiveEditForm(
       ("#deprecation-warning [class+]" #> "d-none")
   }
 
-  def updateRuleDisplayer() = {
+  def updateRuleDisplayer()(using qc: QueryContext) = {
     val ruleDisplayer = {
       new RuleDisplayer(
         Some(directiveApp),
@@ -277,7 +278,7 @@ class DirectiveEditForm(
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
       "#pendingChangeRequestNotification" #> { (xml: NodeSeq) =>
-        PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
+        PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid, checkRights)
       } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &
       "#existingChangeRequests" #> displayChangeRequests &
@@ -407,7 +408,7 @@ class DirectiveEditForm(
 
   }
 
-  private def clonePopup(): JsCmd = {
+  private def clonePopup()(using qc: QueryContext): JsCmd = {
     SetHtml("basePopup", newCreationPopup(technique, activeTechnique)) &
     JsRaw(s""" initBsModal("basePopup"); """)
   }
@@ -835,7 +836,7 @@ class DirectiveEditForm(
     )
 
     workflowLevelService
-      .getForDirective(CurrentUser.actor, change)
+      .getForDirective(qc.actor, change)
       .chainError(s"Error when getting the validation workflow for changes in directive '${change.newDirective.name}'")
       .either
       .runNow match {
@@ -902,7 +903,7 @@ class DirectiveEditForm(
     }
   }
 
-  private def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique): NodeSeq = {
+  private def newCreationPopup(technique: Technique, activeTechnique: ActiveTechnique)(using qc: QueryContext): NodeSeq = {
 
     val popup = new CreateCloneDirectivePopup(
       technique.name,

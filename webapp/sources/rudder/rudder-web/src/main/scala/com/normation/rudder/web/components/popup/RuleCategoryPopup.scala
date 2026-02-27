@@ -40,16 +40,16 @@ package com.normation.rudder.web.components.popup
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -71,7 +71,7 @@ class RuleCategoryPopup(
     onSuccessCategory: (RuleCategory) => JsCmd,
     onSuccessCallback: (String) => JsCmd = { _ => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // Load the template from the popup
   private def html: NodeSeq = ChooseTemplate(
@@ -88,7 +88,9 @@ class RuleCategoryPopup(
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private val uuidGen                    = RudderConfig.stringUuidGenerator
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent() }
+  }
 
   val title:         String = {
     targetCategory match {
@@ -103,8 +105,8 @@ class RuleCategoryPopup(
     }
   }
 
-  val parentCategory: Option[String] = targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value)
-  def popupContent(): NodeSeq        = {
+  val parentCategory:                         Option[String] = targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value)
+  def popupContent()(using qc: QueryContext): NodeSeq        = {
     (
       "#creationForm *" #> { (xml: NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> title &
@@ -130,7 +132,7 @@ class RuleCategoryPopup(
     )(html)
   }
 
-  def deletePopupContent(canBeDeleted: Boolean): NodeSeq = {
+  def deletePopupContent(canBeDeleted: Boolean)(using qc: QueryContext): NodeSeq = {
     val action   = () => if (canBeDeleted) onSubmitDelete() else closePopup()
     val disabled = if (canBeDeleted) ("", "") else ("disabled", "true")
     (
@@ -198,15 +200,15 @@ class RuleCategoryPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml("RuleCategoryCreationContainer", popupContent())
   }
 
-  private def onSubmitDelete(): JsCmd = {
+  private def onSubmitDelete()(using qc: QueryContext): JsCmd = {
     targetCategory match {
       case Some(category) =>
         val modId = new ModificationId(uuidGen.newUuid)
-        woRulecategoryRepository.delete(category.id, modId, CurrentUser.actor, None, checkEmpty = true).toBox match {
+        woRulecategoryRepository.delete(category.id, modId, qc.actor, None, checkEmpty = true).toBox match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.value) &
@@ -223,7 +225,7 @@ class RuleCategoryPopup(
     }
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
 
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
@@ -240,7 +242,7 @@ class RuleCategoryPopup(
 
           val parent = RuleCategoryId(categoryParent.get)
           val modId  = new ModificationId(uuidGen.newUuid)
-          woRulecategoryRepository.create(newCategory, parent, modId, CurrentUser.actor, None).toBox
+          woRulecategoryRepository.create(newCategory, parent, modId, qc.actor, None).toBox
         case Some(category) =>
           val updated = category.copy(
             name = categoryName.get,
@@ -252,7 +254,7 @@ class RuleCategoryPopup(
             Failure("There are no modifications to save")
           } else {
             val modId = new ModificationId(uuidGen.newUuid)
-            woRulecategoryRepository.updateAndMove(updated, parent, modId, CurrentUser.actor, None).toBox
+            woRulecategoryRepository.updateAndMove(updated, parent, modId, qc.actor, None).toBox
           }
       }) match {
         case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
@@ -268,7 +270,7 @@ class RuleCategoryPopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     updateFormClientSide()
   }
 

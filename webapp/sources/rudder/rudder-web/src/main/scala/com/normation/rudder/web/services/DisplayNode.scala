@@ -111,9 +111,8 @@ object DisplayNode extends Loggable {
   private def escapeHTML(in: String):         NodeSeq = Text(StringEscapeUtils.escapeHtml4(in))
   private def ?(in:          Option[String]): NodeSeq = in.map(escapeHTML).getOrElse(NodeSeq.Empty)
 
-  private def loadSoftware(jsId: JsNodeId)(nodeId: String): JsCmd = {
+  private def loadSoftware(jsId: JsNodeId)(nodeId: String)(using qc: QueryContext): JsCmd = {
     implicit val attrs = SelectFacts.none.copy(software = SelectFacts.none.software.toRetrieve)
-    implicit val qc    = CurrentUser.queryContext
     (for {
       seq       <- nodeFactRepository.slowGet(NodeId(nodeId)).map(_.toList.flatMap(_.software.map(_.toSoftware)))
       gridDataId = htmlId(jsId, "soft_grid_data_")
@@ -162,7 +161,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def jsInit(nodeId: NodeId, salt: String = ""): JsCmd = {
+  def jsInit(nodeId: NodeId, salt: String = "")(using qc: QueryContext): JsCmd = {
     val jsId           = JsNodeId(nodeId, salt)
     val softGridDataId = htmlId(jsId, "soft_grid_data_")
     val softPanelId    = "soft_tab"
@@ -837,7 +836,7 @@ object DisplayNode extends Loggable {
   private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-      CurrentUser.actor,
+      qc.actor,
       Instant.now(),
       Some("Trusted key status reset to accept new key (first use)"),
       None,
@@ -1353,7 +1352,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayTabVideos(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
+  private def displayTabVideos(jsId: JsNodeId, sm: FullInventory):              NodeSeq = {
     displayTabGrid(jsId)("videos", sm.machine.map(fm => fm.videos)) {
       ("Name", { (x: Video) => escapeHTML(x.name) }) ::
       ("Chipset", { (x: Video) => ?(x.chipset) }) ::
@@ -1363,7 +1362,7 @@ object DisplayNode extends Loggable {
       Nil
     }
   }
-  def showDeleteButton(node: MinimalNodeFactInterface):            NodeSeq = {
+  def showDeleteButton(node: MinimalNodeFactInterface)(using qc: QueryContext): NodeSeq = {
     SHtml.ajaxButton(
       "Confirm",
       () => { removeNode(node) },
@@ -1371,10 +1370,10 @@ object DisplayNode extends Loggable {
     )
   }
 
-  private def removeNode(node: MinimalNodeFactInterface): JsCmd = {
+  private def removeNode(node: MinimalNodeFactInterface)(using qc: QueryContext): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
-      CurrentUser.actor,
+      qc.actor,
       Instant.now(),
       None,
       S.request.map(_.remoteAddr).toOption,

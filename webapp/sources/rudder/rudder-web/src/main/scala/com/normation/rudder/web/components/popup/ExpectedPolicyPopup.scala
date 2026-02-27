@@ -43,12 +43,11 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
@@ -68,21 +67,20 @@ object ExpectedPolicyPopup {
 class ExpectedPolicyPopup(
     htmlId_popup: String,
     nodeSrv:      Srv
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
   import ExpectedPolicyPopup.*
 
   private val ruleRepository  = RudderConfig.roRuleRepository
   private val dynGroupService = RudderConfig.dynGroupService
   private val checkDynGroup   = RudderConfig.pendingNodeCheckGroup
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display } }
 
-  def display: NodeSeq = {
+  def display(using qc: QueryContext): NodeSeq = {
     // find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid: NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
         val noDisplay = DisplayColumn.Force(display = false)
-        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
         (new RuleGrid(
           "dependentRulesGrid",

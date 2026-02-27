@@ -49,12 +49,12 @@ import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.servers.AllowedNetwork
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import net.liftweb.*
 import net.liftweb.common.*
 import net.liftweb.http.*
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -62,7 +62,7 @@ import net.liftweb.util.CssSel
 import scala.xml.NodeSeq
 import util.Helpers.*
 
-class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
+class EditPolicyServerAllowedNetwork extends SecureDispatchSnippet with Loggable {
 
   private val psService            = RudderConfig.policyServerManagementService
   private val eventLogService      = RudderConfig.eventLogRepository
@@ -87,9 +87,8 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   // we need to store that out of the form, so that the changes are persisted at redraw
   private val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "render" =>
-      implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
       val policyServers = nodeFactRepo
         .getAll()
         .map(_.collect { case (id, f) if (f.rudderSettings.kind.isPolicyServer) => id }.toSeq)
@@ -177,7 +176,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
               .getAllowedNetworks(policyServerId)
               .toBox ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
           changeNetwork   <- psService
-                               .setAllowedNetworks(policyServerId, gootNetsSeq, modId, CurrentUser.actor)
+                               .setAllowedNetworks(policyServerId, gootNetsSeq, modId, qc.actor)
                                .toBox ?~! s"Error when saving new allowed networks for policy server ${policyServerId.value}"
           modifications    =
             UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks.map(_.inet), gootNetsSeq.map(_.inet)))
@@ -186,13 +185,13 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
               .saveEventLog(
                 modId,
                 UpdatePolicyServer(
-                  EventLogDetails(modificationId = None, principal = CurrentUser.actor, details = modifications, reason = None)
+                  EventLogDetails(modificationId = None, principal = qc.actor, details = modifications, reason = None)
                 )
               )
               .toBox ?~! s"Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
         } yield {}) match {
           case Full(_) =>
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId, qc.actor)
             Replace(allowedNetworksFormId, outerXml.applyAgain()) &
             successNotification
           case e: EmptyBox => SetHtml(allowedNetworksFormId, errorMessage(s"#${allowedNetworksFormId}", e)(outerXml.applyAgain()))

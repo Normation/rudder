@@ -43,13 +43,13 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup.*
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -91,16 +91,18 @@ class CreateCloneDirectivePopup(
     val directive:        Directive,
     onSuccessCallback:    (Directive) => JsCmd = { (directive: Directive) => Noop },
     onFailureCallback:    () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   private val uuidGen               = RudderConfig.stringUuidGenerator
   private val userPropertyService   = RudderConfig.userPropertyService
   private val roDirectiveRepository = RudderConfig.roDirectiveRepository
   private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent() }
+  }
 
-  def popupContent(): NodeSeq = {
+  def popupContent()(using qc: QueryContext): NodeSeq = {
     ("#techniqueName" #> techniqueName
     & "#itemName" #> directiveName.toForm_!
     & "#itemDescription" #> directiveShortDescription.toForm_!
@@ -181,11 +183,11 @@ class CreateCloneDirectivePopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
 
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
@@ -211,7 +213,7 @@ class CreateCloneDirectivePopup(
               activeTechnique.id,
               cloneDirective,
               ModificationId(uuidGen.newUuid),
-              CurrentUser.actor,
+              qc.actor,
               reasons.map(_.get)
             )
             .toBox match {
@@ -235,7 +237,7 @@ class CreateCloneDirectivePopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }

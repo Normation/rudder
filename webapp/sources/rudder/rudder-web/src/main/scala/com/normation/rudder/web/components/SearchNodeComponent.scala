@@ -50,12 +50,11 @@ import com.normation.rudder.domain.queries.CriterionComposition.Or
 import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.GUIDJsExp
 import net.liftweb.http.S
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -92,7 +91,7 @@ class SearchNodeComponent(
     saveButtonId:     String = "", // the id of the save button, that gets disabled when one change the form
 
     groupPage: Boolean
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
   import SearchNodeComponent.*
 
   // our local copy of things we work on
@@ -102,8 +101,6 @@ class SearchNodeComponent(
   private val queryProcessor = RudderConfig.acceptedNodeQueryProcessor
 
   private val nodeFactRepo = RudderConfig.nodeFactRepository
-
-  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
   // The portlet for the server detail
   private def searchNodes: NodeSeq = ChooseTemplate(
@@ -145,7 +142,7 @@ class SearchNodeComponent(
    */
   def getQuery(): Option[Query] = query
 
-  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false) } }
+  val secureDispatch: QueryContext ?=> DispatchIt = { case "showQuery" => { _ => buildQuery(false) } }
 
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
