@@ -47,7 +47,6 @@ import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.UserService
 import com.normation.rudder.web.model.LinkUtil
 import net.liftweb.common.*
@@ -90,7 +89,7 @@ class RestQuicksearch(
 
   serve {
     case Get("secure" :: "api" :: "quicksearch" :: Nil, req) =>
-      CurrentUser.queryContext.withQCOr(errorResponse) {
+      userService.getCurrentUser.map(_.qc).withQCOr(errorResponse) {
         given action: String = "completeTagsValue"
         OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
           val token = req.params.get("value") match {
