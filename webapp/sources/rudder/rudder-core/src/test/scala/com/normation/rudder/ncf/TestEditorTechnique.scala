@@ -36,7 +36,9 @@
  */
 package com.normation.rudder.ncf
 
+import better.files.File
 import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.Version
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -166,6 +168,49 @@ class TestEditorTechnique extends Specification {
           )
         }
       }
+    }
+  }
+
+  "EditorTechnique" should {
+    val category         = "ncf_techniques"
+    val techniqueId      = "technique_id"
+    val techniqueVersion = "1.0"
+
+    "check technique ID consistency" in {
+      // technique base dir must be in known editor technique path (techniques / cat / id / version)
+      val base      = File(s"/base/techniques/${category}/${techniqueId}/${techniqueVersion}/")
+      val technique = EditorTechnique(
+        BundleName(techniqueId),
+        Version(techniqueVersion),
+        "Test technique in base-dir",
+        category,
+        List.empty,
+        "",
+        "",
+        List.empty,
+        List.empty,
+        Map.empty,
+        None
+      )
+      EditorTechnique.checkTechniqueIdConsistency(base, technique) must beRight(())
+    }
+
+    "invalidate technique outside dir" in {
+      val base      = File(s"/base/techniques/wrong_path")
+      val technique = EditorTechnique(
+        BundleName(techniqueId),
+        Version(techniqueVersion),
+        "Test technique in base-dir",
+        category,
+        List.empty,
+        "",
+        "",
+        List.empty,
+        List.empty,
+        Map.empty,
+        None
+      )
+      EditorTechnique.checkTechniqueIdConsistency(base, technique) must beLeft
     }
   }
 }

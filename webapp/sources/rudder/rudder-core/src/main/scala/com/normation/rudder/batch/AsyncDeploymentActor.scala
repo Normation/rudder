@@ -51,9 +51,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
-import com.normation.rudder.ncf.CompilationStatus
-import com.normation.rudder.ncf.CompilationStatusAllSuccess
-import com.normation.rudder.ncf.CompilationStatusErrors
+import com.normation.rudder.ncf.EditorTechniqueStatus
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
 import com.normation.rudder.services.policies.PromiseGenerationService
@@ -140,8 +138,8 @@ final case class DeploymentStatus(
     processing: DeployerState
 )
 
-case class UpdateCompilationStatus(
-    status: CompilationStatus
+case class UpdateTechniqueStatus(
+    status: EditorTechniqueStatus
 )
 
 case class UpdatePropertiesStatus(
@@ -161,10 +159,10 @@ case class UpdatePropertiesStatus(
 }
 
 final case class AsyncDeploymentActorCreateUpdate(
-    deploymentStatus:  DeploymentStatus,
-    compilationStatus: CompilationStatus,
-    nodeProperties:    Map[NodeId, ResolvedNodePropertyHierarchy],
-    groupProperties:   Map[NodeGroupId, ResolvedNodePropertyHierarchy]
+    deploymentStatus: DeploymentStatus,
+    techniqueStatus:  EditorTechniqueStatus,
+    nodeProperties:   Map[NodeId, ResolvedNodePropertyHierarchy],
+    groupProperties:  Map[NodeGroupId, ResolvedNodePropertyHierarchy]
 )
 
 /**
@@ -205,7 +203,7 @@ final class AsyncDeploymentActor(
   private case class NewDeployment(id: Long, modId: ModificationId, started: DateTime, actor: EventActor, eventLogId: Int)
 
   private var lastFinishedDeployement: CurrentDeploymentStatus                         = getLastFinishedDeployment
-  private var compilationStatus:       CompilationStatus                               = CompilationStatusAllSuccess
+  private var techniqueStatus:         EditorTechniqueStatus                           = EditorTechniqueStatus.AllSuccess
   private var nodeProperties:          Map[NodeId, ResolvedNodePropertyHierarchy]      = Map.empty
   private var groupProperties:         Map[NodeGroupId, ResolvedNodePropertyHierarchy] = Map.empty
   private var currentDeployerState:    DeployerState                                   = IdleDeployer
@@ -240,7 +238,7 @@ final class AsyncDeploymentActor(
   override def createUpdate: AsyncDeploymentActorCreateUpdate = {
     AsyncDeploymentActorCreateUpdate(
       DeploymentStatus(lastFinishedDeployement, currentDeployerState),
-      compilationStatus,
+      techniqueStatus,
       nodeProperties,
       groupProperties
     )
@@ -485,20 +483,20 @@ final class AsyncDeploymentActor(
     }
 
     //
-    // Updating state from technique compilation output result
+    // Updating state from editor technique check results
     //
-    case UpdateCompilationStatus(status)                                                   => {
+    case UpdateTechniqueStatus(status)                                                     => {
       StatusLoggerPure.Techniques.logEffect.trace(
-        s"Compilation status has a new update command with payload : ${status}"
+        s"Technique status has a new update command with payload : ${status}"
       )
-      if (compilationStatus != status) {
-        compilationStatus = status
+      if (techniqueStatus != status) {
+        techniqueStatus = status
         status match {
-          case CompilationStatusErrors(techniquesInError) =>
-            StatusLoggerPure.Techniques.logEffect.warn(s"Status of technique compilation has ${techniquesInError.size} errors")
-          case CompilationStatusAllSuccess                =>
+          case err: EditorTechniqueStatus.Errors =>
+            StatusLoggerPure.Techniques.logEffect.warn(s"Status of techniques has ${err.size} errors")
+          case EditorTechniqueStatus.AllSuccess =>
             StatusLoggerPure.Techniques.logEffect.debug(
-              s"Status of technique compilation has changed to success from previous : ${compilationStatus}"
+              s"Status of techniques has changed to success from previous : ${techniqueStatus}"
             )
         }
         updateListeners()
