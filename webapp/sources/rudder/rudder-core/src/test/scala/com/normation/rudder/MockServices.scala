@@ -88,6 +88,8 @@ import com.normation.rudder.ncf.EditorTechniqueCompilationResult
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.EditorTechniqueReaderImpl
 import com.normation.rudder.ncf.EditorTechniqueStatus
+import com.normation.rudder.ncf.EditorTechniqueYamlReader
+import com.normation.rudder.ncf.EditorTechniqueYamlReaderImpl
 import com.normation.rudder.ncf.GenericMethod
 import com.normation.rudder.ncf.GitResourceFileService
 import com.normation.rudder.ncf.ReadEditorTechniqueActiveStatus
@@ -392,6 +394,9 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     _.path.toString,
     mockGit.configurationRepositoryRoot.pathAsString
   )
+  val editorTechniqueYamlReader: EditorTechniqueYamlReader = new EditorTechniqueYamlReaderImpl(
+    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo))
+  )
 
   val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
     null,
@@ -401,7 +406,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     null,
     "UTF-8",
     "test",
-    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo)),
+    editorTechniqueYamlReader,
     null,
     "no-cmd",
     "no-methods",

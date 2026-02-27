@@ -114,7 +114,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
     Json(
       "id"        -> Json.Str(error.path.id.value),
       "version"   -> Json.Str(error.path.version.value),
-      "category"  -> Json.Str(error.path.category),
+      "category"  -> error.path.category.map(Json.Str(_)).getOrElse(Json.Null),
       "source"    -> Json.Str("editor"),
       "errorMsg"  -> Json.Str(error.errorMsg),
       "errorPath" -> Json.Str(error.path.path)

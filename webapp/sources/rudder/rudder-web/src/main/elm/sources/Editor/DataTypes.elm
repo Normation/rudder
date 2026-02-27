@@ -100,7 +100,7 @@ type alias CompilationOutput =
 type alias TechniqueError =
   { id            : TechniqueId
   , version       : String
-  , category      : String
+  , category      : Maybe String
   , errorMsg      : String
   , errorPath     : String
   }

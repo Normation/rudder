@@ -2,7 +2,6 @@ package com.normation.rudder.ncf
 
 import better.files.*
 import cats.syntax.either.*
-import cats.syntax.flatMap.*
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
@@ -52,6 +51,10 @@ trait EditorTechniqueReader {
   def updateMethodsMetadataFile: IOResult[CmdResult]
 }
 
+trait EditorTechniqueYamlReader {
+  def read(file: EditorTechniquePath): IOResult[Either[EditorTechniqueParsingError, EditorTechnique]]
+}
+
 class EditorTechniqueReaderImpl(
     uuidGen:                                StringUuidGenerator,
     personIdentService:                     PersonIdentService,
@@ -60,7 +63,7 @@ class EditorTechniqueReaderImpl(
     override val gitModificationRepository: GitModificationRepository,
     override val encoding:                  String,
     override val groupOwner:                String,
-    yamlTechniqueSerializer:                YamlTechniqueSerializer,
+    fileReader:                             EditorTechniqueYamlReader,
     parameterTypeService:                   ParameterTypeService,
     ruddercCmd:                             String,
     methodsSystemLib:                       String,
@@ -93,38 +96,33 @@ class EditorTechniqueReaderImpl(
 
   override def readTechniquesMetadataFile: IOResult[ReadEditorTechnique] = {
     for {
-      methods                             <- getMethodsMetadata
-      techniqueFiles                      <- getAllTechniqueFiles(configuration_repository / "techniques")
-      (techniques, parsingErrors, errors) <-
-        ZIO.foldLeft(techniqueFiles)(
-          (List.empty[EditorTechnique], List.empty[EditorTechniqueParsingError], List.empty[RudderError])
-        ) {
-          case ((accT, accP, accE), file) =>
-            (for {
-              content               <- IOResult.attempt(s"Error when reading '${file.pathAsString}'")(file.contentAsString)
-              parsedEditorTechnique <- yamlTechniqueSerializer.yamlToEditorTechnique(content)
-              editorTechnique        = {
-                parsedEditorTechnique
-                  .flatTap(EditorTechnique.checkTechniqueIdConsistency(file.parent, _))
-                  .leftMap(err =>
-                    EditorTechniquePath(file).fold[File | EditorTechniqueParsingError](file)(EditorTechniqueParsingError(_, err))
-                  )
-              }
-            } yield editorTechnique)
-              .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
-              .fold(
-                e => (accT, accP, e :: accE),
-                {
-                  case Right(t)                             => (t :: accT, accP, accE)
-                  case Left(p: EditorTechniqueParsingError) => (accT, p :: accP, accE)
-                  case Left(f: File)                        =>
-                    TechniqueReaderLoggerPure.logEffect.warn(s"Technique file could not be parsed : ${f}")
-                    (accT, accP, accE)
+      methods                               <- getMethodsMetadata
+      techniqueFiles                        <- getAllTechniqueFiles(configuration_repository / "techniques")
+      ((parsingErrors, errors), techniques) <-
+        ZIO
+          .partition(techniqueFiles)(file => {
+            for {
+              path <-
+                // we keep Option to ignore paths that are not valid, but we still want to log them
+                EditorTechniquePath(file).succeed.tapSome {
+                  case None => TechniqueReaderLoggerPure.warn(s"Technique file could not be parsed : ${file}")
                 }
-              )
-        }
+              res  <- ZIO.foreach(path)(fileReader.read(_).flatMap(_.toIO))
+            } yield {
+              res
+            }
+          })
+          .map((errors, techniques) => {
+            (
+              errors.partitionMap {
+                case p: EditorTechniqueParsingError => Left(p)
+                case e: RudderError                 => Right(e)
+              },
+              techniques.flatten
+            )
+          })
     } yield {
-      ReadEditorTechnique(techniques, methods, parsingErrors, errors)
+      ReadEditorTechnique(techniques.toList, methods, parsingErrors.toList, errors.toList)
     }
   }
 
@@ -330,4 +328,23 @@ object GenericMethodSerialization {
       })
   }
 
+}
+
+class EditorTechniqueYamlReaderImpl(
+    yamlTechniqueSerializer: YamlTechniqueSerializer
+) extends EditorTechniqueYamlReader {
+  override def read(path: EditorTechniquePath): IOResult[Either[EditorTechniqueParsingError, EditorTechnique]] = {
+    val yamlFile = path.toFile / TechniqueFiles.yaml
+    (for {
+      content        <- IOResult.attempt(s"Error when reading file '${yamlFile}'")(yamlFile.contentAsString)
+      techniqueOrErr <- yamlTechniqueSerializer.yamlToEditorTechnique(content)
+    } yield {
+      (for {
+        t <- techniqueOrErr
+        _ <- EditorTechnique.checkTechniqueIdConsistency(path.toFile, t)
+      } yield {
+        t
+      }).leftMap(errMsg => EditorTechniqueParsingError(path, errMsg))
+    }).chainError(s"An error occurred while extracting data from technique ${path}")
+  }
 }

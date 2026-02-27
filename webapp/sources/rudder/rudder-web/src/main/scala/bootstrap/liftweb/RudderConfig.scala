@@ -1811,6 +1811,9 @@ object RudderConfigInit {
       List(DefaultAuthBackendProvider.FILE, DefaultAuthBackendProvider.ROOT_ADMIN)
     )
 
+    lazy val editorTechniqueYamlReader: EditorTechniqueYamlReader = new EditorTechniqueYamlReaderImpl(
+      yamlTechniqueSerializer
+    )
     lazy val ncfTechniqueReader = new EditorTechniqueReaderImpl(
       stringUuidGenerator,
       personIdentService,
@@ -1819,7 +1822,7 @@ object RudderConfigInit {
       gitModificationRepository,
       RUDDER_CHARSET.name,
       RUDDER_GROUP_OWNER_CONFIG_REPO,
-      yamlTechniqueSerializer,
+      editorTechniqueYamlReader,
       typeParameterService,
       RUDDERC_CMD,
       GENERIC_METHODS_SYSTEM_LIB,

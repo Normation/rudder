@@ -121,24 +121,26 @@ final case class EditorTechnique(
    * Path relative to git root. The path is relative since we don't have base path of configuration repository.
    * Better files reasons over absolute paths, so we have to keep relative paths here and use NIO API.
    */
-  val path: java.nio.file.Path = Paths.get("techniques").resolve(category).resolve(id.value).resolve(version.value)
+  val path: java.nio.file.Path = Paths.get("techniques", category, id.value, version.value)
 }
 
-final case class EditorTechniquePath(categoryDir: File, id: BundleName, version: Version) {
-  def category:          String             = categoryDir.name
-  def toPath:            java.nio.file.Path = (categoryDir / id.value / version.value).path
+final case class EditorTechniquePath(techniqueDir: File, id: BundleName, version: Version) {
+  def categoryDir:       Option[File]       = techniqueDir.parentOption
+  def category:          Option[String]     = categoryDir.map(_.name)
+  def toPath:            java.nio.file.Path = (techniqueDir / id.value / version.value).path
+  def toFile:            File               = File(toPath)
   def path:              String             = toPath.toString
   override def toString: String             = path
 }
-object EditorTechniquePath                                                                {
+object EditorTechniquePath                                                                 {
   def apply(yamlFile: File): Option[EditorTechniquePath] = {
     for {
-      version     <- yamlFile.parentOption
-      id          <- version.parentOption
-      categoryDir <- id.parentOption
+      version      <- yamlFile.parentOption
+      id           <- version.parentOption
+      techniqueDir <- id.parentOption
     } yield {
       EditorTechniquePath(
-        categoryDir,
+        techniqueDir,
         BundleName(id.name),
         Version(version.name)
       )
