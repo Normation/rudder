@@ -107,7 +107,7 @@ class ShowNodeDetailsFromNode(
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
-  def agentScheduleEditForm(nodeFact: CoreNodeFact) = new AgentScheduleEditForm(
+  def agentScheduleEditForm(nodeFact: CoreNodeFact)(using qc: QueryContext) = new AgentScheduleEditForm(
     () => getSchedule(nodeFact),
     saveSchedule(nodeFact),
     () => (),
@@ -129,7 +129,7 @@ class ShowNodeDetailsFromNode(
              )
              .toBox
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, qc.actor)
       nodeState
     }
   }
@@ -157,15 +157,15 @@ class ShowNodeDetailsFromNode(
     Full(nodeFact.rudderSettings.reportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
   }
 
-  def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval): Box[Unit] = {
+  def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval)(using qc: QueryContext): Box[Unit] = {
     val newNodeFact = nodeFact.modify(_.rudderSettings.reportingConfiguration.agentRunInterval).setTo(Some(schedule))
     val modId       = ModificationId(uuidGen.newUuid)
-    val cc          = ChangeContext(modId, CurrentUser.actor, Instant.now(), None, None, CurrentUser.nodePerms)
+    val cc          = ChangeContext(modId, qc.actor, Instant.now(), None, None, CurrentUser.nodePerms)
 
     (for {
       _ <- nodeFactRepo.save(newNodeFact)(using cc)
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, qc.actor)
     }).toBox
   }
 

@@ -836,7 +836,7 @@ object DisplayNode extends Loggable {
   private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-      CurrentUser.actor,
+      qc.actor,
       Instant.now(),
       Some("Trusted key status reset to accept new key (first use)"),
       None,
@@ -1350,7 +1350,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayTabVideos(jsId: JsNodeId, sm: FullInventory): NodeSeq = {
+  private def displayTabVideos(jsId: JsNodeId, sm: FullInventory):              NodeSeq = {
     displayTabGrid(jsId)("videos", sm.machine.map(fm => fm.videos)) {
       ("Name", { (x: Video) => escapeHTML(x.name) }) ::
       ("Chipset", { (x: Video) => ?(x.chipset) }) ::
@@ -1360,7 +1360,7 @@ object DisplayNode extends Loggable {
       Nil
     }
   }
-  def showDeleteButton(node: MinimalNodeFactInterface):            NodeSeq = {
+  def showDeleteButton(node: MinimalNodeFactInterface)(using qc: QueryContext): NodeSeq = {
     SHtml.ajaxButton(
       "Confirm",
       () => { removeNode(node) },
@@ -1368,10 +1368,10 @@ object DisplayNode extends Loggable {
     )
   }
 
-  private def removeNode(node: MinimalNodeFactInterface): JsCmd = {
+  private def removeNode(node: MinimalNodeFactInterface)(using qc: QueryContext): JsCmd = {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
-      CurrentUser.actor,
+      qc.actor,
       Instant.now(),
       None,
       S.request.map(_.remoteAddr).toOption,

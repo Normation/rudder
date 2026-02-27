@@ -60,7 +60,6 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.DontCare
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.DirectiveEditForm
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
@@ -663,7 +662,7 @@ class DirectiveManagement extends SecureDispatchSnippet with Loggable {
                     .delete(
                       directive.id.uid,
                       ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-                      CurrentUser.actor,
+                      qc.actor,
                       Some(
                         s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
                       ).toBox
@@ -932,14 +931,16 @@ object DirectiveManagement {
   val html_addPiInActiveTechnique          = "addNewDirective"
   val html_techniqueDetails                = "techniqueDetails"
 
-  def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd): JsCmd = {
+  def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd)(using
+      qc: QueryContext
+  ): JsCmd = {
     val msg = (if (status) "Enable" else "Disable") ++ "technique from directive library screen"
     RudderConfig.woDirectiveRepository
       .changeStatus(
         activeTechniqueId,
         status,
         ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-        CurrentUser.actor,
+        qc.actor,
         Some(msg)
       )
       .either

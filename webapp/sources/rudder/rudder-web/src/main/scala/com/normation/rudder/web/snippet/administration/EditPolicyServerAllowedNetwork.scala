@@ -49,7 +49,6 @@ import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.servers.AllowedNetwork
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import net.liftweb.*
@@ -177,7 +176,7 @@ class EditPolicyServerAllowedNetwork extends SecureDispatchSnippet with Loggable
               .getAllowedNetworks(policyServerId)
               .toBox ?~! s"Error when getting the list of current authorized networks for policy server ${policyServerId.value}"
           changeNetwork   <- psService
-                               .setAllowedNetworks(policyServerId, gootNetsSeq, modId, CurrentUser.actor)
+                               .setAllowedNetworks(policyServerId, gootNetsSeq, modId, qc.actor)
                                .toBox ?~! s"Error when saving new allowed networks for policy server ${policyServerId.value}"
           modifications    =
             UpdatePolicyServer.buildDetails(AuthorizedNetworkModification(currentNetworks.map(_.inet), gootNetsSeq.map(_.inet)))
@@ -186,13 +185,13 @@ class EditPolicyServerAllowedNetwork extends SecureDispatchSnippet with Loggable
               .saveEventLog(
                 modId,
                 UpdatePolicyServer(
-                  EventLogDetails(modificationId = None, principal = CurrentUser.actor, details = modifications, reason = None)
+                  EventLogDetails(modificationId = None, principal = qc.actor, details = modifications, reason = None)
                 )
               )
               .toBox ?~! s"Unable to save the user event log for modification on authorized networks for policy server ${policyServerId.value}"
         } yield {}) match {
           case Full(_) =>
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId, qc.actor)
             Replace(allowedNetworksFormId, outerXml.applyAgain()) &
             successNotification
           case e: EmptyBox => SetHtml(allowedNetworksFormId, errorMessage(s"#${allowedNetworksFormId}", e)(outerXml.applyAgain()))

@@ -336,7 +336,7 @@ class NodeGroupCategoryForm(
           newNodeGroup,
           NodeGroupCategoryId(container.get),
           ModificationId(uuidGen.newUuid),
-          CurrentUser.actor,
+          qc.actor,
           Some("Node Group category saved by user from UI")
         )
         .toBox match {

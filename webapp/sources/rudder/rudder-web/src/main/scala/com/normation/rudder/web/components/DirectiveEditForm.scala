@@ -131,6 +131,8 @@ class DirectiveEditForm(
     }
   }
 
+  private val checkRights = CurrentUser.checkRights
+
   val rules:        List[Rule]   = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
   val rootCategory: RuleCategory = roRuleCategoryRepo
     .getRootCategory()
@@ -276,7 +278,7 @@ class DirectiveEditForm(
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
       "#pendingChangeRequestNotification" #> { (xml: NodeSeq) =>
-        PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid)
+        PendingChangeRequestDisplayer.checkByDirective(xml, directive.id.uid, checkRights)
       } &
       "#existingPrivateDrafts" #> displayPrivateDrafts &
       "#existingChangeRequests" #> displayChangeRequests &
@@ -834,7 +836,7 @@ class DirectiveEditForm(
     )
 
     workflowLevelService
-      .getForDirective(CurrentUser.actor, change)
+      .getForDirective(qc.actor, change)
       .chainError(s"Error when getting the validation workflow for changes in directive '${change.newDirective.name}'")
       .either
       .runNow match {

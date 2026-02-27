@@ -37,7 +37,6 @@
 
 package com.normation.rudder.users
 
-import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
@@ -162,8 +161,6 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
   def queryContext: Option[QueryContext] = getCurrentUser.map(_.qc)
 
   def nodePerms: NodeSecurityContext = getCurrentUser.map(_.nodePerms).getOrElse(NodeSecurityContext.None)
-
-  def actor: EventActor = getCurrentUser.map(_.qc.actor).getOrElse(EventActor("unknown"))
 
   // Eagerly evaluate the variable to obtain the current user, since there may be lifetime issue with the RequestVar
   // see https://issues.rudder.io/issues/26605

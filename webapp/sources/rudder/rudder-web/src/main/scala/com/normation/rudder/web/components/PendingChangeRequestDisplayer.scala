@@ -45,7 +45,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.Loggable
 import net.liftweb.util.Helpers.*
@@ -61,11 +61,15 @@ object PendingChangeRequestDisplayer extends Loggable {
   private val workflowLevel = RudderConfig.workflowLevelService
   private val linkUtil      = RudderConfig.linkUtil
 
-  private def displayPendingChangeRequest(xml: NodeSeq, crs: IOResult[Seq[ChangeRequest]]): NodeSeq = {
+  private def displayPendingChangeRequest(
+      xml:         NodeSeq,
+      crs:         IOResult[Seq[ChangeRequest]],
+      checkRights: AuthorizationType => Boolean
+  )(using qc: QueryContext): NodeSeq = {
 
-    val hasRights   = CurrentUser.checkRights(AuthorizationType.Validator.Read) ||
-      CurrentUser.checkRights(AuthorizationType.Deployer.Read)
-    val curUserName = CurrentUser.actor.name
+    val hasRights   = checkRights(AuthorizationType.Validator.Read) ||
+      checkRights(AuthorizationType.Deployer.Read)
+    val curUserName = qc.actor.name
 
     crs.chainError("Error when trying to lookup pending change request").either.runNow match {
       case Left(err)                   =>
@@ -89,28 +93,33 @@ object PendingChangeRequestDisplayer extends Loggable {
   private type checkFunction[T] = (T, Boolean) => IOResult[Seq[ChangeRequest]]
 
   private def checkChangeRequest[T](
-      xml:   NodeSeq,
-      id:    T,
-      check: checkFunction[T]
-  ): NodeSeq = {
+      xml:         NodeSeq,
+      id:          T,
+      check:       checkFunction[T],
+      checkRights: AuthorizationType => Boolean
+  )(using qc: QueryContext): NodeSeq = {
     if (RudderConfig.configService.rudder_workflow_enabled().toBox.getOrElse(false)) {
       val crs = check(id, true)
-      displayPendingChangeRequest(xml, crs)
+      displayPendingChangeRequest(xml, crs, checkRights)
     } else {
       // Workflow disabled, nothing to display
       NodeSeq.Empty
     }
   }
 
-  def checkByRule(xml: NodeSeq, ruleId: RuleUid): NodeSeq = {
-    checkChangeRequest(xml, ruleId, workflowLevel.getByRule)
+  def checkByRule(xml: NodeSeq, ruleId: RuleUid, checkRights: AuthorizationType => Boolean)(using qc: QueryContext): NodeSeq = {
+    checkChangeRequest(xml, ruleId, workflowLevel.getByRule, checkRights)
   }
 
-  def checkByGroup(xml: NodeSeq, groupId: NodeGroupId): NodeSeq = {
-    checkChangeRequest(xml, groupId, workflowLevel.getByNodeGroup)
+  def checkByGroup(xml: NodeSeq, groupId: NodeGroupId, checkRights: AuthorizationType => Boolean)(using
+      qc: QueryContext
+  ): NodeSeq = {
+    checkChangeRequest(xml, groupId, workflowLevel.getByNodeGroup, checkRights)
   }
 
-  def checkByDirective(xml: NodeSeq, directiveId: DirectiveUid): NodeSeq = {
-    checkChangeRequest(xml, directiveId, workflowLevel.getByDirective)
+  def checkByDirective(xml: NodeSeq, directiveId: DirectiveUid, checkRights: AuthorizationType => Boolean)(using
+      qc: QueryContext
+  ): NodeSeq = {
+    checkChangeRequest(xml, directiveId, workflowLevel.getByDirective, checkRights)
   }
 }

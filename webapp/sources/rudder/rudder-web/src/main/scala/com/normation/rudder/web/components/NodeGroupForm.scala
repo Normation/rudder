@@ -121,6 +121,8 @@ class NodeGroupForm(
   private val nodeGroupForm         = new LocalSnippet[NodeGroupForm]
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
+  private val checkRights = CurrentUser.checkRights
+
   private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
   private var srvList: Box[Seq[CoreNodeFact]] = CurrentUser.queryContext.withQCOr(Full(Nil))(getNodeList(nodeGroup))
 
@@ -287,7 +289,7 @@ class NodeGroupForm(
       case Full(req) => req.buildQuery(true)
       case eb: EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
     })
-    val groupClone   = if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+    val groupClone   = if (checkRights(AuthorizationType.Group.Write)) {
       <li>
         {
         SHtml.ajaxButton(
@@ -301,7 +303,7 @@ class NodeGroupForm(
       </li>
     } else NodeSeq.Empty
     val groupDisable = {
-      if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+      if (checkRights(AuthorizationType.Group.Write)) {
         val btnText   = if (nodeGroup.isEnabled) { "Disable" }
         else { "Enable" }
         val btnIcon   = if (nodeGroup.isEnabled) { "fa fa-ban" }
@@ -338,7 +340,11 @@ class NodeGroupForm(
       & "#group-name *" #> {
         Text(groupNameString) ++ (if (nodeGroup.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>)
       }
-      & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
+      & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(
+        pendingChangeRequestXml,
+        nodeGroup.id,
+        checkRights
+      )
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group">
                       <label class="wbBaseFieldLabel">Group ID</label>
@@ -381,7 +387,7 @@ class NodeGroupForm(
           </ul>
         </div>)
       & "group-save" #> {
-        if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) {
+        if (checkRights(AuthorizationType.Group.Edit)) {
           <span class="save-tooltip-container">
                       {
             SHtml.ajaxOnSubmit(onSubmit)(
@@ -506,7 +512,7 @@ class NodeGroupForm(
   }
 
   private def systemGroupCloneButton()(using qc: QueryContext) = {
-    if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+    if (checkRights(AuthorizationType.Group.Write)) {
       <li>
         {
         SHtml.ajaxButton(
@@ -887,7 +893,7 @@ class NodeGroupForm(
     val errMsg      = s"Error when getting the validation workflow for changes in group '${change.newGroup.name}'"
 
     workflowLevelService
-      .getForNodeGroup(CurrentUser.actor, change)
+      .getForNodeGroup(qc.actor, change)
       .chainError(errMsg)
       .either
       .runNow match {

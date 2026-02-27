@@ -54,7 +54,6 @@ import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.format.*
-
 import scala.xml.*
 
 object PendingHistoryGrid extends SecureDispatchSnippet with Loggable {
@@ -74,9 +73,7 @@ object PendingHistoryGrid extends SecureDispatchSnippet with Loggable {
     case Full(n)                  => n
   }
 
-  def secureDispatch: QueryContext ?=> DispatchIt = {
-    case "displayAndInit" => _ => displayAndInit()
-  }
+  def secureDispatch: QueryContext ?=> DispatchIt = { case "displayAndInit" => _ => displayAndInit() }
 
   private def displayAndInit()(using qc: QueryContext): NodeSeq = {
     logService.getInventoryEventLogs() match {

@@ -42,7 +42,6 @@ import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
 import net.liftweb.http.SecureDispatchSnippet
@@ -176,7 +175,7 @@ class TechniqueCategoryEditForm(
 
   var categoryNotifications: List[NodeSeq] = Nil
 
-  private def categoryDetailsForm: NodeSeq = {
+  private def categoryDetailsForm(using qc: QueryContext): NodeSeq = {
     val html = SHtml.ajaxForm(<div id={htmlId_categoryDetailsForm}>
         <update-notifications></update-notifications>
         <update-name></update-name>
@@ -208,7 +207,7 @@ class TechniqueCategoryEditForm(
                 .saveActiveTechniqueCategory(
                   updatedCategory,
                   ModificationId(uuidGen.newUuid),
-                  CurrentUser.actor,
+                  qc.actor,
                   Some("User updated category from UI")
                 )
                 .toBox match {

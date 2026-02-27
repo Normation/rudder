@@ -49,7 +49,6 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
 import com.normation.rudder.rest.lift.SystemApiService11
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import java.time.Instant
@@ -262,7 +261,7 @@ class Archives extends SecureDispatchSnippet with Loggable {
       downloadButtonName: String, // what is displayed to download the zip of an archive
 
       downloadRestAction: ArchiveType // the specific action for the REST api, i.e the %s in: /api/system/archives/%s/zip
-  ): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  )(using qc: QueryContext): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     var selectedCommitId = Option.empty[GitCommitId]
 
     def error(eb: EmptyBox, msg: String) = {
@@ -305,11 +304,11 @@ class Archives extends SecureDispatchSnippet with Loggable {
     // as part of the response
     def archive(): JsCmd = {
       (for {
-        commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
+        commiter <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
         archive  <- archiveFunction(
                       commiter,
                       ModificationId(uuidGen.newUuid),
-                      CurrentUser.actor,
+                      qc.actor,
                       Some("User requested backup creation")
                     )
       } yield {
@@ -325,7 +324,7 @@ class Archives extends SecureDispatchSnippet with Loggable {
         case None         => error(Empty, "A valid backup must be chosen")
         case Some(commit) =>
           (for {
-            commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
+            commiter <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
             archive  <- restoreFunction(commit, commiter)
           } yield archive).toBox match {
             case eb: EmptyBox => error(eb, restoreErrorMessage)

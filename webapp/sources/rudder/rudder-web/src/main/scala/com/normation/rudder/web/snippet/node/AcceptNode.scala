@@ -116,7 +116,7 @@ class AcceptNode extends SecureDispatchSnippet with Loggable {
     }
   }
 
-  def addNodes(listNode: Seq[NodeId]): Unit = {
+  def addNodes(listNode: Seq[NodeId])(using qc: QueryContext): Unit = {
 
     val modId = ModificationId(uuidGen.newUuid)
     // TODO : manage error message
@@ -125,7 +125,7 @@ class AcceptNode extends SecureDispatchSnippet with Loggable {
       implicit val cc: ChangeContext = {
         ChangeContext(
           modId,
-          CurrentUser.actor,
+          qc.actor,
           Instant.now(),
           None,
           S.request.map(_.remoteAddr).toOption,
@@ -158,7 +158,7 @@ class AcceptNode extends SecureDispatchSnippet with Loggable {
 
   }
 
-  def refuseNodes(listNode: Seq[NodeId]): Unit = {
+  def refuseNodes(listNode: Seq[NodeId])(using qc: QueryContext): Unit = {
     // TODO : manage error message
     S.clearCurrentNotices
     val modId = ModificationId(uuidGen.newUuid)
@@ -167,7 +167,7 @@ class AcceptNode extends SecureDispatchSnippet with Loggable {
         .refuse(id)(using
           ChangeContext(
             modId,
-            CurrentUser.actor,
+            qc.actor,
             Instant.now(),
             None,
             S.request.map(_.remoteAddr).toOption,
