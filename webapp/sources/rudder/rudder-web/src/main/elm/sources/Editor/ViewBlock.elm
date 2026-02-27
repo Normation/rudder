@@ -499,7 +499,7 @@ blockBody model parentId block ui techniqueUi =
                              |> addClass "method-name"
                              |> appendChild
                                 ( element "div"
-                                    |> addClass ("component-name-wrapper")
+                                    |> addClass "component-name-wrapper"
                                     |> appendChild
                                        ( element "div"
                                          |> addClass "form-group"
@@ -626,7 +626,7 @@ showChildren model block ui techniqueUi parentId =
             (case call of
               Call _ c ->
                 let
-                  methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach c.foreachName c.foreach))) (Dict.get c.id.value techniqueUi.callsUI)
+                  methodUi = Maybe.withDefault (defaultMethodUiInfo (Just c)) (Dict.get c.id.value techniqueUi.callsUI)
                   currentDragChild = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == c.id
                     Nothing -> True

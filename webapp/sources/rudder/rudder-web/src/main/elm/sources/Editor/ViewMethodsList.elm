@@ -16,7 +16,7 @@ import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
 import Editor.DataTypes exposing (..)
-import Editor.MethodElemUtils exposing (defaultNewForeach)
+import Editor.MethodElemUtils exposing (defaultMethodUiInfo)
 
 
 --
@@ -205,8 +205,8 @@ showMethod ui method mode dnd =
     methodUi =
       case mode of
         TechniqueDetails _ _ techUiInfo _ ->
-          Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach Nothing Nothing))) (Dict.get method.id.value techUiInfo.callsUI)
-        _  -> (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach Nothing Nothing)))
+          Maybe.withDefault (defaultMethodUiInfo Nothing) (Dict.get method.id.value techUiInfo.callsUI)
+        _  -> (defaultMethodUiInfo Nothing)
   in
     element "li"
     |> appendChild

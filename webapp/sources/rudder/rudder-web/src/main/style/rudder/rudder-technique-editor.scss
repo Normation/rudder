@@ -860,7 +860,6 @@ button.btn.clipboard:hover {
 }
 .method-details .tabs-list{
   border-bottom: 1px solid rudder.$border-color-default;
-  margin: 10px 0px 15px 0px;
   width: 100% ;
 }
 
@@ -1135,14 +1134,13 @@ ul li.hide-method {
 }
 .method .method-info .method-condition:not(.d-none),
 .method .method-info .method-condition.d-none ~ .method-name{
-  padding-top: 30px;
+  padding-top: 35px;
 }
 .method .method-info.closed .method-param{
   padding-left: 15px;
   padding-bottom: 10px;
 }
 .method .method-name {
-  font-size: 16px;
   padding: 0 15px;
 }
 .method .method-name .dsc-icon {
@@ -1155,6 +1153,7 @@ ul li.hide-method {
   align-self: center;
   align-items: center;
   flex: 1;
+  font-size: 16px;
 }
 .method .method-name i{
   color: rudder.$primary;
@@ -1527,15 +1526,21 @@ ul li.hide-method {
 }
 .component-name-wrapper {
   position: relative;
-}
-.title-input-name {
-  font-size: 14px;
-  font-weight: bold;
+
+  .title-input-name {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .gm-labels {
+    top: -14px
+  }
+
+  .form-control{
+    max-width: 550px;
+  }
 }
 
-.component-name-wrapper .gm-labels {
-  top: -14px
-}
 
 .gm-labels {
   font-size:11px;
