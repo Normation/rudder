@@ -69,7 +69,7 @@ class MigrateDirectiveWithSelectInputBroken(
     val modificationId = ModificationId(uuidGenerator.newUuid)
     for {
       res        <- techniqueReader.readTechniquesMetadataFile
-      techniques  = res._1.filter(_.parameters.exists(_.constraints.exists(_.select.isDefined)))
+      techniques  = res.techniques.filter(_.parameters.exists(_.constraints.exists(_.select.isDefined)))
       directives <- ZIO.foreach(techniques) { t =>
                       val selectParameters = t.parameters.filter(_.constraints.exists(_.select.isDefined))
                       for {

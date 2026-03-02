@@ -1,5 +1,7 @@
 module Editor.JsonDecoder exposing (..)
 
+import Either exposing (Either)
+import Either.Decode
 import Iso8601
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
@@ -118,12 +120,12 @@ decodeMethodCall =
     |> optional "foreachName" (maybe string) Nothing
     |> optional "foreach" (maybe (list (dict string))) Nothing
 
-decodeTechniqueMaybe : Decoder (Maybe Technique)
+decodeTechniqueMaybe : Decoder (Maybe (Either TechniqueError Technique))
 decodeTechniqueMaybe =
    field "source" string |>
      andThen (\v ->
        case v of
-         "editor" ->  map Just decodeTechnique
+         "editor" ->  map Just decodeTechniqueOrError
          _ -> succeed Nothing
      )
 
@@ -135,6 +137,21 @@ decodeOutput =
     |> required "msg"  string
     |> required "stdout"  string
     |> required "stderr"  string
+
+decodeTechniqueError : Decoder TechniqueError
+decodeTechniqueError =
+  succeed TechniqueError
+    |> required "id" (map TechniqueId string)
+    |> required "version" string
+    |> optional "category" (maybe string) Nothing
+    |> required "errorMsg" string
+    |> required "errorPath" string
+
+decodeTechniqueOrError : Decoder (Either TechniqueError Technique)
+decodeTechniqueOrError =
+  Either.Decode.either
+    decodeTechniqueError
+    decodeTechnique
 
 decodeTechnique : Decoder Technique
 decodeTechnique =

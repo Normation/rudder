@@ -1444,7 +1444,7 @@ object RudderConfig extends Loggable {
   val stringUuidGenerator:                 StringUuidGenerator                      = rci.stringUuidGenerator
   val techniqueRepository:                 TechniqueRepository                      = rci.techniqueRepository
   val techniqueArchiver:                   TechniqueArchiver & GitItemRepository    = rci.techniqueArchiver
-  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService    = rci.techniqueCompilationStatusService
+  val techniqueCheckSyncService:           TechniqueCheckSyncService                = rci.techniqueCheckSyncService
   val tenantCheckLogic:                    TenantCheckLogic                         = rci.tenantCheckLogic
   val tenantService:                       TenantService                            = rci.tenantService
   val tokenGenerator:                      TokenGeneratorImpl                       = rci.tokenGenerator
@@ -1638,7 +1638,7 @@ case class RudderServiceApi(
     scoreRepository:                     ScoreRepository,
     propertiesRepository:                PropertiesRepository,
     propertiesService:                   NodePropertiesService,
-    techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService,
+    techniqueCheckSyncService:           TechniqueCheckSyncService,
     ruleValGeneratedHookService:         RuleValGeneratedHookService,
     instanceIdService:                   InstanceIdService,
     systemInfoService:                   SystemInfoService
@@ -1824,6 +1824,9 @@ object RudderConfigInit {
       List(DefaultAuthBackendProvider.FILE, DefaultAuthBackendProvider.ROOT_ADMIN)
     )
 
+    lazy val editorTechniqueYamlReader: EditorTechniqueYamlReader = new EditorTechniqueYamlReaderImpl(
+      yamlTechniqueSerializer
+    )
     lazy val ncfTechniqueReader = new EditorTechniqueReaderImpl(
       stringUuidGenerator,
       personIdentService,
@@ -1832,7 +1835,7 @@ object RudderConfigInit {
       gitModificationRepository,
       RUDDER_CHARSET.name,
       RUDDER_GROUP_OWNER_CONFIG_REPO,
-      yamlTechniqueSerializer,
+      editorTechniqueYamlReader,
       typeParameterService,
       RUDDERC_CMD,
       GENERIC_METHODS_SYSTEM_LIB,
@@ -1887,11 +1890,11 @@ object RudderConfigInit {
 
     lazy val techniqueCompiler: TechniqueCompiler = new RuddercTechniqueCompiler(
       new RuddercServiceImpl(RUDDERC_CMD, 5.seconds),
-      _.path,
+      _.path.toString,
       RUDDER_GIT_ROOT_CONFIG_REPO
     )
 
-    lazy val techniqueCompilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+    lazy val techniqueStatusService: ReadEditorTechniqueCheckResult = new TechniqueCheckStatusService(
       ncfTechniqueReader,
       techniqueCompiler
     )
@@ -1900,12 +1903,18 @@ object RudderConfigInit {
       roDirectiveRepository
     )
 
-    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService = {
-      val sync = TechniqueCompilationErrorsActorSync
-        .make(asyncDeploymentAgent, techniqueCompilationStatusService, techniqueStatusReaderService)
-        .runNow
-      techniqueRepositoryImpl.registerCallback(new SyncCompilationStatusOnTechniqueCallback("SyncCompilationStatus", 10000, sync))
-      sync
+    lazy val (
+      techniqueCheckSyncService: TechniqueCheckSyncService,
+      techniqueCompilationCache: TechniqueCompilationSyncService
+    ) = {
+      val sync = {
+        TechniqueCheckActorSync
+          .make(asyncDeploymentAgent, techniqueStatusService, techniqueStatusReaderService)
+          .runNow
+      }
+      techniqueRepositoryImpl
+        .registerCallback(new CheckSyncOnTechniqueCallback("CheckSync", 10000, sync))
+      (sync, sync)
     }
 
     lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
@@ -1918,7 +1927,7 @@ object RudderConfigInit {
         woDirectiveRepository,
         techniqueRepository,
         workflowLevelService,
-        techniqueCompilationCache,
+        techniqueCheckSyncService,
         ncfTechniqueReader,
         eventLogRepository,
         RUDDER_GIT_ROOT_CONFIG_REPO
@@ -3473,7 +3482,7 @@ object RudderConfigInit {
 
     lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl,
-      techniqueCompilationStatusService,
+      techniqueStatusService,
       stringUuidGenerator,
       RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
     )
@@ -3573,7 +3582,7 @@ object RudderConfigInit {
         techniqueRepositoryImpl,
         stringUuidGenerator
       ),
-      new CheckTechniqueCompilationStatus(techniqueCompilationCache),
+      new CheckEditorTechniqueStatus(techniqueCheckSyncService),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
       new CheckUsersFile(rudderUserListProvider),
       new CheckInitUserTemplateLibrary(
@@ -4013,7 +4022,7 @@ object RudderConfigInit {
       scoreRepository,
       propertiesRepository,
       propertiesService,
-      techniqueCompilationCache,
+      techniqueCheckSyncService,
       ruleValGeneratedHookService,
       instanceIdService,
       systemInfoService
