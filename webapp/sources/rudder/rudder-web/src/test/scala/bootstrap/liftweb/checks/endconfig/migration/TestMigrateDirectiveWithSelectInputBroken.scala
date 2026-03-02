@@ -101,9 +101,14 @@ class TestMigrateDirectiveWithSelectInputBroken extends Specification with Conte
     None
   )
   val techniqueReader = new EditorTechniqueReader {
-    override def readTechniquesMetadataFile
-        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[errors.RudderError])] =
-      (editorTech :: Nil, Map.empty[BundleName, GenericMethod], List[RudderError]()).succeed
+    override def readTechniquesMetadataFile: IOResult[ReadEditorTechnique] = {
+      ReadEditorTechnique(
+        editorTech :: Nil,
+        Map.empty[BundleName, GenericMethod],
+        List.empty[EditorTechniqueParsingError],
+        List.empty[RudderError]
+      ).succeed
+    }
 
     override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = Map.empty[BundleName, GenericMethod].succeed
 

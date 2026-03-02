@@ -104,16 +104,16 @@ class TechniqueEditForm(
   import TechniqueEditForm.*
 
   // find Technique
-  private val techniqueRepository               = RudderConfig.techniqueRepository
-  private val roActiveTechniqueRepository       = RudderConfig.roDirectiveRepository
-  private val rwActiveTechniqueRepository       = RudderConfig.woDirectiveRepository
-  private val techniqueCompilationStatusService = RudderConfig.techniqueCompilationStatusService
-  private val uuidGen                           = RudderConfig.stringUuidGenerator
+  private val techniqueRepository         = RudderConfig.techniqueRepository
+  private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
+  private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
+  private val checkSyncService            = RudderConfig.techniqueCheckSyncService
+  private val uuidGen                     = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
-  private val directiveEditorService            = RudderConfig.directiveEditorService
-  private val dependencyService                 = RudderConfig.dependencyAndDeletionService
-  private val asyncDeploymentAgent              = RudderConfig.asyncDeploymentAgent
-  private val userPropertyService               = RudderConfig.userPropertyService
+  private val directiveEditorService      = RudderConfig.directiveEditorService
+  private val dependencyService           = RudderConfig.dependencyAndDeletionService
+  private val asyncDeploymentAgent        = RudderConfig.asyncDeploymentAgent
+  private val userPropertyService         = RudderConfig.userPropertyService
 
   private var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
     for {
@@ -566,7 +566,7 @@ class TechniqueEditForm(
     (for {
       save   <-
         (rwActiveTechniqueRepository.changeStatus(activeTechnique.id, status)
-        <* techniqueCompilationStatusService.syncTechniqueActiveStatus(BundleName(activeTechnique.techniqueName.value))).toBox
+        <* checkSyncService.syncTechniqueActiveStatus(BundleName(activeTechnique.techniqueName.value))).toBox
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
         Full("Policy update request sent")

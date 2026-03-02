@@ -38,6 +38,7 @@
 package com.normation.rudder.ncf
 
 import better.files.File
+import cats.data.NonEmptyList
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -53,7 +54,10 @@ import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.FileUtils
 import com.normation.zio.currentTimeMillis
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.nio.file.Paths
+import scala.jdk.CollectionConverters.*
 import zio.*
 import zio.json.yaml.*
 
@@ -94,7 +98,7 @@ class TechniqueWriterImpl(
     techLibUpdate:            UpdateTechniqueLibrary,
     deleteService:            DeleteEditorTechnique,
     compiler:                 TechniqueCompiler,
-    compilationStatusService: TechniqueCompilationStatusSyncService,
+    compilationStatusService: TechniqueCompilationSyncService,
     techniqueReader:          EditorTechniqueReader,
     actionLogger:             EventLogRepository,
     baseConfigRepoPath:       String // root of config repos
@@ -137,7 +141,7 @@ class TechniqueWriterImpl(
     for {
       updated                     <- ZIO.foreach(techniques)(compileArchiveTechnique(_, syncStatus = false))
       (updatedTechniques, results) = updated.unzip
-      _                           <- compilationStatusService.getUpdateAndSync(Some(results))
+      _                           <- compilationStatusService.syncCompilation(results)
     } yield {
       updatedTechniques
     }
@@ -169,7 +173,7 @@ class TechniqueWriterImpl(
         TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_2 - time_1}ms")
       compiled         <- compiler.compileTechnique(techniqueWithResourceUpdated)
       compilationResult = EditorTechniqueCompilationResult.from(techniqueWithResourceUpdated, compiled)
-      _                <- compilationStatusService.syncOne(compilationResult)
+      _                <- compilationStatusService.syncOneCompilation(compilationResult)
       time_3           <- currentTimeMillis
       _                <- TimingDebugLoggerPure.trace(s"writeTechnique: compiling technique '${technique.name}' took ${time_3 - time_2}ms")
       id               <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
@@ -222,18 +226,20 @@ object TechniqueWriterImpl {
   private[ncf] def writeYaml(technique: EditorTechnique)(basePath: String): IOResult[String] = {
     import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
 
-    val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
+    // response path needs a NEL, the path is not empty
+    val metadataPath = NonEmptyList.ofInitLast(technique.path.iterator.asScala.toList.map(_.toString), TechniqueFiles.yaml)
+    val res          = Paths.get(metadataPath.head, metadataPath.tail*).toString
 
     for {
-      path    <- FileUtils.sanitizePath(File(basePath), metadataPath)
+      path    <- FileUtils.sanitizePath(File(basePath), metadataPath.toList)
       content <- technique.toYaml().toIO
       _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
-                   implicit val charSet = StandardCharsets.UTF_8
-                   val file             = path.createFileIfNotExists(createParents = true)
+                   given Charset = StandardCharsets.UTF_8
+                   val file      = path.createFileIfNotExists(createParents = true)
                    file.write(content)
                  }
     } yield {
-      metadataPath
+      res
     }
   }
 }

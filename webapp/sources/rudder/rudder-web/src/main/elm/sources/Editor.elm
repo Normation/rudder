@@ -89,7 +89,7 @@ parseDraftsResponse json =
 mainInit : { contextPath : String, hasWriteRights : Bool  } -> ( Model, Cmd Msg )
 mainInit initValues =
   let
-    model =  Model [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True []
+    model =  Model [] [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True []
   in
     (model, Cmd.batch ( [ getDrafts (), getMethods model, getTechniquesCategories model, getDirectives model]) )
 
@@ -134,11 +134,23 @@ subscriptions model =
     Sub.batch
         [ draftsResponse parseDraftsResponse
         , updateResources (always (updateResourcesResponse model))
-        , readUrl (\s -> case List.Extra.find (.id >> .value >> (==) s ) model.techniques of
-                    Just t -> SelectTechnique (Left t)
-                    Nothing -> Ignore
-                  )
+        , readUrl (navigateToTechnique model)
         ]
+
+navigateToTechnique : Model -> String -> Msg
+navigateToTechnique model id =
+  let
+    technique =
+      List.Extra.find (.id >> .value >> (==) id ) model.techniques
+
+    error =
+      List.Extra.find (.id >> .value >> (==) id ) model.errors
+
+  in
+  case ( technique, error ) of
+    ( Just t, _ ) -> SelectTechnique (Left t)
+    ( _, Just e ) -> SelectTechniqueError e
+    _ -> Ignore
 
 defaultBlockUiInfo : MethodBlock -> MethodBlockUiInfo
 defaultBlockUiInfo block =
@@ -173,6 +185,11 @@ selectTechnique model technique =
     ({ model | mode = TechniqueDetails effectiveTechnique  state ui editInfo } )
       |> update OpenMethods
       |> Tuple.mapSecond ( always ( Cmd.batch [ initInputs "", getRessources state model, action  ]  ))
+
+
+selectTechniqueError: Model -> TechniqueError -> (Model, Cmd Msg)
+selectTechniqueError model error =
+  ( { model | mode = TechniqueErrorDetails error }, Cmd.none )
 
 generator : Random.Generator String
 generator = Random.map (UUID.toString) UUID.generator
@@ -210,8 +227,13 @@ update msg model =
     GetCategories (Err _) ->
       ( model , Cmd.none )
 
-    GetTechniques (Ok  (_, techniques)) ->
-      ({ model | techniques = techniques, loadingTechniques = False},  getUrl () )
+    GetTechniques (Ok  (_, techniquesOrError)) ->
+      let
+        ( errors, techniques ) =
+          Either.partition techniquesOrError
+
+      in
+      ({ model | techniques = techniques, errors = errors, loadingTechniques = False},  getUrl () )
     GetTechniques (Err err) ->
       ({ model | loadingTechniques = False} , errorNotification  ("Error when getting techniques: " ++ debugHttpErr err  ) )
 
@@ -239,6 +261,8 @@ update msg model =
             selectTechnique model technique
         _ ->
           selectTechnique model technique
+    SelectTechniqueError error ->
+      selectTechniqueError model error
 
     NewTechnique internalId ->
       let
@@ -823,7 +847,6 @@ update msg model =
 
     SetMissingIds newId ->
       case model.mode of
-        Introduction -> (model, Cmd.none)
         TechniqueDetails t e u editInfo->
           let
            newUi = { u | callsUI = Dict.update newId (always (Just (defaultMethodUiInfo Nothing)) ) u.callsUI }
@@ -831,6 +854,8 @@ update msg model =
           case setIdRec newId t.elems of
             (_, False) -> updatedStoreTechnique model
             (newCalls, True) -> update (GenerateId SetMissingIds) { model | mode = TechniqueDetails {t  | elems = newCalls} e newUi editInfo }
+        _ ->
+          (model, Cmd.none)
 
     MoveStarted draggedItemId ->
       ( { model | dnd = DragDrop.startDragging model.dnd draggedItemId, dropTarget =  Nothing }, clearTooltips "" )
@@ -843,7 +868,6 @@ update msg model =
 
     MoveCompleted draggedItemId dropTarget ->
       case model.mode of
-        Introduction -> (model, Cmd.none)
         TechniqueDetails t u e editInfo ->
           let
             (baseCalls, newElem) =
@@ -895,6 +919,8 @@ update msg model =
             newModel = { model | mode = TechniqueDetails updateTechnique u e editInfo , dnd = DragDrop.initialState}
           in
             update (GenerateId SetMissingIds ) newModel
+        _ ->
+          (model, Cmd.none)
 
     CompleteMove ->
       let
@@ -909,14 +935,16 @@ update msg model =
       (model, notif notifMsg)
     DisableDragDrop ->
       case model.mode of
-        Introduction -> (model, Cmd.none)
         TechniqueDetails t e u editInfo ->
           ({model | mode = TechniqueDetails t e {u | enableDragDrop = Nothing} editInfo }, Cmd.none )
+        _ ->
+          (model, Cmd.none)
     EnableDragDrop id ->
       case model.mode of
-        Introduction -> (model, Cmd.none)
         TechniqueDetails t e u editInfo ->
           ({model | mode = TechniqueDetails t e {u | enableDragDrop = Just id} editInfo }, Cmd.none )
+        _ ->
+          (model, Cmd.none)
     HoverMethod id ->
       ({model | isMethodHovered = id} , Cmd.none)
 
