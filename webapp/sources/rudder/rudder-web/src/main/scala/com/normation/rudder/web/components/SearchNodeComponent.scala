@@ -884,9 +884,9 @@ object SearchNodeComponent {
             def distribName(x: OsType): String = {
               x match {
                 // add linux: for linux
-                case _: LinuxType => "Linux - " + S.?("os.name." + x.name)
+                case _: LinuxType => "Linux - " + x.displayName
                 // nothing special for windows
-                case _ => S.?("os.name." + x.name)
+                case _ => x.displayName
               }
             }
 

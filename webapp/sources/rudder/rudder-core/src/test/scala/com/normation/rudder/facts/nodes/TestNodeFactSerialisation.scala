@@ -4,10 +4,10 @@ import better.files.Resource
 import com.normation.JsonSpecMatcher
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentVersion
-import com.normation.inventory.domain.Centos
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.CertifiedKey
 import com.normation.inventory.domain.Linux
+import com.normation.inventory.domain.LinuxType.Centos
 import com.normation.inventory.domain.MachineType
 import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId

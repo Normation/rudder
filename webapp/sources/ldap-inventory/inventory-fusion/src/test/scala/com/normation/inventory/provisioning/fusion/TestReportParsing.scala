@@ -40,6 +40,8 @@ package com.normation.inventory.provisioning.fusion
 import com.normation.errors.*
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.*
+import com.normation.inventory.domain.LinuxType.*
+import com.normation.inventory.domain.WindowsType.*
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
 import java.io.File
@@ -104,8 +106,16 @@ class TestInventoryParsing extends Specification with Loggable {
           case _: UnknownOS =>
             logger.error(s"Inventory '${name}' has an unknown OS type")
             failure
-          case _ =>
-            success
+          case x =>
+            if (x.os == UnknownLinuxType || x.os == UnknownWindowsType) {
+              // this one is for testing UnknownWindows
+              if (f.endsWith("windows2016-incomplete.ocs")) success
+              // this one is for testing UnknownLinux
+              else if (f.endsWith("only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs")) success
+              else failure(s"Incorrect type for ${f}: ${x.os.name}")
+            } else {
+              success
+            }
         }
       }.foreach
 

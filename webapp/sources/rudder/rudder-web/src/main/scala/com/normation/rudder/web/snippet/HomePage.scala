@@ -351,7 +351,7 @@ class HomePage extends StatefulSnippet {
 
     // mapping between os name and their string representation (printed on screen).
 
-    val osNames = JsObj(osTypes.map(os => (S.?("os.name." + os.name), Str(os.name)))*)
+    val osNames = JsObj(osTypes.map(os => (os.displayName, Str(os.name)))*)
 
     val machines             = nodes.values.map {
       _.machine.machineType match {
@@ -364,8 +364,8 @@ class HomePage extends StatefulSnippet {
     }
     val machinesArray        = JsObj("labels" -> JsArray(machines._1), "values" -> JsArray(machines._2))
     val (osLabels, osValues) = nodes.values
-      .groupBy(_.os.os.name)
-      .map { case (os, value) => (S.?(s"os.name.${os}"), value.size) }
+      .groupBy(_.os.os)
+      .map { case (os, value) => (os.displayName, value.size) }
       .toList
       .sortBy(_._2)
       .foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
