@@ -123,7 +123,8 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
                       startStr.map(_.toInstant),
                       endStr.map(_.toInstant),
                       None,
-                      Some(Order(ID, Desc))
+                      Some(Order(ID, Desc)),
+                      None
                     )
         logs     <- service.getUserEventLogs(Some(filter)).toBox
       } yield {
