@@ -19,7 +19,7 @@ import Compliance.DataTypes exposing (..)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (..)
 import Ui.Datatable exposing (SortOrder(..), sortTable, thClass, Category, getAllCats, getAllElems, getSubElems)
-import Utils.TooltipUtils exposing (buildTooltipContent, htmlEscape)
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -539,13 +539,13 @@ buildHtmlStringTag tag =
             "<i class='fa fa-tag'></i>"
 
         tagKey =
-            "<span class='tag-key'>" ++ htmlEscape tag.key ++ "</span>"
+            "<span class='tag-key'>" ++ tag.key ++ "</span>"
 
         tagSep =
             "<span class='tag-separator'>=</span>"
 
         tagVal =
-            "<span class='tag-value'>" ++ htmlEscape tag.value ++ "</span>"
+            "<span class='tag-value'>" ++ tag.value ++ "</span>"
 
         tagClose =
             "</span>"

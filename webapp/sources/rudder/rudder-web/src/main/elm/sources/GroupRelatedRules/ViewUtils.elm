@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import GroupRelatedRules.DataTypes exposing (..)
 import Rules.DataTypes exposing (missingCategoryId)
 import Ui.Datatable exposing (Category, SubCategories(..), getSubElems, getAllCats)
-import Utils.TooltipUtils exposing (buildTooltipContent, htmlEscape)
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 -- get all missing categories
 getAllMissingCats: Category a -> List (Category a)
@@ -84,9 +84,9 @@ buildHtmlStringTag tag =
   let
     tagOpen  = "<span class='tags-label'>"
     tagIcon  = "<i class='fa fa-tag'></i>"
-    tagKey   = "<span class='tag-key'>"   ++ htmlEscape tag.key   ++ "</span>"
+    tagKey   = "<span class='tag-key'>"   ++ tag.key   ++ "</span>"
     tagSep   = "<span class='tag-separator'>=</span>"
-    tagVal   = "<span class='tag-value'>" ++ htmlEscape tag.value ++ "</span>"
+    tagVal   = "<span class='tag-value'>" ++ tag.value ++ "</span>"
     tagClose = "</span>"
   in
     tagOpen ++ tagIcon ++ tagKey ++ tagSep ++ tagVal ++ tagClose
