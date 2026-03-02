@@ -236,7 +236,7 @@ object BuildBundleSequence {
 
     val runBundle: Bundle = {
       // these are the main bundle sequence chain, so here we add the `ifVarClass`. It's the only place where we need them
-      Bundle(None, BundleName(s"run_${directiveId.serialize}"), Nil, ifVarClass)
+      Bundle(None, BundleName(BundleName.escape(s"run_${directiveId.serialize}")), Nil, ifVarClass)
     }
 
     // here, since we use "policyTypes.isSystem", it means that system update, hardening pack, etc will respect policy mode
@@ -602,7 +602,10 @@ object CfengineBundleVariables {
       case RunHook.Kind.Post => "post-run-hook"
     }
     import BundleParam.*
-    (promiser, Bundle(None, BundleName(hook.bundle), List(SimpleQuote(hook.jsonParam, "hook_param", None)), None) :: Nil)
+    (
+      promiser,
+      Bundle(None, BundleName(BundleName.escape(hook.bundle)), List(SimpleQuote(hook.jsonParam, "hook_param", None)), None) :: Nil
+    )
   }
 
   /*

@@ -244,7 +244,7 @@ object BundleName {
   // in CFEngine, we don't want +- in names
   def escape(s: String): String = s.replaceAll("[-+]", "_")
 
-  def apply(s: String): BundleName = escape(s)
+  def apply(s: String): BundleName = s
 
   extension (x: BundleName) {
     def value: String = x
