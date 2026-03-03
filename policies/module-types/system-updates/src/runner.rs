@@ -5,13 +5,12 @@ use crate::{
     },
     db::PackageDatabase,
     package_manager::UpdateManager,
-    scheduler,
     state::UpdateStatus,
     system::System,
 };
 use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
-use rudder_module_type::Outcome;
+use rudder_module_type::{Outcome, splay::splayed_start};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum Action {
@@ -111,7 +110,7 @@ impl Runner {
         let schedule_datetime = match self.parameters.schedule {
             FullSchedule::Immediate => now,
             FullSchedule::Scheduled(ref s) => {
-                scheduler::splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
+                splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
             }
         };
         let is_started = now >= schedule_datetime;
@@ -296,7 +295,7 @@ mod tests {
         let parameters = default_runner_parameters();
         assert_eq!(
             test_runner(false, parameters).run().unwrap(),
-            Outcome::Repaired("Update has run".to_string())
+            Outcome::repaired("Update has run")
         );
     }
 
@@ -333,7 +332,7 @@ mod tests {
         };
         assert_eq!(
             test_runner(false, parameters).run().unwrap(),
-            Outcome::Repaired("Schedule has been sent".to_string())
+            Outcome::repaired("Schedule has been sent")
         );
     }
 
@@ -346,7 +345,7 @@ mod tests {
         let mut scheduler = test_runner(false, parameters);
         scheduler.run().unwrap();
         let actual = scheduler.run().unwrap();
-        assert_eq!(actual, Outcome::Repaired("Update has run".to_string()));
+        assert_eq!(actual, Outcome::repaired("Update has run"));
     }
 
     #[test]
@@ -358,6 +357,6 @@ mod tests {
         let mut scheduler = test_runner(true, parameters);
         scheduler.run().unwrap();
         let actual = scheduler.run().unwrap();
-        assert_eq!(actual, Outcome::Repaired("Update has run".to_string()));
+        assert_eq!(actual, Outcome::repaired("Update has run"));
     }
 }

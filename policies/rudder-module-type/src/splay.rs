@@ -15,6 +15,8 @@ use fnv::FnvHasher;
 /// The choice is based on a hash of the unique_value to make it uniformly distributed over nodes
 /// in case the `unique_value` is not uniformly distributed
 /// (and we want it to be deterministic, so random is not enough).
+///
+/// It takes its inspiration from CFEngine's `splayclass`/`splaytime`.
 pub fn splayed_start(
     start: DateTime<Utc>,
     end: DateTime<Utc>,
@@ -27,13 +29,13 @@ pub fn splayed_start(
 
     let real_end = end - (agent_schedule + Duration::minutes(5));
     if real_end <= start {
-        let campaign_window = (end - start).num_minutes();
+        let window = (end - start).num_minutes();
         bail!(
-            "Campaign execution schedule is too short, the minimal schedule should be superior to \
+            "Event schedule windows is too short, the minimal schedule should be superior to \
               the agent run periodicity with an extra 6 minutes of margin. \
-              Current agent run frequency is {} minutes and current campaign schedule is {} minutes.",
+              Current agent run frequency is {} minutes and current window is {} minutes.",
             agent_schedule.num_minutes(),
-            campaign_window
+            window
         );
     }
     let splay = Duration::seconds((hash % (real_end - start).to_std()?.as_secs()) as i64);
@@ -49,7 +51,6 @@ mod tests {
 
     #[test]
     fn test_splayed_start() {
-        // Same values as in the Python implementation
         let start = Utc.with_ymd_and_hms(2022, 7, 4, 18, 40, 24).unwrap();
         let end = Utc.with_ymd_and_hms(2022, 7, 4, 20, 40, 24).unwrap();
 

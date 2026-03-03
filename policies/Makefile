@@ -21,6 +21,7 @@ check-modules:
 	$(MAKE) cargo-test PACKAGE=rudder-module-system-updates FEATURES=apt-compat
 	$(MAKE) cargo-test PACKAGE=rudder-module-augeas
 	$(MAKE) cargo-test PACKAGE=rudder-module-template
+	$(MAKE) cargo-test PACKAGE=rudder-module-scheduler
 	$(MAKE) cargo-test PACKAGE=rudder-module-commands
 	$(MAKE) cargo-test PACKAGE=rudder-module-inventory
 	$(MAKE) cargo-test PACKAGE=rudder-module-secedit
