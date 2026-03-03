@@ -34,5 +34,9 @@
     "gulp-terser": "^2.1.0",
     "merge2": "^1.4.1",
     "sass": "1.77.6"
+  },
+  "overrides": {
+    "glob": "^13.0.6",
+    "minimatch": "^10.2.4"
   }
 }
