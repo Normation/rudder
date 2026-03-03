@@ -501,7 +501,7 @@ class DirectiveEditForm(
   }
 
   private val directiveShortDescription = {
-    new WBTextField("Short description", directive.shortDescription) {
+    new WBTextField("Description", directive.shortDescription) {
       override def className             = "form-control"
       override def labelClassName        = "col-sm-12"
       override def subContainerClassName = "col-sm-12"
@@ -512,7 +512,7 @@ class DirectiveEditForm(
   }
 
   private val directiveLongDescription = {
-    new WBTextAreaField("Description", directive.longDescription) {
+    new WBTextAreaField("Documentation", directive.longDescription) {
       override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
