@@ -64,8 +64,8 @@ type alias Rule =
     { id : RuleId
     , name : String
     , categoryId : String
-    , shortDescription : String
-    , longDescription : String
+    , description : String
+    , documentation : String
     , enabled : Bool
     , isSystem : Bool
     , directives : List DirectiveId
