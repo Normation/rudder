@@ -4,7 +4,6 @@ use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::{
-    collections::HashMap,
     path::Path,
     process::{Command, Stdio},
 };
@@ -21,23 +20,7 @@ pub enum Outcome {
 pub struct Report {
     status: Outcome,
     errors: Vec<String>,
-    changes: HashMap<String, ConfigValue>,
-}
-
-#[derive(Debug, Serialize)]
-struct ConfigValue {
-    old: String,
-    new: String,
-}
-
-impl ConfigValue {
-    fn new(old: String, new: String) -> Self {
-        Self { old, new }
-    }
-
-    fn equal(&self) -> bool {
-        self.old == self.new
-    }
+    diff: String,
 }
 
 pub struct Secedit {
@@ -58,6 +41,13 @@ impl Secedit {
         println!("{json_report}");
         if !audit {
             self.apply_config(&config)?;
+            // Check if the configuration was applied
+            let mut new_config = self.export()?;
+            let new_report = config_search_and_replace(&mut new_config, &data)?;
+            if !new_report.diff.is_empty() {
+                let data = serde_json::to_string(&data)?;
+                bail!("Could not apply configuration:\n{data}")
+            }
         }
 
         Ok(report.status)
@@ -148,6 +138,7 @@ fn invoke_with_args(args: Vec<&str>) -> Result<()> {
 
 fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Result<Report> {
     let mut report = Report::default();
+    let mut diff = String::new();
 
     for (section, section_data) in data {
         if section.as_str() == "Registry Values" {
@@ -180,10 +171,31 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
         for (key, value) in entries {
             match props.get(key) {
                 Some(old) => {
-                    let new = value.to_string().replace("\"", "");
-                    let v = ConfigValue::new(old.replace("\"", ""), new.clone());
-                    if !v.equal() {
-                        report.changes.insert(key.to_string(), v);
+                    let new = match value {
+                        Value::String(s) if property_is_string(key, section) => s.clone(),
+                        Value::String(s) => {
+                            report.errors.push(format!("Invalid value '{s}' for property '{key}'. String values are not supported for this property."));
+                            continue;
+                        }
+                        Value::Number(n) if property_is_string(key, section) => {
+                            report.errors.push(format!("Invalid value '{n}' for property '{key}'. Integer values are not supported for this property."));
+                            continue;
+                        }
+                        Value::Number(n) => n.to_string(),
+                        _ => {
+                            report.errors.push(format!(
+                                "Invalid value '{value}'. Only strings and numbers are supported.",
+                            ));
+                            continue;
+                        }
+                    };
+
+                    let new = new.replace("\"", "");
+                    let old = old.replace("\"", "");
+
+                    if new != old {
+                        let diffline = format!("\n- {key}={old}\n+ {key}={new}");
+                        diff.push_str(&diffline);
                         props.insert(key, new);
                     }
                 }
@@ -194,11 +206,25 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
         }
     }
 
+    report.diff = diff;
     if !report.errors.is_empty() {
         report.status = Outcome::NonCompliant;
     }
 
     Ok(report)
+}
+
+fn property_is_string(key: &str, section: &str) -> bool {
+    match (key, section) {
+        // The "NewAdministratorName" and "NewGuestName" properties in the "System Access" section are expected to be strings.
+        ("NewAdministratorName" | "NewGuestName", "System Access") => true,
+        // The "Unicode" property in the "Unicode" section is expected to be a string.
+        ("Unicode", "Unicode") => true,
+        // All properties in the "Privilege Rights" section are expected to be strings.
+        (_, "Privilege Rights") => true,
+        // else must be an Integer
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -214,25 +240,24 @@ mod test {
             ..Default::default()
         };
         let mut config = Ini::load_from_str_opt(
-            r"[User]
-            name = Ferris
-            value = Pi
-            [Settings]
-            abc = 21
-            [Registry Values]
-            MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Setup\RecoveryConsole\SecurityLevel=4,0",
-            opt
+            "[System Access]
+            MinimumPasswordAge = 0
+            MaximumPasswordAge = 42
+            NewAdministratorName = \"Administrator\"
+            NewGuestName = \"Guest\"
+            [Unicode]
+            Unicode = \"yes\"",
+            opt,
         )
         .unwrap();
 
         let data = json!(
         {
-            "User": {
-                "name": "Ferris",
-                "value": 42
-            },
-            "Settings": {
-                "abc": 12
+            "System Access": {
+                "MinimumPasswordAge": 0,
+                "MaximumPasswordAge": 21,
+                "NewAdministratorName": "Administrator2",
+                "NewGuestName": "Guest"
             }
         });
         let data = data.as_object().unwrap();
@@ -240,9 +265,51 @@ mod test {
         let res = config_search_and_replace(&mut config, data);
 
         assert!(res.is_ok());
-        assert_eq!(config.get_from(Some("User"), "name"), Some("Ferris"));
-        assert_eq!(config.get_from(Some("User"), "value"), Some("42"));
-        assert_eq!(config.get_from(Some("Settings"), "abc"), Some("12"));
+        assert_eq!(
+            config.get_from(Some("System Access"), "NewAdministratorName"),
+            Some("Administrator2")
+        );
+        assert_eq!(
+            config.get_from(Some("System Access"), "NewGuestName"),
+            Some("Guest")
+        );
+        assert_eq!(
+            config.get_from(Some("System Access"), "MinimumPasswordAge"),
+            Some("0")
+        );
+        assert_eq!(
+            config.get_from(Some("System Access"), "MaximumPasswordAge"),
+            Some("21")
+        );
+
+        let opt = ParseOption {
+            enabled_escape: false,
+            ..Default::default()
+        };
+
+        let mut config = Ini::load_from_str_opt(
+            "[System Access]
+            MinimumPasswordAge = 0
+            MaximumPasswordAge = 42
+            NewAdministratorName = \"Administrator\"
+            NewGuestName = \"Guest\"",
+            opt,
+        )
+        .unwrap();
+
+        let bad_data = json!(
+        {
+            "System Access": {
+                "MinimumPasswordAge": 0,
+                "MaximumPasswordAge": "BOUM",
+                "NewAdministratorName": "Administrator2",
+                "NewGuestName": "Guest"
+            }
+        });
+        let bad_data = bad_data.as_object().unwrap();
+
+        let res = config_search_and_replace(&mut config, bad_data).unwrap();
+        assert!(!res.errors.is_empty());
     }
 
     #[test]
@@ -292,8 +359,21 @@ mod test {
     }
 
     #[test]
-    fn test_config_value_equal() {
-        let v = ConfigValue::new("test".to_string(), "test".to_string()).equal();
-        assert!(v)
+    fn test_diff() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/config.ini");
+        let mut config = parse_config(&path).unwrap();
+        let data = json!({
+          "System Access": {
+            "MinimumPasswordLength": 12,
+            "MinimumPasswordAge": 0,
+            "NewAdministratorName": "Ferris"
+          }
+        });
+        let data = data.as_object().unwrap();
+        let report = config_search_and_replace(&mut config, data).unwrap();
+        assert_eq!(
+            report.diff,
+            "\n- MinimumPasswordLength=0\n+ MinimumPasswordLength=12\n- NewAdministratorName=Administrator\n+ NewAdministratorName=Ferris"
+        );
     }
 }
