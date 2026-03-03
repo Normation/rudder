@@ -36,6 +36,8 @@
     "sass": "1.89.2"
   },
   "overrides": {
-    "postcss": "^8.4.38"
+    "postcss": "^8.4.38",
+    "glob": "^13.0.6",
+    "minimatch": "^10.2.4"
   }
 }
