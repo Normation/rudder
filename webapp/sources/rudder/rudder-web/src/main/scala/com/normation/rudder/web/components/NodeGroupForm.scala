@@ -336,34 +336,31 @@ class NodeGroupForm(
     </li>
     (
       "#group-title [class]" #> (if (nodeGroup.isEnabled) "" else "item-disabled")
+      & "#group-description" #> <p>{nodeGroup.description}</p>
       & "#group-name *" #> {
         Text(groupNameString) ++ (if (nodeGroup.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>)
       }
       & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
       & "group-name" #> groupName.toForm_!
+      & "group-description" #> groupDescription.toForm_!
       & "group-rudderid" #> <div class="form-group">
-                      <label class="wbBaseFieldLabel">Group ID</label>
-                      <div class="position-relative align-items-center">
-                        <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
-                          <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" onclick={
+    <label class="wbBaseFieldLabel">Group ID</label>
+    <div class="position-relative align-items-center">
+    <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
+    <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" onclick={
         s"copy('${nodeGroup.id.serialize}')"
       }>
-                            <i class="fa fa-clipboard"></i>
-                        </a>
-                      </div>
-                    </div>
+    <i class="fa fa-clipboard"></i>
+    </a>
+    </div>
+    </div>
       & "group-cfeclasses" #> <div class="form-group">
-                          <label class="wbBaseFieldLabel toggle-cond cond-hidden fw-normal" onclick="$(this).toggleClass('cond-hidden')">Agent conditions<i class="fa fa-chevron-down"></i></label>
-                          <div class="well" id={s"cfe-${nodeGroup.id.serialize}"}>
-                            {RuleTarget.toCFEngineClassName(nodeGroup.id.serialize)}<br/>
-                            {RuleTarget.toCFEngineClassName(nodeGroup.name)}
-                          </div>
-                        </div>
-      & "#longDescriptionField *" #> (groupDescription.toForm_! ++ Script(
-        OnLoad(
-          JsRaw(s"""setupMarkdown(${Str(nodeGroup.description).toJsCmd}, "longDescriptionField")""")
-        ) // JsRaw OK, toJsCmd encodes
-      ))
+    <label class="wbBaseFieldLabel toggle-cond cond-hidden fw-normal" onclick="$(this).toggleClass('cond-hidden')">Agent conditions<i class="fa fa-chevron-down"></i></label>
+    <div class="well" id={s"cfe-${nodeGroup.id.serialize}"}>
+    {RuleTarget.toCFEngineClassName(nodeGroup.id.serialize)}<br/>
+    {RuleTarget.toCFEngineClassName(nodeGroup.name)}
+    </div>
+    </div>
       & "group-container" #> groupContainer.toForm_!
       & "group-static" #> groupStatic.toForm_!
       & "group-showgroup" #> nodes
@@ -422,7 +419,7 @@ class NodeGroupForm(
     & "group-name" #> groupName.readOnlyValue
     & "#groupTabMenu" #> <ul id="groupTabMenu" class="nav nav-underline">
                            <li class="nav-item">
-                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupParametersTab" type="button" role="tab" aria-controls="groupParametersTab">Parameters</button>
+                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupInformationTab" type="button" role="tab" aria-controls="groupInformationTab">Information</button>
                            </li>
                            <li class="nav-item">
                              <button id="relatedRulesLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRulesTab" type="button" role="tab" aria-controls="groupRulesTab">Related rules</button>
@@ -563,8 +560,8 @@ class NodeGroupForm(
 
   ///////////// fields for category settings ///////////////////
 
-  private val groupName = {
-    new WBTextField("Group name", groupNameString) {
+  private val groupName        = {
+    new WBTextField("Name", groupNameString) {
       override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
@@ -574,27 +571,18 @@ class NodeGroupForm(
         valMinLen(1, "Name must not be empty") :: Nil
     }
   }
-
   private val groupDescription = {
     val desc = nodeGroup.fold(
       t => rootCategory.allTargets.get(t).map(_.description).getOrElse(""),
       _.description
     )
-    new WBTextAreaField("Description", desc) {
+    new WBTextField("Description", desc) {
       override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
       override def subContainerClassName = ""
-      override def containerClassName    = "pe-2"
-      override def errorClassName        = "text-danger mt-1"
-      override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
-      override def labelExtensions: NodeSeq               = {
-        <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(
-          " "
-        ) ++
-        <i class="fa fa-eye-slash text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Show/hide preview" onmouseout="toggleOpacity(this)" onclick="togglePreview(this, 'longDescriptionField')"></i>
-      }
-
+      override def validations: List[String => List[FieldError]] = Nil
+      override def errorClassName = "text-danger mt-1"
     }
   }
 
