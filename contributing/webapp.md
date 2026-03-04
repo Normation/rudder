@@ -72,7 +72,7 @@ $DOWNLOAD_PASSWORD="<password>"
 - Source `.bashrc` to update `$PATH` running `source ~/.bashrc` in your terminal
 - Check if the `$PATH` is properly updated by running `echo $PATH` you should the idea path. For instance:
 ```
-pauline@ThinkPad-T14s-Gen-6$ echo $PATH
+echo $PATH
 /usr/local/bin/idea-IC-252.25557.131/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
 ```
 
@@ -187,6 +187,8 @@ Go into the cloned `rudder-tests` github repository. The directory `rudder-tests
 Please read https://github.com/Normation/rudder-tests#adding-a-platform-or-an-os for further information.
 
 Create a `<dev_env_name>.json` file in `./platform/` and put your platform's configuration in it.
+
+> NOTE: The dev.json platform is well-suited for tests in a developer environment, but some additional steps are required in order to configure it properly. These steps are described in the "Developer platform configuration" section.
 
 > Note: no `.` are allowed in the name of the file except for the extension `.json` or it doesn't work properly.
 
@@ -352,6 +354,93 @@ rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-re
 ```
 But in practice, you'll probably never have to do this, because `~/<workspace>/rudder-techniques/techniques` almost never change
 
+#### Developer platform configuration
+
+A "developer" platform is already included in the rudder-tests repository at path `rudder-tests/platforms/dev.json` . This environment is well-suited for developer testing needs. However, some additional configuration steps are required to configure this environment properly. These steps are described below.
+
+In rudder-test, run : `$ ./rtf setup platform dev`
+
+The difficult part in this dev environment is to make agents communicate with the server on a virtual machine, and with the webapp deployed on a local jetty server.
+There are a couple actions to do on the dev server to be able to use the webapp properly.
+
+- plugin relay issues
+
+The plugin relay be installed automatically when setting up the plaform with the command `./rtf setup platform dev`. If the relay doesn't work properly, something probably went wrong when setup, so you should destroy the vm and create another one.
+
+- set some rights to the vagrant shared directory for reports, inventory and so on
+
+```
+vagrant ssh dev_server
+sudo su
+cd /var/rudder/inventories
+chmod 777 accepted-nodes-updates failed historical incoming received
+```
+
+```
+rudder agent run
+```
+
+Start the webapp with Jetty. If you navigate to the "Pending Nodes" page, you should be able to see your nodes in the table and accept them one by one. From there on, your newly accepted nodes should appear in the "Nodes" page.
+
+- the server is not able to see the node to accept
+
+It is a known issue due to the particular architecture of the dev environment. 
+The webapp is running on the local machine and uses a configuration (`-Drudder.configFile=<config-file-path>`) file with postgresql port number value 15432. 
+The relayd configuration is generated base on this configuration file but as relayd is deployed on the same machine as postgresql it should use the port 5432.
+
+![Development environment architecture](dev-env.png)
+
+The next step is to change the postgresql port number and make the file immutable otherwise, this file will be overwritten by the next agent run (as would be the case in a "normal" environment).
+
+    sed -i 's/15432/5432/g' /opt/rudder/etc/relayd/main.conf
+    chattr +i /opt/rudder/etc/relayd/main.conf 
+
+
+
+> NOTE: because /opt/rudder/etc/relayd/main.conf is now immutable, all subsequent agent runs will output at least one error :
+> 
+>     E| error         rudder-service-relayd     Rudder-relayd service     Configuration      Build file /opt/rudder/etc/relayd/main.conf from mustache template /var/rudder/cfengine-community/inputs/rudder-service-relayd/1.0/common/relayd.conf.tpl  could not be repaired
+> 
+> This error can be ignored entirely.
+
+
+After that, you can restart the apache2 and rudder-relayd services. Check their status to ensure that they are both active and running.
+
+> NOTE: At any point, you can check the apache logs and the relayd logs to check for errors :
+> 
+>     check apache logs : 
+>     $ less -f /var/log/apache2/error.log
+>     check relayd logs : 
+>     $ journalctl -r -g rudder-relayd
+
+- bad synchronization with nodes
+
+For some reason, sometimes the relay messes up with the node list, we can have unknown node ids. 
+To fix this, we need to copy `nodeslist.json` in the rudder lib.
+```
+cp /var/rudder/cfengine-community/inputs/rudder-service-relayd/1.0/relay/nodeslist.json /var/rudder/lib/relay/nodeslist.json
+```
+Change the rights and group of the file to obtain:
+```
+ls -l /var/rudder/lib/relay/nodeslist.json
+-rw-r----- 1 rudder-relayd rudder 1009 Aug 13 15:38 /var/rudder/lib/relay/nodeslist.json
+```
+Then restart relayd service
+```
+systemctl restart rudder-relayd
+```
+You should be able to get reports from agents through the webapp rudder.
+
+- certificate issues
+
+If you face certificate issues in `agent run` logs and/or if node reports do not reach the server, then the file that contains node certificates on the server (`/var/rudder/lib/ssl/allnodescerts.pem`) might not be up to date. You might want to try to copy the certificate local file on the dev_server:
+```
+vagrant upload /var/rudder/lib/ssl/allnodescerts.pem dev_server
+vagrant ssh dev_server
+sudo su
+mv allnodescerts.pem /var/rudder/lib/ssl/
+```
+
 ## Part 2 : Setup workspace development with IntelliJ and Maven
 ### Install plugin from marketplace
 1. In IntelliJ install plugins : Scala, Elm, Jetty Runner and File watcher (recommended)
@@ -467,12 +556,16 @@ npm install
 
 ## Setup technique editor
 
-Clone ncf repository
+Clone rudder repository, if not already done
 
 ```
-git clone https://github.com/Normation/ncf.git
-sudo ln -s <path/to/ncf/repo> /usr/share/ncf
+sudo ln -s <Workspace>/rudder/policies/lib /usr/share/ncf
 mkdir -p /var/rudder/configuration-repository/ncf 
+```
+
+```
+ls -lsh /usr/share/ | grep ncf
+0 lrwxrwxrwx    1 root root   43 Mar  6 11:06 ncf -> <Workspace>/rudder/policies/lib
 ```
 
 Setup apache configuration:
@@ -529,7 +622,7 @@ mvn clean package
 ```
 Then see the target directory
 ```
-pauline@ThinkPad-T14s-Gen-6:~/Workspace/rudder/webapp/sources/rudder/rudder-web/target$ ls
+ls <Workspace>/rudder/webapp/sources/rudder/rudder-web/target
 classes                       rudder-web-8.3.5-SNAPSHOT              surefire-reports
 classes.-287291424.timestamp  rudder-web-8.3.5-SNAPSHOT-classes.jar  test-classes
 generated-sources             rudder-web-8.3.5-SNAPSHOT-tests.jar    test-classes.64873501.timestamp
