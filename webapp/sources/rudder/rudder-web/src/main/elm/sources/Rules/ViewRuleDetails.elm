@@ -197,7 +197,7 @@ editionTemplate model details =
           )
         ]
       , div [class "header-description"]
-        [ p[][text (Maybe.Extra.unwrap "" .shortDescription originRule)] ]
+        [ p[][text (Maybe.Extra.unwrap "" .description originRule)] ]
       ]
     , div [class "main-navbar" ]
       [ ul[class "nav nav-underline"]
