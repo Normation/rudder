@@ -606,39 +606,39 @@ class SystemVariableServiceImpl(
       }
     }
 
-    import net.liftweb.json.{prettyRender, JObject, JString, JField}
+    import zio.json.ast.Json.*
+    import zio.json.*
     // Utility method to convert NodeInfo to JSON
-    def nodeInfoToJson(nodeInfo: NodeInfo): List[JField] = {
-      JField("hostname", JString(nodeInfo.hostname)) ::
-      JField("policyServerId", JString(nodeInfo.policyServerId.value)) ::
-      JField("localAdministratorAccountName", JString(nodeInfo.localAdministratorAccountName)) ::
-      JField("archDescription", JString(nodeInfo.archDescription.getOrElse(""))) ::
-      JField("ram", JString(nodeInfo.ram.map(_.size).getOrElse(0L).toString)) ::
-      JField("timezone", JString(nodeInfo.timezone.map(_.name).getOrElse(""))) ::
-      JField(
+    def nodeInfoToJson(nodeInfo: NodeInfo): Obj = Obj(
+      ("hostname", Str(nodeInfo.hostname)),
+      ("policyServerId", Str(nodeInfo.policyServerId.value)),
+      ("localAdministratorAccountName", Str(nodeInfo.localAdministratorAccountName)),
+      ("archDescription", Str(nodeInfo.archDescription.getOrElse(""))),
+      ("ram", Str(nodeInfo.ram.map(_.size).getOrElse(0L).toString)),
+      ("timezone", Str(nodeInfo.timezone.map(_.name).getOrElse(""))),
+      (
         "os",
-        JObject(
-          JField("name", JString(nodeInfo.osDetails.os.name)) ::
-          JField("fullName", JString(nodeInfo.osDetails.fullName)) ::
-          JField("version", JString(nodeInfo.osDetails.version.value)) ::
-          JField("kernelVersion", JString(nodeInfo.osDetails.kernelVersion.value)) ::
-          JField("servicePack", JString(nodeInfo.osDetails.servicePack.getOrElse(""))) ::
-          Nil
+        Obj(
+          ("name", Str(nodeInfo.osDetails.os.name)),
+          ("fullName", Str(nodeInfo.osDetails.fullName)),
+          ("version", Str(nodeInfo.osDetails.version.value)),
+          ("kernelVersion", Str(nodeInfo.osDetails.kernelVersion.value)),
+          ("servicePack", Str(nodeInfo.osDetails.servicePack.getOrElse("")))
         )
-      ) ::
-      JField(
+      ),
+      (
         "machine",
-        JObject(
-          JField("machineType", JString(nodeInfo.machine.map(_.machineType.toString).getOrElse(""))) ::
-          JField("manufacturer", JString(nodeInfo.machine.flatMap(_.manufacturer.map(_.name)).getOrElse(""))) ::
-          Nil
+        Obj(
+          ("machineType", Str(nodeInfo.machine.map(_.machineType.toString).getOrElse(""))),
+          ("manufacturer", Str(nodeInfo.machine.flatMap(_.manufacturer.map(_.name)).getOrElse("")))
         )
-      ) :: Nil
-    }
+      )
+    )
+
     val varRudderInventoryVariables = {
       systemVariableSpecService
         .get("RUDDER_INVENTORY_VARS")
-        .toVariable(Seq(prettyRender(JObject(nodeInfoToJson(nodeInfo.toNodeInfo)))))
+        .toVariable(Seq(nodeInfoToJson(nodeInfo.toNodeInfo).toJsonPretty))
     }
 
     val baseVariables = {

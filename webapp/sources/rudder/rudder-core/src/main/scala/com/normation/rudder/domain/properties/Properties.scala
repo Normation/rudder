@@ -784,8 +784,6 @@ object GenericProperty {
   }
 
   implicit class JsonProperties(val props: Seq[GenericProperty[?]]) extends AnyVal {
-    implicit def formats: DefaultFormats.type = DefaultFormats
-
     def toApiJson: JArray = {
       JArray(props.map(_.toJsonObj).toList)
     }
@@ -983,8 +981,6 @@ object JsonPropertySerialisation {
   }
 
   implicit class JsonParameters(val parameters: Set[ParameterEntry]) extends AnyVal {
-    implicit def formats: DefaultFormats.type = DefaultFormats
-
     def dataJson(x: ParameterEntry): JField = {
       JField(x.parameterName, x.escapedValue)
     }

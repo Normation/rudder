@@ -61,6 +61,7 @@ import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
 import scala.collection.immutable.ListMap
 import zio.*
+import zio.json.*
 
 /**
  * This file groups together everything related to building the bundle sequence and
@@ -641,25 +642,22 @@ object CfengineBundleVariables {
  *
  * Must be top level to make Liftweb JSON lib happy
  */
-final case class JsonRunHookReport(id: String, mode: String, technique: String, name: String, value: String)
+final case class JsonRunHookReport(id: String, mode: String, technique: String, name: String, value: String) derives JsonEncoder
 final case class JsonRunHook(
     parameters: ListMap[String, String], // to keep order
 
     reports: List[JsonRunHookReport]
-)
+) derives JsonEncoder
 
 object JsonRunHookSer {
   implicit class ToJson(private val h: NodeRunHook) extends AnyVal {
-    import net.liftweb.json.*
     def jsonParam: String = {
-      val jh = JsonRunHook(
+      JsonRunHook(
         ListMap(h.parameters.map(p => (p.name, p.value))*),
         h.reports.map(r =>
           JsonRunHookReport(r.id.getReportId, r.mode.name, r.technique, r.report.name, r.report.value.getOrElse("None"))
         )
-      )
-      implicit val formats: Formats = DefaultFormats
-      Serialization.write(jh)
+      ).toJson
     }
   }
 }
