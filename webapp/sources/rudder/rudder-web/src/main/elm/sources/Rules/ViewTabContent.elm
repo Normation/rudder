@@ -170,14 +170,14 @@ informationTab model details =
           , buildTagsContainer rule True details
           ]
         , div [class "form-group"]
-          [ label[for "rule-short-description"][text "Short description"]
+          [ label[for "rule-short-description", class "fw-normal"][text "Description"]
           , div[]
-            [ input[ id "rule-short-description", type_ "text", value rule.shortDescription, placeholder "There is no short description", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | shortDescription = s}} )  ][] ]
+            [ input[ id "rule-short-description", type_ "text", value rule.description, placeholder "There is no short description", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | description = s}} )  ][] ]
           ]
         , div [class "form-group"]
-          [ label[for "rule-long-description"][text "Long description"]
+          [ label[for "rule-long-description", class "fw-normal"][text "Documentation"]
           , div[]
-            [ textarea[ id "rule-long-description", value rule.longDescription, placeholder "There is no long description", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | longDescription = s}} ) ][] ]
+            [ textarea[ id "rule-long-description", value rule.documentation, placeholder "There is no long description", class "form-control", onInput (\s -> UpdateRuleForm {details | rule = {rule | documentation = s}} ) ][] ]
           ]
         ]
         else
@@ -199,21 +199,21 @@ informationTab model details =
             )
           ]
         , div [class "form-group"]
-          [ label[for "rule-short-description"][text "Short description"]
+          [ label[for "rule-short-description", class "fw-normal"][text "Description"]
           , div[]
-            ( if String.isEmpty rule.shortDescription then
+            ( if String.isEmpty rule.description then
               [ span[class "half-opacity"][text "There is no short description"] ]
             else
-              [ text rule.shortDescription ]
+              [ text rule.description ]
             )
           ]
         , div [class "form-group"]
-          [ label[for "rule-long-description"][text "Long description"]
+          [ label[for "rule-long-description", class "fw-normal"][text "Documentation"]
           , div[]
-            ( if String.isEmpty rule.longDescription then
+            ( if String.isEmpty rule.documentation then
               [ span[class "half-opacity"][text "There is no long description"] ]
             else
-              [ text rule.longDescription ]
+              [ text rule.documentation ]
             )
           ]
         ]
