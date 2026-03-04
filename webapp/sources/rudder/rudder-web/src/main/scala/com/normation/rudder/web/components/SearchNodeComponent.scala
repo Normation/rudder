@@ -404,7 +404,7 @@ class SearchNodeComponent(
    * @return
    */
   def showNodesTableByTab(): JsCmd = {
-    val tabs = List("groupParametersTab", "groupCriteriaTab")
+    val tabs = List("groupInformationTab", "groupCriteriaTab")
     JE.JsRaw(s"""
         var tabs = ${tabs.map(s => s"'${s}'").mkString("[", ",", "]")};
         $$('#groupTabMenu').ready(function () {

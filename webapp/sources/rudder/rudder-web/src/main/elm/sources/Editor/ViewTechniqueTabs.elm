@@ -310,7 +310,7 @@ techniqueTab model technique creation ui =
                              _ -> text ""
                          ]
                        , div [ class "row form-group" ] [
-                             label [ for "techniqueDescription", class "col-sm-12 control-label" ] [ text "Description"  ]
+                             label [ for "techniqueDescription", class "col-sm-12 control-label fw-normal" ] [ text "Description"  ]
                            , div  [ class "col-md-8" ] [
                                input [readonly (not model.hasWriteRights), type_ "text" , id "techniqueDescription",  name "description",  class ("form-control") , placeholder "Technique description", value technique.description
                                  , onInput (\newDesc -> UpdateTechnique {technique | description = newDesc })

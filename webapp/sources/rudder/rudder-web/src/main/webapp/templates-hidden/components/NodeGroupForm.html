@@ -47,11 +47,14 @@
 
       </div>
     </div>
+    <div class="header-description">
+      <p id="group-description"></p>
+    </div>
   </div>
   <div class="main-navbar">
     <ul id="groupTabMenu" class="nav nav-underline">
       <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupParametersTab" type="button" role="tab" aria-controls="groupParametersTab" aria-selected="true">Parameters</button>
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#groupInformationTab" type="button" role="tab" aria-controls="groupInformationTab" aria-selected="true">Information</button>
       </li>
       <li class="nav-item">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#groupCriteriaTab" type="button" role="tab" aria-controls="groupCriteriaTab" aria-selected="true">Criteria</button>
@@ -69,33 +72,14 @@
   </div>
   <div class="main-details">
     <div class="tab-content tab-content-split">
-      <div id="groupParametersTab" class="tab-pane active main-form">
+      <div id="groupInformationTab" class="tab-pane active main-form">
         <div class="row d-flex">
           <div class="col-12 col-md-6 col-xl-7">
             <div class="main-form">
               <group-notifications ></group-notifications>
               <group-pendingchangerequest></group-pendingchangerequest>
               <group-name></group-name>
-              <div id="longDescriptionFieldMarkdownContainer" class="form-group">
-                <label class="fw-normal">Description
-                  <lift:authz role="group_write">
-                    <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i>
-                  </lift:authz>
-                </label>
-                <div class="markdown">
-                  <div id="longDescriptionFieldMarkdown"></div>
-                  <p id="longDescriptionFieldMarkdownEmpty" class="d-none half-opacity">No description defined, click on <i class="fa fa-pencil text-primary cursorPointer half-opacity" onmouseenter="toggleOpacity(this)" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> to edit </p>
-                </div>
-              </div>
-              <div id="longDescriptionFieldContainer" class="d-flex d-none">
-                <div id="longDescriptionField" class="col-6">
-                  Here comes the longDescription field
-                </div>
-                <div id="longDescriptionFieldMarkdownPreviewContainer" class="col-6 ps-2">
-                  <label class="fw-normal">Preview</label>
-                  <div id="longDescriptionFieldPreviewMarkdown" class="markdown"></div>
-                </div>
-              </div>
+              <group-description></group-description>
               <group-rudderid></group-rudderid>
               <group-container></group-container>
               <group-cfeclasses></group-cfeclasses>
@@ -107,7 +91,7 @@
                 <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account all rules that apply directives to a node within this group</div>">
                   Global compliance
                 </label>
-                <div class="groupGlobalComplianceProgressBar"></div>
+                <div class="groupGlobalComplianceProgressBar mb-2"></div>
                 <label data-bs-toggle="tooltip" data-bs-placement="right" title="<div class='tooltip-inner-content'>Compliance that takes into account only rules that explicitly include this group in their target</div>">
                   Targeted compliance
                 </label>

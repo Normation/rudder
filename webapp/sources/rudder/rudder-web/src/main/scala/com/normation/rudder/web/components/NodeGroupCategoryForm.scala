@@ -46,7 +46,6 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBSelectField
-import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
@@ -115,22 +114,25 @@ class NodeGroupCategoryForm(
               </div>
             </lift:authz>
           </div>
+          <div class="header-description">
+            <p id="category-description"></p>
+          </div>
         </div>
         <div class="main-navbar">
           <ul id="groupTabMenu" class="nav nav-underline">
             <li class="nav-item">
-              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#categoryParametersTab" type="button" role="tab" aria-controls="categoryParametersTab" aria-selected="true">Parameters</button>
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#categoryInformationTab" type="button" role="tab" aria-controls="categoryInformationTab" aria-selected="true">Information</button>
             </li>
           </ul>
         </div>
         <div class="main-details">
-          <div id="categoryParametersTab" class="main-form">
+          <div id="categoryInformationTab" class="main-form">
             <directive-notifications></directive-notifications>
             <directive-name></directive-name>
             <directive-description></directive-description>
             <directive-container></directive-container>
             <div class="form-group">
-              <label class="wbBaseFieldLabel">Group category ID</label>
+              <label class="wbBaseFieldLabel">Category ID</label>
               <input readonly="" class="form-control" value={nodeGroupCategory.id.value}/>
             </div>
           </div>
@@ -140,6 +142,7 @@ class NodeGroupCategoryForm(
 
     (
       "category-name" #> name
+      & "#category-description" #> _nodeGroupCategory.description
       & "directive-name" #> (if (_nodeGroupCategory.isSystem) name.readOnlyValue else name.toForm_!)
       & "directive-description" #> (if (_nodeGroupCategory.isSystem) description.readOnlyValue else description.toForm_!)
       & "directive-container" #> (if (_nodeGroupCategory.isSystem) container.readOnlyValue else container.toForm_!)
@@ -243,7 +246,7 @@ class NodeGroupCategoryForm(
   }
 
   ///////////// fields for category settings ///////////////////
-  private val name = new WBTextField("Category name", _nodeGroupCategory.name) {
+  private val name = new WBTextField("Name", _nodeGroupCategory.name) {
     override def setFilter             = notNull :: trim :: Nil
     override def className             = "form-control"
     override def labelClassName        = ""
@@ -252,7 +255,7 @@ class NodeGroupCategoryForm(
       valMinLen(1, "Name must not be empty") :: Nil
   }
 
-  private val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
+  private val description = new WBTextField("Description", _nodeGroupCategory.description.toString) {
     override def setFilter             = notNull :: trim :: Nil
     override def className             = "form-control"
     override def labelClassName        = ""
