@@ -124,23 +124,22 @@ final case class EditorTechnique(
   val path: java.nio.file.Path = Paths.get("techniques", category, id.value, version.value)
 }
 
-final case class EditorTechniquePath(techniqueDir: File, id: BundleName, version: Version) {
-  def categoryDir:       Option[File]       = techniqueDir.parentOption
-  def category:          Option[String]     = categoryDir.map(_.name)
-  def toPath:            java.nio.file.Path = (techniqueDir / id.value / version.value).path
+final case class EditorTechniquePath(categoryDir: File, id: BundleName, version: Version) {
+  def category:          String             = categoryDir.name
+  def toPath:            java.nio.file.Path = (categoryDir / id.value / version.value).path
   def toFile:            File               = File(toPath)
   def path:              String             = toPath.toString
   override def toString: String             = path
 }
-object EditorTechniquePath                                                                 {
+object EditorTechniquePath                                                                {
   def apply(yamlFile: File): Option[EditorTechniquePath] = {
     for {
-      version      <- yamlFile.parentOption
-      id           <- version.parentOption
-      techniqueDir <- id.parentOption
+      version     <- yamlFile.parentOption
+      id          <- version.parentOption
+      categoryDir <- id.parentOption
     } yield {
       EditorTechniquePath(
-        techniqueDir,
+        categoryDir,
         BundleName(id.name),
         Version(version.name)
       )

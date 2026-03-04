@@ -2,7 +2,6 @@ module Editor.ViewTechniqueList exposing (..)
 
 import Compliance.Utils exposing (buildTooltipContent)
 import Dict
-import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -35,7 +34,7 @@ foldUnfoldCategory treeFilters catId =
   in
     {treeFilters | folded = foldedList}
 
-treeCategory : Model -> List Technique -> TechniqueCategory -> Maybe (Html Msg)
+treeCategory : Model -> List TreeTechnique -> TechniqueCategory -> Maybe (Html Msg)
 treeCategory model techniques category =
       let
         techniquesElem = techniques
@@ -60,7 +59,7 @@ treeCategory model techniques category =
             ]
         ) childsList
 
-techniqueList : Model -> List Technique -> Html Msg
+techniqueList : Model -> List TreeTechnique -> Html Msg
 techniqueList model techniques =
   let
     strFilter = String.toLower (String.trim model.techniqueFilter.filter)
@@ -169,7 +168,7 @@ draftsItem model draft =
 
     li [class "jstree-node jstree-leaf"]
           [ i[class "jstree-icon jstree-ocl"][]
-          , a[class ("jstree-anchor " ++ activeClass), onClick (SelectTechnique (Right draft))]
+          , a[class ("jstree-anchor " ++ activeClass), onClick (SelectDraft draft.id)]
             [ i [class "jstree-icon jstree-themeicon fa fa-pen jstree-themeicon-custom"][]
             , span [class "treeGroupName"]
               [ text (if String.isEmpty draft.technique.name then "<unamed draft>" else draft.technique.name)  ]
@@ -185,7 +184,7 @@ draftsItem model draft =
             ]
           ]
 
-techniqueItem: Model -> Technique -> Html Msg
+techniqueItem: Model -> TreeTechnique -> Html Msg
 techniqueItem model technique =
   let
     directiveUsed = List.filter (\d -> d.techniqueName ==  technique.id.value) model.directives
@@ -216,7 +215,7 @@ techniqueItem model technique =
 
     li [class "jstree-node jstree-leaf"]
           [ i[class "jstree-icon jstree-ocl"][]
-          , a[class ("jstree-anchor " ++ activeClass), href (model.contextPath ++ "/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClickPreventDefault (SelectTechnique (Left technique))]
+          , a[class ("jstree-anchor " ++ activeClass), href (model.contextPath ++ "/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClickPreventDefault (SelectTechnique technique.id)]
             [ span
               [ class "cursor-help"
               , attribute "data-bs-toggle" "tooltip"
