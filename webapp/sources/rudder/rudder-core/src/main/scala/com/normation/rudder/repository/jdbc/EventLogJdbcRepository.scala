@@ -309,9 +309,20 @@ object EventLogJdbcRepository {
     val excludePrincipals =
       filter.flatMap(f => f.principal).flatMap(p => p.exclude.map(nel => fragments.notIn(fr"principal", nel)))
 
+    val includeTypes: Option[Fragment] = {
+      filter
+        .flatMap(f => f.typeFilter)
+        .flatMap(p => p.include.map(nel => fragments.in(fr"eventtype", nel.map(_.eventType.serialize))))
+    }
+    val excludeTypes: Option[Fragment] = {
+      filter
+        .flatMap(f => f.typeFilter)
+        .flatMap(p => p.exclude.map(nel => fragments.notIn(fr"eventtype", nel.map(_.eventType.serialize))))
+    }
+
     val search = filter.flatMap(f => f.search).flatMap(toFragment)
 
-    val where = Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, search)
+    val where = Fragments.whereAndOpt(interval, includePrincipals, excludePrincipals, includeTypes, excludeTypes, search)
 
     val fromWithSearchFragment = {
       fr"""

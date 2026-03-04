@@ -152,7 +152,8 @@ final case class RestEventLogFilter(
       startDate.map(_.toInstant(ZoneOffset.UTC)),
       endDate.map(_.toInstant(ZoneOffset.UTC)),
       principal,
-      order.toList.headOption
+      order.toList.headOption,
+      None
     )
   }
 }

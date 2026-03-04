@@ -21,9 +21,10 @@
 package com.normation.eventlog
 
 import cats.data.NonEmptyList
-import com.normation.eventlog.EventLogRequest.Column.findValues
-import com.normation.eventlog.EventLogRequest.Direction.findValues
-import com.normation.eventlog.EventLogRequest.Direction.withNameInsensitiveEither
+import com.normation.eventlog.EventLogRequest.IncludeExclude
+import com.normation.eventlog.EventLogRequest.PrincipalFilter
+import com.normation.eventlog.EventLogRequest.TypeFilter
+import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
 import enumeratum.Enum
@@ -213,20 +214,45 @@ case object UnknownEventLogType extends NoRollbackEventLogType {
 }
 
 case class EventLogRequest(
-    start:     Int,
-    length:    Int,
-    search:    Option[EventLogRequest.Search],
-    startDate: Option[Instant],
-    endDate:   Option[Instant],
-    principal: Option[EventLogRequest.PrincipalFilter],
-    order:     Option[EventLogRequest.Order]
-)
+    start:      Int,
+    length:     Int,
+    search:     Option[EventLogRequest.Search],
+    startDate:  Option[Instant],
+    endDate:    Option[Instant],
+    principal:  Option[EventLogRequest.PrincipalFilter],
+    order:      Option[EventLogRequest.Order],
+    typeFilter: Option[EventLogRequest.TypeFilter]
+) {
+  def excludeRudderActor: EventLogRequest = {
+    val nel               = NonEmptyList.of(RudderEventActor, RudderSystemEventActor)
+    val includePrincipals = principal.flatMap(_.include)
+    this.copy(principal = Some(PrincipalFilter(includePrincipals, Some(exclude(nel, principal)))))
+  }
+
+  def excludeAutomaticallyGeneratedType: EventLogRequest = {
+    val nel          = NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment)
+    val includeTypes = typeFilter.flatMap(_.include)
+    this.copy(typeFilter = Some(TypeFilter(includeTypes, Some(exclude(nel, typeFilter)))))
+  }
+
+  private def exclude[P](nel: NonEmptyList[P], filter: Option[IncludeExclude[P]]) = {
+    filter.flatMap(_.exclude).map(_.concatNel(nel)).getOrElse(nel)
+  }
+}
 
 object EventLogRequest {
 
   final case class Search(value: String)
   final case class Order(column: Column, dir: Direction)
+
+  sealed trait IncludeExclude[T] {
+    def include: Option[NonEmptyList[T]]
+    def exclude: Option[NonEmptyList[T]]
+  }
   final case class PrincipalFilter(include: Option[NonEmptyList[EventActor]], exclude: Option[NonEmptyList[EventActor]])
+      extends IncludeExclude[EventActor]
+  final case class TypeFilter(include: Option[NonEmptyList[EventLogFilter]], exclude: Option[NonEmptyList[EventLogFilter]])
+      extends IncludeExclude[EventLogFilter]
 
   sealed abstract class Column(val id: Int) extends Lowercase
   object Column                             extends Enum[Column] {

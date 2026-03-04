@@ -100,6 +100,39 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
   )
   check(
     EventLogJdbcRepository.getEventLogCountSQL(
+      Some(defaultFilter.copy(typeFilter = Some(EventLogRequest.TypeFilter(None, None))))
+    )
+  )
+  check(
+    EventLogJdbcRepository.getEventLogCountSQL(
+      Some(
+        defaultFilter.copy(typeFilter = {
+          Some(
+            EventLogRequest.TypeFilter(
+              Some(NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment)),
+              None
+            )
+          )
+        })
+      )
+    )
+  )
+  check(
+    EventLogJdbcRepository.getEventLogCountSQL(
+      Some(
+        defaultFilter.copy(typeFilter = {
+          Some(
+            EventLogRequest.TypeFilter(
+              None,
+              Some(NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment))
+            )
+          )
+        })
+      )
+    )
+  )
+  check(
+    EventLogJdbcRepository.getEventLogCountSQL(
       Some(
         defaultFilter.copy(search = Some(EventLogRequest.Search(value = "inventory")))
       )
@@ -126,6 +159,6 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
     )
   )
 
-  def defaultFilter = EventLogRequest(0, 10, None, None, None, None, None)
+  def defaultFilter = EventLogRequest(0, 10, None, None, None, None, None, None)
 
 }
