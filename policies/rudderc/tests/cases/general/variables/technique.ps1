@@ -2,7 +2,8 @@
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
-        [string]$reportId,
+        [Alias('reportId')]
+        [string]$reportIdentifier,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 
@@ -10,20 +11,9 @@
         [string]$content,
         [Rudder.PolicyMode]$policyMode
     )
-    $techniqueParams = @{
-
-        "content" = $content
-    }
-    BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
-    $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $splitReportId = $reportId -Split '@@'
-    $directiveId = if ($splitReportId.Count -ge 2) {
-        $splitReportId[1]
-    } else {
-        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
-        ''
-    }
-
+    BeginTechniqueCall -Name $techniqueName -Parameters $PSBoundParameters
+    $reportIdBase = $reportIdentifier.Substring(0, $reportIdentifier.Length - 1)
+    Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
         ComponentKey = 'None'
@@ -32,8 +22,8 @@
     }
 
 
-    $reportId=$reportIdBase + "d982a7e6-494a-40a5-aea1-7d9a185eed61"
-    $resultId=$directiveId + '-' + "d982a7e6-494a-40a5-aea1-7d9a185eed61"
+    $identifier=$reportIdBase + 'd982a7e6-494a-40a5-aea1-7d9a185eed61'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-d982a7e6-494a-40a5-aea1-7d9a185eed61'
     try {
         $componentKey = @'
 /some/path
@@ -45,10 +35,18 @@
 File content
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'd982a7e6-494a-40a5-aea1-7d9a185eed61'
+          report_id = 'd982a7e6_494a_40a5_aea1_7d9a185eed61'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $methodParams = @{
@@ -85,8 +83,9 @@ vars.node.properties.name.key
 /some/path
 '@
             
+            PolicyMode = $policyMode
         }
-        $call = File-Content @methodParams -PolicyMode $policyMode
+        $call = File-Content @methodParams
         Compute-Method-Call @reportParams -MethodCall $call
         
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -97,8 +96,9 @@ vars.node.properties.name.key
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -106,7 +106,7 @@ vars.node.properties.name.key
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

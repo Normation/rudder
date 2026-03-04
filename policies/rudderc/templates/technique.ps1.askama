@@ -3,7 +3,8 @@ function {{ id|technique_name }} {
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
-        [string]$reportId,
+        [Alias('reportId')]
+        [string]$reportIdentifier,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 {% for p in parameters %}
@@ -12,23 +13,9 @@ function {{ id|technique_name }} {
 {%- endfor %}
         [Rudder.PolicyMode]$policyMode
     )
-    $techniqueParams = @{
-{% for p in parameters %}
-        "{{ p.name }}" = ${{- p.name -}}
-{%- endfor %}
-    }
-    BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
-    $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $splitReportId = $reportId -Split '@@'
-    $directiveId = if ($splitReportId.Count -ge 2) {
-        $splitReportId[1]
-    } else {
-        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
-        ''
-    }
-{% if has_resources %}
+    BeginTechniqueCall -Name $techniqueName -Parameters $PSBoundParameters
+    $reportIdBase = $reportIdentifier.Substring(0, $reportIdentifier.Length - 1)
     Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
-{% endif %}
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
         ComponentKey = 'None'
@@ -37,8 +24,8 @@ function {{ id|technique_name }} {
     }
 
 {% for m in methods %}
-    $reportId=$reportIdBase + "{{ m.id }}"
-    $resultId=$directiveId + '-' + "{{ m.id }}"
+    $identifier=$reportIdBase + '{{ m.id }}'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-{{ m.id }}'
     try {
         $componentKey = {{ m.component_key|value_fmt(id, parameters) }}
         $reportParams = @{
@@ -46,10 +33,18 @@ function {{ id|technique_name }} {
             ComponentKey = $componentKey
             ComponentName = {{ m.component_name|value_fmt(id, parameters) }}
             PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
-            ReportId = $reportId
+            ReportIdentifier = $identifier
             DisableReporting = ${{ m.disable_reporting }}
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = '{{ m.id }}'
+          report_id = '{{ m.id | raw_canonify }}'
+          result_id = $resultId
+          identifier = $identifier
         }
       {%- if m.is_supported %}
         {% match m.condition %}
@@ -60,8 +55,9 @@ function {{ id|technique_name }} {
                 {% for arg in m.args %}
                     {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
                 {% endfor %}
+                PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
             }
-            $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
+            $call = {{ m.name|dsc_case }} @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -71,8 +67,9 @@ function {{ id|technique_name }} {
             {% for arg in m.args %}
                 {{- arg.0 }} = {{ arg|parameter_fmt(id, parameters) }}
             {% endfor %}
+            PolicyMode = {{ m.policy_mode_override|policy_mode_fmt }}
         }
-        $call = {{ m.name|dsc_case }} @methodParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }}
+        $call = {{ m.name|dsc_case }} @methodParams
         Compute-Method-Call @reportParams -MethodCall $call
         {% endmatch %}
       {%- else %}
@@ -86,7 +83,7 @@ function {{ id|technique_name }} {
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportIdentifier $identifier -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -96,7 +93,7 @@ function {{ id|technique_name }} {
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportIdentifier $identifier -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall -ResultId $resultId
     }
 {% endfor %}
     EndTechniqueCall -Name $techniqueName

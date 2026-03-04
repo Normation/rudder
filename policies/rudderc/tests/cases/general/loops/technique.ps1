@@ -2,25 +2,16 @@
     [CmdletBinding()]
     param (
         [parameter(Mandatory = $true)]
-        [string]$reportId,
+        [Alias('reportId')]
+        [string]$reportIdentifier,
         [parameter(Mandatory = $true)]
         [string]$techniqueName,
 
         [Rudder.PolicyMode]$policyMode
     )
-    $techniqueParams = @{
-
-    }
-    BeginTechniqueCall -Name $techniqueName -Parameters $techniqueParams
-    $reportIdBase = $reportId.Substring(0, $reportId.Length - 1)
-    $splitReportId = $reportId -Split '@@'
-    $directiveId = if ($splitReportId.Count -ge 2) {
-        $splitReportId[1]
-    } else {
-        [Rudder.Logger]::Log.Debug("The reportId '${reportId}' does not seem to contain any directive id")
-        ''
-    }
-
+    BeginTechniqueCall -Name $techniqueName -Parameters $PSBoundParameters
+    $reportIdBase = $reportIdentifier.Substring(0, $reportIdentifier.Length - 1)
+    Add-RudderVar -Name 'resources_dir' -Value ($PSScriptRoot + '\resources')
     $fallBackReportParams = @{
         ClassPrefix = 'skipped_method'
         ComponentKey = 'None'
@@ -29,8 +20,8 @@
     }
 
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0"
-    $resultId=$directiveId + '-' + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0"
+    $identifier=$reportIdBase + 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-0'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0'
     try {
         $componentKey = @'
 vim
@@ -42,10 +33,18 @@ vim
 Install a package
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-0'
+          report_id = 'd86ce2e5_d5b6_45cc_87e8_c11cca71d907_0'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $class = "false"
@@ -60,8 +59,9 @@ vim
 latest
 '@
                 
+                PolicyMode = $policyMode
             }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
+            $call = Package-Present @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -74,8 +74,9 @@ latest
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -83,11 +84,11 @@ latest
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1"
-    $resultId=$directiveId + '-' + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1"
+    $identifier=$reportIdBase + 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-1'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1'
     try {
         $componentKey = @'
 htop
@@ -99,10 +100,18 @@ htop
 Install a package
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'd86ce2e5-d5b6-45cc-87e8-c11cca71d907-1'
+          report_id = 'd86ce2e5_d5b6_45cc_87e8_c11cca71d907_1'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $methodParams = @{
@@ -115,8 +124,9 @@ htop
 2.3.4
 '@
             
+            PolicyMode = $policyMode
         }
-        $call = Package-Present @methodParams -PolicyMode $policyMode
+        $call = Package-Present @methodParams
         Compute-Method-Call @reportParams -MethodCall $call
         
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -127,8 +137,9 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -136,11 +147,11 @@ htop
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0"
-    $resultId=$directiveId + '-' + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0"
+    $identifier=$reportIdBase + 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0'
     try {
         $componentKey = @'
 bob
@@ -152,10 +163,18 @@ bob
 Create home
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0'
+          report_id = 'b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0'
+          result_id = $resultId
+          identifier = $identifier
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -166,8 +185,9 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -175,11 +195,11 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1"
-    $resultId=$directiveId + '-' + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1"
+    $identifier=$reportIdBase + 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1'
     try {
         $componentKey = @'
 bob
@@ -191,10 +211,18 @@ bob
 Create home
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1'
+          report_id = 'b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1'
+          result_id = $resultId
+          identifier = $identifier
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -205,8 +233,9 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -214,11 +243,11 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-0"
-    $resultId=$directiveId + '-' + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-0"
+    $identifier=$reportIdBase + '20676b22-2de2-4029-a4e2-e0be2453e78e-0-0'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-20676b22-2de2-4029-a4e2-e0be2453e78e-0-0'
     try {
         $componentKey = @'
 /home/bob/.vimrc
@@ -230,10 +259,18 @@ Create home
 Deploy file ~/.vimrc
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = '20676b22-2de2-4029-a4e2-e0be2453e78e-0-0'
+          report_id = '20676b22_2de2_4029_a4e2_e0be2453e78e_0_0'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $class = "bob"
@@ -249,8 +286,9 @@ sha256
 .vimrc
 '@
                 
+                PolicyMode = $policyMode
             }
-            $call = File-From-Shared-Folder @methodParams -PolicyMode $policyMode
+            $call = File-From-Shared-Folder @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -263,8 +301,9 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -272,11 +311,11 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-1"
-    $resultId=$directiveId + '-' + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-1"
+    $identifier=$reportIdBase + '20676b22-2de2-4029-a4e2-e0be2453e78e-0-1'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-20676b22-2de2-4029-a4e2-e0be2453e78e-0-1'
     try {
         $componentKey = @'
 /home/bob/.bashrc
@@ -288,10 +327,18 @@ sha256
 Deploy file ~/.bashrc
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = '20676b22-2de2-4029-a4e2-e0be2453e78e-0-1'
+          report_id = '20676b22_2de2_4029_a4e2_e0be2453e78e_0_1'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $class = "bob"
@@ -307,8 +354,9 @@ sha256
 .bashrc
 '@
                 
+                PolicyMode = $policyMode
             }
-            $call = File-From-Shared-Folder @methodParams -PolicyMode $policyMode
+            $call = File-From-Shared-Folder @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -321,8 +369,9 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -330,11 +379,11 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0"
-    $resultId=$directiveId + '-' + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0"
+    $identifier=$reportIdBase + 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0'
     try {
         $componentKey = @'
 alice
@@ -346,10 +395,18 @@ alice
 Create home
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0'
+          report_id = 'b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0'
+          result_id = $resultId
+          identifier = $identifier
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -360,8 +417,9 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -369,11 +427,11 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1"
-    $resultId=$directiveId + '-' + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1"
+    $identifier=$reportIdBase + 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1'
     try {
         $componentKey = @'
 alice
@@ -385,10 +443,18 @@ alice
 Create home
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = 'b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1'
+          report_id = 'b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1'
+          result_id = $resultId
+          identifier = $identifier
         }
         Rudder-Report-NA @reportParams
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
@@ -399,8 +465,9 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -408,11 +475,11 @@ Create home
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-0"
-    $resultId=$directiveId + '-' + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-0"
+    $identifier=$reportIdBase + '20676b22-2de2-4029-a4e2-e0be2453e78e-1-0'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-20676b22-2de2-4029-a4e2-e0be2453e78e-1-0'
     try {
         $componentKey = @'
 /home/alice/.vimrc
@@ -424,10 +491,18 @@ Create home
 Deploy file ~/.vimrc
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = '20676b22-2de2-4029-a4e2-e0be2453e78e-1-0'
+          report_id = '20676b22_2de2_4029_a4e2_e0be2453e78e_1_0'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $class = "alice"
@@ -443,8 +518,9 @@ sha256
 .vimrc
 '@
                 
+                PolicyMode = $policyMode
             }
-            $call = File-From-Shared-Folder @methodParams -PolicyMode $policyMode
+            $call = File-From-Shared-Folder @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -457,8 +533,9 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -466,11 +543,11 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-1"
-    $resultId=$directiveId + '-' + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-1"
+    $identifier=$reportIdBase + '20676b22-2de2-4029-a4e2-e0be2453e78e-1-1'
+    $resultId=([Rudder.Datastate]::GetVar(@('report_data', 'directive_id'))) + '-20676b22-2de2-4029-a4e2-e0be2453e78e-1-1'
     try {
         $componentKey = @'
 /home/alice/.bashrc
@@ -482,10 +559,18 @@ sha256
 Deploy file ~/.bashrc
 '@
             PolicyMode = $policyMode
-            ReportId = $reportId
+            ReportId = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
+        }
+        Add-RudderVar -Name 'report_data' -Value @{
+          component_name = $reportParams['ComponentName']
+          component_key = $reportParams['ComponentKey']
+          report_id_r = '20676b22-2de2-4029-a4e2-e0be2453e78e-1-1'
+          report_id = '20676b22_2de2_4029_a4e2_e0be2453e78e_1_1'
+          result_id = $resultId
+          identifier = $identifier
         }
         
         $class = "alice"
@@ -501,8 +586,9 @@ sha256
 .bashrc
 '@
                 
+                PolicyMode = $policyMode
             }
-            $call = File-From-Shared-Folder @methodParams -PolicyMode $policyMode
+            $call = File-From-Shared-Folder @methodParams
             Compute-Method-Call @reportParams -MethodCall $call
         } else {
             Rudder-Report-NA @reportParams
@@ -515,8 +601,9 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
+        [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
@@ -524,7 +611,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName
