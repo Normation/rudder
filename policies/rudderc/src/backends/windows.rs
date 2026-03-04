@@ -64,7 +64,7 @@ impl Backend for Windows {
     fn generate(
         &self,
         technique: Technique,
-        resources: &Path,
+        _resources: &Path,
         _standalone: bool,
     ) -> Result<String> {
         // Powershell requires a BOM added at the beginning of all files when using UTF8 encoding
@@ -72,7 +72,7 @@ impl Backend for Windows {
         // Bom for UTF-8 content, three bytes: EF BB BF https://en.wikipedia.org/wiki/Byte_order_mark
         const UTF8_BOM: &[u8; 3] = &[0xef, 0xbb, 0xbf];
         let mut with_bom = String::from_utf8(UTF8_BOM.to_vec()).unwrap();
-        with_bom.push_str(&Self::technique(technique, resources)?);
+        with_bom.push_str(&Self::technique(technique)?);
         Ok(with_bom)
     }
 }
@@ -81,7 +81,6 @@ impl Backend for Windows {
 #[template(path = "technique.ps1.askama", escape = "none")]
 struct TechniqueTemplate<'a> {
     id: &'a str,
-    has_resources: bool,
     parameters: Vec<Parameter>,
     methods: Vec<WindowsMethod>,
 }
@@ -91,7 +90,7 @@ pub mod filters {
     use std::fmt::Display;
 
     use anyhow::Error;
-    use rudder_commons::{Escaping, PolicyMode, Target};
+    use rudder_commons::{Escaping, PolicyMode, Target, canonify};
 
     use crate::ir::{technique, value::Expression};
 
@@ -161,6 +160,10 @@ pub mod filters {
 
     pub fn technique_name<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(super::Windows::technique_name(&s.to_string()))
+    }
+
+    pub fn raw_canonify<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
+        Ok(canonify(s.to_string().as_str()))
     }
 
     pub fn canonify_condition_with_context<T: Display>(
@@ -372,7 +375,7 @@ impl Windows {
             .join("-")
     }
 
-    fn technique(src: Technique, resources: &Path) -> Result<String> {
+    fn technique(src: Technique) -> Result<String> {
         // Extract methods
         fn resolve_module(
             r: ItemKind,
@@ -409,7 +412,6 @@ impl Windows {
 
         let technique = TechniqueTemplate {
             id: &src.id.to_string(),
-            has_resources: !Windows::list_resources(resources)?.is_empty(),
             parameters: src.params,
             methods,
         };
