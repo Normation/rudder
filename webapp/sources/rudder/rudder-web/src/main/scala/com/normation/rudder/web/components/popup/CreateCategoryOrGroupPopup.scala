@@ -43,7 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.repository.*
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBRadioField
@@ -51,8 +51,8 @@ import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -75,7 +75,7 @@ class CreateCategoryOrGroupPopup(
     onSuccessGroup:    (Either[NonGroupRuleTarget, NodeGroup], NodeGroupCategoryId) => JsCmd,
     onSuccessCallback: (String) => JsCmd = { _ => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // Load the template from the popup
   def popupTemplate: NodeSeq = ChooseTemplate(
@@ -91,7 +91,9 @@ class CreateCategoryOrGroupPopup(
 
   var createContainer = false // issue #1190 always create a group by default
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" => { _ => popupContent() }
+  }
 
   /**
    * If we create a category, the info about the group is hidden (default), otherwise we show it
@@ -114,7 +116,7 @@ class CreateCategoryOrGroupPopup(
      """) // JsRaw ok, const
   }
 
-  def popupContent(): NodeSeq = {
+  def popupContent()(using qc: QueryContext): NodeSeq = {
     S.appendJs(initJs)
     val form = {
       ("item-itemtype" #> {
@@ -238,11 +240,11 @@ class CreateCategoryOrGroupPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml("createGroupContainer", popupContent())
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -260,11 +262,11 @@ class CreateCategoryOrGroupPopup(
               Nil,
               Nil,
               isSystem = false,
-              security = CurrentUser.nodePerms.toSecurityTag
+              security = qc.accessGrant.toSecurityTag
             ),
             NodeGroupCategoryId(piContainer.get)
           )(using
-            CurrentUser.changeContext(
+            qc.newCC(
               piReasons.map(_.get)
             )
           )
@@ -293,11 +295,11 @@ class CreateCategoryOrGroupPopup(
           isDynamic,
           srvList,
           _isEnabled = true,
-          security = CurrentUser.nodePerms.toSecurityTag
+          security = qc.accessGrant.toSecurityTag
         )
         woNodeGroupRepository
           .create(nodeGroup, NodeGroupCategoryId(piContainer.get))(using
-            CurrentUser.changeContext(
+            qc.newCC(
               piReasons.map(_.get)
             )
           )
@@ -347,7 +349,7 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     updateFormClientSide()
   }
 

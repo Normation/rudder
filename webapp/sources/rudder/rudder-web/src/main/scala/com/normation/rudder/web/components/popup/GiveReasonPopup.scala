@@ -44,12 +44,12 @@ import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.PolicyTypes
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -64,7 +64,7 @@ class GiveReasonPopup(
     refreshActiveTreeLibrary: () => JsCmd = { () => Noop },
     sourceActiveTechniqueId:  ActiveTechniqueId,
     destCatId:                ActiveTechniqueCategoryId
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   // Load the template from the popup
   def popupTemplate: NodeSeq = ChooseTemplate(
@@ -76,9 +76,9 @@ class GiveReasonPopup(
   private val userPropertyService         = RudderConfig.userPropertyService
   private val techniqueRepository         = RudderConfig.techniqueRepository
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
 
-  def popupContent(html: NodeSeq): NodeSeq = {
+  def popupContent(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     SHtml.ajaxForm(
       (
         "item-reason" #> crReasons.map { f =>
@@ -139,11 +139,11 @@ class GiveReasonPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(using qc: QueryContext): JsCmd = {
     SetHtml("createActiveTechniquesContainer", popupContent(NodeSeq.Empty))
   }
 
-  private def onSubmit(): JsCmd = {
+  private def onSubmit()(using qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure & onFailureCallback(sourceActiveTechniqueId.value, destCatId.value)
     } else {
@@ -158,7 +158,7 @@ class GiveReasonPopup(
                         ptName,
                         techniqueRepository.getTechniqueVersions(ptName).toSeq,
                         policyTypes = PolicyTypes.rudderBase
-                      )(using CurrentUser.changeContext(crReasons.map(_.get)))
+                      )(using qc.newCC(crReasons.map(_.get)))
                       .toBox
                     ?~! errorMess.format(sourceActiveTechniqueId.value, destCatId.value)
                   )
@@ -182,7 +182,7 @@ class GiveReasonPopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(using qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide()
   }

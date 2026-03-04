@@ -41,7 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.plugins.SecureExtendableSnippet
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeState
@@ -57,7 +57,6 @@ import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue.NoScore
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
@@ -66,7 +65,6 @@ import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*
@@ -93,7 +91,7 @@ object ShowNodeDetailsFromNode {
 class ShowNodeDetailsFromNode(
     val nodeId: NodeId,
     groupLib:   FullNodeGroupCategory
-) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
+) extends SecureExtendableSnippet[ShowNodeDetailsFromNode] {
   import ShowNodeDetailsFromNode.*
 
   private val roAgentRunsRepository = RudderConfig.roAgentRunsRepository
@@ -107,7 +105,7 @@ class ShowNodeDetailsFromNode(
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
-  def agentScheduleEditForm(nodeFact: CoreNodeFact) = new AgentScheduleEditForm(
+  def agentScheduleEditForm(nodeFact: CoreNodeFact)(using qc: QueryContext) = new AgentScheduleEditForm(
     () => getSchedule(nodeFact),
     saveSchedule(nodeFact),
     () => (),
@@ -128,7 +126,7 @@ class ShowNodeDetailsFromNode(
              .setNodeState(nodeId, nodeState)(using qc.newCC().copy(modId = modId))
              .toBox
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, qc.actor)
       nodeState
     }
   }
@@ -156,21 +154,19 @@ class ShowNodeDetailsFromNode(
     Full(nodeFact.rudderSettings.reportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule().getOrElse(emptyInterval)))
   }
 
-  def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval): Box[Unit] = {
+  def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval)(using qc: QueryContext): Box[Unit] = {
     val newNodeFact = nodeFact.modify(_.rudderSettings.reportingConfiguration.agentRunInterval).setTo(Some(schedule))
     val modId       = ModificationId(uuidGen.newUuid)
-    val cc          = CurrentUser.changeContext().copy(modId = modId)
+    val cc          = qc.newCC().copy(modId = modId)
 
     (for {
       _ <- nodeFactRepo.save(newNodeFact)(using cc)
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, qc.actor)
     }).toBox
   }
 
-  def mainDispatch: Map[String, NodeSeq => NodeSeq] = {
-    implicit val qc: QueryContext = CurrentUser.queryContext
-
+  def mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq] = {
     Map(
       "popupDetails"    -> { (_: NodeSeq) => privateDisplay(true, Summary) },
       "popupCompliance" -> { (_: NodeSeq) => privateDisplay(true, Compliance) },
@@ -181,7 +177,7 @@ class ShowNodeDetailsFromNode(
     )
   }
 
-  def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode): NodeSeq = {
+  def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode)(using qc: QueryContext): NodeSeq = {
     val dispatchName = (popupDisplay, displayDetailsMode) match {
       case (true, System)      => "popupSystem"
       case (true, Compliance)  => "popupCompliance"
@@ -190,7 +186,7 @@ class ShowNodeDetailsFromNode(
       case (false, Compliance) => "mainCompliance"
       case (false, Summary)    => "mainDetails"
     }
-    dispatch(dispatchName)(NodeSeq.Empty)
+    mainSecureDispatch(dispatchName)(NodeSeq.Empty)
   }
 
   private def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit

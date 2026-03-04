@@ -59,7 +59,6 @@ import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
@@ -67,7 +66,7 @@ import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -206,7 +205,7 @@ class ModificationValidationPopup(
     onCreateSuccessCallBack: (Either[Directive, ChangeRequestId]) => JsCmd = { x => Noop },
     onCreateFailureCallBack: () => JsCmd = { () => Noop },
     parentFormTracker:       FormTracker
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   import ModificationValidationPopup.*
 
@@ -219,12 +218,11 @@ class ModificationValidationPopup(
   private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   // function to read state of things
-  private val getGroupLib = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
+  private val getGroupLib = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "popupContent" =>
       _ => {
-        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
         popupContent()
       }
   }
@@ -247,9 +245,9 @@ class ModificationValidationPopup(
   private val explanation: NodeSeq = explanationMessages(itemType, action, disabled)
   // When there is no rules, we need to remove the warning message
   private val explanationNoWarning = ("#dialogDisableWarning" #> NodeSeq.Empty).apply(explanation)
-  private val groupLib             = getGroupLib()
 
-  private def rules: IOResult[Set[Rule]] = {
+  private def rules(using qc: QueryContext): IOResult[Set[Rule]] = {
+    val groupLib = getGroupLib()
     action match {
       case DGModAction.CreateSolo =>
         Set[Rule]().succeed
@@ -519,7 +517,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private def saveChangeRequest(): JsCmd = scala.util.boundary {
+  private def saveChangeRequest()(using qc: QueryContext): JsCmd = scala.util.boundary {
     // we only have quick change request now
     val purecr = item match {
       case Left(
@@ -539,7 +537,7 @@ class ModificationValidationPopup(
           ChangeRequestService.createChangeRequestFromRules(
             changeRequestName.get,
             crReasons.map(_.get).getOrElse(""),
-            CurrentUser.actor,
+            qc.actor,
             crReasons.map(_.get),
             baseRules,
             updatedRules
@@ -558,7 +556,7 @@ class ModificationValidationPopup(
               directive.id,
               optOriginal,
               diff,
-              CurrentUser.actor,
+              qc.actor,
               crReasons.map(_.get),
               baseRules,
               updatedRules
@@ -574,7 +572,7 @@ class ModificationValidationPopup(
             .move(
               nodeGroup.id,
               parentCategoryId
-            )(using CurrentUser.changeContext(crReasons.map(_.get)))
+            )(using qc.newCC(crReasons.map(_.get)))
             .chainError("Error when moving the group (no change request was created)")
             .either
             .runNow match {
@@ -595,7 +593,7 @@ class ModificationValidationPopup(
             nodeGroup,
             optOriginal,
             _,
-            CurrentUser.actor,
+            qc.actor,
             crReasons.map(_.get)
           )
         )
@@ -604,7 +602,7 @@ class ModificationValidationPopup(
     (for {
       cr <- purecr.toIO
       id <- workflowService
-              .startWorkflow(cr)(using CurrentUser.changeContext(crReasons.map(_.get)))
+              .startWorkflow(cr)(using qc.newCC(crReasons.map(_.get)))
     } yield {
       id
     }).chainError("Error when trying to save your modification").either.runNow match {
@@ -655,9 +653,9 @@ class ModificationValidationPopup(
       directive:         Directive,
       activeTechniqueId: ActiveTechniqueId,
       why:               Option[String]
-  ): JsCmd = {
+  )(using qc: QueryContext): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.actor, why).either.runNow match {
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, qc.actor, why).either.runNow match {
       case Right(optChanges) =>
         optChanges match {
           case Some(diff) if diff.needDeployment =>
