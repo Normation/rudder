@@ -14,7 +14,7 @@ use crate::{
     output::ResultOutput,
     package_manager::{PackageList, PackageSpec, UpdateManager, rpm::RpmPackageManager},
 };
-#[cfg(not(debug_assertions))]
+#[cfg(all(not(debug_assertions), unix))]
 use rudder_module_type::ensure_root_user;
 
 /// We need to be compatible with:
@@ -27,7 +27,7 @@ pub struct ZypperPackageManager {
 
 impl ZypperPackageManager {
     pub fn new() -> Result<Self> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(all(not(debug_assertions), unix))]
         ensure_root_user()?;
         let rpm = RpmPackageManager::new();
         Ok(Self { rpm })
