@@ -54,12 +54,12 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml.*
+import zio.json.*
 
 object NodeGrid {
   val logger: slf4j.Logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -69,7 +69,7 @@ object NodeGrid {
  * a case class used to pass the JSON that contains id of
  * the node we want args for
  */
-final case class JsonArg(jsid: String, id: String, status: String)
+final case class JsonArg(jsid: String, id: String, status: String) derives JsonCodec
 
 /**
  * Present a grid of server in a jQuery Datatable
@@ -251,13 +251,8 @@ final class NodeGrid(
    * status: the node status (pending, accecpted)
    */
   private def details(jsonArg: String)(implicit qc: QueryContext): JsCmd = {
-    import net.liftweb.common.Box.*
-    implicit val formats = DefaultFormats
-
     (for {
-      json            <- tryo(parse(jsonArg)).toIO.chainError("Error when trying to parse argument for node")
-      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-      arg             <- tryo(json.extract[JsonArg]: @annotation.nowarn("cat=deprecation")).toIO
+      arg             <- jsonArg.fromJson[JsonArg].toIO.chainError("Error when trying to parse argument for node")
       status          <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
       nodeId           = NodeId(arg.id)
       agentRunsByNode <- agentRunsRepo.getNodesLastRun(nodeIds = Set(nodeId))
