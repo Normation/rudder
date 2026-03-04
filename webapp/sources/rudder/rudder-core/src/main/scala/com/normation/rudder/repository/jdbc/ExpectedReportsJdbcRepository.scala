@@ -55,12 +55,11 @@ import doobie.*
 import doobie.free.connection
 import doobie.implicits.*
 import net.liftweb.common.*
-import net.liftweb.json.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import scala.annotation.nowarn
 import zio.{System as _, *}
 import zio.interop.catz.*
+import zio.json.*
 import zio.syntax.*
 
 class PostgresqlInClause(
@@ -556,23 +555,18 @@ final case class ReportMapping(
 )
 
 object ComponentsValuesSerialiser {
-
-  def serializeComponents(ids: Seq[String]): String       = {
-    implicit val formats: Formats = DefaultFormats
-    Serialization.write(ids)
+  def serializeComponents(ids: Seq[String]): String = {
+    ids.toJson
   }
+
   /*
    * from a JSON array: [ "id1", "id2", ...], get the list of
    * components values Ids.
    * Never fails, but returned an empty list.
    */
-  def unserializeComponents(ids: String):    List[String] = {
+  def unserializeComponents(ids: String): List[String] = {
     if (null == ids || ids.trim == "") List()
-    else {
-      implicit val formats = DefaultFormats
-      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-      parse(ids).extract[List[String]]: @nowarn("cat=deprecation")
-    }
+    else ids.fromJson[List[String]].getOrElse(Nil)
   }
 }
 

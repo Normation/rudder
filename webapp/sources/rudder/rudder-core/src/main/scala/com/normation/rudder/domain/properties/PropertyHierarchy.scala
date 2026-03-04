@@ -410,8 +410,6 @@ object JsonPropertyHierarchySerialisation {
   }
 
   implicit class JsonNodePropertyHierarchy(val prop: PropertyHierarchy) extends AnyVal {
-    implicit def formats: DefaultFormats.type = DefaultFormats
-
     private def buildHierarchy(displayParents: ParentProperty[?] => JValue): JObject = {
 
       prop.prop.toJsonObj ~ ("hierarchy" -> displayParents(prop.hierarchy)) ~ ("origval" -> GenericProperty.toJsonValue(
@@ -446,8 +444,6 @@ object JsonPropertyHierarchySerialisation {
   }
 
   implicit class JsonNodePropertiesHierarchy(val props: List[PropertyHierarchy]) extends AnyVal {
-    implicit def formats: DefaultFormats.type = DefaultFormats
-
     def toApiJson: JArray = {
       JArray(props.sortBy(_.prop.name).map(p => p.toApiJson))
     }

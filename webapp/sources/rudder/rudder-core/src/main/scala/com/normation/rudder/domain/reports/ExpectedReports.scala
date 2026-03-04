@@ -62,7 +62,6 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.joda.time.Duration
-import scala.annotation.nowarn
 import zio.json.*
 import zio.json.internal.Write
 
@@ -634,7 +633,6 @@ object ExpectedReportsSerialisation {
 
 object NodeConfigIdSerializer {
 
-  import net.liftweb.json.*
   import org.joda.time.format.ISODateTimeFormat
 
   // date are ISO format
@@ -649,16 +647,13 @@ object NodeConfigIdSerializer {
    */
 
   def serialize(ids: Vector[NodeConfigIdInfo]): String = {
-    import net.liftweb.json.JsonDSL.*
-
     // be careful, we can have several time the same id with different creation date
     // we want an array of { begin : id }
-    val m: JValue = JArray(ids.toList.sortBy(_.creation).map {
+    val m: List[(String, String)] = ids.toList.sortBy(_.creation).map {
       case NodeConfigIdInfo(NodeConfigId(id), creation, _) =>
-        (creation.toString(isoDateTime) -> id): JObject
-    })
-
-    compactRender(m)
+        (creation.toString(isoDateTime) -> id)
+    }
+    m.toJson
   }
 
   /*
@@ -670,20 +665,18 @@ object NodeConfigIdSerializer {
 
     if (null == ids || ids.trim == "") Vector()
     else {
-      implicit val formats = DefaultFormats
-      val configs          = parse(ids)
-        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
-        .extractOrElse[List[Map[String, String]]](List())
-        .flatMap {
-          case map =>
-            try {
-              Some(map.map { case (date, id) => (NodeConfigId(id), isoDateTime.parseDateTime(date)) })
-            } catch {
-              case e: Exception => None
-            }
+      val configs = ids
+        .fromJson[List[Map[String, String]]]
+        .getOrElse(Nil) // on invalid Json, returns nothing
+        .flatMap { map =>
+          try {
+            Some(map.map { case (date, id) => (NodeConfigId(id), isoDateTime.parseDateTime(date)) })
+          } catch {
+            case e: Exception => None
+          }
         }
         .flatten
-        .sortBy(_._2): @nowarn("cat=deprecation")
+        .sortBy(_._2)
 
       // build interval
       configs match {
@@ -695,7 +688,7 @@ object NodeConfigIdSerializer {
               // we know the size of the list is 2
               case _ :: Nil | Nil =>
                 throw new IllegalArgumentException("An impossible state was reached, please contact the dev about it!")
-              case x :: y :: t    => NodeConfigIdInfo(x._1, x._2, Some(y._2))
+              case x :: y :: _    => NodeConfigIdInfo(x._1, x._2, Some(y._2))
             }
             .toVector :+ {
             val x = t.last
