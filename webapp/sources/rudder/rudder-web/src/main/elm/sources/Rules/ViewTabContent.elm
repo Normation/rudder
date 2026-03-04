@@ -366,19 +366,44 @@ directivesTab model details =
 
     ruleDirectives = directives
       |> List.filter (\d -> List.member d.id ruleDirectivesId)
+    noDirectives = List.isEmpty ruleDirectives
+    hasDirectivesButNoCompliance = List.isEmpty childs && not noDirectives
+    noCompliance = not rule.enabled || hasDirectivesButNoCompliance
 
     disabledRuleDirectives = ruleDirectives
       |> List.filter (\d -> not d.enabled)
 
     noNodes = (Maybe.withDefault 1 (getRuleNbNodes details))  <= 0
-    noNodesInfo =
-      if noNodes then
-        div[ class "callout-fade callout-warning"]
-        [ i[class "fa fa-warning"][]
-        , text "This rule is not applied on any node"
-        ]
+
+
+    noComplianceMsg =
+      if noNodes || rule.enabled && hasDirectivesButNoCompliance then
+        let
+          msg =
+            if noNodes then
+              "This rule is not applied on any node."
+            else
+              "There is no directive compliance yet."
+        in
+          div[ class "callout-fade callout-warning"]
+          [ i[class "fa fa-warning me-2"][]
+          , text msg
+          ]
       else
         text ""
+    (complianceFilterBtn, complianceFilterContainer) =
+      if noCompliance then
+        ( text ""
+        , text ""
+        )
+      else
+        ( button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
+          [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
+          , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
+          ]
+        , displayComplianceFilters complianceFilters UpdateComplianceFilters
+        )
+
     directiveComplianceTable =
       if Maybe.Extra.isNothing details.compliance then -- Compliance is not loaded yet
         [ generateLoadingTable True 2 ]
@@ -387,13 +412,10 @@ directivesTab model details =
           [ div [class "main-filters"]
             [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filter
             , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
-            , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
-              [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
-              , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
-              ]
+            , complianceFilterBtn
             , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
             ]
-          , displayComplianceFilters complianceFilters UpdateComplianceFilters
+          , complianceFilterContainer
           ]
         , div[class "table-container"]
           [(
@@ -406,25 +428,7 @@ directivesTab model details =
               Desc -> List.reverse filteredDirectives
             toggleSortOrder o = if o == Asc then Desc else Asc
           in
-            if rule.enabled && not noNodes then
-              table [class "dataTable compliance-table"]
-              [ thead []
-                [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
-                ]
-              , tbody [] (
-                if List.length childs <= 0 then
-                  [ tr[]
-                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
-                  ]
-                else if List.length directivesChildren == 0 then
-                  [ tr[]
-                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
-                  ]
-                else
-                  List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
-                )
-              ]
-            else
+            if noCompliance then
               table [class "dataTable"]
               [ thead []
                 [ tr [ class "head" ]
@@ -432,7 +436,7 @@ directivesTab model details =
                   ]
                 ]
               , tbody [] (
-                if List.length ruleDirectives <= 0 then
+                if noDirectives then
                   [ tr[]
                     [ td[class "empty"][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
                   ]
@@ -450,13 +454,31 @@ directivesTab model details =
                         , span [class "item-name"][text d.displayName]
                         , buildTagsTree d.tags
                         , div [class "treeActions-container"]
-                        [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
+                        [ span [class "treeActions"][ span [class "fa action-icon ms-1 accept"][]]
                         ]
                         , goToBtn (getDirectiveLink model.contextPath  d.id)
                         ]
                       ]
                     ]
                   )
+                )
+              ]
+            else
+              table [class "dataTable compliance-table"]
+              [ thead []
+                [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
+                ]
+              , tbody [] (
+                if List.length childs <= 0 then
+                  [ tr[]
+                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
+                  ]
+                else if List.length directivesChildren == 0 then
+                  [ tr[]
+                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+                  ]
+                else
+                  List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
                 )
               ]
             )
@@ -524,7 +546,7 @@ directivesTab model details =
                 ]
               ]
           )
-        , noNodesInfo
+        , noComplianceMsg
         ]
         directiveComplianceTable
       )
@@ -579,7 +601,7 @@ directivesTab model details =
                     , disabledLabel
                     , buildTagsTree d.tags
                     , div [class "treeActions-container"]
-                      [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
+                      [ span [class "treeActions"][ span [class "fa action-icon ms-1 accept"][]]
                       ]
                     , goToBtn (getDirectiveLink model.contextPath d.id)
                     ]
@@ -617,23 +639,29 @@ directivesTab model details =
               ])
             else
               Nothing
-        (noChange, cancelDirectives) = case details.originRule of
-          Just oR -> (rule.directives == oR.directives, oR.directives)
-          Nothing -> (rule.directives == [], [])
+        cancelDirectives = case details.originRule of
+          Just oR -> oR.directives
+          Nothing -> []
+
+        (cancelUi, confirmBtn) =
+          if isNewRule then
+            ( ui
+            , text ""
+            )
+          else
+            ( {ui | editDirectives = False}
+            , button[class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = False}} )][text "Confirm", i[class "fa fa-check"][]]
+            )
       in
         div[class "row flex-container"]
         [ div[class "list-edit d-flex flex-column col-sm-12 col-md-6 col-xl-7"]
           [ div[class "list-container"]
-            [ div[class "list-heading"]
-              [ h4[][text "Apply these directives"]
+            [ div[class "list-heading align-items-center"]
+              [ h4[class "mb-0"][text "Apply these directives"]
               , div [class "btn-actions"]
-                [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives} }), disabled noChange]
+                [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | directives = cancelDirectives}, ui = cancelUi })]
                   [text "Cancel", i[class "fa fa-undo-alt"][]]
-                , ( if isNewRule then
-                    text ""
-                  else
-                    button[class "btn btn-success btn-outline btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = False}} )][text "Confirm", i[class "fa fa-check"][]]
-                )
+                , confirmBtn
                 ]
               ]
             , ul[class "directives applied-list"]
@@ -810,8 +838,8 @@ groupsTab model details =
       div [class "row lists"]
       [ div[class "list-edit d-flex flex-column col-sm-12 col-md-6"]
         [ div[class "list-container"]
-          [ div[class "list-heading"]
-            [ h4[][text "Applied to Nodes in any of these Groups"]
+          [ div[class "list-heading align-items-center"]
+            [ h4[class "mb-0"][text "Applied to Nodes in any of these Groups"]
             , ( if model.ui.hasWriteRights then
                 button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}})]
                 [ text "Select", i[class "fa fa-plus-circle" ][]]
@@ -834,8 +862,8 @@ groupsTab model details =
         ]
       , div[class "list-edit d-flex flex-column col-sm-12 col-md-6"]
         [ div[class "list-container"]
-          [ div[class "list-heading except"]
-            [ h4[][text "Except to Nodes in any of these Groups"]
+          [ div[class "list-heading except align-items-center"]
+            [ h4[class "mb-0"][text "Except to Nodes in any of these Groups"]
             ]
           , ul[class "groups applied-list"]
             ( if(List.isEmpty excludedTargets) then
@@ -893,8 +921,8 @@ groupsTab model details =
               , span [class "item-name"][text item.name, (if item.dynamic then (small [class "text-secondary"][text "- Dynamic"]) else (text ""))]
               , disabledLabel
               , div [class "treeActions-container"]
-                [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
-                , span [class "treeActions"][ span [class "fa action-icon except", onCustomClick (SelectGroup item.target False)][]]
+                [ span [class "treeActions"][ span [class "fa action-icon ms-1 accept"][]]
+                , span [class "treeActions"][ span [class "fa action-icon ms-1 except", onCustomClick (SelectGroup item.target False)][]]
                 ]
               , goToBtn (getGroupLink model.contextPath item.id)
               ]
@@ -922,23 +950,30 @@ groupsTab model details =
               ])
             else
               Nothing
-        (noChange, cancelTargets) = case details.originRule of
-          Just oR -> (rule.targets == oR.targets, oR.targets)
-          Nothing -> (rule.targets == [], [])
+
+        cancelTargets = case details.originRule of
+          Just oR -> oR.targets
+          Nothing -> []
+
+        (cancelUi, confirmBtn) =
+          if isNewRule then
+            ( ui
+            , text ""
+            )
+          else
+            ( {ui | editGroups = False}
+            , button[class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Confirm", i[class "fa fa-check"][]]
+            )
       in
         div[class "row flex-container"]
         [ div[class "list-edit d-flex flex-column col-sm-12 col-md-6 col-xl-7"]
           [ div[class "list-container"]
-            [ div[class "list-heading"]
-              [ h4[][text "Apply to Nodes in any of these Groups"]
+            [ div[class "list-heading align-items-center"]
+              [ h4[class "mb-0"][text "Apply to Nodes in any of these Groups"]
               , div [class "btn-actions"]
-                [ button[class "btn btn-default btn-icon", onClick (UpdateRuleForm { details | rule = {rule | targets = cancelTargets} }), disabled noChange]
+                [ button[class "btn btn-default btn-icon", onClick ( UpdateRuleForm { details | rule = {rule | targets = cancelTargets}, ui = cancelUi })]
                   [text "Cancel", i[class "fa fa-undo-alt"][]]
-                , ( if isNewRule then
-                    text ""
-                  else
-                    button[class "btn btn-success btn-outline btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = False}} )][text "Confirm", i[class "fa fa-check"][]]
-                )
+                , confirmBtn
                 ]
               ]
             , ul[class "groups applied-list"]
@@ -953,8 +988,8 @@ groupsTab model details =
               )
             ]
           , div[class "list-container"]
-            [ div[class "list-heading except"]
-              [ h4[][text "Except to Nodes in any of these Groups"]
+            [ div[class "list-heading align-items-center except"]
+              [ h4[class "mb-0"][text "Except to Nodes in any of these Groups"]
               ]
             , ul[class "groups applied-list"]
               ( if(List.isEmpty excludedTargets) then
