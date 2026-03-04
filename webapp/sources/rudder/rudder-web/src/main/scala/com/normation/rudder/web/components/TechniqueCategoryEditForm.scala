@@ -40,10 +40,10 @@ package com.normation.rudder.web.components
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.*
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -62,18 +62,18 @@ class TechniqueCategoryEditForm(
     rootCategoryId:    ActiveTechniqueCategoryId,
     onSuccessCallback: () => JsCmd = { () => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   private val htmlId_categoryDetailsForm = "categoryDetailsForm"
 
   private val activeTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
 
   private var currentCategory = givenCategory
   def getCategory             = currentCategory
 
-  def showForm(): NodeSeq = {
+  def showForm()(using qc: QueryContext): NodeSeq = {
     <div id={htmlId_form} class="object-details">
       <div class="section-title">Category details</div>
         {categoryDetailsForm}
@@ -105,10 +105,10 @@ class TechniqueCategoryEditForm(
     </div>
   }
 
-  private def deleteCategory(): JsCmd = {
+  private def deleteCategory()(using qc: QueryContext): JsCmd = {
     activeTechniqueCategoryRepository
       .deleteCategory(currentCategory.id)(using
-        CurrentUser.changeContext(Some("User deleted technique category from UI"))
+        qc.newCC(Some("User deleted technique category from UI"))
       )
       .toBox match {
       case Full(id) =>
@@ -170,7 +170,7 @@ class TechniqueCategoryEditForm(
 
   var categoryNotifications: List[NodeSeq] = Nil
 
-  private def categoryDetailsForm: NodeSeq = {
+  private def categoryDetailsForm(using qc: QueryContext): NodeSeq = {
     val html = SHtml.ajaxForm(<div id={htmlId_categoryDetailsForm}>
         <update-notifications></update-notifications>
         <update-name></update-name>
@@ -200,7 +200,7 @@ class TechniqueCategoryEditForm(
               )
               activeTechniqueCategoryRepository
                 .saveActiveTechniqueCategory(updatedCategory)(using
-                  CurrentUser.changeContext(Some("User updated category from UI"))
+                  qc.newCC(Some("User updated category from UI"))
                 )
                 .toBox match {
                 case Failure(m, _, _) =>

@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2018 Normation SAS
+ * Copyright 2026 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -34,47 +34,31 @@
  *
  *************************************************************************************
  */
+package net.liftweb.http
 
-package com.normation.rudder.web.snippet.node
-
-import bootstrap.liftweb.RudderConfig
-import com.normation.box.*
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.web.components.ShowNodeDetailsFromNode
-import net.liftweb.common.*
-import net.liftweb.http.S
-import net.liftweb.http.SecureDispatchSnippet
+import com.normation.rudder.users.CurrentUser
+import net.liftweb.common.Loggable
+import net.liftweb.http.DispatchSnippet
 
-/**
- * Snippet that handle the "node details" (/node/uuid) page.
+/*
+ * Secured version of a dispatch snippet with respect to tenants, by providing a query context.
  */
-class Node extends SecureDispatchSnippet with Loggable {
+trait SecureDispatchSnippet extends DispatchSnippet { self: Loggable =>
 
-  private val getFullGroupLibrary = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  /**
+   * Dispatch function, with a QueryContext already provided
+   * Implementations can just use it, ?=> here is just a syntax sugar
+   */
+  def secureDispatch: QueryContext ?=> DispatchIt
 
-  private val groupLibrary: QueryContext ?=> FullNodeGroupCategory = getFullGroupLibrary().toBox match {
-    case Full(x) => x
-    case eb: EmptyBox =>
-      val e = eb ?~! "Major error: can not get the node group library"
-      ApplicationLogger.error(e.messageChain)
-      throw new Exception(e.messageChain)
+  override def dispatch: DispatchIt = {
+    CurrentUser.queryContext.withQCOr(loggedInsecureDispatch)(secureDispatch)
   }
 
-  val secureDispatch: QueryContext ?=> DispatchIt = {
-    case "details" =>
-      S.param("nodeId") match {
-        case _: EmptyBox =>
-          _ => <p>No node ID was given in URL. How did you get there?</p>
-        case Full(nodeId) =>
-          val displayMode = (S.param("displayCompliance"), S.param("systemStatus")) match {
-            case (Full("true"), _) => ShowNodeDetailsFromNode.Compliance
-            case (_, Full("true")) => ShowNodeDetailsFromNode.System
-            case (_, _)            => ShowNodeDetailsFromNode.Summary
-          }
-          _ => new ShowNodeDetailsFromNode(NodeId(nodeId), groupLibrary).display(false, displayMode)
-      }
+  private def loggedInsecureDispatch: DispatchIt = {
+    logger.warn(s"Snippet can't be accessed in current security context (user is not authenticated)")
+    PartialFunction.empty
   }
+
 }

@@ -59,7 +59,7 @@ import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import scala.xml.*
 
-class ParameterManagement extends DispatchSnippet with Loggable {
+class ParameterManagement extends SecureDispatchSnippet with Loggable {
 
   private val roParameterService = RudderConfig.roParameterService
 
@@ -70,9 +70,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   // the current GlobalParameterForm component
   private val parameterPopup = new LocalSnippet[CreateOrUpdateGlobalParameterPopup]
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "display" => { _ => display()(using CurrentUser.queryContext) }
-  }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display() } }
 
   def display()(implicit qc: QueryContext): NodeSeq = {
     (for {

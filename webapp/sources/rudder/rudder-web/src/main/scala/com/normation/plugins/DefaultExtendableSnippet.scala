@@ -39,6 +39,10 @@ package com.normation.plugins
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.logger.PluginLogger
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.users.CurrentUser
+import net.liftweb.http.DispatchSnippet
+import scala.xml.NodeSeq
 
 /**
  * Default implementation of extendable snippet that use RuddercConfig to get the extension
@@ -56,6 +60,24 @@ trait DefaultExtendableSnippet[T] extends ExtendableSnippet[T] {
   override def afterSnippetExtensionSeq: Seq[SnippetExtensionPoint[T]] = {
     PluginLogger.trace(s"Looking for post-extension for snippet '${extendsAt.value}'")
     extensionRegister.getAfterRenderExtension(this.extendsAt)
+  }
+
+}
+
+/**
+ * For tenants security on snippets extensions. Same as [[SecureDispatchSnippet]]
+ */
+trait SecureExtendableSnippet[T] extends DefaultExtendableSnippet[T] with DispatchSnippet {
+  self: T =>
+
+  def mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq]
+
+  def mainDispatch: Map[String, NodeSeq => NodeSeq] =
+    CurrentUser.queryContext.withQCOr(loggedInsecureMainDispatch)(mainSecureDispatch)
+
+  private def loggedInsecureMainDispatch: Map[String, NodeSeq => NodeSeq] = {
+    logger.warn(s"Extendable snippet can't be accessed in current security context (user is not authenticated)")
+    Map.empty
   }
 
 }
