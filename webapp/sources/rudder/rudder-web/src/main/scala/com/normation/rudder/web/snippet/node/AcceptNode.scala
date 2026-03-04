@@ -47,7 +47,6 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.utils.DateFormaterService
@@ -66,7 +65,7 @@ import zio.json.*
  * accept or refuse them.
  *
  */
-class AcceptNode extends DispatchSnippet with Loggable {
+class AcceptNode extends SecureDispatchSnippet with Loggable {
   import AcceptNodeJson.*
 
   val newNodeManager     = RudderConfig.newNodeManager
@@ -89,11 +88,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
     "refuse_new_server-template"
   )
 
-  override def dispatch: DispatchIt = {
-    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-
-    { case "list" => listAll(_) }
-  }
+  override def secureDispatch: QueryContext ?=> DispatchIt = { case "list" => listAll(_) }
 
   /*
    * List all server that have there isAccpeted tag to pending.
@@ -119,12 +114,12 @@ class AcceptNode extends DispatchSnippet with Loggable {
     }
   }
 
-  def addNodes(listNode: Seq[NodeId]): Unit = {
+  def addNodes(listNode: Seq[NodeId])(using qc: QueryContext): Unit = {
 
     val modId = ModificationId(uuidGen.newUuid)
     // TODO : manage error message
     S.clearCurrentNotices
-    implicit val cc: ChangeContext = CurrentUser.changeContext().copy(modId = modId)
+    implicit val cc: ChangeContext = qc.newCC().copy(modId = modId)
     listNode.foreach { id =>
       val now    = System.currentTimeMillis
       val accept =
@@ -152,13 +147,13 @@ class AcceptNode extends DispatchSnippet with Loggable {
 
   }
 
-  def refuseNodes(listNode: Seq[NodeId]): Unit = {
+  def refuseNodes(listNode: Seq[NodeId])(using qc: QueryContext): Unit = {
     // TODO : manage error message
     S.clearCurrentNotices
     val modId = ModificationId(uuidGen.newUuid)
     listNode.foreach { id =>
       newNodeManager
-        .refuse(id)(using CurrentUser.changeContext().copy(modId = modId))
+        .refuse(id)(using qc.newCC().copy(modId = modId))
         .toBox match {
         case empty: EmptyBox =>
           val errorMsg = s"Refuse node '${id.value}' lead to Failure."
@@ -177,7 +172,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
    * template : the template that will be used (accept, or refuse)
    * popuId : the id of the popup
    */
-  private def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String): JsCmd = {
+  private def details(jsonArrayOfIds: String, template: NodeSeq, popupId: String)(using qc: QueryContext): JsCmd = {
     val serverList = jsonArrayOfIds.fromJson[List[NodeId]].getOrElse(List.empty)
 
     if (serverList.isEmpty) {
@@ -211,7 +206,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
    * Display the list of selected server, and the accept/refuse button
    */
 
-  def listNode(listNode: Seq[NodeId], template: NodeSeq): NodeSeq = {
+  def listNode(listNode: Seq[NodeId], template: NodeSeq)(using qc: QueryContext): NodeSeq = {
 
     val serverLine = {
       <tr>
@@ -226,7 +221,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
     }
 
     nodeFactRepository
-      .getAll()(using CurrentUser.queryContext, SelectNodeStatus.Pending)
+      .getAll()(using status = SelectNodeStatus.Pending)
       .map(_.collect { case (id, n) if listNode.contains(id) => n })
       .toBox match {
       case Full(servers) =>
@@ -268,7 +263,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
    * retrieve the list of all checked servers with JS
    * and then show the popup
    */
-  def showConfirmPopup(template: NodeSeq, popupId: String): JsCmd = {
+  def showConfirmPopup(template: NodeSeq, popupId: String)(using qc: QueryContext): JsCmd = {
     net.liftweb.http.js.JE.JsRaw("""
         var selectedNode = JSON.stringify($('input[name="serverids"]:checkbox:checked').map(function() {
           return $(this).val();
@@ -279,7 +274,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
   /**
    * Display the expected Directives for a machine
    */
-  def showExpectedPolicyPopup(node: Srv): JsCmd = {
+  def showExpectedPolicyPopup(node: Srv)(using qc: QueryContext): JsCmd = {
     SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display) &
     OnLoad(JsRaw("""initBsModal("expectedPolicyPopup")""")) // JsRaw ok, const
   }

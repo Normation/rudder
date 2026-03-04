@@ -46,13 +46,14 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.LocalSnippet
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import net.liftweb.http.StatefulSnippet
@@ -80,16 +81,16 @@ import zio.json.*
  *
  */
 
-class SearchNodes extends StatefulSnippet with Loggable {
+class SearchNodes extends SecureDispatchSnippet with StatefulSnippet with Loggable {
 
   private val queryParser         = RudderConfig.cmdbQueryParser
-  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
+  private val getFullGroupLibrary = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val linkUtil            = RudderConfig.linkUtil
 
   // the popup component to create the group
   private val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
-  private val groupLibrary = getFullGroupLibrary().toBox match {
+  private val groupLibrary: QueryContext ?=> FullNodeGroupCategory = getFullGroupLibrary().toBox match {
     case Full(x) => x
     case eb: EmptyBox =>
       val e = eb ?~! "Major error: can not get the node group library"
@@ -101,13 +102,13 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   var srvList: Box[Seq[CoreNodeFact]] = Empty
 
-  var dispatch: DispatchIt = {
+  def secureDispatch: QueryContext ?=> DispatchIt = {
     case "showQuery"   =>
       searchNodeComponent.get match {
-        case Full(component) => { _ => queryForm(component)(using CurrentUser.queryContext) }
+        case Full(component) => { _ => queryForm(component) }
         case _               => { _ => <div>loading...</div><div></div> }
       }
-    case "head"        => head(_)(using CurrentUser.queryContext)
+    case "head"        => head(_)
     case "createGroup" => createGroup
   }
 
@@ -129,7 +130,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     </head>
   }
 
-  private def setCreationPopup(query: Option[Query], serverList: Box[Seq[CoreNodeFact]]): Unit = {
+  private def setCreationPopup(query: Option[Query], serverList: Box[Seq[CoreNodeFact]])(using qc: QueryContext): Unit = {
     creationPopup.set(
       Full(
         new CreateCategoryOrGroupPopup(
@@ -145,7 +146,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
               serverList = serverList.openOr(Seq[CoreNodeFact]()).map(_.id).toSet,
               _isEnabled = true,
               isSystem = false,
-              security = CurrentUser.nodePerms.toSecurityTag
+              security = qc.accessGrant.toSecurityTag
             )
           ),
           rootCategory = groupLibrary,
@@ -177,7 +178,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     sc
   }
 
-  def createGroup(html: NodeSeq): NodeSeq = {
+  def createGroup(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     SHtml.ajaxButton(
       "Create node group from this query",
       () => showPopup(),
@@ -229,7 +230,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   /**
    * Create the popup
    */
-  private def createPopup: NodeSeq = {
+  private def createPopup(using qc: QueryContext): NodeSeq = {
     creationPopup.get match {
       case Failure(m, _, _) => <span class="error">Error: {m}</span>
       case Empty            => <div>The component is not set</div>
@@ -237,7 +238,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     }
   }
 
-  private def showPopup():                                            JsCmd = {
+  private def showPopup()(using qc: QueryContext):                    JsCmd = {
     searchNodeComponent.get match {
       case Full(r) =>
         setCreationPopup(r.getQuery(), r.getSrvList())

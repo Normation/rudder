@@ -60,7 +60,6 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.DontCare
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.DirectiveEditForm
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
@@ -75,6 +74,7 @@ import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import net.liftweb.http.*
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -99,30 +99,26 @@ object JsonDirectiveRId {
  * Techniques are classify by categories in a tree.
  *
  */
-class DirectiveManagement extends DispatchSnippet with Loggable {
+class DirectiveManagement extends SecureDispatchSnippet with Loggable {
   import DirectiveManagement.*
 
   private val techniqueRepository = RudderConfig.techniqueRepository
   private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private val getRules            = () => RudderConfig.roRuleRepository.getAll()
-  private val getGroups           = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()(using CurrentUser.queryContext)
+  private val getGroups           = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val uuidGen             = RudderConfig.stringUuidGenerator
   private val linkUtil            = RudderConfig.linkUtil
   private val configService       = RudderConfig.configService
   private val configRepo          = RudderConfig.configurationRepository
   private val dependencyService   = RudderConfig.dependencyAndDeletionService
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
-
-    {
-      case "head"                 => { _ => head() }
-      case "userLibrary"          => { _ => displayDirectiveLibrary() }
-      case "showDirectiveDetails" => { _ => initDirectiveDetails() } // Used in directiveManagement.html
-      case "techniqueDetails"     => { xml =>
-        techniqueDetails = initTechniqueDetails()
-        techniqueDetails.apply(xml)
-      }
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "head"                 => { _ => head() }
+    case "userLibrary"          => { _ => displayDirectiveLibrary() }
+    case "showDirectiveDetails" => { _ => initDirectiveDetails() } // Used in directiveManagement.html
+    case "techniqueDetails"     => { xml =>
+      techniqueDetails = initTechniqueDetails()
+      techniqueDetails.apply(xml)
     }
   }
 
@@ -147,8 +143,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   /**
    * Head information (JsTree dependencies,...)
    */
-  def head(): NodeSeq = {
-    implicit val qc: QueryContext = CurrentUser.queryContext
+  def head()(using qc: QueryContext): NodeSeq = {
     (
       <head>
         {WithNonce.scriptWithNonce(Script(OnLoad(parseJsArg())))}
@@ -667,7 +662,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                     .delete(
                       directive.id.uid,
                       ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-                      CurrentUser.actor,
+                      qc.actor,
                       Some(
                         s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
                       ).toBox
@@ -726,7 +721,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             "",
             5,
             _isEnabled = true,
-            security = CurrentUser.nodePerms.toSecurityTag
+            security = qc.accessGrant.toSecurityTag
           )
         }
         updateDirectiveSettingForm(
@@ -937,10 +932,12 @@ object DirectiveManagement {
   val html_addPiInActiveTechnique          = "addNewDirective"
   val html_techniqueDetails                = "techniqueDetails"
 
-  def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd): JsCmd = {
+  def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd)(using
+      qc: QueryContext
+  ): JsCmd = {
     val msg = (if (status) "Enable" else "Disable") ++ "technique from directive library screen"
     RudderConfig.woDirectiveRepository
-      .changeStatus(activeTechniqueId, status)(using CurrentUser.changeContext(Some(msg)))
+      .changeStatus(activeTechniqueId, status)(using qc.newCC(Some(msg)))
       .either
       .runNow match {
       case Left(err) =>

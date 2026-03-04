@@ -37,12 +37,10 @@
 
 package com.normation.rudder.users
 
-import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.UserPassword.HashedUserPassword
@@ -143,6 +141,10 @@ case class RudderUserDetail(
 }
 
 /**
+ * AVOID USING THIS as a static object :
+ * - the proper way you would likely want to get user and making code testable is by injecting a [[UserService]].
+ * - in Lift snippets, using this object is highly unsafe because of the RequestVar scope !!! You likely need a [[SecureDispatchSnippet]].
+ *
  * An utility class that stores the currently logged user (if any).
  * We can't rely only on SecurityContextHolder because Lift async (comet, at least)
  * uses a different thread local scope than the one used by spring/container to store
@@ -164,17 +166,8 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserS
     case None    => Rights.forAuthzs(AuthorizationType.NoRights)
   }
 
-  //  This is used only in snippets. It could be a more generic query context, which could be empty, which impacts snippets
-  def queryContext: QueryContext =
-    getCurrentUser.map(_.qc).getOrElse(QueryContext(EventActor("unknown"), TenantAccessGrant.None))
-
-  // it's a "new" each time, because we want different change context for different user
-  // action even for a same request if called several times.
-  def changeContext(reason: Option[String] = None): ChangeContext = queryContext.newCC(reason)
-
-  def nodePerms: TenantAccessGrant = getCurrentUser.map(_.accessGrant).getOrElse(TenantAccessGrant.None)
-
-  def actor: EventActor = getCurrentUser.map(_.qc.actor).getOrElse(EventActor("unknown"))
+  // should generally not be used, if you need a `QueryContext` in snippets, you should inherit `SecureDispatchSnippet`
+  def queryContext: Option[QueryContext] = getCurrentUser.map(_.qc)
 
   // Eagerly evaluate the variable to obtain the current user, since there may be lifetime issue with the RequestVar
   // see https://issues.rudder.io/issues/26605

@@ -6,7 +6,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBRadioField
@@ -15,8 +14,8 @@ import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBTextField
 import com.normation.zio.*
 import net.liftweb.common.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
+import net.liftweb.http.SecureDispatchSnippet
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
@@ -32,7 +31,7 @@ class CreateCloneGroupPopup(
     onSuccessGroup:    (Either[NonGroupRuleTarget, NodeGroup], NodeGroupCategoryId) => JsCmd,
     onSuccessCallback: (String) => JsCmd = { (String) => Noop },
     onFailureCallback: () => JsCmd = { () => Noop }
-) extends DispatchSnippet with Loggable {
+) extends SecureDispatchSnippet with Loggable {
 
   private val roNodeGroupRepository = RudderConfig.roNodeGroupRepository
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
@@ -46,10 +45,9 @@ class CreateCloneGroupPopup(
 
   var createContainer = false
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
     case "popupContent" =>
       _ => {
-        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
         popupContent()
       }
   }
@@ -130,11 +128,11 @@ class CreateCloneGroupPopup(
                   Nil,
                   Nil,
                   isSystem = false,
-                  security = CurrentUser.nodePerms.toSecurityTag
+                  security = qc.accessGrant.toSecurityTag
                 ),
                 NodeGroupCategoryId(groupContainer.get)
               )(using
-                CurrentUser.changeContext(
+                qc.newCC(
                   Some("Node Group category created by user from UI")
                 )
               )
@@ -165,12 +163,12 @@ class CreateCloneGroupPopup(
               isDynamic,
               srvList,
               _isEnabled = true,
-              security = CurrentUser.nodePerms.toSecurityTag
+              security = qc.accessGrant.toSecurityTag
             )
 
             woNodeGroupRepository
               .create(clone, parentCategoryId)(using
-                CurrentUser.changeContext(
+                qc.newCC(
                   groupReasons.map(_.get)
                 )
               )
