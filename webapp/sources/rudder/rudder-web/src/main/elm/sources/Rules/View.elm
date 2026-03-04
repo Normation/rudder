@@ -280,14 +280,13 @@ view model =
                 [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
                   [ text "Cancel "
                   ]
-                , button [ class "btn btn-primary", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
+                , button [ class "btn btn-success", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
                   ( if crSettings.enableChangeRequest then
                     [ text "Create change request "
                     , i [ class "fa fa-plus" ] []
                     ]
                   else
-                    [ text "Confirm "
-                    , i [ class "fa fa-check" ] []
+                    [ text action
                     ]
                   )
                 ]
