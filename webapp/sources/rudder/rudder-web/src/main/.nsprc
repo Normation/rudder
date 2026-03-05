@@ -1,5 +1,7 @@
 {
   "GHSA-grv7-fg5c-xmjg": "A DoS",
   "GHSA-3xgq-45jj-v275": "A DoS on regexp, probably only in a Dev ependency",
-  "GHSA-5j98-mcp5-4vw2": "glob command injection unused in gulp-elm"
+  "GHSA-5j98-mcp5-4vw2": "glob command injection unused in gulp-elm",
+  "GHSA-wf6x-7x77-mvgw": "sass prototype pollution in dev dependency: immutable",
+  "GHSA-xpqw-6gx7-v673": "gulp-svgmin DoS in dev dependency: svgo"
 }
