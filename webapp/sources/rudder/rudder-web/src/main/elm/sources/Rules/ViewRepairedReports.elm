@@ -30,8 +30,8 @@ options: RuleId ->  Model -> List (Html Msg)
 options ruleId model =
   List.reverse <| List.indexedMap (\id c -> option [value (String.fromInt id)] [text (showChanges c) ] ) <| Maybe.withDefault [] (Dict.get ruleId.value model.changes )
 
-showTab: Model -> RuleDetails -> Html Msg
-showTab model details =
+technicalLogsTab: Model -> RuleDetails -> Html Msg
+technicalLogsTab model details =
 
   let
     col = columns model
