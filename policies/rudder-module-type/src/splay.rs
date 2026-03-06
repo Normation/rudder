@@ -31,7 +31,7 @@ pub fn splayed_start(
     if real_end <= start {
         let window = (end - start).num_minutes();
         bail!(
-            "Event schedule windows is too short, the minimal schedule should be superior to \
+            "The event schedule window is too short, the minimal schedule should be superior to \
               the agent run periodicity with an extra 6 minutes of margin. \
               Current agent run frequency is {} minutes and current window is {} minutes.",
             agent_schedule.num_minutes(),
