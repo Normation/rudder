@@ -177,7 +177,7 @@ Run <code>VirtualBox</code>, you should see 3 virtual machines running.
 
 ## Part 1 : Setup `rudder-tests` and `rudder` local environment
 
-### Setup virtual machines for testing
+### Setup virtual machines for QA
 
 #### Platform description file
 
@@ -351,6 +351,39 @@ git pull ~/<workspace>/rudder-techniques/techniques
 rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-repository
 ```
 But in practice, you'll probably never have to do this, because `~/<workspace>/rudder-techniques/techniques` almost never change
+
+#### Configure a vm
+
+There is a file in `<Workspace>/rudder-tests/platforms/dev.json`
+
+Run `./rtf setup platform dev`
+
+After that there are a couple actions to do on the dev server to be able to use the webapp properly.
+- 
+- check plugin relay is properly installed
+- set some rights to the vagrant shared directory for reports, inventory and so on
+
+```
+vagrant ssh dev_server
+sudo su
+cd /var/rudder/inventories
+chmod 777 *
+```
+
+```
+rudder agent run
+```
+- connect to the webapp and accept the nodes
+- set the relayd configuration immutable to access postgresql on the right port
+  - check apache logs `less -f /var/log/apache2/error.log` 
+  - check relayd logs : `journalctl -r -g rudder-relayd`
+
+  - edit the configuration file `/opt/rudder/etc/relayd/main.conf`
+  - change the port number of postgresql from 15432 to 5432
+  - set the file immutable `chattr +i /opt/rudder/etc/relayd/main.conf` (or the old configuration will be reset by the next agent run)
+
+- move the file nodelists in the right place
+
 
 ## Part 2 : Setup workspace development with IntelliJ and Maven
 ### Install plugin from marketplace
