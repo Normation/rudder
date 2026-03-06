@@ -200,6 +200,14 @@ period of time to allow migration from previous versions.
         <li>Event campaign (format, history)</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">23</td>
+      <td class="code">9.1</td>
+      <td><ul>
+        <li>Campaigns CSV</li>
+        <li>excluded-packages in System/software update campaigns</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 
