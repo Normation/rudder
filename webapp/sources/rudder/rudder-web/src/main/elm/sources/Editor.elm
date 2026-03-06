@@ -134,27 +134,24 @@ subscriptions model =
     Sub.batch
         [ draftsResponse parseDraftsResponse
         , updateResources (always (updateResourcesResponse model))
-        , readUrl (navigateToTechnique model)
+        , readUrl navigateToTechnique
         ]
 
-navigateToTechnique : Model -> String -> Msg
-navigateToTechnique model id =
-  let
-    technique =
-      List.Extra.find (.id >> .value >> (==) id ) model.techniques
-
-    error =
-      List.Extra.find (.id >> .value >> (==) id ) model.errors
-
-  in
-  case ( technique, error ) of
-    ( Just t, _ ) -> SelectTechnique (Left t)
-    ( _, Just e ) -> SelectTechniqueError e
-    _ -> Ignore
+navigateToTechnique : String -> Msg
+navigateToTechnique id =
+    SelectTechnique (TechniqueId id)
 
 defaultBlockUiInfo : MethodBlock -> MethodBlockUiInfo
 defaultBlockUiInfo block =
   MethodBlockUiInfo Closed Children Unchanged False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach))
+
+defaultTechniqueUi : Technique -> TechniqueUiInfo
+defaultTechniqueUi technique =
+  let
+    callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls technique.elems)))
+    blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo c))) (List.concatMap getAllBlocks technique.elems)))
+  in
+  TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
 
 selectTechnique: Model -> (Either Technique Draft) -> (Model, Cmd Msg)
 selectTechnique model technique =
@@ -174,13 +171,11 @@ selectTechnique model technique =
                    Nothing -> Creation (TechniqueId d.id.value)
         in
         (d.technique, st, Cmd.none)
-    callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls effectiveTechnique.elems)))
-    blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo c))) (List.concatMap getAllBlocks effectiveTechnique.elems)))
-    defaultUi = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
+    defaultUi = defaultTechniqueUi effectiveTechnique
     -- Revalidate state when technique is a Draft
     validateDraftUi s = checkTechniqueUiState state s (List.map techniqueCheckState model.techniques) defaultUi
     ui = Either.unpack (\_ -> defaultUi) (draftCheckState >> validateDraftUi) technique
-    editInfo = TechniqueEditInfo "" False (Ok ())
+    editInfo = TechniqueEditInfo "" False
   in
     ({ model | mode = TechniqueDetails effectiveTechnique  state ui editInfo } )
       |> update OpenMethods
@@ -189,7 +184,7 @@ selectTechnique model technique =
 
 selectTechniqueError: Model -> TechniqueError -> (Model, Cmd Msg)
 selectTechniqueError model error =
-  ( { model | mode = TechniqueErrorDetails error }, Cmd.none )
+  ( { model | mode = TechniqueErrorDetails error (TechniqueErrorUiYamlEditing (error.content)) }, Cmd.none )
 
 generator : Random.Generator String
 generator = Random.map (UUID.toString) UUID.generator
@@ -252,28 +247,69 @@ update msg model =
       ( model, Cmd.none )
     CopyResources (Err err) ->
       ( model ,  errorNotification  ("Error when copying technique resources to draft" ) )
-    SelectTechnique technique ->
+    SelectTechnique id ->
+      let
+        technique =
+          List.Extra.find (.id >> (==)(id)) model.techniques
+
+        error =
+          List.Extra.find (.id >> (==)(id)) model.errors
+
+        ( newModel, cmd ) =
+          case ( technique, error ) of
+            ( Just t, _ ) ->
+              selectTechnique model (Left t)
+
+            ( _, Just e ) ->
+              selectTechniqueError model e
+
+            _ ->
+              ( model, Cmd.none )
+      in
       case model.mode of
         TechniqueDetails t _ _ editInfo ->
-          if t.id == (Either.unpack .id (.technique >> .id) technique) then
+          if t.id == id then
              ( { model | mode = Introduction }, initInputs "")
           else
-            selectTechnique model technique
+             ( newModel, cmd )
+
         _ ->
-          selectTechnique model technique
-    SelectTechniqueError error ->
-      selectTechniqueError model error
+          ( newModel, cmd )
+
+    SelectDraft id ->
+      let
+        draft =
+          Dict.get id.value model.drafts
+
+        ( newModel, cmd ) =
+          case draft of
+            Just t ->
+              selectTechnique model (Right t)
+
+            _ ->
+              ( model, Cmd.none )
+      in
+      case model.mode of
+        TechniqueDetails t _ _ editInfo ->
+          if t.id == id then
+             ( { model | mode = Introduction }, initInputs "")
+          else
+             ( newModel, cmd )
+
+        _ ->
+          ( newModel, cmd )
+
 
     NewTechnique internalId ->
       let
         ui = TechniqueUiInfo General Dict.empty Dict.empty [] False Unchanged Unchanged Nothing
         t = Technique (TechniqueId "") "1.0" "" "" "" "ncf_techniques" [] [] [] [] Nothing
-        editInfo = TechniqueEditInfo "" False (Ok ())
+        editInfo = TechniqueEditInfo "" False
         newModel =  { model | mode = TechniqueDetails t (Creation internalId) ui editInfo}
       in
         updatedStoreTechnique newModel
 
-    -- import a technique from a JSON file
+    -- import a technique from a JSON/YAML file
     StartImport ->
         (model, File.Select.file [ "text/plain", "application/json", ".yml", ".yaml" ]  ImportFile )
     ImportFile file ->
@@ -336,7 +372,7 @@ update msg model =
         callState =  Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap allMethodCalls technique.elems))
         blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo c)) (List.concatMap getAllBlocks technique.elems))
         ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
-        editInfo = TechniqueEditInfo "" False (Ok ())
+        editInfo = TechniqueEditInfo "" False
         newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique optDraftId internalId) ui editInfo }
         (nm,cmd) = updatedStoreTechnique newModel
       in
@@ -344,10 +380,16 @@ update msg model =
 
     SaveTechnique (Ok (metadata, technique)) ->
       let
-        techniques = if (List.any (.id >> (==) technique.id) model.techniques) then
-           List.Extra.updateIf (.id >> (==) technique.id ) (always technique) model.techniques
-         else
-           technique :: model.techniques
+        techniques =
+          if (List.any (.id >> (==) technique.id) model.techniques) then
+            List.Extra.updateIf (.id >> (==) technique.id ) (always technique) model.techniques
+          else
+            technique :: model.techniques
+        errors =
+          if (List.any (.id >> (==) technique.id) model.errors) then
+            List.Extra.filterNot (.id >> (==) technique.id ) model.errors
+          else
+            model.errors
         (newMode, idToClean) =
           case model.mode of
             TechniqueDetails _ (Edit _) ui editInfo ->
@@ -359,7 +401,7 @@ update msg model =
             m -> (m, technique.id)
         drafts = Dict.remove idToClean.value model.drafts
       in
-        ({ model | techniques = techniques, mode = newMode, drafts = drafts}, Cmd.batch [ clearDraft idToClean.value, successNotification "Technique saved!", pushUrl technique.id.value] )
+        ({ model | techniques = techniques, errors = errors, mode = newMode, drafts = drafts}, Cmd.batch [ clearDraft idToClean.value, successNotification "Technique saved!", pushUrl technique.id.value] )
 
     SaveTechnique (Err err) ->
       let
@@ -382,9 +424,11 @@ update msg model =
                 update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi editInfo }
               Clone _ _ internalId ->
                 update (CallApi (saveTechnique t True (Just internalId))) { model | mode = TechniqueDetails t o newUi editInfo }
+        TechniqueErrorDetails _ (TechniqueErrorUiYamlEditing value) ->
+          (model, checkTechnique (SaveYaml value) model)
         _ -> (model, Cmd.none)
 
-    DeleteTechnique (Ok (metadata, techniqueId)) ->
+    DeleteTechnique (Ok techniqueId) ->
       case model.mode of
                      TechniqueDetails t (Edit _) _ _->
                        let
@@ -967,7 +1011,7 @@ update msg model =
                   callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls technique.elems)))
                   blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo c))) (List.concatMap getAllBlocks technique.elems)))
                   ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
-                  editInfo = TechniqueEditInfo "" False (Ok ())
+                  editInfo = TechniqueEditInfo "" False
                 in
                   update (GenerateId FinalizeImport) { model | mode = TechniqueDetails technique (Creation (TechniqueId "")) ui editInfo}
               EditYaml _->
@@ -976,25 +1020,35 @@ update msg model =
                     ({model | mode = TechniqueDetails technique o ui oldEdit} , Cmd.none)
                   _ ->
                     (model, Cmd.none)
+              SaveYaml _ ->
+                  ( { model | mode = TechniqueDetails technique (Edit technique) (defaultTechniqueUi technique) (TechniqueEditInfo "" False) }
+                  , saveTechnique technique False Nothing model
+                  )
               CheckJson  _->
                   (model, Cmd.none)
 
-
-          Err e -> (model, Cmd.none)
+          Err e ->
+            case mode of
+              SaveYaml _ ->
+                case model.mode of
+                  TechniqueErrorDetails t u ->
+                    ({model | mode = TechniqueErrorDetails { t | errorMsg = debugHttpErr e } u }, errorNotification ("Error when saving technique: " ++ debugHttpErr e))
+                  _ ->
+                    (model, Cmd.none)
+              _ ->
+                (model, Cmd.none)
 
     CheckOutYaml mode result ->
        case result of
           Ok (_, yaml) ->
             case mode of
-              Import _ ->
-                (model,Cmd.none)
               CheckJson _ ->
                 case model.mode of
                   TechniqueDetails t o ui oldEdit ->
                     ({model | mode = TechniqueDetails t o ui {oldEdit | value = yaml }} , Cmd.none)
                   _ ->
                     (model, Cmd.none)
-              EditYaml _ ->
+              _ ->
                 (model, Cmd.none)
 
           Err e -> (model, Cmd.none)
@@ -1006,19 +1060,48 @@ update msg model =
         _ ->
           (model, Cmd.none)
 
-    UpdateEdition edition ->
+    CheckEdition value ->
       case model.mode of
-        TechniqueDetails t o ui oldEdit->
-            let
-              newModel =  { model | mode = TechniqueDetails t o ui edition }
-              cmd = if edition.open && not oldEdit.open then checkTechnique (CheckJson t) newModel
-                    else if edition.value /= oldEdit.value then checkTechnique (EditYaml edition.value) newModel
-                    else Cmd.none
-            in
-            ( newModel , cmd)
-        _ -> (model,Cmd.none)
+        TechniqueDetails _ _ _ _ ->
+          ( model, checkTechnique (EditYaml value) model )
 
+        _ ->
+          ( model, Cmd.none )
 
+    UpdateEdition value ->
+      case model.mode of
+        TechniqueDetails t o ui oldEdit ->
+          if value == oldEdit.value then
+            ( model, Cmd.none )
 
+          else
+            update ( CheckEdition value ) { model | mode = TechniqueDetails t o ui { oldEdit | value = value } }
 
+        TechniqueErrorDetails t _ ->
+          ( { model | mode = TechniqueErrorDetails t ( TechniqueErrorUiYamlEditing value ) }, Cmd.none )
+
+        _ ->
+          ( model, Cmd.none )
+
+    ToggleEdition ->
+      case model.mode of
+        TechniqueDetails t o ui oldEdit ->
+          let
+            edition =
+              { oldEdit | open = not oldEdit.open }
+
+            newModel =
+              { model | mode = TechniqueDetails t o ui edition }
+
+            cmd =
+              if edition.open then
+                checkTechnique (CheckJson t) newModel
+
+              else
+                Cmd.none
+          in
+          ( newModel , cmd )
+
+        _ ->
+          ( model, Cmd.none )
 

@@ -143,7 +143,8 @@ decodeTechniqueError =
   succeed TechniqueError
     |> required "id" (map TechniqueId string)
     |> required "version" string
-    |> optional "category" (maybe string) Nothing
+    |> required "category" string
+    |> required "content" string
     |> required "errorMsg" string
     |> required "errorPath" string
 

@@ -77,6 +77,7 @@ checkTechnique mode model =
       case mode of
         Import content -> ("yaml","json",(Detailed.expectJson (CheckOutJson mode) techniqueDecoder, stringBody "application/x-yml" content ))
         EditYaml content -> ("yaml", "json",(Detailed.expectJson (CheckOutJson mode) techniqueDecoder, stringBody "application/x-yml" content))
+        SaveYaml content -> ("yaml", "json",(Detailed.expectJson (CheckOutJson mode) techniqueDecoder, stringBody "application/x-yml" content))
         CheckJson technique -> ("json", "yaml",(Detailed.expectJson (CheckOutYaml mode) yamlDecoder,  jsonBody (encodeTechnique technique)))
     req =
       request
@@ -143,7 +144,7 @@ saveTechnique  technique creation internalId model  =
     req
 
 
-deleteTechnique : Technique  -> Model ->  Cmd Msg
+deleteTechnique : DeletionTechnique  -> Model ->  Cmd Msg
 deleteTechnique  technique model =
   let
     req =
@@ -152,7 +153,7 @@ deleteTechnique  technique model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques/" ++ technique.id.value ++ "/" ++ technique.version
         , body    = emptyBody
-        , expect  = Detailed.expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] (list decodeDeleteTechniqueResponse ) |> headList)
+        , expect  = Detailed.expectJson (ignoreMetadata >> DeleteTechnique) ( Json.Decode.at ["data", "techniques" ] (list decodeDeleteTechniqueResponse ) |> headList)
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -213,3 +214,8 @@ getDirectives model =
         }
   in
     req
+
+
+ignoreMetadata : ( Result (Detailed.Error String) ( Http.Metadata, a ) ) -> ( Result (Detailed.Error String) a )
+ignoreMetadata =
+  Result.map Tuple.second
