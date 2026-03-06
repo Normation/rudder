@@ -9,7 +9,6 @@ use crate::{
     hooks::Hooks,
     output::{Report, ScheduleReport, Status},
     package_manager::{LinuxPackageManager, PackageSpec},
-    system::System,
 };
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
@@ -136,10 +135,9 @@ pub fn do_update(
     p: &RunnerParameters,
     db: &mut PackageDatabase,
     package_manager: &mut Box<dyn LinuxPackageManager>,
-    system: &Box<dyn System>,
 ) -> Result<bool> {
     db.start_event(&p.event_id, Utc::now())?;
-    let (report, reboot) = update(package_manager, p.reboot_type, &p.campaign_type, system)?;
+    let (report, reboot) = update(package_manager, p.reboot_type, &p.campaign_type)?;
     db.schedule_post_event(&p.event_id, &report)?;
     Ok(reboot)
 }
@@ -178,7 +176,6 @@ fn update(
     pm: &mut Box<dyn LinuxPackageManager>,
     reboot_type: RebootType,
     campaign_type: &FullCampaignType,
-    system: &Box<dyn System>,
 ) -> Result<(Report, bool)> {
     let mut report = Report::new();
 
@@ -234,7 +231,7 @@ fn update(
     let pre_reboot_result = Hooks::PreReboot.run();
     report.step(pre_reboot_result);
 
-    let pending = pm.reboot_pending();
+    let pending = pm.is_reboot_pending();
     let is_pending = match pending.inner {
         Ok(p) => p,
         Err(_) => {
@@ -266,7 +263,7 @@ fn update(
             "Restarting services: {}",
             &services_list.join(", ")
         ));
-        let restart_result = system.restart_services(&services_list);
+        let restart_result = pm.restart_services();
         // Don't fail on service restart failure
         report.step(restart_result);
     }

@@ -9,6 +9,7 @@ use std::collections::HashMap;
 
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
+use crate::systemd::systemd_reboot;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -229,10 +230,21 @@ pub trait LinuxPackageManager {
     fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()>;
 
     /// Is a reboot pending?
-    fn reboot_pending(&self) -> ResultOutput<bool>;
+    fn is_reboot_pending(&self) -> ResultOutput<bool>;
+
+    /// Reboot the system immediately
+    #[cfg(unix)]
+    fn reboot(&self) -> ResultOutput<()> {
+        systemd_reboot()
+    }
+    #[cfg(not(unix))]
+    fn reboot(&self) -> ResultOutput<()>;
 
     /// List the services to restart
     fn services_to_restart(&self) -> ResultOutput<Vec<String>>;
+
+    /// Restart the services that need it
+    fn restart_services(&self) -> ResultOutput<()>;
 }
 
 #[cfg(test)]

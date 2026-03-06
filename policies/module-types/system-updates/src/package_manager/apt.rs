@@ -28,6 +28,7 @@ use rudder_module_type::os_release::OsRelease;
 #[cfg(feature = "apt-compat")]
 use rust_apt_compat as rust_apt;
 
+use crate::systemd::systemd_reboot;
 use rust_apt::{
     Cache, PackageSort,
     cache::Upgrade,
@@ -37,6 +38,8 @@ use rust_apt::{
     progress::{AcquireProgress, InstallProgress},
 };
 use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Command};
+
+const REBOOT_REQUIRED_FILE_PATH: &str = "/var/run/reboot-required";
 
 /// References:
 /// * https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html
@@ -55,8 +58,6 @@ use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Comma
 ///
 /// The main drawback of using the library is that it doesn't provide a way to run equivalent commands
 /// directly for debugging, but it helps to avoid parsing the output of the command and to manage the errors.
-
-const REBOOT_REQUIRED_FILE_PATH: &str = "/var/run/reboot-required";
 
 pub struct AptPackageManager {
     /// Use an `Option` as some methods will consume the cache.
@@ -97,15 +98,6 @@ impl AptPackageManager {
         })
     }
 
-    /// Take the existing cache, or create a new one if it is not available.
-    fn cache(&mut self) -> ResultOutput<Cache> {
-        if self.cache.is_some() {
-            ResultOutput::new(Ok(self.cache.take().unwrap()))
-        } else {
-            Self::apt_errors_to_output(new_cache!())
-        }
-    }
-
     /// Parses the batch output of needrestart.
     /// It conveniently exposes a stable parsing-friendly output.
     ///
@@ -123,6 +115,15 @@ impl AptPackageManager {
                 service_name
             })
             .collect())
+    }
+
+    /// Take the existing cache, or create a new one if it is not available.
+    fn cache(&mut self) -> ResultOutput<Cache> {
+        if self.cache.is_some() {
+            ResultOutput::new(Ok(self.cache.take().unwrap()))
+        } else {
+            Self::apt_errors_to_output(new_cache!())
+        }
     }
 
     fn all_installed() -> PackageSort {
@@ -325,7 +326,7 @@ impl LinuxPackageManager for AptPackageManager {
         }
     }
 
-    fn reboot_pending(&self) -> ResultOutput<bool> {
+    fn is_reboot_pending(&self) -> ResultOutput<bool> {
         // The `needrestart` command doesn't bring anything more here.
         // It only covers kernel-based required reboots, which are also covered with this file.
         let pending_reboot = Path::new(REBOOT_REQUIRED_FILE_PATH)
@@ -339,9 +340,8 @@ impl LinuxPackageManager for AptPackageManager {
 
     fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
         let mut c = Command::new("needrestart");
-        c
+        c.arg("-r")
             // list only
-            .arg("-r")
             .arg("l")
             // batch mode (parsable output)
             .arg("-b");
@@ -357,11 +357,31 @@ impl LinuxPackageManager for AptPackageManager {
         };
         ResultOutput::new_output(res, o, e)
     }
+
+    fn restart_services(&self) -> ResultOutput<()> {
+        let mut c = Command::new("needrestart");
+        c.arg("-r")
+            // automatic restart
+            .arg("a")
+            // batch mode (parsable output)
+            .arg("-b");
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e).context("Restarting services to restart with the needrestart command"),
+        };
+        ResultOutput::new_output(res, o, e)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::package_manager::AptPackageManager;
 
     #[test]
     fn test_parse_services_to_restart_multi_string() {
