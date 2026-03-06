@@ -13,7 +13,7 @@ There are different kind of possible formats for dates :
 * starting with a common example that is compatible with [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339#section-5.6) (a reference format for this ADR) and therefore complies with [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) : `2026-01-21T06:56:23Z`, it can also include offset and timezone in various formats, for example `2026-01-21T07:56:23+01:00`
 * any custom display : 
   * a human-readable one that is relative to user locale : `Thu Jan 21 2026 07:56:23 GMT+0100 (Central European Standard Time)`,
-  * one that is not compliant with ISO 8601 but which is valid with respect to RFC 3339 and which is more user-friendly : `2026-01-21 07:56:23+01:00`,
+  * one that is more user-friendly : `2026-01-21 07:56:23+01:00`,
   * one that has no timezone, which then needs to be assumed implicitly : `2026-01-21 07:56:23`.
 
 There has been quite a number of RFC that propose specific formats of dates : 
@@ -38,14 +38,20 @@ There is no current way to customize the format, nor the timezone, that is alrea
 
 * In output formatting of dates that may or may not be visible by users, add the timezone explicitly to all dates, regardless of the formatting of the date and time parts.
   * For example, `2026-01-21 07:56:23` should become `2026-01-21 07:56:23+01:00`
-* In the REST API, generally use RFC 3339-compatible format strictly in all the public API :
+* In the REST API, generally use a RFC 3339-compatible format strictly in all the public API :
   * in queries, strictly support parsing of the RFC 3339 format
-  * in responses, output dates with RFC 3339 format with the UTC timezone (`Z` offset)
+  * in responses, output dates with a RFC 3339 format with the UTC timezone (`Z` offset)
   * for that purpose, use for example the formatters provided by [java-time](https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#ISO_OFFSET_DATE_TIME), which are based on ISO 8601 (we need to pay attention to use the ones that are compliant with RFC 3339)
+  * the usual format for the same example looks like this : `2026-01-21T06:56:23Z`
 * In all web pages, use a global timezone that can be shared by all components that display dates :
   * one that is set from user preferences, if there is a way to select a global default timezone for display in the webapp
   * if such preference do not exist, fallback to the server timezone, since is it the one that is already displayed most often
   * in some cases when the global timezone is conflicting with dates specific to a timezone (ex: in objects configured with explicit timezone, like _campaigns_), the date could be rendered with that specific timezone
+* In storage components, such as file system and database (which are less visible to end users), also generally use a RFC 3339-compatible format :
+  * if the date is stored as a serialized string (e.g. JSON file), use a format that is compatible with RFC 3339
+  * if the date is stored in a database system, then use the database format allowing to store the datetime with a specific offset, for example :
+    * in PostgreSQL : the [timestamp with timezone](https://www.postgresql.org/docs/18/datatype-datetime.html) type
+    * in LDAP : the "generalized time" type defined in RFC 4517
 
 ## Consequences
 
