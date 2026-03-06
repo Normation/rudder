@@ -73,7 +73,7 @@ class TestEditorTechniqueReader extends ZIOSpecDefault {
     override def read(file: EditorTechniquePath): IOResult[Either[EditorTechniqueParsingError, EditorTechnique]] = {
       file.id.value match {
         case `invalidParsingId` =>
-          EditorTechniqueParsingError(file, "error").asLeft.succeed
+          EditorTechniqueParsingError(file, "invalid yaml content", "error").asLeft.succeed
         case `invalidIOId`      =>
           Unexpected("invalid_io").fail
         case _                  =>
@@ -82,7 +82,7 @@ class TestEditorTechniqueReader extends ZIOSpecDefault {
               id = file.id,
               version = file.version,
               name = file.id.value,
-              category = file.category.getOrElse("")
+              category = file.category
             )
             .asRight
             .succeed

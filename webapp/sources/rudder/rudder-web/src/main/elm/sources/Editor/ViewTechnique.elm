@@ -225,14 +225,61 @@ checkBlocksOnError methodElems =
           _ -> Nothing
       )
 
-showTechniqueError : TechniqueError -> Html Msg
-showTechniqueError error =
-  div [class "jumbotron"]
-      [ h1 [] [ i [ class "fa fa-warning" ] [], text "Technique file is invalid" ]
-      , h2 [] [ text "At ", em [] [ text error.errorPath ] ]
-      , p [] [ text "Error details :" ]
-      , p [] [ pre [] [ text error.errorMsg ] ]
+showTechniqueError : Model -> TechniqueErrorUiInfo -> TechniqueError -> Html Msg
+showTechniqueError model ui ({ version, id, errorPath, errorMsg }) =
+  let
+    title =
+      [ span [class "technique-version" ] [ text version ] , text (" - " ++ id.value) ]
+
+    ( edit, saving ) =
+      case ui of
+        TechniqueErrorUiSaving value ->
+          ( value, True )
+
+        TechniqueErrorUiYamlEditing value ->
+          ( value, False)
+
+  in
+  div [ class "main-container" ][
+    div [ class "main-header" ] [
+      div [ class "header-title" ] [
+        h1 [] title
+      , div [ class "header-buttons btn-technique", hidden (not model.hasWriteRights) ] [
+        -- only deletion
+        button [ class "btn btn-danger", onClick (OpenDeletionPopup { id = id, name = id.value, version = version })] [
+            text "Delete"
+          , i [ class "fa fa-times-circle"] []
+          ]
+        , button [ class "btn btn-primary", disabled True ] [
+            text "YAML editor"
+          , i [ class "fa fa-pen"] []
+          ]
+        , viewBtnSave saving [] StartSaving
+        ]
       ]
+    ]
+  , div [ class "main-details", Html.Attributes.id "details"]
+    [ div [ class "editForm",  name "ui.editForm" ]
+      [ div [ class "row"]
+        [ div [ class "callout-fade callout-danger" ]
+          [ h4 [] [ text "File content is invalid, please correct the YAML and save the technique"]
+          , pre [ class "command-output" ] [ text errorMsg ]
+          ]
+        , h5 []
+          [ text "File content"
+          , a [ class "fs-6 text-lowercase d-flex align-items-baseline", onClick (Copy errorPath) ]
+            [ pre [ class "my-2 me-2 text-black" ] [ text errorPath ]
+            , a [ class "clipboard", Html.Attributes.title "Copy to clipboard" ]
+              [ i [ class "ion ion-clipboard" ] [] ]
+            ]
+          ]
+
+        , div [class "col-sm-12"]
+          [ viewYamlEdit edit ]
+        ]
+      ]
+    ]
+  ]
 
 showTechnique : Model -> Technique ->  TechniqueState -> TechniqueUiInfo -> TechniqueEditInfo -> Html Msg
 showTechnique model technique origin ui editInfo =
@@ -308,9 +355,9 @@ showTechnique model technique origin ui editInfo =
                     Creation _ -> False
                     Clone t _ _ -> t == technique
     deleteAction = case origin of
-                     Creation id -> DeleteTechnique (Ok (fakeMetadata, id))
-                     Clone _ _ id -> DeleteTechnique (Ok (fakeMetadata, id))
-                     Edit _ -> OpenDeletionPopup technique
+                     Creation id -> DeleteTechnique (Ok id)
+                     Clone _ _ id -> DeleteTechnique (Ok id)
+                     Edit _ -> OpenDeletionPopup { id = technique.id, name = technique.name, version = technique.version }
     topButtons =  [ li [] [
                       a [ class "dropdown-item", disabled creation , onClick (GenerateId (\s -> CloneTechnique technique optDraftId (TechniqueId s))) ] [
                         text "Clone "
@@ -412,29 +459,6 @@ showTechnique model technique origin ui editInfo =
         , (isEnumWithEmptyValue, "The field 'value' of Enum type parameter values cannot be empty")
         ]
 
-    btnSave : Bool -> List (Bool, String) -> Msg -> Html Msg
-    btnSave saving disableChecks action =
-      let
-        disable = disableChecks |> List.any (\(check, _) -> check == True)
-        btnTitle =
-          if disable then
-            String.append
-              ( disableChecks
-                |> List.filter (\(check, _) -> check == True )
-                |> List.map (\(_, txt) -> txt )
-                |> String.join ".\n"
-              ) "."
-          else
-            ""
-        icon = if saving then "fa-spinner fa-pulse" else if disable then "fa-ban" else "fa-download"
-      in
-        button
-        [ class ("btn btn-success btn-save" ++ (if saving then " saving" else ""))
-        , type_ "button"
-        , Html.Attributes.title btnTitle
-        , disabled (saving || disable)
-        , onClick action
-        ] [ i [ class ("fa " ++ icon)][] ]
   in
     div [ class "main-container" ] [
       div [ class "main-header" ] [
@@ -453,11 +477,11 @@ showTechnique model technique origin ui editInfo =
             , i [ class "fa fa-undo"] []
             ]
 
-          , button [ class "btn btn-primary", onClick (UpdateEdition ({editInfo | open = not editInfo.open }))] [
+          , button [ class "btn btn-primary", onClick ToggleEdition ] [
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving checkList StartSaving
+          , viewBtnSave ui.saving checkList StartSaving
           ]
         ]
       ]
@@ -517,16 +541,7 @@ showTechnique model technique origin ui editInfo =
             ]
           , if (editInfo.open) then
               div [class "col-sm-12"]
-              [ textarea
-                [ -- to deactivate plugin "Grammarly" or "Language Tool" from
-                  -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
-                  attribute "data-gramm" "false"
-                , attribute "data-gramm_editor" "false"
-                , attribute "data-enable-grammarly" "false"
-                , spellcheck False
-                , class "yaml-editor"
-                , rows (String.lines editInfo.value |> List.length)
-                , onInput (\s -> UpdateEdition ({editInfo | value =  s})), value editInfo.value][]
+              [ viewYamlEdit editInfo.value
               ]
             else render methodsList
           ]
@@ -555,15 +570,22 @@ view model =
                 TechniqueDetails technique state uiInfo editInfo ->
                   showTechnique model technique state uiInfo editInfo
 
-                TechniqueErrorDetails error ->
-                  showTechniqueError error
+                TechniqueErrorDetails error ui ->
+                  showTechniqueError model ui error
 
     classes = "rudder-template " ++ if model.genericMethodsOpen then "show-right" else "show-left"
 
+    treeTechniques =
+      model.techniques
+        |> List.map treeTechnique
+
+    treeErrors =
+      model.errors
+        |> List.map treeTechniqueError
 
   in
     div [ id "technique-editor", class classes] [
-      techniqueList model model.techniques
+      techniqueList model (treeTechniques ++ treeErrors)
     , div [ class "template-main" ] [central]
     , methodsList model
     , case model.modal of
@@ -596,6 +618,46 @@ view model =
           ]
     ]
 
+
+viewYamlEdit : String -> Html Msg
+viewYamlEdit edit =
+  textarea
+  [ -- to deactivate plugin "Grammarly" or "Language Tool" from
+    -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+    attribute "data-gramm" "false"
+  , attribute "data-gramm_editor" "false"
+  , attribute "data-enable-grammarly" "false"
+  , spellcheck False
+  , class "yaml-editor"
+  , rows (String.lines edit |> List.length)
+  , onInput UpdateEdition, value edit
+  ]
+  []
+
+
+viewBtnSave : Bool -> List (Bool, String) -> Msg -> Html Msg
+viewBtnSave saving disableChecks action =
+  let
+    disable = disableChecks |> List.any (\(check, _) -> check == True)
+    btnTitle =
+      if disable then
+        String.append
+          ( disableChecks
+            |> List.filter (\(check, _) -> check == True )
+            |> List.map (\(_, txt) -> txt )
+            |> String.join ".\n"
+          ) "."
+      else
+        ""
+    icon = if saving then "fa-spinner fa-pulse" else if disable then "fa-ban" else "fa-download"
+  in
+    button
+    [ class ("btn btn-success btn-save" ++ (if saving then " saving" else ""))
+    , type_ "button"
+    , Html.Attributes.title btnTitle
+    , disabled (saving || disable)
+    , onClick action
+    ] [ i [ class ("fa " ++ icon)][] ]
 
 onContentEditableInput : (String -> msg) -> Attribute msg
 onContentEditableInput tagger =

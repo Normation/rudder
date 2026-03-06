@@ -31,7 +31,7 @@ import zio.ZIO.*
 import zio.json.*
 import zio.syntax.*
 
-final case class EditorTechniqueParsingError(path: EditorTechniquePath, errorMsg: String) extends RudderError {
+final case class EditorTechniqueParsingError(path: EditorTechniquePath, content: String, errorMsg: String) extends RudderError {
   override def msg: String = s"Error when parsing technique file : ${path.path}: ${errorMsg}"
 }
 
@@ -351,7 +351,7 @@ class EditorTechniqueYamlReaderImpl(
         _ <- EditorTechnique.checkTechniqueIdConsistency(path.toFile, t)
       } yield {
         t
-      }).leftMap(errMsg => EditorTechniqueParsingError(path, errMsg))
+      }).leftMap(errMsg => EditorTechniqueParsingError(path, content, errMsg))
     }).chainError(s"An error occurred while extracting data from technique ${path}")
   }
 }
