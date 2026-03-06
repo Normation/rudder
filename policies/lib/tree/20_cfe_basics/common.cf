@@ -429,4 +429,24 @@ bundle agent call_method_end(method) {
       "${configuration.debug} Exiting method ${method} from ${report_data.method_id}, should_report: false";
 }
 
+# Takes module name with dashes, as in filename
+#
+# Defines global classes "rudder_${c_module_type}_feature_${feature}"
+bundle agent rudder_module_detect_features(module_type) {
+  vars:
+      "c_module_type"            string => canonify("${module_type}");
+      "${c_module_type}_cmd_data"  data => execresult_as_data(
+          "/opt/rudder/bin/rudder-module-${module_type} --cfengine --info",
+          "noshell"
+      );
+      "${c_module_type}_info"      data => parsejson("${${c_module_type}_cmd_data[output]}");
+      "${c_module_type}_features" slist => getvalues("${c_module_type}_info[features]");
 
+  classes:
+      "rudder_${c_module_type}_feature_${${c_module_type}_features}"
+          scope      => "namespace";
+
+  reports:
+    debug::
+      "Defined module feature: rudder_${c_module_type}_feature_${${c_module_type}_features}";
+}
