@@ -66,8 +66,6 @@ import zio.json.*
  *
  */
 class AcceptNode extends SecureDispatchSnippet with Loggable {
-  import AcceptNodeJson.*
-
   val newNodeManager     = RudderConfig.newNodeManager
   val rudderDit          = RudderConfig.rudderDit
   val serverGrid         = RudderConfig.nodeGrid
@@ -324,8 +322,4 @@ class AcceptNode extends SecureDispatchSnippet with Loggable {
    */
   val selectAll: Node =
     <input type="checkbox" id="selectAll" onclick="jqCheckAll('selectAll', 'serverids')"/>
-}
-
-object AcceptNodeJson {
-  implicit val decodeNodeId: JsonDecoder[NodeId] = JsonDecoder[String].map(NodeId.apply)
 }

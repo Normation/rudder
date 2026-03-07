@@ -565,7 +565,6 @@ trait RudderJsonDecoders {
   implicit val jqDeleteModeDecoder: JsonDecoder[JQDeleteMode] = DeriveJsonDecoder.gen[JQDeleteMode]
   implicit val classesDecoder:      JsonDecoder[JQClasses]    = DeriveJsonDecoder.gen[JQClasses].orElse((_, _) => JQClasses(None))
 
-  implicit val nodeIdDecoder:             JsonDecoder[NodeId]                      = JsonDecoder[String].map(NodeId.apply)
   implicit val nodeIdChunkDecoder:        JsonDecoder[JQNodeIdChunk]               = DeriveJsonDecoder.gen[JQNodeIdChunk]
   implicit val nodeStatusActionDecoder:   JsonDecoder[JQNodeStatusAction]          =
     JsonDecoder[String].mapOrFail(JQNodeStatusAction.withNameInsensitiveEither(_).left.map(_.getMessage()))
