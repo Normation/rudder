@@ -43,12 +43,6 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.LDAPEntry
-import com.normation.ldap.sdk.RwLDAPConnection
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_CONFIG
-import com.normation.rudder.domain.RudderLDAPConstants.OC_NODES_CONFIG
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.policies.DirectiveId
@@ -56,15 +50,15 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
+import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import java.nio.charset.StandardCharsets
-import net.liftweb.common.Loggable
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
+import java.time.Instant
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
-import scala.util.control.NonFatal
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 final case class PolicyHash(
@@ -76,38 +70,27 @@ final case class NodeConfigurationHashes(hashes: List[NodeConfigurationHash])
 
 object NodeConfigurationHashes {
 
+  import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash.NodeConfigurationHashJson
+
+  private[nodeconfig] case class NodeConfigurationHashesJson(hashes: List[NodeConfigurationHashJson]) derives JsonCodec
+  private[nodeconfig] object NodeConfigurationHashesJson {
+    given Transformer[NodeConfigurationHashesJson, NodeConfigurationHashes] = Transformer
+      .define[NodeConfigurationHashesJson, NodeConfigurationHashes]
+      .buildTransformer
+  }
+
+  private[nodeconfig] given Transformer[NodeConfigurationHashes, NodeConfigurationHashesJson] = Transformer
+    .define[NodeConfigurationHashes, NodeConfigurationHashesJson]
+    .withFieldComputed(_.hashes, _.hashes.sortBy(_.id.value).map(_.transformInto[NodeConfigurationHashJson]))
+    .buildTransformer
+
   // we really want to have one line by node
   def toJson(hashes: NodeConfigurationHashes): String = {
-    s"""{"hashes": [${hashes.hashes.map(x => NodeConfigurationHash.toJson(x)).mkString("\n  ", ",\n  ", "\n")}] }"""
+    hashes.transformInto[NodeConfigurationHashesJson].toJsonPretty
   }
 
   def fromJson(json: String): IOResult[NodeConfigurationHashes] = {
-    for {
-      jval <- IOResult.attempt(parse(json))
-      arr  <- (jval \ "hashes") match {
-                case JNothing | JNull => Nil.succeed
-                case JArray(arr)      => arr.succeed
-                case x                =>
-                  Inconsistency(
-                    s"Can not parse json as a cache of node configuration hashes. Found: ${compactRender(x).take(100)}..."
-                  ).fail
-              }
-      // ignore only invalide node config hashses
-      hs   <- ZIO.foldLeft(arr)(List.empty[NodeConfigurationHash]) {
-                case (all, current) =>
-                  NodeConfigurationHash.extractNodeConfigCache(current) match {
-                    case Left((m, j)) =>
-                      PolicyGenerationLoggerPure.error(
-                        s"Can not parse following json as node configuration hash: ${m}; corresponding entry will be ignored: ${compactRender(j)}. "
-                      ) *>
-                      all.succeed
-                    case Right(h)     =>
-                      (h :: all).succeed
-                  }
-              }
-    } yield {
-      NodeConfigurationHashes(hs)
-    }
+    json.fromJson[NodeConfigurationHashesJson].toIO.map(_.transformInto[NodeConfigurationHashes])
   }
 
 }
@@ -147,94 +130,61 @@ final case class NodeConfigurationHash(
 }
 
 object NodeConfigurationHash {
+  import com.normation.utils.DateFormaterService.json.*
 
   /*
    * Serialization / unserialization to json.
    * We want something as compact as possible, so NodeConfigurationHash are serialized like that:
-   * { i: [ "nodeid"(string), "writtendate"(string), nodeInfoCache(int), parameterHash(int), nodecContextHash(int)]
+   * { i: [ "nodeid"(string), "writtendate"(string), nodeInfoHash(int), parameterHash(int), nodecContextHash(int)]
    * , p: [ [ "ruleId"(string), "directiveid"(string), "techniqueversion"(string), hash(int)]
    *      , [ ....
    *      ]
    * } (minified)
    *
    */
-  def toJvalue(hash: NodeConfigurationHash): JValue = {
-    (
-      ("i"   -> JArray(
-        List(
-          hash.id.value,
-          hash.writtenDate.toString(ISODateTimeFormat.dateTime().withZoneUTC()),
-          hash.nodeInfoHash,
-          hash.parameterHash,
-          hash.nodeContextHash
-        )
-      ))
-      ~ ("p" -> JArray(
-        hash.policyHash.toList.map(p => {
-          JArray(
-            List(p.draftId.ruleId.serialize, p.draftId.directiveId.serialize, p.draftId.techniqueVersion.serialize, p.cacheValue)
+  final private[nodeconfig] case class NodeConfigurationHashJson(
+      i: (NodeId, Instant, Int, Int, Int),
+      p: Chunk[(RuleId, DirectiveId, TechniqueVersion, Int)]
+  )
+
+  private[nodeconfig] object NodeConfigurationHashJson {
+    given Transformer[NodeConfigurationHashJson, NodeConfigurationHash] = Transformer
+      .define[NodeConfigurationHashJson, NodeConfigurationHash]
+      .withFieldComputed(_.id, _.i._1)
+      .withFieldComputed(_.writtenDate, _.i._2.transformInto[DateTime])
+      .withFieldComputed(_.nodeInfoHash, _.i._3)
+      .withFieldComputed(_.parameterHash, _.i._4)
+      .withFieldComputed(_.nodeContextHash, _.i._5)
+      .withFieldComputed(_.policyHash, _.p.map((r, d, t, h) => PolicyHash(PolicyId(r, d, t), h)).toSet)
+      .buildTransformer
+
+    import com.normation.utils.DateFormaterService.json.*
+
+    given JsonEncoder[NodeConfigurationHashJson] = DeriveJsonEncoder.gen
+    given JsonDecoder[NodeConfigurationHashJson] = DeriveJsonDecoder.gen
+  }
+
+  private[nodeconfig] given Transformer[NodeConfigurationHash, NodeConfigurationHashJson] = {
+    Transformer
+      .define[NodeConfigurationHash, NodeConfigurationHashJson]
+      .withFieldComputed(
+        _.i,
+        x => {
+          (
+            x.id,
+            x.writtenDate.transformInto[Instant],
+            x.nodeInfoHash,
+            x.parameterHash,
+            x.nodeContextHash
           )
-        })
-      ))
-    )
-  }
-  def toJson(hash: NodeConfigurationHash):   String = {
-    compactRender(toJvalue(hash))
-  }
-
-  def extractNodeConfigCache(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
-    def readDate(date: String): Either[(String, JValue), DateTime] = try {
-      Right(ISODateTimeFormat.dateTimeParser().withZoneUTC().parseDateTime(date))
-    } catch {
-      case NonFatal(ex) => Left((s"Error, written date can not be parsed as a date: ${date}", JString(date)))
-    }
-
-    def readPolicy(p: JValue) = {
-      p match {
-        case JArray(List(JString(ruleId), JString(directiveId), JString(techniqueVerion), JInt(policyHash))) =>
-          for {
-            version <- TechniqueVersion.parse(techniqueVerion).leftMap(err => (err, p))
-            did     <- DirectiveId.parse(directiveId).leftMap(err => (err, p))
-            rid     <- RuleId.parse(ruleId).leftMap(err => (err, p))
-          } yield PolicyHash(PolicyId(rid, did, version), policyHash.toInt)
-        case x                                                                                               => Left((s"Error when parsing policy: a json array", x))
-      }
-    }
-
-    j match {
-      case JObject(
-            List(
-              JField(
-                "i",
-                JArray(List(JString(nodeId), JString(date), JInt(nodeInfoCache), JInt(paramCache), JInt(nodeContextCache)))
-              ),
-              JField("p", JArray(policies))
-            )
-          ) =>
-        for {
-          d <- readDate(date)
-          p <- policies.traverse(readPolicy(_))
-        } yield {
-          NodeConfigurationHash(NodeId(nodeId), d, nodeInfoCache.toInt, paramCache.toInt, nodeContextCache.toInt, p.toSet)
         }
-      case _ => Left((s"Cannot parse node configuration hash (use 'DEBUG' log level for details).", j))
-    }
-  }
-
-  def fromJson(json: String): Either[(String, JValue), NodeConfigurationHash] = {
-    def jval = try {
-      Right(parse(json))
-    } catch {
-      case NonFatal(ex) =>
-        Left((s"Error when parsing node configuration cache entry. Expection was: ${ex.getMessage}", JString(json)))
-    }
-
-    for {
-      v <- jval
-      x <- extractNodeConfigCache(v)
-    } yield {
-      x
-    }
+      )
+      .withFieldComputed(
+        _.p,
+        x =>
+          Chunk.fromIterable(x.policyHash).sortBy(_.draftId.value).map { case PolicyHash(PolicyId(r, d, t), h) => (r, d, t, h) }
+      )
+      .buildTransformer
   }
 
   /**
@@ -571,131 +521,5 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
         }
       }
     )
-  }
-}
-
-/**
- * An implementation into LDAP
- */
-class LdapNodeConfigurationHashRepository(
-    rudderDit: RudderDit,
-    ldapCon:   LDAPConnectionProvider[RwLDAPConnection]
-) extends NodeConfigurationHashRepository with Loggable {
-
-  /**
-   * Logic: there is only one object that contains all node config cache.
-   * Each node config cache is stored in one value of the "nodeConfig" attribute.
-   * The serialisation is simple json.
-   * We won't be able to simply delete one value with that method, but it is not
-   * the principal use case.
-   */
-
-  /**
-   * That mapping ignore malformed node configuration and work in a
-   * "best effort" way. Bad config are logged as error.
-   * We fail if the entry is not of the expected type
-   */
-  private def fromLdap(entry: Option[LDAPEntry]): IOResult[Set[NodeConfigurationHash]] = {
-    entry match {
-      case None    => Set.empty[NodeConfigurationHash].succeed
-      case Some(e) =>
-        for {
-          typeOk <- ZIO.when(!e.isA(OC_NODES_CONFIG)) {
-                      Inconsistency(
-                        s"Entry ${e.dn} is not a '${OC_NODES_CONFIG}', can not find node configuration caches. Entry details: ${e}"
-                      ).fail
-                    }
-        } yield {
-          e.valuesFor(A_NODE_CONFIG).flatMap { json =>
-            NodeConfigurationHash.fromJson(json) match {
-              case Right(value)        => Some(value)
-              case Left((error, json)) =>
-                logger.info(s"Ignoring node configuration cache info because of deserialization issue: ${error}")
-                logger.debug(s"Json causing node configuration deserialization issue: ${net.liftweb.json.compactRender(json)}")
-                None
-            }
-          }
-        }
-    }
-  }
-
-  private def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
-    val caches = nodeConfigs.map(x => NodeConfigurationHash.toJson(x))
-    val entry  = rudderDit.NODE_CONFIGS.model
-    entry.resetValuesTo(A_NODE_CONFIG, caches.toSeq*)
-    entry
-  }
-
-  /*
-   * Delete node config matching predicate.
-   * Return the list of remaining ids.
-   */
-  private def deleteCacheMatching(shouldDeleteConfig: NodeConfigurationHash => Boolean): IOResult[Set[NodeId]] = {
-    for {
-      ldap         <- ldapCon
-      currentEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
-      remaining    <- fromLdap(currentEntry).map(_.filterNot(shouldDeleteConfig))
-      newEntry      = toLdap(remaining)
-      saved        <- ldap.save(newEntry)
-    } yield {
-      remaining.map(_.id)
-    }
-  }
-
-  /**
-   * Delete node config by its id
-   */
-  override def deleteNodeConfigurations(nodeIds: Set[NodeId]): IOResult[Unit] = {
-    deleteCacheMatching(nodeConfig => nodeIds.contains(nodeConfig.id)).unit
-  }
-
-  /**
-   * Inverse of delete: delete all node configuration not
-   * given in the argument.
-   */
-  override def onlyKeepNodeConfiguration(nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
-    for {
-      _ <- deleteCacheMatching(nodeConfig => !nodeIds.contains(nodeConfig.id))
-    } yield {
-      nodeIds
-    }
-  }
-
-  /**
-   * delete all node configuration
-   */
-  override def deleteAllNodeConfigurations(): IOResult[Unit] = {
-    for {
-      ldap    <- ldapCon
-      deleted <- ldap.delete(rudderDit.NODE_CONFIGS.dn)
-      cleaned <- ldap.save(rudderDit.NODE_CONFIGS.model)
-    } yield {
-      ()
-    }
-  }
-
-  override def getAll(): IOResult[Map[NodeId, NodeConfigurationHash]] = {
-    for {
-      ldap        <- ldapCon
-      entry       <- ldap.get(rudderDit.NODE_CONFIGS.dn)
-      nodeConfigs <- fromLdap(entry)
-    } yield {
-      nodeConfigs.map(x => (x.id, x)).toMap
-    }
-  }
-
-  override def save(caches: Set[NodeConfigurationHash]): IOResult[Set[NodeId]] = {
-    val updatedIds = caches.map(_.id)
-    for {
-      ldap          <- ldapCon
-      existingEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
-      existingCache <- fromLdap(existingEntry)
-      // only update and add, keep existing config cache not updated
-      keptConfigs    = existingCache.map(x => (x.id, x)).toMap.view.filterKeys(k => !updatedIds.contains(k)).toMap
-      entry          = toLdap(caches ++ keptConfigs.values)
-      saved         <- ldap.save(entry)
-    } yield {
-      updatedIds
-    }
   }
 }

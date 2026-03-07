@@ -41,6 +41,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import java.security.MessageDigest
 import scala.util.matching.Regex
+import zio.json.JsonCodec
 import zio.syntax.ToZio
 
 trait Uuid extends Any {
@@ -49,6 +50,10 @@ trait Uuid extends Any {
 
 // TODO: migration-scala3 - bug: https://github.com/lampepfl/dotty/issues/16467
 final case class NodeId(val value: String) extends AnyVal with Uuid
+
+object NodeId {
+  given JsonCodec[NodeId] = JsonCodec.string.transform[NodeId](NodeId(_), _.value)
+}
 
 final case class MachineUuid(val value: String) extends AnyVal with Uuid
 
