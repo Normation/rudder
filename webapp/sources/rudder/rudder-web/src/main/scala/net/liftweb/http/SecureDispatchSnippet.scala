@@ -36,15 +36,15 @@
  */
 package net.liftweb.http
 
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.CurrentUser
-import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
 
 /*
  * Secured version of a dispatch snippet with respect to tenants, by providing a query context.
  */
-trait SecureDispatchSnippet extends DispatchSnippet { self: Loggable =>
+trait SecureDispatchSnippet extends DispatchSnippet {
 
   /**
    * Dispatch function, with a QueryContext already provided
@@ -57,7 +57,9 @@ trait SecureDispatchSnippet extends DispatchSnippet { self: Loggable =>
   }
 
   private def loggedInsecureDispatch: DispatchIt = {
-    logger.warn(s"Snippet can't be accessed in current security context (user is not authenticated)")
+    ApplicationLoggerPure.Auth.logEffect.warn(
+      s"Snippet '${this.getClass.getName}' can't be accessed in current security context (user is not authenticated)"
+    )
     PartialFunction.empty
   }
 
