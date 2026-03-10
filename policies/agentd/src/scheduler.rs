@@ -318,7 +318,7 @@ impl Scheduler {
                     error!("Command {} exited with status {}", item.command, status);
                 }
             }
-            Ok(Err(e)) => {
+            Ok(Err(_e)) => {
                 // wait timeouted
                 match child.kill().await { // TODO should we timeout the kill
                     Ok(()) => {
