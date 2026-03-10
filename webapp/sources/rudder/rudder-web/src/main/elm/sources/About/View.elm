@@ -7,6 +7,7 @@ import Json.Encode exposing (Value, list, object)
 
 import About.DataTypes exposing (..)
 import About.JsonEncoder exposing (..)
+import String exposing (slice)
 
 
 view : Model -> Html Msg
@@ -153,6 +154,9 @@ view model =
                     pluginsList : List PluginInfo -> UI -> Html Msg
                     pluginsList plugins ui =
                         let
+                            cleanDate: String -> String
+                            cleanDate date = slice 0 10 date
+
                             showList = ui.showPlugins
                             pluginRow : PluginInfo -> Html Msg
                             pluginRow plugin =
@@ -165,7 +169,7 @@ view model =
                                             ]
                                         Just l ->
                                             [ td[][text l.licensee]
-                                            , td[][text ("from " ++ l.startDate ++ " to " ++ l.endDate)]
+                                            , td[][text ("from " ++ cleanDate l.startDate ++ " to " ++ cleanDate l.endDate)]
                                             , td[][text (l.allowedNodesNumber |> Maybe.map String.fromInt |> Maybe.withDefault "Unlimited")]
                                             ]
                                 in
