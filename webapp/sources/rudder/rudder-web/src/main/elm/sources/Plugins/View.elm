@@ -372,7 +372,7 @@ displayPluginsSection totalCount pluginsModel =
         [ div [ class "table-container plugins-container my-0" ]
             [ div [ class "dataTables_wrapper_top sticky-top table-filter plugins-actions" ]
                 [ div [ class "plugins-actions-filters" ]
-                    (div [] (displaySelectAll totalCount pluginsModel)
+                    (div [ class "text-nowrap" ] (displaySelectAll totalCount pluginsModel)
                         :: displayFilters pluginsModel.filters
                     )
                 , div [ class "plugins-actions-buttons" ]
