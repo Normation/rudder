@@ -10,8 +10,7 @@ import String
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewRulesTable exposing (buildRulesTable)
-import Rules.ViewTabContent exposing (buildListCategories)
-import Rules.ViewUtils exposing (btnSave, getListRules, rulesTableHeader)
+import Rules.ViewUtils exposing (btnSave, getListRules, rulesTableHeader, buildListCategories)
 
 import Ui.Datatable exposing (getSubElems, getAllCats)
 
