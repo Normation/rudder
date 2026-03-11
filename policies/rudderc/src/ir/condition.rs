@@ -115,7 +115,7 @@ impl FromStr for Condition {
             Self::Defined
         } else if ["false", "!any", "!true"].contains(&unparenthesized.as_str()) {
             Self::NotDefined
-        } else if s.chars().all(valid_char) {
+        } else if !s.is_empty() && s.chars().all(valid_char) {
             // remove spaces for compact policies
             Condition::Expression(s.replace(' ', ""))
         } else {
