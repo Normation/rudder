@@ -16,16 +16,16 @@
 #
 #####################################################################################
 
-# @name Command execution secedit
-# @description TODO
+# @name Secedit state
+# @description Configure and audit system security
 # @documentation TODO
 #
 #
-# @parameter            data TODO
-# @parameter_constraint data "allow_empty_string" : true
+# @parameter            data JSON object containing the security configuration to apply
+# @parameter_constraint data "allow_empty_string" : false
 # @parameter_constraint data "valid_format" : "json"
-# @class_prefix command_execution_secedit
+# @class_prefix secedit_state
 # @class_parameter data
 # @agent_support = ["dsc"]
 
-bundle agent command_execution_secedit(data) {}
+bundle agent secedit_state(data) {}
