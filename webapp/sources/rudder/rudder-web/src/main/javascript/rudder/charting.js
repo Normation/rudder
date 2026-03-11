@@ -216,9 +216,6 @@ const doughnutChart = async (id, data, colors, hoverColors , onClickFunction = d
             }
           }
         }
-
-
-      , events: ['click', 'mousemove']
       , onClick: (e, active, currentChart) => { onClickFunction(e, active, currentChart, id, data) }
       }
     , plugins: [htmlLegendPlugin],
@@ -226,79 +223,4 @@ const doughnutChart = async (id, data, colors, hoverColors , onClickFunction = d
   const chart = new Chart(ctx, chartOptions);
   window[id] = chart;
   return chart;
-}
-
-
-// home page chart legend function
-
-// Hide data on click
-const hideChartData = (event, index, name) => {
-  // Get chart data
-  var chart = event.view[name];
-  var meta = chart.getDatasetMeta(0);
-  // Hide selected data
-  meta.data[index].hidden = !meta.data[index].hidden;
-  chart.update();
-};
-
-// When hovering legend display tooltip and highlight
-const openTooltip = (event ,index, name) => {
-  // Get chart
-  var chart = event.view[name];
-
-  // Check if the element is already in the 'active' elements of the chart
-  if(chart.tooltip._active == undefined)
-     chart.tooltip._active = []
-  var activeElements = chart.tooltip._active;
-
-  // Get our element
-  var requestedElem = chart.getDatasetMeta(0).data[index];
-
-  // If already in active elements, skip
-  for(var i = 0; i < activeElements.length; i++) {
-      if(requestedElem._index == activeElements[i]._index)
-         return;
-  }
-  // Add element
-  activeElements.push(requestedElem);
-  chart.tooltip._active = activeElements;
-
-  // Highlight element
-  requestedElem.custom = requestedElem.custom || {};
-  requestedElem.custom.backgroundColor = Chart.helpers.getHoverColor(requestedElem._view.backgroundColor)
-
-  chart.tooltip.update(true);
-  chart.update(0);
-  chart.draw();
-}
-
-//When mouse out of legend remove tooltip and highlight
-const closeTooltip = (e ,index, name) => {
-  // Get chart
-  var chart = e.view[name];
-
-  // Get active elements
-  var activeElements = chart.tooltip._active;
-  if(activeElements == undefined || activeElements.length == 0)
-    // No elements, nothing to do
-    return;
-
-  // our element
-  var requestedElem = chart.getDatasetMeta(0).data[index];
-
-  // Remove our element from active ones
-  for(var i = 0; i < activeElements.length; i++) {
-      if(requestedElem._index == activeElements[i]._index)  {
-         activeElements.splice(i, 1);
-         break;
-      }
-  }
-  chart.tooltip._active = activeElements;
-  chart.tooltip.update(true);
-
-  // Remove highlight by unsetting custom attributes
-  requestedElem.custom =  {};
-
-  chart.update(0);
-  chart.draw();
 }
