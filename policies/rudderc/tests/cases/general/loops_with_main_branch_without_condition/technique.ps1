@@ -33,7 +33,7 @@
 Do something
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -71,7 +71,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -81,7 +81,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $identifier=$reportIdBase + '845f731a-2800-41c8-967e-7d1ce89bd1b9-1'
@@ -97,7 +97,7 @@ sha256
 Do something
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -139,7 +139,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -149,7 +149,7 @@ sha256
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

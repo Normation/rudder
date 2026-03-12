@@ -168,4 +168,10 @@ mod tests {
         let p: Condition = c.parse().unwrap();
         assert_eq!(p, Condition::Expression(reference.to_string()));
     }
+
+    #[test]
+    fn condition_from_empty_str() {
+        let p: Condition = "".to_string().parse().unwrap();
+        assert_eq!(p, Condition::Defined)
+    }
 }
