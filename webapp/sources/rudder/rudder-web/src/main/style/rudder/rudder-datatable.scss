@@ -338,14 +338,19 @@ td.listclose:after {
   padding-top: 0;
   padding-bottom: 0;
 }
-.dataTable > tbody > tr > td > .value-container {
-  padding: 6px 0;
+.dataTable > tbody > tr > td > .value-container,
+ .dataTable > tbody > tr > td > .needs-validation > .value-container{
   white-space: pre-line;
   max-height: 200px;
   overflow: auto;
-}
-.dataTable > tbody > tr > td > .value-container.font-monospace {
-  font-size: .9em;
+
+  &.font-monospace {
+    font-size: .9em;
+  }
+
+  &:has(.is-invalid) ~ .invalid-tooltip{
+    display: block;
+  }
 }
 .dataTable > tbody > tr > td.listclose{
   position: relative;
@@ -587,7 +592,7 @@ tr.parametersDescription {
   right: 40px;
 }
 #nodePropertiesTab > tbody > tr > td.is-edited{
-  padding: 3px;
+  padding: 6px 3px;
 }
 #nodePropertiesTab > tbody > tr > td.property-value .btn{
   font-size: 1.2em;
