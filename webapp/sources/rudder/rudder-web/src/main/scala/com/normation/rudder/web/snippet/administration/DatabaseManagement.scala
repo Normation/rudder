@@ -189,8 +189,8 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
           "%s reports".format(action.name.capitalize),
           { () =>
             val askResult = action.ask(date)
-            JsRaw("""$('#cleanResultText').html('%s, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/core/rudder-webapp.log</span>)');
-                 $('#cleanResult').show();""".format(askResult)) & cancel & updateValue // JsRaw ok, const
+            JsRaw(s"""$$('#cleanResultText').html('${askResult}, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/webapp/webapp.log</span>)');
+                 $$('#cleanResult').show();""") & cancel & updateValue // JsRaw ok, const
           },
           ("class", ("btn " ++ btnClass))
         )
