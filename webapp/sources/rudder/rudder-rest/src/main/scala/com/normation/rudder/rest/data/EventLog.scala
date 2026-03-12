@@ -194,7 +194,8 @@ final case class RestEventLogDetails(
     id:                 String,
     content:            NodeSeq,
     canRollback:        Boolean,
-    nodePropertiesDiff: Option[SimpleDiffJson[List[NodeProperty]]]
+    nodePropertiesDiff: Option[SimpleDiffJson[List[NodeProperty]]],
+    linesDiff:          Option[SimpleDiffJson[String]]
 )
 object RestEventLogDetails {
   implicit val contentEncoder:        JsonEncoder[NodeSeq]             = JsonEncoder[String].contramap(_.toString())

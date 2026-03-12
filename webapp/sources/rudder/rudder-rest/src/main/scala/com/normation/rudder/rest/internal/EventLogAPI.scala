@@ -264,12 +264,14 @@ class EventLogService(
       crId              <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
       htmlDetails        = eventLogDetailGenerator.displayDetails(event, crId.flatten)
       nodePropertiesDiff = eventLogDetailGenerator.nodePropertiesDiff(event)
+      linesDiff          = eventLogDetailGenerator.directiveParametersDiff(event)
     } yield {
       RestEventLogDetails(
         id.toString,
         htmlDetails,
         event.canRollBack,
-        nodePropertiesDiff.map(_.transformInto[SimpleDiffJson[List[NodeProperty]]])
+        nodePropertiesDiff.map(_.transformInto[SimpleDiffJson[List[NodeProperty]]]),
+        linesDiff.map(_.transformInto[SimpleDiffJson[String]])
       )
     }).catchSystemErrors
   }
