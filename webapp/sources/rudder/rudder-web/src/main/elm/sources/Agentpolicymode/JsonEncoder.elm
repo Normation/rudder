@@ -27,9 +27,13 @@ encodeGlobalSettings settings =
       ]
     )
 
-encodeNodeSettings : Settings -> Value
-encodeNodeSettings settings =
+encodeNodeSettings : Maybe Reason -> Settings -> Value
+encodeNodeSettings reason settings =
   let
     policyMode = policyModeToString settings.policyMode
   in
-    object ( [ ( "policyMode" , string policyMode ) ] )
+    object (
+      [ ( "policyMode" , string policyMode )
+      , ( "reason" , reason |> Maybe.map string |> Maybe.withDefault null )
+      ]
+    )

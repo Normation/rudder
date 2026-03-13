@@ -1,23 +1,17 @@
 module Agentpolicymode.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (id, class, href, type_, attribute, disabled)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (attribute, class, disabled, href, id, placeholder, tabindex, type_, value)
+import Html.Events exposing (onClick, onInput)
 
 import Agentpolicymode.DataTypes exposing (..)
+import String.Extra
 
 
 view : Model -> Html Msg
 view model =
   let
     selectedMode = model.selectedSettings.policyMode
-    policyModeStr : PolicyMode -> String
-    policyModeStr mode =
-      case mode of
-        Default -> "Default"
-        Audit   -> "Audit"
-        Enforce -> "Enforce"
-        None    -> ""
 
     policyModeClass : PolicyMode -> String
     policyModeClass mode =
@@ -42,12 +36,13 @@ view model =
           [ (if mode == Default then span[][text "Global mode", span [class ("mode" ++ (policyModeClass model.globalPolicyMode))][text (String.toLower (policyModeStr model.globalPolicyMode))]] else text (policyModeStr mode))
           ]
 
-    btnSave : Bool -> Bool -> Html Msg
-    btnSave saving disable =
+    btnSave : Bool -> Bool -> Maybe ModalSettings -> Html Msg
+    btnSave saving disable modalSettings =
       let
         icon = if saving then i [ class "fa fa-spinner fa-pulse"] [] else text ""
+        msg = modalSettings |> Maybe.map OpenModal |> Maybe.withDefault (StartSaving Nothing)
       in
-        button [class ("btn btn-success btn-save btn-settings" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick StartSaving]
+        button [class ("btn btn-success btn-save btn-settings" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick msg]
         [ icon ]
 
     globalInfo = case model.ui.form of
@@ -102,12 +97,8 @@ view model =
               , policyModeBtn Enforce
               ]
               , span [class "info-mode"]
-                [ text (case selectedMode of
-                  Default -> "This may be overridden on a per-Directive basis."
-                  Audit   -> "Directives will never be enforced on this node, regardless of their policy mode."
-                  Enforce -> "All Directives will apply necessary changes on this node, except Directives with an Audit override setting."
-                  _       -> ""
-                )
+                [ Maybe.map text (explainPolicyMode selectedMode)
+                |> Maybe.withDefault (text "")
                 ]
             ]
           ]
@@ -137,7 +128,7 @@ view model =
       div []
       [ policyModeForm
       , div [class "button-group-success"]
-        [ btnSave model.ui.saving (model.currentSettings == model.selectedSettings)
+        [ btnSave model.ui.saving (model.currentSettings == model.selectedSettings) model.ui.modalSettings
         ]
       ]
       else
@@ -145,4 +136,74 @@ view model =
       [ label[][text "Policy mode:"]
        , policyModeLabel model.currentSettings.policyMode
       ]
+    , viewModal model.ui.saving model.selectedSettings.policyMode model.ui.modalState
     ]
+
+
+viewModal : Bool -> PolicyMode -> ModalState -> Html Msg
+viewModal isSaving mode modalState =
+  case modalState of
+    NoModal ->
+      text ""
+
+    ConfirmModal { value, error } { prompt, isMandatory } ->
+      let
+        btnDisabled =
+          isSaving || (isMandatory && String.Extra.isBlank value)
+
+      in
+      div [ tabindex -1, class "modal fade show d-block" ]
+      [ div [class "modal-backdrop fade show", onClick CloseModal][]
+      , div [ class "modal-dialog" ] [
+          div [ class "modal-content" ] [
+            div [ class "modal-header" ] [
+              h5 [ class "modal-title" ] [ text <| policyModeStr mode ++ " policy mode"]
+            , button [type_ "button", class "btn-close", onClick CloseModal, attribute "aria-label" "Close"][]
+            ]
+          , div [ class "modal-body" ]
+            [ h4 [class "text-center"][text "Are you sure you want to update the policy mode of this node ?"]
+            , (explainPolicyMode mode)
+              |> Maybe.map (\msg -> div [class "alert alert-info"] [text msg])
+              |> Maybe.withDefault (text "")
+            , error
+              |> Maybe.map (\msg -> div [class "alert alert-danger text-center col-xl-12 col-sm-12 col-md-12 text-danger"] [text msg])
+              |> Maybe.withDefault (text "")
+            , div []
+              [ h4 [class "audit-title"] [text "Change audit log"]
+              , div[class "form-group"]
+                [ label[]
+                  [ text "Change audit message"
+                  , text (if isMandatory then " (required)" else "")
+                  ]
+                  , textarea [class "form-control", placeholder prompt, onInput UpdateChangeMessage, Html.Attributes.value value][]
+                ]
+              ]
+            ]
+          , div [ class "modal-footer" ] [
+              button [ class "btn btn-default", onClick CloseModal ]
+              [ text "Cancel " ]
+            , button [ class "btn btn-success", onClick (StartSaving (Just value)), disabled btnDisabled ]
+              [ text "Confirm"
+              , i [ class "ms-2 fa fa-check" ] []
+              ]
+            ]
+          ]
+        ]
+      ]
+
+policyModeStr : PolicyMode -> String
+policyModeStr mode =
+  case mode of
+    Default -> "Default"
+    Audit   -> "Audit"
+    Enforce -> "Enforce"
+    None    -> ""
+
+
+explainPolicyMode : PolicyMode -> Maybe String
+explainPolicyMode mode =
+  case mode of
+    Default -> Just "This may be overridden on a per-directive basis."
+    Audit   -> Just "Directives will never be enforced on this node, regardless of their policy mode."
+    Enforce -> Just "All directives will apply necessary changes on this node, except directives with an 'Audit' override setting."
+    _       -> Nothing
