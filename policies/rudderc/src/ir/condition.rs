@@ -109,7 +109,7 @@ impl FromStr for Condition {
         }
 
         // A trick to handle "(any)" like conditions we used to generate
-        let unparenthesized = s.replace(['(', ')'], "");
+        let unparenthesized = s.replace(['(', ')', ' '], "");
 
         Ok(if ["true", "any", ""].contains(&unparenthesized.as_str()) {
             Self::Defined
