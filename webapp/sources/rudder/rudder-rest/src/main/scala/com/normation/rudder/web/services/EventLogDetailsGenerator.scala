@@ -432,9 +432,7 @@ class EventLogDetailsGenerator(
                         _.fold(PolicyMode.defaultValue)(_.name)
                       ) &
                       "#tags" #> tagsDiff(modDiff.modTags) &
-                      "#parameters" #> (
-                        modDiff.modParameters.map(diff => "#diff" #> displaydirectiveInnerFormDiff(diff, event.id))
-                      )
+                      "#parameters" #> <div id={s"linesdiff-${x.id.getOrElse("unknown")}"}></div>
                     )(piModDirectiveDetailsXML)
                   }{reasonHtml}{xmlParameters(event.id)}
                   </div>
@@ -1198,10 +1196,20 @@ class EventLogDetailsGenerator(
           .flatMap(_.modProperties)
       case _ => None
     }
-
   }
 
-  private def agentRunDetails(ar: AgentRunInterval):                                             NodeSeq = {
+  def directiveParametersDiff(event: EventLog): Option[SimpleDiff[String]] = {
+    event match {
+      case x: ModifyDirective =>
+        logDetailsService
+          .getDirectiveModifyDetails(x.details)
+          .toOption
+          .flatMap(_.modParameters.map(_.map(SectionVal.toXml(_).toString)))
+      case _ => None
+    }
+  }
+
+  private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
     (
       "#override" #> ar.overrides.map(_.toString()).getOrElse("false")
       & "#interval" #> ar.interval
@@ -1217,12 +1225,6 @@ class EventLogDetailsGenerator(
         <li><b>Splay time: </b><value id="splaytime"/></li>
       </ul>
     )
-  }
-  private def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
-    eventId match {
-      case None     => NodeSeq.Empty
-      case Some(id) => displayFormDiff(diff.map(s => SectionVal.toXml(s).toString), id.toString)
-    }
   }
 
   private def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = {

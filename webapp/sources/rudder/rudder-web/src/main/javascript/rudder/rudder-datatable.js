@@ -1718,6 +1718,10 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
                       jsondiffpatch.diff(JSON.stringify(nodePropertiesDiff.from), JSON.stringify(nodePropertiesDiff.to))
                     )
                   }
+                  const linesDiff = response["data"]["linesDiff"]
+                  if (linesDiff) {
+                    makeDiff(linesDiff.from, linesDiff.to, `linesdiff-${data.id}`)
+                  }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                   createErrorNotification("Error while retrieve eventlog details: " + jqXHR.responseJSON.errorDetails)
