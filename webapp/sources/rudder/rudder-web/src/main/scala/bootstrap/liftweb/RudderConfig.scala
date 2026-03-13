@@ -145,7 +145,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.http.S
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
@@ -2403,8 +2402,7 @@ object RudderConfigInit {
     lazy val eventLogApi       = {
       new EventLogAPI(
         new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
-        eventLogDetailsGenerator,
-        eventType => S ? ("rudder.log.eventType.names." + eventType.serialize)
+        eventLogDetailsGenerator
       )
     }
     lazy val asyncWorkflowInfo = new AsyncWorkflowInfo

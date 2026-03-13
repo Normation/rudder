@@ -39,7 +39,7 @@ package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog.*
 
-///// Define intersting categories /////
+///// Define interesting categories /////
 case object UserLogCategory                extends EventLogCategory
 case object APIAccountCategory             extends EventLogCategory
 case object RudderApplicationLogCategory   extends EventLogCategory
@@ -59,6 +59,11 @@ case object ParameterLogCategory           extends EventLogCategory
 case object GlobalPropertyEventLogCategory extends EventLogCategory
 case object SettingsLogCategory            extends EventLogCategory
 case object NodeLogCategory                extends EventLogCategory
+
+///////////////////////////////////////////////////////
+/////////  ALL EVENT TYPES KNOWN IN RUDDER  ///////////
+//////// (this is a big Enum, without "sealed") ///////
+///////////////////////////////////////////////////////
 
 // the promises related event type
 case object AutomaticStartDeployementEventType extends NoRollbackEventLogType {
@@ -252,7 +257,7 @@ case object ModifyNodeEventType extends RollbackEventLogType {
   // for node, we have more "is defined at", because till 3.2,
   // we had several node events that we merged together in 4.0
   override def isDefinedAt(x: String): Boolean = {
-    "NodeHeartbeatModified" == x || "NodePropertiesModified" == x ||
+    "NodePropertiesModified" == x ||
     "NodeAgentRunPeriodModified" == x || "NodeModified" == x
   }
 }
@@ -356,7 +361,19 @@ object ModificationWatchList {
 
 }
 
+/**
+ * Factory for event log type and known mapping.
+ * Any extra "compat" value should be defined here.
+ */
 object EventTypeFactory {
+  private[eventlog] val extraEventTypeMap: Map["NodeAgentRunPeriodModified" | "NodePropertiesModified", EventLogType] = {
+    Map(
+      // See ModifyNodeEventType
+      "NodeAgentRunPeriodModified" -> ModifyNodeEventType,
+      "NodePropertiesModified"     -> ModifyNodeEventType
+    )
+  }
+
   val eventTypes: List[EventLogType] = List[EventLogType](
     AutomaticStartDeployementEventType,
     ManualStartDeployementEventType,
@@ -413,8 +430,96 @@ object EventTypeFactory {
     DeleteSecretEventType
   ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 
-  def apply(s: String): EventLogType = {
-    eventTypes.find(pf => pf.isDefinedAt(s)).getOrElse(UnknownEventLogType)
+  private[eventlog] val eventTypesMap: Map[String, EventLogType] =
+    extraEventTypeMap.toMap ++ eventTypes.map(e => e.serialize -> e).toMap
 
+  def apply(s: String): EventLogType = {
+    eventTypesMap.getOrElse(s, UnknownEventLogType)
   }
+
+  def get(s: String): Option[EventLogType] = {
+    eventTypesMap.get(s)
+  }
+}
+
+/*
+ * This is plumbing for translation of all event types defined above.
+ * Serialized version is in past tense, so the display value is too.
+ * Long-term, we will want to rename types/introduce another "past tense" event type so that the display value matches it.
+ */
+object EventLogTypeTranslate {
+  private val extraNames: Map[String, String] = EventTypeFactory.extraEventTypeMap.map {
+    case (s: "NodeAgentRunPeriodModified", _) => s -> "Node agent run configuration modified"
+    case (s: "NodePropertiesModified", _)     => s -> "Node properties modified"
+  }
+  def apply(ev: String):  String              = extraNames.getOrElse(
+    ev,
+    EventTypeFactory.get(ev).fold(ev) {
+      case AutomaticStartDeployementEventType  => "Policy update started automatically"
+      case ManualStartDeployementEventType     => "Policy update started manually"
+      case SuccessfulDeploymentEventType       => "Policy update finished successfully"
+      case FailedDeploymentEventType           => "Policy update failed"
+      case LoginEventType                      => "User logged in"
+      case BadCredentialsEventType             => "User failed to log in - Bad Credentials"
+      case LogoutEventType                     => "User logged out"
+      case AddNodeGroupEventType               => "Node Group added"
+      case DeleteNodeGroupEventType            => "Node Group deleted"
+      case ModifyNodeGroupEventType            => "Node Group modified"
+      case AddDirectiveEventType               => "Directive added"
+      case DeleteDirectiveEventType            => "Directive deleted"
+      case ModifyDirectiveEventType            => "Directive modified"
+      case ApplicationStartedEventType         => "Application started"
+      case ActivateRedButtonEventType          => "Red Button activated"
+      case ReleaseRedButtonEventType           => "Red Button released"
+      case ReloadTechniqueLibraryType          => "Technique Library updated"
+      case ModifyTechniqueEventType            => "Technique modified"
+      case DeleteTechniqueEventType            => "Technique deleted"
+      case AddRuleEventType                    => "Rule added"
+      case DeleteRuleEventType                 => "Rule deleted"
+      case ModifyRuleEventType                 => "Rule modified"
+      case AcceptNodeEventType                 => "Node accepted"
+      case RefuseNodeEventType                 => "Node refused"
+      case DeleteNodeEventType                 => "Node deleted"
+      case ClearCacheEventType                 => "Caches cleared"
+      case UpdatePolicyServerEventType         => "Policy Server configuration updated"
+      case ExportGroupsEventType               => "Groups exported (archived)"
+      case ImportGroupsEventType               => "Groups imported"
+      case ExportTechniqueLibraryEventType     => "Technique Library exported (archived)"
+      case ImportTechniqueLibraryEventType     => "Technique Library imported"
+      case ExportRulesEventType                => "Rules exported (archived)"
+      case ImportRulesEventType                => "Rules imported"
+      case ExportParametersEventType           => "Parameters exported (archived)"
+      case ImportParametersEventType           => "Parameters imported"
+      case ExportFullArchiveEventType          => "All configuration exported (archived)"
+      case ImportFullArchiveEventType          => "All configuration imported"
+      case RollbackEventType                   => "Rollback completed"
+      case AddChangeRequestEventType           => "Change request created"
+      case DeleteChangeRequestEventType        => "Change request deleted"
+      case ModifyChangeRequestEventType        => "Change request details modified"
+      case WorkflowStepChangedEventType        => "Change request status modified"
+      case AddGlobalParameterEventType         => "Global Parameter added"
+      case DeleteGlobalParameterEventType      => "Global Parameter deleted"
+      case ModifyGlobalParameterEventType      => "Global Parameter modified"
+      case CreateAPIAccountEventType           => "API Account added"
+      case ModifyAPITokenEventType             => "API Account modified"
+      case DeleteAPIAccountEventType           => "API Account deleted"
+      case ModifyNodeEventType                 => "Node modified"
+      case ModifySendServerMetricsEventType    => "Property 'Send metrics' modified"
+      case ModifyComplianceModeEventType       => "Property 'Compliance mode' modified"
+      case ModifyHeartbeatPeriodEventType      => "Property 'Heartbeat period' modified"
+      case ModifyAgentRunIntervalEventType     => "Property 'Agent run interval' modified"
+      case ModifyAgentRunSplaytimeEventType    => "Property 'Agent run splaytime' modified"
+      case ModifyAgentRunStartHourEventType    => "Property 'Agent run start hour' modified"
+      case ModifyAgentRunStartMinuteEventType  => "Property 'Agent run start minute' modified"
+      case ModifyRudderSyslogProtocolEventType => "Property 'Rudder syslog protocol' modified"
+      case PromoteNodeToRelayEventType         => "Node promoted to relay"
+      case DemoteRelayToNodeEventType          => "Node demoted from relay"
+      case ModifyPolicyModeEventType           => "Global Policy Mode modified"
+      case ModifyRudderVerifyCertificates      => "Property 'Verification of HTTPS certificates' modified"
+      case AddSecretEventType                  => "Secret added"
+      case DeleteSecretEventType               => "Secret deleted"
+      case ModifySecretEventType               => "Secret modified"
+      case _                                   => ev
+    }
+  )
 }
