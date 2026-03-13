@@ -50,8 +50,8 @@ import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner
 
 /**
- * Tests on the behaviour of the reports execution repository with a cache.
- *
+ * Tests on the behavior of the reports execution repository with a cache.
+ * 
  * First, just a short presentation of the design of the class under test.
  * There are two concrete classes :
  * <code>RoReportsExecutionRepositoryImpl</code> extends the trait <code>RoReportsExecutionRepository</code>
@@ -73,179 +73,215 @@ import zio.test.junit.ZTestJUnitRunner
 class ReportsExecutionRepositoryCacheImplTest extends ZIOSpecDefault {
 
   override def spec: Spec[TestEnvironment & Scope, Any] = suite("ReportsExecutionRepositoryCacheImpl")(
-    suite("Getting unprocessed doesn't write or read in the cache")(
-      test("""it should make actual call for each getUnprocessedRuns call whatever the cache status :
-             |     - call getUnprocessedRuns (mock returns node1)  (nbcalls = 1, cache=())
-             |     - call getUnprocessedRuns (mock returns node1)  (nbcalls = 1, cache=())
-             |     -> number total of calls = 1 + 1 = 2
-             |""".stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getUnprocessedRuns()
-          _        <- underTest.getUnprocessedRuns()
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(2))
-      },
-      test("""it should make all actual calls when :
-             |     - call getUnprocessedRuns (mock returns node1) (nbcalls = 1, cache=())
-             |     - call getUnprocessedRuns (mock returns node1) (nbcalls = 1, cache=())
-             |     - call getNodesLastRun on node1                (nbcalls = 1, cache=(node1))
-             |     - call getUnprocessedRuns (mock returns node1) (nbcalls = 1, cache=(node1))
-             |     -> number total of calls = 1 + 1 + 1 + 1 = 4
-             |""".stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getUnprocessedRuns()
-          _        <- underTest.getUnprocessedRuns()
-          _        <- underTest.getNodesLastRun(Set(stubNodeId1))
-          _        <- underTest.getUnprocessedRuns()
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(4))
-      }
-    ),
-    suite("Getting nodes and uncompliance doesn't read the cache")(
-      test("""it should make actual call for each getNodesAndUncomputedCompliance call whatever the cache status
-             |""".stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
-          _         = underTest.clearCache()
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(3))
-      },
-      test("""it should make actual call and write in the cache when getNodesAndUncomputedCompliance :
-             |      - call getNodesAndUncomputedCompliance  (nbcalls = 1, cache=(node1))
-             |      - call getNodesAndUncomputedCompliance  (nbcalls = 1, cache=(node1))
-             |      - call getNodesLastRun                  (nbcalls = 0, cache=(node1))
-             |      - call getNodesLastRun                  (nbcalls = 0, cache=(node1))
-             |      -> number total of calls = 1 + 1 + 0 + 0 = 2
-             |""".stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
-          _        <- underTest.getNodesLastRun(Set(stubNodeId1)) // 0 call (reads node1 from cached)
-          _        <- underTest.getNodesLastRun(Set(stubNodeId1)) // 0 call (reads node1 from cached)
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(2))
-      },
-      test("""it should return the result returned by the service plus the cached values :
-             |      - call getNodesLastRun on node2                         (nbcalls = 1, cache=(node2))
-             |      - call getNodesLastRun on node2 and node3               (nbcalls = 1, cache=(node2, node3))
-             |      - call getNodesAndUncomputedCompliance : returns node1  (nbcalls = 1, cache=(node2, node3, node1))
-             |      -> number total of calls = 3
-             |      -> cache = (node2, node3, node1)
-             |      -> result = node1
-             |""".stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesLastRun(Set(stubNodeId2))              // 1 call (write node2 in cache)
-          _        <- underTest.getNodesLastRun(Set(stubNodeId2, stubNodeId3)) // 1 call (reads node2 from cached, write node3 in cache)
-          result   <- underTest.getNodesAndUncomputedCompliance()              // 1 call and return node1 and write node1 in cache
-          counter  <- ref.get
-        } yield {
-          val expectedResult = Map((stubNodeId1, Some(dummyAgentRun)))
-          assert((result, counter))(equalTo((expectedResult, 3)))
+    suite("Checking cache behavior")(
+      suite("Getting node last run")(
+        test("""it should make actual calls when empty the cache before
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call, put node1 in cache
+            _         = underTest.clearCache()
+            _        <-
+              underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3)) // 3 calls because cache is empty
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(4))
+        },
+        test("""it should make 4 actual call when :
+               |        - node1 is cached when calling getNodesAndUncomputedCompliance (nbcalls = 1, cache=(node1))
+               |        - clear the cache                                              (nbcalls = 0, cache=())
+               |        - calling getNodesLastRun on node1, node2, node3               (nbcalls = 3, cache=())
+               |        -> number total of calls = 1 + 0 + 3 = 4 (for node1, node1, node2, node3)
+               | """.stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call, put dummyNode1 in cache
+            _         = underTest.clearCache()
+            _        <-
+              underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3)) // 3 calls because cache is empty
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(4))
+        },
+        test(
+          """it should make 3 calls instead of 4 when :
+            |        - calling getNodesAndUncomputedCompliance, node1 is cached                       (nbcalls = 1, cache=(node1))
+            |        - calling getNodesLastRun on node1, node2 and node3 (node1 is cached in memory)  (nbcalls = 2, cache=(node1))
+            |        -> number total of calls = 1 + 2 = 3 (for node1, node2, node3)
+            | """.stripMargin
+        ) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call, put node1 in cache
+            _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3))
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(3)) // total number of calls is 3, it would be 4 without cache
+        },
+        test("""it should make 3 actual calls and read 3 results from cache instead of 6 actual calls when :
+               |        - calling getNodesLastRun on node4, node5, node6  (nbcalls = 3, cache=(node1, node2, node3))
+               |        - calling getNodesLastRun on node4, node5, node6  (nbcalls = 0, cache=(node1, node2, node3))
+               |        -> number total of calls = 3 + 0 (for node1, node2, node3)
+               | """.stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId4, stubNodeId5, stubNodeId6))
+            _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId4, stubNodeId5, stubNodeId6))
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(3)) // total number of calls is 3, it would be 6 without cache
+        },
+        test("""it should make 6 actual calls when :
+               |        - calling getNodesLastRun on node1, node2, node3  (nbcalls = 3, cache=(node1, node2, node3))
+               |        - clear the cache                                 (nbcalls = 0, cache=())
+               |        - calling getNodesLastRun on node1, node2, node3  (nbcalls = 3, cache=(node1, node2, node3))
+               |        -> number total of calls = 3 + 3 (for node1, node2, node3 then again node1, node2, node3)
+               | """.stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3))
+            _         = underTest.clearCache()
+            _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3))
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(6)) // total number of calls is 6, cache cleared
         }
-      }
+      ),
+      suite("Getting unprocessed run")(
+        test("""it should make actual calls for each getUnprocessedRuns call whatever the cache status :
+               |        - call getUnprocessedRuns (mock returns node1)  (nbcalls = 1, cache=())
+               |        - call getUnprocessedRuns (mock returns node1)  (nbcalls = 1, cache=())
+               |        -> number total of calls = 1 + 1 = 2
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getUnprocessedRuns()
+            _        <- underTest.getUnprocessedRuns()
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(2))
+        },
+        test("""it should make all actual calls when :
+               |        - call getUnprocessedRuns (mock returns node1) (nbcalls = 1, cache=())
+               |        - call getUnprocessedRuns (mock returns node1) (nbcalls = 1, cache=())
+               |        - call getNodesLastRun on node1                (nbcalls = 1, cache=(node1))
+               |        - call getUnprocessedRuns (mock returns node1) (nbcalls = 1, cache=(node1))
+               |        -> number total of calls = 1 + 1 + 1 + 1 = 4
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getUnprocessedRuns()
+            _        <- underTest.getUnprocessedRuns()
+            _        <- underTest.getNodesLastRun(Set(stubNodeId1))
+            _        <- underTest.getUnprocessedRuns()
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(4))
+        }
+      ),
+      suite("Getting nodes and uncomputed compliance")(
+        test("""it should make actual call for each getNodesAndUncomputedCompliance call whatever the cache status
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
+            _         = underTest.clearCache()
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(3))
+        },
+        test("""it should make actual call and write in the cache when getNodesAndUncomputedCompliance :
+               |        - call getNodesAndUncomputedCompliance  (nbcalls = 1, cache=(node1))
+               |        - call getNodesAndUncomputedCompliance  (nbcalls = 1, cache=(node1))
+               |        - call getNodesLastRun                  (nbcalls = 0, cache=(node1))
+               |        - call getNodesLastRun                  (nbcalls = 0, cache=(node1))
+               |        -> number total of calls = 1 + 1 + 0 + 0 = 2
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
+            _        <- underTest.getNodesAndUncomputedCompliance() // 1 call
+            _        <- underTest.getNodesLastRun(Set(stubNodeId1)) // 0 call (reads node1 from cached)
+            _        <- underTest.getNodesLastRun(Set(stubNodeId1)) // 0 call (reads node1 from cached)
+            counter  <- ref.get
+          } yield assert(counter)(equalTo(2))
+        }
+      )
     ),
-    suite("Getting nodes last run")(
-      test("""it should make actual call when empty the cache before the call
-             |""".stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call, put node1 in cache
-          _         = underTest.clearCache()
-          _        <-
-            underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3)) // 3 calls because cache is empty
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(4))
-      },
-      test("""it should make 4 actual call when :
-             |      - node1 is cached when calling getNodesAndUncomputedCompliance (nbcalls = 1, cache=(node1))
-             |      - clear the cache                                              (nbcalls = 0, cache=())
-             |      - calling getNodesLastRun on node1, node2, node3               (nbcalls = 3, cache=())
-             |      -> number total of calls = 1 + 0 + 3 = 4 (for node1, node1, node2, node3)
-             | """.stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call, put dummyNode1 in cache
-          _         = underTest.clearCache()
-          _        <-
-            underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3)) // 3 calls because cache is empty
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(4))
-      },
-      test("""it should make 3 calls instead of 4 when :
-             |      - calling getNodesAndUncomputedCompliance, node1 is cached                       (nbcalls = 1, cache=(node1))
-             |      - calling getNodesLastRun on node1, node2 and node3 (node1 is cached in memory)  (nbcalls = 2, cache=(node1))
-             |      -> number total of calls = 1 + 2 = 3 (for node1, node2, node3)
-             | """.stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesAndUncomputedCompliance() // 1 call, put node1 in cache
-          _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3))
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(3)) // total number of calls is 3, it would be 4 without cache
-      },
-      test("""it should make 3 actual calls and read 3 results from cache instead of 6 actual calls when :
-             |      - calling getNodesLastRun on node4, node5, node6  (nbcalls = 3, cache=(node1, node2, node3))
-             |      - calling getNodesLastRun on node4, node5, node6  (nbcalls = 0, cache=(node1, node2, node3))
-             |      -> number total of calls = 3 + 0 (for node1, node2, node3)
-             | """.stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId4, stubNodeId5, stubNodeId6))
-          _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId4, stubNodeId5, stubNodeId6))
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(3)) // total number of calls is 3, it would be 6 without cache
-      },
-      test("""it should make 6 calls instead of 6 when :
-             |      - calling getNodesLastRun on node1, node2, node3  (nbcalls = 3, cache=(node1, node2, node3))
-             |      - clear the cache                                 (nbcalls = 0, cache=())
-             |      - calling getNodesLastRun on node1, node2, node3  (nbcalls = 3, cache=(node1, node2, node3))
-             |      -> number total of calls = 3 + 3 (for node1, node2, node3 then again node1, node2, node3)
-             | """.stripMargin) {
-        for {
-          ref      <- Ref.make(0)
-          underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
-          _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3))
-          _         = underTest.clearCache()
-          _        <- underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3))
-          counter  <- ref.get
-        } yield assert(counter)(equalTo(6)) // total number of calls is 6, cache cleared
-      }
-    ),
-    suite("ZIO modify behaviour")(test("""should accumulate runs in cache and return the runs
-                                         |""".stripMargin) {
-      val initialCache: Map[NodeId, Some[AgentRunWithNodeConfig]] = Map((stubNodeId3, Some(dummyAgentRun)))
-      val stubMap = Map((stubNodeId1, Some(dummyAgentRun)), (stubNodeId2, Some(dummyAgentRun)))
-
-      for {
-        ref           <- Ref.Synchronized.make(initialCache)
-        result        <- ref.modifyZIO(cache => ZIO.succeed(stubMap).map(runs => (runs, cache ++ runs))) // (result, modifiedCache)
-        modifiedCache <- ref.get
-      } yield {
-        val expectedCache  = Map(
-          (stubNodeId3, Some(dummyAgentRun)),
-          (stubNodeId1, Some(dummyAgentRun)),
-          (stubNodeId2, Some(dummyAgentRun))
-        )
-        val expectedResult = stubMap
-        assert((result, modifiedCache))(equalTo((expectedResult, expectedCache)))
-      }
-    })
+    suite("Checking reports execution")(
+      suite("Getting node last run")(
+        test("""it should make actual calls when empty the cache before and return all the nodes
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            result   <-
+              underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3)) // 3 calls because cache is empty
+            counter  <- ref.get
+          } yield assert((counter, result.keySet.map(_.value)))(
+            equalTo((3, Set(stubNodeId3, stubNodeId2, stubNodeId1).map(_.value)))
+          )
+        },
+        test("""it should not make actual calls for the nodes in the cache and return all the nodes required
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <-
+              underTest.getNodesLastRun(nodeIds = Set(stubNodeId1, stubNodeId2, stubNodeId3)) // 3 calls because cache is empty
+            result   <-
+              underTest.getNodesLastRun(nodeIds =
+                Set(stubNodeId5, stubNodeId4, stubNodeId3)
+              )                                                                               // 2 calls because stubNodeId3 is cached
+            counter  <- ref.get
+          } yield assert((counter, result.keySet.map(_.value)))(
+            equalTo((5, Set(stubNodeId3, stubNodeId4, stubNodeId5).map(_.value)))
+          )
+        }
+      ),
+      suite("Getting unprocessed run")(
+        test("""it should make actual calls when empty the cache before and return all the nodes
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getUnprocessedRuns()
+            result   <- underTest.getUnprocessedRuns()
+            counter  <- ref.get
+          } yield assert((counter, result))(equalTo((2, dummyUnprocessedRuns)))
+        },
+        test("""it should make actual call whatever the cache value
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getUnprocessedRuns()
+            _        <- underTest.getUnprocessedRuns()
+            _        <- underTest.getNodesLastRun(Set(stubNodeId1)) // cache node1
+            result   <- underTest.getUnprocessedRuns()
+            counter  <- ref.get
+          } yield assert((counter, result))(equalTo((4, dummyUnprocessedRuns)))
+        }
+      ),
+      suite("Getting nodes and uncomputed compliance")(
+        test("""it should return the result and update the cache
+               |""".stripMargin) {
+          for {
+            ref      <- Ref.make(0)
+            underTest = new CachedReportsExecutionRepository(createUnderlyingRepositoryMock(ref))
+            _        <- underTest.getNodesLastRun(Set(stubNodeId2)) // 1 call and set node2 in the cache
+            result   <- underTest.getNodesAndUncomputedCompliance() // 1 call and return node1 and write node1 in cache
+            _        <- underTest.getNodesLastRun(Set(stubNodeId1)) // 0 call, node1 is already cached
+            counter  <- ref.get
+          } yield {
+            assert((result, counter))(equalTo((Map((stubNodeId1, Some(dummyAgentRun))), 2)))
+          }
+        }
+      )
+    )
   )
 
   private def createUnderlyingRepositoryMock(counterRef: Ref[Int]) = new RoReportsExecutionRepository {
