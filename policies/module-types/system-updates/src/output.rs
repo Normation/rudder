@@ -121,6 +121,14 @@ impl ResultOutput<Output> {
         let output = c.output();
         let mut res = ResultOutput::new(output.map_err(|e| e.into()));
 
+        res.stdout.push(format!(
+            "cmd: {} {}",
+            c.get_program().to_string_lossy(),
+            c.get_args()
+                .map(|a| format!("'{}'", a.to_string_lossy()))
+                .collect::<Vec<String>>()
+                .join(" "),
+        ));
         if let Ok(ref o) = res.inner {
             let stdout_s = String::from_utf8_lossy(&o.stdout);
             debug!("stdout: {stdout_s}");
