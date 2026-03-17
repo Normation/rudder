@@ -8,8 +8,8 @@
  *  to make it generic
  */
 
-use agentd::{ServiceMessage, ExitType};
 use agentd::scheduler::{CommandBuilder, Scheduler};
+use agentd::{ExitType, ServiceMessage};
 use log::{error, info};
 use std::ffi::OsString;
 use std::path::Path;

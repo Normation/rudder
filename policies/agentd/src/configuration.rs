@@ -23,7 +23,6 @@ use uuid::Uuid;
 pub struct Configuration {
     // trigger port
     //trigger_listen: u16,
-
     /// One schedule for each command
     #[serde(flatten)]
     pub schedules: HashMap<String, ScheduleConfiguration>,
@@ -36,7 +35,6 @@ pub struct Configuration {
 pub struct ScheduleConfiguration {
     // Run as is handled by service manager
     //run_as: Option<String>,
-
     /// Command that will be started within the specified interval
     /// First start will happen every day at 00:00+interval_begin+hash(uuid)%(interval_end_interval_begin)
     /// All start will be separated by min(period, 24h)
@@ -213,7 +211,11 @@ period = "120s"
         assert!(conf.is_ok(), "CRLF Parsing should be ok");
         let conf = conf.unwrap();
         let conf1 = conf.schedules.get("agent");
-        assert_eq!(conf1.unwrap().command, "echo ok".to_string(), "CRLF should be ignored");
+        assert_eq!(
+            conf1.unwrap().command,
+            "echo ok".to_string(),
+            "CRLF should be ignored"
+        );
     }
 
     #[test]

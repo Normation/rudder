@@ -6,6 +6,8 @@
  * The main scheduler code
  */
 
+use crate::configuration::{Configuration, ScheduleConfiguration};
+use crate::{ExitType, ServiceMessage, configuration};
 use anyhow::{Result, bail};
 use chrono::{DateTime, Local, NaiveTime, SubsecRound, TimeDelta};
 use log::{debug, error, info, warn};
@@ -22,8 +24,6 @@ use tokio::sync::mpsc::Receiver;
 use tokio::time;
 use tokio::time::timeout;
 use uuid::Uuid;
-use crate::configuration::{Configuration, ScheduleConfiguration};
-use crate::{ExitType, ServiceMessage, configuration};
 
 /// One schedule, this decides when an item must be scheduled.
 ///
@@ -134,7 +134,7 @@ struct ScheduleItem {
 }
 
 /// One event that has been planned within a short term
-/// This is necessary because we schedul in wall time (see scheduling algorithm for more information)
+/// This is necessary because we schedule in wall time (see scheduling algorithm for more information)
 #[derive(Debug)]
 struct Event {
     /// When it should happen in wall time
@@ -320,9 +320,14 @@ impl Scheduler {
             }
             Ok(Err(_e)) => {
                 // wait timeouted
-                match child.kill().await { // TODO should we timeout the kill
+                match child.kill().await {
+                    // TODO should we timeout the kill
                     Ok(()) => {
-                        warn!("Command {} killed by timeout after {}s", item.command, item.max_execution_duration.as_secs_f64());
+                        warn!(
+                            "Command {} killed by timeout after {}s",
+                            item.command,
+                            item.max_execution_duration.as_secs_f64()
+                        );
                     }
                     Err(e) => {
                         error!("Failed to kill command {}: {}", item.command, e);

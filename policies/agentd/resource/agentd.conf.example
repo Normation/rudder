@@ -1,6 +1,6 @@
 # This file is in TOML format
 
-# Each tims can be represented in human format documeted here https://docs.rs/humantime/latest/humantime/
+# Each tims can be represented in human format documented here https://docs.rs/humantime/latest/humantime/
 # example : "15days 2min 2s"
 
 # each section is a scheduled command
