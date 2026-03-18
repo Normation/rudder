@@ -27,8 +27,5 @@ winlog2 = "0.3"
 
 [target.'cfg(unix)'.dependencies]
 
-[lints]
-workspace = true
-
 [lints.clippy]
 unwrap_used = "deny"
