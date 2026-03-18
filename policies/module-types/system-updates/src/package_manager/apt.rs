@@ -16,7 +16,7 @@ use crate::{
         },
     },
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use gag::Gag;
 use log::debug;
 use memfile::MemFile;
@@ -172,17 +172,22 @@ impl AptPackageManager {
         Ok(())
     }
 
+    fn package_spec_to_id(p: &PackageSpec) -> String {
+        if let Some(ref a) = p.architecture {
+            format!("{}:{}", p.name, a)
+        } else {
+            p.name.clone()
+        }
+    }
+
     fn mark_package_upgrades(
         &self,
         packages: &[PackageSpec],
         cache: &mut Cache,
     ) -> std::result::Result<(), AptErrors> {
         for p in packages {
-            let package_id = if let Some(ref a) = p.architecture {
-                format!("{}:{}", p.name, a)
-            } else {
-                p.name.clone()
-            };
+            let package_id = Self::package_spec_to_id(p);
+
             // Get package from cache
             if let Some(pkg) = cache.get(&package_id) {
                 if !pkg.is_installed() {
@@ -204,6 +209,22 @@ impl AptPackageManager {
                     if pkg.is_upgradable() {
                         pkg.mark_install(true, !pkg.is_auto_installed());
                     }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn mark_keep(&self, kept: &[PackageSpec], cache: &mut Cache) -> Result<()> {
+        for p in kept {
+            let package_id = Self::package_spec_to_id(p);
+
+            // Get package from cache
+            if let Some(pkg) = cache.get(&package_id) {
+                // This does not persist anything, it just marks the in-memory state for the next package operation.
+                let success = pkg.mark_keep();
+                if !success {
+                    bail!("Failed to mark package {} kept, aborting", package_id);
                 }
             }
         }
@@ -273,16 +294,6 @@ impl UpdateManager for AptPackageManager {
         &mut self,
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
-        if !update_type.exclude.is_empty() {
-            return ResultOutput::new_output(
-                Err(anyhow!(
-                    "Excluding packages is not supported with apt, aborting upgrade"
-                )),
-                Vec::new(),
-                Vec::new(),
-            );
-        }
-
         let cache = self.cache();
         if let Ok(mut c) = cache.inner {
             //if c.get_changes(false).peekable().next().is_some() {
@@ -317,6 +328,19 @@ impl UpdateManager for AptPackageManager {
                     inner: Err(e),
                     stdout: mark_res.stdout,
                     stderr: mark_res.stderr,
+                };
+            }
+
+            // Handle excludes
+            // TODO: Make it more like `Unattended-Upgrade::Package-Blacklist`, using the pinning API.
+            // Requires to widen the rust-apt API.
+            let res = self.mark_keep(&update_type.exclude, &mut c);
+            if let Err(e) = res {
+                // If marking packages to keep failed, we can't be sure about the state of the cache, so we return immediately.
+                return ResultOutput {
+                    inner: Err(e),
+                    stdout: vec![],
+                    stderr: vec![],
                 };
             }
 
