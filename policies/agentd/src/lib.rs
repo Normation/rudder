@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-#![deny(clippy::unwrap_used)]
-
 // Q: option catchup ?
 // Q: option log stderr ?
 

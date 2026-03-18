@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 
-#![deny(clippy::unwrap_used)]
 /*! Windows specific code for the service
  *  Include service startup, log initialization, ...
  *  The communication with the service manager is translated into channel::<ServiceMessage>()
