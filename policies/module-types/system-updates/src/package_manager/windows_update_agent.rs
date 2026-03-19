@@ -116,7 +116,7 @@ fn download_updates(
 ) -> ResultOutput<DownloadResult> {
     let mut r = ResultOutput::new(Ok(DownloadResult {
         h_result: 1,
-        result_code: OperationResultCode::NoStarted,
+        result_code: OperationResultCode::NotStarted,
         update_results: vec![],
     }));
     r.stdout("\n\n".to_string());
@@ -175,7 +175,7 @@ fn install_updates(
 ) -> ResultOutput<InstallationResult> {
     let mut r = ResultOutput::new(Ok(InstallationResult {
         h_result: 1,
-        result_code: OperationResultCode::NoStarted,
+        result_code: OperationResultCode::NotStarted,
         reboot_required: false,
         update_results: vec![],
     }));
