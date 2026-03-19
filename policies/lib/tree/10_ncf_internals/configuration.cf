@@ -29,6 +29,10 @@ bundle common configuration
 
       "enabled_abort_handlers" slist => { "_abort_default", "abort_rudder" };
       "flag_file"             string => "/var/rudder/agent-data/flags.json";
+    new_modules_dir::
+      "modules_dir"   string => "/opt/rudder/var/modules";
+    !new_modules_dir::
+      "modules_dir"   string => "${sys.workdir}/modules";
 
   classes:
       # Define verbosity classes according to classes
@@ -45,4 +49,8 @@ bundle common configuration
                    scope => "namespace";
       "info"  expression => "debug",
                    scope => "namespace";
+
+      # Where is the modules directory (added in 9.0)
+      "new_modules_dir" expression => isdir("/opt/rudder/var/modules");
+
 }

@@ -29,7 +29,7 @@ bundle agent initialization
       "report_data.index"            int => "0";
 
   files:
-      "${sys.workdir}/modules"
+      "${configuration.modules_dir}"
         copy_from         => local_dcp("${this.promise_dirname}/modules"),
         depth_search      => recurse("inf"),
         perms             => m("700"),
@@ -57,7 +57,7 @@ bundle agent initialization
 # file changes at every run
 bundle agent additional_modules(path) {
   files:
-      "${sys.workdir}/modules"
+      "${configuration.modules_dir}"
         copy_from         => local_dcp("${path}/"),
         depth_search      => recurse("inf"),
         perms             => m("700"),
