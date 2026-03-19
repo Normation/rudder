@@ -126,6 +126,9 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
     val user = userService.getCurrentUser
     for {
+      // only check for enabled API
+      _ <- if (endpoint.schema.isEnabled) Right(()) else Left(ApiError.BadRequest("API is disabled", endpoint.schema.name))
+
       // we want to compare the exact path asked by the user to take care of cases where they only have
       // access to a limited subset of named resourced for the endpoint.
       path <- requestPath.drop(endpoint.prefix).leftMap(msg => ApiError.BadRequest(msg, endpoint.schema.name))
