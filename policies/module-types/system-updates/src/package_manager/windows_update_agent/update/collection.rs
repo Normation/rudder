@@ -33,7 +33,7 @@ impl Collection {
         let v = self
             .0
             .into_iter()
-            .filter(|n| n.data.kbs.iter().any(|i| excludes.contains(i)))
+            .filter(|n| !n.data.kbs.iter().any(|i| excludes.contains(i)))
             .collect::<Vec<Info>>();
         Collection(v)
     }

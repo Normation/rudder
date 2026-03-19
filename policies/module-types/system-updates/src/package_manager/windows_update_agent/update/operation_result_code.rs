@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 //https://learn.microsoft.com/en-us/windows/win32/api/wuapi/ne-wuapi-operationresultcode
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum OperationResultCode {
-    NoStarted = 0,
+    NotStarted = 0,
     InProgress = 1,
     Succeeded = 2,
     SucceededWithErrors = 3,
@@ -17,7 +17,7 @@ pub enum OperationResultCode {
 impl OperationResultCode {
     pub fn new(code: i32) -> Result<OperationResultCode> {
         match code {
-            0 => Ok(OperationResultCode::NoStarted),
+            0 => Ok(OperationResultCode::NotStarted),
             1 => Ok(OperationResultCode::InProgress),
             2 => Ok(OperationResultCode::Succeeded),
             3 => Ok(OperationResultCode::Failed),
@@ -30,7 +30,7 @@ impl OperationResultCode {
 impl std::fmt::Display for OperationResultCode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::NoStarted => write!(f, "0 (OrcNoStarted)"),
+            Self::NotStarted => write!(f, "0 (OrcNotStarted)"),
             Self::InProgress => write!(f, "1 (OrcInProgress)"),
             Self::Succeeded => write!(f, "2 (OrcSucceeded)"),
             Self::SucceededWithErrors => write!(f, "3 (OrcSucceededWithErrors)"),
