@@ -6,7 +6,6 @@ use crate::{
     db::PackageDatabase,
     package_manager::UpdateManager,
     state::UpdateStatus,
-    system::System,
 };
 use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
@@ -29,7 +28,6 @@ pub struct Runner {
     db: PackageDatabase,
     pm: Box<dyn UpdateManager>,
     parameters: RunnerParameters,
-    system: Box<dyn System>,
     pid: u32,
 }
 
@@ -38,14 +36,12 @@ impl Runner {
         db: PackageDatabase,
         pm: Box<dyn UpdateManager>,
         parameters: RunnerParameters,
-        system: Box<dyn System>,
         pid: u32,
     ) -> Self {
         Self {
             db,
             pm,
             parameters,
-            system,
             pid,
         }
     }
@@ -81,14 +77,13 @@ impl Runner {
                 }
             }
             Action::Update => {
-                let reboot_needed =
-                    do_update(&self.parameters, &mut self.db, &mut self.pm, &self.system)?;
+                let reboot_needed = do_update(&self.parameters, &mut self.db, &mut self.pm)?;
 
                 if self.parameters.reboot_type == RebootType::Always
                     || (self.parameters.reboot_type == RebootType::AsNeeded && reboot_needed)
                 {
                     // Async reboot
-                    let result = self.system.reboot();
+                    let result = self.pm.reboot();
                     match result.inner {
                         Ok(_) => Ok(Continuation::Stop(Outcome::Success(None))),
                         Err(e) => bail!("Reboot failed: {:?}", e),
@@ -161,24 +156,11 @@ mod tests {
         package_manager::{PackageList, UpdateManager},
         runner::{Action, Runner},
         state::UpdateStatus,
-        system::System,
     };
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
     use rudder_module_type::Outcome;
     use std::collections::HashMap;
-
-    struct MockSystem {}
-
-    impl System for MockSystem {
-        fn reboot(&self) -> ResultOutput<()> {
-            ResultOutput::new(Ok(()))
-        }
-
-        fn restart_services(&self, _services: &[String]) -> ResultOutput<()> {
-            ResultOutput::new(Ok(()))
-        }
-    }
 
     #[derive(Default, Clone, Copy)]
     struct MockPackageManager {
@@ -201,8 +183,16 @@ mod tests {
             ResultOutput::new(Ok(self.reboot_needed))
         }
 
+        fn reboot(&self) -> ResultOutput<()> {
+            ResultOutput::new(Ok(()))
+        }
+
         fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
             ResultOutput::new(Ok(vec![]))
+        }
+
+        fn restart_services(&self) -> ResultOutput<()> {
+            ResultOutput::new(Ok(()))
         }
     }
 
@@ -219,7 +209,6 @@ mod tests {
             in_memory_package_db(),
             Box::new(mock_package_manager(should_reboot)),
             p,
-            Box::new(MockSystem {}),
             0,
         )
     }
