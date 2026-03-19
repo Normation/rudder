@@ -9,7 +9,7 @@ pub mod output;
 pub mod package_manager;
 mod runner;
 pub mod state;
-pub mod system;
+pub mod systemd;
 
 use crate::{
     campaign::{RETENTION_DAYS, RunnerParameters},
@@ -17,7 +17,6 @@ use crate::{
     db::PackageDatabase,
     package_manager::PackageManager,
     runner::Runner,
-    system::{System, Systemd},
 };
 use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, Duration, Utc};
@@ -171,11 +170,10 @@ impl ModuleType0 for SystemUpdateModule {
             rudder_debug!("Cleaning events older than {} days", RETENTION_DAYS);
             db.clean(Duration::days(RETENTION_DAYS as i64))?;
             let agent_freq = Duration::minutes(parameters.agent_frequency_minutes as i64);
-            let system: Box<dyn System> = Box::new(Systemd::new());
             let rp =
                 RunnerParameters::new(package_parameters, parameters.node_id.clone(), agent_freq);
             let pid = std::process::id();
-            let mut runner = Runner::new(db, pm, rp, system, pid);
+            let mut runner = Runner::new(db, pm, rp, pid);
             runner.run()
         }
     }
