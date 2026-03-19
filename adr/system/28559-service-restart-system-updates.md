@@ -1,4 +1,4 @@
-# Service restarts in system-updates module
+# Service restarts in the `system-updates` module
 
 * Status: accepted
 * Deciders: AMO-FDA
