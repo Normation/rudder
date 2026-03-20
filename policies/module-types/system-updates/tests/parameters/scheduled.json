@@ -10,6 +10,7 @@
         "end": "2023-01-01T00:00:00Z"
       }
     },
+    "reboot_behavior": "default",
     "reboot_type": "as-needed",
     "package_list": [
       {
