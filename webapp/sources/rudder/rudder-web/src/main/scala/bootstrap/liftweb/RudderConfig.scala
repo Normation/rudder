@@ -1419,7 +1419,6 @@ object RudderConfig extends Loggable {
   val reportingService:                    ReportingService                         = rci.reportingService
   val reportsRepository:                   ReportsRepository                        = rci.reportsRepository
   val restCompletion:                      RestCompletion                           = rci.restCompletion
-  val restQuicksearch:                     RestQuicksearch                          = rci.restQuicksearch
   val roleApiMapping:                      RoleApiMapping                           = rci.roleApiMapping
   val roAgentRunsRepository:               RoReportsExecutionRepository             = rci.roAgentRunsRepository
   val roApiAccountRepository:              RoApiAccountRepository                   = rci.roApiAccountRepository
@@ -1568,7 +1567,6 @@ case class RudderServiceApi(
     allBootstrapChecks:                  BootstrapChecks,
     authenticationProviders:             AuthBackendProvidersManager,
     rudderUserListProvider:              FileUserDetailListProvider,
-    restQuicksearch:                     RestQuicksearch,
     restCompletion:                      RestCompletion,
     sharedFileApi:                       SharedFilesAPI,
     eventLogCoreService:                 EventLogCoreService,
@@ -1849,20 +1847,7 @@ object RudderConfigInit {
     lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
 
     // REST API - old
-    lazy val restQuicksearch = new RestQuicksearch(
-      new FullQuickSearchService()(using
-        roLDAPConnectionProvider,
-        nodeDit,
-        acceptedNodesDit,
-        rudderDit,
-        roDirectiveRepository,
-        nodeFactRepository,
-        ncfTechniqueReader
-      ),
-      userService,
-      linkUtil
-    )
-    lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository), userService)
+    lazy val restCompletion = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository), userService)
 
     lazy val clearCacheService = new ClearCacheServiceImpl(
       nodeConfigurationHashRepo,
@@ -2182,9 +2167,37 @@ object RudderConfigInit {
     lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
 
     // we need to init API internal services into the {} block to avoid bug https://issues.rudder.io/issues/26416
-    lazy val rudderApi = {
+    // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
+    lazy val rudderApi = ApiInit.api
+
+    object ApiInit {
       import com.normation.rudder.rest.lift.*
       // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
+
+      // Internal APIs
+      lazy val sharedFileApi       =
+        new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
+      lazy val eventLogCoreService = new EventLogServiceImpl(logRepository)
+      lazy val eventLogApi         = {
+        new EventLogAPI(
+          new RestEventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
+          eventLogCoreService,
+          eventLogDetailsGenerator,
+          eventType => S ? ("rudder.log.eventType.names." + eventType.serialize)
+        )
+      }
+      lazy val quicksearchApi      = new QuicksearchApi(
+        new FullQuickSearchService()(using
+          roLDAPConnectionProvider,
+          nodeDit,
+          acceptedNodesDit,
+          rudderDit,
+          roDirectiveRepository,
+          nodeFactRepository,
+          ncfTechniqueReader
+        ),
+        linkUtil
+      )
 
       lazy val ruleApiService13 = {
         new RuleApiService14(
@@ -2264,6 +2277,7 @@ object RudderConfigInit {
 
       lazy val apiModules = {
         import com.normation.rudder.rest.lift.*
+
         List(
           new ComplianceApi(complianceAPIService, roDirectiveRepository),
           new GroupsApi(
@@ -2401,7 +2415,8 @@ object RudderConfigInit {
           new HookApi(hookApiService),
           archiveApi,
           new ScoreApiImpl(scoreService),
-          eventLogApi
+          eventLogApi,
+          quicksearchApi
           // info api must be resolved latter, because else it misses plugin apis !
         )
       }
@@ -2413,22 +2428,10 @@ object RudderConfigInit {
         None
       )
       apiModules.foreach(module => api.addModules(module.getLiftEndpoints()))
-      api
+
     }
 
-    // Internal APIs
-    lazy val sharedFileApi       =
-      new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
-    lazy val eventLogCoreService = new EventLogServiceImpl(logRepository)
-    lazy val eventLogApi         = {
-      new EventLogAPI(
-        new RestEventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
-        eventLogCoreService,
-        eventLogDetailsGenerator,
-        eventType => S ? ("rudder.log.eventType.names." + eventType.serialize)
-      )
-    }
-    lazy val asyncWorkflowInfo   = new AsyncWorkflowInfo
+    lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
     lazy val configService: ReadConfigService & UpdateConfigService = {
       new GenericConfigService(
         RudderProperties.config,
@@ -3952,11 +3955,10 @@ object RudderConfigInit {
       allBootstrapChecks,
       authenticationProviders,
       rudderUserListProvider,
-      restQuicksearch,
       restCompletion,
-      sharedFileApi,
-      eventLogCoreService,
-      eventLogApi,
+      ApiInit.sharedFileApi,
+      ApiInit.eventLogCoreService,
+      ApiInit.eventLogApi,
       systemApiService11,
       staticResourceRewrite,
       stringUuidGenerator,
