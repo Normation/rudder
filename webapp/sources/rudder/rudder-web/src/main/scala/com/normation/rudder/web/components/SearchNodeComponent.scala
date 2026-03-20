@@ -245,7 +245,21 @@ class SearchNodeComponent(
       val inputAttributes = ("id", "v_" + index) :: {
         if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil
       }
-      val inputNoClass    = form.toForm(cl.value, (x => lines(index) = lines(index).copy(value = x)), inputAttributes*)
+      val inputNoClass    = {
+        form.toForm(
+          cl.value,
+          (x => {
+            val line = {
+              try lines(index)
+              catch {
+                case _: IndexOutOfBoundsException => cl
+              }
+            }
+            lines(index) = line.copy(value = x)
+          }),
+          inputAttributes*
+        )
+      }
       val inputClass      = classFromInputLabel(inputNoClass)
       val input           =
         inputNoClass % inputNoClass.attributes.append(Attribute.apply(pre = null, key = "class", value = inputClass, next = Null))
