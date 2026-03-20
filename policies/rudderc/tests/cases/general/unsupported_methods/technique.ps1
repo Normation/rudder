@@ -33,7 +33,7 @@ bob
 Linux user group on Windows
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -55,7 +55,7 @@ Linux user group on Windows
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -65,7 +65,7 @@ Linux user group on Windows
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     $identifier=$reportIdBase + '0a9dcb32-e310-488c-b3e8-cbcfc6ae284a'
@@ -81,7 +81,7 @@ Write-Host "hello world"
 Powershell exec on Linux
 '@
             PolicyMode = $policyMode
-            ReportId = $identifier
+            ReportIdentifier = $identifier
             DisableReporting = $false
             TechniqueName = $techniqueName
             ResultId = $resultId
@@ -123,7 +123,7 @@ success
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     } catch {
         [Rudder.Logger]::Log.Debug($_)
         $failedCall = [Rudder.MethodResult]::Error(
@@ -133,7 +133,7 @@ success
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportIdentifier $identifier -DisableReporting:$false -MethodCall $failedCall -ResultId $resultId
     }
 
     EndTechniqueCall -Name $techniqueName

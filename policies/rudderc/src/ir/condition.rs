@@ -109,9 +109,9 @@ impl FromStr for Condition {
         }
 
         // A trick to handle "(any)" like conditions we used to generate
-        let unparenthesized = s.replace(['(', ')'], "");
+        let unparenthesized = s.replace(['(', ')', ' '], "");
 
-        Ok(if ["true", "any"].contains(&unparenthesized.as_str()) {
+        Ok(if ["true", "any", ""].contains(&unparenthesized.as_str()) {
             Self::Defined
         } else if ["false", "!any", "!true"].contains(&unparenthesized.as_str()) {
             Self::NotDefined
@@ -167,5 +167,11 @@ mod tests {
         let reference = "${my_cond}.debian|${sys.${plouf}}";
         let p: Condition = c.parse().unwrap();
         assert_eq!(p, Condition::Expression(reference.to_string()));
+    }
+
+    #[test]
+    fn condition_from_empty_str() {
+        let p: Condition = "".to_string().parse().unwrap();
+        assert_eq!(p, Condition::Defined)
     }
 }
