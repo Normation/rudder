@@ -3,7 +3,8 @@
 #![allow(unused_imports)]
 
 use crate::{
-    CampaignType, MODULE_DIR, PackageParameters, RebootType, Schedule, SystemUpdateModule,
+    CampaignType, MODULE_DIR, PackageParameters, RebootBehavior, RebootType, Schedule,
+    SystemUpdateModule,
     campaign::{FullCampaignType, FullSchedule, RunnerParameters},
     cli,
     db::{Event, PackageDatabase},
@@ -77,7 +78,9 @@ struct RunOpts {
     security: bool,
     #[options(help = "package manager to use (defaults to system detection)")]
     package_manager: Option<PackageManager>,
-    #[options(help = "reboot/restart behavior")]
+    #[options(help = "reboot/restart options")]
+    reboot_behavior: RebootBehavior,
+    #[options(help = "reboot/restart type")]
     reboot_type: RebootType,
     #[options(help = "name of the campaign")]
     name: Option<String>,
@@ -144,6 +147,7 @@ impl Cli {
                     event_id: Uuid::new_v4().to_string(),
                     campaign_name: opts.name.unwrap_or("CLI".to_string()),
                     schedule: FullSchedule::Immediate,
+                    reboot_behavior: opts.reboot_behavior,
                     reboot_type: opts.reboot_type,
                     report_file: None,
                     schedule_file: None,
