@@ -829,8 +829,6 @@ button.btn.clipboard:hover {
 
 .block-child{
   opacity: 1;
-  transition:opacity 0.5s ease-in;
-  transition-property: opacity, height, padding;
   position: relative;
 }
 .method-info:not(.closed) .tabs > .block-child{
