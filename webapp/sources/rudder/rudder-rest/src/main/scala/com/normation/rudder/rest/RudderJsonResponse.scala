@@ -78,11 +78,22 @@ object RudderJsonResponse {
       data:         Option[A],
       errorDetails: Option[String]
   )
+  // For error only, use this class for most errors
+  final case class JsonRudderApiResponseError(
+      action:       String,
+      id:           Option[String],
+      result:       String,
+      errorDetails: Option[String]
+  ) derives JsonEncoder
+
   object JsonRudderApiResponse {
-    def error(id: Option[String], schema: ResponseSchema, errorDetails: Option[String]): JsonRudderApiResponse[Unit] =
-      JsonRudderApiResponse(schema.action, id, "error", None, errorDetails)
-    def error(id: Option[String], schema: ResponseSchema, message: String):              JsonRudderApiResponse[Unit] =
-      JsonRudderApiResponse(schema.action, id, "error", None, Some(message))
+    given encoder[A](using JsonEncoder[A]):       JsonEncoder[JsonRudderApiResponse[A]]                    = DeriveJsonEncoder.gen
+    given nestedEncoder[A](using JsonEncoder[A]): JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
+
+    def error(id: Option[String], schema: ResponseSchema, errorDetails: Option[String]): JsonRudderApiResponseError =
+      JsonRudderApiResponseError(schema.action, id, "error", errorDetails)
+    def error(id: Option[String], schema: ResponseSchema, message: String):              JsonRudderApiResponseError =
+      JsonRudderApiResponseError(schema.action, id, "error", Some(message))
 
     def genericError[A](
         id:           Option[String],
@@ -176,10 +187,8 @@ object RudderJsonResponse {
   ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
     schema.dataContainer match {
       case Some(key) =>
-        given enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, id, Map((key, List(obj)))))
       case None      => // in that case, the object is not even in a list
-        given enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, id, obj))
     }
   }
@@ -191,35 +200,25 @@ object RudderJsonResponse {
   ] = {
     schema.dataContainer match {
       case None      =>
-        given enc: JsonEncoder[JsonRudderApiResponse[List[A]]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, None, objs))
       case Some(key) =>
-        given enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
         generic.success(JsonRudderApiResponse.success(schema, None, Map(key -> objs)))
     }
   }
   def successZero(schema: ResponseSchema)(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
-    given enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
     generic.success(JsonRudderApiResponse.success(schema, None))
   }
   def successZero(schema: ResponseSchema, msg: String)(using
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
-    given enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
     generic.success(JsonRudderApiResponse.success(schema, None, msg))
   }
-  // errors
-  given nothing:      JsonEncoder[Option[Unit]]                = new JsonEncoder[Option[Unit]] {
-    def unsafeEncode(n:       Option[Unit], indent: Option[Int], out: zio.json.internal.Write): Unit = out.write("null")
-    override def isNothing(a: Option[Unit]): Boolean = true
-  }
-  given errorEncoder: JsonEncoder[JsonRudderApiResponse[Unit]] = DeriveJsonEncoder.gen
 
   def internalError(id: Option[String], schema: ResponseSchema, errorMsg: String)(using
       prettify: Boolean
-  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+  ): LiftJsonResponse[JsonRudderApiResponseError] = {
     generic.internalError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
   // Internal error with a specific schema
@@ -229,31 +228,29 @@ object RudderJsonResponse {
   ): LiftJsonResponse[? <: JsonRudderApiResponse[?]] = {
     schema.dataContainer match {
       case Some(key) =>
-        given enc: JsonEncoder[JsonRudderApiResponse[Map[String, List[A]]]] = DeriveJsonEncoder.gen
         generic.internalError(JsonRudderApiResponse.genericError(id, schema, Map((key, List(obj))), errorMsg))
       case None      => // in that case, the object is not even in a list
-        given enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
         generic.internalError(JsonRudderApiResponse.genericError(id, schema, obj, errorMsg))
     }
   }
-  def badRequestError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
+  private def badRequestError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
-  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+  ): LiftJsonResponse[JsonRudderApiResponseError] = {
     generic.badRequestError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def unauthorizedError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
+  private def unauthorizedError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
-  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+  ): LiftJsonResponse[JsonRudderApiResponseError] = {
     generic.unauthorizedError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
+  private def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
-  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+  ): LiftJsonResponse[JsonRudderApiResponseError] = {
     generic.notFoundError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def forbiddenError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
+  private def forbiddenError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(using
       prettify: Boolean
-  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+  ): LiftJsonResponse[JsonRudderApiResponseError] = {
     generic.forbiddenError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
 
