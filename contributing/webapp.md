@@ -390,12 +390,22 @@ The relayd configuration is generated base on this configuration file but as rel
 
 ![Development environment architecture](dev-env.png)
 
-The next step is to change the postgresql port number and make the file immutable otherwise, this file will be overwritten by the next agent run (as would be the case in a "normal" environment).
+The next step is to change the postgresql port number.
+First, trigger a policy generation. You can do so by running the following command on the server (still as sudo) : 
+`rudder server trigger-policy-generation`
 
-    sed -i 's/15432/5432/g' /opt/rudder/etc/relayd/main.conf
-    chattr +i /opt/rudder/etc/relayd/main.conf 
+To make sure that the policy generation worked, run the following command on the server 
+`grep "15432" /opt/rudder/etc/relayd/main.conf`
+and make sure that this command outputs the following line : 
+`url = "postgresql://rudder@localhost:15432/rudder"`
 
+Then, run the next two commands : 
+`sed -i 's/15432/5432/g' /opt/rudder/etc/relayd/main.conf`
+`chattr +i /opt/rudder/etc/relayd/main.conf `
 
+> NOTE : The `chattr` command aims to make the `main.conf` file immutable. Otherwise, this file would be overwritten by the next agent run (as would be the case in a "normal" environment, but we wish to make it immutable in the dev environement).
+
+To make sure the replacement worked, run `grep "5432" /opt/rudder/etc/relayd/main.conf` again, and make sure that `15432` has been replaced with `5432`. Otherwise, you will need to make the file mutable and try the previous step again.
 
 > NOTE: because /opt/rudder/etc/relayd/main.conf is now immutable, all subsequent agent runs will output at least one error :
 > 
