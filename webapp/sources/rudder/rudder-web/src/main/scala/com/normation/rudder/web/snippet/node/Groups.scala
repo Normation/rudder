@@ -217,7 +217,9 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                  |// When custom event to close group details fires, we load the group table state in the Elm app
                  |$$("#${htmlId_item}").on("group-close-detail", function () {
                  |  $$("#${htmlId_item} .main-container").hide(); // guarantee to hide details
-                 |  app.ports.loadGroupTable.send(null)
+                 |  app.ports.loadGroupTable.send(null);
+                 |  const url = contextPath + "/secure/nodeManager/groups"
+                 |    history.pushState({}, '', url);
                  |});
                  |
                  |// Initialize tooltips
