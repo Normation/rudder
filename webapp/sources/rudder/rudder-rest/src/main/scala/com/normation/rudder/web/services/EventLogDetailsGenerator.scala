@@ -1624,7 +1624,7 @@ class EventLogDetailsGenerator(
               <td>{ev.id} </td>
               <td>{ev.date} </td>
               <td>{ev.author} </td>
-              <td>{ev.eventType} </td>
+              <td>{EventLogTypeTranslate(ev.eventType)} </td>
             </tr>
       }
     }

@@ -71,6 +71,7 @@ import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.configuration.*
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.*
+import com.normation.rudder.domain.eventlog.EventLogTypeTranslate
 import com.normation.rudder.domain.logger.*
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
@@ -145,7 +146,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.http.S
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
@@ -2404,7 +2404,7 @@ object RudderConfigInit {
       new EventLogAPI(
         new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
         eventLogDetailsGenerator,
-        eventType => S ? ("rudder.log.eventType.names." + eventType.serialize)
+        eventType => EventLogTypeTranslate(eventType.serialize)
       )
     }
     lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
