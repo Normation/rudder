@@ -38,6 +38,28 @@ pub const MODULE_DIR: &str = "/var/rudder/system-update";
 #[cfg(not(unix))]
 pub const MODULE_DIR: &str = "C:/Program Files/rudder/system-update";
 
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Copy, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum RebootBehavior {
+    #[default]
+    Default,
+    Force,
+}
+
+impl FromStr for RebootBehavior {
+    type Err = std::io::Error;
+    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+        match s {
+            "force" => Ok(Self::Force),
+            "default" => Ok(Self::Default),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Invalid reboot behavior input",
+            )),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum RebootType {
@@ -60,7 +82,7 @@ impl FromStr for RebootType {
             "disabled" => Ok(Self::Disabled),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "Invalid input",
+                "Invalid reboot type input",
             )),
         }
     }
@@ -103,6 +125,8 @@ pub struct PackageParameters {
     pub event_id: String,
     pub campaign_name: String,
     pub schedule: Schedule,
+    #[serde(default)]
+    pub reboot_behavior: RebootBehavior,
     pub reboot_type: RebootType,
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]

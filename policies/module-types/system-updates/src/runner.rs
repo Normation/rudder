@@ -83,7 +83,7 @@ impl Runner {
                     || (self.parameters.reboot_type == RebootType::AsNeeded && reboot_needed)
                 {
                     // Async reboot
-                    let result = self.pm.reboot();
+                    let result = self.pm.reboot(&self.parameters.reboot_behavior);
                     match result.inner {
                         Ok(_) => Ok(Continuation::Stop(Outcome::Success(None))),
                         Err(e) => bail!("Reboot failed: {:?}", e),
