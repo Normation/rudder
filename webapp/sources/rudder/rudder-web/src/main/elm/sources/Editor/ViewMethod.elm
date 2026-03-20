@@ -495,23 +495,29 @@ methodDetail method call parentId ui model =
           |> appendChildList
             [ element "li"
               |> addClass (activeClass CallParameters)
-              |> addAttribute (stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallParameters}, True)))
+              |> addActionStopAndPrevent ("click", UIMethodAction call.id {ui | tab = CallParameters})
+              |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
               |> appendText "Parameters"
             , element "li"
               |> addClass (activeClass CallConditions)
               |> addAttribute (stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallConditions}, True)))
+              |> addActionStopAndPrevent ("click", UIMethodAction call.id {ui | tab = CallConditions})
+              |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
               |> appendText "Conditions"
             , element "li"
               |> addClass (activeClass Result)
-              |> addAttribute (stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True)))
+              |> addActionStopAndPrevent ("click", UIMethodAction call.id {ui | tab = Result})
+              |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
               |> appendText "Result conditions"
             , element "li"
               |> addClass (activeClass CallReporting)
-              |> addAttribute (stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)))
+              |> addActionStopAndPrevent ("click", UIMethodAction call.id {ui | tab = CallReporting})
+              |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
               |> appendText "Reporting"
             , element "li"
               |> addClass (activeClass CallForEach)
-              |> addAttribute (stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallForEach}, True)))
+              |> addActionStopAndPrevent ("click", UIMethodAction call.id {ui | tab = CallForEach})
+              |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
               |> appendChildList
                 [ element "span" |> appendText "Foreach"
                 , element "span"
