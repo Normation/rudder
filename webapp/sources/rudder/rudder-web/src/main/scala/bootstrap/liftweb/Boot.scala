@@ -196,17 +196,27 @@ object Boot {
   val redirection: RedirectState =
     RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error)
 
-  def userIsAllowed(redirectTo: String, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
-    if (requiredAuthz.exists((CurrentUser.checkRights(_)))) {
+  def userIsAllowedWith(redirectTo: String, isEnabled: Boolean, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
+    if (isEnabled && requiredAuthz.exists((CurrentUser.checkRights(_)))) {
       Empty
     } else {
       Full(RedirectWithState(redirectTo, redirection))
     }
   }
 
+  def userIsAllowed(redirectTo: String, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
+    userIsAllowedWith(redirectTo, true, requiredAuthz*)
+  }
+
   // shortcut to clarify menus: redirect to dashboard is user doesn't have requiredAuthz
   def needPerms(requiredAuthz: AuthorizationType*): TestAccess = {
-    TestAccess(() => userIsAllowed("/secure/index", requiredAuthz*))
+    needPermsWith(true, requiredAuthz*)
+  }
+
+  // shortcut to clarify when additional checks are needed.
+  // "true" means "has access"
+  def needPermsWith(isEnabled: Boolean, requiredAuthz: AuthorizationType*): TestAccess = {
+    TestAccess(() => userIsAllowedWith("/secure/index", isEnabled, requiredAuthz*))
   }
 
 }
