@@ -13,7 +13,7 @@ use rudder_commons::{Target, is_canonified, logs::ok_output, methods::Methods};
 use serde_json::Value;
 use tracing::{error, warn};
 
-use crate::ir::technique::ForeachResolvedState;
+use crate::ir::technique::{DeserItem, DeserTechnique, ForeachResolvedState};
 use crate::{
     RESOURCES_DIR,
     backends::{Backend, backend, metadata::Metadata},
@@ -339,6 +339,45 @@ fn check_parameter_unicity(technique: &Technique) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Ensure all foreach keys are coherent in a given loop
+/// This is checked earlier than the other validations as it needs the loops metadata that is
+/// lost when the Yaml is converted to a Technique object
+pub fn check_foreach_keys_consistency(technique: &DeserTechnique) -> Result<()> {
+    fn check_deser_item_foreach_consistency(item: &DeserItem) -> Result<()> {
+        if let Some(c) = item.foreach_columns_order.clone() {
+            let expected_keys: HashSet<&String> = c.iter().collect();
+            match &item.foreach {
+                None => bail!(
+                    "Item with id {} has a non empty foreach column order but does not have any foreach defined",
+                    item.id
+                ),
+                Some(f) => f.iter().try_for_each(|m| {
+                    let k: HashSet<&String> = m.keys().collect();
+                    let diff = expected_keys.symmetric_difference(&k).collect::<Vec<_>>();
+                    if diff.is_empty() {
+                        Ok(())
+                    } else {
+                        bail!(
+                            "Item with id {} has inconsistent uses of foreach keys: {:?}",
+                            item.id,
+                            &diff
+                        );
+                    }
+                })?,
+            }
+        }
+        let _ = &item
+            .items
+            .iter()
+            .try_for_each(check_deser_item_foreach_consistency)?;
+        Ok(())
+    }
+    technique
+        .items
+        .iter()
+        .try_for_each(check_deser_item_foreach_consistency)
 }
 
 fn lint_expression(s: &str) -> Result<()> {

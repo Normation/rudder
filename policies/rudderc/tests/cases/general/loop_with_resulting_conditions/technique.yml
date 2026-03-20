@@ -23,3 +23,5 @@ items:
       - path: /tmp/oui.txt
       - path: /tmp/non.txt
     foreach_name: item
+    foreach_columns_order:
+      - path
