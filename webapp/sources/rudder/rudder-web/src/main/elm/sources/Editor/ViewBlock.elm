@@ -59,11 +59,12 @@ blockDetail block parentId ui techniqueUi model =
             )
     tabsList =
       element "ul"
-      |> addClass "tabs-list"
+      |> addClass "tabs-list mt-1 mb-3"
       |> appendChildList
           [ element "li"
             |> addClass (activeClass Children)
             |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = Children})
+            |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
             |> appendChildList [
                  element "span" |> appendText "Content"
                , element "span" |> addClass "badge badge-secondary badge-resources" |> appendChild(element "span" |> appendText (String.fromInt (List.length block.calls)))
@@ -71,14 +72,17 @@ blockDetail block parentId ui techniqueUi model =
           , element "li"
             |> addClass (activeClass BlockConditions)
             |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockConditions})
+            |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
             |> appendText "Conditions"
           , element "li"
             |> addClass (activeClass BlockReporting)
             |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockReporting})
+            |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
             |> appendText "Reporting"
           , element "li"
             |> addClass (activeClass BlockForEach)
             |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockForEach})
+            |> addAttributeList [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop ]
             |> appendChildList [
                  element "span" |> appendText "Foreach"
                , element "span" |> addClass ("badge" ++ foreachClass) |> appendChild(element "span" |> appendText nbForeach |> appendChild(element "i" |> addClass "fa fa-retweet ms-1" ))
