@@ -140,11 +140,11 @@ checkConstraintOnParameter call constraint =
       else
         case Regex.fromString "(^\\s)|(\\s$)" of
           Nothing -> []
-          Just r -> if Regex.contains r (displayValue call.value) then [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' start or end with whitespace characters"  ) } ] else []
+          Just r -> if Regex.contains r (displayValue call.value) then [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' cannot start or end with whitespace characters") } ] else []
 
-    checkMax = if lengthValue call.value >= (constraint.maxLength  |> Maybe.withDefault 16384) then  [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt (constraint.maxLength |> Maybe.withDefault 16384) ) ++ " long" ) } ]else []
+    checkMax = if lengthValue call.value >= (constraint.maxLength  |> Maybe.withDefault 16384) then  [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' cannot be more than " ++ (String.fromInt (constraint.maxLength |> Maybe.withDefault 16384) ) ++ " characters long" ) } ]else []
     min = Maybe.withDefault 0 constraint.minLength
-    checkMin = if lengthValue call.value < min then [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' should be at least " ++ (String.fromInt min) ++ " long") } ] else []
+    checkMin = if lengthValue call.value < min then [ConstraintError { id = call.id, message = ("Parameter '"++call.id.value++"' must be at least " ++ (String.fromInt min) ++ " characters long") } ] else []
     regexValue = Maybe.map Regex.fromString constraint.matchRegex |> Maybe.Extra.join
     checkRegex = case regexValue of
                       Nothing ->  []
@@ -152,18 +152,18 @@ checkConstraintOnParameter call constraint =
                         if Regex.contains regex (displayValue call.value) then
                           []
                         else
-                          [ConstraintError { id = call.id, message = ( "Parameter '" ++ call.id.value ++"' should match the following regexp: " ++ (Maybe.withDefault "" constraint.matchRegex)  )} ]
+                          [ConstraintError { id = call.id, message = ( "Parameter '" ++ call.id.value ++"' must match the following regexp: " ++ (Maybe.withDefault "" constraint.matchRegex)  )} ]
     nonRegexValue = Maybe.map Regex.fromString constraint.notMatchRegex |> Maybe.Extra.join
     notRegexCheck = case  nonRegexValue of
                       Nothing ->  []
                       Just regex -> if Regex.contains regex (displayValue call.value) then
-                                       [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' should not match the following regexp: " ++ (Maybe.withDefault "" constraint.notMatchRegex) ) }]
+                                       [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' cannot match the following regexp: " ++ (Maybe.withDefault "" constraint.notMatchRegex) ) }]
                                     else
                                       []
     checkSelect = Maybe.map ( \ select -> if List.any ( .value >> (==) (displayValue call.value) ) select then
                      []
                    else
-                     [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "'  should be one of the value from the following list: " ++ (String.join ", " (select |> List.map .value)) )} ]
+                     [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "' must equal one of the values from the following list: " ++ (String.join ", " (select |> List.map .value)) )} ]
                   ) constraint.select |> Maybe.withDefault []
     checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck, checkSelect ] |> List.concat
   in
