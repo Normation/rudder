@@ -265,6 +265,12 @@ directivePriority: 0
 #######################################################################################################################
 ## Rules
 #######################################################################################################################
+dn: ruleCategoryId=rootRuleCategory,ou=Rudder,cn=rudder-configuration
+objectClass: ruleCategory
+objectClass: top
+cn: Rules
+description: This is the main category of Rules
+isSystem: TRUE
 
 dn: ou=Rules,ou=Rudder,cn=rudder-configuration
 objectClass: organizationalUnit
