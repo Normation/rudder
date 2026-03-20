@@ -140,7 +140,7 @@ checkConstraintOnParameter call constraint =
       else
         case Regex.fromString "(^\\s)|(\\s$)" of
           Nothing -> []
-          Just r -> if Regex.contains r (displayValue call.value) then [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' start or end with whitespace characters"  ) } ] else []
+          Just r -> if Regex.contains r (displayValue call.value) then [ConstraintError { id = call.id, message = ( "Parameter '"++call.id.value++"' should not start or end with whitespace characters") } ] else []
 
     checkMax = if lengthValue call.value >= (constraint.maxLength  |> Maybe.withDefault 16384) then  [ConstraintError  { id = call.id, message = ("Parameter '"++call.id.value++"' should be at most " ++ (String.fromInt (constraint.maxLength |> Maybe.withDefault 16384) ) ++ " long" ) } ]else []
     min = Maybe.withDefault 0 constraint.minLength
