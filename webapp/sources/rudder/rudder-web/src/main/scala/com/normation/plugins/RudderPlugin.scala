@@ -37,7 +37,6 @@
 
 package com.normation.plugins
 
-import bootstrap.liftweb.Boot
 import bootstrap.liftweb.ClassPathResource
 import bootstrap.liftweb.ConfigResource
 import bootstrap.liftweb.FileSystemResource
@@ -47,7 +46,6 @@ import com.normation.plugins.*
 import com.normation.plugins.cli.RudderPackagePlugin
 import com.normation.plugins.cli.RudderPackagePlugin.LicenseInfo.*
 import com.normation.plugins.cli.RudderPackageService
-import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.data.JsonPluginDetails
@@ -63,7 +61,6 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
-import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
 import scala.xml.NodeSeq
 import zio.Chunk
@@ -308,14 +305,6 @@ trait RudderPluginDef {
 
   def basePackage: String
 
-  /*
-   * Utility method that checks for menu access depending
-   * on plugin activation status
-   */
-  def testMenuAccess(requiredAuthz: AuthorizationType*): TestAccess = {
-    Boot.needPermsWith(status.isEnabled(), requiredAuthz*)
-  }
-
   /**
    * A list of config files to get properties from.
    * If some properties are defined in different config files,
@@ -368,11 +357,9 @@ class PluginsServiceImpl(
   }
 
   override def list(): IOResult[Chunk[Plugin]] = {
-    // We need to merge existing plugins with remote ones. It's completely legit
-    // to have purely local plugins, unknown from rudder-package cli.
     rudderPackageService
       .listAllPlugins()
-      .map(_.map(mergePluginDef))
+      .map(_.map(mergePluginDef(_)))
   }
 
   override def install(plugins: Chunk[PluginId]): IOResult[Unit] = {
@@ -407,15 +394,11 @@ class PluginsServiceImpl(
     implicit val maxNodes:   MaxNodes   = MaxNodes(None)
   }
 
-  /*
-   * Get the list of locally loaded plugins and merge their def
-   * with the provided one.
-   */
-  private def mergePluginDef(p: RudderPackagePlugin): Plugin = {
+  private def mergePluginDef(p: RudderPackagePlugin) = {
     implicit val rudderVersion: String = rudderFullVersion
     pluginDefs
       .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
-      .flatMap { pluginDef =>
+      .flatMap(pluginDef => {
         val details = pluginDef.transformInto[JsonPluginDetails]
         implicit val statusDisabledReason: StatusDisabledReason = StatusDisabledReason(pluginDef.status.current match {
           case RudderPluginLicenseStatus.Disabled(reason, _) => Some(reason)
@@ -427,14 +410,14 @@ class PluginsServiceImpl(
 
         // plugin listed from rudder package but with no license information :
         // - we can parse version, or else return one that is different
-        details.license.map { license =>
+        details.license.map(license => {
           implicit val softwareId: SoftwareId = SoftwareId(license.softwareId)
           implicit val minVersion: MinVersion = MinVersion(license.minVersion)
           implicit val maxVersion: MaxVersion = MaxVersion(license.maxVersion)
 
           p.transformInto[Plugin]
-        }
-      }
+        })
+      })
       .getOrElse {
         // default implicits
         import defaultValues.*

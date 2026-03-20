@@ -227,10 +227,6 @@ trait EndpointSchema {
   // data container name: the expected object key in answer
   def dataContainer: Option[String]
 
-  // check is the API is enabled. Typically, when a dynamic condition must be checked.
-  // True by default for compat reasons.
-  def isEnabled: Boolean = true
-
   // any authorization that allows to access that API (with a "OR" semantic)
   // Nil means special `any_righs`, ie special admin role, is needed, so
   // that removing the last right effectively remove all permissions
