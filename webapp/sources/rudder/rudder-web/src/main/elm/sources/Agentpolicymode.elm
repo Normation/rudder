@@ -1,7 +1,9 @@
 port module Agentpolicymode exposing (..)
 
+import Agentpolicymode.JsonDecoder exposing (decodeErrorDetails)
 import Browser
 import Http exposing (..)
+import Http.Detailed as Detailed
 import Result
 
 import Agentpolicymode.DataTypes exposing (..)
@@ -83,6 +85,18 @@ update msg model =
         Err err ->
           processApiError "Getting Policy Mode Overridable info" err model
 
+    GetChangeMessageSettings res ->
+      case res of
+        Ok settings ->
+          let
+            ui = model.ui
+          in
+            ( { model | ui = { ui | modalSettings = modalSettings settings } }
+              , Cmd.none
+            )
+        Err err ->
+          processApiError "Getting change message settings, saving policy mode may not be possible" err model
+
     SelectMode mode ->
       let
         settings = model.selectedSettings
@@ -97,12 +111,12 @@ update msg model =
       in
         ({model | selectedSettings = newSettings}, Cmd.none)
 
-    StartSaving ->
+    StartSaving reason ->
       let
         ui = model.ui
         newModel = {model | ui = {ui | saving = True}}
       in
-      ( newModel , saveChanges model)
+      ( newModel , saveChanges reason model)
 
     SaveChanges res ->
       let
@@ -110,35 +124,113 @@ update msg model =
         selectedSettings = model.selectedSettings
         currentSettings  = model.currentSettings
         newModel = {model | ui = {ui | saving = False}}
+        processError err =
+          case model.ui.modalState of
+            ConfirmModal value ({ isMandatory } as settings) ->
+              if isMandatory then
+                transformModalError err
+                  |> Maybe.map (\e ->
+                    ({ newModel | ui = { ui | saving = False, modalState = ConfirmModal { value | error = Just e } settings } }, Cmd.none)
+                  )
+                  |> Maybe.withDefault (
+                    processApiError "Saving changes" err newModel
+                  )
+
+              else
+                processApiError "Saving changes" err newModel
+
+            _ ->
+              processApiError "Saving changes" err newModel
+
       in
         case res of
           Ok s ->
-              ( {newModel | currentSettings = {currentSettings | policyMode = s.policyMode}, selectedSettings = {selectedSettings | policyMode = s.policyMode}} , successNotification "")
+              ( { newModel |
+                    currentSettings = {currentSettings | policyMode = s.policyMode}
+                  , selectedSettings = {selectedSettings | policyMode = s.policyMode}
+                  , ui = {ui | saving = False, modalState = NoModal}
+                }
+                , successNotification ""
+              )
           Err err ->
-            processApiError "Saving changes" err newModel
+              processError err
 
-processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
+    CloseModal ->
+      let
+        ui = model.ui
+        newModel = {model | ui = {ui | modalState = NoModal}}
+      in
+      ( newModel, Cmd.none )
+
+    OpenModal settings ->
+      let
+        ui = model.ui
+      in
+      ( { model | ui = { ui | modalState = ConfirmModal { value = "", error = Nothing } settings } }
+      , Cmd.none
+      )
+
+    UpdateChangeMessage value ->
+      let
+        ui = model.ui
+        modalState =
+          case ui.modalState of
+            ConfirmModal { error } settings ->
+              ConfirmModal { value = value, error = error } settings
+
+            _ ->
+              ui.modalState
+      in
+      ( { model | ui = { ui | modalState = modalState } }
+      , Cmd.none
+      )
+
+
+processApiError : String -> Detailed.Error String -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
+    modelUi = model.ui
     message =
       case err of
-        Http.BadUrl url ->
-            "The URL " ++ url ++ " was invalid"
-        Http.Timeout ->
-            "Unable to reach the server, try again"
-        Http.NetworkError ->
-            "Unable to reach the server, check your network connection"
-        Http.BadStatus 500 ->
-            "The server had a problem, try again later"
-        Http.BadStatus 400 ->
-            "Verify your information and try again"
-        Http.BadStatus _ ->
-            "Unknown error"
-        Http.BadBody errorMessage ->
-            errorMessage
-
+        Detailed.BadUrl url ->
+          "The URL " ++ url ++ " was invalid"
+        Detailed.Timeout ->
+          "Unable to reach the server, try again"
+        Detailed.NetworkError ->
+          "Unable to reach the server, check your network connection"
+        Detailed.BadStatus metadata body ->
+          let
+            (title, errors) = decodeErrorDetails body
+          in
+            title ++ "\n" ++ errors
+        Detailed.BadBody metadata body msg ->
+          msg
   in
-    (model, errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message ) )
+    ({ model | ui = { modelUi | saving = False}}, errorNotification ("Error when "++ apiName ++", details: \n" ++ message ))
 
 getUrl : Model -> String
 getUrl model = model.contextPath ++ "/secure/configurationManager/directiveManagement"
+
+
+modalSettings : ChangeMessageSettings -> Maybe ModalSettings
+modalSettings { enableChangeMessage, changeMessagePrompt, mandatoryChangeMessage } =
+  if not enableChangeMessage then
+    Nothing
+  else
+    Just (ModalSettings changeMessagePrompt mandatoryChangeMessage)
+
+
+transformModalError : Detailed.Error String -> Maybe String
+transformModalError err =
+  case err of
+    Detailed.BadStatus metadata body ->
+      body
+        |> decodeErrorDetails
+        |> Tuple.first
+        |> Just
+
+    Detailed.BadBody metadata body msg ->
+      Just msg
+
+    _ ->
+      Nothing

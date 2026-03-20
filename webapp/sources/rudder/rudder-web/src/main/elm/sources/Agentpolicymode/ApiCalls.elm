@@ -1,6 +1,8 @@
 module Agentpolicymode.ApiCalls exposing (..)
 
 import Http exposing (..)
+import Http.Detailed as Detailed
+import Json.Decode exposing (Decoder)
 import Url.Builder exposing (QueryParameter)
 
 import Agentpolicymode.DataTypes exposing (..)
@@ -64,12 +66,12 @@ getNodePolicyMode model nodeId =
   in
     req
 
-saveChanges : Model -> Cmd Msg
-saveChanges model =
+saveChanges : (Maybe Reason) -> Model -> Cmd Msg
+saveChanges reason model =
   let
     (url, encodeSettings, decoder) = case model.ui.form of
       GlobalForm  -> ([ "settings" ], encodeGlobalSettings, decodeGetGlobalSettings)
-      NodeForm id -> ([ "nodes", id ], encodeNodeSettings, decodeSaveNodeDetails)
+      NodeForm id -> ([ "nodes", id ], encodeNodeSettings reason, decodeSaveNodeDetails)
     req =
       request
         { method  = "POST"
@@ -82,3 +84,28 @@ saveChanges model =
         }
   in
     req
+
+getChangeMessageSettings : Model -> Cmd Msg
+getChangeMessageSettings model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
+        , url     = getUrl model [ "settings" ] []
+        , body    = emptyBody
+        , expect  = expectJson GetChangeMessageSettings decodeGetChangeMessageSettings
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+changeMessageReasonParams : String -> List Url.Builder.QueryParameter
+changeMessageReasonParams reason =
+  [ Url.Builder.string "reason" reason ]
+
+
+expectJson : (Result (Detailed.Error String) b -> c) -> Decoder b -> Expect c
+expectJson msg =
+  Detailed.expectJson (Result.map Tuple.second >> msg)
