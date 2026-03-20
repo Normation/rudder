@@ -52,15 +52,18 @@ class StaticResourceRewrite(rudderFullVersion: String, instanceId: InstanceId) e
   // cache id is composed with rudder instance id and rudder version
   val cacheId = DigestUtils.sha256Hex(instanceId.value ++ rudderFullVersion).take(24)
   // prefix added to signal that the resource is cached
-  val prefix:       String = s"cache-${cacheId.toString}"
-  // full URI to resources root, with context path
-  val resourceRoot: String = s"${S.contextPath}/${prefix}"
+  val prefix: String = s"cache-${cacheId.toString}"
 
   private def headers(others: List[(String, String)]): List[(String, String)] = {
     ("Cache-Control", "max-age=31556926, public") ::
     ("Pragma", "") ::
     ("Expires", DateTime.now.plusMonths(6).toString("EEE, d MMM yyyy HH':'mm':'ss 'GMT'")) ::
     others
+  }
+
+  def resourceRoot: String = {
+    // full URI to resources root, with context path
+    s"${S.contextPath}/${prefix}"
   }
 
   /**
