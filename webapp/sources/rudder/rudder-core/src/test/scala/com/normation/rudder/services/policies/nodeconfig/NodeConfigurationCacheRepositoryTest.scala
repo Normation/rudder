@@ -178,11 +178,27 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
 
     "be written sorted" in {
       val json = {
-        """{"hashes": [
-          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
-          |  {"i":["node1","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0],["r1","d1","1.0",0]]},
-          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]}
-          |] }""".stripMargin
+        """{
+          |  "hashes" : [
+          |    {
+          |      "i" : ["node0", "1970-01-01T00:00:00.100Z", 0, 0, 0],
+          |      "p" : []
+          |    },
+          |    {
+          |      "i" : ["node1", "1970-01-01T00:00:00.100Z", 0, 0, 0],
+          |      "p" : [
+          |        ["r0", "d0", "1.0", 0],
+          |        ["r1", "d1", "1.0", 0]
+          |      ]
+          |    },
+          |    {
+          |      "i" : ["node2", "1970-01-01T00:00:00.100Z", 0, 0, 0],
+          |      "p" : [
+          |        ["r0", "d0", "1.0", 0]
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin
       }
 
       configHashesRepo.hashesFile.contentAsString must beEqualTo(json)
@@ -200,12 +216,33 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
 
     "still be written sorted" in {
       val json = {
-        """{"hashes": [
-          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
-          |  {"i":["node1","1970-01-01T00:00:00.500Z",0,0,0],"p":[["r0","d0","1.0",0],["r2","d2","1.0",0]]},
-          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]},
-          |  {"i":["node3","1970-01-01T00:00:00.500Z",0,0,0],"p":[["r3","d3","1.0",0]]}
-          |] }""".stripMargin
+        """{
+          |  "hashes" : [
+          |    {
+          |      "i" : ["node0", "1970-01-01T00:00:00.100Z", 0, 0, 0],
+          |      "p" : []
+          |    },
+          |    {
+          |      "i" : ["node1", "1970-01-01T00:00:00.500Z", 0, 0, 0],
+          |      "p" : [
+          |        ["r0", "d0", "1.0", 0],
+          |        ["r2", "d2", "1.0", 0]
+          |      ]
+          |    },
+          |    {
+          |      "i" : ["node2", "1970-01-01T00:00:00.100Z", 0, 0, 0],
+          |      "p" : [
+          |        ["r0", "d0", "1.0", 0]
+          |      ]
+          |    },
+          |    {
+          |      "i" : ["node3", "1970-01-01T00:00:00.500Z", 0, 0, 0],
+          |      "p" : [
+          |        ["r3", "d3", "1.0", 0]
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin
       }
 
       configHashesRepo.hashesFile.contentAsString must beEqualTo(json)

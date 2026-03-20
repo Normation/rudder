@@ -918,7 +918,6 @@ object JsonPostgresqlSerialization {
 
   import com.normation.cfclerk.domain.TechniqueVersion
   import com.normation.rudder.apidata.implicits.given
-  import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
   import com.normation.rudder.domain.reports.RunComplianceInfo.PolicyModeError
   import com.normation.rudder.services.policies.PolicyId
   import com.normation.utils.DateFormaterService.json.*
@@ -964,10 +963,6 @@ object JsonPostgresqlSerialization {
     }
   )
   implicit lazy val codecOverriddenPolicy:  JsonCodec[OverriddenPolicy]  = DeriveJsonCodec.gen
-  implicit lazy val codecTechniqueVersion:  JsonCodec[TechniqueVersion]  = new JsonCodec(
-    JsonEncoder.string.contramap(_.serialize),
-    JsonDecoder.string.mapOrFail(TechniqueVersion.parse)
-  )
 
   final case class JRunAnalysis(
       @jsonField("k")
