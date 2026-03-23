@@ -5,6 +5,7 @@
     "event_id": "30c87fee-f6b0-42b1-9adb-be067217f1a9",
     "campaign_name": "My campaign",
     "schedule": "immediate",
+    "reboot_behavior": "default",
     "reboot_type": "as-needed"
   },
   "node_id": "node",

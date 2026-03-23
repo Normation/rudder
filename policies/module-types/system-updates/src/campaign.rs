@@ -5,7 +5,7 @@
 
 use crate::package_manager::{PackageId, PackageList};
 use crate::{
-    CampaignType, PackageParameters, RebootType, Schedule,
+    CampaignType, PackageParameters, RebootBehavior, RebootType, Schedule,
     db::PackageDatabase,
     hooks::{Hooks, RunHooks},
     output::{Report, ScheduleReport, Status},
@@ -27,6 +27,7 @@ pub struct RunnerParameters {
     pub campaign_name: String,
     pub schedule: FullSchedule,
     pub reboot_type: RebootType,
+    pub reboot_behavior: RebootBehavior,
     pub report_file: Option<PathBuf>,
     pub schedule_file: Option<PathBuf>,
 }
@@ -46,6 +47,7 @@ impl RunnerParameters {
             event_id: package_parameters.event_id,
             campaign_name: package_parameters.campaign_name,
             schedule: FullSchedule::new(&package_parameters.schedule, node_id, agent_frequency),
+            reboot_behavior: package_parameters.reboot_behavior,
             reboot_type: package_parameters.reboot_type,
             report_file: package_parameters.report_file,
             schedule_file: package_parameters.schedule_file,
@@ -62,6 +64,7 @@ impl RunnerParameters {
             event_id: package_parameters.event_id,
             campaign_name: package_parameters.campaign_name,
             schedule: FullSchedule::Immediate,
+            reboot_behavior: package_parameters.reboot_behavior,
             reboot_type: package_parameters.reboot_type,
             report_file: package_parameters.report_file,
             schedule_file: package_parameters.schedule_file,

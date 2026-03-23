@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026 Normation SAS
 use crate::campaign::{CampaignTarget, FullCampaignType};
-use crate::output::ResultOutput;
+use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
 use crate::package_manager::{PackageId, PackageInfo, PackageList, PackageManager, UpdateManager};
 use anyhow::{Result, anyhow};
 use std::collections::HashMap;
+use std::process::Command;
 use windows::Win32::Foundation::VARIANT_BOOL;
 use windows::Win32::System::Com::{
     CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx,
@@ -18,6 +19,7 @@ use windows::core::BSTR;
 mod kb;
 mod update;
 
+use crate::RebootBehavior;
 use crate::package_manager::windows_update_agent::kb::{Article, ArticleCollection};
 use crate::package_manager::windows_update_agent::update::{
     Category, Collection, InfoData, InstallationResult, UpdateDownloadResult,
@@ -488,5 +490,26 @@ impl UpdateManager for WindowsUpdateAgent {
             stderr: vec![],
             stdout: vec![],
         }
+    }
+
+    fn reboot(&self, options: &RebootBehavior) -> ResultOutput<()> {
+        let mut c = Command::new("shutdown");
+        c.args([
+            "/r",
+            "/t",
+            "0",
+            "/e",
+            "/c",
+            "\"Rudder system update campaign reboot\"",
+        ]);
+        if options == &RebootBehavior::Force {
+            c.arg("/f");
+        }
+        ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        )
+        .clear_ok()
     }
 }
