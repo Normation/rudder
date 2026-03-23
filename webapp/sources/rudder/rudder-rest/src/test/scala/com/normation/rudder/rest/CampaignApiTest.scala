@@ -43,6 +43,7 @@ import com.normation.rudder.campaigns.CampaignEvent
 import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
+import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponseError
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
@@ -254,9 +255,9 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
       val jsonWithTz = c2jsonTz("+01:00")
 
       restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(jsonWithTz)) {
-        case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, _, Some(err)), _, _)) =>
+        case Full(LiftJsonResponse(JsonRudderApiResponseError(_, _, _, Some(err)), _, _)) =>
           err must contain("Error parsing schedule time zone, unknown IANA ID : '+01:00'")
-        case s                                                                          =>
+        case s                                                                            =>
           ko(s"I got a success error in test but should be error : ${s}")
       }
     }
