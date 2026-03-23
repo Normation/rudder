@@ -124,11 +124,15 @@ trait LiftApiModule0 extends ApiModule0[Req, Full[LiftResponse], AuthzToken, Def
 }
 
 /*
- * A LiftApiModuleProvider is just a class providing LiftModules
+ * A LiftApiModuleProvider is just a class providing LiftModules.
+ * This generic interface await an `apiEnabled` implicit that will define if the API is
+ * actually enabled or not. An disabled API will returned a 500 error "API disabled".
  */
-trait LiftApiModuleProvider[A <: EndpointSchema] {
+trait GenericLiftApiModuleProvider[A <: EndpointSchema] {
   def schemas:            ApiModuleProvider[A]
   def getLiftEndpoints(): List[LiftApiModule]
+
+  given apiEnabled: (() => Boolean) = compiletime.deferred
 
   /*
    * Helps debugging bad mapping between a schema and its implementation.
@@ -146,6 +150,13 @@ trait LiftApiModuleProvider[A <: EndpointSchema] {
         }.mkString(",")}]"
     )
   }
+}
+
+/*
+ * The default implementation for rudder core, where an API Endpoint is always enabled
+ */
+trait LiftApiModuleProvider[A <: EndpointSchema] extends GenericLiftApiModuleProvider[A] {
+  override given apiEnabled: (() => Boolean) = () => true
 }
 
 object LiftApiProcessingLogger extends Log {

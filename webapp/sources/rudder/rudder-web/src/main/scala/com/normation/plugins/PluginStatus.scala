@@ -38,6 +38,8 @@
 package com.normation.plugins
 
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.rest.EndpointSchema
+import com.normation.rudder.rest.lift.GenericLiftApiModuleProvider
 
 /**
  * This file defined an entry point for license information and other
@@ -53,7 +55,7 @@ object RudderPluginLicenseStatus {
 
 /**
   * Plugin status in Ruddder determines the status of a plugin,
-  * along with the license information to 
+  * along with the license information to
   */
 trait PluginStatus {
 
@@ -85,4 +87,11 @@ trait PluginStatus {
 object AlwaysEnabledPluginStatus extends PluginStatus {
   override val current: RudderPluginLicenseStatus = RudderPluginLicenseStatus.EnabledNoLicense
   override def isEnabled() = true
+}
+
+/*
+ * A version of the plugin API provider that will take the value of the API status based on the plugin status
+ */
+trait PluginLiftApiModuleProvider[A <: EndpointSchema](using pluginStatus: PluginStatus) extends GenericLiftApiModuleProvider[A] {
+  override given apiEnabled: (() => Boolean) = pluginStatus.isEnabled
 }
