@@ -83,7 +83,7 @@ impl Runner {
                     || (self.parameters.reboot_type == RebootType::AsNeeded && reboot_needed)
                 {
                     // Async reboot
-                    let result = self.pm.reboot();
+                    let result = self.pm.reboot(&self.parameters.reboot_behavior);
                     match result.inner {
                         Ok(_) => Ok(Continuation::Stop(Outcome::Success(None))),
                         Err(e) => bail!("Reboot failed: {:?}", e),
@@ -149,7 +149,7 @@ impl Runner {
 mod tests {
     use crate::package_manager::PackageId;
     use crate::{
-        RebootType, Schedule, ScheduleParameters,
+        RebootBehavior, RebootType, Schedule, ScheduleParameters,
         campaign::{FullCampaignType, FullSchedule, RunnerParameters},
         db::PackageDatabase,
         output::ResultOutput,
@@ -183,7 +183,7 @@ mod tests {
             ResultOutput::new(Ok(self.reboot_needed))
         }
 
-        fn reboot(&self) -> ResultOutput<()> {
+        fn reboot(&self, _options: &RebootBehavior) -> ResultOutput<()> {
             ResultOutput::new(Ok(()))
         }
 
@@ -220,6 +220,7 @@ mod tests {
             campaign_name: "".to_string(),
             schedule: FullSchedule::Immediate,
             reboot_type: RebootType::Disabled,
+            reboot_behavior: RebootBehavior::Default,
             report_file: None,
             schedule_file: None,
         }
