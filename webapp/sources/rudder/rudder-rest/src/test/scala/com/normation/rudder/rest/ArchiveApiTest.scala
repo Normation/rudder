@@ -61,7 +61,7 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.repository.xml.TechniqueFiles
-import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
+import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponseError
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.JRuleCategories
@@ -183,12 +183,12 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       "archive.zip",
       Resource.getAsStream(s"archives/ZipSlip.zip").readAllBytes()
     ) {
-      case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, "error", _, Some(err)), _, 500)) =>
+      case Full(LiftJsonResponse(JsonRudderApiResponseError(_, _, "error", Some(err)), _, 500)) =>
         if (err.contains("../")) ok(s"Archive refused with message: '${err}''")
         else ko(s"Error message does not talk about ../: ${err}")
-      case Full(x)                                                                            =>
+      case Full(x)                                                                              =>
         ko(s"Response should be an error but got: ${x}")
-      case err                                                                                =>
+      case err                                                                                  =>
         ko(s"I got an error in test: ${err}")
     }
 
