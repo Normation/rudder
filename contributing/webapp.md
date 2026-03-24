@@ -54,7 +54,8 @@ Run `sudo apt install virtualbox` in a terminal.
 
 Follow the Vagrant install tutorial https://developer.hashicorp.com/vagrant/install.
 
-Edit `~/<workspace>/rudder-tests/Vagrantfile` and replace the values of `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD` with proper values.
+Clone the rudder-tests repository :  https://github.com/Normation/rudder-tests/
+Then, in rudder-tests/Vagrantfile , fill the `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD` fields with your license credentials.
 ```
 $DOWNLOAD_USER="<user>"
 $DOWNLOAD_PASSWORD="<password>"

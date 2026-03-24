@@ -23,4 +23,3 @@ pylint.log
 hotswap-agent.properties
 *.scala.semanticdb
 sassdoc
-
