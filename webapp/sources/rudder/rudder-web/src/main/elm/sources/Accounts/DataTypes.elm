@@ -85,6 +85,7 @@ type alias Account =
     , tokenGenerationDate : Maybe Posix
     , expirationPolicy: ExpirationPolicy
     , lastAuthenticationDate : Maybe Posix
+    , hasNoUsage : Maybe Bool
     , acl : Maybe (List AccessControl)
     , tenantMode : TenantMode
     , selectedTenants : Maybe (List String) -- non empty list only

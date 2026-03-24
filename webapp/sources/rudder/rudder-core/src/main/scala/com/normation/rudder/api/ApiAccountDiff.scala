@@ -56,6 +56,7 @@ final case class ModifyApiAccountDiff(
     modDescription:         Option[SimpleDiff[String]] = None,
     modIsEnabled:           Option[SimpleDiff[Boolean]] = None,
     modCreationDate:        Option[SimpleDiff[Instant]] = None,
+    modLastAuthenticated:   Option[SimpleDiff[Option[Instant]]] = None,
     modExpirationDate:      Option[SimpleDiff[Option[Instant]]] = None,
     modAPIKind:             Option[SimpleDiff[String]] = None,
     modAccountKind:         Option[SimpleDiff[String]] = None,

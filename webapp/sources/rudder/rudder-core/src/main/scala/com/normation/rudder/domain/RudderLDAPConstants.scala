@@ -108,7 +108,8 @@ object RudderLDAPConstants extends Loggable {
 
   // API Token related
   val A_API_UUID                    = "apiAccountId"
-  val A_CREATION_DATETIME           = "creationTimestamp" // not operationnal, can be different from ldap entry value
+  val A_CREATION_DATETIME           = "creationTimestamp" // not operational, can be different from ldap entry value
+  val A_API_SCHEMA_VERSION          = "apiAccountVersion"
   val A_API_KIND                    = "apiAccountKind"
   val A_API_TOKEN                   = "apiToken"
   val A_API_TOKEN_CREATION_DATETIME = "apiTokenCreationTimestamp"

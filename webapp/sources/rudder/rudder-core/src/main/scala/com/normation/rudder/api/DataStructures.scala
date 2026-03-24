@@ -564,6 +564,45 @@ final case class SystemToken(value: ApiTokenHash) extends ApiAccountToken {
   override def authenticationHash: Some[ApiTokenHash] = Some(value)
 }
 
+sealed trait AccountLastAuthentication
+object AccountLastAuthentication {
+  import ApiAccountSchemaVersion.*
+
+  // special case : accounts created with a V2 schema are known to have never been authenticated
+  case object Never                extends AccountLastAuthentication { val value: String = "never" }
+  // accounts can have a defined lastAuthentication, unless their last auth date is unknown for earlier schemas
+  case class AtDate(date: Instant) extends AccountLastAuthentication
+  case object Unknown              extends AccountLastAuthentication
+
+  def from(schema: ApiAccountSchemaVersion, lastDate: Option[Instant]): AccountLastAuthentication = {
+    (schema, lastDate) match {
+      case (_, Some(date)) => AtDate(date)
+      case (V1, None)      => Unknown
+      case (V2, None)      => Never
+    }
+  }
+
+  extension (self: AccountLastAuthentication) {
+    def date: Option[Instant] = self match {
+      case AtDate(date) => Some(date)
+      case _            => None
+    }
+  }
+}
+
+sealed trait ApiAccountSchemaVersion
+
+object ApiAccountSchemaVersion {
+  case object V1 extends ApiAccountSchemaVersion
+  case object V2 extends ApiAccountSchemaVersion { val value: String = "2" }
+
+  // An account without the schema attribute : the value is not known in V1
+  def apply(str: Option[String]): ApiAccountSchemaVersion = str match {
+    case Some(V2.`value`) => V2
+    case _                => V1
+  }
+}
+
 /**
  * An API principal
  */
@@ -573,12 +612,12 @@ final case class ApiAccount(
     // If a token should be revoked, use isEnabled = false.
     name: ApiAccountName, // used in event log to know who did actions.
 
-    token:                  ApiAccountToken, // if none, then the token can't be used for authentication
-    description:            String,
-    isEnabled:              Boolean,
-    creationDate:           Instant,
-    lastAuthenticationDate: Option[Instant],
-    tenants:                TenantAccessGrant
+    token:              ApiAccountToken, // if none, then the token can't be used for authentication
+    description:        String,
+    isEnabled:          Boolean,
+    creationDate:       Instant,
+    lastAuthentication: AccountLastAuthentication,
+    tenants:            TenantAccessGrant
 ) {
 
   /**

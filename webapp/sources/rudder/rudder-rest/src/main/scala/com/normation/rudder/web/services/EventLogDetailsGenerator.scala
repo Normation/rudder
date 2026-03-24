@@ -1342,6 +1342,11 @@ class EventLogDetailsGenerator(
           }
         )
     }
+    val lastAuthentication        = apiAccount.lastAuthentication match {
+      case AccountLastAuthentication.Never        => "Never"
+      case AccountLastAuthentication.Unknown      => "N/A"
+      case AccountLastAuthentication.AtDate(date) => DateFormaterService.getDisplayDate(date)
+    }
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
@@ -1350,7 +1355,9 @@ class EventLogDetailsGenerator(
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
     "#tokenGenerationDate" #> DateFormaterService.getDisplayDate(apiAccount.tokenGenerationDate) &
+    "#last" #> DateFormaterService.getDisplayDate(apiAccount.tokenGenerationDate) &
     "#expirationDate" #> expiration &
+    "#lastAuthentication" #> lastAuthentication &
     "#accountKind" #> kind &
     "#authz" #> authz)(xml)
   }
@@ -1479,9 +1486,10 @@ class EventLogDetailsGenerator(
         <li><b>Description:&nbsp;</b><value id="description"/></li>
         <li><b>Enabled:&nbsp;</b><value id="isEnabled"/></li>
         <li><b>Creation date:&nbsp;</b><value id="creationDate"/></li>
-        <li><b>Token Generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
-        <li><b>Token Expiration date:&nbsp;</b><value id="expirationDate"/></li>
-        <li><b>Account Kind:&nbsp;</b><value id="accountKind"/></li>
+        <li><b>Token generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
+        <li><b>Token expiration date:&nbsp;</b><value id="expirationDate"/></li>
+        <li><b>Token last usage:&nbsp;</b><value id="lastAuthentication"/></li>
+        <li><b>Account kind:&nbsp;</b><value id="accountKind"/></li>
         <li><b>Authorization:&nbsp;</b><value id="authz"/></li>
       </ul>
     </div>
@@ -1493,9 +1501,10 @@ class EventLogDetailsGenerator(
       {liModDetailsXML("token", "Token")}
       {liModDetailsXML("description", "Description")}
       {liModDetailsXML("isEnabled", "Enabled")}
-      {liModDetailsXML("tokenGenerationDate", "Token Generation Date")}
-      {liModDetailsXML("expirationDate", "Token Expiration Date")}
-      {liModDetailsXML("accountKind", "Account Kind")}
+      {liModDetailsXML("tokenGenerationDate", "Token generation date")}
+      {liModDetailsXML("expirationDate", "Token expiration date")}
+      {liModDetailsXML("lastAuthentication", "Token last usage")}
+      {liModDetailsXML("accountKind", "Account kind")}
       {liModDetailsXML("acls", "ACL list")}
     </xml:group>
   }
