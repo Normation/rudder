@@ -18,8 +18,54 @@
 
 # @name Secedit state
 # @description Configure and audit system security
-# @documentation TODO
+# @documentation
+# The `secedit_state` method applies a specified security policy to a system.
 #
+# This method is a wrapper around
+# [Rudder secedit module](https://github.com/Normation/rudder/blob/master/policies/rudderc/docs/src/modules/secedit.md).
+#
+# ---
+#
+# ### Notes
+#
+# The `data` parameter must contain a JSON object describing the security
+# configuration to apply. Each top-level key represents a Secedit section and
+# must contain the settings for that section.
+#
+# Example:
+#
+# ```
+# {
+#   "Unicode": {
+#     "Unicode": "yes"
+#   },
+#   "System Access": {
+#     "MinimumPasswordLength": 0,
+#     "MinimumPasswordAge": 0,
+#     "NewAdministratorName": "Administrator"
+#   },
+#   "Event Audit": {
+#     "AuditSystemEvents": 0
+#   },
+#   "Privilege Rights": {
+#     "SeRemoteShutdownPrivilege": "*S-1-5-32-544"
+#   }
+# }
+# ```
+#
+# #### Supported sections
+# 
+# The following sections are supported:
+# - *Unicode*
+# - *System Access*
+# - *Event Audit*
+# - *Privilege Rights*
+#
+# #### Unsupported sections
+#
+# The *Registry Values* section is **not supported**.
+# To edit registry entries, refer to the Rudder registry management
+# [documentation](https://docs.rudder.io/rudder-by-example/current/system/manage-registry.html).
 #
 # @parameter            data JSON object containing the security configuration to apply
 # @parameter_constraint data "allow_empty_string" : false
