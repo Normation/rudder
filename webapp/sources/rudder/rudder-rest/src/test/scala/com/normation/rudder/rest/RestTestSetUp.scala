@@ -608,8 +608,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val eventLogApi         = new EventLogAPI(
     eventLogRestService,
     eventLogCoreService,
-    eventLogDetailGenerator,
-    _.serialize
+    eventLogDetailGenerator
   )
 
   val ruleCategoryService = new RuleCategoryService()
