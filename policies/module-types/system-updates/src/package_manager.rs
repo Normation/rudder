@@ -9,8 +9,6 @@ use std::collections::HashMap;
 
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
-#[cfg(unix)]
-use crate::systemd::{systemd_reboot, systemd_restart_services};
 use crate::{
     RebootBehavior,
     campaign::FullCampaignType,
@@ -30,6 +28,7 @@ mod yum;
 mod zypper;
 #[cfg(windows)]
 use crate::package_manager::windows_update_agent::WindowsUpdateAgent as WUAPackageManager;
+use crate::systemd::{systemd_reboot, systemd_restart_services};
 
 /// Packages indexed by (name, arch).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -295,12 +294,9 @@ pub trait UpdateManager {
     fn reboot_pending(&self) -> ResultOutput<bool>;
 
     /// Reboot the system immediately
-    #[cfg(unix)]
     fn reboot(&self, _options: &RebootBehavior) -> ResultOutput<()> {
         systemd_reboot()
     }
-    #[cfg(not(unix))]
-    fn reboot(&self, _options: &RebootBehavior) -> ResultOutput<()>;
 
     /// List the services to restart
     fn services_to_restart(&self) -> ResultOutput<Vec<String>>;
