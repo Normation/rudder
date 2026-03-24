@@ -899,7 +899,7 @@ class EventLogDetailsServiceImpl(
 
   def getRollbackDetails(xml: NodeSeq): Box[RollbackInfo] = {
     def getEvents(xml: Elem): Box[Seq[RollbackedEvent]] = {
-      traverse(xml \ "rollbackedEvent") { entry =>
+      traverse(xml \\ "rollbackedEvent") { entry =>
         for {
           id      <- (entry \ "id").headOption.map(_.text.toInt) ?~! s"rollbacked event details does not have an id: ${entry}"
           evtType <- (entry \ "type").headOption.map(_.text) ?~! s"rollbacked event details does not have a type: ${entry}"
@@ -913,7 +913,7 @@ class EventLogDetailsServiceImpl(
 
     for {
       entry        <- getEntryContent(xml)
-      rollback     <- (entry \ "main").headOption ?~! s"Entry type is not a 'rollback' event: ${entry}"
+      rollback     <- (entry \\ "main").headOption ?~! s"Entry type is not a 'rollback' event: ${entry}"
       id           <- (rollback \ "id").headOption.map(_.text.toInt) ?~! s"rollback event does not have an id: ${entry}"
       evtType      <- (rollback \ "type").headOption.map(_.text) ?~! s"rollback event does not have a type: ${entry}"
       author       <- (rollback \ "author").headOption.map(_.text) ?~! s"rollback event does not have an author: ${entry}"
