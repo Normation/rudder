@@ -22,3 +22,4 @@ pylint.log
 .metals/
 hotswap-agent.properties
 *.scala.semanticdb
+sassdoc
