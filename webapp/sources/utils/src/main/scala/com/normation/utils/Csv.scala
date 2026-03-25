@@ -48,10 +48,13 @@ import scala.language.experimental.macros
 
 /**
  * Generic CSV typeclass using magnolia derivation, from examples :
- * A primitive value maps to a singleton list, case classes map to a list with the same shape
+ * A primitive value maps to a singleton list, case classes map to a list with the same shape.
+ *
+ * Obtaining an instance is a matter of `case class MyCaseClass(...) derives Csv`.
  */
-trait Csv[A] {
+sealed trait Csv[A] {
   def apply(a: A): List[String]
+  private[Csv] def size: Int
 }
 
 object Csv extends ProductDerivation[Csv] {
@@ -163,21 +166,33 @@ object Csv extends ProductDerivation[Csv] {
     given headerZonedDateTime: Header.One[ZonedDateTime] with {}
   }
 
-  def join[A](ctx: CaseClass[Csv, A]): Csv[A] =
-    (a: A) => ctx.parameters.foldLeft(List[String]())((acc, p) => acc ++ p.typeclass(p.deref(a)))
+  def join[A](ctx: CaseClass[Csv, A]): Csv[A] = new Csv[A] {
+    override def apply(a: A): List[String] = ctx.parameters.foldLeft(List[String]())((acc, p) => acc ++ p.typeclass(p.deref(a)))
+    override def size: Int = ctx.parameters.foldLeft(0)((acc, p) => acc + p.typeclass.size)
+  }
 
   // Common instances
-  given [A](using Csv[A]): Csv[Option[A]] = (a: Option[A]) => a.fold(empty)(summon[Csv[A]].apply)
+  given [A](using instance: Csv[A]): Csv[Option[A]] = new {
+    override val size:                Int          = instance.size
+    override def apply(a: Option[A]): List[String] = {
+      a match {
+        case Some(value) => instance(value)
+        case None        => List.fill(instance.size)("")
+      }
+    }
+  }
 
-  given csvString:                    Csv[String]        = (a: String) => List(a)
+  given csvString:                    Csv[String]        = new { override def apply(a: String): List[String] = List(a); override val size: Int = 1 }
   given csvInt:                       Csv[Int]           = instance(_.toString)
   given csvEnumEntry[A <: EnumEntry]: Csv[A]             = instance(_.entryName)
   given csvDateTime:                  Csv[DateTime]      = instance(_.toString)
   given csvZonedDateTime:             Csv[ZonedDateTime] = instance(DateFormaterService.serializeZDT)
 
-  def instance[A](f: A => String): Csv[A] = (a: A) => csvString.apply(f(a))
+  def instance[A](f: A => String): Csv[A] = new {
+    override def apply(a: A): List[String] = List(f(a))
+    override val size: Int = 1
+  }
 
-  // TODO: change to "syntax"
   /**
    * The CSV output with its headers and lines for results
    */
