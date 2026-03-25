@@ -152,7 +152,7 @@ class EventLogDetailsGenerator(
           if (actionName == Text(" deleted"))
             Text(name)
           else
-            <a href={changeRequestLink(ChangeRequestId(id), S.contextPath)}>{name}</a>
+            <a href={changeRequestLink(ChangeRequestId(id))}>{name}</a>
 
         case Catch(e) =>
           logger.error(s"could not translate ${idNode} to a correct chage request identifier: ${e.getMessage()}")
