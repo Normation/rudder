@@ -378,6 +378,122 @@ pub mod diff {
     }
 }
 
+pub mod encoding {
+    use anyhow::{Context, Result, bail};
+    use skip_bom::{BomType, SkipEncodingBom};
+    use std::fs::File;
+    use std::io::Read;
+    use std::path::Path;
+
+    use crate::atomic_file_write;
+
+    /// Read a Unicode file to a string.
+    /// Accept UTF8 with BOM, UTF8 without BOM, UTF16LE with BOM
+    // Other formats could be added easily.
+    pub fn unicode_file_to_string<P: AsRef<Path>>(path: P) -> Result<String> {
+        let name = path.as_ref().to_string_lossy();
+
+        let file = File::open(&path).with_context(|| format!("File '{name}' could not be open"))?;
+
+        let mut reader = SkipEncodingBom::new(BomType::all(), file);
+        let mut buf = Vec::new();
+        reader
+            .read_to_end(&mut buf)
+            .with_context(|| format!("Error reading file {name}"))?;
+
+        match reader.bom_found() {
+            Some(Some(BomType::UTF16LE)) => match buf.as_chunks::<2>() {
+                (chunks, []) => char::decode_utf16(chunks.iter().copied().map(u16::from_le_bytes))
+                    .collect::<Result<_, _>>()
+                    .with_context(|| format!("Invalid UTF16 file '{name}'")),
+                _ => bail!("Invalid UTF16 file '{name}': missing byte"),
+            },
+            Some(Some(BomType::UTF8)) | Some(None) => {
+                String::from_utf8(buf).with_context(|| format!("Invalid UTF8 file '{name}'"))
+            }
+            _ => bail!("Could not decode data: unsupported encoding"),
+        }
+    }
+
+    pub enum Encoding {
+        UTF8,
+        UTF16LE,
+    }
+
+    fn encode_unicode_data(data: &str, encoding: Encoding) -> Vec<u8> {
+        match encoding {
+            #[cfg(target_family = "unix")]
+            Encoding::UTF8 => data.as_bytes().to_vec(),
+            #[cfg(target_family = "windows")]
+            Encoding::UTF8 => {
+                // PowerShell requires a BOM when dealing with UTF-8.
+                let utf8_bom = &[0xEF, 0xBB, 0xBF];
+                [utf8_bom, data.as_bytes()].concat()
+            }
+            Encoding::UTF16LE => {
+                let utf16_data: Vec<u8> =
+                    data.encode_utf16().flat_map(|c| c.to_le_bytes()).collect();
+
+                let utf16_le_bom = &[0xFF, 0xFE];
+                [utf16_le_bom, utf16_data.as_slice()].concat()
+            }
+        }
+    }
+
+    /// Encode and atomically write a string to a file.
+    /// Supported encodings are UTF-8 and UTF-16LE, on Windows a BOM is prepended to the UTF-8
+    /// encoded data.
+    pub fn write_file(data: &str, path: &Path, encoding: Encoding) -> Result<()> {
+        let encoded_data = encode_unicode_data(data, encoding);
+        atomic_file_write::atomic_write(path, &encoded_data)?;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_unicode_file_to_string() {
+            let test_value = "# éoùçà\n".to_string();
+            let res = unicode_file_to_string("src/test/utf8-nobom.txt");
+            assert!(res.is_ok(), "Test utf8-nobom ok");
+            assert_eq!(res.unwrap(), test_value, "Test utf8-nobom value");
+            let res = unicode_file_to_string("src/test/utf8-bom.txt");
+            assert!(res.is_ok(), "Test utf8-bom ok");
+            assert_eq!(res.unwrap(), test_value, "Test utf8-bom value");
+            let res = unicode_file_to_string("src/test/utf16-bom.txt");
+            assert!(res.is_ok(), "Test utf16-bom ok");
+            assert_eq!(res.unwrap(), test_value, "Test utf16-bom value");
+            let res = unicode_file_to_string("src/test/utf16-nobom.txt");
+            assert!(res.is_err(), "Test utf16-nobom err");
+        }
+
+        #[test]
+        fn test_encode_data_to_utf16_bom() {
+            let data = encode_unicode_data("# éoùçà\n", Encoding::UTF16LE);
+            let utf_16_with_bom = std::fs::read("src/test/utf16-bom.txt").unwrap();
+            assert_eq!(utf_16_with_bom, data);
+        }
+
+        #[test]
+        #[cfg(target_family = "unix")]
+        fn test_encode_data_to_utf8() {
+            let data = encode_unicode_data("# éoùçà\n", Encoding::UTF8);
+            let utf8_with_no_bom = std::fs::read("src/test/utf8-nobom.txt").unwrap();
+            assert_eq!(utf8_with_no_bom, data);
+        }
+
+        #[test]
+        #[cfg(target_family = "windows")]
+        fn test_encode_data_to_utf8() {
+            let data = encode_unicode_data("# éoùçà\n", Encoding::UTF8);
+            let utf8_with_bom = std::fs::read("src/test/utf8-bom.txt").unwrap();
+            assert_eq!(utf8_with_bom, data);
+        }
+    }
+}
+
 /// We could use https://crates.io/crates/atomic-write-file for more advanced use-cases
 /// (larger files, std-like interface, etc.), but this is enough for our current needs.
 pub mod atomic_file_write {
