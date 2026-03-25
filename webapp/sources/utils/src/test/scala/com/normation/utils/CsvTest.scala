@@ -49,7 +49,8 @@ class CsvTest extends ZIOSpecDefault {
 
   override def spec: Spec[Any, Any] = suite("Csv")(
     testSimpleCaseClass,
-    testNestedCaseClass
+    testNestedCaseClass,
+    testOption
   )
 }
 
@@ -58,11 +59,19 @@ object Email   {
   def apply(s: String): Email = s
   given Csv[Email] = Csv.instance(a => a)
   given Csv.Header.One[Email] with {}
-  given DeriveGen[Email] = summon[DeriveGen[String]]
+  given DeriveGen[Email]          = summon[DeriveGen[String]]
+  given Conversion[Email, String] = identity
 }
 object CsvTest {
   final case class Person(name: String, email: Email, address: Address) derives DeriveGen, Csv, Csv.Header
   final case class Address(city: String, zipCode: Int) derives DeriveGen, Csv, Csv.Header
+
+  enum LuggageType                       {
+    case Hand, Cabin
+  }
+  given Csv.Header.One[LuggageType] with {}
+  given Csv[LuggageType] = Csv.instance(_.toString)
+  final case class Luggage(`type`: LuggageType, owner: Option[Person]) derives DeriveGen, Csv, Csv.Header
 
   def testSimpleCaseClass: Spec[Any, Any] = {
     test("simple case class")(check(DeriveGen[Address])(a => {
@@ -84,4 +93,19 @@ object CsvTest {
     }))
   }
 
+  // Optional header https://issues.rudder.io/issues/28596
+  def testOption: Spec[Any, Any] = {
+    extension (a: Luggage) {
+      def owner(f: Person => String): String = a.owner.map(f).getOrElse("")
+    }
+    test("header of optional field")(check(DeriveGen[Luggage])(a => {
+      val csv      = List(a).toCsv
+      val expected = s""""Type","Name","Email","City","Zip Code"
+                        |"${a.`type`.toString}","${a.owner(_.name)}","${a.owner(_.email)}","${a.owner(_.address.city)}","${a.owner(
+                         _.address.zipCode.toString
+                       )}"
+                        |""".stripMargin
+      assertTrue(csv == expected)
+    }))
+  }
 }
