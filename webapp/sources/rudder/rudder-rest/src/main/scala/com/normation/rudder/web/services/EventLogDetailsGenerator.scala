@@ -68,7 +68,6 @@ import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
 import java.time.Instant
-import java.time.ZonedDateTime
 import net.liftweb.common.*
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
@@ -1333,7 +1332,7 @@ class EventLogDetailsGenerator(
       case ApiAccountKind.User                                        => ("N/A", "user", Text("N/A"))
       case ApiAccountKind.PublicApi(authorizations, expirationPolicy) =>
         (
-          expirationPolicy.expirationDate.map(e => DateFormaterService.getDisplayDate(ZonedDateTime.from(e))).getOrElse("N/A"),
+          expirationPolicy.expirationDate.map(DateFormaterService.getDisplayDate).getOrElse("N/A"),
           "API",
           authorizations match {
             case ApiAuthorization.None     => Text("none")
