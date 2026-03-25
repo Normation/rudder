@@ -519,7 +519,6 @@ object EventLogTypeTranslate {
       case ModifyNodeEventType                 => "Node modified"
       case ModifySendServerMetricsEventType    => "Property 'Send metrics' modified"
       case ModifyComplianceModeEventType       => "Property 'Compliance mode' modified"
-      case ModifyHeartbeatPeriodEventType      => "Property 'Heartbeat period' modified"
       case ModifyAgentRunIntervalEventType     => "Property 'Agent run interval' modified"
       case ModifyAgentRunSplaytimeEventType    => "Property 'Agent run splaytime' modified"
       case ModifyAgentRunStartHourEventType    => "Property 'Agent run start hour' modified"
@@ -532,6 +531,9 @@ object EventLogTypeTranslate {
       case AddSecretEventType                  => "Secret added"
       case DeleteSecretEventType               => "Secret deleted"
       case ModifySecretEventType               => "Secret modified"
+      case AddEditorTechniqueEventType         => "Technique added"
+      case DeleteEditorTechniqueEventType      => "Technique deleted"
+      case ModifyEditorTechniqueEventType      => "Technique modified"
       case _                                   => ev
     }
   )
