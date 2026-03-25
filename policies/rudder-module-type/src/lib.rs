@@ -378,6 +378,74 @@ pub mod diff {
     }
 }
 
+pub mod encoding {
+    use anyhow::{Result, bail};
+    use skip_bom::{BomType, SkipEncodingBom};
+    use std::fs::File;
+    use std::io::Read;
+    use std::path::Path;
+
+    /// Read a Unicode file to a string.
+    /// Accept UTF8 with BOM, UTF8 without BOM, UTF16LE with BOM
+    // Other formats could be added easily.
+    pub fn unicode_file_to_string(path: &Path) -> Result<String> {
+        let name = path.as_os_str().to_string_lossy();
+        if !path.exists() {
+            bail!("File {} does not exist", name);
+        }
+
+        let file = match File::open(path) {
+            Ok(f) => f,
+            Err(e) => bail!("File {} could not be open: {}", name, e),
+        };
+
+        let mut reader = SkipEncodingBom::new(BomType::all(), file);
+        let mut buf = Default::default();
+        if let Err(e) = reader.read_to_end(&mut buf) {
+            bail!("Error reading file {}: {}", name, e);
+        }
+
+        match reader.bom_found() {
+            Some(Some(BomType::UTF16LE)) => match buf.as_chunks::<2>() {
+                (chunks, []) => {
+                    match char::decode_utf16(chunks.iter().copied().map(u16::from_le_bytes))
+                        .collect::<Result<_, _>>()
+                    {
+                        Ok(s) => Ok(s),
+                        Err(e) => bail!("Invalid UTF16 file {}: {}", name, e),
+                    }
+                }
+                _ => bail!("Invalid UTF16 file {}: missing byte", name),
+            },
+            _ => match String::from_utf8(buf) {
+                Ok(s) => Ok(s),
+                Err(e) => bail!("Invalid UTF8 file {}: {}", name, e),
+            },
+        }
+    }
+
+    #[cfg(test)]
+    pub mod tests {
+        use super::*;
+
+        #[test]
+        fn test_unicode() {
+            let test_value = "# éoùçà\n".to_string();
+            let res = unicode_file_to_string(Path::new("src/test/utf8-nobom.txt"));
+            assert!(res.is_ok(), "Test utf8-nobom ok");
+            assert_eq!(res.unwrap(), test_value, "Test utf8-nobom value");
+            let res = unicode_file_to_string(Path::new("src/test/utf8-bom.txt"));
+            assert!(res.is_ok(), "Test utf8-bom ok");
+            assert_eq!(res.unwrap(), test_value, "Test utf8-bom value");
+            let res = unicode_file_to_string(Path::new("src/test/utf16-bom.txt"));
+            assert!(res.is_ok(), "Test utf16-bom ok");
+            assert_eq!(res.unwrap(), test_value, "Test utf16-bom value");
+            let res = unicode_file_to_string(Path::new("src/test/utf16-nobom.txt"));
+            assert!(res.is_err(), "Test utf16-nobom err");
+        }
+    }
+}
+
 /// We could use https://crates.io/crates/atomic-write-file for more advanced use-cases
 /// (larger files, std-like interface, etc.), but this is enough for our current needs.
 pub mod atomic_file_write {
