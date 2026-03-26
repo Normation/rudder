@@ -138,7 +138,6 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
       )
     )
     _ =>
-<<<<<<< HEAD
       WithNonce.scriptWithNonce(
         Script(
           OnLoad(
