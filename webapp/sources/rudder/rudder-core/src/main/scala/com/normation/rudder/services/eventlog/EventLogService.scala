@@ -8,6 +8,6 @@ trait EventLogService {
 
   def getUserEventLogs(filter: Option[EventLogRequest]): IOResult[Seq[EventLog]]
 
-  def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long]
+  def getUserEventLogCount(filter: Option[EventLogRequest]): IOResult[Long]
 
 }

@@ -69,11 +69,7 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
     (for {
       events <-
         repository
-          .getEventLogByCriteria(
-            filter
-              .map(_.excludeRudderActor)
-              .map(_.excludeAutomaticallyGeneratedType)
-          )
+          .getEventLogByCriteria(Some(filter.getOrElse(EventLogRequest.emptyFilter).addUserFilters))
           .chainError(
             s"Error when trying fetch event logs from database for page ${filter.map(_.start).getOrElse(0) / filter.map(_.length).getOrElse(0) + 1}"
           )
@@ -82,13 +78,10 @@ class EventLogServiceImpl(val repository: EventLogRepository) extends EventLogSe
     }).catchSystemErrors
   }
 
-  override def getEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = {
-    val maybeRequest = filter
-      .map(_.excludeRudderActor)
-      .map(_.excludeAutomaticallyGeneratedType)
+  override def getUserEventLogCount(filter: Option[EventLogRequest]): IOResult[Long] = {
     (for {
       events <- repository
-                  .getEventLogCount(maybeRequest)
+                  .getEventLogCount(Some(filter.getOrElse(EventLogRequest.emptyFilter).addUserFilters))
                   .chainError(s"Error when counting event logs from database")
     } yield {
       events
