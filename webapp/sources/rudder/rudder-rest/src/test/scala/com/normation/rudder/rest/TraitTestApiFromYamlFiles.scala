@@ -42,7 +42,7 @@ import com.normation.box.IOManaged
 import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.rest.lift.LiftApiModuleProvider
+import com.normation.rudder.rest.lift.GenericLiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
 import com.normation.rudder.users.*
@@ -95,7 +95,7 @@ final case class TestRequest(
 
 object TraitTestApiFromYamlFiles {
 
-  def buildLiftRules[A <: LiftApiModuleProvider[? <: EndpointSchema]](
+  def buildLiftRules[A <: GenericLiftApiModuleProvider[? <: EndpointSchema]](
       modules:     List[A],
       versions:    List[ApiVersion],
       userService: Option[UserService]

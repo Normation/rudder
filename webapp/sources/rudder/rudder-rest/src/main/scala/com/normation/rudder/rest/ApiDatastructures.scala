@@ -227,10 +227,6 @@ trait EndpointSchema {
   // data container name: the expected object key in answer
   def dataContainer: Option[String]
 
-  // check is the API is enabled. Typically, when a dynamic condition must be checked.
-  // True by default for compat reasons.
-  def isEnabled: Boolean = true
-
   // any authorization that allows to access that API (with a "OR" semantic)
   // Nil means special `any_righs`, ie special admin role, is needed, so
   // that removing the last right effectively remove all permissions
@@ -406,14 +402,24 @@ final case class RequestInfo(
  */
 final case class Endpoint(schema: EndpointSchema, prefix: ApiPath, version: ApiVersion)
 
-trait ApiModule[REQ, RESP, T, P] {
+trait ApiModule[REQ, RESP, T, P](using apiEnabled: () => Boolean) {
   val schema: EndpointSchema
+
+  // the method is for checking if module is enabled
+  def isEnabled: Boolean = {
+    // Things can be null on class instantiation.
+    // In that case we enable the API for the time of class resolution.
+    // A better design would be to use scala 3 trait constructor for schema, but
+    // it means changing a lot of thing in Rudder core.
+    if (apiEnabled == null) true else apiEnabled()
+  }
+
   def getParam(req:    REQ): Either[ApiError.BadParam, P]
   def handler(version: ApiVersion, path: ApiPath, resources: schema.RESOURCES, req: REQ, params: P, authzToken: T): RESP
 }
 
 trait ApiModule0[REQ, RESP, T, P] extends ApiModule[REQ, RESP, T, P] {
-  val schema: EndpointSchema0
+  override val schema: EndpointSchema0
   def handler0(version: ApiVersion, path: ApiPath, req: REQ, params: P, authzToken: T): RESP
   override def handler(version: ApiVersion, path: ApiPath, resources: Unit, req: REQ, params: P, authzToken: T): RESP = {
     handler0(version, path, req, params, authzToken)
@@ -682,6 +688,10 @@ trait BuildHandler[REQ, RESP, T, P] {
                   s"Found a valid endpoint handler: '${endpoint.schema.name}' on [${endpoint.schema.action.name.toUpperCase} ${endpoint.schema.path}] with version '${endpoint.version.value}'"
                 )
                 val response: RESP = (for {
+                  // only continue when API is enabled for that request.
+                  _             <-
+                    if (api.isEnabled) Right(())
+                    else Left(ApiError.BadRequest(s"API '${api.schema.name}' is disabled", api.schema.name))
                   token         <- authz.checkAuthz(endpoint, info.path).leftMap { error =>
                                      logger.warn(
                                        s"Authorization error for '${info.action.name.toUpperCase()} ${info.path.value}': ${error.msg}"
