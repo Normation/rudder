@@ -223,13 +223,13 @@ case class EventLogRequest(
     order:      Option[EventLogRequest.Order],
     typeFilter: Option[EventLogRequest.TypeFilter]
 ) {
-  def excludeRudderActor: EventLogRequest = {
+  private def excludeRudderActor: EventLogRequest = {
     val nel               = NonEmptyList.of(RudderEventActor, RudderSystemEventActor)
     val includePrincipals = principal.flatMap(_.include)
     this.copy(principal = Some(PrincipalFilter(includePrincipals, Some(exclude(nel, principal)))))
   }
 
-  def excludeAutomaticallyGeneratedType: EventLogRequest = {
+  private def excludeAutomaticallyGeneratedType: EventLogRequest = {
     val nel          = NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment)
     val includeTypes = typeFilter.flatMap(_.include)
     this.copy(typeFilter = Some(TypeFilter(includeTypes, Some(exclude(nel, typeFilter)))))
@@ -237,6 +237,10 @@ case class EventLogRequest(
 
   private def exclude[P](nel: NonEmptyList[P], filter: Option[IncludeExclude[P]]) = {
     filter.flatMap(_.exclude).map(_.concatNel(nel)).getOrElse(nel)
+  }
+
+  def addUserFilters: EventLogRequest = {
+    this.excludeRudderActor.excludeAutomaticallyGeneratedType
   }
 }
 
@@ -280,5 +284,18 @@ object EventLogRequest {
 
     def parse(s: String): Either[String, Direction] =
       withNameInsensitiveEither(s).left.map(e => s"not a valid sorting order: ${e.notFoundName}")
+  }
+
+  def emptyFilter: EventLogRequest = {
+    new EventLogRequest(
+      start = 0,
+      length = 25,
+      search = None,
+      startDate = None,
+      endDate = None,
+      principal = None,
+      order = None,
+      typeFilter = None
+    )
   }
 }

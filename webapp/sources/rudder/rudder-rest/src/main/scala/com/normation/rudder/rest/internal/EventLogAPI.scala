@@ -96,8 +96,8 @@ class EventLogAPI(
       (for {
         restFilter  <- req.fromJson[RestEventLogFilter].toIO
         filter       = restFilter.toEventLogRequest
-        totalRecord <- coreService.getEventLogCount(filter = None)
-        totalFilter <- coreService.getEventLogCount(filter = Some(filter))
+        totalRecord <- coreService.getUserEventLogCount(filter = None)
+        totalFilter <- coreService.getUserEventLogCount(filter = Some(filter))
         events      <- coreService.getUserEventLogs(filter = Some(filter))
         res          = EventLogSlice(events, totalRecord, totalFilter)
       } yield {
