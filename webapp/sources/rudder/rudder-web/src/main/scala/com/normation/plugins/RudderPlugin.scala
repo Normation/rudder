@@ -53,7 +53,6 @@ import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.data.JsonPluginDetails
 import com.normation.rudder.rest.data.JsonPluginInstallStatus
 import com.normation.rudder.rest.data.JsonPluginLicense
-import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.utils.*
 import com.normation.utils.PartType.*
 import com.normation.utils.Separator.Dot
@@ -288,7 +287,7 @@ trait RudderPluginDef {
   /*
    * If the plugin contributes APIs, they must be declared here.
    */
-  def apis: Option[LiftApiModuleProvider[? <: EndpointSchema]] = None
+  def apis: Option[PluginLiftApiModuleProvider[? <: EndpointSchema]] = None
 
   /**
    * The init method of the plugin. It will be called
