@@ -18,7 +18,35 @@
 
 # @name File augeas (beta)
 # @description Manage files using Augeas - in beta
-# @documentation Coming soon.
+# @documentation
+# Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
+#
+# This method is a wrapper around
+# [Rudder Augeas module](https://github.com/Normation/rudder/blob/master/policies/rudderc/docs/src/modules/augeas.md).
+#
+# The method has in total 5 parameters:
+# - `Path`: Path of the file
+#
+#    example: `/etc/hosts`
+#
+# - `Script`: rAugeas script to run on the file. The module adds audit
+# capabilities to Augeas by introducing an additional directive called `check`.
+#
+#    example: `check /files/etc/hosts/1/ipaddr is ipv4`
+#
+# - `If_script`: Only run the script if this rAugeas script succeeds
+#
+#    example: `check /files/etc/hosts/1/canonical ~ localhost`
+#
+# - `Lens`: Lens to use (defaults to detecting the lens based on file path)
+# For a list of supported lenses refer to the [Augeas documentation](https://augeas.net/stock_lenses.html)
+#
+#    example: `Hosts`
+#
+# - `Show_content`: Allow reports to contain extracts of the file content (defaults to true)
+#
+#    example: `true`
+#
 # @parameter            path Path of the file
 # @parameter            script Commands to run on the file
 # @parameter            if_script Only run the script if this script succeeds
@@ -64,6 +92,3 @@ bundle agent file_augeas(path, script, if_script, lens, show_content) {
       "${report_data.method_id}" usebundle => log_rudder_v4_2("${name}", "Augeas module is not supported on this agent");
 
 }
-
-
-
