@@ -187,15 +187,18 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
                  |});
                  |app.ports.displayCategoryDetails.subscribe(function(categoryId) {
                  |  var displayCategoryDetailsCallback = ${displayCategoryDetails.toJsCmd};
-                 |  displayCategoryDetailsCallback()
+                 |  displayCategoryDetailsCallback();
+                 |  removeBsTooltips();
                  |});
                  |app.ports.displayGroupDetails.subscribe(function(groupIdOrTarget) {
                  |  var displayGroupDetailsCallback = ${displayGroupDetails.toJsCmd};
-                 |  displayGroupDetailsCallback()
+                 |  displayGroupDetailsCallback();
+                 |  removeBsTooltips();
                  |});
                  |var createGroupCallback = ${newItemCallback.toJsCmd};
                  |app.ports.createGroupModal.subscribe(function(msg) {
-                 |  createGroupCallback()
+                 |  createGroupCallback();
+                 |  removeBsTooltips();
                  |});
                  |
                  |// We need to notify the Elm app when an action could have been executed to refresh the display
