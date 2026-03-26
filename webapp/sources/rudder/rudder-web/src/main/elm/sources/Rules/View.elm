@@ -292,7 +292,7 @@ view model =
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]
       [ div [class "sidebar-header"]
-        [ div [class "header-title"]
+        [ div [class "header-title flex-wrap"]
           [ h1[]
             [ span[][text "Rules"]
             ]
