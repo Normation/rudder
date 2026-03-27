@@ -2145,7 +2145,6 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshBtn);
   }
 
-  //TODO: replace by custom DataTable.ext.classes
   $('.dt-search input').addClass("form-control");
   $('#grid_remove_popup_grid').parent().addClass("table-responsive");
   $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
