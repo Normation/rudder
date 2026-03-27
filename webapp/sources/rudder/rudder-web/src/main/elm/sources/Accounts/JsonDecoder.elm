@@ -39,6 +39,7 @@ decodeAccount zone =
         |> optional "tokenGenerationDate" (maybe decodeDatetime) Nothing
         |> custom decodeExpirationPolicy
         |> optional "lastAuthenticationDate" (maybe decodeDatetime) Nothing
+        |> optional "hasNoUsage" (maybe bool) Nothing
         |> optional "acl" (map Just (list decodeAcls |> map List.concat)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)

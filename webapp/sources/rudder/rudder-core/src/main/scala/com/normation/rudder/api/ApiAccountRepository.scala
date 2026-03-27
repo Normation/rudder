@@ -116,7 +116,8 @@ final class RoLDAPApiAccountRepository(
       "For internal use",
       isEnabled = true,
       creationDate = Instant.now(),
-      lastAuthenticationDate = None, // access for system token is not persisted in base, it only gets logged
+      // access for system token is not persisted in base, it only gets logged
+      lastAuthentication = AccountLastAuthentication.Unknown,
       tenants = TenantAccessGrant.All
     )
   }
@@ -268,7 +269,7 @@ final class WoLDAPApiAccountRepository(
                        case None    => LDAPRudderError.Consistency(s"Api Account with ID '${id.value}' is not present").fail
                        case Some(x) => x.succeed
                      }
-          updated <- mapper.entry2ApiAccount(entry).map(_.copy(lastAuthenticationDate = Some(date))).toIO
+          updated <- mapper.entry2ApiAccount(entry).map(_.copy(lastAuthentication = AccountLastAuthentication.AtDate(date))).toIO
           _       <- ldap.save(mapper.apiAccount2Entry(updated))
           // there is no diff to produce since it's a simple token access (audit logs should be based on file/db logs instead)
         } yield ()

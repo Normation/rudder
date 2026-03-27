@@ -39,6 +39,7 @@ package com.normation.rudder.rest.data
 
 import com.normation.errors.*
 import com.normation.errors.IOResult
+import com.normation.rudder.api.AccountLastAuthentication
 import com.normation.rudder.api.AccountToken
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountExpirationPolicy
@@ -152,6 +153,7 @@ sealed trait ApiAccountDetails {
   def tokenGenerationDate: Option[Instant]                // this is the token generation date, mapped to apiTokenCreationTimestamp
   def lastAuthenticationDate
       : Option[Instant] // this is the last account authentication date, mapped to lastAuthenticationTimestamp
+  def hasNoUsage:        Option[true]                 // in pair with the last authentication date, to know if it was never used
   def tenants:           TenantAccessGrant
   def authorizationType: Option[ApiAuthorizationKind] // ApiAuthorization.kind
   def acl:               Option[JsonApiAcl]
@@ -187,6 +189,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       tokenState:             ApiTokenState,
       tokenGenerationDate:    Option[Instant],
       lastAuthenticationDate: Option[Instant],
+      hasNoUsage:             Option[true],
       tenants:                TenantAccessGrant,
       authorizationType:      Option[ApiAuthorizationKind],
       acl:                    Option[JsonApiAcl]
@@ -203,6 +206,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       tokenState:             ApiTokenState,
       tokenGenerationDate:    Option[Instant],
       lastAuthenticationDate: Option[Instant],
+      hasNoUsage:             Option[true],
       token:                  ClearTextSecret,
       tenants:                TenantAccessGrant,
       authorizationType:      Option[ApiAuthorizationKind],
@@ -211,6 +215,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
 
   // only encode, no decoder for that
   implicit val encoderClearTextSecret:            JsonEncoder[ClearTextSecret]             = JsonEncoder.string.contramap(_.value)
+  implicit val encoderBoolean:                    JsonEncoder[true]                        = JsonEncoder.boolean.contramap(identity)
   implicit val encoderApiAccountDetailsPublic:    JsonEncoder[ApiAccountDetails.Public]    = DeriveJsonEncoder.gen
   implicit val encoderApiAccountDetailsWithToken: JsonEncoder[ApiAccountDetails.WithToken] = DeriveJsonEncoder.gen
   implicit val encoderApiAccountDetails:          JsonEncoder[ApiAccountDetails]           = new JsonEncoder[ApiAccountDetails] {
@@ -267,6 +272,11 @@ object ApiAccountDetails extends ApiAccountCodecs {
           case _ => None
         }
       }
+    )
+    .withFieldComputed(_.lastAuthenticationDate, _.lastAuthentication.date)
+    .withFieldComputed(
+      _.hasNoUsage,
+      x => if (x.lastAuthentication == AccountLastAuthentication.Never) Some[true](true) else Option.empty[true]
     )
     .withFieldComputed(_.acl, _.kind.transformInto[Option[JsonApiAcl]])
 
@@ -334,7 +344,7 @@ object NewRestApiAccount extends ApiAccountCodecs {
       .withFieldConst(_.token, t)
       .withFieldComputed(_.isEnabled, _.status == ApiAccountStatus.Enabled)
       .withFieldConst(_.creationDate, d)
-      .withFieldConst(_.lastAuthenticationDate, None)
+      .withFieldConst(_.lastAuthentication, AccountLastAuthentication.Never)
       .buildTransformer
   }
 }

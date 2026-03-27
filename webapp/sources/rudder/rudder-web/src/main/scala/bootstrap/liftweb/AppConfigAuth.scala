@@ -898,7 +898,7 @@ class RestAuthenticationFilter(
                   "API Account for un-authenticated API",
                   isEnabled = true,
                   creationDate = Instant.EPOCH,
-                  lastAuthenticationDate = None,
+                  lastAuthentication = AccountLastAuthentication.Unknown,
                   tenants = TenantAccessGrant.None
                 )
 

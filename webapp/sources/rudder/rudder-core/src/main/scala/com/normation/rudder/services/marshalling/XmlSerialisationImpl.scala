@@ -43,6 +43,7 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlwriters.SectionSpecWriter
+import com.normation.rudder.api.AccountLastAuthentication
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAuthorization
@@ -526,7 +527,7 @@ class ChangeRequestChangesSerialisationImpl(
 class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialisation {
 
   def serialise(account: ApiAccount): Elem = {
-    val kind = account.kind match {
+    val kind               = account.kind match {
       case ApiAccountKind.User | ApiAccountKind.System =>
         <kind>{account.kind.kind.name}</kind>
       case ApiAccountKind.PublicApi(authz, policy)     =>
@@ -549,6 +550,12 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
           .map(d => <expirationDate>{d.toString}</expirationDate>)
           .getOrElse(NodeSeq.Empty)
     }
+    // 9.1 : we know when an account was "never" authenticated (starting from creation)
+    val lastAuthentication = (account.lastAuthentication match {
+      case AccountLastAuthentication.Unknown      => None
+      case AccountLastAuthentication.Never        => Some(AccountLastAuthentication.Never.value)
+      case AccountLastAuthentication.AtDate(date) => Some(date.toString)
+    }).map(d => <lastAuthentication>{d}</lastAuthentication>).getOrElse(NodeSeq.Empty)
 
     createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)(
       (
@@ -560,7 +567,7 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
        <creationDate>{account.creationDate.toString}</creationDate>
        <tokenGenerationDate>{account.tokenGenerationDate.toString}</tokenGenerationDate>
        <tenants>{account.tenants.serialize}</tenants>
-      ) ++ kind
+      ) ++ lastAuthentication ++ kind
     )
   }
 }
