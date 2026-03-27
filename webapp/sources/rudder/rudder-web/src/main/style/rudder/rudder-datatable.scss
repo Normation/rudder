@@ -151,6 +151,8 @@
 .dataTable tr.head th.sorting_desc:after,
 .dataTable tr.head th.dt-ordering-asc span.dt-column-order:after,
 .dataTable tr.head th.dt-ordering-desc span.dt-column-order:after,
+.dataTable thead > tr th.dt-ordering-asc span.dt-column-order:after,
+.dataTable thead > tr th.dt-ordering-desc .dt-column-order:after,
 .dt-scroll-head thead > tr th.sorting_asc:after,
 .dt-scroll-head thead > tr th.sorting_desc:after{
   display: inline-block;
@@ -171,11 +173,13 @@
 }
 .dataTable tr.head th.sorting_asc:after,
 .dataTable tr.head th.dt-ordering-asc span.dt-column-order:after,
+.dataTable thead > tr th.dt-ordering-asc span.dt-column-order:after,
 .dt-scroll-head thead > tr th.sorting_asc:after{
   content: "\f0d8";
 }
 .dataTable tr.head th.sorting_desc:after,
 .dataTable tr.head th.dt-ordering-desc span.dt-column-order:after,
+.dataTable thead > tr th.dt-ordering-desc span.dt-column-order:after,
 .dt-scroll-head thead > tr th.sorting_desc:after{
   content: "\f0d7";
 }
@@ -184,11 +188,15 @@
   font-size: 0.9em;
 }
 .dataTable tr.head th.sorting,
+.dt-scroll-head thead > tr th.dt-orderable-desc,
+.dt-scroll-head thead > tr th.dt-orderable-asc,
 .dt-scroll-head thead > tr th.sorting{
   color: rudder.$txt-secondary;
 }
 .dataTable tr.head th.sorting.sorting_desc,
 .dataTable tr.head th.sorting.sorting_asc,
+.dt-scroll-head thead > tr th.dt-ordering-desc,
+.dt-scroll-head thead > tr th.dt-ordering-asc,
 .dt-scroll-head thead > tr th.sorting_asc,
 .dt-scroll-head thead > tr th.sorting_desc{
   color: rudder.$txt-primary;
@@ -198,11 +206,13 @@
 .dataTable tr.head th.sorting.sorting_asc:hover,
 .dataTable tr.head th.dt-orderable-desc:hover,
 .dataTable tr.head th.dt-orderable-asc:hover,
+.dt-scroll-head thead > tr th.dt-orderable-desc:hover,
+.dt-scroll-head thead > tr th.dt-orderable-asc:hover,
 .dt-scroll-head thead > tr th.sorting:hover,
 .dt-scroll-head thead > tr th.sorting_asc:hover,
 .dt-scroll-head thead > tr th.sorting_desc:hover{
   cursor: pointer;
-  color: #0e5e9f;
+  color: rudder.$txt-link;
 }
 
 .DataTables_sort_icon.ui-icon-triangle-1-n,
@@ -723,6 +733,10 @@ td.greyBackground, th.greyBackground {
 }
 
 /* TECHNICAL LOGS TABLE */
+// https://issues.rudder.io/issues/28587 : for some reason the tr is doubled (won't also have the `.head` class)
+#logsGrid thead tr {
+  display: none;
+}
 .rudder-label.label-log{
   width: 100%;
   text-align: left;
