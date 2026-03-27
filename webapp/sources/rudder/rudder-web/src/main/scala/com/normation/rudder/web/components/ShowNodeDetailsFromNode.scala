@@ -177,7 +177,7 @@ class ShowNodeDetailsFromNode(
     )
   }
 
-  def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode)(using qc: QueryContext): NodeSeq = {
+  def display(popupDisplay: Boolean, displayDetailsMode: DisplayDetailsMode): NodeSeq = {
     val dispatchName = (popupDisplay, displayDetailsMode) match {
       case (true, System)      => "popupSystem"
       case (true, Compliance)  => "popupCompliance"
@@ -186,7 +186,7 @@ class ShowNodeDetailsFromNode(
       case (false, Compliance) => "mainCompliance"
       case (false, Summary)    => "mainDetails"
     }
-    mainSecureDispatch(dispatchName)(NodeSeq.Empty)
+    dispatch(dispatchName)(NodeSeq.Empty)
   }
 
   private def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit
