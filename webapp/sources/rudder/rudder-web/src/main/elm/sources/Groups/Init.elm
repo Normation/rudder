@@ -15,7 +15,7 @@ init flags =
     initTableFilters  = defaultTableFilters Name
     initTreeFilters   = (TreeFilters "" [])
     initFilters       = Filters initTableFilters initTreeFilters
-    initUI       = UI initFilters NoModal flags.hasWriteRights True
+    initUI       = UI initFilters flags.hasWriteRights True
     initModel    = Model flags.contextPath Loading initUI initCategory Dict.empty
     listInitActions =
       [ getGroupsTree initModel (not flags.hasGroupToDisplay)
