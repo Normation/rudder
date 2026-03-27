@@ -833,32 +833,45 @@ ul {
 }
 /* === DATATABLE === */
 
+.rudder-template .template-main .main-table .rudder-table-wrapper-top,
 .rudder-template .template-main .main-table .dataTables_wrapper_top {
   border-top-width: 2px;
   border-left: none;
 }
+.rudder-template .template-main .main-table .rudder-table-wrapper-bottom,
 .rudder-template .template-main .main-table .dataTables_wrapper_bottom{
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   padding: 15px;
 }
+.rudder-template .template-main .main-table .rudder-table-wrapper-top,
+.rudder-template .template-main .main-table .rudder-table,
+.rudder-template .template-main .main-table .rudder-table-wrapper-bottom,
 .rudder-template .template-main .main-table .dataTables_wrapper_top,
 .rudder-template .template-main .main-table .dataTable,
 .rudder-template .template-main .main-table .dataTables_wrapper_bottom{
   border-left: none;
   border-right: none;
 }
+.rudder-template .template-main .main-table .rudder-table thead > tr > th:first-child,
+.rudder-template .template-main .main-table .rudder-table tbody > tr > td:first-child,
+.rudder-template .template-main .main-table .rudder-table-wrapper-top,
+.rudder-template .template-main .main-table .rudder-table-wrapper-bottom,
 .rudder-template .template-main .main-table .dataTable thead > tr > th:first-child,
 .rudder-template .template-main .main-table .dataTable tbody > tr > td:first-child,
 .rudder-template .template-main .main-table .dataTables_wrapper_top,
 .rudder-template .template-main .main-table .dataTables_wrapper_bottom{
   padding-left: 15px;
 }
+.rudder-template .template-main .rudder-table .rudder-table tr.head th:first-child,
+.rudder-template .template-main .rudder-table tr.head th:first-child,
+.rudder-template .template-main .rudder-table tr td:first-child,
 .rudder-template .template-main .dataTable .dataTable tr.head th:first-child,
 .rudder-template .template-main .dataTable tr.head th:first-child,
 .rudder-template .template-main .dataTable tr td:first-child{
   padding-left: 15px;
 }
+/* compliance nested table */
 .rudder-template .dataTable .report-compliance{
   padding: 0 !important;
 }
@@ -970,26 +983,31 @@ ul {
   padding: 12px 15px;
   background-color: #fcfcfc;
 }
+.rudder-template .rudder-table td .progress.progress-flex,
 .rudder-template .dataTable td .progress.progress-flex {
   margin: 0;
   height: initial;
   font-size: 0.7rem;
 }
+.rudder-template .rudder-table td.empty,
 .rudder-template .dataTable td.empty{
   padding: 20px 15px;
   background-color: rudder.$bg-warning;
   color: rudder.$warning;
 }
+.rudder-template .rudder-table td.empty .fa:first-child,
 .rudder-template .dataTable td.empty .fa:first-child,
 .rudder-template .callout-fade :not(.marker) .fa:first-child,
 .rudder-template .callout-fade .rudder-label:first-child,
 .rudder-template .alert .fa:first-child{
   margin-right: 6px;
 }
+.rudder-template .rudder-table td .disabled,
 .rudder-template .dataTable td .disabled {
   cursor: help;
   color: rudder.$txt-secondary;
 }
+.rudder-template .rudder-table td .disabled > .fa,
 .rudder-template .dataTable td .disabled > .fa{
   margin-left: 4px;
 }
@@ -1209,6 +1227,7 @@ ul {
 .rudder-template .main-details .table-container{
   margin: 0 -15px -10px -15px;
 }
+.rudder-template .main-details .table-container > .rudder-table,
 .rudder-template .main-details .table-container > .dataTable{
   border-left: none;
 }
@@ -1302,12 +1321,15 @@ ul {
   margin: 20px 0;
   min-width: 60%;
 }
+.table-container.skeleton-loading .rudder-table tr.head th,
 .table-container.skeleton-loading .dataTable tr.head th{
   cursor: default !important;
 }
+.rudder-template .template-main .main-table > .table-container.skeleton-loading .rudder-table > tbody > tr:hover,
 .rudder-template .template-main .main-table > .table-container.skeleton-loading .dataTable > tbody > tr:hover{
   background-color: #fff;
 }
+.rudder-template .template-main .main-table > .table-container.skeleton-loading .rudder-table > tbody > tr:nth-child(even):hover {
 .rudder-template .template-main .main-table > .table-container.skeleton-loading .dataTable > tbody > tr:nth-child(even):hover {
   background-color: rudder.$bg-light-gray;
 }
