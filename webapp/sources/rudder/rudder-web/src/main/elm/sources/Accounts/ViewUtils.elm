@@ -77,9 +77,19 @@ displayAccountsTable model =
         expirationDate = case a.expirationPolicy of
           ExpireAtDate d  -> posixToString model.ui.datePickerInfo.zone d
           NeverExpire -> "-"
-        (lastUsedDate, relativeLastUsedDate)  = case a.lastAuthenticationDate of
-          Just d -> (Just d, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d)
-          Nothing -> (Nothing, "-")
+        (lastUsedDateClass, relativeLastUsedDate)  = case a.lastAuthenticationDate of
+          Just d -> ( Just
+                    [ class "relative-date"
+                    , attribute "data-bs-toggle" "tooltip"
+                    , attribute "data-bs-placement" "top"
+                    , attribute "title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
+                    , onClick (Copy (Iso8601.fromTime d))
+                    ]
+                    , DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d
+                    )
+          Nothing -> ( a.hasNoUsage |> Maybe.map (\b -> if b then [ class "empty px-0" ] else [])
+                     , a.hasNoUsage |> Maybe.map (\b -> if b then "Never" else "-") |> Maybe.withDefault "-"
+                     )
         hasToken = Maybe.Extra.isJust a.tokenGenerationDate
         modalAction = if hasToken then Regenerate else Create
 
@@ -98,18 +108,7 @@ displayAccountsTable model =
         , td [class "date"][ text expirationDate ]
         , td [class "date"]
           [ span
-            ( lastUsedDate
-                |> Maybe.Extra.unpack
-                  ( \() -> [] )
-                  ( \d ->
-                    [ class "relative-date"
-                    , attribute "data-bs-toggle" "tooltip"
-                    , attribute "data-bs-placement" "top"
-                    , attribute "title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
-                    , onClick (Copy (Iso8601.fromTime d))
-                    ]
-                  )
-            )
+            ( lastUsedDateClass |> Maybe.withDefault [] )
             [ text relativeLastUsedDate ]
           ]
         , td []

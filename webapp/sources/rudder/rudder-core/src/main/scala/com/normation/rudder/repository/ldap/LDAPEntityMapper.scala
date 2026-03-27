@@ -987,6 +987,8 @@ class LDAPEntityMapper(
         expirationDate         = e.getAsGTime(A_API_EXPIRATION_DATETIME)
         // last access date is optional
         lastAuthenticationDate = e.getAsGTime(A_API_LAST_AUTH_DATETIME)
+        schemaVersion          = ApiAccountSchemaVersion(e(A_API_SCHEMA_VERSION))
+        lastAuthentication     = AccountLastAuthentication.from(schemaVersion, lastAuthenticationDate.map(_.instant))
         // api authz kind/acl are not optional, but may be missing for Rudder < 4.3 migration
         // in that case, use the defaultACL
         accountType            = e(A_API_KIND) match {
@@ -1066,7 +1068,7 @@ class LDAPEntityMapper(
           description,
           isEnabledAndVersionOk,
           creationDatetime.instant,
-          lastAuthenticationDate.map(_.instant),
+          lastAuthentication,
           tenants
         )
       }
@@ -1089,7 +1091,19 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_DESCRIPTION, principal.description)
     mod.resetValuesTo(A_IS_ENABLED, principal.isEnabled.toLDAPString)
     mod.resetValuesTo(A_API_KIND, principal.kind.kind.name)
-    principal.lastAuthenticationDate.foreach(d => mod.resetValuesTo(A_API_LAST_AUTH_DATETIME, GeneralizedTime(d).toString()))
+    principal.lastAuthentication match {
+      case AccountLastAuthentication.AtDate(d) => {
+        mod.resetValuesTo(A_API_LAST_AUTH_DATETIME, GeneralizedTime(d).toString())
+      }
+      // in case schema version can be inferred from the "never authenticated", then it must be V2 (when schema was added)
+      case AccountLastAuthentication.Never     => {
+        mod.resetValuesTo(A_API_SCHEMA_VERSION, ApiAccountSchemaVersion.V2.value)
+      }
+      case AccountLastAuthentication.Unknown   => {
+        ()
+      }
+
+    }
     mod.resetValuesTo(A_API_TENANT, principal.tenants.serialize)
 
     principal.kind match {

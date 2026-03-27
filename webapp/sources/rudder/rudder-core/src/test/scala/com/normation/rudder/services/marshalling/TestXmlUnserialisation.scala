@@ -15,6 +15,7 @@ import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.cfclerk.xmlwriters.SectionSpecWriterImpl
 import com.normation.eventlog.EventActor
+import com.normation.rudder.api.AccountLastAuthentication
 import com.normation.rudder.api.AccountToken
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccount
@@ -344,7 +345,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       <kind>public</kind>
       <authorization>rw</authorization>
       <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
-      <lastAuthenticationDate>2025-05-07T00:11:22.345+02:00</lastAuthenticationDate>
+      <lastAuthentication>2025-05-07T00:11:22.345+02:00</lastAuthentication>
     </apiAccount>
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
@@ -363,7 +364,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
-          lastAuthenticationDate = Some(Instant.parse("2025-05-07T00:11:22.345+02:00")),
+          lastAuthentication = AccountLastAuthentication.AtDate(Instant.parse("2025-05-07T00:11:22.345+02:00")),
           tenants = TenantAccessGrant.All
         )
       )
@@ -391,7 +392,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         </acl>
       </authorization>
       <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
-      <lastAuthenticationDate>2025-05-07T00:11:22.345+02:00</lastAuthenticationDate>
+      <lastAuthentication>never</lastAuthentication>
     </apiAccount>
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
@@ -419,7 +420,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
-          lastAuthenticationDate = Some(Instant.parse("2025-05-07T00:11:22.345+02:00")),
+          lastAuthentication = AccountLastAuthentication.Never,
           tenants = TenantAccessGrant.All
         )
       )
@@ -447,7 +448,6 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         </acl>
       </authorization>
       <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
-      <lastAuthenticationDate>2025-05-07T00:11:22.345+02:00</lastAuthenticationDate>
     </apiAccount>
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
@@ -477,7 +477,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           description = "",
           isEnabled = true,
           creationDate = Instant.parse("2025-05-06T13:59:59.613+02:00"),
-          lastAuthenticationDate = Some(Instant.parse("2025-05-07T00:11:22.345+02:00")),
+          lastAuthentication = AccountLastAuthentication.Unknown,
           tenants = TenantAccessGrant.All
         )
       )
