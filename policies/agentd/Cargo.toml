@@ -1,0 +1,31 @@
+[package]
+name = "agentd"
+# automatically set by the builder
+version = "0.1.0"
+description = "rudder agent service"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+log = "0.4"
+anyhow = "1.0"
+toml = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+humantime-serde = "1.1"
+serde-inline-default = "1.0"
+uuid = "1"
+chrono = "0.4"
+tokio = { version = "1.50", features = ["full"] }
+skip_bom = "0.5"
+
+[target.'cfg(windows)'.dependencies]
+windows-service = "0.8"
+winlog2 = "0.3"
+
+[target.'cfg(unix)'.dependencies]
+
+[lints.clippy]
+unwrap_used = "deny"
