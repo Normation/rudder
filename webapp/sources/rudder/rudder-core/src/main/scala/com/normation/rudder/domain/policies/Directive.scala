@@ -45,6 +45,9 @@ import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import scala.xml.*
+import zio.json.JsonCodec
+import zio.json.JsonDecoder
+import zio.json.JsonEncoder
 
 /*
  * Two way of modeling the couple (directiveId, rev) :
@@ -119,6 +122,11 @@ object DirectiveId {
         DirectiveId(DirectiveUid(id), rev)
     }
   }
+
+  given JsonCodec[DirectiveId] = new JsonCodec(
+    JsonEncoder[String].contramap[DirectiveId](_.serialize),
+    JsonDecoder[String].mapOrFail(DirectiveId.parse)
+  )
 }
 
 /**

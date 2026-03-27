@@ -229,16 +229,6 @@ object ExpectedReportsSerialisation {
     JsonCodec[PolicyModeOverrides](enc, dec)
   }
   implicit val codecGlobalPolicyMode:    JsonCodec[GlobalPolicyMode]    = DeriveJsonCodec.gen
-  implicit val codecRuleId:              JsonCodec[RuleId]              = {
-    implicit val encoderRuleId: JsonEncoder[RuleId] = JsonEncoder[String].contramap[RuleId](_.serialize)
-    implicit val decoderRuleId: JsonDecoder[RuleId] = JsonDecoder[String].mapOrFail(RuleId.parse(_))
-    JsonCodec(encoderRuleId, decoderRuleId)
-  }
-  implicit val codecDirectiveId:         JsonCodec[DirectiveId]         = {
-    implicit val encoderDirectiveId: JsonEncoder[DirectiveId] = JsonEncoder[String].contramap[DirectiveId](_.serialize)
-    implicit val decoderDirectiveId: JsonDecoder[DirectiveId] = JsonDecoder[String].mapOrFail(DirectiveId.parse(_))
-    JsonCodec(encoderDirectiveId, decoderDirectiveId)
-  }
   implicit val codecReportingLogic:      JsonCodec[ReportingLogic]      = {
     implicit val encoderReportingLogic: JsonEncoder[ReportingLogic] = JsonEncoder[String].contramap[ReportingLogic](_.value)
     implicit val decoderReportingLogic: JsonDecoder[ReportingLogic] =
