@@ -445,7 +445,7 @@ pub mod encoding {
                 let utf16_data: Vec<u8> =
                     data.encode_utf16().flat_map(|c| c.to_le_bytes()).collect();
 
-                let utf16_le_bom: &[u8] = &[0xFF, 0xFE];
+                let utf16_le_bom = &[0xFF, 0xFE];
                 &[utf16_le_bom, utf16_data.as_slice()].concat()
             }
         };
