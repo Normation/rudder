@@ -48,6 +48,8 @@ impl Parameters {
             node_id,
             state_dir,
             agent_frequency_minutes: Self::default_agent_frequency_minutes(),
+            temporary_dir: Self::default_temporary_dir(),
+            backup_dir: Self::default_backup_dir(),
             ..Default::default()
         }
     }
