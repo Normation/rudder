@@ -37,7 +37,7 @@
 
 @use 'rudder-variables' as rudder;
 
-$doughnut-size : 200px;
+$doughnut-size : 180px;
 
 .homePage > .container-fluid{
   height: calc(100vh - 50px);
@@ -45,6 +45,7 @@ $doughnut-size : 200px;
 #headerBar~.content-wrapper .rudder-template .homePage > .container-fluid{
   height: calc(100vh - 80px);
 }
+
 /* === CARD === */
  .homePage .card{
   border-radius: 12px;
@@ -86,7 +87,7 @@ $doughnut-size : 200px;
 
     .icon-link-container i{
       opacity: 1;
-      right: 0;
+      right: -10px;
     }
   }
 }
@@ -192,8 +193,7 @@ $doughnut-size : 200px;
     align-items: flex-end;
     color: rudder.$txt-light;
     font-weight: 500;
-    min-width : 100px;
-    padding: 4px;
+    padding: 4px 8px 4px 4px;
 
     &:hover{
       background-color: rudder.$bg-light-gray;
@@ -209,10 +209,9 @@ $doughnut-size : 200px;
 }
 
 .activity-container{
-  width: 30%;
 
   .card-body{
-    max-height: 370px;
+    height: 350px;
     overflow: auto;
     padding: 0;
   }
