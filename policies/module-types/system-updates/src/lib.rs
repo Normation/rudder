@@ -242,9 +242,7 @@ mod tests {
             schedule_file: None,
         };
         let data1 = serde_json::from_str(&serde_json::to_string(&data1).unwrap()).unwrap();
-        let mut reference1 = Parameters::new("node".to_string(), data1, PathBuf::from("/tmp"));
-        reference1.temporary_dir = "/var/rudder/tmp/".into();
-        reference1.backup_dir = "/var/rudder/modified-files/".into();
+        let reference1 = Parameters::new("node".to_string(), data1, PathBuf::from("/tmp"));
 
         let test1 = fs::read_to_string(Path::new("tests/parameters/immediate.json")).unwrap();
         let parameters1: Parameters = serde_json::from_str(&test1).unwrap();
@@ -285,8 +283,6 @@ mod tests {
         };
         let data2 = serde_json::from_str(&serde_json::to_string(&data2).unwrap()).unwrap();
         let mut reference2 = Parameters::new("node".to_string(), data2, PathBuf::from("/tmp"));
-        reference2.temporary_dir = "/var/rudder/tmp/".into();
-        reference2.backup_dir = "/var/rudder/modified-files/".into();
         reference2.agent_frequency_minutes = 30;
 
         let test2 = fs::read_to_string(Path::new("tests/parameters/scheduled.json")).unwrap();
