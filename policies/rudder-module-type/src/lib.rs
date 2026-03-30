@@ -382,7 +382,7 @@ pub mod encoding {
     use anyhow::{Result, bail};
     use skip_bom::{BomType, SkipEncodingBom};
     use std::fs::File;
-    use std::io::Read;
+    use std::io::{Read, Write};
     use std::path::Path;
 
     /// Read a Unicode file to a string.
@@ -422,6 +422,35 @@ pub mod encoding {
                 Err(e) => bail!("Invalid UTF8 file {}: {}", name, e),
             },
         }
+    }
+
+    pub enum Encoding {
+        UTF8,
+        UTF16LE,
+    }
+
+    pub fn write_file(data: &str, path: &Path, encoding: Encoding) -> Result<()> {
+        // TODO: make it atomic
+        let mut f = File::create(path)?;
+        let encoded_data = match encoding {
+            #[cfg(target_family = "unix")]
+            Encoding::UTF8 => data.as_bytes(),
+            #[cfg(target_family = "windows")]
+            Encoding::UTF8 => {
+                // PowerShell requires a BOM when dealing with UTF-8.
+                let utf8_bom = &[0xEF, 0xBB, 0xBF];
+                &[utf8_bom, data.as_bytes()].concat()
+            }
+            Encoding::UTF16LE => {
+                let utf16_data: Vec<u8> =
+                    data.encode_utf16().flat_map(|c| c.to_le_bytes()).collect();
+
+                let utf16_le_bom: &[u8] = &[0xFF, 0xFE];
+                &[utf16_le_bom, utf16_data.as_slice()].concat()
+            }
+        };
+        f.write_all(encoded_data)?;
+        Ok(())
     }
 
     #[cfg(test)]
