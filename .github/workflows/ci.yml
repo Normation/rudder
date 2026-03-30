@@ -20,6 +20,8 @@ jobs:
         run: make cargo-test PACKAGE=rudder-module-scheduler
       - name: rudder-module-secedit tests
         run: make cargo-test PACKAGE=rudder-module-secedit
+      - name: rudder-module-system-updates tests
+        run: make cargo-test PACKAGE=rudder-module-system-updates
 
     permissions:
       contents: read
