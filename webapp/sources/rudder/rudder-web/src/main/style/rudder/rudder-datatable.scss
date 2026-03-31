@@ -42,10 +42,6 @@
   line-height: 1.42857143;
 }
 
-#groupNodesTable_wrapper .dataTables_wrapper_top {
-  border-top : none;
-}
-
 /* <WRAPPER TOP> */
 .dataTables_wrapper_top,
 .dataTables_wrapper_bottom {
@@ -730,6 +726,15 @@ td.greyBackground, th.greyBackground {
 }
 #select-columns .rudder-label:hover .fa{
   opacity: 1;
+}
+
+/* GROUPS NODE TABLE */
+#groupNodesTable_wrapper .dataTables_wrapper_top {
+  border-top : none;
+}
+// tr is doubled unless we apply this
+#groupNodesTable thead tr {
+  display: none;
 }
 
 /* TECHNICAL LOGS TABLE */
