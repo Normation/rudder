@@ -10,7 +10,7 @@
             <div class="container-fluid overflow-x-hidden p-2 p-lg-3 p-xl-4">
 
                 <div class="row">
-                    <div class="col-lg-8 col-xl-9">
+                    <div id="global-info" class="col-lg-8 col-xl-9">
                         <div class="row row-cols-3 row-cols-xl-6 g-2 g-lg-3 g-xl-4">
                             <div class="col">
                                 <a href="/secure/nodeManager/nodes" class="card h-100">
@@ -105,19 +105,20 @@
                         </div>
 
                     </div>
-
-                    <div class="col-lg-4 col-xl-3 activity-container mb-2 mb-lg-3 mb-xl-4">
-                        <div class="row h-100">
-                            <div class="col">
-                                <div class="card h-100">
-                                    <h5 class="card-title py-2 px-3 mb-0">Activity</h5>
-                                    <div class="card-body">
-                                        <div id="activity-app"></div>
+                    <lift:authz role="administration_read">
+                        <div class="col-lg-4 col-xl-3 activity-container mb-2 mb-lg-3 mb-xl-4">
+                            <div class="row h-100">
+                                <div class="col">
+                                    <div class="card h-100">
+                                        <h5 class="card-title py-2 px-3 mb-0">Activity</h5>
+                                        <div class="card-body">
+                                            <div id="activity-app"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    <lift:authz role="administration_read">
                 </div>
 
                 <div class="row g-2 g-lg-3 g-xl-4 mb-2 mb-lg-3 mb-xl-4 flex-wrap">
