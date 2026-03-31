@@ -151,8 +151,11 @@ impl UpdateManager for ZypperPackageManager {
         );
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
-            Ok(_) => {
-                let services = PackageManager::parse_services(&o);
+            Ok(s) => {
+                let services =
+                    PackageManager::parse_services(&[
+                        String::from_utf8_lossy(&s.stdout).to_string()
+                    ]);
                 Ok(services)
             }
             Err(e) => Err(e),
