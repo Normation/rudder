@@ -278,6 +278,7 @@ fn update(
     report.step(pending);
 
     if reboot_type == RebootType::Always || (reboot_type == RebootType::AsNeeded && is_pending) {
+        report.stdout_lines(&["A reboot is required to complete the update, rebooting now."]);
         // Stop there
         return Ok((report, true));
     }
