@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 //! Agent-side implementation of base module_type types
@@ -381,9 +380,10 @@ pub mod diff {
 pub mod encoding {
     use anyhow::{Result, bail};
     use skip_bom::{BomType, SkipEncodingBom};
-    use std::fs::File;
+    use std::fs::{File, rename};
     use std::io::{Read, Write};
     use std::path::Path;
+    use tempfile::NamedTempFile;
 
     /// Read a Unicode file to a string.
     /// Accept UTF8 with BOM, UTF8 without BOM, UTF16LE with BOM
@@ -429,36 +429,40 @@ pub mod encoding {
         UTF16LE,
     }
 
-    pub fn write_file(data: &str, path: &Path, encoding: Encoding) -> Result<()> {
-        // TODO: make it atomic
-        let mut f = File::create(path)?;
-        let encoded_data = match encoding {
+    fn encode_data(data: &str, encoding: Encoding) -> Vec<u8> {
+        match encoding {
             #[cfg(target_family = "unix")]
-            Encoding::UTF8 => data.as_bytes(),
+            Encoding::UTF8 => data.as_bytes().to_vec(),
             #[cfg(target_family = "windows")]
             Encoding::UTF8 => {
                 // PowerShell requires a BOM when dealing with UTF-8.
                 let utf8_bom = &[0xEF, 0xBB, 0xBF];
-                &[utf8_bom, data.as_bytes()].concat()
+                [utf8_bom, data.as_bytes()].concat()
             }
             Encoding::UTF16LE => {
                 let utf16_data: Vec<u8> =
                     data.encode_utf16().flat_map(|c| c.to_le_bytes()).collect();
 
                 let utf16_le_bom = &[0xFF, 0xFE];
-                &[utf16_le_bom, utf16_data.as_slice()].concat()
+                [utf16_le_bom, utf16_data.as_slice()].concat()
             }
-        };
-        f.write_all(encoded_data)?;
+        }
+    }
+
+    pub fn write_file(data: &str, path: &Path, encoding: Encoding) -> Result<()> {
+        let mut f = NamedTempFile::new()?;
+        let encoded_data = encode_data(data, encoding);
+        f.write_all(&encoded_data)?;
+        rename(f.path(), path)?;
         Ok(())
     }
 
     #[cfg(test)]
-    pub mod tests {
+    mod tests {
         use super::*;
 
         #[test]
-        fn test_unicode() {
+        fn test_unicode_file_to_string() {
             let test_value = "# éoùçà\n".to_string();
             let res = unicode_file_to_string(Path::new("src/test/utf8-nobom.txt"));
             assert!(res.is_ok(), "Test utf8-nobom ok");
@@ -471,6 +475,29 @@ pub mod encoding {
             assert_eq!(res.unwrap(), test_value, "Test utf16-bom value");
             let res = unicode_file_to_string(Path::new("src/test/utf16-nobom.txt"));
             assert!(res.is_err(), "Test utf16-nobom err");
+        }
+
+        #[test]
+        fn test_encode_data_to_utf16_bom() {
+            let data = encode_data("# éoùçà\n", Encoding::UTF16LE);
+            let utf_16_with_bom = std::fs::read("src/test/utf16-bom.txt").unwrap();
+            assert_eq!(utf_16_with_bom, data);
+        }
+
+        #[test]
+        #[cfg(target_family = "unix")]
+        fn test_encode_data_to_utf8() {
+            let data = encode_data("# éoùçà\n", Encoding::UTF8);
+            let utf8_with_no_bom = std::fs::read("src/test/utf8-nobom.txt").unwrap();
+            assert_eq!(utf8_with_no_bom, data);
+        }
+
+        #[test]
+        #[cfg(target_family = "windows")]
+        fn test_encode_data_to_utf8() {
+            let data = encode_data("# éoùçà\n", Encoding::UTF8);
+            let utf8_with_bom = std::fs::read("src/test/utf8-bom.txt").unwrap();
+            assert_eq!(utf8_with_bom, data);
         }
     }
 }
