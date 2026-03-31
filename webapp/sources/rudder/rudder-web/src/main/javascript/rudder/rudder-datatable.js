@@ -1107,7 +1107,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
 
       top.css('bottom', offsetBottom);
       bottom.css('height', offsetBottom).css('margin-bottom', '');
-      $("#" + gridId).parent().css('max-height', Math.max(0, offsetBottom - container.offset().top + handle.height()));
+      $("#" + gridId).parent().css('max-height', Math.max(0, offsetBottom - container.offset().top - (handle.height() * 2)));
     }).on('mouseup', function (e) {
       // stop resizing
       isResizing = false;
@@ -1187,7 +1187,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "destroy" : true
     , "pagingType": "full_numbers"
     , "scrollCollapse": hasHandle
-    // , "scrollY": hasHandle ? "200px" : null
+    , "scrollY": hasHandle ? "200px" : null
     , columnDefs : [
       {
         "targets": "_all"
