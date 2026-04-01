@@ -21,12 +21,12 @@ a BOM added at the beginning of all files when using UTF-8 encoding.
 
 Introduce two new functions for interacting with files.
 
-- `rudder_read_file`
+- `encoding::unicode_file_to_string`
   - This function behaves like `std::fs::read_to_string`, with encoding detection and conversion added.
   - It supports file encoded as UTF-8, UTF-8 with BOM and UTF-16 BOM LE.
   - It returns a valid UTF-8 string or an error if the file cannot be decoded.
 
-- `rudder_write_file`
+- `encoding::write_file`
   - Takes as parameter the file path, the data string in UTF-8, and an enum specifying the target encoding.
   - It supports writing files as UTF-8, UTF-8 with BOM and UTF-16 BOM LE.
   - All writes to disk are atomic.
