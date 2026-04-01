@@ -167,7 +167,7 @@ final class NodeGrid(
    * initialization.
    */
   def initJsCallBack(tableId: String)(implicit qc: QueryContext): JsCmd = {
-    JsRaw(s"""new DataTable(${jsVarNameForId(tableId)}).rows().nodes().to$$().each( function () {
+    JsRaw(s"""${jsVarNameForId(tableId)}.rows().nodes().to$$().each( function () {
           $$(this).click( function (event) {
             var source = event.target || event.srcElement;
             event.stopPropagation();
@@ -176,14 +176,14 @@ final class NodeGrid(
               if (opened && opened.match("opened")) {
                 $$(this).prop("open", "closed");
                 $$(this).find("span.listclose").removeClass("listclose").addClass("listopen");
-                ${jsVarNameForId(tableId)}.fnClose(this);
+                ${jsVarNameForId(tableId)}.row(this).child.hide();
               } else {
                 $$(this).prop("open", "opened");
                 $$(this).find("span.listopen").removeClass("listopen").addClass("listclose");
                 var jsid = $$(this).attr("jsuuid");
                 var node = $$(this).attr("nodeid");
                 var ajaxParam = JSON.stringify({"jsid":jsid , "id":$$(this).attr("nodeid") , "status":$$(this).attr("nodeStatus")});
-                ${jsVarNameForId(tableId)}.fnOpen( this, fnFormatDetails(jsid), 'details' );
+                ${jsVarNameForId(tableId)}.row(this).child(fnFormatDetails(jsid), 'details').show();
                 ${SHtml.ajaxCall(JsVar("ajaxParam"), details)._2.toJsCmd}
               }
             }

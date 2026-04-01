@@ -183,7 +183,7 @@ object PendingHistoryGrid extends SecureDispatchSnippet with Loggable {
     val deletedNodes     = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
 
     JsRaw(
-      s"""new DataTable(${jsVarNameForId()}).rows().nodes().to$$().each( function () {
+      s"""${jsVarNameForId()}.rows().nodes().to$$().each( function () {
                  $$(this).click( function () {
                     var id = $$(this).attr("serveruuid");
                     var inventory = $$(this).attr("inventory");
@@ -192,14 +192,14 @@ object PendingHistoryGrid extends SecureDispatchSnippet with Loggable {
                     var opened = $$(this).prop("open");
 
                     if (opened && opened.match("opened")) {
-                      ${jsVarNameForId()}.fnClose(this);
+                      ${jsVarNameForId()}.row(this).child.hide();
                       $$(this).prop("open", "closed");
                       $$(this).find("span.listclose").removeClass("listclose").addClass("listopen");
                     } else {
                       $$(this).prop("open", "opened");
                       $$(this).find("span.listopen").removeClass("listopen").addClass("listclose");
                       var ajaxParam = jsuuid + "|" + id + "|" + inventory + "|" + kind;
-                      ${jsVarNameForId()}.fnOpen( this, fnFormatDetails(jsuuid), 'displayPastInventory' );
+                      ${jsVarNameForId()}.row(this).child(fnFormatDetails(jsuuid), 'displayPastInventory').show();
                       ${SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes))._2.toJsCmd};
                     }
                   } );
