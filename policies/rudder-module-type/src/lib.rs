@@ -430,7 +430,7 @@ pub mod encoding {
         UTF16LE,
     }
 
-    fn encode_data(data: &str, encoding: Encoding) -> Vec<u8> {
+    fn encode_unicode_data(data: &str, encoding: Encoding) -> Vec<u8> {
         match encoding {
             #[cfg(target_family = "unix")]
             Encoding::UTF8 => data.as_bytes().to_vec(),
@@ -452,7 +452,7 @@ pub mod encoding {
 
     pub fn write_file(data: &str, path: &Path, encoding: Encoding) -> Result<()> {
         let mut f = AtomicWriteFile::options().open(path)?;
-        let encoded_data = encode_data(data, encoding);
+        let encoded_data = encode_unicode_data(data, encoding);
         f.write_all(&encoded_data)?;
         f.commit()?;
         Ok(())
@@ -480,7 +480,7 @@ pub mod encoding {
 
         #[test]
         fn test_encode_data_to_utf16_bom() {
-            let data = encode_data("# éoùçà\n", Encoding::UTF16LE);
+            let data = encode_unicode_data("# éoùçà\n", Encoding::UTF16LE);
             let utf_16_with_bom = std::fs::read("src/test/utf16-bom.txt").unwrap();
             assert_eq!(utf_16_with_bom, data);
         }
@@ -488,7 +488,7 @@ pub mod encoding {
         #[test]
         #[cfg(target_family = "unix")]
         fn test_encode_data_to_utf8() {
-            let data = encode_data("# éoùçà\n", Encoding::UTF8);
+            let data = encode_unicode_data("# éoùçà\n", Encoding::UTF8);
             let utf8_with_no_bom = std::fs::read("src/test/utf8-nobom.txt").unwrap();
             assert_eq!(utf8_with_no_bom, data);
         }
@@ -496,7 +496,7 @@ pub mod encoding {
         #[test]
         #[cfg(target_family = "windows")]
         fn test_encode_data_to_utf8() {
-            let data = encode_data("# éoùçà\n", Encoding::UTF8);
+            let data = encode_unicode_data("# éoùçà\n", Encoding::UTF8);
             let utf8_with_bom = std::fs::read("src/test/utf8-bom.txt").unwrap();
             assert_eq!(utf8_with_bom, data);
         }
