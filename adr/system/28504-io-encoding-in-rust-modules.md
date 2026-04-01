@@ -19,7 +19,9 @@ a BOM added at the beginning of all files when using UTF-8 encoding.
 
 ## Decision
 
-Introduce two new functions for interacting with files.
+We choose to manage encoding and decoding in a more systematic way by
+introducing two new functions for file input and output, ensuring that encoding
+and decoding are handled properly.
 
 - `encoding::unicode_file_to_string`
   - This function behaves like `std::fs::read_to_string`, with encoding detection and conversion added.
