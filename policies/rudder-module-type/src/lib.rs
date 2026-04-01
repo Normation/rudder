@@ -380,11 +380,11 @@ pub mod diff {
 
 pub mod encoding {
     use anyhow::{Result, bail};
+    use atomic_write_file::AtomicWriteFile;
     use skip_bom::{BomType, SkipEncodingBom};
-    use std::fs::{File, rename};
+    use std::fs::File;
     use std::io::{Read, Write};
     use std::path::Path;
-    use tempfile::NamedTempFile;
 
     /// Read a Unicode file to a string.
     /// Accept UTF8 with BOM, UTF8 without BOM, UTF16LE with BOM
@@ -451,10 +451,10 @@ pub mod encoding {
     }
 
     pub fn write_file(data: &str, path: &Path, encoding: Encoding) -> Result<()> {
-        let mut f = NamedTempFile::new()?;
+        let mut f = AtomicWriteFile::options().open(path)?;
         let encoded_data = encode_data(data, encoding);
         f.write_all(&encoded_data)?;
-        rename(f.path(), path)?;
+        f.commit()?;
         Ok(())
     }
 

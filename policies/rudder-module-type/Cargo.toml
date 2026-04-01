@@ -21,6 +21,7 @@ rudder_cli = { path = "../rudder-cli" }
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std", "unstable-locales"] }
 skip_bom = "0.5.1"
 tempfile = "3"
+atomic-write-file = "0.3.0"
 
 [dev-dependencies]
 pretty_assertions = "1"
