@@ -99,23 +99,28 @@ const homePage = (
   initBsTooltips();
 
   // Init Dashboard Elm application
-  const mainActivity = document.getElementById("activity-app")
-  const initValues = {
+  const mainActivity = document.getElementById("activity-app");
+  if (mainActivity != null) {
+    const initValues = {
       contextPath: contextPath,
       timeZone: localStorage.getItem('timeZone') ?? 'UTC',
-  };
-  const app = Elm.Dashboard.init({node: mainActivity, flags: initValues});
-  app.ports.errorNotification.subscribe(function (str) {
-    createErrorNotification(str)
-  });
-  app.ports.copy.subscribe(function (str) {
-    copy(str);
-  });
-  app.ports.initTooltips.subscribe(function (msg) {
-    setTimeout(function () {
-      initBsTooltips();
-    }, 600);
-  });
+    };
+
+    const app = Elm.Dashboard.init({node: mainActivity, flags: initValues});
+    app.ports.errorNotification.subscribe(function (str) {
+      createErrorNotification(str)
+    });
+    app.ports.copy.subscribe(function (str) {
+      copy(str);
+    });
+    app.ports.initTooltips.subscribe(function (msg) {
+      setTimeout(function () {
+        initBsTooltips();
+      }, 600);
+    });
+  } else {
+    document.getElementById("global-info").className = "col";
+  }
 }
 
 const onClickDoughnuts = (e, active, currentChart, id, data) => {
