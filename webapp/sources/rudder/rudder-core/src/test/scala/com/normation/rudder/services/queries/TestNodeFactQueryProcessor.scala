@@ -200,7 +200,7 @@ class TestNodeFactQueryProcessor {
     val q2 = TestQuery(
       "q2",
       parser("""
-      {  "select":"node", "composition":"and", "where":[
+      { "select":"node", "composition":"and", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" },
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }
@@ -208,7 +208,27 @@ class TestNodeFactQueryProcessor {
       Nil
     )
 
-    testQueries(q0 :: q1 :: q2 :: Nil, doInternalQueryTest = false)
+    /* find nothing when where is empty */
+    val q3 = TestQuery(
+      "q3",
+      parser("""
+      { "select":"node", "composition":"and", "where":[
+      ] }
+      """).openOrThrowException("For tests"),
+      Nil
+    )
+
+    /* find everything when where is empty and result inverted */
+    val q4 = TestQuery(
+      "q4",
+      parser("""
+      { "select":"node", "composition":"and", "transform":"invert", "where":[
+      ] }
+      """).openOrThrowException("For tests"),
+      s
+    )
+
+    testQueries(q0 :: q1 :: q2 :: q3 :: q4 :: Nil, doInternalQueryTest = false)
   }
 
   @Test def basicQueriesOnOneNodeParameter(): Unit = {
