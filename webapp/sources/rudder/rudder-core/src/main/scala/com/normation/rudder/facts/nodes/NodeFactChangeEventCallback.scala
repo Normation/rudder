@@ -66,6 +66,7 @@ import com.normation.rudder.services.reports.InvalidateCache
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import java.time.Instant
+import zio.UIO
 import zio.ZIO
 
 /*
@@ -186,6 +187,26 @@ class CacheInvalidateNodeFactEventCallback(
 
   override def name: String = "node-fact-cec: invalidate caches"
 
+  private def clearCaches(nodeId: NodeId, log: UIO[Unit]): IOResult[Unit] = {
+    val a = CacheExpectedReportAction.RemoveNodeInCache(nodeId)
+    for {
+      _ <- log
+      _ <-
+        cacheNodeStatusReports
+          .invalidateWithAction(Seq((nodeId, CacheComplianceQueueAction.ExpectedReportAction(a))))
+          .catchAll(err => {
+            NodeLoggerPure.Delete
+              .error(s"Error when removing node ${nodeId.value} from node configuration cache: ${err.fullMsg}")
+          })
+      _ <- cacheExpectedReports
+             .invalidateWithAction(Seq((nodeId, a)))
+             .catchAll(err => {
+               NodeLoggerPure.Delete
+                 .error(s"Error when removing node ${nodeId.value} from compliance cache: ${err.fullMsg}")
+             })
+    } yield ()
+  }
+
   override def run(change: NodeFactChangeEventCC): IOResult[Unit] = {
     change.event match {
       case NodeFactChangeEvent.NewPending(node, attrs)                 => ZIO.unit
@@ -207,46 +228,19 @@ class CacheInvalidateNodeFactEventCallback(
       case NodeFactChangeEvent.Refused(node, attrs)                    => ZIO.unit
       case NodeFactChangeEvent.Updated(oldNode, newNode, attrs)        =>
         if (oldNode.rudderSettings.state.isEnabled != newNode.rudderSettings.state.isEnabled) {
-          val a = CacheExpectedReportAction.RemoveNodeInCache(newNode.id)
-          for {
-            _ <-
-              NodeLoggerPure.info(
-                s"Node '${newNode.fqdn}' [${newNode.id.value}] state changed from '${oldNode.rudderSettings.state.name}' to '${newNode.rudderSettings.state.name}': remove that node from compliance and expected report cache to recompute them"
-              )
-            _ <-
-              cacheNodeStatusReports
-                .invalidateWithAction(Seq((newNode.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
-                .catchAll(err => {
-                  NodeLoggerPure.Delete
-                    .error(s"Error when removing node ${newNode.id.value} from node configuration cache: ${err.fullMsg}")
-                })
-            _ <- cacheExpectedReports
-                   .invalidateWithAction(Seq((newNode.id, a)))
-                   .catchAll(err => {
-                     NodeLoggerPure.Delete
-                       .error(s"Error when removing node ${newNode.id.value} from compliance cache: ${err.fullMsg}")
-                   })
-          } yield ()
-
+          clearCaches(
+            newNode.id,
+            NodeLoggerPure.info(
+              s"Node '${newNode.fqdn}' [${oldNode.id.value}] state changed from '${oldNode.rudderSettings.state.name}' to '${newNode.rudderSettings.state.name}': remove that node from compliance and expected report cache to recompute them"
+            )
+          )
         } else ZIO.unit
 
       case NodeFactChangeEvent.Deleted(node, attrs) =>
-        val a = CacheExpectedReportAction.RemoveNodeInCache(node.id)
-        for {
-          _ <- NodeLoggerPure.Delete.debug(s"  - remove node ${node.id.value} from compliance and expected report cache")
-          _ <-
-            cacheNodeStatusReports
-              .invalidateWithAction(Seq((node.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
-              .catchAll(err => {
-                NodeLoggerPure.Delete
-                  .error(s"Error when removing node ${node.id.value} from node configuration cache: ${err.fullMsg}")
-              })
-          _ <- cacheExpectedReports
-                 .invalidateWithAction(Seq((node.id, a)))
-                 .catchAll(err =>
-                   NodeLoggerPure.Delete.error(s"Error when removing node ${node.id.value} from compliance cache: ${err.fullMsg}")
-                 )
-        } yield ()
+        clearCaches(
+          node.id,
+          NodeLoggerPure.Delete.debug(s"  - remove node ${node.id.value} from compliance and expected report cache")
+        )
 
       case NodeFactChangeEvent.Noop(nodeId, attrs) => NodeLoggerPure.debug(s"No change for node '${nodeId.value}'")
     }
