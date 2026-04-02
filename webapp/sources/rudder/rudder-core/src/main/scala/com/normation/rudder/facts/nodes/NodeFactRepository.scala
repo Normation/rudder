@@ -427,16 +427,16 @@ class CoreNodeFactRepository(
 ) extends NodeFactRepository {
   import NodeFactChangeEvent.*
 
-  // number of accepted, enambled node
-  private def coundEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
+  // number of accepted, enabled nodes
+  private def countEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
   private val enabledNodes:         Ref[Int]  = (for {
     n <- acceptedNodes.get
-    r <- Ref.make(coundEnabled(n))
+    r <- Ref.make(countEnabled(n))
   } yield r).runNow
   private def updateEnabledCount(): UIO[Unit] = {
     for {
       n <- acceptedNodes.get
-      r <- enabledNodes.set(coundEnabled(n))
+      r <- enabledNodes.set(countEnabled(n))
     } yield r
   }
 

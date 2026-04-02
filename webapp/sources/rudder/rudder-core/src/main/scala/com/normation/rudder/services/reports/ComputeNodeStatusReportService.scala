@@ -42,6 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceLoggerPure
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -488,6 +489,7 @@ class FindNewNodeStatusReportsImpl(
     nodeConfigService:       NodeConfigurationService,
     reportsRepository:       ReportsRepository,
     agentRunRepository:      RoReportsExecutionRepository,
+    nodeFactRepository:      NodeFactRepository,
     getGlobalComplianceMode: () => IOResult[GlobalComplianceMode],
     jdbcMaxBatchSize:        Int
 ) extends FindNewNodeStatusReports {
@@ -612,6 +614,8 @@ class FindNewNodeStatusReportsImpl(
       complianceModeName: ComplianceModeName
   ): IOResult[Map[NodeId, NodeStatusReport]] = {
 
+    given qc: QueryContext = QueryContext.systemQC
+
     val batchedRunsInfos = runInfos.grouped(jdbcMaxBatchSize).toSeq
     val result           = ZIO.foreach(batchedRunsInfos) { runBatch =>
       /*
@@ -648,17 +652,20 @@ class FindNewNodeStatusReportsImpl(
                               s"Compliance: get Execution Reports in batch for ${runInfos.size} runInfos: ${(t1 - t0) / 1000}µs"
                             )
         t2               <- currentTimeNanos
+        nodeStates       <- nodeFactRepository
+                              .getAll()
+                              .map(_.collect { case (id, n) if runBatch.keySet.contains(id) => (id, n.rudderSettings.state) }.toMap)
         // we want to have nodeStatus for all asked node, not only the ones with reports
-        nodeStatusReports = runBatch.map {
-                              case (nodeId, runInfo) =>
-                                val status = {
-                                  ExecutionBatch.getNodeStatusReports(
-                                    nodeId,
-                                    runInfo,
-                                    reports.getOrElse(nodeId, Seq())
-                                  )
-                                }
-                                (status.nodeId, status)
+        nodeStatusReports = runBatch.map { (nodeId, runInfo) =>
+                              val status = {
+                                ExecutionBatch.getNodeStatusReports(
+                                  nodeId,
+                                  nodeStates.getOrElse(nodeId, NodeState.Ignored),
+                                  runInfo,
+                                  reports.getOrElse(nodeId, Seq())
+                                )
+                              }
+                              (status.nodeId, status)
                             }
         t3               <- currentTimeNanos
         _                <- u2.update(_ + (t3 - t2))

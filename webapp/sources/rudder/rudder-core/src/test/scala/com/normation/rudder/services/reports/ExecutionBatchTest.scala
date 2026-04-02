@@ -41,6 +41,7 @@ import ch.qos.logback.classic.Logger
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -184,8 +185,9 @@ class ExecutionBatchTest extends Specification {
       nodeIds:    Seq[String],
       ruleId:     String,
       serial:     Int,
-      directives: List[DirectiveExpectedReports]
-  ): Map[NodeId, NodeExpectedReports] = {
+      directives: List[DirectiveExpectedReports],
+      states:     Map[String, NodeState] = Map()
+  ): Map[NodeId, (NodeExpectedReports, NodeState)] = {
     val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
     val now              = DateTime.now
     val mode             = NodeModeConfig(
@@ -197,7 +199,7 @@ class ExecutionBatchTest extends Specification {
       Some(PolicyMode.Enforce)
     )
     nodeIds.map { id =>
-      (NodeId(id) -> NodeExpectedReports(
+      (NodeId(id) -> (NodeExpectedReports(
         NodeId(id),
         NodeConfigId("version_" + id),
         now,
@@ -205,31 +207,30 @@ class ExecutionBatchTest extends Specification {
         mode,
         List(RuleExpectedReports(RuleId(ruleId), directives)),
         Nil
-      ))
+      ), states.getOrElse(id, NodeState.Enabled)))
     }.toMap
   }
 
   def getNodeStatusReportsByRule(
-      nodeExpectedReports: Map[NodeId, NodeExpectedReports],
+      nodeExpectedReports: Map[NodeId, (NodeExpectedReports, NodeState)],
       reportsParam:        Seq[Reports] // this is the agent execution interval, in minutes
   ): Map[NodeId, NodeStatusReport] = {
 
     val res = (for {
-      (nodeId, expected) <- nodeExpectedReports.toSeq
+      (nodeId, (expected, state)) <- nodeExpectedReports.toSeq
     } yield {
       val runTime = reportsParam.headOption.map(_.executionTimestamp).getOrElse(DateTime.now)
-      val info    = nodeExpectedReports(nodeId)
-      val runInfo = ComputeCompliance(runTime, info, runTime.plusMinutes(5))
+      val runInfo = ComputeCompliance(runTime, expected, runTime.plusMinutes(5))
 
-      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam))
+      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, state, runInfo, reportsParam))
     })
 
     res.toMap
   }
 
-  val getNodeStatusByRule: ((Map[NodeId, NodeExpectedReports], Seq[Reports])) => Map[NodeId, NodeStatusReport] =
+  val getNodeStatusByRule: ((Map[NodeId, (NodeExpectedReports, NodeState)], Seq[Reports])) => Map[NodeId, NodeStatusReport] =
     (getNodeStatusReportsByRule).tupled
-  val one:                 NodeId                                                                              = NodeId("one")
+  val one:                 NodeId                                                                                           = NodeId("one")
 
   sequential
 
@@ -357,7 +358,7 @@ class ExecutionBatchTest extends Specification {
     val oldRunTime = ISODateTimeFormat.dateTimeParser().parseDateTime("2023-01-01T15:15:00+00:00")
 
     // we had a config ID for the old run (just it does not exist anymore in base)
-    val oldRunExpectedReport = expectedReports.copy(
+    val oldRunExpectedReport = expectedReports._1.copy(
       nodeConfigId = NodeConfigId("configId-old-run"),
       beginDate = oldRunTime,
       endDate = Some(oldRunTime.plusHours(10)) // next generation was 10h after and closed that expected report span
@@ -365,7 +366,7 @@ class ExecutionBatchTest extends Specification {
 
     // expected reports were generated 12 days, 5 hours after old run
     val generationTime           = oldRunTime.minusDays(11).plusHours(3)
-    val generatedExpectedReports = expectedReports.copy(beginDate = generationTime)
+    val generatedExpectedReports = expectedReports._1.copy(beginDate = generationTime)
     val currentNodeConfigs       = Map(nodeId -> Some(generatedExpectedReports))
 
     "if we don't have the old config for expected report" in {
@@ -3609,7 +3610,7 @@ class ExecutionBatchTest extends Specification {
             PolicyTypes.rudderBase,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
-            ) // here, we automatically must have "value" infered as unexpanded var
+            ) // here, we automatically must have "value" inferred as unexpanded var
           )
         )
       ),
@@ -3645,6 +3646,47 @@ class ExecutionBatchTest extends Specification {
 
     "have no detailed rule non-success directive when we create it with one success report" in {
       nodeStatus(one).reports.head._2.compliance === ComplianceLevel(success = 1)
+    }
+  }
+
+  "A detailed execution Batch for an IGNORED node, with one component, cardinality one, one node" should {
+
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List(
+              new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
+            ) // here, we automatically must have "value" inferred as unexpanded var
+          )
+        ),
+        Map("one" -> NodeState.Ignored)
+      ),
+      Seq[Reports](
+        new ResultSuccessReport(
+          DateTime.now(DateTimeZone.UTC),
+          "rule",
+          "policy",
+          "one",
+          "report_id12",
+          "component",
+          "value",
+          DateTime.now(DateTimeZone.UTC),
+          "message"
+        )
+      )
+    )
+
+    val nodeStatus = (getNodeStatusReportsByRule).tupled(param)
+
+    "have ZERO detailed reports when we create it with one report" in {
+      nodeStatus(one).reports.size === 0
     }
   }
 
@@ -4610,18 +4652,21 @@ class ExecutionBatchTest extends Specification {
           )
         )
       ).map { // we want to say we have an overriding rule, `overridingRule`
-        case (k, v) =>
+        case (k, (v, s)) =>
           (
             k,
-            v.modify(_.overrides)
-              .setTo(
-                List(
-                  OverriddenPolicy(
-                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
-                    overriddenBy = overridingPolicyId
+            (
+              v.modify(_.overrides)
+                .setTo(
+                  List(
+                    OverriddenPolicy(
+                      policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                      overriddenBy = overridingPolicyId
+                    )
                   )
-                )
-              )
+                ),
+              s
+            )
           )
       },
       Seq[Reports](
@@ -4706,18 +4751,21 @@ class ExecutionBatchTest extends Specification {
           )
         )
       ).map { // we want to say we have an overriding rule, `overridingRule`
-        case (k, v) =>
+        case (k, (v, s)) =>
           (
             k,
-            v.modify(_.overrides)
-              .setTo(
-                List(
-                  OverriddenPolicy(
-                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
-                    overriddenBy = overridingPolicyId
+            (
+              v.modify(_.overrides)
+                .setTo(
+                  List(
+                    OverriddenPolicy(
+                      policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                      overriddenBy = overridingPolicyId
+                    )
                   )
-                )
-              )
+                ),
+              s
+            )
           )
       },
       Seq[Reports]()

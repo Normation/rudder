@@ -68,7 +68,7 @@ import com.normation.rudder.services.reports.InMemoryNodeStatusReportStorage
 import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.services.reports.ReportingServiceImpl2
+import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.zio.*
 import org.joda.time.DateTime
 import scala.collection.MapView
@@ -267,7 +267,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
 
   def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = {
     val ref = Ref.make(statusReports).runNow
-    new ReportingServiceImpl2(new NodeStatusReportRepositoryImpl(new InMemoryNodeStatusReportStorage(ref), ref))
+    new ReportingServiceImpl(new NodeStatusReportRepositoryImpl(new InMemoryNodeStatusReportStorage(ref), ref))
   }
 
   val complianceAPIService: ComplianceAPIService = {

@@ -38,6 +38,7 @@
 package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
@@ -249,7 +250,7 @@ class ComplianceTest extends Specification {
       // here, we assume "compute compliance", i.e we are only testing the compliance engine, not
       // the meta-analysis on run consistency (correct run, at the correct time, etc)
       val runinfo = ComputeCompliance(runTime, config, runTime)
-      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports)
+      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, NodeState.Enabled, runinfo, reports)
 
       // we really have 26 (ie 18+8) values
       status.compliance must beEqualTo(ComplianceLevel(success = 18, notApplicable = 8))
@@ -271,7 +272,7 @@ class ComplianceTest extends Specification {
       // here, we assume "compute compliance", i.e we are only testing the compliance engine, not
       // the meta-analysis on run consistancy (correct run, at the correct time, etc)
       val runinfo = ComputeCompliance(runTime, config, runTime)
-      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, runinfo, reports)
+      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, NodeState.Enabled, runinfo, reports)
 
       // we really have 39 values in total
       status.compliance must beEqualTo(ComplianceLevel(success = 34, notApplicable = 5))
