@@ -171,7 +171,10 @@ class ScoreUpdateOnNodeFactChange(scoreServiceManager: ScoreServiceManager, scor
 }
 
 /*
- * Callback related to cache invalidation when a node changes
+ * Callback related to cache invalidation when a node changes.
+ * It is:
+ *  - when a node is accepted or deleted,
+ *  - when its NodeState changes
  */
 class CacheInvalidateNodeFactEventCallback(
     cacheExpectedReports:   InvalidateCache[CacheExpectedReportAction],
@@ -202,8 +205,32 @@ class CacheInvalidateNodeFactEventCallback(
           ()
         }
       case NodeFactChangeEvent.Refused(node, attrs)                    => ZIO.unit
-      case NodeFactChangeEvent.Updated(oldNode, newNode, attrs)        => ZIO.unit
-      case NodeFactChangeEvent.Deleted(node, attrs)                    =>
+      case NodeFactChangeEvent.Updated(oldNode, newNode, attrs)        =>
+        if (oldNode.rudderSettings.state.isEnabled != newNode.rudderSettings.state.isEnabled) {
+          val a = CacheExpectedReportAction.RemoveNodeInCache(newNode.id)
+          for {
+            _ <-
+              NodeLoggerPure.info(
+                s"Node '${newNode.fqdn}' [${newNode.id.value}] state changed from '${oldNode.rudderSettings.state.name}' to '${newNode.rudderSettings.state.name}': remove that node from compliance and expected report cache to recompute them"
+              )
+            _ <-
+              cacheNodeStatusReports
+                .invalidateWithAction(Seq((newNode.id, CacheComplianceQueueAction.ExpectedReportAction(a))))
+                .catchAll(err => {
+                  NodeLoggerPure.Delete
+                    .error(s"Error when removing node ${newNode.id.value} from node configuration cache: ${err.fullMsg}")
+                })
+            _ <- cacheExpectedReports
+                   .invalidateWithAction(Seq((newNode.id, a)))
+                   .catchAll(err => {
+                     NodeLoggerPure.Delete
+                       .error(s"Error when removing node ${newNode.id.value} from compliance cache: ${err.fullMsg}")
+                   })
+          } yield ()
+
+        } else ZIO.unit
+
+      case NodeFactChangeEvent.Deleted(node, attrs) =>
         val a = CacheExpectedReportAction.RemoveNodeInCache(node.id)
         for {
           _ <- NodeLoggerPure.Delete.debug(s"  - remove node ${node.id.value} from compliance and expected report cache")
