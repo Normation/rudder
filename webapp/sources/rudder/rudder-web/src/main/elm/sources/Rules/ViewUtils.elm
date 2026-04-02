@@ -980,22 +980,19 @@ getGroupsNbResourcesBadge nbTargets nbInclude msg =
         ]
 
 
-btnSave : Bool -> Bool -> Msg -> Bool -> Html Msg
-btnSave saving disable action crEnabled =
+btnSave : Bool -> Bool -> Msg -> Html Msg
+btnSave saving disable action =
     let
         icon =
             if saving then
                 i [ class "fa fa-spinner fa-pulse" ] []
 
-            else if crEnabled then
-                i [ class "fa fa-plus" ] []
-
             else
                 i [ class "fa fa-download" ] []
 
         btnClass =
-            if crEnabled then
-                "btn-cr"
+            if saving then
+                "btn-save saving"
 
             else
                 "btn-save"
@@ -1004,12 +1001,6 @@ btnSave saving disable action crEnabled =
         [ class
             ("btn btn-success "
                 ++ btnClass
-                ++ (if saving then
-                        " saving"
-
-                    else
-                        ""
-                   )
             )
         , type_ "button"
         , disabled (saving || disable)
