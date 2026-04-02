@@ -151,6 +151,8 @@ ul {
 .rudder-template .header-title{
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem;
 }
 .rudder-template .header-title .title-icon{
   font-size: 0.8em;
@@ -202,12 +204,12 @@ ul {
 
 // HEADER BUTTONS
 .rudder-template .header-buttons {
-  white-space: nowrap;
+  display: flex;
   align-self: flex-start;
+  flex-wrap: wrap;
+  gap: .5rem;
 
   .btn {
-    margin-left: 10px;
-
     &.btn-default:hover{
       background-color: #eef1f9;
     }
@@ -368,11 +370,7 @@ ul {
   margin-left: 6px !important;
 }
 #nb-techniques {
-  background-color: #d3d5d9;
-  color: #5d6778;
-  margin-left: 10px;
   margin-top: 4px;
-  font-size:14px;
 }
 .badge-parameters,
 .badge-resources{
