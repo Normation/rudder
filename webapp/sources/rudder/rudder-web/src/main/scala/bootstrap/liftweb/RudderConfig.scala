@@ -2195,17 +2195,11 @@ object RudderConfigInit {
           new NodeApi(
             zioJsonExtractor,
             propertiesService,
-            restDataSerializer,
             new NodeApiService(
-              rwLdap,
               nodeFactRepository,
               propertiesRepository,
               roAgentRunsRepository,
-              ldapEntityMapper,
               stringUuidGenerator,
-              nodeDit,
-              pendingNodesDit,
-              acceptedNodesDit,
               newNodeManagerImpl,
               removeNodeServiceImpl,
               zioJsonExtractor,
