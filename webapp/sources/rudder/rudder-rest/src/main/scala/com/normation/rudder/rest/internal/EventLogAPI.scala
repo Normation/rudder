@@ -216,7 +216,7 @@ class EventLogService(
     val dateCriteria =
       fragments.andOpt(startDate.map(start => fr"creationDate >= ${start}"), endDate.map(end => fr"creationDate <= ${end}"))
 
-    val (criteria, from) = (search.flatMap(_.toFragment), dateCriteria) match {
+    val (criteria, from)          = (search.flatMap(_.toFragment), dateCriteria) match {
       case (None, res)              => (res, None)
       case (Some(value), None)      =>
         (
@@ -233,23 +233,30 @@ class EventLogService(
           )
         )
     }
-    val orderBy          = NonEmptyList
+    val orderBy                   = NonEmptyList
       .fromList(order.map(_.toFragment).toList)
       .map(fragments.comma(_))
       .map(fr"order by" ++ _)
       .getOrElse(Fragment.empty)
-    val offset           = fr"offset ${start}"
-    val queryCriteria    = Some(
+    val offset                    = fr"offset ${start}"
+    val queryCriteria             = Some(
       // as full criteria the "where" needs a condition
       // we also need the orderBy here because it should come before the offset
       criteria.getOrElse(fr"1=1") ++ orderBy ++ offset
     )
+    val (lengthOpt, selectedLogs) = {
+      if (length >= 0) {
+        (Some(length), s"logs #${start} to #${start + length}")
+      } else {
+        (None, s"all logs since log #${start}")
+      }
+    }
 
     (for {
       events      <-
         repo
-          .getEventLogByCriteria(queryCriteria, Some(length), Nil, from)
-          .chainError(s"Error when trying fetch eventlogs from database for page ${(start / length) + 1}")
+          .getEventLogByCriteria(queryCriteria, lengthOpt, Nil, from)
+          .chainError(s"Error when trying fetch event logs from database for ${selectedLogs}")
       totalRecord <- repo.getEventLogCount(None)
       totalFilter <- repo.getEventLogCount(criteria, from)
     } yield {
