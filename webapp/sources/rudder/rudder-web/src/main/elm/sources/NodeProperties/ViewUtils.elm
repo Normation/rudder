@@ -323,20 +323,38 @@ displayNodePropertyRow model =
             let
               trimmedName = String.trim eP.name
               trimmedVal  = String.trim eP.value
+
               checkPristineName    = not eP.pristineName
               checkEmptyName       = String.isEmpty trimmedName
               checkAlreadyUsedName = trimmedName /= p.name && checkUsedName trimmedName model.properties
               checkEmptyVal        = String.isEmpty trimmedVal
               checkPristineVal     = not eP.pristineValue
               checkFormatConflict  = checkExistingFormatConflict model trimmedName
+
+              invalidName = checkAlreadyUsedName || (checkEmptyName && checkPristineName) || checkFormatConflict
+              invalidMsg =
+                if (checkEmptyName && checkPristineName) then
+                  "Name is required"
+                else if checkAlreadyUsedName then
+                  "This name is already used by another property"
+                else if checkFormatConflict then
+                  "The selected format will conflict with some existing format of the same property"
+                else
+                  ""
+
+              invalidValue = (checkEmptyVal && checkPristineVal)
+
             in
             tr []
             [ td [class "is-edited"]
-              [ div []
-                [ input [type_ "text", class "form-control input-sm", value eP.name, onInput (\s -> UpdateProperty p.name {eP | name = s, pristineName = False }) ][]
-                , ( if checkAlreadyUsedName then small [class "text-danger"][ text "This name is already used by another property" ] else text "" )
-                , ( if (checkEmptyName && checkPristineName) then small [class "text-danger"][text "Name is required"] else text "" )
-                , ( if checkFormatConflict then small [class "text-danger"][text "The selected format will conflict with some existing format of the same property"] else text "" )
+              [ div [class "needs-validation position-relative"]
+                [ input
+                  [ type_ "text"
+                  , class ("form-control input-sm" ++ if invalidName then " is-invalid" else "")
+                  , value eP.name
+                  , onInput (\s -> UpdateProperty p.name {eP | name = s, pristineName = False })
+                  ] []
+                , div [class "invalid-tooltip"] [text invalidMsg]
                 ]
               ]
             , td [][] -- empty column to clipboard icon for property name
@@ -352,11 +370,20 @@ displayNodePropertyRow model =
                 ]
               ]
             , td [class "is-edited"]
-              [ div [class "value-container"]
-                [ textarea [placeholder "Value", attribute "msd-elastic" "", attribute "rows" "1", class "form-control input-sm input-value auto-resize code", value eP.value, onInput (\s -> UpdateProperty p.name {eP | value = s, pristineValue = False}) ][]
-                , (if (checkEmptyVal && checkPristineVal)  then small [class "text-danger"][text "Value is required"] else text "")
+              [ div [class "needs-validation"]
+                [ div [class "value-container"]
+                  [ textarea
+                    [ placeholder "Value"
+                    , class ("form-control input-sm input-value auto-resize code" ++ if invalidValue then " is-invalid" else "")
+                    , attribute "msd-elastic" ""
+                    , attribute "rows" "1"
+                    , value eP.value
+                    , onInput (\s -> UpdateProperty p.name {eP | value = s, pristineValue = False}) ][]
+                  ]
+                , div [class "invalid-tooltip"] [text "Value is required"]
                 ]
               ]
+            , td [][] -- empty column to clipboard icon for property value
             , td [class "text-center edit-actions is-edited" ]
               [ div []
                 [ span [ class "action-icon fa fa-share-square cancel-icon", title "Cancel", onClick (ToggleEditProperty p.name eP False)][]

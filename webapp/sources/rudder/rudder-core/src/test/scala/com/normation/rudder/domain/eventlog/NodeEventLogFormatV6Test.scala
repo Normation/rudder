@@ -154,9 +154,6 @@ class NodeEventLogFormatV6Test extends Specification {
   )
 
   "Current EventTypeFactory" should {
-    "identify NodeHeartbeatModified as NodeModified event" in {
-      EventTypeFactory("NodeHeartbeatModified") must beEqualTo(ModifyNodeEventType)
-    }
     "identify NodePropertiesModified as NodeModified event" in {
       EventTypeFactory("NodePropertiesModified") must beEqualTo(ModifyNodeEventType)
     }

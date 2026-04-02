@@ -66,10 +66,6 @@ import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
-import net.liftweb.http.S
-import net.liftweb.http.SHtml
-import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
@@ -420,9 +416,7 @@ class EventLogDetailsGenerator(
                         _.fold(PolicyMode.defaultValue)(_.name)
                       ) &
                       "#tags" #> tagsDiff(modDiff.modTags) &
-                      "#parameters" #> (
-                        modDiff.modParameters.map(diff => "#diff" #> displaydirectiveInnerFormDiff(diff, event.id))
-                      )
+                      "#parameters" #> <div id={s"linesdiff-${x.id.getOrElse("unknown")}"}></div>
                     )(piModDirectiveDetailsXML)
                   }{reasonHtml}{xmlParameters(event.id)}
                   </div>
@@ -1143,7 +1137,17 @@ class EventLogDetailsGenerator(
           .flatMap(_.modProperties)
       case _ => None
     }
+  }
 
+  def directiveParametersDiff(event: EventLog): Option[SimpleDiff[String]] = {
+    event match {
+      case x: ModifyDirective =>
+        logDetailsService
+          .getDirectiveModifyDetails(x.details)
+          .toOption
+          .flatMap(_.modParameters.map(_.map(SectionVal.toXml(_).toString)))
+      case _ => None
+    }
   }
 
   private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
@@ -1164,7 +1168,7 @@ class EventLogDetailsGenerator(
     )
   }
 
-  private def heartbeatDetails(hb: HeartbeatConfiguration):                                      NodeSeq = {
+  private def heartbeatDetails(hb: HeartbeatConfiguration): NodeSeq = {
     (
       "#override" #> hb.overrides
       & "#interval" #> hb.heartbeatPeriod
@@ -1195,12 +1199,6 @@ class EventLogDetailsGenerator(
         <del>-{diff.oldValue}</del>
         <ins>+{diff.newValue}</ins>
       </pre>
-  }
-  private def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
-    eventId match {
-      case None     => NodeSeq.Empty
-      case Some(id) => displayFormDiff(diff.map(s => SectionVal.toXml(s).toString), id.toString)
-    }
   }
 
   private def displayExportArchiveDetails(gitArchiveId: GitArchiveId, rawData: NodeSeq) = {
@@ -1602,18 +1600,7 @@ class EventLogDetailsGenerator(
         <h5>Details of the rollback:</h5>
         <br/>
         <span>A rollback to {rollbackInfo.rollbackType} event
-          {
-      SHtml.a(
-        () =>
-          SetHtml("currentId%s".format(id), Text(rollbackInfo.target.id.toString)) &
-          JsRaw("""$('#%1$s').dataTable().fnFilter("%2$s|%3$s",0,true,false);
-                $("#cancel%3$s").show();
-                scrollToElement('%2$s', ".rudder_col");
-                if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format("gridName", rollbackInfo.target.id, id)), // JsRaw OK, id is int
-        Text(rollbackInfo.target.id.toString)
-      )
-    } has been completed.
+          {rollbackInfo.target.id} has been completed.
         </span>
         <br/><br/>
         <b>Events that were rollbacked can be consulted in the table below.</b>
@@ -1621,7 +1608,7 @@ class EventLogDetailsGenerator(
         <span>Those events are no longer applied by the configuration policy.</span>
 
         <br/>
-        <table id={"rollbackTable%s".format(id)} class="display" cellspacing="0">
+        <table id={"rollbackTable%s".format(id)} class="display table" cellspacing="0">
           <thead>
             <tr class="head">
               <th>ID</th>
@@ -1634,23 +1621,10 @@ class EventLogDetailsGenerator(
             {
       rollbackedEvents.map { ev =>
         <tr>
-              <td>
-                {
-          SHtml.a(
-            () =>
-              SetHtml("currentId%s".format(id), Text(ev.id.toString)) &
-              JsRaw("""$('#%1$s').dataTable().fnFilter("%2$s|%3$s",0,true,false);
-                $("#cancel%3$s").show();
-                scrollToElement('%2$s', ".rudder_col");
-                if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format("gridName", ev.id, id)),
-            Text(ev.id.toString)
-          )
-        }
-              </td>
+              <td>{ev.id} </td>
               <td>{ev.date} </td>
               <td>{ev.author} </td>
-              <td>{S.?("rudder.log.eventType.names." + ev.eventType)} </td>
+              <td>{EventLogTypeTranslate(ev.eventType)} </td>
             </tr>
       }
     }
@@ -1658,48 +1632,8 @@ class EventLogDetailsGenerator(
         </table>
 
         <br/>
-        <div id={"cancel%s".format(id)} style="display:none"> the event <span id={
-      "currentId%s".format(id)
-    }/>  is displayed in the table below
-          {
-      SHtml.ajaxButton(
-        "Clear display",
-        () => Run("""$('#%s').dataTable().fnFilter("",0,true,false);
-            $("#cancel%s").hide();""".format("gridName", id))
-      )
-    }
-        </div>
-        <br/>
       </div>
-    </div> ++ Script(JsRaw(s"""
-        $$('#rollbackTable${id}').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :true,
-            "bLengthChange": true,
-            "bStateSave": true,
-                    "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_rollbackTable${id}', JSON.stringify(oData) );
-                    },
-                    "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_rollbackTable${id}') );
-                    },
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": false,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "aaSorting":[],
-            "aoColumns": [
-                { "sWidth": "100px" }
-              , { "sWidth": "100px" }
-              , { "sWidth": "100px" }
-              , { "sWidth": "100px" }
-            ],
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
-          });
-        """)) // JsRaw OK, id is int.
+    </div>
   }
 
   private def authorizedNetworksXML() = (

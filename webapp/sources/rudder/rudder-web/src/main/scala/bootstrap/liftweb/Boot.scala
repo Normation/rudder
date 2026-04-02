@@ -67,8 +67,8 @@ import com.normation.rudder.rest.InfoApi as InfoApiDef
 import com.normation.rudder.rest.data.JsonGlobalPluginLimits
 import com.normation.rudder.rest.data.JsonPluginDetails
 import com.normation.rudder.rest.data.JsonPluginsDetails
+import com.normation.rudder.rest.lift.GenericLiftApiModuleProvider
 import com.normation.rudder.rest.lift.InfoApi
-import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
@@ -199,17 +199,30 @@ object Boot {
   val redirection: RedirectState =
     RedirectState(() => (), "You are not authorized to access that page, please contact your administrator." -> NoticeType.Error)
 
-  def userIsAllowed(redirectTo: String, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
-    if (requiredAuthz.exists((CurrentUser.checkRights(_)))) {
+  // check is the user is currently allowed to access the resource. `isEnabled` evaluation must be by name to
+  // reflect current status.
+  def userIsAllowedWith(redirectTo: String, isEnabled: => Boolean, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
+    if (isEnabled && requiredAuthz.exists((CurrentUser.checkRights(_)))) {
       Empty
     } else {
       Full(RedirectWithState(redirectTo, redirection))
     }
   }
 
+  def userIsAllowed(redirectTo: String, requiredAuthz: AuthorizationType*): Box[LiftResponse] = {
+    userIsAllowedWith(redirectTo, true, requiredAuthz*)
+  }
+
   // shortcut to clarify menus: redirect to dashboard is user doesn't have requiredAuthz
   def needPerms(requiredAuthz: AuthorizationType*): TestAccess = {
-    TestAccess(() => userIsAllowed("/secure/index", requiredAuthz*))
+    needPermsWith(true, requiredAuthz*)
+  }
+
+  // shortcut to clarify when additional checks are needed.
+  // "true" means "has access".
+  // isEnabled evaluation must be by name to reflect current status.
+  def needPermsWith(isEnabled: => Boolean, requiredAuthz: AuthorizationType*): TestAccess = {
+    TestAccess(() => userIsAllowedWith("/secure/index", isEnabled, requiredAuthz*))
   }
 
 }
@@ -573,7 +586,7 @@ class Boot extends Loggable {
     LiftRules.fixCSS("style" :: "style" :: Nil, Empty)
 
     // i18n
-    LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: "eventLogTypeNames" :: Nil
+    LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: Nil
 
     // Content type things : use text/html in place of application/xhtml+xml
     LiftRules.useXhtmlMimeType = false
@@ -963,7 +976,7 @@ class Boot extends Loggable {
       plugin.init
 
       // add APIs
-      plugin.apis.foreach { (api: LiftApiModuleProvider[?]) =>
+      plugin.apis.foreach { (api: GenericLiftApiModuleProvider[?]) =>
         RudderConfig.rudderApi.addModules(api.getLiftEndpoints())
         RudderConfig.authorizationApiMapping.addMapper(api.schemas.authorizationApiMapping)
       }

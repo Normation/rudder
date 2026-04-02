@@ -48,7 +48,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
-import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
+import com.normation.rudder.ncf.TechniqueCheckSyncService
 import com.normation.rudder.repository.EventLogRepository
 import net.liftweb.common.*
 
@@ -107,10 +107,10 @@ class LogEventOnTechniqueReloadCallback(
   }
 }
 
-class SyncCompilationStatusOnTechniqueCallback(
-    override val name:                 String,
-    override val order:                Int,
-    techniqueCompilationStatusService: TechniqueCompilationStatusSyncService
+class CheckSyncOnTechniqueCallback(
+    override val name:  String,
+    override val order: Int,
+    service:            TechniqueCheckSyncService
 ) extends TechniquesLibraryUpdateNotification with Loggable {
   override def updatedTechniques(
       gitRev:            String,
@@ -120,6 +120,6 @@ class SyncCompilationStatusOnTechniqueCallback(
       actor:             EventActor,
       reason:            Option[String]
   ): Box[Unit] = {
-    techniqueCompilationStatusService.getUpdateAndSync().toBox
+    service.checkSyncAll().toBox
   }
 }

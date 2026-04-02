@@ -84,7 +84,7 @@ trait TechniqueCompiler {
                 yamlFile.contentAsString(using StandardCharsets.UTF_8)
               }
       t    <- yaml.fromYaml[EditorTechnique].toIO
-      _    <- EditorTechnique.checkTechniqueIdConsistency(techniqueBaseDirectory, t)
+      _    <- EditorTechnique.checkTechniqueIdConsistency(techniqueBaseDirectory, t).toIO
       res  <- compileTechnique(t)
     } yield res
   }

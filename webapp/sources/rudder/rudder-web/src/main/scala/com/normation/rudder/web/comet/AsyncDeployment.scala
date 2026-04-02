@@ -40,6 +40,7 @@ package com.normation.rudder.web.comet
 import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
+import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
@@ -50,11 +51,8 @@ import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.ncf.CompilationStatus
-import com.normation.rudder.ncf.CompilationStatusAllSuccess
-import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.ncf.EditorTechniqueError
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.ncf.EditorTechniqueStatus
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
@@ -78,24 +76,28 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  private var compilationStatus:         CompilationStatus                                                                               = CompilationStatusAllSuccess
-  private var nodeProperties:            Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
-  private var groupProperties:           Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
-  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
+  private var techniqueStatus:                                           EditorTechniqueStatus                           = EditorTechniqueStatus.AllSuccess
+  private var nodeProperties:                                            Map[NodeId, ResolvedNodePropertyHierarchy]      = Map.empty
+  private var groupProperties:                                           Map[NodeGroupId, ResolvedNodePropertyHierarchy] = Map.empty
+  private def globalStatus
+      : (CurrentDeploymentStatus, EditorTechniqueStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
     (
       deploymentStatus.current,
-      compilationStatus,
+      techniqueStatus,
       NodeConfigurationStatus.fromProperties(nodeProperties),
       GroupConfigurationStatus.fromProperties(groupProperties)
     )
   }
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:               Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
-  def havePerm(perm: AuthorizationType): Boolean                                                                                         = {
+  private val currentUser:                                               Option[RudderUserDetail]                        = FindCurrentUser.get()
+  private def havePerm[A](perm: AuthorizationType)(a: EventActor ?=> A): Option[A]                                       = {
     currentUser match {
-      case None    => false
-      case Some(u) => u.checkRights(perm)
+      case None    => Option.empty
+      case Some(u) => {
+        given EventActor = u.qc.actor
+        Option.when(u.checkRights(perm))(a)
+      }
     }
   }
 
@@ -109,7 +111,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       nodeProperties = msg.nodeProperties
       groupProperties = msg.groupProperties
       // we want to completely ignore rendering of disabled techniques, so we can directly adapt the received message
-      compilationStatus = CompilationStatus.ignoreDisabledTechniques(msg.compilationStatus)
+      techniqueStatus = EditorTechniqueStatus.ignoreDisabledTechniques(msg.techniqueStatus)
       reRender()
   }
 
@@ -187,19 +189,19 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     deploymentStatus.processing match {
       case IdleDeployer =>
         globalStatus match {
-          case (_: ErrorStatus, _, _, _)                 =>
+          case (_: ErrorStatus, _, _, _)                  =>
             "bg-error"
-          case (_, _: CompilationStatusErrors, _, _)     =>
+          case (_, _: EditorTechniqueStatus.Errors, _, _) =>
             "bg-error"
-          case (_, _, NodeConfigurationStatus.Error, _)  =>
+          case (_, _, NodeConfigurationStatus.Error, _)   =>
             "bg-error"
-          case (_, _, _, GroupConfigurationStatus.Error) =>
+          case (_, _, _, GroupConfigurationStatus.Error)  =>
             "bg-error"
-          case (NoStatus, _, _, _)                       =>
+          case (NoStatus, _, _, _)                        =>
             "bg-neutral"
           case (
                 _: SuccessStatus,
-                CompilationStatusAllSuccess,
+                EditorTechniqueStatus.AllSuccess,
                 NodeConfigurationStatus.Success,
                 GroupConfigurationStatus.Success
               ) =>
@@ -220,7 +222,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
     def showGeneratePoliciesPopup:          NodeSeq = {
       val callback = () => Run("initBsModal('generatePoliciesDialog')") // JsRaw ok, const
-      if (havePerm(AuthorizationType.Deployer.Write)) {
+      havePerm(AuthorizationType.Deployer.Write) {
         <li class="list-group-item p-0">{
           SHtml.ajaxButton(
             Text("Regenerate all policies"),
@@ -229,7 +231,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           )
         }
         </li>
-      } else NodeSeq.Empty
+      }.getOrElse(NodeSeq.Empty)
     }
 
     def commonStatement(
@@ -353,11 +355,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def fullPolicyGeneration: NodeSeq = {
-    if (havePerm(AuthorizationType.Deployment.Write)) {
+    havePerm(AuthorizationType.Deployment.Write) {
       SHtml.ajaxButton(
         "Regenerate",
         () => {
-          clearCacheService.clearNodeConfigurationCache(storeEvent = true, CurrentUser.actor) match {
+          clearCacheService.clearNodeConfigurationCache(storeEvent = true, summon[EventActor]) match {
             case Full(_) => // ok
             case eb: EmptyBox =>
               val err = eb ?~! "Error when trying to start policy generation"
@@ -367,7 +369,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         },
         ("class", "btn btn-danger")
       )
-    } else NodeSeq.Empty
+    }.getOrElse(NodeSeq.Empty)
   }
 
   private def showGroups(hasLastBottomBorder: Boolean): NodeSeq = {
@@ -409,7 +411,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             errors.map {
               case (g, err) =>
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <button id={groupBtnId(g.id)} class="btn btn-link text-start">
+                  <button id={groupBtnId(g.id)} class="btn btn-link text-start text-truncate">
                     {StringEscapeUtils.escapeHtml4(g.name)} <i class="fa fa-external-link"/>
                   </button>
                   <span>
@@ -476,7 +478,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               .map {
                 case (n, err) =>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <button id={nodeBtnId(n.id)} class="btn btn-link text-start">
+                  <button id={nodeBtnId(n.id)} class="btn btn-link text-start text-truncate">
                     {StringEscapeUtils.escapeHtml4(n.fqdn)} <i class="fa fa-external-link"/>
                   </button>
                   <span>
@@ -494,13 +496,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </li>
     }
   }
-  private def showCompilation:                          NodeSeq = {
+  private def showTechniqueErrors:                      NodeSeq = {
     def tooltipContent(error: EditorTechniqueError):      String = {
-      s"<h4 class='tags-tooltip-title'>Technique compilation output in ${StringEscapeUtils.escapeHtml4(error.id.value)}/${StringEscapeUtils
-          .escapeHtml4(error.version.value)}</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
+      s"<h4 class='tags-tooltip-title'>Technique '${StringEscapeUtils.escapeHtml4(error.id.value)}/${StringEscapeUtils
+          .escapeHtml4(error.version.value)}' error</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
     }
     def techniqueBtnId(error: EditorTechniqueError):      String = {
-      s"status-compilation-${StringEscapeUtils.escapeHtml4(error.id.value)}-${StringEscapeUtils.escapeHtml4(error.version.value)}"
+      s"technique-error-${StringEscapeUtils.escapeHtml4(error.id.value)}-${StringEscapeUtils.escapeHtml4(error.version.value)}"
     }
     // The "a" tag has special display in the content, we need a button that opens link in new tab
     def techniqueLinkScript(error: EditorTechniqueError): JsCmd  = {
@@ -508,26 +510,26 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       val btnId = techniqueBtnId(error)
       scriptLinkButton(btnId, link)
     }
-    compilationStatus match {
-      case CompilationStatusAllSuccess                =>
+    techniqueStatus match {
+      case EditorTechniqueStatus.AllSuccess                =>
         NodeSeq.Empty
-      case CompilationStatusErrors(techniquesInError) =>
+      case EditorTechniqueStatus.Errors(techniquesInError) =>
         val buttonSetup: JsCmd = techniquesInError.map(techniqueLinkScript).foldLeft(Noop)(_ & _)
         partialUpdate(buttonSetup)
         <li class="card border-start-0 border-end-0 border-top-0">
           <div class="card-body status-card">
-            <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#technique-compilation-collapse" aria-expanded="true" aria-controls="technique-compilation-collapse">
+            <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#technique-error-collapse" aria-expanded="true" aria-controls="technique-error-collapse">
               <div class="status-card-title-caret"/>
-              Technique compilation errors <span class="badge bg-danger float h-25">{techniquesInError.size}</span>
+              Technique errors <span class="ms-1 badge bg-danger">{techniquesInError.size}</span>
             </button>
-            <div id="technique-compilation-collapse" class="collapse show">
+            <div id="technique-error-collapse" class="collapse show">
               <ul class="list-group">
             {
           NodeSeq.fromSeq(
             techniquesInError
               .map(t => {
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <button id={techniqueBtnId(t)} class="btn btn-link text-start">
+                  <button id={techniqueBtnId(t)} class="btn btn-link text-start text-truncate">
                     {StringEscapeUtils.escapeHtml4(t.name)} <i class="fa fa-external-link"/>
                   </button>
                   <span>
@@ -547,13 +549,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def layout = {
-    if (havePerm(AuthorizationType.Deployment.Read)) {
+    havePerm(AuthorizationType.Deployment.Read) {
       // We have to compute in reverse order to know if the bottom border should be specialized
-      val compilation = showCompilation
-      val nodes       = showNodes(hasLastBottomBorder = compilation.isEmpty)
-      val groups      = showGroups(hasLastBottomBorder = compilation.isEmpty && nodes.isEmpty)
-      val generation  =
-        showGeneration(hasLastBottomBorder = compilation.isEmpty && nodes.isEmpty && groups.isEmpty)
+      val techniqueErrors = showTechniqueErrors
+      val nodes           = showNodes(hasLastBottomBorder = techniqueErrors.isEmpty)
+      val groups          = showGroups(hasLastBottomBorder = techniqueErrors.isEmpty && nodes.isEmpty)
+      val generation      =
+        showGeneration(hasLastBottomBorder = techniqueErrors.isEmpty && nodes.isEmpty && groups.isEmpty)
 
       (<li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
         <a href="#" class="dropdown-toggle status-dropdown" id="statusDropdownLink" onclick="event.preventDefault();event.stopPropagation();" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -565,11 +567,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           {generation}
           {groups}
           {nodes}
-          {compilation}
+          {techniqueErrors}
         </ul>
       </li> ++ errorPopup ++ generatePoliciesPopup)
 
-    } else NodeSeq.Empty
+    }.getOrElse(NodeSeq.Empty)
   }
 
   private def errorPopup = {

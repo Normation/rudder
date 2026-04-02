@@ -216,7 +216,7 @@ displayTabForeach uiInfo =
                   |> addClass "col-12 col-md-6"
                   |> appendChildList
                     [ element "div"
-                      |> addClass "form-group mb-3"
+                      |> addClass "form-group mb-2"
                       |> appendChildList
                         [ element "label"
                           |> addClass "form-label"
@@ -329,6 +329,8 @@ displayTabForeach uiInfo =
                                   [ type_ "text"
                                   , value val
                                   , class "form-control input-sm"
+                                  , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                  , onFocus DisableDragDrop
                                   ]
                                 |> addInputHandler  (\s -> MethodCallModified (updateForeach (updateForeachVal s items index)) Nothing)
                               )
@@ -342,6 +344,8 @@ displayTabForeach uiInfo =
                                 [ type_ "button"
                                 , class "btn btn-danger"
                                 , disabled (List.length items <= 1)
+                                , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                , onFocus DisableDragDrop
                                 , onCustomClick (MethodCallModified (updateForeach (Just (List.Extra.remove f items))) Nothing)
                                 ]
                               |> appendChild (element "i" |> addClass "fa fa-times")
@@ -383,6 +387,8 @@ displayTabForeach uiInfo =
                           [ type_ "button"
                           , class "btn btn-success"
                           , onCustomClick addNewItem
+                          , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                          , onFocus DisableDragDrop
                           ]
                         |> appendChild (element "i" |> addClass "fa fa-plus-circle")
                       )
@@ -397,105 +403,113 @@ displayTabForeach uiInfo =
                   element "span" |> appendText name
             in
               element "div"
-              |> addClass "d-flex row gx-3"
-              |> appendChildList
-                [ element "div"
-                  |> addClass "col-12 col-md-6"
-                  |> appendChildList
-                    [ element "div"
-                      |> addClass "row mb-3 form-group"
-                      |> appendChildList
-                        [ element "label"
-                          |> addAttribute (for "foreachName")
-                          |> addClass "col-auto col-form-label"
-                          |> appendText "Iterator name "
-                        , element "div"
-                          |> addClass "col d-flex align-items-center"
-                          |> appendChildListConditional
-                            [ element "div"
-                              |> addClass "input-group"
-                              |> appendChildList
-                                [ element "input"
-                                  |> addAttributeList
-                                    [ type_ "text"
-                                    , class "form-control"
-                                    , id "foreachName"
-                                    , placeholder "item"
-                                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                                    , onFocus DisableDragDrop
-                                    , value newForeach.foreachName
-                                    ]
-                                  |> addInputHandler  (\s -> updateNewForeach s)
-                                , element "button"
-                                  |> addClass "btn btn-default"
-                                  |> addAttributeList
-                                    [ type_ "button"
-                                    , onCustomClick saveNewForeach
-                                    ]
-                                  |> appendChild (element "i" |> addClass "fa fa-check")
+                |> appendChildList
+                  [ element "div"
+                    |> addClass "d-flex row gx-3"
+                    |> appendChildList
+                      [ element "div"
+                        |> addClass "col-12 col-md-6"
+                        |> appendChildList
+                          [ element "div"
+                            |> addClass "row mb-2 form-group"
+                            |> appendChildList
+                              [ element "label"
+                                |> addAttribute (for "foreachName")
+                                |> addClass "col-auto col-form-label"
+                                |> appendText "Iterator name "
+                              , element "div"
+                                |> addClass "col d-flex align-items-center"
+                                |> appendChildListConditional
+                                  [ element "div"
+                                    |> addClass "input-group"
+                                    |> appendChildList
+                                      [ element "input"
+                                        |> addAttributeList
+                                          [ type_ "text"
+                                          , class "form-control"
+                                          , id "foreachName"
+                                          , placeholder "item"
+                                          , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                          , onFocus DisableDragDrop
+                                          , value newForeach.foreachName
+                                          ]
+                                        |> addInputHandler  (\s -> updateNewForeach s)
+                                      , element "button"
+                                        |> addClass "btn btn-default"
+                                        |> addAttributeList
+                                          [ type_ "button"
+                                          , onCustomClick saveNewForeach
+                                          ]
+                                        |> appendChild (element "i" |> addClass "fa fa-check")
+                                      ]
+                                  ] foreachUI.editName
+                                |> appendChildListConditional
+                                  [ foreachNameLabel
+                                  , element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click", editForeachName)
+                                  ] (not foreachUI.editName)
+                               ]
+                          , element "div"
+                            |> addClass "row mb-3 form-group"
+                            |> appendChild ( element "label"
+                              |> addAttribute (for "foreachKeys")
+                              |> addClass "col-auto col-form-label"
+                              |> appendText "Iterator keys "
+                            )
+                            |> appendChildConditional ( element "div"
+                              |> addClass "col d-flex"
+                              |> appendChild ( element "div"
+                                |> addClass "d-flex row w-100"
+                                |> appendChildList
+                                  [ element "div"
+                                    |> addClass "input-group group-key"
+                                    |> appendChildList
+                                      [ element "input"
+                                        |> addAttributeList
+                                          [ type_ "text"
+                                          , class "form-control"
+                                          , id "foreachKeys"
+                                          , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                          , onFocus DisableDragDrop
+                                          , value newForeach.newKey
+                                          ]
+                                        |> addInputHandler (\s -> updateNewForeachKey s)
+                                      , element "button"
+                                        |> addClass "btn btn-default"
+                                        |> addAttributeList
+                                          [ type_ "button"
+                                          , disabled (String.isEmpty newForeach.newKey)
+                                          ]
+                                        |> addActionStopAndPrevent ("click", addNewKey)
+                                        |> appendChild (element "i" |> addClass "fa fa-plus-circle")
+                                      , element "button"
+                                        |> addClass "btn btn-default ms-2"
+                                        |> addAttributeList
+                                          [ type_ "button"
+                                          , disabled (List.isEmpty newForeach.foreachKeys)
+                                          ]
+                                        |> addActionStopAndPrevent ("click", saveEditKeys)
+                                        |> appendChild (element "i" |> addClass "fa fa-check")
+                                      ]
+                                , element "div" |> addClass "foreach-keys mt-2 mb-3" |> appendChildList (newKeys True)
                                 ]
-                            ] foreachUI.editName
-                          |> appendChildListConditional
-                            [ foreachNameLabel
-                            , element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click", editForeachName)
-                            ] (not foreachUI.editName)
-
-                        ]
-                    , element "div"
-                      |> addClass "row mb-3 form-group"
-                      |> appendChild ( element "label"
-                        |> addAttribute (for "foreachKeys")
-                        |> addClass "col-auto col-form-label"
-                        |> appendText "Iterator keys "
-                      )
-                      |> appendChildConditional ( element "div"
-                        |> addClass "col d-flex"
-                        |> appendChild ( element "div"
-                          |> addClass "d-flex row w-100"
-                          |> appendChildList
-                            [ element "div"
-                              |> addClass "input-group group-key"
-                              |> appendChildList
-                                [ element "input"
-                                  |> addAttributeList
-                                    [ type_ "text"
-                                    , class "form-control"
-                                    , id "foreachKeys"
-                                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                                    , onFocus DisableDragDrop
-                                    , value newForeach.newKey
-                                    ]
-                                  |> addInputHandler (\s -> updateNewForeachKey s)
-                                , element "button"
-                                  |> addClass "btn btn-default"
-                                  |> addAttributeList
-                                    [ type_ "button"
-                                    , disabled (String.isEmpty newForeach.newKey)
-                                    ]
-                                  |> addActionStopAndPrevent ("click", addNewKey)
-                                  |> appendChild (element "i" |> addClass "fa fa-plus-circle")
-                                , element "button"
-                                  |> addClass "btn btn-default ms-2"
-                                  |> addAttributeList
-                                    [ type_ "button"
-                                    , disabled (List.isEmpty newForeach.foreachKeys)
-                                    ]
-                                  |> addActionStopAndPrevent ("click", saveEditKeys)
-                                  |> appendChild (element "i" |> addClass "fa fa-check")
-                                ]
-                          , element "div" |> addClass "foreach-keys mt-2 mb-3" |> appendChildList (newKeys True)
+                              )
+                            ) foreachUI.editKeys
+                            |> appendChildConditional ( element "div"
+                              |> addClass "col d-flex align-items-center foreach-keys"
+                              |> appendChildList ( List.append
+                                (newKeys False)
+                                [ (element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click" , editForeachKeys)) ]
+                              )
+                            ) (not foreachUI.editKeys)
                           ]
-                        )
-                      ) foreachUI.editKeys
-                      |> appendChildConditional ( element "div"
-                        |> addClass "col d-flex align-items-center foreach-keys"
-                        |> appendChildList ( List.append
-                          (newKeys False)
-                          [ (element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click" , editForeachKeys)) ]
-                        )
-                      ) (not foreachUI.editKeys)
-
-                    , element "div"
+                      , element "div"
+                        |> addClass "col-12 col-md-6"
+                        |> appendChild infoMsg
+                      ]
+                , element "div"
+                  |> addClass "d-flex row"
+                  |> appendChildList
+                    [  element "div"
                       |> addClass "table-foreach-container"
                       |> appendChild (element "table"
                         |> addClass "table table-bordered table-foreach mb-0"
@@ -504,16 +518,18 @@ displayTabForeach uiInfo =
                           , element "tbody" |> appendChildList (List.append foreachItems newItemRow)
                           ]
                       )
-
-                    , element "button"
-                      |> addClass "btn btn-danger mt-2"
-                      |> addActionStopAndPrevent ("click", removeForeach)
-                      |> appendText "Remove iterator"
-                      |> appendChild (element "i" |> addClass "fa fa-times ms-1")
-                    ]
-                , element "div"
-                  |> addClass "col-12 col-md-6"
-                  |> appendChild infoMsg
+                    , element "div"
+                      |> appendChild ( element "button"
+                        |> addClass "btn btn-danger mt-2"
+                        |> addActionStopAndPrevent ("click", removeForeach)
+                        |> appendText "Remove iterator"
+                        |> addAttributeList
+                          [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                          , onFocus DisableDragDrop
+                          ]
+                        |> appendChild (element "i" |> addClass "fa fa-times ms-1")
+                      )
+                  ]
                 ]
   in
     element "div"

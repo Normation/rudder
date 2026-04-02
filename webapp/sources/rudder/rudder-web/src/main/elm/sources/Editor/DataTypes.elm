@@ -97,6 +97,15 @@ type alias CompilationOutput =
   , stderr:     String
   }
 
+type alias TechniqueError =
+  { id            : TechniqueId
+  , version       : String
+  , category      : String
+  , content       : String
+  , errorMsg      : String
+  , errorPath     : String
+  }
+
 type alias Technique =
   { id            : TechniqueId
   , version       : String
@@ -109,6 +118,14 @@ type alias Technique =
   , resources     : List Resource
   , tags          : List (String,String)
   , output        : Maybe CompilationOutput
+  }
+
+type alias TreeTechnique =
+  { id            : TechniqueId
+  , version       : String
+  , name          : String
+  , category      : String
+  , elems         : List MethodElem
   }
 
 type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock
@@ -196,7 +213,13 @@ type alias TechniqueCheckState =
   , name : String
   }
 
-type ModalState = DeletionValidation Technique
+type alias DeletionTechnique =
+  { id : TechniqueId
+  , name : String
+  , version : String
+  }
+
+type ModalState = DeletionValidation DeletionTechnique
 
 type DragElement = NewMethod Method | NewBlock | Move MethodElem
 
@@ -204,6 +227,7 @@ type DropElement = StartList | AfterElem (Maybe CallId) MethodElem | InBlock Met
 
 type alias Model =
   { techniques         : List Technique
+  , errors             : List TechniqueError
   , methods            : Dict String Method
   , categories         : TechniqueCategory
   , drafts             : Dict String Draft
@@ -269,6 +293,9 @@ type alias MethodBlockUiInfo =
   , foreachUI  : ForeachUI
   }
 
+{- The primary state of the technique UI is YAML editing -}
+type TechniqueErrorUiInfo = TechniqueErrorUiYamlEditing String | TechniqueErrorUiSaving String
+
 type alias TechniqueUiInfo =
   { tab              : Tab
   , callsUI          : Dict String MethodCallUiInfo
@@ -281,9 +308,8 @@ type alias TechniqueUiInfo =
   }
 
 type alias TechniqueEditInfo =
-  {  value : String
-  ,  open : Bool
-  ,  result : Result String ()
+  { value : String
+  , open : Bool
   }
 
 type UiInfo = CallUiInfo MethodCallUiInfo MethodCall  | BlockUiInfo MethodBlockUiInfo MethodBlock
@@ -293,20 +319,21 @@ type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | 
 type MethodBlockTab = BlockConditions | BlockReporting | Children  | BlockForEach
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
-type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
+type Mode = Introduction | TechniqueErrorDetails TechniqueError TechniqueErrorUiInfo | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
 
-type CheckMode = Import String | EditYaml String | CheckJson Technique
+type CheckMode = Import String | EditYaml String | CheckJson Technique | SaveYaml String
 
 
 -- all events in the event loop
 type Msg =
-    SelectTechnique (Either Technique Draft)
-  | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
+    SelectTechnique TechniqueId
+  | SelectDraft DraftId
+  | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List (Either TechniqueError Technique) ))
   | GetDirectives   (Result (Http.Detailed.Error String) ( Http.Metadata, List Directive ))
   | GetYaml         (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | UpdateTechnique Technique
-  | DeleteTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, TechniqueId ))
+  | DeleteTechnique (Result (Http.Detailed.Error String) TechniqueId)
   | GetTechniqueResources  (Result (Http.Detailed.Error String) ( Http.Metadata, List Resource ))
   | CopyResources  (Result (Http.Detailed.Error Bytes) ())
   | GetCategories (Result (Http.Detailed.Error String)  ( Http.Metadata, TechniqueCategory ))
@@ -318,7 +345,9 @@ type Msg =
   | UpdateCallAndUi UiInfo
   | MethodCallModified MethodElem (Maybe UiInfo)
   | RemoveMethod CallId
-  | UpdateEdition TechniqueEditInfo
+  | CheckEdition String
+  | UpdateEdition String
+  | ToggleEdition
   | CloneElem  MethodElem CallId
   | MethodCallParameterModified MethodCall ParameterId String
   | TechniqueParameterModified ParameterId TechniqueParameter
@@ -345,7 +374,7 @@ type Msg =
   | ResetTechnique
   | ResetMethodCall MethodElem
   | ToggleFilter
-  | OpenDeletionPopup Technique
+  | OpenDeletionPopup DeletionTechnique
   | ClosePopup Msg
   | OpenFileManager
   | Export
@@ -381,3 +410,12 @@ techniqueCheckState { id, name } = { id = id, name = name }
 
 draftCheckState : Draft -> TechniqueCheckState
 draftCheckState { id, technique } = { id = id, name = technique.name }
+
+
+treeTechnique : Technique -> TreeTechnique
+treeTechnique { id, version, name, category, elems } =
+  { id = id, version = version, name = name, category = category, elems = elems }
+
+treeTechniqueError : TechniqueError -> TreeTechnique
+treeTechniqueError { id, version, category } =
+  { id = id, version = version, name = id.value, category = category, elems = [] }

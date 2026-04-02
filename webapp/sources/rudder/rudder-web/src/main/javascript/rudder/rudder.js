@@ -249,10 +249,10 @@ function redirectTo(url,event) {
 }
 
 /*
- * This function takes the content of 2 elements (represented by their ids)
- * , produce a diff beetween them and add the result in third element
+ * This function takes the content of 2 elements
+ * , produce a diff beetween them and add the result in DOM element identified by the third argument
  */
-function makeDiff(beforeId,afterId,resultId) {
+function makeDiff(before, after, resultId) {
   function appendLines(c, s) {
     var res = s.replace(/\n/g, "\n" + c);
     res = c+res;
@@ -263,10 +263,8 @@ function makeDiff(beforeId,afterId,resultId) {
     else
       return res+"\n"
   }
-  var before = $('#'+beforeId);
-  var after  = $('#'+afterId);
   var result = $('#'+resultId);
-  var diff = Diff.diffLines(before.text(), after.text());
+  var diff = Diff.diffLines(before, after);
   var fragment = document.createDocumentFragment();
   for (var i=0; i < diff.length; i++) {
     if (diff[i].added && diff[i + 1] && diff[i + 1].removed) {

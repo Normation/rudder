@@ -177,3 +177,9 @@ $modal-md: 600px;
 .modal .modal-dialog{
   z-index: $zindex-modal;
 }
+
+// TEXT
+.text-break-spaces {
+    @extend .text-break;
+    white-space: break-spaces !important;
+}

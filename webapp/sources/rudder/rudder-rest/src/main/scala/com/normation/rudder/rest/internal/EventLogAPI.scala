@@ -41,6 +41,7 @@ import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.domain.eventlog.EventLogTypeTranslate
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.QueryContext
@@ -82,13 +83,12 @@ import zio.ZIO
 import zio.syntax.*
 
 class EventLogAPI(
-    service:            EventLogService,
-    eventLogDetail:     EventLogDetailsGenerator,
-    translateEventType: EventLogType => String
+    service:        EventLogService,
+    eventLogDetail: EventLogDetailsGenerator
 ) extends LiftApiModuleProvider[EventLogApi] {
   import com.normation.rudder.rest.internal.EventLogService.*
 
-  implicit lazy val translateEventLogType: EventLogType => String   = translateEventType
+  implicit lazy val translateEventLogType: EventLogType => String   = e => EventLogTypeTranslate(e.serialize)
   implicit lazy val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
 
   override def schemas: ApiModuleProvider[EventLogApi] = EventLogApi
@@ -264,12 +264,14 @@ class EventLogService(
       crId              <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
       htmlDetails        = eventLogDetailGenerator.displayDetails(event, crId.flatten)
       nodePropertiesDiff = eventLogDetailGenerator.nodePropertiesDiff(event)
+      linesDiff          = eventLogDetailGenerator.directiveParametersDiff(event)
     } yield {
       RestEventLogDetails(
         id.toString,
         htmlDetails,
         event.canRollBack,
-        nodePropertiesDiff.map(_.transformInto[SimpleDiffJson[List[NodeProperty]]])
+        nodePropertiesDiff.map(_.transformInto[SimpleDiffJson[List[NodeProperty]]]),
+        linesDiff.map(_.transformInto[SimpleDiffJson[String]])
       )
     }).catchSystemErrors
   }

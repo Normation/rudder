@@ -357,11 +357,29 @@ impl LinuxPackageManager for AptPackageManager {
         };
         ResultOutput::new_output(res, o, e)
     }
+
+    fn restart_services(&self) -> ResultOutput<()> {
+        let mut c = Command::new("needrestart");
+        c.arg("-r")
+            // automatic restart
+            .arg("a");
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e).context("Restarting services to restart with the needrestart command"),
+        };
+        ResultOutput::new_output(res, o, e)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::package_manager::AptPackageManager;
 
     #[test]
     fn test_parse_services_to_restart_multi_string() {

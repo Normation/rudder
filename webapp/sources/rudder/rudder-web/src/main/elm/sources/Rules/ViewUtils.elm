@@ -153,8 +153,8 @@ valueCompliance complianceFilters =
     ItemFun
         (\_ _ _ -> [])
         (\_ i -> i)
-        [ ( "Value", .value >> (\v -> div[class "value-container font-monospace"][text v]), \d1 d2 -> N.compare d1.value d2.value )
-        , ( "Message", .message >> (\v -> div[class "value-container font-monospace"][text v]), \d1 d2 -> N.compare d1.message d2.message )
+        [ ( "Value", .value >> (\v -> pre[class "font-monospace text-break-spaces"][text v]), \d1 d2 -> N.compare d1.value d2.value )
+        , ( "Message", .message >> (\v -> pre[class "font-monospace text-break-spaces"][text v]), \d1 d2 -> N.compare d1.message d2.message )
         , ( "Status", \r -> td [ class "report-compliance" ] [ div [] [ span [ class r.status ] [ text (buildComplianceReport r) ] ] ], \d1 d2 -> Basics.compare (reportStatusOrder d1) (reportStatusOrder d2) )
         ]
         .value
@@ -1061,3 +1061,27 @@ rulesTableHeader ruleFilters =
             [ text "Changes" ]
         ]
 
+buildListCategories : String -> String -> String -> (Category Rule) -> List(Html Msg)
+buildListCategories sep categoryId parentId c =
+  let
+    missingRootCategory = List.filter (\sub -> sub.id /= missingCategoryId) (getSubElems c)
+  in
+  if categoryId == c.id then
+    []
+  else
+    let
+      newList =
+        let
+          blankSpace     = String.repeat 2 (String.fromChar (Char.fromCode 8199))
+          currentOption  = [option [value c.id, selected (parentId == c.id)][text (sep ++ c.name)]]
+          separator      =
+            if String.isEmpty sep then
+              "└─ "
+            else
+               blankSpace ++ sep
+
+          listCategories = List.concatMap (buildListCategories separator categoryId parentId) missingRootCategory
+        in
+          List.append currentOption listCategories
+    in
+      newList

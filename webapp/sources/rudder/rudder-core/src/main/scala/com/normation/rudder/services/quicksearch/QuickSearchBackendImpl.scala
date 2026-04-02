@@ -321,10 +321,9 @@ object QSTechniqueBackend extends Loggable {
 
     if (query.objectClass.contains(QSTechnique) && attributes.nonEmpty) {
       for {
-        res               <- techniqueReader.readTechniquesMetadataFile
-        (techniques, _, _) = res
+        res <- techniqueReader.readTechniquesMetadataFile
       } yield {
-        techniques.flatMap(t => attributes.flatMap(a => a.find(t, query.userToken)).toSeq)
+        res.techniques.flatMap(t => attributes.flatMap(a => a.find(t, query.userToken)).toSeq)
       }
     } else {
       Seq().succeed
