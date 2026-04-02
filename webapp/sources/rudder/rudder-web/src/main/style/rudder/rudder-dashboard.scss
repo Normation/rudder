@@ -60,35 +60,9 @@ $doughnut-size : 180px;
   cursor: pointer;
   transition: $duration box-shadow;
 
-  .icon-link-container{
-    position: absolute;
-    display: flex;
-    height: 100%;
-    top: 0;
-    right: 0;
-    width: 2rem;
-    align-items: center;
-
-    i{
-      opacity: 0;
-      transform: rotate(45deg);
-      color: rudder.$txt-link;
-      font-size: 1.6rem;
-      position: relative;
-      right: 20px;
-      transition-duration: $duration;
-      transition-property : opacity, right;
-      transition-timing-function : ease-out;
-    }
-
-  }
   &:hover {
     box-shadow: 0 6px 14px 0px rudder.$box-shadow-hover-color;
-
-    .icon-link-container i{
-      opacity: 1;
-      right: -10px;
-    }
+    color: rudder.$txt-link;
   }
 }
 
@@ -211,7 +185,7 @@ $doughnut-size : 180px;
 .activity-container{
 
   .card-body{
-    height: 350px;
+    height: 300px;
     overflow: auto;
     padding: 0;
   }
