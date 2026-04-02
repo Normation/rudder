@@ -2082,6 +2082,7 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
           }
 
       }
+    , "lengthMenu": [ [10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000] ]
     , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
       '>t<"dataTables_wrapper_bottom"lip>'
     , "buttons" : [ csvButtonConfig("change_logs") ],
