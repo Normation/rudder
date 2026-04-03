@@ -140,7 +140,7 @@ impl AptPackageManager {
         // 1: no pending upgrade
         // 2: ABI compatible upgrade pending
         // 3: version upgrade pending
-        Ok(status.is_some_and(|s| s > 1))
+        Ok(status.is_some_and(|s| s == 2 || s == 3))
     }
 
     fn all_installed() -> PackageSort {
@@ -486,7 +486,27 @@ NEEDRESTART-KSTA: 3";
 
         let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
 NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 2";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            true
+        );
+
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
 NEEDRESTART-KSTA: 1";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            false
+        );
+
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 0";
 
         let lines: Vec<String> = vec![output.to_string()];
         assert_eq!(
