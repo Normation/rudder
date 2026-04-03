@@ -1,4 +1,4 @@
-module QuickSearch.Update exposing (update, Msg(..))
+module QuickSearch.Update exposing (update, Msg(..), update_, Effect(..))
 
 import Debounce
 import Http
@@ -21,29 +21,50 @@ type Msg = UpdateFilter Filter
   | Close
   | Open
 
+type Effect
+    = ErrorNotification String
+    | Untestable (Cmd Msg)
+    | NoEffect
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update  msg model =
+    let (updatedModel, effect) = update_ msg model
+        cmd = case effect of
+            ErrorNotification message ->
+                errorNotification message
+
+            Untestable nested ->
+                nested
+
+            NoEffect ->
+                Cmd.none
+
+    in (updatedModel, cmd)
+
+
+update_ : Msg -> Model -> ( Model, Effect )
+update_  msg model =
   case msg of
       UpdateFilter filter ->
           case filter of
-              All -> (model |> removeSelectedFilters, Cmd.none)
-              FilterKind k -> (model |> toggleSelectedFilter k, Cmd.none)
+              All -> (model |> removeSelectedFilters, NoEffect)
+              FilterKind k -> (model |> toggleSelectedFilter k, NoEffect)
       UpdateSearch search ->
         let
           (debounce, cmd) = Debounce.push debounceConfig search model.debounceSearch
         in
           ( model |> setDebounce debounce |> setSearch search
-          , cmd
+          , Untestable cmd
           )
 
       GetResults (Ok (_, r)) ->
-        (model |> setResults r, Cmd.none)
+        (model |> setResults r, NoEffect)
       GetResults (Err e) ->
         (model |> setResults [], processApiError "getting search results" e)
       Close ->
-        (model |> close , Cmd.none)
+        (model |> close , NoEffect)
       Open ->
-          (model |> open, Cmd.none)
+          (model |> open, NoEffect)
       DebounceMsg debMsg ->
           let
             ( debounce, cmd ) =
@@ -55,10 +76,10 @@ update  msg model =
                   debMsg
                   model.debounceSearch
           in
-            (model |> setDebounce debounce, cmd)
+            (model |> setDebounce debounce, Untestable cmd)
 
 
-processApiError : String -> Detailed.Error String -> Cmd Msg
+processApiError : String -> Detailed.Error String -> Effect
 processApiError apiName err =
   let
     formatApiNameMessage msg = "Error when "++ apiName ++ " : \n" ++ msg
@@ -78,4 +99,4 @@ processApiError apiName err =
         Detailed.BadBody metadata body msg ->
           formatApiNameMessage msg
   in
-    errorNotification message
+    ErrorNotification message
