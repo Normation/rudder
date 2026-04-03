@@ -23,60 +23,87 @@ type Msg = UpdateFilter Filter
 
 type Effect
     = ErrorNotification String
-    | Untestable (Cmd Msg)
+    | DebouncePush String
+    | InternalDebounceMsg Debounce.Msg
     | NoEffect
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update  msg model =
     let (updatedModel, effect) = update_ msg model
-        cmd = case effect of
+    in case effect of
             ErrorNotification message ->
-                errorNotification message
-
-            Untestable nested ->
-                nested
+                (updatedModel, errorNotification message)
 
             NoEffect ->
-                Cmd.none
+                (updatedModel, Cmd.none)
 
-    in (updatedModel, cmd)
+            DebouncePush search ->
+                let (debounce, cmd) = Debounce.push debounceConfig search updatedModel.debounceSearch
+                in (updatedModel |> setDebounce debounce, cmd)
 
+            InternalDebounceMsg debMsg ->
+                 let
+                    ( debounce, cmd ) =
+                        Debounce.update
+                            debounceConfig
+                            (Debounce.takeLast (
+                              \s ->  if String.length s > 2 then getSearchResult model s GetResults else Cmd.none
+                            ))
+                            debMsg
+                            model.debounceSearch
+
+                 in (model |> setDebounce debounce, cmd)
+
+
+withEffect : Effect -> Model -> ( Model , Effect )
+withEffect effect model =
+    ( model , effect )
+
+withNoEffect = withEffect NoEffect
 
 update_ : Msg -> Model -> ( Model, Effect )
 update_  msg model =
   case msg of
       UpdateFilter filter ->
           case filter of
-              All -> (model |> removeSelectedFilters, NoEffect)
-              FilterKind k -> (model |> toggleSelectedFilter k, NoEffect)
+              All ->
+                model
+                |> removeSelectedFilters
+                |> withNoEffect
+
+              FilterKind k ->
+                model
+                |> toggleSelectedFilter k
+                |> withNoEffect
+
       UpdateSearch search ->
-        let
-          (debounce, cmd) = Debounce.push debounceConfig search model.debounceSearch
-        in
-          ( model |> setDebounce debounce |> setSearch search
-          , Untestable cmd
-          )
+        model
+        |> setSearch search
+        |> withEffect (DebouncePush search)
 
       GetResults (Ok (_, r)) ->
-        (model |> setResults r, NoEffect)
+        model
+        |> setResults r
+        |> withNoEffect
+
       GetResults (Err e) ->
-        (model |> setResults [], processApiError "getting search results" e)
+        model
+        |> setResults []
+        |> withEffect (processApiError "getting search results" e)
+
       Close ->
-        (model |> close , NoEffect)
+        model
+        |> close
+        |> withNoEffect
+
       Open ->
-          (model |> open, NoEffect)
+        model
+        |> open
+        |> withNoEffect
+
       DebounceMsg debMsg ->
-          let
-            ( debounce, cmd ) =
-              Debounce.update
-                  debounceConfig
-                  (Debounce.takeLast (
-                    \s ->  if String.length s > 2 then getSearchResult model s GetResults else Cmd.none
-                  ))
-                  debMsg
-                  model.debounceSearch
-          in
-            (model |> setDebounce debounce, Untestable cmd)
+        model
+        |> withEffect (InternalDebounceMsg debMsg)
 
 
 processApiError : String -> Detailed.Error String -> Effect
