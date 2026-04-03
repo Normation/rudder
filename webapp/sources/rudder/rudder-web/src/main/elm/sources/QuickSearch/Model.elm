@@ -1,4 +1,4 @@
-module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter, setSearch, setDebounce)
+module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter, setSearch, setDebounce, setResults, close)
 
 import Debounce exposing (Debounce)
 
@@ -78,4 +78,17 @@ setDebounce : Debounce String -> Model -> Model
 setDebounce debounce model =
     { model
         | debounceSearch = debounce
+    }
+
+setResults : List SearchResult -> Model -> Model
+setResults results model =
+    { model
+        | results = results
+        , state = Opened
+    }
+
+close : Model -> Model
+close model =
+    { model
+        | state = Closed
     }

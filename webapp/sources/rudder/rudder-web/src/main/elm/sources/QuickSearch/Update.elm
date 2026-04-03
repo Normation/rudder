@@ -37,11 +37,11 @@ update  msg model =
           )
 
       GetResults (Ok (_, r)) ->
-        ({model| results = r, state = Opened},Cmd.none)
+        (model |> setResults r, Cmd.none)
       GetResults (Err e) ->
-        ({model | results = [] }, processApiError "getting search results" e)
+        (model |> setResults [], processApiError "getting search results" e)
       Close ->
-        ({model | state = Closed }, Cmd.none)
+        (model |> close , Cmd.none)
       Open ->
         let
           newState =
