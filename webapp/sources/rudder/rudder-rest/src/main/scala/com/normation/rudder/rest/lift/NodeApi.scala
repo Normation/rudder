@@ -860,9 +860,11 @@ class NodeApiService(
   def checkUuid(nodeId: NodeId)(implicit qc: QueryContext): IO[CreationError, Unit] = {
     nodeFactRepository
       .get(nodeId)
-      .map(_.nonEmpty)
       .mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
-      .unit
+      .flatMap {
+        case None    => ZIO.unit
+        case Some(x) => CreationError.OnSaveInventory(s"Error during node ID check: that ID already exists").fail
+      }
   }
 
   /*

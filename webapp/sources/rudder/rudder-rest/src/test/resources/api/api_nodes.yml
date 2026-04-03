@@ -542,6 +542,9 @@ response:
     }
 ---
 description: Create node with some validation errors
+# - case 1: invalid uuid,
+# - case 2: already exists,
+# - case 3: OK (so we check that we actually report errors on all case but accept valid ones)
 method: PUT
 url: /api/latest/nodes
 headers:
@@ -552,6 +555,20 @@ body: >-
       "id": "an-invalid-uuid-hihihi",
       "hostname": "node3.hostname.local",
       "status": "removed",
+      "os": {
+        "type": "linux",
+        "name": "debian",
+        "version": "9.5",
+        "fullName": "Debian GNU/Linux 9 (stretch)",
+        "servicePack": "string"
+      },
+      "properties": [],
+      "ipAddresses": []
+    },
+    {
+      "id": "378740d3-c4a9-4474-8485-478e7e52db53", 
+      "hostname": "node4.hostname.local",
+      "status": "accepted",
       "os": {
         "type": "linux",
         "name": "debian",
@@ -593,6 +610,9 @@ response:
               "[validation] Only ID matching the shape of an UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) are authorized but 'an-invalid-uuid-hihihi' provided",
               "[validation] Node 'status' must be one of 'accepted, pending' but 'removed' provided"
             ]
+          },
+          {
+            "378740d3-c4a9-4474-8485-478e7e52db53" : "[save inventory] Error during node ID check: that ID already exists"
           }
         ]
       }
