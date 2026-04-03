@@ -459,7 +459,92 @@ response:
       }
     }
 ---
+description: Check node correctly created
+method: GET
+url: /api/latest/nodes/378740d3-c4a9-4474-8485-478e7e52db53?include=default,properties,manufacturer,managementTechnologyDetails
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeDetails",
+      "id":"378740d3-c4a9-4474-8485-478e7e52db53",
+      "result":"success",
+      "data":{
+        "nodes":[
+          {
+            "id":"378740d3-c4a9-4474-8485-478e7e52db53",
+            "hostname":"node2.hostname.local",
+            "status" : "accepted",
+            "state" : "enabled",
+            "os" : {
+              "type" : "Linux",
+              "name" : "Debian",
+              "version" : "9.5",
+              "fullName" : "Debian GNU/Linux 9 (stretch)",
+              "kernelVersion" : "N/A",
+              "servicePack" : "string"
+            },
+            "machine" : {
+              "id" : "45f70964-7ec9-ed75-61a5-ed7acbde17f4",
+              "type" : "Virtual",
+              "provider" : "vmware",
+              "manufacturer" : "corp inc.",
+              "serialNumber" : "ece12459-2b90-49c9-ab1e-72e38f797421"
+            },
+            "ipAddresses" : [
+              "192.168.180.90"
+            ],
+            "description" : "",
+            "acceptanceDate" : "2021-01-30T00:20:00Z",
+            "lastInventoryDate" : "2021-01-30T00:20:00Z",
+            "policyServerId" : "root",
+            "managementTechnology" : [
+              {
+                "name" : "Rudder",
+                "version" : "Missing version",
+                "capabilities" : [],
+                "nodeKind" : "node"
+              }
+            ],
+            "properties" : [
+              {
+                "name" : "another-property",
+                "value" : [
+                  "arrvalue1",
+                  "arrvalue2"
+                ]
+              },
+              {
+                "name": "datacenter",
+                "value": "AMS2"
+              },
+              {
+                "name": "some-json-property",
+                "value": {
+                  "key": "value"
+                }
+              }
+            ],
+            "policyMode" : "enforce",
+            "timezone" : {
+              "name" : "CEST",
+              "offset" : "+0200"
+            },
+            "managementTechnologyDetails" : {
+              "cfengineKeys" : [
+                "-----BEGIN CERTIFICATE-----\nMIIFTjCCAzagAwIBAgIUfa0+S+CyJahRzuwNNOFLNQQjIH8wDQYJKoZIhvcNAQEL\nBQAwFzEVMBMGCgmSJomT8ixkAQEMBW5vZGU3MB4XDTI0MDMwMTExMDIxM1oXDTM0\nMDIyNzExMDIxM1owFzEVMBMGCgmSJomT8ixkAQEMBW5vZGU3MIICIjANBgkqhkiG\n9w0BAQEFAAOCAg8AMIICCgKCAgEAsmBUYI1A5vqkOTCW24m/mQhBaRu4WaAUXDAr\nArdIAAMN0KyHhEXP1/X32Flw90E0VjtUH4P+DYLBozXYWhJrUxdWLyn3TRSbv3Kr\npXoCWhMhMp8OK2s/mG+rfiMpTXIwaMhPnBaJFNV3c+bkijGAMHtFjl3+leXJvNZ7\nw3bIg4cA3e77kz7EWMyqxOUvvLMyY6wpd03ahe/By+iLgtOkgUwl9hMqMU8tJeaz\nNIeUporsHk5rrk8bSf6Mxxdknm43Sk6oflnueNCIUFdd4rS2JLieMugsTh8n/oH+\nk29ZyirE3ikhftmZ3vY8GQ3IcIzaXwiAOGnCKcze79zVx5jmOTGSZitGZaU/cZc6\nLjzEp+ZDmE8caVIksiA+hIlaZeBXNHB+YRv/gV1Rbt7kS1am+XUZJSfVFf+99YqE\nlZ5p0hqJsczkBb2RuMxWxxsWO3pesPUNCuL/yaeggTIp7eK06tQWi1EfXr40ctrf\noimbzMAKNBpRKWruL7652SlF75Usaq+PaPi1TtqYQjLRZmbpr+IR4uMeKnEMIZPw\n3dLDKBV6d71XkTAalCmcJU+fgYrRmgz1dEnaZDIXY+f+fYR15hsFpDrZ0avHgkzJ\nca/nT/rKeX7136BttxVSbZaTU9hnmjAvl+v0BF+JUWPQ3VPTcrmyUNAICt8xdVae\nuo1tsvkCAwEAAaOBkTCBjjAMBgNVHRMEBTADAQH/MB0GA1UdDgQWBBSRG0uHQRIA\ngl91YqzSjaeaw+F7PDBSBgNVHSMESzBJgBSRG0uHQRIAgl91YqzSjaeaw+F7PKEb\npBkwFzEVMBMGCgmSJomT8ixkAQEMBW5vZGU3ghR9rT5L4LIlqFHO7A004Us1BCMg\nfzALBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBABR2vTH/6WlqjaTZ/hQc\nB+crqRlFimqCiVTRdX6qfkt0tLX2dK6scHNTBT04ORLjLTAn0KbcOUz3k6i0mIqB\nnG5UjqCFEQR+i2V4Hz7aK6+7LBQuwXWRhDhvO5xMn7MxjvP0LGgNf5iiA4r/N22L\nEMc1prDESIOGmWdKg9XlfLxd877R2d8/3hXyT82Y2uJHO25b53skj4pbUOWLsGSw\nd4FBNnWqM+7Hbg2v9xFvmtfs2G2Inqk4Xjtjnj8qkVk3ft6KzClUIMXGXQ8QqaRp\nYPkTJm5g2UBYDiguD/tlz3VmbsNYU6fkap7DKqhttbaseIx1zDwdAv4jtVOWDyjx\nWq4b7pljYiczfRa84X/9v1x05pT3raELy5udY+Pxmnz+hOXOM+jY5bzSKS24b8rS\n5Sklmutm0IdflMKd5vNrXd9yPFLu3QzN50ArzHHXczwBLgjaMlZsPAp1wITlqM7+\nWCjy3qM5/KgAjH3L24MPTq23o9PokBVh1NH7lesZqgJPgsj+OG7FMQDvKzg7ytrs\nQlIDF1c8Ko+9/RrnRVAS8C4GZOqbmMmfJjMp09GBz2d0ixlTusF6m6iwfIVMf/nI\nP/V0D7STRiV62cfnZ3e0w8kIeZwWAgXI7RMHJU3skLyurUu8yxkp635IQyzQsW2A\nYo7t7O7fxjqD9yVI2QfkERZ7\n-----END CERTIFICATE-----\n"
+              ],
+              "cfengineUser" : "root"            
+            }
+          }
+        ]
+      }
+    }
+---
 description: Create node with some validation errors
+# - case 1: invalid uuid,
+# - case 2: already exists,
+# - case 3: OK (so we check that we actually report errors on all case but accept valid ones)
 method: PUT
 url: /api/latest/nodes
 headers:
@@ -470,6 +555,20 @@ body: >-
       "id": "an-invalid-uuid-hihihi",
       "hostname": "node3.hostname.local",
       "status": "removed",
+      "os": {
+        "type": "linux",
+        "name": "debian",
+        "version": "9.5",
+        "fullName": "Debian GNU/Linux 9 (stretch)",
+        "servicePack": "string"
+      },
+      "properties": [],
+      "ipAddresses": []
+    },
+    {
+      "id": "378740d3-c4a9-4474-8485-478e7e52db53", 
+      "hostname": "node4.hostname.local",
+      "status": "accepted",
       "os": {
         "type": "linux",
         "name": "debian",
@@ -511,6 +610,9 @@ response:
               "[validation] Only ID matching the shape of an UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) are authorized but 'an-invalid-uuid-hihihi' provided",
               "[validation] Node 'status' must be one of 'accepted, pending' but 'removed' provided"
             ]
+          },
+          {
+            "378740d3-c4a9-4474-8485-478e7e52db53" : "[save inventory] Error during node ID check: that ID already exists"
           }
         ]
       }
