@@ -5,6 +5,7 @@ import Debounce exposing (Debounce)
 type alias Model =
   { search : String,
     results : List SearchResult,
+    filteredResults : List SearchResult,
     selectedFilter : List Kind,
     contextPath : String,
     state : State,
@@ -48,6 +49,7 @@ initModel { contextPath } =
     , contextPath = contextPath
     , state = Closed
     , debounceSearch = Debounce.init
+    , filteredResults = []
     }
 
 removeSelectedFilters: Model -> Model
@@ -63,7 +65,7 @@ toggleSelectedFilter kind model =
             if List.member kind model.selectedFilter
             then List.filter ((/=) kind) model.selectedFilter
             else kind :: model.selectedFilter
-    }
+    } |> filterResults
 
 setSearch : String -> Model -> Model
 setSearch search model =
@@ -85,7 +87,7 @@ setResults results model =
     { model
         | results = results
         , state = Opened
-    }
+    } |> filterResults
 
 close : Model -> Model
 close model =
@@ -103,4 +105,13 @@ open model =
                     case model.state of
                       Searching -> Searching
                       _ -> Opened
+    }
+
+filterResults : Model -> Model
+filterResults model =
+    { model
+        | filteredResults =
+            if (List.isEmpty model.selectedFilter)
+                then model.results
+                else model.results |> List.filter (\r -> List.member r.header.type_ model.selectedFilter  )
     }

@@ -12,12 +12,14 @@ anyState = Fuzz.oneOfValues [ Opened, Closed, Searching]
 anyKind : Fuzz.Fuzzer Kind
 anyKind = Fuzz.oneOfValues allKinds
 
-anySearchResultHeader
+searchResultHeader : { kind: Fuzz.Fuzzer Kind } -> Fuzz.Fuzzer QuickSearch.Model.SearchResultHeader
+searchResultHeader { kind }
     = Fuzz.constant QuickSearch.Model.SearchResultHeader
-        |> Fuzz.andMap anyKind
+        |> Fuzz.andMap kind
         |> Fuzz.andMap Fuzz.string
         |> Fuzz.andMap Fuzz.int
 
+anySearchResultItem : Fuzz.Fuzzer QuickSearch.Model.SearchResultItem
 anySearchResultItem
     = Fuzz.constant QuickSearch.Model.SearchResultItem
         |> Fuzz.andMap anyKind
@@ -27,10 +29,17 @@ anySearchResultItem
         |> Fuzz.andMap Fuzz.string
         |> Fuzz.andMap Fuzz.string
 
+anySearchResult : Fuzz.Fuzzer QuickSearch.Model.SearchResult
 anySearchResult
     = Fuzz.constant QuickSearch.Model.SearchResult
-        |> Fuzz.andMap anySearchResultHeader
-        |> Fuzz.andMap (Fuzz.constant [])
+        |> Fuzz.andMap (searchResultHeader { kind = anyKind })
+        |> Fuzz.andMap (Fuzz.list anySearchResultItem)
+
+searchResult : { kind: Fuzz.Fuzzer Kind } -> Fuzz.Fuzzer QuickSearch.Model.SearchResult
+searchResult params
+    = Fuzz.constant QuickSearch.Model.SearchResult
+        |> Fuzz.andMap (searchResultHeader params)
+        |> Fuzz.andMap (Fuzz.list anySearchResultItem)
 
 suite = describe "QuickSearch.Model"
     [ test "removeSelectedFilters should remove all selected filter" <|
@@ -93,6 +102,27 @@ suite = describe "QuickSearch.Model"
             |> setResults results
             |> .results
             |> Expect.equal results
+    , fuzz2
+        (Fuzz.listOfLength 3 (searchResult {kind = (Fuzz.constant Node)}))
+        (Fuzz.listOfLength 3 (searchResult {kind = (Fuzz.constant Group)}))
+        "setResult should filter results" <|
+            \nodeResult groupResult ->
+              model
+                |> toggleSelectedFilter Node
+                |> setResults (nodeResult ++ groupResult)
+                |> .filteredResults
+                |> Expect.equalLists nodeResult
+    , fuzz2
+        (Fuzz.listOfLength 3 (searchResult {kind = (Fuzz.constant Node)}))
+        (Fuzz.listOfLength 3 (searchResult {kind = (Fuzz.constant Group)}))
+        "toggleSelectedFilter should filter results" <|
+            \nodeResult groupResult ->
+              model
+                |> setResults (nodeResult ++ groupResult)
+                |> toggleSelectedFilter Node
+                |> .filteredResults
+                |> Expect.equalLists nodeResult
+
      , fuzz anyState "close should change the state to Closed" <|
         \state ->
           { model | state = state }

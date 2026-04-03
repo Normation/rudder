@@ -87,9 +87,6 @@ view : Model -> Html Msg
 view model =
   let
     open = if (model.state == Closed) then "" else "show"
-    filteredResult =
-      if (List.isEmpty model.selectedFilter) then model.results
-      else model.results |> List.filter (\r -> List.member r.header.type_ model.selectedFilter  )
   in
   div [ class "quicksearch-form ms-2" ]
   [ div [ class "input-group"]
@@ -137,7 +134,7 @@ view model =
                          ]
                       , div [ class "panel-group", hidden (model.state == Searching || (List.isEmpty model.results )  ) ] [
                           div [ class "dropdown-search ", role "tablist" ]
-                            (List.map viewResult filteredResult)
+                            (List.map viewResult model.filteredResults)
                         ]
                       ]
                     ]
