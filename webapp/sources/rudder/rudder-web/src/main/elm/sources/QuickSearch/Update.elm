@@ -30,16 +30,12 @@ update  msg model =
               FilterKind k -> (model |> toggleSelectedFilter k, Cmd.none)
       UpdateSearch search ->
         let
-          state = if String.isEmpty search then Closed
-                  else if String.length search <= 3 then Opened
-                  else Searching
-
-          (debounce, cmd) =
-            Debounce.push debounceConfig search model.debounceSearch
-
-          newModel = {model| search = search, state = state, debounceSearch = debounce}
+          (debounce, cmd) = Debounce.push debounceConfig search model.debounceSearch
         in
-          (newModel,cmd)
+          ( model |> setDebounce debounce |> setSearch search
+          , cmd
+          )
+
       GetResults (Ok (_, r)) ->
         ({model| results = r, state = Opened},Cmd.none)
       GetResults (Err e) ->

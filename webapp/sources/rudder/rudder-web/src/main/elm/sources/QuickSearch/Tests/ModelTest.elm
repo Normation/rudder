@@ -1,8 +1,9 @@
 module QuickSearch.Tests.ModelTest exposing (suite)
 
 import Expect
-import QuickSearch.Model exposing (Kind(..), toggleSelectedFilter, initModel, removeSelectedFilters)
-import Test exposing (describe, test)
+import Fuzz
+import QuickSearch.Model exposing (Kind(..), State(..), initModel, removeSelectedFilters, setSearch, toggleSelectedFilter)
+import Test exposing (describe, fuzz, test)
 
 model = initModel { contextPath = "" }
 
@@ -35,4 +36,22 @@ suite = describe "QuickSearch.Model"
             |> toggleSelectedFilter Directive
             |> .selectedFilter
             |> Expect.equalLists [ Parameter ]
+    , test "setSearch with an empty search should change the state to close" <|
+        \_ ->
+          model
+            |> setSearch ""
+            |> .state
+            |> Expect.equal Closed
+    , fuzz (Fuzz.stringOfLengthBetween 1 3) "setSearch with less than 3 characters should change the state to Opened" <|
+        \search ->
+          model
+            |> setSearch search
+            |> .state
+            |> Expect.equal Opened
+    , fuzz (Fuzz.stringOfLengthBetween 4 100) "setSearch with more than 3 characters should change the state to Searching" <|
+        \search ->
+          model
+            |> setSearch search
+            |> .state
+            |> Expect.equal Searching
     ]

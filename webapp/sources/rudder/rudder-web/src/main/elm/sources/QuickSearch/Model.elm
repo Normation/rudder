@@ -1,4 +1,4 @@
-module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter)
+module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter, setSearch, setDebounce)
 
 import Debounce exposing (Debounce)
 
@@ -63,4 +63,19 @@ toggleSelectedFilter kind model =
             if List.member kind model.selectedFilter
             then List.filter ((/=) kind) model.selectedFilter
             else kind :: model.selectedFilter
+    }
+
+setSearch : String -> Model -> Model
+setSearch search model =
+    {model
+        | search = search
+        , state = if String.isEmpty search then Closed
+                  else if String.length search <= 3 then Opened
+                  else Searching
+    }
+
+setDebounce : Debounce String -> Model -> Model
+setDebounce debounce model =
+    { model
+        | debounceSearch = debounce
     }
