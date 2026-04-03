@@ -41,6 +41,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger.*
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypeName
@@ -717,14 +718,6 @@ object ExecutionBatch extends Loggable {
           // Then analyse the consistency of the result.
           //
           case Some(runInfos) =>
-//          ComplianceDebugLogger.node(nodeId).debug(s"Node run configuration: ${(nodeId, complianceMode, runInfos).toLog }")
-//
-//          val computed =    computeNodeRunInfo(
-//                    nodeId, optInfo, missingReportType
-//                  , intervalInfo, updateValidityTime(intervalInfo), runValidityTime(intervalInfo)
-//                  , now, run
-//              )
-
             (runInfos, currentNodeConfigs.get(nodeId).flatten) match {
 
               //
@@ -935,240 +928,251 @@ object ExecutionBatch extends Loggable {
    *  It returns a properly merged NodeStatusReports
    */
   def getNodeStatusReports(
-      nodeId:  NodeId,           // run info: if we have a run, we have a datetime for it
+      nodeId:    NodeId,           // run info: if we have a run, we have a datetime for it
       // and perhaps a configId
-
-      runInfo: RunAndConfigInfo, // reports we get on the last know run
+      nodeState: NodeState,
+      runInfo:   RunAndConfigInfo, // reports we get on the last know run
 
       agentExecutionReports: Seq[Reports]
   ): NodeStatusReport = {
+    // early return, no need to continue
+    if (!nodeState.isEnabled) {
+      val status = runInfo match {
+        case r: (ExpiringStatus & ExpectedConfigAvailable) => NoReportInInterval(r.expectedConfig, r.expirationDateTime)
+        case _ => NoRunNoExpectedReport
+      }
 
-    // only interesting reports: for that node, with a status
-    val nodeStatusReports = agentExecutionReports.collect { case r: ResultReports if (r.nodeId == nodeId) => r }
+      NodeStatusReportInternal.buildWith(nodeId, status, RunComplianceInfo.OK, List(), Set()).toNodeStatusReport()
 
-    ComplianceDebugLogger.node(nodeId).debug(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
+    } else {
 
-    val t1        = System.currentTimeMillis
-    val overrides = runInfo match {
-      case x: ExpectedConfigAvailable => x.expectedConfig.overrides
-      case _ => Nil
-    }
+      // only interesting reports: for that node, with a status
+      val nodeStatusReports = agentExecutionReports.collect { case r: ResultReports if (r.nodeId == nodeId) => r }
 
-    val ruleNodeStatusReports = runInfo match {
+      ComplianceDebugLogger.node(nodeId).debug(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
 
-      case ReportsDisabledInInterval(expectedConfig, _) =>
-        ComplianceDebugLogger
-          .node(nodeId)
-          .debug(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
-        buildRuleNodeStatusReport(
-          // these reports don't really expires - without change, it will
-          // always be the same.
-          MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), END_OF_TIME),
-          expectedConfig,
-          ReportType.Disabled,
-          overrides
-        )
+      val t1        = System.currentTimeMillis
+      val overrides = runInfo match {
+        case x: ExpectedConfigAvailable => x.expectedConfig.overrides
+        case _ => Nil
+      }
 
-      case ComputeCompliance(lastRunDateTime, expectedConfig, expirationTime) =>
-        ComplianceDebugLogger
-          .node(nodeId)
-          .debug(
-            s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}"
+      val ruleNodeStatusReports = runInfo match {
+
+        case ReportsDisabledInInterval(expectedConfig, _) =>
+          ComplianceDebugLogger
+            .node(nodeId)
+            .debug(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
+          buildRuleNodeStatusReport(
+            // these reports don't really expires - without change, it will
+            // always be the same.
+            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), END_OF_TIME),
+            expectedConfig,
+            ReportType.Disabled,
+            overrides
           )
-        mergeCompareByRule(
-          MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime),
-          nodeStatusReports,
-          expectedConfig,
-          expectedConfig,
-          overrides
-        )
 
-      case Pending(expectedConfig, optLastRun, expirationTime) =>
-        optLastRun match {
-          case None =>
-            ComplianceDebugLogger
-              .node(nodeId)
-              .debug(s"Node is Pending with no reports from a previous run, everything is pending")
-            // we don't have previous run, so we can simply say that all component in node are Pending
-            buildRuleNodeStatusReport(
-              MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
-              expectedConfig,
-              ReportType.Pending,
-              overrides
+        case ComputeCompliance(lastRunDateTime, expectedConfig, expirationTime) =>
+          ComplianceDebugLogger
+            .node(nodeId)
+            .debug(
+              s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfig.toLog}"
             )
+          mergeCompareByRule(
+            MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfig.nodeConfigId), expirationTime),
+            nodeStatusReports,
+            expectedConfig,
+            expectedConfig,
+            overrides
+          )
 
-          case Some((runTime, runConfig)) =>
-            /*
-             * In that case, we need to compute the status of all component in the previous run,
-             * then keep these result for component in the new expected config and for
-             * component in new expected config BUT NOT is the one for which we have the run,
-             * set pending.
-             */
-            ComplianceDebugLogger
-              .node(nodeId)
-              .debug(
-                "Node is Pending with reports from previous run, using merge/compare strategy between last "
-                + s"reports from run ${runConfig.toLog} and expect reports ${expectedConfig.toLog}"
+        case Pending(expectedConfig, optLastRun, expirationTime) =>
+          optLastRun match {
+            case None =>
+              ComplianceDebugLogger
+                .node(nodeId)
+                .debug(s"Node is Pending with no reports from a previous run, everything is pending")
+              // we don't have previous run, so we can simply say that all component in node are Pending
+              buildRuleNodeStatusReport(
+                MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
+                expectedConfig,
+                ReportType.Pending,
+                overrides
               )
-            mergeCompareByRule(
-              MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime),
-              nodeStatusReports,
-              runConfig,
-              expectedConfig,
-              overrides
+
+            case Some((runTime, runConfig)) =>
+              /*
+               * In that case, we need to compute the status of all component in the previous run,
+               * then keep these result for component in the new expected config and for
+               * component in new expected config BUT NOT is the one for which we have the run,
+               * set pending.
+               */
+              ComplianceDebugLogger
+                .node(nodeId)
+                .debug(
+                  "Node is Pending with reports from previous run, using merge/compare strategy between last "
+                  + s"reports from run ${runConfig.toLog} and expect reports ${expectedConfig.toLog}"
+                )
+              mergeCompareByRule(
+                MergeInfo(nodeId, Some(runTime), Some(expectedConfig.nodeConfigId), expirationTime),
+                nodeStatusReports,
+                runConfig,
+                expectedConfig,
+                overrides
+              )
+          }
+
+        case NoReportInInterval(expectedConfig, expirationTime) =>
+          ComplianceDebugLogger
+            .node(nodeId)
+            .debug(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
+          buildRuleNodeStatusReport(
+            // these reports need to expire, so that we can recompute them automatically
+            // at expiration, and store that the nodes were not answering
+            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
+            expectedConfig,
+            ReportType.NoAnswer,
+            overrides
+          )
+
+        case KeepLastCompliance(expectedConfig, expirationTime, keepUntil, optLastRun) =>
+          ComplianceDebugLogger
+            .node(nodeId)
+            .debug(
+              s"Node didn't received reports recently, status depend of the compliance mode and previous report status and will be kept until ${keepUntil}"
             )
-        }
-
-      case NoReportInInterval(expectedConfig, expirationTime) =>
-        ComplianceDebugLogger
-          .node(nodeId)
-          .debug(s"Node didn't received reports recently, status depend of the compliance mode and previous report status")
-        buildRuleNodeStatusReport(
-          // these reports need to expire, so that we can recompute them automatically
-          // at expiration, and store that the nodes were not answering
-          MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
-          expectedConfig,
-          ReportType.NoAnswer,
-          overrides
-        )
-
-      case KeepLastCompliance(expectedConfig, expirationTime, keepUntil, optLastRun) =>
-        ComplianceDebugLogger
-          .node(nodeId)
-          .debug(
-            s"Node didn't received reports recently, status depend of the compliance mode and previous report status and will be kept until ${keepUntil}"
+          buildRuleNodeStatusReport(
+            // these reports need to expire, so that we can recompute them automatically
+            // at expiration, and store that the nodes were not answering
+            MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
+            expectedConfig,
+            ReportType.NoAnswer,
+            overrides
           )
-        buildRuleNodeStatusReport(
-          // these reports need to expire, so that we can recompute them automatically
-          // at expiration, and store that the nodes were not answering
-          MergeInfo(nodeId, None, Some(expectedConfig.nodeConfigId), expirationTime),
-          expectedConfig,
-          ReportType.NoAnswer,
-          overrides
-        )
 
-      case UnexpectedVersion(runTime, Some(runConfig), runExpiration, expectedConfig, expectedExpiration, _) =>
-        ComplianceDebugLogger
-          .node(nodeId)
-          .warn(
-            s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runConfig.nodeConfigId.value}' but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
-          )
-        buildUnexpectedVersion(
-          nodeId,
-          runTime,
-          Some(runConfig.configInfo),
-          runExpiration,
-          expectedConfig,
-          expectedExpiration,
-          nodeStatusReports,
-          overrides
-        )
-
-      case UnexpectedNoVersion(
+        case UnexpectedVersion(runTime, Some(runConfig), runExpiration, expectedConfig, expectedExpiration, _) =>
+          ComplianceDebugLogger
+            .node(nodeId)
+            .warn(
+              s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runConfig.nodeConfigId.value}' but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+            )
+          buildUnexpectedVersion(
+            nodeId,
             runTime,
-            runId,
+            Some(runConfig.configInfo),
             runExpiration,
             expectedConfig,
             expectedExpiration,
-            _
-          ) => // same as unexpected, different log
-        ComplianceDebugLogger
-          .node(nodeId)
-          .warn(
-            s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+            nodeStatusReports,
+            overrides
           )
-        buildUnexpectedVersion(
-          nodeId,
-          runTime,
-          None,
-          runExpiration,
-          expectedConfig,
-          expectedExpiration,
-          nodeStatusReports,
-          overrides
-        )
 
-      case UnexpectedUnknownVersion(
+        case UnexpectedNoVersion(
+              runTime,
+              runId,
+              runExpiration,
+              expectedConfig,
+              expectedExpiration,
+              _
+            ) => // same as unexpected, different log
+          ComplianceDebugLogger
+            .node(nodeId)
+            .warn(
+              s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+            )
+          buildUnexpectedVersion(
+            nodeId,
             runTime,
-            runId,
+            None,
+            runExpiration,
             expectedConfig,
             expectedExpiration,
-            expirationTime
-          ) => // same as unextected, different log
-        ComplianceDebugLogger
-          .node(nodeId)
-          .warn(
-            s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}."
+            nodeStatusReports,
+            overrides
           )
-        buildUnexpectedVersion(nodeId, runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports, overrides)
 
-      case NoUserRulesDefined(runTime, expectedConfig, runId, _, _) => // same as unextected, different log
-        val expectedExpiration = expectedConfig.beginDate.plus(expectedConfig.agentRun.interval.plus(GRACE_TIME_PENDING))
-        ComplianceDebugLogger
-          .node(nodeId)
-          .warn(
-            s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
-          )
-        buildUnexpectedVersion(nodeId, runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports, overrides)
+        case UnexpectedUnknownVersion(
+              runTime,
+              runId,
+              expectedConfig,
+              expectedExpiration,
+              expirationTime
+            ) => // same as unextected, different log
+          ComplianceDebugLogger
+            .node(nodeId)
+            .warn(
+              s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}."
+            )
+          buildUnexpectedVersion(nodeId, runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports, overrides)
 
-      case NoExpectedReport(runTime, optConfigId) =>
-        // these reports where not expected
-        ComplianceDebugLogger
-          .node(nodeId)
-          .warn(
-            s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")}). No expected configuration matches these reports."
-          )
-        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports, overrides)
+        case NoUserRulesDefined(runTime, expectedConfig, runId, _, _) => // same as unextected, different log
+          val expectedExpiration = expectedConfig.beginDate.plus(expectedConfig.agentRun.interval.plus(GRACE_TIME_PENDING))
+          ComplianceDebugLogger
+            .node(nodeId)
+            .warn(
+              s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedConfig.nodeConfigId.value}"
+            )
+          buildUnexpectedVersion(nodeId, runTime, None, runTime, expectedConfig, expectedExpiration, nodeStatusReports, overrides)
 
-      case NoRunNoExpectedReport =>
-        /*
-         * Really, this node exists ? Shouldn't we just declare Ragnarök at that point ?
-         */
-        ComplianceDebugLogger
-          .node(nodeId)
-          .warn(
-            s"Can not get compliance for node with ID '${nodeId.value}' because it has no configuration id initialised nor sent reports (node just added ?)"
-          )
-        Set[RuleNodeStatusReport]()
+        case NoExpectedReport(runTime, optConfigId) =>
+          // these reports where not expected
+          ComplianceDebugLogger
+            .node(nodeId)
+            .warn(
+              s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")}). No expected configuration matches these reports."
+            )
+          buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports, overrides)
 
-    }
+        case NoRunNoExpectedReport =>
+          /*
+           * Really, this node exists ? Shouldn't we just declare Ragnarök at that point ?
+           */
+          ComplianceDebugLogger
+            .node(nodeId)
+            .warn(
+              s"Can not get compliance for node with ID '${nodeId.value}' because it has no configuration id initialised nor sent reports (node just added ?)"
+            )
+          Set[RuleNodeStatusReport]()
 
-    /*
-     * We must adapt the node run compliance info if we have
-     * an abort message or at least one mixed mode result
-     */
-
-    val t2 = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Compliance: getNodeStatusReports - computing compliance for node ${nodeId}: ${t2 - t1}ms")
-
-    val status = {
-      val abort = agentExecutionReports.collect {
-        case r: LogReports if (r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
-          RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
-      }.toSet
-      val mixed = ruleNodeStatusReports.collect {
-        case r =>
-          r.directives.collect {
-            case (_, d) if (d.compliance.badPolicyMode > 0) =>
-              RunComplianceInfo.PolicyModeError.TechniqueMixedMode(
-                s"Error for node '${nodeId.value}' in directive '${d.directiveId.debugString}': either that directive is" +
-                " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)" +
-                " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode"
-              )
-          }.toSet
-      }.flatten
-
-      (abort ++ mixed).toList match {
-        case Nil  => RunComplianceInfo.OK
-        case list => RunComplianceInfo.PolicyModeInconsistency(list)
       }
+
+      /*
+       * We must adapt the node run compliance info if we have
+       * an abort message or at least one mixed mode result
+       */
+
+      val t2 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Compliance: getNodeStatusReports - computing compliance for node ${nodeId}: ${t2 - t1}ms")
+
+      val status = {
+        val abort = agentExecutionReports.collect {
+          case r: LogReports if (r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
+            RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
+        }.toSet
+        val mixed = ruleNodeStatusReports.collect {
+          case r =>
+            r.directives.collect {
+              case (_, d) if (d.compliance.badPolicyMode > 0) =>
+                RunComplianceInfo.PolicyModeError.TechniqueMixedMode(
+                  s"Error for node '${nodeId.value}' in directive '${d.directiveId.debugString}': either that directive is" +
+                  " not sending the correct Policy Mode reports (for example Enforce reports in place of Audit one - does the directive's Technique is up-to-date?)" +
+                  " or at least one other directive on that node based on the same Technique sends reports for a different Policy Mode"
+                )
+            }.toSet
+        }.flatten
+
+        (abort ++ mixed).toList match {
+          case Nil  => RunComplianceInfo.OK
+          case list => RunComplianceInfo.PolicyModeInconsistency(list)
+        }
+      }
+      val t3     = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3 - t2}ms")
+
+      NodeStatusReportInternal.buildWith(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet).toNodeStatusReport()
     }
-    val t3     = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Compliance: computing policy status for ${nodeId}: ${t3 - t2}ms")
 
-    NodeStatusReportInternal.buildWith(nodeId, runInfo, status, overrides, ruleNodeStatusReports.toSet).toNodeStatusReport()
   }
-
   // utility method to find how missing report should be reported given the compliance
   // mode of the node.
   private[reports] def missingReportType(complianceMode: ComplianceMode, policyMode: PolicyMode) = complianceMode.mode match {

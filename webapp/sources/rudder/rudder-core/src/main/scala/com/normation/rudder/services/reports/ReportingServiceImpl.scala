@@ -62,7 +62,7 @@ object ReportingServiceUtils {
  * A simple implementation of reporting service that just uses an underlying NodeStatusReport
  * repository to get reports, and then do basic filtering/computation on them.
  */
-class ReportingServiceImpl2(nsrRepo: NodeStatusReportRepository) extends ReportingService {
+class ReportingServiceImpl(nsrRepo: NodeStatusReportRepository) extends ReportingService {
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId])(implicit
       qc: QueryContext
