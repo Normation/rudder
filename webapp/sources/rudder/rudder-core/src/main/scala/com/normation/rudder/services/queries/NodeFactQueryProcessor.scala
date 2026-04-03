@@ -302,7 +302,8 @@ class NodeFactQueryProcessor(
       nodeLines     = nodeFactMatcher(sortedLines.coreNodeFact)
       allMatcher    = globalLines ++ subgroupLines ++ ldapLines ++ nodeLines
       lineResult   <- if (allMatcher.isEmpty) {
-                        // add a never matching matcher so that other transformation works
+                        // take care of the empty set case, which breaks our inner set law, by adding a never matching
+                        // matcher. With that, other latter transformation like `inversion` will work.
                         AbsorbingMatcher("no criteria provided", false).succeed
                       } else {
                         ZIO.foldLeft(allMatcher)(group.neutral: NodeFactMatcher) {
