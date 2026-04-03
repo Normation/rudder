@@ -50,12 +50,12 @@ update  msg model =
               Debounce.update
                   debounceConfig
                   (Debounce.takeLast (
-                    \s ->  if String.length s > 2  then getSearchResult model s GetResults else Cmd.none
+                    \s ->  if String.length s > 2 then getSearchResult model s GetResults else Cmd.none
                   ))
                   debMsg
                   model.debounceSearch
           in
-            ({model | debounceSearch = debounce}, cmd)
+            (model |> setDebounce debounce, cmd)
 
 
 processApiError : String -> Detailed.Error String -> Cmd Msg
