@@ -7,7 +7,6 @@
     "chart.js": "^4.5.1",
     "datatables.net": "^2.3.4",
     "datatables.net-buttons": "^3.2.5",
-    "datatables.net-fixedheader": "^4.0.4",
     "datatables.net-plugins": "^2.3.2",
     "datatables.net-rowgroup": "^1.6.0",
     "diff": "^8.0.2",
