@@ -3,9 +3,10 @@ module QuickSearch.View exposing (..)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onClick, onInput)
 import List.Extra
-import QuickSearch.Datatypes exposing (..)
+import QuickSearch.Model exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import QuickSearch.Update exposing (Msg(..))
 import String.Extra
 
 

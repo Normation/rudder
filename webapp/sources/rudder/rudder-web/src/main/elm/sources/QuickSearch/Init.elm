@@ -1,7 +1,8 @@
 module QuickSearch.Init exposing (..)
 
 import Debounce
-import QuickSearch.Datatypes exposing (..)
+import QuickSearch.Model exposing (..)
+import QuickSearch.Update exposing (Msg(..))
 
 
 subscriptions : Model -> Sub Msg
@@ -16,9 +17,3 @@ init flags =
     ( initModel
     , Cmd.none
     )
-
-debounceConfig : Debounce.Config Msg
-debounceConfig =
-  { strategy = Debounce.later 500
-  , transform = DebounceMsg
-  }

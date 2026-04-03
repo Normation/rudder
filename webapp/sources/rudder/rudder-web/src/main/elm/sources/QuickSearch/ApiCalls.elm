@@ -1,12 +1,11 @@
-module QuickSearch.ApiCalls exposing (..)
+module QuickSearch.ApiCalls exposing (getSearchResult)
 
 
 import Http exposing (request, header, emptyBody)
-import Http.Detailed as Detailed
+import Http.Detailed as Detailed exposing (Error)
 import Json.Decode exposing (at, list)
-import QuickSearch.Datatypes exposing (..)
+import QuickSearch.Model exposing (..)
 import QuickSearch.JsonDecoder exposing (decoderResult)
-import QuickSearch.View exposing (kindName)
 import Url.Builder exposing (QueryParameter, string)
 
 
@@ -19,8 +18,8 @@ getUrl m search =
   in
   Url.Builder.relative (m.contextPath :: "secure" :: "api"  :: "quicksearch" :: []) [ param ]
 
-getSearchResult : Model -> String -> Cmd Msg
-getSearchResult model search =
+getSearchResult : Model -> String -> (Result (Error String) ( Http.Metadata, List SearchResult ) -> msg) -> Cmd msg
+getSearchResult model search toMsg =
   let
     req =
       request
@@ -28,7 +27,7 @@ getSearchResult model search =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model search
         , body    = emptyBody
-        , expect  = Detailed.expectJson GetResults (at ["data"] (list decoderResult))
+        , expect  = Detailed.expectJson toMsg (at ["data"] (list decoderResult))
         , timeout = Nothing
         , tracker = Nothing
         }

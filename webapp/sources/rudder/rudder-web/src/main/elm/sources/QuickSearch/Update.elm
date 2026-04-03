@@ -1,13 +1,26 @@
-module QuickSearch.Update exposing (..)
+module QuickSearch.Update exposing (update, Msg(..))
 
 import Debounce
+import Http
 import Http.Detailed as Detailed
 import List.Extra
 import QuickSearch.ApiCalls exposing (getSearchResult)
-import QuickSearch.Datatypes exposing (..)
-import QuickSearch.Init exposing (debounceConfig)
+import QuickSearch.Model exposing (..)
 import QuickSearch.JsonDecoder exposing (decodeErrorDetails)
 import QuickSearch.Port exposing (errorNotification)
+
+debounceConfig : Debounce.Config Msg
+debounceConfig =
+  { strategy = Debounce.later 500
+  , transform = DebounceMsg
+  }
+
+type Msg = UpdateFilter Filter
+  | UpdateSearch String
+  | GetResults (Result (Detailed.Error String) (Http.Metadata, List SearchResult))
+  | DebounceMsg Debounce.Msg
+  | Close
+  | Open
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update  msg model =
@@ -55,7 +68,7 @@ update  msg model =
               Debounce.update
                   debounceConfig
                   (Debounce.takeLast (
-                    \s ->  if String.length s > 2  then getSearchResult model s else Cmd.none
+                    \s ->  if String.length s > 2  then getSearchResult model s GetResults else Cmd.none
                   ))
                   debMsg
                   model.debounceSearch

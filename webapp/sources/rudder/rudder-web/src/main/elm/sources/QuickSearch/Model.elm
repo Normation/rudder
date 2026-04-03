@@ -1,8 +1,6 @@
-module QuickSearch.Datatypes exposing (..)
+module QuickSearch.Model exposing (..)
 
 import Debounce exposing (Debounce)
-import Http
-import Http.Detailed
 
 type alias Model =
   { search : String,
@@ -41,10 +39,3 @@ allFilters : List Filter
 allFilters = List.map FilterKind allKinds
 
 type State = Opened | Searching | Closed
-
-type Msg = UpdateFilter Filter
-  | UpdateSearch String
-  | GetResults (Result (Http.Detailed.Error String) (Http.Metadata, List SearchResult))
-  | DebounceMsg Debounce.Msg
-  | Close
-  | Open
