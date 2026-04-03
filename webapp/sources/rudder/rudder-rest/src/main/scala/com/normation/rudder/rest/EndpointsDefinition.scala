@@ -1677,7 +1677,10 @@ object QuickSearchApi       extends Enum[QuickSearchApi] with ApiModuleProvider[
     val z: Int = implicitly[Line].value
     val description    = "Do a quicksearch"
     val (action, path) = GET / "quicksearch"
-    val authz: List[AuthorizationType] = AuthorizationType.Configuration.Read :: AuthorizationType.Node.Read :: Nil
+    val authz: List[AuthorizationType] = {
+      import com.normation.rudder.AuthorizationType.*
+      Group.Read :: Rule.Read :: Directive.Read :: Technique.Read :: Parameter.Read :: Configuration.Read :: Node.Read :: Nil
+    }
   }
 
   def endpoints: List[QuickSearchApi] = values.toList.sortBy(_.z)
