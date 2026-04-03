@@ -187,10 +187,9 @@ class CacheInvalidateNodeFactEventCallback(
 
   override def name: String = "node-fact-cec: invalidate caches"
 
-  private def clearCaches(nodeId: NodeId, log: UIO[Unit]): IOResult[Unit] = {
+  private def clearCaches(nodeId: NodeId): IOResult[Unit] = {
     val a = CacheExpectedReportAction.RemoveNodeInCache(nodeId)
     for {
-      _ <- log
       _ <-
         cacheNodeStatusReports
           .invalidateWithAction(Seq((nodeId, CacheComplianceQueueAction.ExpectedReportAction(a))))
@@ -228,19 +227,14 @@ class CacheInvalidateNodeFactEventCallback(
       case NodeFactChangeEvent.Refused(node, attrs)                    => ZIO.unit
       case NodeFactChangeEvent.Updated(oldNode, newNode, attrs)        =>
         if (oldNode.rudderSettings.state.isEnabled != newNode.rudderSettings.state.isEnabled) {
-          clearCaches(
-            newNode.id,
-            NodeLoggerPure.info(
-              s"Node '${newNode.fqdn}' [${oldNode.id.value}] state changed from '${oldNode.rudderSettings.state.name}' to '${newNode.rudderSettings.state.name}': remove that node from compliance and expected report cache to recompute them"
-            )
-          )
+          NodeLoggerPure.info(
+            s"Node '${newNode.fqdn}' [${oldNode.id.value}] state changed from '${oldNode.rudderSettings.state.name}' to '${newNode.rudderSettings.state.name}': remove that node from compliance and expected report cache to recompute them"
+          ) *> clearCaches(newNode.id)
         } else ZIO.unit
 
       case NodeFactChangeEvent.Deleted(node, attrs) =>
-        clearCaches(
-          node.id,
-          NodeLoggerPure.Delete.debug(s"  - remove node ${node.id.value} from compliance and expected report cache")
-        )
+        NodeLoggerPure.Delete.debug(s"  - remove node ${node.id.value} from compliance and expected report cache") *>
+        clearCaches(node.id)
 
       case NodeFactChangeEvent.Noop(nodeId, attrs) => NodeLoggerPure.debug(s"No change for node '${nodeId.value}'")
     }
