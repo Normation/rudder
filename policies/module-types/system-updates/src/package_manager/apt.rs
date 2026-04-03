@@ -125,6 +125,24 @@ impl AptPackageManager {
             .collect())
     }
 
+    pub fn parse_reboot_required(output: &[String]) -> Result<bool> {
+        let kernel_reboot_re = Regex::new(r"NEEDRESTART-KSTA:\s*(\d+)")?;
+
+        let status = output.iter().find_map(|line| {
+            kernel_reboot_re
+                .captures(line)
+                .and_then(|cap| cap.get(1))
+                .and_then(|m| m.as_str().parse::<i32>().ok())
+        });
+
+        // The kernel status (NEEDRESTART-KSTA) value has the following meaning:
+        // 0: unknown or failed to detect
+        // 1: no pending upgrade
+        // 2: ABI compatible upgrade pending
+        // 3: version upgrade pending
+        Ok(status.is_some_and(|s| s == 2 || s == 3))
+    }
+
     fn all_installed() -> PackageSort {
         PackageSort::default().installed().include_virtual()
     }
@@ -326,15 +344,38 @@ impl LinuxPackageManager for AptPackageManager {
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {
-        // The `needrestart` command doesn't bring anything more here.
-        // It only covers kernel-based required reboots, which are also covered with this file.
         let pending_reboot = Path::new(REBOOT_REQUIRED_FILE_PATH)
             .try_exists()
             .context(format!(
                 "Checking if a reboot is pending by checking for '{}' existence",
                 REBOOT_REQUIRED_FILE_PATH
             ));
-        ResultOutput::new(pending_reboot)
+        if let Ok(true) = pending_reboot {
+            return ResultOutput::new(pending_reboot);
+        }
+
+        // Verify whether a reboot is required using the needrestart command,
+        // if the hook from the unattended-upgrades package is unavailable.
+        let mut c = Command::new("needrestart");
+        c
+            // list only
+            .arg("-r")
+            .arg("l")
+            // batch mode (parsable output)
+            .arg("-b");
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
+        let (r, o, e) = (res.inner, res.stdout, res.stderr);
+        let res = match r {
+            Ok(_) => Self::parse_reboot_required(&o),
+            Err(e) => {
+                Err(e).context("Checking if a reboot is required with the needrestart command")
+            }
+        };
+        ResultOutput::new_output(res, o, e)
     }
 
     fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
@@ -428,6 +469,58 @@ NEEDRESTART-SESS: amousset @ user manager service";
         assert_eq!(
             AptPackageManager::parse_services_to_restart(lines.as_slice()).unwrap(),
             expected
+        );
+    }
+
+    #[test]
+    fn test_parse_reboot_required() {
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 3";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            true
+        );
+
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 2";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            true
+        );
+
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 1";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            false
+        );
+
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 0";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            false
+        );
+
+        let output = "NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64";
+
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_reboot_required(lines.as_slice()).unwrap(),
+            false
         );
     }
 }
