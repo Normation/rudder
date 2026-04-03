@@ -200,7 +200,7 @@ class TestNodeFactQueryProcessor {
     val q2 = TestQuery(
       "q2",
       parser("""
-      {  "select":"node", "composition":"and", "where":[
+      { "select":"node", "composition":"and", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" },
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }
@@ -208,7 +208,45 @@ class TestNodeFactQueryProcessor {
       Nil
     )
 
-    testQueries(q0 :: q1 :: q2 :: Nil, doInternalQueryTest = false)
+    /* find nothing when where is empty */
+    val q3and = TestQuery(
+      "q3and",
+      parser("""
+      { "select":"node", "composition":"and", "where":[
+      ] }
+      """).openOrThrowException("For tests"),
+      Nil
+    )
+
+    val q3or = TestQuery(
+      "q3or",
+      parser("""
+      { "select":"node", "composition":"or", "where":[
+      ] }
+      """).openOrThrowException("For tests"),
+      Nil
+    )
+
+    /* find everything when where is empty and result inverted */
+    val q4and = TestQuery(
+      "q4and",
+      parser("""
+      { "select":"node", "composition":"and", "transform":"invert", "where":[
+      ] }
+      """).openOrThrowException("For tests"),
+      s
+    )
+
+    val q4or = TestQuery(
+      "q4or",
+      parser("""
+      { "select":"node", "composition":"and", "transform":"invert", "where":[
+      ] }
+      """).openOrThrowException("For tests"),
+      s
+    )
+
+    testQueries(q0 :: q1 :: q2 :: q3and :: q3or :: q4and :: q4or :: Nil, doInternalQueryTest = false)
   }
 
   @Test def basicQueriesOnOneNodeParameter(): Unit = {

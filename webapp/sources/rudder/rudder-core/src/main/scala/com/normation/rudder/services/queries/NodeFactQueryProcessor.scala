@@ -300,9 +300,16 @@ class NodeFactQueryProcessor(
       subgroupLines = subGroupMatcher(sortedLines.subGroup, groupRepo)
       ldapLines     = ldapMatcher(sortedLines.ldap, query)
       nodeLines     = nodeFactMatcher(sortedLines.coreNodeFact)
-      lineResult   <- ZIO.foldLeft(globalLines ++ subgroupLines ++ ldapLines ++ nodeLines)(group.neutral: NodeFactMatcher) {
-                        case (matcher, line) =>
-                          line.map(group.compose(matcher, _))
+      allMatcher    = globalLines ++ subgroupLines ++ ldapLines ++ nodeLines
+      lineResult   <- if (allMatcher.isEmpty) {
+                        // take care of the empty set case, which breaks our inner set law, by adding a never matching
+                        // matcher. With that, other latter transformation like `inversion` will work.
+                        AbsorbingMatcher("no criteria provided", false).succeed
+                      } else {
+                        ZIO.foldLeft(allMatcher)(group.neutral: NodeFactMatcher) {
+                          case (matcher, line) =>
+                            line.map(group.compose(matcher, _))
+                        }
                       }
     } yield {
       // inverse now if needed, because we don't want to return root if not asked *even* when inverse is present
