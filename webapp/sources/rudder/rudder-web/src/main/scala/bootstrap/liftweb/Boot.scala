@@ -507,7 +507,6 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RestStatus)
 
     // REST API Internal
-    LiftRules.statelessDispatch.append(RudderConfig.restQuicksearch)
     LiftRules.statelessDispatch.append(RudderConfig.restCompletion)
     LiftRules.statelessDispatch.append(RudderConfig.sharedFileApi)
     // REST API (all public/internal API)

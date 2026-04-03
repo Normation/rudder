@@ -1668,6 +1668,26 @@ object ArchiveApi       extends Enum[ArchiveApi] with ApiModuleProvider[ArchiveA
   def values = findValues
 }
 
+sealed trait QuickSearchApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer: Option[String] = None
+}
+object QuickSearchApi       extends Enum[QuickSearchApi] with ApiModuleProvider[QuickSearchApi]   {
+
+  case object CompleteTagsValue extends QuickSearchApi with ZeroParam with StartsAtVersion23 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Do a quicksearch"
+    val (action, path) = GET / "quicksearch"
+    val authz: List[AuthorizationType] = {
+      import com.normation.rudder.AuthorizationType.*
+      Group.Read :: Rule.Read :: Directive.Read :: Technique.Read :: Parameter.Read :: Configuration.Read :: Node.Read :: Nil
+    }
+  }
+
+  def endpoints: List[QuickSearchApi] = values.toList.sortBy(_.z)
+
+  def values = findValues
+}
+
 /*
  * All API.
  */
@@ -1687,6 +1707,7 @@ object AllApi {
     InfoApi.endpoints :::
     HookApi.endpoints :::
     ApiAccounts.endpoints :::
+    QuickSearchApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
   }

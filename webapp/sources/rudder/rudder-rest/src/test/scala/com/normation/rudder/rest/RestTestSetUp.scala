@@ -118,14 +118,7 @@ import com.normation.rudder.rest.EndpointSchema.syntax.*
 import com.normation.rudder.rest.data.Creation
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
-import com.normation.rudder.rest.internal.EventLogAPI
-import com.normation.rudder.rest.internal.EventLogService
-import com.normation.rudder.rest.internal.GroupInternalApiService
-import com.normation.rudder.rest.internal.GroupsInternalApi
-import com.normation.rudder.rest.internal.RestQuicksearch
-import com.normation.rudder.rest.internal.RuleInternalApiService
-import com.normation.rudder.rest.internal.RulesInternalApi
-import com.normation.rudder.rest.internal.SharedFilesAPI
+import com.normation.rudder.rest.internal.*
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
@@ -1089,7 +1082,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     infoApi,
     eventLogApi,
     new PluginInternalApi(pluginsSystemService),
-    new InventoryApi(mockInventoryFileWatcher, mockInventoryDir)
+    new InventoryApi(mockInventoryFileWatcher, mockInventoryDir),
+    new QuicksearchApi(quickSearchService, linkUtil)
   )
 
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
@@ -1097,13 +1091,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)
   liftRules.statelessDispatch.append(sharedFilesApi)
-  liftRules.statelessDispatch.append(
-    new RestQuicksearch(
-      quickSearchService,
-      userService,
-      linkUtil
-    )
-  )
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 

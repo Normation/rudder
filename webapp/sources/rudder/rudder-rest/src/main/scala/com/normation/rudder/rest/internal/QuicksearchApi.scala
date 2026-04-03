@@ -37,24 +37,25 @@
 
 package com.normation.rudder.rest.internal
 
-import com.normation.box.*
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.rest.OldInternalApiAuthz
-import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.{QuickSearchApi as API, *}
+import com.normation.rudder.rest.RudderJsonResponse.syntax.*
+import com.normation.rudder.rest.lift.DefaultParams
+import com.normation.rudder.rest.lift.LiftApiModule
+import com.normation.rudder.rest.lift.LiftApiModule0
+import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QSObject
 import com.normation.rudder.services.quicksearch.QuickSearchResult
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.UserService
+import com.normation.rudder.users.AuthenticatedUser
 import com.normation.rudder.web.model.LinkUtil
-import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST.*
-import net.liftweb.json.JsonDSL.*
+import net.liftweb.http.Req
+import zio.Chunk
+import zio.json.JsonEncoder
 
 /**
  * A class for the Quicksearch rest endpoint.
@@ -76,67 +77,71 @@ import net.liftweb.json.JsonDSL.*
  *     - ex: attribute:hostname,nodeId,ipAddresses
  *
  */
-class RestQuicksearch(
+class QuicksearchApi(
     quicksearch: FullQuickSearchService,
-    userService: UserService,
     linkUtil:    LinkUtil
-) extends RestHelper with Loggable {
+) extends LiftApiModuleProvider[API] {
 
-  final private val MAX_RES_BY_KIND = 10
+  def schemas: ApiModuleProvider[API] = API
 
-  given prettify:            Boolean      = false
-  private def errorResponse: LiftResponse = toJsonError(None, s"Quicksearch can't be accessed in current security context")
-
-  serve {
-    case Get("secure" :: "api" :: "quicksearch" :: Nil, req) =>
-      userService.getCurrentUser.map(_.qc).withQCOr(errorResponse) {
-        given action: String = "completeTagsValue"
-        OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
-          val token = req.params.get("value") match {
-            case Some(value :: Nil) => value
-            case None               => ""
-            // Should not happen, but for now make one token from it, maybe we should only take head ?
-            case Some(values)       => values.mkString("")
-          }
-          val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
-          quicksearch.search(token, limit).toBox match {
-            case eb: EmptyBox =>
-              val e = eb ?~! s"Error when looking for object containing '${token}'"
-              toJsonError(None, e.messageChain)
-
-            case Full(results) =>
-              toJsonResponse(None, prepare(results, limit.getOrElse(MAX_RES_BY_KIND)))
-          }
-        }
-      }
+  def getLiftEndpoints(): List[LiftApiModule] = {
+    API.endpoints.map { case API.CompleteTagsValue => CompleteTagsValue }
   }
 
-  private def filter(results: Set[QuickSearchResult]) = {
+  // serve: PartialFunction[Req, () => Box[LiftResponse]]
+  // So we just have to return a
+  /*
+   * Since that API doesn't follow the standard Public API schema, we will need to build
+   * by hand some part, on a model similar to `RudderJsonResponse#toLiftResponseList)
+   */
+
+  object CompleteTagsValue extends LiftApiModule0 {
+    final private val MAX_RES_BY_KIND = 10
+    val schema: API.CompleteTagsValue.type = API.CompleteTagsValue
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+
+      val token = req.params.get("value") match {
+        case Some(value :: Nil) => value
+        case None               => ""
+        // Should not happen, but for now make one token from it, maybe we should only take head ?
+        case Some(values)       => values.mkString("")
+      }
+      val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
+
+      (for {
+        results <- quicksearch.search(token, limit)(using authzToken.qc)
+        filtered = prepare(results, limit.getOrElse(MAX_RES_BY_KIND), authzToken.user)
+      } yield filtered).toLiftResponseList(params, schema)
+    }
+  }
+
+  private def filter(results: Set[QuickSearchResult], u: AuthenticatedUser) = {
     import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
 
-    val user = userService.getCurrentUser
-    user match {
-      case None    =>
-        Set.empty
-      case Some(u) =>
-        val nodeOK       = u.checkRights(AuthorizationType.Node.Read)
-        val groupOK      = u.checkRights(AuthorizationType.Group.Read)
-        val ruleOK       = u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Rule.Read)
-        val directiveOK  = u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Directive.Read)
-        val techniqueOK  = u.checkRights(AuthorizationType.Technique.Read)
-        val parametersOK =
-          u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Parameter.Read)
+    val nodeOK       = u.checkRights(AuthorizationType.Node.Read)
+    val groupOK      = u.checkRights(AuthorizationType.Group.Read)
+    val ruleOK       = u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Rule.Read)
+    val directiveOK  = u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Directive.Read)
+    val techniqueOK  = u.checkRights(AuthorizationType.Technique.Read)
+    val parametersOK =
+      u.checkRights(AuthorizationType.Configuration.Read) || u.checkRights(AuthorizationType.Parameter.Read)
 
-        results.filter {
-          _.id match {
-            case _: QRNodeId      => nodeOK
-            case _: QRGroupId     => groupOK
-            case _: QRRuleId      => ruleOK
-            case _: QRParameterId => parametersOK
-            case _: QRDirectiveId => directiveOK
-            case _: QRTechniqueId => techniqueOK
-          }
-        }
+    results.filter {
+      _.id match {
+        case _: QRNodeId      => nodeOK
+        case _: QRGroupId     => groupOK
+        case _: QRRuleId      => ruleOK
+        case _: QRParameterId => parametersOK
+        case _: QRDirectiveId => directiveOK
+        case _: QRTechniqueId => techniqueOK
+      }
 
     }
   }
@@ -150,8 +155,8 @@ class RestQuicksearch(
    *   crunching the browser with thousands of answers
    */
 
-  private def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
-    val filteredResult = filter(results)
+  private def prepare(results: Set[QuickSearchResult], maxByKind: Int, user: AuthenticatedUser): List[JsonResultType] = {
+    val filteredResult = filter(results, user)
     // group by kind, and build the summary for each
     val map            = filteredResult.groupBy(_.id.tpe).map {
       case (tpe, set) =>
@@ -160,7 +165,7 @@ class RestQuicksearch(
         // take the nth first
         val returned = unique.take(maxByKind)
 
-        val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
+        val summary = JsonResultTypeSummary.from(tpe.name, unique.size, returned.size)
 
         (tpe, (summary, returned))
     }
@@ -173,52 +178,66 @@ class RestQuicksearch(
     // - parameters
     // - rules
     import com.normation.rudder.services.quicksearch.QSObject.sortQSObject
-    val jsonList = QSObject.all.toList.sortWith(sortQSObject).flatMap { tpe =>
-      val (summary, res) = map.getOrElse(tpe, (ResultTypeSummary(tpe.name, 0, 0), Seq()))
+    QSObject.all.toList.sortWith(sortQSObject).flatMap { tpe =>
+      val (summary, res) = map.getOrElse(tpe, (JsonResultTypeSummary.from(tpe.name, 0, 0), Seq()))
       if (res.isEmpty) {
         None
       } else {
         Some(
-          ("header"  -> summary.toJson)
-          ~ ("items" -> JArray(res.toList.map(_.toJson)))
+          JsonResultType(summary, Chunk.fromIterable(res.map(JsonSearchResultItem.from)))
         )
       }
     }
-    JArray(jsonList)
   }
 
+  private case class JsonResultType(
+      header: JsonResultTypeSummary,
+      items:  Chunk[JsonSearchResultItem]
+  ) derives JsonEncoder
+
   // private case class cannot be final because of scalac bug
-  private case class ResultTypeSummary(
-      tpe:            String,
-      originalNumber: Int,
-      returnedNumber: Int
-  )
+  private case class JsonResultTypeSummary(
+      `type`:  String,
+      summary: String,
+      numbers: Int
+  ) derives JsonEncoder
 
-  implicit private class JsonResultTypeSummary(t: ResultTypeSummary) {
+  private object JsonResultTypeSummary {
 
-    val desc: String = if (t.originalNumber <= t.returnedNumber) {
-      s"${t.originalNumber} found"
-    } else { // we elided some results
-      s"${t.originalNumber} found, only displaying the first ${t.returnedNumber}. Please refine your query."
-    }
+    def from(tpe: String, originalNumber: Int, returnedNumber: Int): JsonResultTypeSummary = {
 
-    def toJson: JObject = {
-      (
-        ("type"      -> t.tpe.capitalize)
-        ~ ("summary" -> desc)
-        ~ ("numbers" -> t.originalNumber)
+      val desc: String = if (originalNumber <= returnedNumber) {
+        s"${originalNumber} found"
+      } else { // we elided some results
+        s"${originalNumber} found, only displaying the first ${returnedNumber}. Please refine your query."
+      }
+
+      JsonResultTypeSummary(
+        tpe.capitalize,
+        desc,
+        originalNumber
       )
     }
   }
 
-  implicit private class JsonSearchResult(r: QuickSearchResult) {
-    import com.normation.inventory.domain.NodeId
-    import com.normation.rudder.domain.nodes.NodeGroupId
-    import com.normation.rudder.domain.policies.DirectiveUid
-    import com.normation.rudder.domain.policies.RuleId
-    import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
+  private case class JsonSearchResultItem(
+      name:   String,
+      `type`: String,
+      id:     String,
+      value:  String,
+      desc:   String,
+      url:    String
+  ) derives JsonEncoder
 
-    def toJson: JObject = {
+  private object JsonSearchResultItem {
+
+    def from(r: QuickSearchResult): JsonSearchResultItem = {
+      import com.normation.inventory.domain.NodeId
+      import com.normation.rudder.domain.nodes.NodeGroupId
+      import com.normation.rudder.domain.policies.DirectiveUid
+      import com.normation.rudder.domain.policies.RuleId
+      import com.normation.rudder.services.quicksearch.QuickSearchResultId.*
+
       import linkUtil.*
       val url = r.id match {
         case QRNodeId(value)      => nodeLink(NodeId(value))
@@ -238,14 +257,14 @@ class RestQuicksearch(
 
       val desc = s"${r.attribute.map(_.display + ": ").getOrElse("")}${v}"
 
-      (
-        ("name"    -> r.name)
-        ~ ("type"  -> r.id.tpe.name)
-        ~ ("id"    -> r.id.value)
+      JsonSearchResultItem(
+        r.name,
+        r.id.tpe.name,
+        r.id.value,
         // matched value
-        ~ ("value" -> r.value)
-        ~ ("desc"  -> desc)
-        ~ ("url"   -> url)
+        r.value,
+        desc,
+        url
       )
     }
   }
