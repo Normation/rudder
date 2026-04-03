@@ -5,7 +5,7 @@ import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
 import String exposing (join, split)
 
-import QuickSearch.Datatypes exposing (..)
+import QuickSearch.Model exposing (..)
 
 
 decoderResult : Decoder SearchResult

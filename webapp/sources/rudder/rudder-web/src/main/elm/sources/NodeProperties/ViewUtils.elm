@@ -10,7 +10,7 @@ import Dict exposing (Dict)
 import Json.Encode exposing (..)
 import Maybe.Extra
 import NaturalOrdering as N
-import QuickSearch.Datatypes exposing (SearchResult, SearchResultItem)
+import QuickSearch.Model exposing (SearchResult, SearchResultItem)
 import String exposing (toInt)
 import SyntaxHighlight exposing (useTheme, gitHub, json, toInlineHtml)
 import NodeProperties.DataTypes exposing (..)
