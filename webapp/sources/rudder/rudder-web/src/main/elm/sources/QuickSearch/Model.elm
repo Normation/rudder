@@ -1,4 +1,4 @@
-module QuickSearch.Model exposing (..)
+module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter)
 
 import Debounce exposing (Debounce)
 
@@ -39,3 +39,28 @@ allFilters : List Filter
 allFilters = List.map FilterKind allKinds
 
 type State = Opened | Searching | Closed
+
+initModel: { contextPath : String } -> Model
+initModel { contextPath } =
+    { search = ""
+    , results = []
+    , selectedFilter = []
+    , contextPath = contextPath
+    , state = Closed
+    , debounceSearch = Debounce.init
+    }
+
+removeSelectedFilters: Model -> Model
+removeSelectedFilters model =
+    { model
+        | selectedFilter = []
+    }
+
+toggleSelectedFilter: Kind -> Model -> Model
+toggleSelectedFilter kind model =
+    { model
+        | selectedFilter =
+            if List.member kind model.selectedFilter
+            then List.filter ((/=) kind) model.selectedFilter
+            else kind :: model.selectedFilter
+    }

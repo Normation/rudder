@@ -1,19 +1,11 @@
-module QuickSearch.Init exposing (..)
+module QuickSearch.Init exposing (init, subscriptions)
 
-import Debounce
-import QuickSearch.Model exposing (..)
+import QuickSearch.Model exposing (initModel, Model)
 import QuickSearch.Update exposing (Msg(..))
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions _ = Sub.none
 
 init : { contextPath : String } -> ( Model, Cmd Msg )
-init flags =
-    let
-        initModel = Model "" [] [] flags.contextPath Closed Debounce.init
-    in
-    ( initModel
-    , Cmd.none
-    )
+init flags = ( initModel flags , Cmd.none )

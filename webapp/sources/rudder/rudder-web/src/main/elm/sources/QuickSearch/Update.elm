@@ -3,7 +3,6 @@ module QuickSearch.Update exposing (update, Msg(..))
 import Debounce
 import Http
 import Http.Detailed as Detailed
-import List.Extra
 import QuickSearch.ApiCalls exposing (getSearchResult)
 import QuickSearch.Model exposing (..)
 import QuickSearch.JsonDecoder exposing (decodeErrorDetails)
@@ -25,23 +24,18 @@ type Msg = UpdateFilter Filter
 update : Msg -> Model -> ( Model, Cmd Msg )
 update  msg model =
   case msg of
-      UpdateFilter filter->
+      UpdateFilter filter ->
           case filter of
-              All ->
-                ({model| selectedFilter = []},Cmd.none)
-              FilterKind k ->
-                  let
-                   updatedFilter = if List.member k model.selectedFilter then List.Extra.remove k model.selectedFilter else k :: model.selectedFilter
-                  in
-                    ({model| selectedFilter = updatedFilter },Cmd.none)
-      UpdateSearch search->
+              All -> (model |> removeSelectedFilters, Cmd.none)
+              FilterKind k -> (model |> toggleSelectedFilter k, Cmd.none)
+      UpdateSearch search ->
         let
           state = if String.isEmpty search then Closed
                   else if String.length search <= 3 then Opened
                   else Searching
+
           (debounce, cmd) =
             Debounce.push debounceConfig search model.debounceSearch
-
 
           newModel = {model| search = search, state = state, debounceSearch = debounce}
         in
