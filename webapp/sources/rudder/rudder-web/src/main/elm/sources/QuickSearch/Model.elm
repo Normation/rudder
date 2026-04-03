@@ -1,4 +1,4 @@
-module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter, setSearch, setDebounce, setResults, close)
+module QuickSearch.Model exposing (Model, SearchResult, SearchResultHeader, SearchResultItem, Filter(..), allKinds, allFilters, State(..), removeSelectedFilters, Kind(..), initModel, toggleSelectedFilter, setSearch, setDebounce, setResults, close, open)
 
 import Debounce exposing (Debounce)
 
@@ -91,4 +91,16 @@ close : Model -> Model
 close model =
     { model
         | state = Closed
+    }
+
+
+open : Model -> Model
+open model =
+    { model
+        | state = if (String.isEmpty model.search)
+                  then Closed
+                  else
+                    case model.state of
+                      Searching -> Searching
+                      _ -> Opened
     }

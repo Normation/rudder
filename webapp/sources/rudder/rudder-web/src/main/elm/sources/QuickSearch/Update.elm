@@ -43,15 +43,7 @@ update  msg model =
       Close ->
         (model |> close , Cmd.none)
       Open ->
-        let
-          newState =
-            if (String.isEmpty model.search) then Closed
-            else
-              case model.state of
-                Searching -> Searching
-                _ -> Opened
-        in
-          ({model | state = newState }, Cmd.none)
+          (model |> open, Cmd.none)
       DebounceMsg debMsg ->
           let
             ( debounce, cmd ) =

@@ -2,7 +2,7 @@ module QuickSearch.Tests.ModelTest exposing (suite)
 
 import Expect
 import Fuzz
-import QuickSearch.Model exposing (Kind(..), State(..), allKinds, close, initModel, removeSelectedFilters, setResults, setSearch, toggleSelectedFilter)
+import QuickSearch.Model exposing (Kind(..), State(..), allKinds, close, initModel, open, removeSelectedFilters, setResults, setSearch, toggleSelectedFilter)
 import Test exposing (describe, fuzz, fuzz2, test)
 
 model = initModel { contextPath = "" }
@@ -99,4 +99,28 @@ suite = describe "QuickSearch.Model"
             |> close
             |> .state
             |> Expect.equal Closed
+    , fuzz anyState "open should set the state to Closed if search is empty regardless of the current state" <|
+        \state ->
+            { model | search = "" , state = state}
+            |> open
+            |> .state
+            |> Expect.equal Closed
+    , test "open should keep the state to Searching when search is not empty" <|
+        \_ ->
+            { model | search = "not empty", state = Searching }
+            |> open
+            |> .state
+            |> Expect.equal Searching
+    , test "open should set the state to Opened when search is not empty and state is Closed" <|
+        \_ ->
+            { model | search = "not empty", state = Closed }
+            |> open
+            |> .state
+            |> Expect.equal Opened
+    , test "open should keep the state to Opened when search is not empty and state is Opened" <|
+        \_ ->
+            { model | search = "not empty", state = Opened }
+            |> open
+            |> .state
+            |> Expect.equal Opened
     ]
