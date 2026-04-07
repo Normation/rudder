@@ -38,4 +38,4 @@ and decoding are handled properly.
 
 ## Consequences
 
-The new functions must be used when performing I/O operations on files.
+The new functions must be used on all platforms when performing I/O operations on files.
