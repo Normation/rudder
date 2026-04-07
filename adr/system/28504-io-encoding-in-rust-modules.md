@@ -17,6 +17,10 @@ Additionaly Powershell
 [requires](https://docs.microsoft.com/en-us/windows/desktop/intl/using-byte-order-marks)
 a BOM added at the beginning of all files when using UTF-8 encoding.
 
+Currently, in multiple Windows GM, we write UTF-8 files without a BOM using a
+.NET function, because PowerShell v5 does not natively support writing UTF-8
+files without a BOM.
+
 ## Decision
 
 We choose to manage encoding and decoding in a more systematic way by
