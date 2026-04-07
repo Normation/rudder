@@ -19,7 +19,8 @@ a BOM added at the beginning of all files when using UTF-8 encoding.
 
 Currently, in multiple Windows GM, we write UTF-8 files without a BOM using a
 .NET function, because PowerShell v5 does not natively support writing UTF-8
-files without a BOM.
+files without a BOM. And the rudderc Windows backend prepends a UTF-8 BOM on
+each file write.
 
 ## Decision
 
