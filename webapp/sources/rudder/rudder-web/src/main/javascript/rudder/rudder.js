@@ -906,23 +906,34 @@ function logout(cb){
 }
 
 // BOOTSTRAP 5
-function initBsTooltips(){
-  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+const bsTooltipsRemovalListener = () => removeBsTooltips()
+
+function initBsTooltips(selector = null){
+  const sel = selector ?? '[data-bs-toggle="tooltip"]'
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll(sel));
   return tooltipTriggerList.map(function (tooltipTriggerEl) {
     let dataTrigger = $(tooltipTriggerEl).attr('data-bs-trigger');
     let trigger = dataTrigger === undefined ? 'hover' : dataTrigger;
-    tooltipTriggerEl.addEventListener('hide.bs.tooltip', () => {
-      removeBsTooltips();
-    });
-    tooltipTriggerEl.addEventListener('show.bs.tooltip', () => {
-      removeBsTooltips()
-    });
+    tooltipTriggerEl.addEventListener('hide.bs.tooltip', bsTooltipsRemovalListener);
+    tooltipTriggerEl.addEventListener('show.bs.tooltip', bsTooltipsRemovalListener);
     return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true, trigger : trigger});
   });
 }
 
 function removeBsTooltips(){
   document.querySelectorAll(".tooltip").forEach(e => e.remove());
+}
+
+// remove attributes, handlers left by tooltips: sometimes (with Elm replacing the DOM elements) they are still present
+function disposeBsTooltips(selector) {
+  removeBsTooltips()
+  document
+    .querySelectorAll(selector)
+    .forEach(tooltip => {
+      bootstrap.Tooltip.getInstance(tooltip)?.dispose()
+      tooltip.removeEventListener('hide.bs.tooltip', bsTooltipsRemovalListener)
+      tooltip.removeEventListener('show.bs.tooltip', bsTooltipsRemovalListener)
+    })
 }
 $('body').on('click', function (e) {
     $('[data-bs-toggle=tooltip]').each(function () {
@@ -966,6 +977,14 @@ function initBsTabs(isJsonHash = false, adjustNodeTables = false){
       return false;
     });
   });
+}
+
+// Fast promise resolver in the async loop, to make it work as expected when called from Elm ports
+function waitForElementAsync(selector) {
+  const element = document.querySelector(selector)
+  return element
+    ? new Promise((resolve) => setTimeout(() => resolve(element), 0))
+    : waitForElement(selector)
 }
 
 function waitForElement(selector) {

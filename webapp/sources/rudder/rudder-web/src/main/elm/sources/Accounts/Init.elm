@@ -23,8 +23,10 @@ port successNotification : String -> Cmd msg
 port errorNotification : String -> Cmd msg
 
 
-port initTooltips : String -> Cmd msg
+port clearTooltips : () -> Cmd msg
 
+
+port resetTooltips : () -> Cmd msg
 
 
 -- for desktop copy to clipboard
