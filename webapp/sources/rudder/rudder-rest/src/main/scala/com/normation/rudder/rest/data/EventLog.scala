@@ -38,7 +38,6 @@ package com.normation.rudder.rest.data
 
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
-import com.normation.eventlog.EventLogType
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.utils.DateFormaterService
@@ -63,7 +62,6 @@ final case class RestEventLog(
     id:                              Option[Int],
     @jsonField("date") creationDate: DateTime,
     actor:                           EventActor,
-    @jsonField("type") eventType:    String,
     description:                     NodeSeq,
     hasDetails:                      Boolean
 )
@@ -76,17 +74,13 @@ object RestEventLog {
   implicit val descriptionEncoder: JsonEncoder[NodeSeq]      = JsonEncoder[String].contramap(_.toString())
   implicit val encoder:            JsonEncoder[RestEventLog] = DeriveJsonEncoder.gen[RestEventLog]
 
-  // For localization we need to transform eventType using translation, passing liftweb.S is not so elegant
-  // so we need a conversion (poke at Scala 3's Conversion)
   implicit def transformer(implicit
-      translateEventType: EventLogType => String,
-      eventLogDetail:     EventLogDetailsGenerator
+      eventLogDetail: EventLogDetailsGenerator
   ): Transformer[EventLog, RestEventLog] = {
     Transformer
       .define[EventLog, RestEventLog]
       .enableMethodAccessors // because source is a trait
       .withFieldComputed(_.actor, _.principal)
-      .withFieldComputed(_.eventType, e => translateEventType(e.eventType))
       .withFieldComputed(_.description, eventLogDetail.displayDescription)
       .withFieldComputed(_.hasDetails, _.details != <entry></entry>)
       .withFieldComputed(_.creationDate, e => DateFormaterService.toDateTime(e.creationDate))

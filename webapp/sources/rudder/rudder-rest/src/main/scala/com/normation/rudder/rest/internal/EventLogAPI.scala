@@ -41,7 +41,6 @@ import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.domain.eventlog.EventLogTypeTranslate
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.QueryContext
@@ -88,8 +87,7 @@ class EventLogAPI(
 ) extends LiftApiModuleProvider[EventLogApi] {
   import com.normation.rudder.rest.internal.EventLogService.*
 
-  implicit lazy val translateEventLogType: EventLogType => String   = e => EventLogTypeTranslate(e.serialize)
-  implicit lazy val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
+  implicit lazy val eventLogDetailsGen: EventLogDetailsGenerator = eventLogDetail
 
   override def schemas: ApiModuleProvider[EventLogApi] = EventLogApi
 

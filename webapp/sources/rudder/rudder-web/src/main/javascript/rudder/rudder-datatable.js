@@ -1968,10 +1968,6 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
   , "data" : "actor"
   , "title": "Actor"
   } , {
-    "width": "30%"
-  , "data" : "type"
-  , "title": "Type"
-  } , {
     "width"    : "30%"
   , "data"     : "description"
   , "title"    : "Description"
