@@ -42,10 +42,6 @@ import cats.data.Validated.Valid
 import cats.data.ValidatedNel
 import com.normation.errors.*
 import com.normation.inventory.domain.*
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.UUID_ENTRY
-import com.normation.ldap.sdk.LDAPConnectionProvider
-import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.DefaultDetailLevel
 import com.normation.rudder.apidata.JsonQueryObjects.*
@@ -56,12 +52,10 @@ import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
-import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
@@ -82,10 +76,8 @@ import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
-import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
@@ -105,7 +97,6 @@ import com.normation.rudder.score.Score
 import com.normation.rudder.score.ScoreSerializer
 import com.normation.rudder.score.ScoreService
 import com.normation.rudder.score.ScoreValue
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
@@ -126,7 +117,6 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.net.ConnectException
 import java.nio.charset.StandardCharsets
-import java.time.Instant
 import java.util.Arrays
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -733,15 +723,10 @@ class NodeApiInheritedProperties(
 }
 
 class NodeApiService(
-    ldapConnection:             LDAPConnectionProvider[RwLDAPConnection],
     val nodeFactRepository:     NodeFactRepository,
     propertiesRepo:             PropertiesRepository,
     reportsExecutionRepository: RoReportsExecutionRepository,
-    ldapEntityMapper:           LDAPEntityMapper,
     uuidGen:                    StringUuidGenerator,
-    nodeDit:                    NodeDit,
-    pendingDit:                 InventoryDit,
-    acceptedDit:                InventoryDit,
     newNodeManager:             NewNodeManager,
     removeNodeService:          RemoveNodeService,
     restExtractor:              ZioJsonExtractor,
@@ -771,6 +756,7 @@ class NodeApiService(
       }
     }
 
+    implicit val q:  QueryContext  = qc
     implicit val cc: ChangeContext = qc.newCC()
 
     for {
@@ -784,36 +770,21 @@ class NodeApiService(
       _         <- NodeLoggerPure.debug(s"Create node API: update node properties and setting if needed")
       nodeId    <- saveRudderNode(validated.inventory.node.main.id, nodeSetup)
     } yield {
-      nodeId
+      created
     }
   }
 
   /*
    * You can't use an existing UUID (neither pending nor accepted)
    */
-  def checkUuid(nodeId: NodeId): IO[CreationError, Unit] = {
-    // we don't want a node in pending/accepted
-    def inventoryExists(con: RwLDAPConnection, id: NodeId) = {
-      ZIO
-        .foldLeft(Seq((acceptedDit, AcceptedInventory), (pendingDit, PendingInventory)))(Option.empty[InventoryStatus]) {
-          case (current, (dit, s)) =>
-            current match {
-              case None    => con.exists((dit.NODES.NODE: UUID_ENTRY[NodeId]).dn(id)).map(exists => if (exists) Some(s) else None)
-              case Some(v) => Some(v).succeed
-            }
-        }
-        .flatMap {
-          case None    => // ok, it doesn't exists
-            ZIO.unit
-          case Some(s) => // oups, already present
-            Inconsistency(s"A node with id '${nodeId.value}' already exists with status '${s.name}'").fail
-        }
-    }
-
-    (for {
-      con <- ldapConnection
-      _   <- inventoryExists(con, nodeId)
-    } yield ()).mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
+  def checkUuid(nodeId: NodeId)(implicit qc: QueryContext): IO[CreationError, Unit] = {
+    nodeFactRepository
+      .get(nodeId)
+      .mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
+      .flatMap {
+        case None    => ZIO.unit
+        case Some(x) => CreationError.OnSaveInventory(s"Error during node ID check: that ID already exists").fail
+      }
   }
 
   /*
@@ -823,8 +794,10 @@ class NodeApiService(
   def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[CreationError, NodeId] = {
     nodeFactRepository
       .updateInventory(inventory, software = None)
-      .map(_ => inventory.node.main.id)
-      .mapError(err => CreationError.OnSaveInventory(s"Error during node creation: ${err.fullMsg}"))
+      .mapBoth(
+        err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
+        _ => inventory.node.main.id
+      )
   }
 
   def accept(template: NodeTemplate)(implicit cc: ChangeContext): IO[CreationError, NodeSetup] = {
@@ -867,38 +840,16 @@ class NodeApiService(
    * we provide a default node context but we can't ensure that
    * policyMode / node state will be set (validation must forbid that)
    */
-  def saveRudderNode(id: NodeId, setup: NodeSetup): IO[CreationError, NodeId] = {
-    // a default Node
-    def default() = {
-      Node(
-        id,
-        id.value,
-        "",
-        NodeState.Enabled,
-        isSystem = false,
-        isPolicyServer = false,
-        creationDate = Instant.now(),
-        nodeReportingConfiguration = ReportingConfiguration(None, None),
-        properties = Nil,
-        policyMode = None,
-        security = None
-      )
-    }
+  def saveRudderNode(id: NodeId, setup: NodeSetup)(implicit cc: ChangeContext): IO[CreationError, NodeId] = {
+    implicit val qc: QueryContext = cc.toQC
 
     (for {
-      ldap    <- ldapConnection
-      // try t get node
-      entry   <- ldap.get(nodeDit.NODES.NODE.dn(id.value), NodeInfoService.nodeInfoAttributes*)
-      current <- entry match {
-                   case Some(x) => ldapEntityMapper.entryToNode(x).toIO
-                   case None    => default().succeed
-                 }
-      merged   = mergeNodeSetup(current, setup)
-      // we ony want to touch things that were asked by the user
-      nSaved  <- ldap.save(ldapEntityMapper.nodeToEntry(merged))
+      n <- nodeFactRepository.get(id).notOptional(s"Can not merge node: missing")
+      n2 = CoreNodeFact.updateNode(n, mergeNodeSetup(n.toNode, setup))
+      _ <- nodeFactRepository.save(n2)
     } yield {
-      merged.id
-    }).mapError(err => CreationError.OnSaveNode(s"Error during node creation: ${err.fullMsg}"))
+      n.id
+    }).mapError(err => CreationError.OnSaveInventory(err.fullMsg))
   }
 
   /*

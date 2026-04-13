@@ -3673,6 +3673,7 @@ class ExecutionBatchTest extends Specification {
             directiveId = "policy",
             policyMode = None,
             PolicyTypes.rudderBase,
+            None,
             components = List(
               new ValueExpectedReport("component", ExpectedValueMatch("value", "value") :: Nil)
             ) // here, we automatically must have "value" inferred as unexpanded var
