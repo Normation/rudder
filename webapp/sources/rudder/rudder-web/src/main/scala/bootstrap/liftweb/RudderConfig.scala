@@ -3297,6 +3297,7 @@ object RudderConfigInit {
       cachedNodeConfigurationService,
       reportsRepository,
       roAgentRunsRepository,
+      nodeFactRepository,
       () => globalComplianceModeService.getGlobalComplianceMode,
       RUDDER_JDBC_BATCH_MAX_SIZE
     )
@@ -3335,7 +3336,7 @@ object RudderConfigInit {
     // and can construct the nodeConfigurationService without the compliance cache
     cachedNodeConfigurationService.addHook(computeNodeStatusReportService)
 
-    lazy val reportingService: ReportingService = new ReportingServiceImpl2(nodeStatusReportRepository)
+    lazy val reportingService: ReportingService = new ReportingServiceImpl(nodeStatusReportRepository)
 
     lazy val pgIn                  = new PostgresqlInClause(70)
     lazy val findExpectedRepo      = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
