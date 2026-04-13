@@ -182,13 +182,9 @@ class ComplianceApi(
                         })
         rules        <- complianceService.getRulesCompliance(computeLevel)
       } yield {
-        if (version.value <= 6) {
-          rules.map(_.toJsonV6)
-        } else {
-          rules.map(
-            _.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-          ) // by default, all details are displayed
-        }
+        rules.map(
+          _.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
+        ) // by default, all details are displayed
       }) match {
         case Full(rules) =>
           toJsonResponse(None, ("rules" -> rules))
@@ -227,17 +223,13 @@ class ComplianceApi(
         _     = TimingDebugLogger.trace(s"API GetRuleId - getting rule compliance in ${t3 - t2} ms")
 
       } yield {
-        if (version.value <= 6) {
-          rule.toJsonV6
-        } else {
-          val json = rule.toJson(
-            level.getOrElse(10),
-            precision.getOrElse(CompliancePrecision.Level2)
-          ) // by default, all details are displayed
-          val t4 = System.currentTimeMillis
-          TimingDebugLogger.trace(s"API GetRuleId - serialize to json in ${t4 - t3} ms")
-          json
-        }
+        val json = rule.toJson(
+          level.getOrElse(10),
+          precision.getOrElse(CompliancePrecision.Level2)
+        ) // by default, all details are displayed
+        val t4 = System.currentTimeMillis
+        TimingDebugLogger.trace(s"API GetRuleId - serialize to json in ${t4 - t3} ms")
+        json
       }) match {
         case Full(rule) =>
           toJsonResponse(None, ("rules" -> List(rule)))
@@ -457,11 +449,7 @@ class ComplianceApi(
         precision <- extractPercentPrecision(req.params)
         nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase).toBox
       } yield {
-        if (version.value <= 6) {
-          nodes.map(_.toJsonV6)
-        } else {
-          nodes.map(_.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2)))
-        }
+        nodes.map(_.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2)))
       }) match {
         case Full(nodes) =>
           toJsonResponse(None, ("nodes" -> nodes))
@@ -493,11 +481,7 @@ class ComplianceApi(
         precision <- extractPercentPrecision(req.params)
         node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderBase).toBox
       } yield {
-        if (version.value <= 6) {
-          node.toJsonV6
-        } else {
-          node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-        }
+        node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
       }) match {
         case Full(node) =>
           toJsonResponse(None, ("nodes" -> List(node)))

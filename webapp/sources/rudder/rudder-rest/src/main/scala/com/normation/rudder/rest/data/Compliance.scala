@@ -512,15 +512,6 @@ object JsonCompliance {
   }
 
   implicit class JsonbyDirectiveCompliance(val directive: ByDirectiveCompliance) extends AnyVal {
-    def toJsonV6: JObject = (
-      ("id"                    -> directive.id.serialize)
-        ~ ("name"              -> directive.name)
-        ~ ("compliance"        -> directive.compliance.complianceWithoutPending())
-        ~ ("policyMode"        -> directive.policyMode.name)
-        ~ ("complianceDetails" -> percents(directive.compliance, CompliancePrecision.Level2))
-        ~ ("rules"             -> rules(directive.rules, 10, CompliancePrecision.Level2))
-        ~ ("nodes"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
-    )
     def toJson(level: Int, precision: CompliancePrecision): JObject = (
       ("id"                    -> directive.id.serialize)
         ~ ("name"              -> directive.name)
@@ -681,14 +672,6 @@ object JsonCompliance {
   }
 
   implicit class JsonByRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
-    def toJsonV6: JObject = (
-      ("id"                    -> rule.id.serialize)
-        ~ ("name"              -> rule.name)
-        ~ ("compliance"        -> rule.compliance.complianceWithoutPending())
-        ~ ("policyMode"        -> rule.policyMode.name)
-        ~ ("complianceDetails" -> percents(rule.compliance, CompliancePrecision.Level2))
-        ~ ("directives"        -> directives(rule.directives, 10, CompliancePrecision.Level2))
-    )
 
     /*
      * level:
@@ -1053,14 +1036,6 @@ object JsonCompliance {
   }
 
   implicit class JsonByNodeCompliance(val n: ByNodeNodeCompliance) extends AnyVal {
-    def toJsonV6: JObject = (
-      ("id"                    -> n.id.value)
-        ~ ("compliance"        -> n.compliance.complianceWithoutPending())
-        ~ ("policyMode"        -> n.policyMode.name)
-        ~ ("complianceDetails" -> percents(n.compliance, CompliancePrecision.Level2))
-        ~ ("rules"             -> rules(n.nodeCompliances, 10, CompliancePrecision.Level2))
-    )
-
     /*
      * level:
      * - up to 1 : nodes,
