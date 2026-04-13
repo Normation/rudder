@@ -1182,7 +1182,6 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
     , "filter" : true
     , "paging" : true
     , "lengthChange": true
-    , "fixedHeader": true
     , "deferRender" : true
     , "destroy" : true
     , "pagingType": "full_numbers"
