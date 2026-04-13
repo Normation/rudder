@@ -89,7 +89,7 @@ techniqueList model techniques =
   in
     div [ class "template-sidebar sidebar-left col-techniques", onClick OpenTechniques ] [
       div [ class "sidebar-header"] [
-        div [ class "header-title flex-wrap" ] [
+        div [ class "header-title" ] [
           h1 [class "d-flex align-items-center"] [
             text "Techniques"
           , span [ id "nb-techniques", class "badge badge-secondary badge-resources" ] [
@@ -97,11 +97,11 @@ techniqueList model techniques =
             ]
           ]
         , div [ class "header-buttons", hidden (not model.hasWriteRights)] [ -- Need to add technique-write rights
-            label [class "btn btn-sm btn-primary", onClick StartImport] [
+            label [class "btn btn-primary", onClick StartImport] [
               text "Import "
             , i [ class "fa fa-upload" ] []
             ]
-          , button [ class "btn btn-sm btn-success", onClick  (GenerateId (\s -> NewTechnique (TechniqueId s))) ] [
+          , button [ class "btn btn-success", onClick  (GenerateId (\s -> NewTechnique (TechniqueId s))) ] [
               text "Create "
             , i [ class "fa fa-plus-circle"] []
             ]
