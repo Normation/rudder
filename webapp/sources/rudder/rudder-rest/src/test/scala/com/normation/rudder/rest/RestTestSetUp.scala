@@ -50,7 +50,6 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RockyLinux
@@ -848,15 +847,10 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   val nodeApiService: nodeApiService = new nodeApiService
   class nodeApiService extends NodeApiService(
-        null,
         mockNodes.nodeFactRepo,
         mockNodes.propRepo,
         roReportsExecutionRepository,
-        null,
         uuidGen,
-        null,
-        null,
-        null,
         mockNodes.newNodeManager,
         mockNodes.removeNodeService,
         zioJsonExtractor,
@@ -868,43 +862,15 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         mockNodes.scoreService,
         new InstanceIdService(InstanceId("rudder-test-instance"))
       ) {
-    implicit val testCC: ChangeContext = {
-      ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        EventActor("test"),
-        Instant.now(),
-        None,
-        None,
-        QueryContext.testQC.nodePerms
-      )
-    }
-    import QueryContext.testQC
-
-    override def checkUuid(nodeId: NodeId): IO[Creation.CreationError, Unit] = {
-      mockNodes.nodeFactRepo
-        .get(nodeId)
-        .map(_.nonEmpty)
-        .mapError(err => CreationError.OnSaveInventory(s"Error during node ID check: ${err.fullMsg}"))
-        .unit
-    }
-
-    override def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[Creation.CreationError, NodeId] = {
-      mockNodes.nodeFactRepo
-        .updateInventory(inventory, None)(using cc)
-        .mapBoth(
-          err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
-          _ => inventory.node.main.id
-        )
-    }
-
-    override def saveRudderNode(id: NodeId, setup: NodeSetup): IO[Creation.CreationError, NodeId] = {
-      (for {
-        n <- mockNodes.nodeFactRepo.get(id).notOptional(s"Can not merge node: missing")
-        n2 = CoreNodeFact.updateNode(n, mergeNodeSetup(n.toNode, setup))
-        _ <- mockNodes.nodeFactRepo.save(n2)(using testCC)
-      } yield {
-        n.id
-      }).mapError(err => CreationError.OnSaveInventory(err.fullMsg))
+    override def saveRudderNode(id: NodeId, setup: NodeSetup)(implicit cc: ChangeContext): IO[Creation.CreationError, NodeId] = {
+      import com.softwaremill.quicklens.*
+      // we need to have a stable date for tests
+      val refDate = Instant.parse("2021-01-30T00:20:00Z")
+      implicit val qc: QueryContext = cc.toQuery
+      super.saveRudderNode(id, setup) *> (for {
+        n <- mockNodes.nodeFactRepo.get(id).notOptional("Rest created node wasn't found back")
+        _ <- mockNodes.nodeFactRepo.save(n.modify(_.creationDate).setTo(refDate).modify(_.lastInventoryDate).setTo(Some(refDate)))
+      } yield id).mapError(err => CreationError.OnSaveInventory(s"Error during test for node creation: ${err.fullMsg}"))
     }
   }
 
