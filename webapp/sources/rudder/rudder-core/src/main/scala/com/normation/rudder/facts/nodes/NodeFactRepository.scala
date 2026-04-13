@@ -439,7 +439,7 @@ class CoreNodeFactRepository(
   import NodeFactChangeEvent.*
 
   // number of accepted, enabled nodes
-  private def coundEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
+  private def countEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
   private val enabledNodes:         Ref[Int]  = (for {
     n <- acceptedNodes.get
     r <- Ref.make(countEnabled(n))

@@ -296,7 +296,8 @@ object Validation {
                 summary,
                 agents = Seq(agent),
                 machineId = Some((machine.id, PendingInventory)),
-                timezone = nodeDetails.timezone
+                timezone = nodeDetails.timezone,
+                serverIps = nodeDetails.ipAddresses
               ),
               Some(machine)
             )
