@@ -259,6 +259,7 @@ view model =
       SaveAuditMsg creation rule originRule crSettings ->
         let
           action = if creation then "Create" else "Update"
+          saveBtnClass = if crSettings.enableChangeRequest then "btn-primary" else "btn-success"
         in
           div [ tabindex -1, class "modal fade show", style "display" "block" ]
           [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
@@ -274,16 +275,22 @@ view model =
                   , text (String.toLower action)
                   , text " this rule ?"
                   ]
+                , if crSettings.enableChangeRequest then
+                    div [class "text-center alert alert-info"]
+                    [ i [ class "fa fa-info-circle" ] []
+                    , text "Workflows are enabled, your change has to be validated in a change request"
+                    ]
+                  else
+                    text ""
                 , changeAuditForm crSettings
                 ]
               , div [ class "modal-footer" ]
                 [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
                   [ text "Cancel "
                   ]
-                , button [ class "btn btn-success", onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
+                , button [ class ("btn " ++ saveBtnClass), onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
                   ( if crSettings.enableChangeRequest then
-                    [ text "Create change request "
-                    , i [ class "fa fa-plus" ] []
+                    [ text "Open request"
                     ]
                   else
                     [ text action
