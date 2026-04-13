@@ -666,7 +666,6 @@ trait RudderJsonDecoders {
   implicit val nodeGroupCategoryIdDecoder: JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId.apply)
   implicit val groupPropertyDecoder:       JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
   implicit val groupPropertyDecoder2:      JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
-  implicit val nodeGroupIdDecoder:         JsonDecoder[NodeGroupId]         = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
   implicit val groupCategoryDecoder:       JsonDecoder[JQGroupCategory]     =
     DeriveJsonDecoder.gen[JQGroupCategory].mapOrFail(JQGroupCategory.validate)
   implicit val groupDecoder:               JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen

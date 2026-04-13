@@ -289,21 +289,6 @@ object Doobie {
     Write[String].contramap(x => x.transformInto[ComplianceSerializable].toJson)
   }
 
-  implicit val ComplianceRunInfoComposite: Write[(RunAnalysis, RunComplianceInfo)] = {
-    import NodeStatusReportSerialization.*
-    Write[String].contramap(runToJson)
-  }
-
-  implicit val AggregatedStatusReportComposite: Write[AggregatedStatusReport] = {
-    import NodeStatusReportSerialization.*
-    Write[String].contramap(_.toCompactJson)
-  }
-
-  implicit val SetRuleNodeStatusReportComposite: Write[Set[RuleNodeStatusReport]] = {
-    import NodeStatusReportSerialization.*
-    Write[String].contramap(ruleNodeStatusReportToJson)
-  }
-
   import doobie.enumerated.JdbcType.SqlXml
   implicit val XmlMeta: Meta[Elem] = {
     Meta.Advanced.many[Elem](

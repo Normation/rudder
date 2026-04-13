@@ -139,7 +139,7 @@ class RuleApi(
       } yield {
         val action = if (restRule.source.nonEmpty) "cloneRule" else schema.name
         (RudderJsonResponse.ResponseSchema(action, schema.dataContainer), result)
-      }).toLiftResponseOneMap(params, RudderJsonResponse.ResponseSchema.fromSchema(schema), x => (x._1, x._2, Some(x._2.id)))
+      }).toLiftResponseOneMap(params, schema, x => (x._1, x._2, Some(x._2.id)))
     }
   }
 

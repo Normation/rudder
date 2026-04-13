@@ -17,7 +17,7 @@ decodeGetPolicyMode =
 
 decodeGetGroupCompliance : Decoder GroupCompliance
 decodeGetGroupCompliance =
-  at ["data", "nodeGroups" ] (index 0 decodeGroupCompliance)
+  at ["data", "groupCompliance" ] (index 0 decodeGroupCompliance)
 
 decodeGroupCompliance : Decoder GroupCompliance
 decodeGroupCompliance =

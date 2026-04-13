@@ -52,7 +52,7 @@ trait Uuid extends Any {
 final case class NodeId(val value: String) extends AnyVal with Uuid
 
 object NodeId {
-  given JsonCodec[NodeId] = JsonCodec.string.transform[NodeId](NodeId(_), _.value)
+  given JsonCodec[NodeId] = JsonCodec.string.transform(NodeId.apply, _.value)
 }
 
 final case class MachineUuid(val value: String) extends AnyVal with Uuid

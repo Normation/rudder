@@ -209,10 +209,14 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).succeed
     }
 
+    def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = nodeGroups.filter(x => ids.contains(x.id)).succeed
+
+    def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] =
+      getFullGroupLibrary()(using QueryContext.testQC).map(_.toNodeGroupCategory)
+
     def categoryExists(id:       NodeGroupCategoryId): IOResult[Boolean]           = ???
     def getNodeGroupCategory(id: NodeGroupId):         IOResult[NodeGroupCategory] = ???
-    def getAll(): IOResult[Seq[NodeGroup]] = ???
-    def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = ???
+    def getAll():        IOResult[Seq[NodeGroup]]                = ???
     def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = ???
     def getGroupsByCategory(includeSystem: Boolean)(implicit
         qc: QueryContext
@@ -223,7 +227,6 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def getRootCategoryPure(): IOResult[NodeGroupCategory]                                       = ???
     def getCategoryHierarchy:  IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = ???
     def getAllGroupCategories(includeSystem: Boolean):             IOResult[Seq[NodeGroupCategory]]  = ???
-    def getGroupCategory(id:                 NodeGroupCategoryId): IOResult[NodeGroupCategory]       = ???
     def getParentGroupCategory(id:           NodeGroupCategoryId): IOResult[NodeGroupCategory]       = ???
     def getParents_NodeGroupCategory(id:     NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = ???
     def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = ???
@@ -329,6 +332,11 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ReportingService.filterReportsByDirectives(filteredNodeReports, filterByDirectives).succeed
     }
 
+    def getGlobalUserCompliance()(implicit qc: QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = {
+      val compliance = ComplianceLevel(14, 25, 24, 0, 3, 5, 15, 5, 54, 13, 6, 7, 32, 1)
+      Some((compliance, compliance.complianceWithoutPending().toLong)).succeed
+    }
+
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       ???
     def findNodeStatusReport(nodeId:            NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
@@ -338,7 +346,6 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findStatusReportsForDirective(directiveId: DirectiveId)(implicit
         qc: QueryContext
     ): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def getGlobalUserCompliance()(implicit qc:  QueryContext): IOResult[Option[(ComplianceLevel, Long)]] = ???
   }
 
   val complianceAPIService: ComplianceAPIService = {

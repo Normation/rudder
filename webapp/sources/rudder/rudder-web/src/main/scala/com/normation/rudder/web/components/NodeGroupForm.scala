@@ -43,7 +43,6 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.plugins.SecureExtendableSnippet
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.queries.*
@@ -559,7 +558,7 @@ class NodeGroupForm(
     }
     for {
       compliance <-
-        complianceService.getNodeGroupCompliance(target, level = Some(1), isGlobalCompliance = isGlobalCompliance).toOption
+        complianceService.getNodeGroupCompliance(target, level = Some(1), isGlobalCompliance = isGlobalCompliance).toBox.toOption
     } yield {
       ComplianceLevelSerialisation.ComplianceLevelToJs(compliance.compliance).toJsArray
     }
