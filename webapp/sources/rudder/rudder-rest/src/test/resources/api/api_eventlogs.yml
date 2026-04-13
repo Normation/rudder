@@ -85,7 +85,6 @@ response:
           "id" : 42,
           "date" : "2024-12-04T15:30:10Z",
           "actor" : "test",
-          "type" : "Node Group modified",
           "description" : "Group ",
           "hasDetails" : true
         }
