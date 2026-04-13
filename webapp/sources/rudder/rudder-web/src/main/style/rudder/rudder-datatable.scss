@@ -39,7 +39,6 @@
 
 .content-wrapper td, .content-wrapper th {
   padding: 4px 3px;
-  line-height: 1.42857143;
 }
 
 /* <WRAPPER TOP> */
@@ -749,6 +748,14 @@ div.dt-scroll-body {
 			}
 		}
 	}
+}
+div.dt-column-header {
+  display: flex;
+  align-items: center;
+
+  .dt-column-title{
+    white-space: nowrap;
+  }
 }
 
 /* GROUPS NODE TABLE */
