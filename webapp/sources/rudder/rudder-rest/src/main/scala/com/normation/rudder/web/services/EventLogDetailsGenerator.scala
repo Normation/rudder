@@ -125,7 +125,7 @@ class EventLogDetailsGenerator(
         case x  => x
       }
       Text("Node ") ++ {
-        if ((id.size < 1) || (actionName == Text(" deleted"))) Text(name)
+        if ((id.size < 1) || (actionName == Text(" deleted"))) Text(s"${name} deleted")
         else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
       }
     }
