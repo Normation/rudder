@@ -4,5 +4,6 @@
   "GHSA-33vc-wfww-vjfv": "An XSS which does not affect node properties diff render",
   "GHSA-5j98-mcp5-4vw2": "glob command injection unused in gulp-elm",
   "GHSA-wf6x-7x77-mvgw": "sass prototype pollution in dev dependency: immutable",
-  "GHSA-xpqw-6gx7-v673": "gulp-svgmin DoS in dev dependency: svgo"
+  "GHSA-xpqw-6gx7-v673": "gulp-svgmin DoS in dev dependency: svgo",
+  "GHSA-c2c7-rcm5-vvqj": "a DoS"
 }

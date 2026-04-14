@@ -39,6 +39,8 @@ unused-allowed-license = "allow"
 
 [advisories]
 ignore = [
+    # No fix for rand 0.8, and risk is acceptable
+    "RUSTSEC-2026-0097",
 ]
 
 [bans]
