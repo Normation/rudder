@@ -31,6 +31,8 @@ ignore = [
     "RUSTSEC-2025-0134",
     # Not affected by DOS
     "RUSTSEC-2026-0009",
+    # No fix for rand 0.8, and risk is acceptable
+    "RUSTSEC-2026-0097",
 ]
 
 [bans]
