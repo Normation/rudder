@@ -29,7 +29,7 @@ properties:
           type : string
           description: Target version of the package to update to
           example: "49.3"
-        arch:
+        architecture:
           type : string
           description: Architecture of the package to update
           example: "x64"
