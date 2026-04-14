@@ -70,7 +70,7 @@ view model =
               , tbody []
                 ( if List.length childs <= 0 then
                   [ tr[]
-                    [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "There is no compliance for this directive."] ]
+                    [ td[class "alert alert-info px-4 py-3 rounded-0", colspan 2][i [class"fa fa-info-circle"][], text "There is no active policy applied to this node."] ]
                   ]
                 else if List.length children == 0 then
                   [ tr[]
