@@ -11,7 +11,7 @@ properties:
     type : string
     description: Target version of the package
     example: "49.3"
-  arch:
+  architecture:
     type : string
     description: Architecture of the package
     example: "x64"
