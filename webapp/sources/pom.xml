@@ -581,6 +581,12 @@ limitations under the License.
           </exclusion>
         </exclusions>
       </dependency>
+      <!-- rhino is used in Lift webkit and it can't be excluded without getting NoClassDefFound on session creation -->
+      <dependency>
+        <groupId>org.mozilla</groupId>
+        <artifactId>rhino</artifactId>
+        <version>1.7.15.1</version>
+      </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
         <artifactId>lift-webkit_2.13</artifactId>
@@ -590,7 +596,7 @@ limitations under the License.
             <groupId>commons-fileupload</groupId>
             <artifactId>commons-fileupload</artifactId>
           </exclusion>
-          <exclusion>
+	        <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
           </exclusion>
