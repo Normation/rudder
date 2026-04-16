@@ -58,6 +58,7 @@ import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -78,6 +79,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.reports.ChangesByRule
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.tenants.SecurityTag
@@ -812,6 +814,50 @@ object JsonResponseObjects {
       name:  String,
       value: Option[String]
   )
+
+  final case class JRRecentChanges(
+      start:   Instant,
+      end:     Instant,
+      changes: Int
+  ) derives JsonEncoder
+  object JRRecentChanges      {
+    given Transformer[ChangesByRule, Map[RuleId, List[JRRecentChanges]]] = { (changesByRule: ChangesByRule) =>
+      {
+        changesByRule.mapChanges(
+          _.toList
+            .sortBy((i, _) => i.getStart)
+            .map((interval, number) => JRRecentChanges(interval.getStart.toJavaInstant, interval.getEnd.toJavaInstant, number))
+        )
+      }
+    }
+  }
+
+  /**
+   * JSON of ResultRepairedReport for recent changes, for a given rule.
+   * (It should be within a whole ADT mapping of all report results, if we need all results in the API)
+   */
+  final case class JRResultRepairedReport(
+      executionDate:      Instant,
+      /*ruleId:             RuleId,*/
+      nodeId:             String,
+      directiveId:        String,
+      /*reportId:           String,*/
+      component:          String,
+      value:              String,
+      message:            String,
+      executionTimestamp: Instant
+  )
+
+  object JRResultRepairedReport {
+    import DateFormaterService.json.*
+    given Transformer[ResultRepairedReport, JRResultRepairedReport] = {
+      Transformer
+        .define[ResultRepairedReport, JRResultRepairedReport]
+        .withFieldRenamed(_.keyValue, _.value)
+        .withFieldComputed(_.directiveId, _.directiveId.serialize)
+        .buildTransformer
+    }
+  }
 
   /**
    * Directive as used in techniques/directives API.
@@ -2317,4 +2363,6 @@ trait RudderJsonEncoders {
   implicit lazy val jrAllowedNetworksNodeEncoder: JsonEncoder[JRAllowedNetworksNode] = DeriveJsonEncoder.gen
   implicit lazy val jrAllowedNetworksEncoder:     JsonEncoder[JRAllowedNetworks]     = DeriveJsonEncoder.gen
   implicit lazy val jrSettingsEncoder:            JsonEncoder[JRSettings]            = DeriveJsonEncoder.gen
+
+  implicit lazy val jrResultRepairedReport: JsonEncoder[JRResultRepairedReport] = DeriveJsonEncoder.gen
 }

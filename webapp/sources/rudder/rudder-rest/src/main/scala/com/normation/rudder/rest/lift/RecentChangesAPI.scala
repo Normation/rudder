@@ -37,26 +37,23 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box.IOToBox
-import com.normation.errors.BoxToIO
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
+import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.JsonResponseObjects.JRRecentChanges
+import com.normation.rudder.apidata.JsonResponseObjects.JRResultRepairedReport
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.ChangesApi
 import com.normation.rudder.rest.ChangesApi as API
-import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.RudderJsonResponse.syntax.*
 import com.normation.rudder.services.reports.NodeChangesService
-import com.normation.utils.DateFormaterService
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import zio.syntax.ToZio
@@ -64,30 +61,6 @@ import zio.syntax.ToZio
 class RecentChangesAPI(
     nodeChangesService: NodeChangesService
 ) extends LiftApiModuleProvider[API] {
-
-  def serialize(changesByRules: Map[RuleId, Map[Interval, Int]]): JValue = {
-    changesByRules.map {
-      case (ruleId, changes) =>
-        val serializedChanges = {
-          changes.toList.sortBy(_._1.getStart).map {
-            case (interval, number) =>
-              (("start"    -> DateFormaterService.serialize(interval.getStart))
-              ~ ("end"     -> DateFormaterService.serialize(interval.getEnd))
-              ~ ("changes" -> number))
-          }
-        }
-        (ruleId.serialize, serializedChanges)
-    }
-  }
-  def serialize(report: ResultRepairedReport):                    JValue = {
-    (("executionDate"       -> DateFormaterService.serialize(report.executionDate))
-    ~ ("nodeId"             -> report.nodeId.value)
-    ~ ("directiveId"        -> report.directiveId.serialize)
-    ~ ("component"          -> report.component)
-    ~ ("value"              -> report.keyValue)
-    ~ ("message"            -> report.message)
-    ~ ("executionTimestamp" -> DateFormaterService.serialize(report.executionTimestamp)))
-  }
 
   def schemas: API.type = API
 
@@ -102,16 +75,12 @@ class RecentChangesAPI(
     val schema: ChangesApi.GetRecentChanges.type = API.GetRecentChanges
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify: Boolean = params.prettify
-      implicit val action:   String  = "getRulesChanges"
-      nodeChangesService.countChangesByRuleByInterval() match {
-        case Full((_, changes)) =>
-          val json = serialize(changes)
-          toJsonResponse(None, json)
-        case eb: EmptyBox =>
-          val msg = (eb ?~! s"Could not get recent changes for all Rules").messageChain
-          toJsonError(None, msg)
-      }
+      nodeChangesService
+        .countChangesByRuleByInterval()
+        .toIO
+        .map((_, c) => c.transformInto[Map[RuleId, List[JRRecentChanges]]].map((k, v) => (k.serialize, v)))
+        .chainError(s"Could not get recent changes for all rules")
+        .toLiftResponseOne(params, schema, None)
     }
   }
 
@@ -126,9 +95,6 @@ class RecentChangesAPI(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action:   String  = "getRuleChange"
-      implicit val prettify: Boolean = false
-
       (for {
         startDate <- req.params.get("start") match {
                        case Some(start :: Nil) =>
@@ -145,16 +111,10 @@ class RecentChangesAPI(
         reports   <-
           nodeChangesService.getChangesForInterval(RuleId(RuleUid(ruleId)), new Interval(startDate, endDate), Some(10000)).toIO
       } yield {
-        reports
-      }).toBox match {
-        case Full(reports) =>
-          val json = reports.map(serialize)
-          toJsonResponse(None, json)
-        case eb: EmptyBox =>
-          val msg = (eb ?~! s"Could not get repaired report for Rule '$ruleId'").messageChain
-          toJsonError(None, msg)
-      }
-
+        reports.map(_.transformInto[JRResultRepairedReport])
+      })
+        .chainError(s"Could not get repaired report for Rule '${ruleId}'")
+        .toLiftResponseList(params, schema)
     }
   }
 }

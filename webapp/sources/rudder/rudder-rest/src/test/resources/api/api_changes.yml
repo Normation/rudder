@@ -1,0 +1,67 @@
+description: Get changes for all rules
+method: GET
+url: /secure/api/changes
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRulesChanges",
+      "result" : "success",
+      "data" : {
+        "rule1" : [
+          {
+            "start" : "1970-01-01T00:00:00Z",
+            "end" : "1970-01-01T00:00:01Z",
+            "changes" : 1
+          }
+        ]
+      }
+    }
+---
+description: Get all repaired report for a rule in a interval of time specified as parameter
+method: GET
+url: /secure/api/changes/rule1?start=1970-01-01T00:00:00Z&end=1970-01-01T00:00:01Z
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRuleChange",
+      "result" : "success",
+      "data" : [
+        {
+          "executionDate" : "1970-01-01T00:00:00Z",
+          "nodeId" : "node1",
+          "directiveId" : "directive1",
+          "component" : "Time synchronization (NTP)",
+          "value" : "",
+          "message" : "ntp daemon installed, configured and running",
+          "executionTimestamp" : "1970-01-01T00:00:00Z"
+        }
+      ]
+    }
+---
+description: Get all repaired report for a rule in a interval of time with no params
+method: GET
+comment: missing params
+url: /secure/api/changes/rule1
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "getRuleChange",
+      "result" : "error",
+      "errorDetails" : "Could not get repaired report for Rule 'rule1'; cause was: Inconsistency: No start date defined"
+    }
+---
+description: Get all repaired report for a rule in a interval of time with bad interval
+method: GET
+comment: start but no end
+url: /secure/api/changes/rule1?start=1970-01-01T00:00:00Z
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "getRuleChange",
+      "result" : "error",
+      "errorDetails" : "Could not get repaired report for Rule 'rule1'; cause was: Inconsistency: No end date defined"
+    }
