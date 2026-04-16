@@ -344,9 +344,8 @@ td.listclose:after {
   padding-bottom: 0;
 }
 .dataTable > tbody > tr > td > .value-container,
- .dataTable > tbody > tr > td > .needs-validation > .value-container{
+.dataTable > tbody > tr > td > .needs-validation > .value-container{
   white-space: pre-line;
-  max-height: 200px;
   overflow: auto;
 
   &.font-monospace {
@@ -524,12 +523,6 @@ tr.parametersDescription {
   font-size: 17px;
   padding-bottom: 2px;
 }
-#nodePropertiesTab .action-icon.text-success{
-  color: rudder.$success;
-}
-#nodePropertiesTab .action-icon.text-danger {
-  color: #de4b39;
-}
 #nodePropertiesTab > tbody > tr > td.default-actions > div > span{
   opacity:0;
 }
@@ -677,6 +670,20 @@ td.greyBackground, th.greyBackground {
 }
 .dataTable td a.text-danger:hover{
   color: #ffa918;
+}
+
+#nodeProp {
+  .table-header,
+  .table-container > .dataTable{
+    border-left: 1px solid rudder.$border-color-default;
+    border-right: 1px solid rudder.$border-color-default;
+  }
+  .addon-json + textarea,
+  .value-container textarea{
+    min-height: 35px;
+    max-height: 800px;
+    overflow: auto;
+  }
 }
 
 /* === COLUMNS CONFIGURATION === */
