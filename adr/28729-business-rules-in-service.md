@@ -18,7 +18,8 @@ Every business rule should be implemented in a service backend side :
 - rudder plugins: service classes are in a dedicated package
 - the service class extends a trait exposing the service methods
 - dedicated unit tests for business rules
-- no business rules in
+
+No business rules in :
   - ELM code
   - REST API layer
   - Repositories
