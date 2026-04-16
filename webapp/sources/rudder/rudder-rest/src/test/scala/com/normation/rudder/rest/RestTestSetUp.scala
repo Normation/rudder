@@ -1057,6 +1057,12 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)
   liftRules.statelessDispatch.append(sharedFilesApi)
+  liftRules.statelessDispatch.append(
+    new RestCompletion(
+      new RestCompletionService(mockDirectives.directiveRepo, mockRules.ruleRepo),
+      userService
+    )
+  )
 
   val baseTempDirectory = mockGitRepo.abstractRoot
 
