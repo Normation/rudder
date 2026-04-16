@@ -35,16 +35,19 @@ decodeSaveNodeDetails =
   at [ "data" ] decodeNodePolicyMode
 
 
-decodeGetChangeMessageSettings : Decoder ChangeMessageSettings
-decodeGetChangeMessageSettings =
-  at ["data", "settings" ] decodeChangeMessageSettings
+-- Same as in Rules
+decodeGetEnableChangeMsg : Decoder Bool
+decodeGetEnableChangeMsg =
+  at ["data", "settings", "enable_change_message" ] bool
 
-decodeChangeMessageSettings : Decoder ChangeMessageSettings
-decodeChangeMessageSettings =
-  succeed ChangeMessageSettings
-    |> required "enable_change_message"    Json.Decode.bool
-    |> required "mandatory_change_message" Json.Decode.bool
-    |> required "change_message_prompt"    Json.Decode.string
+decodeGetMandatoryMsg : Decoder Bool
+decodeGetMandatoryMsg =
+  at ["data", "settings", "mandatory_change_message" ] bool
+
+decodeGetMsgPrompt : Decoder String
+decodeGetMsgPrompt =
+  at ["data", "settings", "change_message_prompt" ] string
+
 
 
 decodeGetGlobalSettings : Decoder Settings
