@@ -92,12 +92,12 @@ view model =
             div[][]
           )
         -- Properties Table
-        , div [class "col-sm-12 tab-table-content"]
-          [ div [class "table-header"]
+        , div [class "col-sm-12 tab-table-content mt-3"]
+          [ div [class "table-header w-100 m-0"]
             [ input [type_ "text", placeholder "Filter", class "input-sm form-control", onInput (\s -> UpdateTableFiltersProperty {filters | filter = s})][]
             , button [class "btn btn-default", onClick (CallApi getInheritedProperties)] [ i [class "fa fa-refresh"][] ]
             ]
-            , div [class "table-container"]
+            , div [class "table-container w-100 m-0"]
               [ table [class "no-footer dataTable", id "nodePropertiesTab"]
                 [ thead[]
                   [ tr [class "head"]
