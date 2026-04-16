@@ -11,7 +11,7 @@ It makes the maintenance and the debugging difficult.
 
 ## Decision
 
-Every business rule should be implemented in a service backend side :
+Every business rule need to be implemented in a service backend side :
 - business rules are in a service class
 - business rules are not duplicated
 - rudder repository: service classes are in rudder-core module
