@@ -58,12 +58,13 @@ import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.traverse
 import com.normation.utils.SimpleStatus
 import com.normation.zio.*
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import scala.collection.MapView
@@ -71,6 +72,7 @@ import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.xml.*
 import zio.json.*
+import zio.json.internal.Write
 
 /**
  * An ADT to denote if a column should be display or not,
@@ -214,7 +216,7 @@ class RuleGrid(
               ruleCompliances = {};
               recentChanges = {};
               recentGraphs = {};
-              refreshTable("${htmlId_rulesGridId}", ${newData.toJson.toJsCmd});
+              refreshTable("${htmlId_rulesGridId}", ${newData.toJson});
               ${futureCompliance.toJsCmd}
               ${futureChanges.toJsCmd}
           """) // JsRaw ok, escaped
@@ -273,7 +275,7 @@ class RuleGrid(
         val onLoad              = {
           s"""createRuleTable (
                   "${htmlId_rulesGridId}"
-                , ${tableData.toJson.toJsCmd}
+                , ${tableData.toJson}
                 , ${showCheckboxColumn}
                 , ${showActionsColumn}
                 , ${showComplianceAndChangesColumn}
@@ -301,6 +303,8 @@ class RuleGrid(
 
   //////////////////////////////// utility methods ////////////////////////////////
 
+  final case class JsonRuleIds(rules: List[RuleId]) derives JsonDecoder
+
   private def selectAllVisibleRules(status: Boolean): JsCmd = {
     directiveApplication match {
       case Some(directiveApp) =>
@@ -308,12 +312,11 @@ class RuleGrid(
           // parse arg, which have to  be json object with sourceGroupId, destCatId
           try {
             (for {
-              case JObject(JField("rules", JArray(childs)) :: Nil) <- JsonParser.parse(arg)
-              case JString(ruleId) <- childs
+              ruleIds <- arg.fromJson[JsonRuleIds]
             } yield {
-              RuleId(RuleUid(ruleId))
+              ruleIds.rules
             }) match {
-              case ruleIds =>
+              case Right(ruleIds) =>
                 directiveApp.checkRules(ruleIds, status) match {
                   case DirectiveApplicationResult(rules, completeCategories, indeterminate) =>
                     def toId(s: String): String = StringEscapeUtils.escapeEcmaScript(s) + "Checkbox"
@@ -327,6 +330,7 @@ class RuleGrid(
                   """) // JsRaw ok, escaped
                     )
                 }
+              case Left(err)      => throw RuntimeException(err)
             }
           } catch {
             case e: Exception =>
@@ -789,42 +793,53 @@ final case class RuleLine(
     explanation:      String,
     tags:             String,
     tagsDisplayed:    Tags
-) extends JsTableLine {
+) extends JsTableLine
 
-  private def serializeTags(tags: Tags): JValue = {
-    // sort all the tags by name
-    import net.liftweb.json.JsonDSL.*
-    val m: JValue = JArray(
-      tags.tags.toList.sortBy(_.name.value).map(t => ("key", t.name.value) ~ ("value", t.value.value))
-    )
-    m
+object RuleLine {
+  // this is needed because DataTable doesn't escape HTML element when using table.rows.add
+  def escapeHTML(s: String): String = StringEscapeUtils.escapeHtml4(s)
+
+  final private case class JsonTag(key: String, value: String) derives JsonEncoder
+
+  private given Transformer[Tag, JsonTag] = (src: Tag) => JsonTag(src.name.value, src.value.value)
+
+  // the callbacks are pure JS, which should not be authorized in pur JSON. It's historical.
+  final private case class JsRaw(value: String)
+  private object JsRaw {
+
+    given JsonEncoder[JsRaw] = new JsonEncoder[JsRaw] {
+      override def unsafeEncode(a: JsRaw, indent: Option[Int], out: Write): Unit = {
+        out.write(a.value)
+      }
+    }
+
   }
 
-  /* Would love to have a reflexive way to generate that map ...  */
-  override def json(freshName: () => String): JsObj = {
+  final private case class JsonRuleLine(
+      name:             String,
+      id:               RuleId,
+      description:      String,
+      applying:         Boolean,
+      category:         String,
+      status:           String,
+      trClass:          String,
+      policyMode:       String,
+      explanation:      String,
+      tags:             String,
+      tagsDisplayed:    List[JsonTag],
+      callback:         Option[JsRaw],
+      checkboxCallback: Option[JsRaw],
+      reasons:          Option[String]
+  ) derives JsonEncoder
 
-    val reasonField = reasons.map(r => ("reasons" -> escapeHTML(r)))
+  private given Transformer[RuleLine, JsonRuleLine] = Transformer
+    .define[RuleLine, JsonRuleLine]
+    .withFieldComputed(_.reasons, _.reasons.map(r => escapeHTML(r)))
+    .withFieldComputed(_.callback, _.callback.map(x => JsRaw(x.toJsCmd)))
+    .withFieldComputed(_.checkboxCallback, _.checkboxCallback.map(x => JsRaw(x.toJsCmd)))
+    .withFieldComputed(_.tagsDisplayed, _.tagsDisplayed.tags.toList.map(_.transformInto[JsonTag]))
+    .buildTransformer
 
-    val cbCallbackField = checkboxCallback.map(cb => ("checkboxCallback" -> cb))
+  given JsonEncoder[RuleLine] = JsonEncoder[JsonRuleLine].contramap(_.transformInto[JsonRuleLine])
 
-    val callbackField = callback.map(cb => ("callback" -> cb))
-
-    val optFields: Seq[(String, JsExp)] = reasonField.toSeq ++ cbCallbackField ++ callbackField
-
-    val base = JsObj(
-      ("name", name),
-      ("id", id.serialize),
-      ("description", description),
-      ("applying", applying),
-      ("category", category),
-      ("status", status),
-      ("trClass", trClass),
-      ("policyMode", policyMode),
-      ("explanation", explanation),
-      ("tags", tags),
-      ("tagsDisplayed", serializeTags(tagsDisplayed))
-    )
-
-    base +* JsObj(optFields*)
-  }
 }

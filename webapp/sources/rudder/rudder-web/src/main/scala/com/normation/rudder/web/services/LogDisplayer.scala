@@ -49,6 +49,8 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import com.normation.utils.DateFormaterService
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -59,7 +61,7 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import scala.collection.*
-import zio.json.DecoderOps
+import zio.json.*
 
 /**
  * Show the reports from cfengine (raw data)
@@ -184,7 +186,7 @@ class LogDisplayer(
 
     val data = LogDisplayer.getReportsLineForNode(reports, getDirectiveName, getRuleName)
 
-    OnLoad(JsRaw(s"""refreshTable("${StringEscapeUtils.escapeEcmaScript(tableId)}",${data.toJson.toJsCmd});"""))
+    OnLoad(JsRaw(s"""refreshTable("${StringEscapeUtils.escapeEcmaScript(tableId)}",${data.toJson});"""))
   }
 }
 
@@ -273,27 +275,44 @@ final case class ReportLine(
     component:     String,
     value:         String,
     message:       String
-) extends JsTableLine {
+) extends JsTableLine
 
-  val (kind, status): (String, String) = {
-    severity.split("_").toList match {
-      case _ :: Nil     => (severity, severity)
-      case head :: rest => (head, rest.mkString("_"))
-      case Nil          => (severity, severity)
+object ReportLine {
+  // this is needed because DataTable doesn't escape HTML element when using table.rows.add
+  def escapeHTML(s: String): String = StringEscapeUtils.escapeHtml4(s)
+
+  final private case class JsonReportLine(
+      executionDate: String,
+      runDate:       String,
+      kind:          String,
+      status:        String,
+      ruleName:      String,
+      directiveName: String,
+      component:     String,
+      value:         String,
+      message:       String
+  ) derives JsonEncoder
+
+  private given Transformer[ReportLine, JsonReportLine] = (src: ReportLine) => {
+    val (kind, status): (String, String) = {
+      src.severity.split("_").toList match {
+        case _ :: Nil     => (src.severity, src.severity)
+        case head :: rest => (head, rest.mkString("_"))
+        case Nil          => (src.severity, src.severity)
+      }
     }
-  }
-
-  def json(freshName: () => String): js.JsObj = {
-    JsObj(
-      ("executionDate", DateFormaterService.getDisplayDate(executionDate)),
-      ("runDate", DateFormaterService.getDisplayDate(runDate)),
-      ("kind", kind),
-      ("status", status),
-      ("ruleName", escapeHTML(ruleName)),
-      ("directiveName", escapeHTML(directiveName)),
-      ("component", escapeHTML(component)),
-      ("value", escapeHTML(value)),
-      ("message", escapeHTML(message))
+    JsonReportLine(
+      DateFormaterService.getDisplayDate(src.executionDate),
+      DateFormaterService.getDisplayDate(src.runDate),
+      kind,
+      status,
+      escapeHTML(src.ruleName),
+      escapeHTML(src.directiveName),
+      escapeHTML(src.component),
+      escapeHTML(src.value),
+      escapeHTML(src.message)
     )
   }
+
+  given JsonEncoder[ReportLine] = JsonEncoder[JsonReportLine].contramap(_.transformInto[JsonReportLine])
 }
