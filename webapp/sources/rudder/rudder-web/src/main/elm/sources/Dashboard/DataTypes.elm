@@ -12,7 +12,6 @@ type alias Activity =
     { id : Int
     , actor : String
     , description : String
-    , actType : String
     , date : Posix
     }
 
