@@ -1,0 +1,75 @@
+description: Search tag by key - no answer
+method: GET
+url: /secure/api/completion/tags/rule/key/xxxx
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTagsKey",
+      "result" : "success",
+      "data" : [
+      ]
+    }
+---
+description: Search tag by key - two answers
+method: GET
+url: /secure/api/completion/tags/rule/key/er
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTagsKey",
+      "result" : "success",
+      "data" : [
+        {
+          "value" : "datacenter"
+        },
+        {
+          "value" : "serverType"
+        }    
+      ]
+    }
+---
+description: Search tag by value - case matters (ok)
+method: GET
+url: /secure/api/completion/tags/rule/value/Par
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTagsValue",
+      "result" : "success",
+      "data" : [
+        {
+          "value" : "Paris"
+        }    
+      ]
+    }
+---
+description: Search tag by value - case matters (nok)
+method: GET
+url: /secure/api/completion/tags/rule/value/par
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTagsValue",
+      "result" : "success",
+      "data" : []
+    }
+---
+description: Search tag by key value
+method: GET
+url: /secure/api/completion/tags/rule/value/datacenter/Par
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "completeTags",
+      "result" : "success",
+      "data" : [
+        {
+          "value" : "Paris"
+        }    
+      ]
+    }

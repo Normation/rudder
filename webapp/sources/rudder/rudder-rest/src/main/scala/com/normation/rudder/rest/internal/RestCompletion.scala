@@ -41,21 +41,27 @@ import com.normation.box.*
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.OldInternalApiAuthz
-import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.RudderJsonResponse
+import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonDSL.*
+import zio.json.*
 
 class RestCompletion(
     completion:  RestCompletionService,
     userService: UserService
 ) extends RestHelper with Loggable {
 
+  private case class JCompletion(value: String) derives JsonEncoder
+
+  given prettify: Boolean = false
+
   serve {
-    case Get("secure" :: "api" :: "completion" :: "tags" :: (kind @ ("rule" | "directive")) :: "key" :: token :: Nil, req)   => {
-      implicit val prettify = false
-      implicit val action: String = "completeTagsKey"
+    case Get("secure" :: "api" :: "completion" :: "tags" :: (kind @ ("rule" | "directive")) :: "key" :: token :: Nil, req) => {
+
+      val schema = ResponseSchema("completeTagsKey", None)
+      given action: String = schema.action
 
       OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
         val fetchTags = if (kind == "directive") {
@@ -64,20 +70,21 @@ class RestCompletion(
           // rule
           completion.findRuleTagNames(token)
         }
+
         fetchTags match {
           case eb: EmptyBox =>
             val e = eb ?~! s"Error when looking for object containing ${token}"
-            toJsonError(None, e.messageChain)
+            RudderJsonResponse.internalError(None, schema, e.messageChain)
 
           case Full(results) =>
-            toJsonResponse(None, results.map(("value", _)))
+            RudderJsonResponse.successList(schema, results.map(JCompletion.apply))
         }
 
       }
     }
     case Get("secure" :: "api" :: "completion" :: "tags" :: (kind @ ("rule" | "directive")) :: "value" :: token :: Nil, req) => {
-      implicit val prettify = false
-      implicit val action: String = "completeTagsValue"
+      val schema = ResponseSchema("completeTagsValue", None)
+      given action: String = schema.action
 
       OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
 
@@ -87,13 +94,14 @@ class RestCompletion(
           // rule
           completion.findRuleTagValues(token, None)
         }
+
         fetchTags match {
           case eb: EmptyBox =>
             val e = eb ?~! s"Error when looking for object containing ${token}"
-            toJsonError(None, e.messageChain)
+            RudderJsonResponse.internalError(None, schema, e.messageChain)
 
           case Full(results) =>
-            toJsonResponse(None, results.map(("value", _)))
+            RudderJsonResponse.successList(schema, results.map(JCompletion.apply))
         }
       }
 
@@ -102,19 +110,23 @@ class RestCompletion(
           "secure" :: "api" :: "completion" :: "tags" :: (kind @ ("rule" | "directive")) :: "value" :: key :: token :: Nil,
           req
         ) => {
+
+      val schema = ResponseSchema("completeTags", None)
+
       val fetchTags = if (kind == "directive") {
         completion.findDirectiveTagValues(token, Some(key))
       } else {
         // rule
         completion.findRuleTagValues(token, Some(key))
       }
+
       fetchTags match {
         case eb: EmptyBox =>
           val e = eb ?~! s"Error when looking for object containing ${token}"
-          toJsonError(None, e.messageChain)(using "quicksearch", prettify = false)
+          RudderJsonResponse.internalError(None, schema, e.messageChain)
 
         case Full(results) =>
-          toJsonResponse(None, results.map(("value", _)))(using "completeTags", prettify = false)
+          RudderJsonResponse.successList(schema, results.map(JCompletion.apply))
       }
 
     }
