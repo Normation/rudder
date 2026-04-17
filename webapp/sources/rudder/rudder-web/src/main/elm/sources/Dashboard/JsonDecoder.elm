@@ -20,7 +20,6 @@ decodeActivity =
         |> required "id" int
         |> required "actor" string
         |> required "description" string
-        |> required "type" string
         |> required "date" Json.Decode.Extra.datetime
 
 decodeErrorDetails : String -> ( String, String )
