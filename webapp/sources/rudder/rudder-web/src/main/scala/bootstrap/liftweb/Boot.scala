@@ -64,6 +64,7 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.AuthorizationMappingListEndpoint
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.InfoApi as InfoApiDef
+import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.data.JsonGlobalPluginLimits
 import com.normation.rudder.rest.data.JsonPluginDetails
 import com.normation.rudder.rest.data.JsonPluginsDetails
@@ -487,13 +488,11 @@ class Boot extends Loggable {
           && req.json.isEmpty) =>
         () => {
           Full(
-            JsonResponse(
-              net.liftweb.json.parse(
-                """{"result": "error"
-                  |, "errorDetails": "The request has a JSON content type but the body is not valid JSON"}""".stripMargin
-              ),
+            LiftJsonResponse[Map[String, String]](
+              Map("result" -> "error", "errorDetails" -> "The request has a JSON content type but the body is not valid JSON"),
+              false,
               412
-            )
+            ).toResponse
           )
         }
     }

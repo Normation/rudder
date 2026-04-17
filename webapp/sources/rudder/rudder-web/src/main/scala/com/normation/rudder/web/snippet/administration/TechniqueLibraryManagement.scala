@@ -62,10 +62,10 @@ import net.liftweb.http.SHtml.ElemAttr.pairToBasic
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
+import zio.json.*
 
 /**
  * Snippet for managing the System and User Technique libraries.
@@ -394,18 +394,16 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
   }
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
-
+  final case class JsonMoveTechnique(sourceactiveTechniqueId: String, destCatId: String) derives JsonDecoder
   private def moveTechnique(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
-        case JObject(child) <- JsonParser.parse(arg)
-        case JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
-        case JField("destCatId", JString(destCatId)) <- child
+        parsed <- arg.fromJson[JsonMoveTechnique]
       } yield {
-        (sourceactiveTechniqueId, destCatId)
+        (parsed.sourceactiveTechniqueId, parsed.destCatId)
       }) match {
-        case (sourceactiveTechniqueId, destCatId) :: Nil =>
+        case Right(sourceactiveTechniqueId, destCatId) =>
           (for {
             activeTechnique <- roActiveTechniqueRepository
                                  .getActiveTechnique(TechniqueName(sourceactiveTechniqueId))
@@ -435,24 +433,23 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
                   .format(sourceactiveTechniqueId, destCatId)
               )
           }
-        case _                                           => Alert("Error while trying to move active technique: bad client parameters")
+        case _                                         => Alert("Error while trying to move active technique: bad client parameters")
       }
     } catch {
       case e: Exception => Alert("Error while trying to move active technique")
     }
   }
 
+  final case class JsonMoveCategory(sourceCatId: String, destCatId: String) derives JsonDecoder
   private def moveCategory(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
-        case JObject(child) <- JsonParser.parse(arg)
-        case JField("sourceCatId", JString(sourceCatId)) <- child
-        case JField("destCatId", JString(destCatId)) <- child
+        parsed <- arg.fromJson[JsonMoveCategory]
       } yield {
-        (sourceCatId, destCatId)
+        (parsed.sourceCatId, parsed.destCatId)
       }) match {
-        case (sourceCatId, destCatId) :: Nil =>
+        case Right(sourceCatId, destCatId) =>
           (for {
             result <- rwActiveTechniqueRepository
                         .move(ActiveTechniqueCategoryId(sourceCatId), ActiveTechniqueCategoryId(destCatId), None)(using
@@ -482,7 +479,7 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
                 )
               )
           }
-        case _                               => Alert("Error while trying to move category: bad client parameters")
+        case _                             => Alert("Error while trying to move category: bad client parameters")
       }
     } catch {
       case e: Exception => Alert("Error while trying to move category")
@@ -493,13 +490,11 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
     // parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
     try {
       (for {
-        case JObject(child) <- JsonParser.parse(arg)
-        case JField("sourceactiveTechniqueId", JString(sourceactiveTechniqueId)) <- child
-        case JField("destCatId", JString(destCatId)) <- child
+        parsed <- arg.fromJson[JsonMoveTechnique]
       } yield {
-        (sourceactiveTechniqueId, destCatId)
+        (parsed.sourceactiveTechniqueId, parsed.destCatId)
       }) match {
-        case (sourceactiveTechniqueId, destCatId) :: Nil =>
+        case Right(sourceactiveTechniqueId, destCatId) =>
           if (userPropertyService.reasonsFieldBehavior != Disabled) {
             showGiveReasonPopup(ActiveTechniqueId(sourceactiveTechniqueId), ActiveTechniqueCategoryId(destCatId))
           } else {
@@ -534,7 +529,7 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
                 Alert(errorMess.format(sourceactiveTechniqueId, destCatId))
             }
           }
-        case _                                           =>
+        case _                                         =>
           Alert("Error while trying to move active technique: bad client parameters")
       }
     } catch {

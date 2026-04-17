@@ -37,6 +37,7 @@
 
 package com.normation.rudder.web.model
 
+import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.domain.HashAlgoConstraint.PLAIN
 import com.normation.cfclerk.domain.HashAlgoConstraint.PreHashed
@@ -66,6 +67,7 @@ import org.joda.time.format.DateTimeFormatter
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.xml.*
+import zio.json.*
 
 /**
  * This field is a simple input text, without any
@@ -710,32 +712,24 @@ class PasswordField(
    * }
    *
    */
+  final case class JsonAction(action: String, hash: String, password: Option[String]) derives JsonDecoder
   def parseClient(s: String): Unit   = {
-    import net.liftweb.json.*
     errors = Nil
-    val json = parse(s)
     (for {
-      action       <- json \ "action" match {
-                        case JString(action) => Full(action)
-                        case _               => Failure("Could not parse 'action' field in password input")
-                      }
-      (keep, blank) = action match {
+      parsed       <- s.fromJson[JsonAction].toBox
+      (keep, blank) = parsed.action match {
                         case "delete" => (false, true)
                         case "keep"   => (true, false)
                         case _        => (false, false)
                       }
-      password     <- json \ "password" match {
-                        case JString(password)        => Full(password)
-                        case JNothing if canBeDeleted => Full("")
-                        case _                        => Failure("Could not parse 'password' field in password input")
+      password     <- parsed.password match {
+                        case Some(password)       => Full(password)
+                        case None if canBeDeleted => Full("")
+                        case _                    => Failure("Could not parse 'password' field in password input")
                       }
-      hash         <- json \ "hash" match {
-                        case JString(hash) => Full(hash)
-                        case _             => Failure("Could not parse 'hash' field in password input")
-                      }
-      algo          = HashAlgoConstraint.parse(hash).getOrElse(currentAlgo.getOrElse(PLAIN))
+      algo          = HashAlgoConstraint.parse(parsed.hash).getOrElse(currentAlgo.getOrElse(PLAIN))
     } yield {
-      currentAction = action
+      currentAction = parsed.action
       if (!keep) {
         previousAlgo = currentAlgo
         previousHash = currentHash
@@ -744,7 +738,7 @@ class PasswordField(
     }) match {
       case Full(newValue) => set(newValue)
       case eb: EmptyBox =>
-        val fail = eb ?~! s"Error while parsing password input, value received is: ${compactRender(json)}"
+        val fail = eb ?~! s"Error while parsing password input, value received is: ${s}"
         logger.error(fail.messageChain)
         errors = errors ::: List(FieldError(this, fail.messageChain))
     }
