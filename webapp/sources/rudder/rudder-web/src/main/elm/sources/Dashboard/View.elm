@@ -40,6 +40,8 @@ view model =
             let
                 (activityDate, relativeActivityDate) =
                     (a.date, DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions model.currentTime a.date)
+
+                tooltipTitle = "<div class='d-flex align-items-baseline'><i class='fa fa-user me-2'></i>" ++ a.actor ++ "</div>"
             in
                 li[class "activity-item d-flex flex-column w-100"]
                     [ div[]
@@ -47,7 +49,7 @@ view model =
                             [ class "relative-date"
                             , attribute "data-bs-toggle" "tooltip"
                             , attribute "data-bs-placement" "top"
-                            , attribute "title" (buildTooltipContent (a.actType) (posixToString model.zone activityDate))
+                            , attribute "title" (buildTooltipContent tooltipTitle (posixToString model.zone activityDate))
                             , onClick (Copy (Iso8601.fromTime activityDate))
                             ]
                             [ text relativeActivityDate ]
