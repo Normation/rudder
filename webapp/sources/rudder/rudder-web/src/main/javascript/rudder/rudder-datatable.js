@@ -99,18 +99,6 @@ const csvButtonConfig = (filename, additionalCls) => ({
   text: 'Export',
   exportOptions: {
     orthogonal: 'exportCsv',
-    format: {
-          body: function (html, row, col, node) {
-              // begin with default formatting
-              const isString = value => typeof value === 'string' || value instanceof String;
-              html = $.fn.DataTable.Buttons.stripData( html, null );
-              // N/A and curly braces are properties, get innerText ...
-              if (isString(html) && (html === "N/A" || html.startsWith("{") )) {
-                html = node.innerText
-              }
-              return html;
-          }
-    },
     customizeData: function (data) {
       // export compliance percent
       const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")
@@ -835,34 +823,32 @@ function scoreFunction(value) { return function (nTd, sData, oData, iRow, iCol) 
   }
 }
 
-function propertyFunction(value, inherited) { return function (nTd, sData, oData, iRow, iCol) {
-  $(nTd).empty();
-  var property = oData.properties[value];
-  if (inherited) {
-    property = oData.inheritedProperties[value];
-  }
-  if (property === undefined) {
-    $(nTd).prepend("<span class='text-muted'>N/A</span>")
-  } else {
-    var text = property.value;
-    if (typeof property === "object") {
-      text = JSON.stringify(property.value, undefined, 2)
-    }
+function propertyFunction(name) {
+  return function (data, type, row, meta) {
+    if (data === undefined) {
+      return null  // will use defaultContent
+    } else if (type === 'exportCsv') {
+      return JSON.stringify(data.value)
+    } else {  // render for "display", etc.
+      const iRow = meta.row
+      const property = data.value
+      const text = typeof property === "object" ? JSON.stringify(property, null, 2) : property
 
-    var provider = $("")
-    if (property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden')
-      provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right" title="This property is managed by its provider <b>‘'+property.provider+'</b>’">' + property.provider + '</span>')
+      var provider = $("")
+      if (property.provider !== undefined && property.provider !== 'inherited' && property.provider !== 'overridden')
+        provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right" title="This property is managed by its provider <b>‘' + property.provider + '</b>’">' + property.provider + '</span>')
 
-    if (property.provider === 'inherited') {
-      provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right">inherited</span>')
-      provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>"+ property.hierarchy + "</div>.")
+      if (property.provider === 'inherited') {
+        provider = $('<span class="rudder-label label-provider label-sm" data-bs-toggle="tooltip" data-bs-placement="right">inherited</span>')
+        provider.attr('title', "This property is inherited from these group(s) or global parameter: <div>" + property.hierarchy + "</div>.")
+      }
+      const id = `property-${name}-${iRow}`;
+      const pre = $(`<pre class="collapse json-beautify show-more" id="${id}"></span>`).text(text).prepend(provider);
+      const el = $(`<a class="text-reset" data-bs-toggle="collapse" href="#${id}" role="button" aria-expanded="false" aria-controls="${id}"></a>`).prepend(pre);
+      return el[0].outerHTML
     }
-    const id = `property-${property.name}-${iRow}`;
-    const pre = $(`<pre class="collapse json-beautify show-more" id="${id}"></span>`).text(text).prepend(provider);
-    const el = $(`<a class="text-reset" data-bs-toggle="collapse" href="#${id}" role="button" aria-expanded="false" aria-controls="${id}"></a>`).prepend(pre);
-    $(nTd).prepend( el );
   }
-} }
+}
 
 function callbackElement(oData, displayCompliance) {
   var elem = $("<a></a>");
@@ -954,23 +940,24 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
       function(value, inherited) {
         var title = "Property '"+value+"'"
         if (inherited) title= title +" <i title='Values may be inherited from group/global properties' class='fa fa-question-circle'></i>"
-        return { "data": function ( row, type, val, meta ) {
-                               if (type === 'set') {
-                                 return;
-                               }
-                               else if (type === 'sort') {
-                                 return JSON.stringify(row.properties[value]);
-                               }
-                               // 'sort', 'type' and undefined all just use the integer
-                               return JSON.stringify(row.properties[value]);
-                             }
-
-               , "title": title
-               , "defaultContent" : "<span class='text-muted'>N/A</span>"
-               , "createdCell" : propertyFunction(value,inherited)
-               , "inherited" : inherited
-               , "value" : value
-               }
+        return {
+          "data": function (row, type) {
+            if (type === 'set') {
+              return;
+            } else if (type === 'sort') {
+              const prop = inherited ? row.inheritedProperties[value] : row.properties[value]
+              return JSON.stringify(prop);
+            }
+            const prop = inherited ? row.inheritedProperties[value] : row.properties[value]
+            return prop;
+          }
+          , "title": title
+          , "defaultContent": "<span class='text-muted'>N/A</span>"
+          , "render": propertyFunction(value)
+          , "inherited": inherited
+          , "value": value
+          , "type": "html-utf8"
+        }
       }
     , "Policy mode" :
       { "data": "policyMode"
