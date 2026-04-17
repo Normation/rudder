@@ -48,6 +48,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.reports.ChangesByRule
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
@@ -65,11 +66,11 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
-import org.joda.time.Interval
 import scala.collection.MapView
 import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.xml.*
+import zio.json.*
 
 /**
  * An ADT to denote if a column should be display or not,
@@ -346,42 +347,41 @@ class RuleGrid(
     }
   }
 
-  private def changesFuture(rules: Seq[Rule]): Future[Box[Map[RuleId, Map[Interval, Int]]]] = {
+  private def changesFuture(rules: Seq[Rule]): Future[Box[ChangesByRule]] = {
     Future {
       if (rules.isEmpty) {
-        Full(Map())
+        Full(ChangesByRule.empty)
       } else {
         val default = recentChanges.getCurrentValidIntervals(None).map((_, 0)).toMap
         val start   = System.currentTimeMillis
         for {
           changes <- recentChanges.countChangesByRuleByInterval()
         } yield {
-          val nodeChanges = rules.map(rule => (rule.id, changes._2.getOrElse(rule.id, default)))
+          val nodeChanges = changes._2.defaultRulesWith(rules)(default)
           val after       = System.currentTimeMillis
           TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms")
-          nodeChanges.toMap
+          nodeChanges
         }
       }
     }
   }
 
   // Ajax call back to get recent changes
-  private def ajaxChanges(future: Future[Box[Map[RuleId, Map[Interval, Int]]]]): JsCmd = {
+  private def ajaxChanges(future: Future[Box[ChangesByRule]]): JsCmd = {
     SHtml.ajaxInvoke(() => {
       // Is my future completed ?
       if (future.isCompleted) {
         // Yes wait/get for result
         Await.result(future, scala.concurrent.duration.Duration.Inf) match {
           case Full(changes) =>
-            val computeGraphs = for {
-              (ruleId, change) <- changes
-            } yield {
-              val changeCount = change.values.sum
-              val data        = NodeChanges.json(change, recentChanges.getCurrentValidIntervals(None))
-              s"""computeChangeGraph(${data.toJsCmd},"${StringEscapeUtils.escapeEcmaScript(
-                  ruleId.serialize
-                )}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
-            }
+            val computeGraphs = changes
+              .mapChanges(c => c.values.sum -> NodeChanges.json(c, recentChanges.getCurrentValidIntervals(None)))
+              .map {
+                case (ruleId, (changeCount, data)) =>
+                  s"""computeChangeGraph(${data.toJson},"${StringEscapeUtils.escapeEcmaScript(
+                      ruleId.serialize
+                    )}",currentPageIds, ${changeCount}, ${showChangesGraph})"""
+              }
 
             JsRaw(s"""
             const ruleTable = new DataTable('#'+"${htmlId_rulesGridId}");

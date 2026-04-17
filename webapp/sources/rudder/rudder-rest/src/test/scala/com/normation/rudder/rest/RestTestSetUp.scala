@@ -76,8 +76,10 @@ import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -140,6 +142,8 @@ import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
+import com.normation.rudder.services.reports.ChangesByRule
+import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
@@ -171,6 +175,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
@@ -984,6 +989,37 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val mockApiAccounts = new MockApiAccountService(userService)
   val apiAccountApi: ApiAccountApi = new ApiAccountApi(mockApiAccounts.service)
 
+  val fakeNodeChangesService: NodeChangesService = new NodeChangesService {
+    import org.joda.time.Interval
+    override def changesMaxAge:                  Int                        = 0
+    override def countChangesByRuleByInterval(): Box[(Long, ChangesByRule)] = Full(
+      (1, ChangesByRule.of(mockRules.rules.clockRule.id -> Map(new Interval(0L, 1_000L) -> 1)))
+    )
+    override def getChangesForInterval(
+        ruleId:   RuleId,
+        interval: Interval,
+        limit:    Option[Int]
+    ): Box[Seq[ResultRepairedReport]] = {
+      if (ruleId == mockRules.rules.clockRule.id) {
+        Full(
+          List(
+            ResultRepairedReport(
+              new DateTime(0),
+              ruleId,
+              mockDirectives.directives.clockDirective.id,
+              MockNodes.node1Node.id,
+              "0",
+              "Time synchronization (NTP)",
+              "",
+              new DateTime(0),
+              "ntp daemon installed, configured and running"
+            )
+          )
+        )
+      } else Empty
+    }
+  }
+
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(
     systemApi,
     parameterApi,
@@ -1049,7 +1085,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     eventLogApi,
     new PluginInternalApi(pluginsSystemService),
     new InventoryApi(mockInventoryFileWatcher, mockInventoryDir),
-    new QuicksearchApi(quickSearchService, linkUtil)
+    new QuicksearchApi(quickSearchService, linkUtil),
+    new RecentChangesAPI(fakeNodeChangesService)
   )
 
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))

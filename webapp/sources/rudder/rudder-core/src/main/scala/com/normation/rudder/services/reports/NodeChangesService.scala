@@ -40,19 +40,48 @@ package com.normation.rudder.services.reports
 import com.normation.box.*
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.ReportLoggerPure
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.zio.*
 import net.liftweb.common.*
-import net.liftweb.http.js
-import net.liftweb.http.js.JE.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.Interval
 import zio.{System as _, *}
+import zio.json.JsonEncoder
 import zio.syntax.*
+
+opaque type ChangesByRule = Map[RuleId, Map[Interval, Int]]
+
+object ChangesByRule {
+  private[reports] def apply(map: Map[RuleId, Map[Interval, Int]]): ChangesByRule = map
+  def empty: ChangesByRule = Map.empty
+  def of(head: (RuleId, Map[Interval, Int])): ChangesByRule = Map(head)
+
+  extension (self: ChangesByRule) {
+    private[reports] def getWithFallback(k: RuleId, defaultMap: => Map[Interval, Int])(i: Interval, default: Int): Int         =
+      self.getOrElse(k, defaultMap).getOrElse(i, default)
+    private[reports] def keySet:                                                                                   Set[RuleId] = (self: Map[RuleId, Map[Interval, Int]]).keySet
+    private[reports] def debugString:                                                                              String      = {
+      self.map {
+        case (ruleId, x) =>
+          val byInt = x.map {
+            case (int, size) =>
+              s" ${int}:${size}"
+          }.mkString(" ", "\n ", "")
+
+          s"${ruleId.serialize}\n${byInt}"
+      }.mkString("\n")
+    }
+
+    def defaultRulesWith(rules: Iterable[Rule])(default: Map[Interval, Int]): ChangesByRule =
+      (rules.map(r => (r.id, default)) ++ self).toMap
+    def mapChanges[A](f: Map[Interval, Int] => A): Map[RuleId, A] = self.map((k, v) => (k, f(v)))
+  }
+}
 
 /**
  * This service is responsible to make available node changes for nodes.
@@ -63,7 +92,6 @@ import zio.syntax.*
  */
 
 trait NodeChangesService {
-  type ChangesByRule = Map[RuleId, Map[Interval, Int]]
 
   /*
    * Max number of days to look back for changes.
@@ -153,11 +181,11 @@ class NodeChangesServiceImpl(
     val intervals = getCurrentValidIntervals(None)
     // Regroup changes by interval
     for {
-      changes <- reportsRepository.countChangeReportsByBatch(intervals)
+      (count, changes) <- reportsRepository.countChangeReportsByBatch(intervals)
     } yield {
       val endTime = System.currentTimeMillis()
       logger.debug(s"Fetched all changes for all rules in ${(endTime - beginTime)} ms")
-      changes
+      (count, ChangesByRule(changes))
     }
   }
 
@@ -179,7 +207,7 @@ object ChangesUpdate {
 final case class ChangesCache(
     highestId: Long, // the highest id in the cache
 
-    changes: Map[RuleId, Map[Interval, Int]] // the map of aggregated changes by rules and by interval
+    changes: ChangesByRule
 )
 
 /**
@@ -267,30 +295,20 @@ class CachedNodeChangesServiceImpl(
     )
   }
 
-  private def cacheToLog(changes: ChangesByRule): String = {
-    changes.map {
-      case (ruleId, x) =>
-        val byInt = x.map {
-          case (int, size) =>
-            s" ${int}:${size}"
-        }.mkString(" ", "\n ", "")
-
-        s"${ruleId.serialize}\n${byInt}"
-    }.mkString("\n")
-  }
-
   /**
    * For intervals "on", merge change1 and change2 (respective to rules). Intervals not in "on"
    * are removed from the result.
    * For a given rule, on a given interval, changes from change1 and change2 are added.
+   *
+   * This could be in an extension method
    */
   private def merge(on: Seq[Interval], changes1: ChangesByRule, changes2: ChangesByRule): ChangesByRule = {
     // shortcut that get map(k1)(k2) and return an empty seq if key not found
     def get(changes: ChangesByRule, ruleId: RuleId, i: Interval): Int = {
-      changes.getOrElse(ruleId, Map()).getOrElse(i, 0)
+      changes.getWithFallback(ruleId, Map())(i, 0)
     }
 
-    (changes1.keySet ++ changes2.keySet).map { ruleId =>
+    ChangesByRule((changes1.keySet ++ changes2.keySet).map { ruleId =>
       (
         ruleId,
         on.map { i =>
@@ -298,7 +316,7 @@ class CachedNodeChangesServiceImpl(
           (i, updated)
         }.toMap
       )
-    }.toMap
+    }.toMap)
   }
 
   /**
@@ -400,7 +418,7 @@ class CachedNodeChangesServiceImpl(
                      Failure(msg)
                  }).toIO
       _       <- ReportLoggerPure.Changes.debug("NodeChanges cache initialized")
-      _       <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + cacheToLog(changes._2))
+      _       <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + changes._2.debugString)
     } yield {
       ChangesCache(changes._1, changes._2)
     }
@@ -423,8 +441,8 @@ class CachedNodeChangesServiceImpl(
                    }
       time1     <- currentTimeMillis
       _         <- ReportLoggerPure.Changes.debug(s"Rule Changes cache updated in ${time1 - time0} ms")
-      updates    = merge(intervals, previous.changes, newChanges)
-      _         <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + cacheToLog(updates))
+      updates    = merge(intervals, previous.changes, ChangesByRule(newChanges))
+      _         <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + updates.debugString)
     } yield {
       ChangesCache(highestId, updates)
     }
@@ -456,7 +474,7 @@ class CachedNodeChangesServiceImpl(
     } yield {
       opt match {
         case Some(c) => (c.highestId, c.changes)
-        case None    => (-1L, Map[RuleId, Map[Interval, Int]]())
+        case None    => (-1L, ChangesByRule.empty)
       }
     }
 
@@ -472,34 +490,43 @@ class CachedNodeChangesServiceImpl(
 
 }
 
-object NodeChanges {
+opaque type PeriodJson = Interval
+object PeriodJson {
   // a format for interval like "2016-01-27 06:00 - 12:00"
-  val day         = "yyyy-MM-dd"
-  val startFormat = "HH:mm"
-  val endFormat   = "- HH:mm"
+  private val day         = "yyyy-MM-dd"
+  private val startFormat = "HH:mm"
+  private val endFormat   = "- HH:mm"
 
-  private def displayPeriod(interval: Interval) = {
-    JsArray(
-      Str(interval.getStart().toString(day)) :: Str(interval.getStart().toString(startFormat)) :: Str(
+  def apply(interval: Interval): PeriodJson = interval
+  given JsonEncoder[PeriodJson] = JsonEncoder
+    .chunk[String]
+    .contramap(interval => {
+      Chunk(
+        interval.getStart().toString(day),
+        interval.getStart().toString(startFormat),
         interval.getEnd().toString(endFormat)
-      ) :: Nil
-    )
-  }
+      )
+    })
+}
+
+object NodeChanges {
+  // Used in RulesGrid
+  final case class ChangesGridJson(
+      labels: List[PeriodJson],
+      values: List[Int],
+      t:      List[Long] // interval start, in millis
+  ) derives JsonEncoder
 
   /**
    * Display the list of intervals, sorted by start time, and for each put
    * the number of changes from changes.
    * Intervals must be equals in changes and intervals.
    */
-  def json(changes: Map[Interval, Int], intervals: List[Interval]): js.JsObj = {
+  def json(changes: Map[Interval, Int], intervals: List[Interval]): ChangesGridJson = {
 
     // sort intervals, get number of changes for each (or 0)
-    val data = intervals.sortBy(_.getStartMillis).map(i => (displayPeriod(i), changes.getOrElse(i, 0), i.getStartMillis))
-
-    JsObj(
-      ("labels" -> JsArray(data.map(a => a._1))),
-      ("values" -> JsArray(data.map(a => Num(a._2)))),
-      ("t"      -> JsArray(data.map(a => Num(a._3))))
-    )
+    val data                = intervals.sortBy(_.getStartMillis).map(i => (PeriodJson(i), changes.getOrElse(i, 0), i.getStartMillis))
+    val (labels, values, t) = data.unzip3
+    ChangesGridJson(labels, values, t)
   }
 }
