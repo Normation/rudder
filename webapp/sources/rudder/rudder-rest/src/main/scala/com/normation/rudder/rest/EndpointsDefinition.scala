@@ -1126,14 +1126,16 @@ sealed trait SystemApi extends EnumEntry with EndpointSchema with GeneralApi wit
 object SystemApi       extends Enum[SystemApi] with ApiModuleProvider[SystemApi]            {
 
   case object Info extends SystemApi with ZeroParam with StartsAtVersion10 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override def name: String = "getSystemInfo"
     val description    = "Get information about system installation (version, etc)"
     val (action, path) = GET / "system" / "info"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
 
   case object Status extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "getStatus"
     val description    = "Get Api status"
     val (action, path) = GET / "system" / "status"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
@@ -1157,28 +1159,32 @@ object SystemApi       extends Enum[SystemApi] with ApiModuleProvider[SystemApi]
   }
 
   case object TechniquesReload extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "reloadTechniques"
     val description    = "reload all techniques" // automatically done every 5 minutes
     val (action, path) = POST / "system" / "reload" / "techniques"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   case object DyngroupsReload extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "reloadGroups"
     val description    = "reload all dynamic groups"
     val (action, path) = POST / "system" / "reload" / "groups"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   case object PoliciesUpdate extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "updatePolicies"
     val description    = "update policies"
     val (action, path) = POST / "system" / "update" / "policies"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
   }
 
   case object PoliciesRegenerate extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "regeneratePolicies"
     val description    = "regenerate all policies"
     val (action, path) = POST / "system" / "regenerate" / "policies"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
@@ -1187,35 +1193,40 @@ object SystemApi       extends Enum[SystemApi] with ApiModuleProvider[SystemApi]
   // Archive list endpoints
 
   case object ArchivesGroupsList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "listGroupsArchive"
     val description    = "list groups archives"
     val (action, path) = GET / "system" / "archives" / "groups"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   case object ArchivesDirectivesList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "listDirectivesArchive"
     val description    = "list directives archives"
     val (action, path) = GET / "system" / "archives" / "directives"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
 
   case object ArchivesRulesList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "listRulesArchive"
     val description    = "list rules archives"
     val (action, path) = GET / "system" / "archives" / "rules"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
 
   case object ArchivesParametersList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "listParametersArchive"
     val description    = "list parameters archives"
     val (action, path) = GET / "system" / "archives" / "parameters"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
 
   case object ArchivesFullList extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "listFullArchive"
     val description    = "list all archives"
     val (action, path) = GET / "system" / "archives" / "full"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
@@ -1364,7 +1375,8 @@ object SystemApi       extends Enum[SystemApi] with ApiModuleProvider[SystemApi]
   }
 
   case object ArchiveFull extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
-    val z: Int = implicitly[Line].value
+    val z:             Int    = implicitly[Line].value
+    override val name: String = "archiveAll"
     val description    = "archive full"
     val (action, path) = POST / "system" / "archives" / "full"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil

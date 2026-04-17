@@ -38,8 +38,8 @@
 package com.normation.rudder.rest
 
 import com.normation.rudder.domain.archives.ArchiveType
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.lift.SystemApi
+import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
+import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rest.v1.RestStatus
 import java.io.File
 import java.nio.file.Files
@@ -49,18 +49,18 @@ import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.*
-import net.liftweb.json.JsonDSL.*
 import org.apache.commons.io.FileUtils
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
+import zio.json.ast.Json.*
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
 @RunWith(classOf[JUnitRunner])
 class SystemApiTest extends Specification with AfterAll with Loggable {
+  given prettify: Boolean = false
 
   private val restTestSetUp = RestTestSetUp.newEnv
   private val restTest      = new RestTest(restTestSetUp.liftRules)
@@ -77,10 +77,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing system API status" should {
     "match the response defined below" in {
 
-      implicit val action   = "getStatus"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "global" -> "OK")
+      val schema   = ResponseSchema("getStatus", None)
+      val response = RudderJsonResponse.successOne(schema, Map("global" -> "OK"), None)
 
       restTest.testGET("/api/latest/system/status") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -91,10 +89,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing technique reload of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "reloadTechniques"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "techniques" -> "Started")
+      val schema   = ResponseSchema("reloadTechniques", None)
+      val response = RudderJsonResponse.successOne(schema, JReloadStatus(None, Some("Started")), None)
 
       restTest.testEmptyPost("/api/latest/system/reload/techniques") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -105,10 +101,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing dynamic groups reload on System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "reloadGroups"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "groups" -> "Started")
+      val schema   = ResponseSchema("reloadGroups", None)
+      val response = RudderJsonResponse.successOne(schema, JReloadStatus(Some("Started"), None), None)
 
       restTest.testEmptyPost("/api/latest/system/reload/groups") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -119,10 +113,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing dynamic groups and techniques reload of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "reloadAll"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, List(JField("groups", "Started"), JField("techniques", "Started")))
+      val schema   = ResponseSchema("reloadAll", None)
+      val response = RudderJsonResponse.successOne(schema, JReloadStatus(Some("Started"), Some("Started")), None)
 
       restTest.testEmptyPost("/api/latest/system/reload") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -133,10 +125,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing policies update of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "updatePolicies"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "policies" -> "Started")
+      val schema   = ResponseSchema("updatePolicies", None)
+      val response = RudderJsonResponse.successOne(schema, Obj("policies", Str("Started")), None)
 
       restTest.testEmptyPost("/api/latest/system/update/policies") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -147,10 +137,9 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing policies regenerate of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "regeneratePolicies"
-      implicit val prettify = false
+      val schema   = ResponseSchema("regeneratePolicies", None)
+      val response = RudderJsonResponse.successOne(schema, Obj("policies", Str("Started")), None)
 
-      val response = toJsonResponse(None, "policies" -> "Started")
       restTest.testEmptyPost("/api/latest/system/regenerate/policies") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
       }
@@ -162,24 +151,16 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
   private val dateTimeId = "1970-01-01_01-00-00.042"
 
-  private val archive1: JObject = JObject(
-    List(
-      JField("id", "path"),
-      JField("date", "1970-01-01T010000Z"),
-      JField("committer", "test-user"),
-      JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104")
-    )
-  )
+  private val archive1: JArchiveInfo =
+    JArchiveInfo("path", "1970-01-01T010000Z", "test-user", "6d6b2ceb46adeecd845ad0c0812fee07e2727104")
 
-  private val archives: List[JObject] = List(archive1)
+  private val archives: List[JArchiveInfo] = List(archive1)
 
   "Testing archive groups listing of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "listGroupsArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "groups" -> JArray(archives))
+      val schema   = ResponseSchema("listGroupsArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("groups" -> archives), None)
 
       restTest.testGET("/api/latest/system/archives/groups") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -190,10 +171,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive directives of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "listDirectivesArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "directives" -> JArray(archives))
+      val schema   = ResponseSchema("listDirectivesArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("directives" -> archives), None)
 
       restTest.testGET("/api/latest/system/archives/directives") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -204,10 +183,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive rules listing of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "listRulesArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "rules" -> JArray(archives))
+      val schema   = ResponseSchema("listRulesArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("rules" -> archives), None)
 
       restTest.testGET("/api/latest/system/archives/rules") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -218,10 +195,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing full archive listing of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "listFullArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "full" -> JArray(archives))
+      val schema   = ResponseSchema("listFullArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("full" -> archives), None)
 
       restTest.testGET("/api/latest/system/archives/full") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -232,10 +207,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore groups latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreGroupsLatestArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "groups" -> "Started")
+      val schema   = ResponseSchema("restoreGroupsLatestArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("groups" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/groups/restore/latestArchive") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -246,10 +219,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore directives latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreDirectivesLatestArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "directives" -> "Started")
+      val schema   = ResponseSchema("restoreDirectivesLatestArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("directives" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/directives/restore/latestArchive") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -260,10 +231,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore rules latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreRulesLatestArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "rules" -> "Started")
+      val schema   = ResponseSchema("restoreRulesLatestArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("rules" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/rules/restore/latestArchive") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -274,10 +243,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore full latest archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreFullLatestArchive"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "full" -> "Started")
+      val schema   = ResponseSchema("restoreFullLatestArchive", None)
+      val response = RudderJsonResponse.successOne(schema, Map("full" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/full/restore/latestArchive") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -288,10 +255,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore groups latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreGroupsLatestCommit"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "groups" -> "Started")
+      val schema   = ResponseSchema("restoreGroupsLatestCommit", None)
+      val response = RudderJsonResponse.successOne(schema, Map("groups" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/groups/restore/latestCommit") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -302,10 +267,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore directives latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreDirectivesLatestCommit"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "directives" -> "Started")
+      val schema   = ResponseSchema("restoreDirectivesLatestCommit", None)
+      val response = RudderJsonResponse.successOne(schema, Map("directives" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/directives/restore/latestCommit") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -316,10 +279,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore rules latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreRulesLatestCommit"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "rules" -> "Started")
+      val schema   = ResponseSchema("restoreRulesLatestCommit", None)
+      val response = RudderJsonResponse.successOne(schema, Map("rules" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/rules/restore/latestCommit") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -330,10 +291,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing restore full latest commit archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "restoreFullLatestCommit"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "full" -> "Started")
+      val schema   = ResponseSchema("restoreFullLatestCommit", None)
+      val response = RudderJsonResponse.successOne(schema, Map("full" -> "Started"), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/full/restore/latestCommit") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -341,21 +300,13 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  private val archive2: JObject = JObject(
-    List(
-      JField("committer", "test-user"),
-      JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104"),
-      JField("id", "path")
-    )
-  )
+  private val archive2: JArchiveLog = JArchiveLog("test-user", "6d6b2ceb46adeecd845ad0c0812fee07e2727104", "path")
 
   "Testing archive groups of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveGroups"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "groups" -> archive2)
+      val schema   = ResponseSchema("archiveGroups", None)
+      val response = RudderJsonResponse.successOne(schema, Map("groups" -> archive2), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/groups") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -366,10 +317,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive directives of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveDirectives"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "directives" -> archive2)
+      val schema   = ResponseSchema("archiveDirectives", None)
+      val response = RudderJsonResponse.successOne(schema, Map("directives" -> archive2), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/directives") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -380,10 +329,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing archive rules of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveRules"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "rules" -> archive2)
+      val schema   = ResponseSchema("archiveRules", None)
+      val response = RudderJsonResponse.successOne(schema, Map("rules" -> archive2), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/rules") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -394,10 +341,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing all archive of System Api" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveAll"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "full" -> archive2)
+      val schema   = ResponseSchema("archiveAll", None)
+      val response = RudderJsonResponse.successOne(schema, Map("full" -> archive2), None)
 
       restTest.testEmptyPost("/api/latest/system/archives/full") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -408,10 +353,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing group archive restore based on a date time" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveGroupDateRestore"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "group" -> "Started")
+      val schema   = ResponseSchema("archiveGroupDateRestore", None)
+      val response = RudderJsonResponse.successOne(schema, Map("group" -> "Started"), None)
 
       restTest.testEmptyPost(s"/api/latest/system/archives/groups/restore/$dateTimeId") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -422,10 +365,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing directive archive restore based on its date time" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveDirectiveDateRestore"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "directive" -> "Started")
+      val schema   = ResponseSchema("archiveDirectiveDateRestore", None)
+      val response = RudderJsonResponse.successOne(schema, Map("directive" -> "Started"), None)
 
       restTest.testEmptyPost(s"/api/latest/system/archives/directives/restore/$dateTimeId") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -436,10 +377,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing rule archive restore based on its date time" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveRuleDateRestore"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "rule" -> "Started")
+      val schema   = ResponseSchema("archiveRuleDateRestore", None)
+      val response = RudderJsonResponse.successOne(schema, Map("rule" -> "Started"), None)
 
       restTest.testEmptyPost(s"/api/latest/system/archives/rules/restore/$dateTimeId") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
@@ -450,10 +389,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   "Testing full archive restore based on its datetime" should {
     "match the response defined below" in {
 
-      implicit val action   = "archiveFullDateRestore"
-      implicit val prettify = false
-
-      val response = toJsonResponse(None, "full" -> "Started")
+      val schema   = ResponseSchema("archiveFullDateRestore", None)
+      val response = RudderJsonResponse.successOne(schema, Map("full" -> "Started"), None)
 
       restTest.testEmptyPost(s"/api/latest/system/archives/full/restore/$dateTimeId") { req =>
         restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
