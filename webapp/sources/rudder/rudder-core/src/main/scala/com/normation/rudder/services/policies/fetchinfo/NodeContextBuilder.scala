@@ -49,9 +49,10 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.policies.*
 import com.softwaremill.quicklens.*
 import net.liftweb.common.*
-import net.liftweb.json.*
-import scala.annotation.nowarn
 import zio.{System as _, *}
+import zio.json.*
+import zio.json.ast.*
+import zio.json.ast.Json.*
 import zio.syntax.*
 
 final case class NodesContextResult(
@@ -98,11 +99,11 @@ class NodeContextBuilderImpl(
 
   // we should get the context to replace the value (PureResult[String] to String)
   // public: used in `TestNodeAndGlobalParameterLookup`
-  def parseJValue(value: JValue, context: InterpolationContext): IOResult[JValue] = {
-    def rec(v: JValue): IOResult[JValue] = v match {
-      case JObject(l) => ZIO.foreach(l)(field => rec(field.value).map(x => field.copy(value = x))).map(JObject(_))
-      case JArray(l)  => ZIO.foreach(l)(v => rec(v)).map(JArray(_))
-      case JString(s) =>
+  def parseJValue(value: Json, context: InterpolationContext): IOResult[Json] = {
+    def rec(v: Json): IOResult[Json] = v match {
+      case Obj(l) => ZIO.foreach(l)((k, v) => rec(v).map((k, _))).map(Obj(_))
+      case Arr(l) => ZIO.foreach(l)(v => rec(v)).map(Arr(_))
+      case Str(s) =>
         for {
           v <- interpolatedValueCompiler
                  .compile(s)
@@ -110,9 +111,9 @@ class NodeContextBuilderImpl(
                  .chainError(s"Error when looking for interpolation variable '${s}' in node property")
           s <- v(context)
         } yield {
-          JString(s)
+          Str(s)
         }
-      case x          => x.succeed
+      case x      => x.succeed
     }
     rec(value)
   }
@@ -226,9 +227,9 @@ class NodeContextBuilderImpl(
             propsCompiled     <- ZIO
                                    .foreach(mergedProps) { p =>
                                      for {
-                                       x     <- parseJValue(p.prop.toJsonObj, contextEngine)
+                                       x     <- parseJValue(p.prop.jsonZio, contextEngine)
                                        // we need to fetch only the value, and nothing else, for the property
-                                       value  = GenericProperty.fromJsonValue(x.\("value")): @nowarn("msg=deprecated")
+                                       value  = GenericProperty.fromZioJson(x)
                                        result = NodeProperty(p.prop.config.getString("name"), value, None, None)
                                      } yield {
                                        result

@@ -770,6 +770,7 @@ object GenericProperty {
    * Implicit class to render properties to JSON
    */
   implicit class PropertyToJson(val x: GenericProperty[?]) extends AnyVal {
+
     def toJsonObj: JObject = {
       import net.liftweb.json.JsonDSL.*
       (
