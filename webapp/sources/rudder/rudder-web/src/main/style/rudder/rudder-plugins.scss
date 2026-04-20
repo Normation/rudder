@@ -71,7 +71,7 @@ $spinner-height-sm: $spinner-width-sm;
 }
 
 .plugins-container {
-  $default-font-size: 0.86em;
+  $default-font-size: 0.75rem;
   $main-details-lr-padding: 15px;
   position: absolute;
   top: 0;
@@ -100,16 +100,8 @@ $spinner-height-sm: $spinner-width-sm;
     }
 
     & .plugins-actions-filters {
-      display: flex;
-      flex-wrap: nowrap;
-      justify-content: space-between;
-
       & :first-child {
         flex: 0 0 160px;
-      }
-
-      & .plugins-actions-filters-search  {
-        flex: 0 0 20%;
       }
 
       & .plugins-actions-filters-radio {
@@ -132,9 +124,7 @@ $spinner-height-sm: $spinner-width-sm;
     }
 
     & .plugins-actions-warning {
-      width: 100%;
-      font-size: 12px;
-      margin-top: 0.5em;
+      font-size: $default-font-size;
     }
   }
 
