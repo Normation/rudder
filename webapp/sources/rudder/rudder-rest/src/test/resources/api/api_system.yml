@@ -6,7 +6,7 @@ response:
   code: 200
   content: >-
     {
-      "action":"info",
+      "action":"getSystemInfo",
       "result":"success",
       "data":{
         "rudder" : {
@@ -48,5 +48,53 @@ response:
             }
           ]
         }
+      }
+    }
+---
+description: Get system status
+method: GET
+url: /api/latest/system/status
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getStatus",
+      "result":"success",
+      "data":{ "global":"OK"  }
+    }
+---
+description: Get archive list
+method: GET
+url: /api/latest/system/archives/full
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listFullArchive",
+      "result":"success",
+      "data":{ 
+        "full" : [
+          {
+            "id" : "path",
+            "date" : "1970-01-01T010000Z",
+            "committer" : "test-user",
+            "gitCommit" : "6d6b2ceb46adeecd845ad0c0812fee07e2727104"
+          }
+        ]
+      }
+    }
+---
+description: Reload all
+method: POST
+url: /api/latest/system/reload
+response:
+  code: 200
+  content: >-
+    {
+      "action":"reloadAll",
+      "result":"success",
+      "data":{ 
+        "groups" : "Started",
+        "techniques" : "Started"
       }
     }
