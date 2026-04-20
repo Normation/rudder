@@ -134,7 +134,7 @@ actionInstallUpgradeButton x =
             [ disabled (Maybe.Extra.isNothing install && Maybe.Extra.isNothing upgrade) ]
     in
     button
-        ([ class "dropdown-item"
+        ([ class "btn btn-default"
          , type_ "button"
 
          -- we need action to be Install, since the Upgrade is just a user point-of-view
@@ -142,7 +142,7 @@ actionInstallUpgradeButton x =
          ]
             ++ disabledAttrs
         )
-        (actionIcon ActionInstall :: (installText ++ text " / " :: upgradeText))
+        (i [ class "fa fa-plus-circle me-2" ] [] :: (installText ++ text " / " :: upgradeText))
 
 
 displaySelectAll : Int -> PluginsViewModel -> List (Html Msg)
@@ -184,34 +184,6 @@ displaySelectAll totalCount { selected, plugins } =
             )
         , input [ id "select-plugins", type_ "checkbox", class "btn-check", checked (not isSelectAll), onCheck (checkAll pluginIds) ] []
         ]
-
-
-displayFilters : Filters -> List (Html Msg)
-displayFilters filters =
-    [ div [ class "plugins-actions-filters-search input-group input-group-sm" ]
-        [ input
-            [ class "form-control"
-            , type_ "text"
-            , value filters.search
-            , placeholder "Filter..."
-            , onInput
-                (\s ->
-                    UpdateFilters { filters | search = s }
-                )
-            ]
-            []
-        ]
-    , div [ class "plugins-actions-filters-radio" ]
-        [ div [ class "input-group" ]
-            [ div [ class "btn-group btn-group-sm", attribute "role" "group", attribute "aria-label" "Plugin Type Filter" ]
-                (pluginTypeRadioButtons filters)
-            ]
-        , div [ class "input-group" ]
-            [ div [ class "btn-group btn-group-sm", attribute "role" "group", attribute "aria-label" "Install Status Filter" ]
-                (installStatusRadioButtons filters)
-            ]
-        ]
-    ]
 
 
 pluginTypeRadioButtons : Filters -> List (Html Msg)
@@ -262,13 +234,13 @@ radioButton groupName selected toMsg index ( labelText, value ) =
 displayActionButtons : PluginsViewModel -> List (Html Msg)
 displayActionButtons { selected, installAction, uninstallAction, enableAction, disableAction } =
     [ button [ class "btn btn-primary me-2", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
+    , actionInstallUpgradeButton ((\(PluginsAction { explanation }) -> explanation) installAction)
     , div [ class "dropdown header-buttons" ]
         [ button [ class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown", attribute "aria-expanded" "false" ]
-            [ text "Actions"
+            [ text "More actions"
             ]
         , ul [ class "dropdown-menu" ]
-            [ li [] [ actionInstallUpgradeButton ((\(PluginsAction { explanation }) -> explanation) installAction) ]
-            , li [] [ actionButton ActionUninstall selected uninstallAction ]
+            [ li [] [ actionButton ActionUninstall selected uninstallAction ]
             , li [] [ actionButton ActionEnable selected enableAction ]
             , li [] [ actionButton ActionDisable selected disableAction ]
             ]
@@ -355,8 +327,55 @@ displayPluginsSection totalCount pluginsModel =
         plugins =
             pluginsModel.plugins |> Dict.toList |> List.map Tuple.second |> List.sortWith pluginDefaultOrdering
 
-        listContent =
-            div [ class "plugins-list" ]
+        filters =
+            pluginsModel.filters
+    in
+    div [ class "main-table" ]
+        [ div [ class "table-container plugins-container my-0" ]
+            {- plugins header block -}
+            [ div [ class "dataTables_wrapper_top sticky-top table-filter plugins-actions" ]
+                {- line with select all check box, filter, and action buttons -}
+                [ div [ class "d-flex flex-wrap justify-content-between w-100" ]
+                    [ div [ class "plugins-actions-filters d-flex flex-nowrap" ]
+                        (div [ class "text-nowrap" ] (displaySelectAll totalCount pluginsModel)
+                            :: [ div [ class "input-group input-group-sm" ]
+                                    [ input
+                                        [ class "form-control"
+                                        , type_ "text"
+                                        , value filters.search
+                                        , placeholder "Filter..."
+                                        , onInput
+                                            (\s ->
+                                                UpdateFilters { filters | search = s }
+                                            )
+                                        ]
+                                        []
+                                    ]
+                               ]
+                        )
+                    , div [ class "plugins-actions-buttons" ]
+                        (displayActionButtons pluginsModel)
+                    ]
+                , {- line with type filters and status filters -}
+                  div [ class "d-flex flex-wrap justify-content-between w-100 my-1" ]
+                    [ div [ class "plugins-actions-filters w-100" ]
+                        [ div [ class "plugins-actions-filters-radio" ]
+                            [ div [ class "input-group" ]
+                                [ div [ class "btn-group btn-group-sm", attribute "role" "group", attribute "aria-label" "Plugin Type Filter" ]
+                                    (pluginTypeRadioButtons filters)
+                                ]
+                            , div [ class "input-group" ]
+                                [ div [ class "btn-group btn-group-sm", attribute "role" "group", attribute "aria-label" "Install Status Filter" ]
+                                    (installStatusRadioButtons filters)
+                                ]
+                            ]
+                        ]
+                    ]
+                , div [ class "plugins-actions-warning" ]
+                    (hiddenSelectionWarning pluginsModel.selected (plugins |> List.map .id |> Set.fromList))
+                ]
+            , {- plugins block -}
+              div [ class "plugins-list" ]
                 (if List.isEmpty plugins then
                     [ div [ class "plugins-list callout-fade callout-warning text-warning" ]
                         [ i [ class "fa fa-exclamation-triangle me-2" ] []
@@ -367,20 +386,6 @@ displayPluginsSection totalCount pluginsModel =
                  else
                     List.map (displayPlugin pluginsModel) plugins
                 )
-    in
-    div [ class "main-table" ]
-        [ div [ class "table-container plugins-container my-0" ]
-            [ div [ class "dataTables_wrapper_top sticky-top table-filter plugins-actions" ]
-                [ div [ class "plugins-actions-filters" ]
-                    (div [ class "text-nowrap" ] (displaySelectAll totalCount pluginsModel)
-                        :: displayFilters pluginsModel.filters
-                    )
-                , div [ class "plugins-actions-buttons" ]
-                    (displayActionButtons pluginsModel)
-                , div [ class "plugins-actions-warning" ]
-                    (hiddenSelectionWarning pluginsModel.selected (plugins |> List.map .id |> Set.fromList))
-                ]
-            , listContent
             ]
         ]
 
