@@ -50,13 +50,7 @@ import com.normation.rudder.services.policies.fetchinfo.NodeContextBuilderImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
-import net.liftweb.common.Box
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.json.*
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.common.*
 import org.junit.runner.RunWith
 import org.specs2.matcher.Expectable
 import org.specs2.matcher.Matcher
@@ -65,6 +59,9 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.util.matching.Regex
 import zio.*
+import zio.json.*
+import zio.json.ast.*
+import zio.json.ast.Json.*
 import zio.syntax.*
 
 /**
@@ -160,8 +157,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     } yield res)
   }
 
-  def jparse(s: String): JValue = try { parse(s) }
-  catch { case ex: Exception => JString(s) }
+  def jparse(s: String): Json = s.fromJson[Json].getOrElse(Str(s))
 
   // two variables
   val var1:              InputVariable = InputVariableSpec("var1", "", None, id = None).toVariable(Seq("== ${rudder.param.foo} =="))
@@ -928,9 +924,16 @@ class TestNodeAndGlobalParameterLookup extends Specification {
     }
 
     // utility class to help run the IOResult
-    def runParseJValue(value: JValue, context: InterpolationContext): JValue = {
+    def runParseJValue(value: Json, context: InterpolationContext): Json = {
       buildContext.parseJValue(value, context).either.runNow match {
         case Left(err) => throw new RuntimeException(s"Error when interpolating '${value}': ${err.fullMsg}")
+        case Right(v)  => v
+      }
+    }
+
+    def parseJson(s: String): Json = {
+      s.fromJson[Json] match {
+        case Left(err) => throw new RuntimeException(s"Error in test parsing as json: ${s}\n  ===> ${err}")
         case Right(v)  => v
       }
     }
@@ -941,8 +944,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
       val before2 =
         """{"login":"admin", "password":"${rudder-data.fakeEncryptorEngineTesting[password_test] | option1 = foo | option2 = bar}"}"""
       val after   = """{"login":"admin", "password":"encrypted-string-test"}"""
-      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
-      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
     }
 
     "interpolate unknown engine in JSON must raise en error" in {
@@ -964,8 +967,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
       }
-      (buildContext.parseJValue(JsonParser.parse(before), toNodeContext(context, Map())).either.runNow must beLeft) and
-      (buildContext.parseJValue(JsonParser.parse(before2), toNodeContext(context, Map())).either.runNow must beLeft)
+      (buildContext.parseJValue(parseJson(before), toNodeContext(context, Map())).either.runNow must beLeft) and
+      (buildContext.parseJValue(parseJson(before2), toNodeContext(context, Map())).either.runNow must beLeft)
     }
 
     "interpolate engine in nested JSON object" in {
@@ -997,8 +1000,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |""".stripMargin
       }
 
-      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
-      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
     }
 
     "interpolate engine in JSON array" in {
@@ -1023,8 +1026,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
       }
-      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
-      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
     }
 
     "interpolate engine in nested JSON array" in {
@@ -1073,8 +1076,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |}
           |""".stripMargin
       }
-      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
-      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
     }
 
     "interpolate engine multiple time" in {
@@ -1090,7 +1093,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |      {
           |        "shouldBeInterpolated" : "${data.fakeEncryptorEngineTesting[password]}"
           |      }
-          |  ]
+          |  ],
           |  "moreData" : {
           |    "nestedStruct" : {
           |       "array" : [{"value":"${data.fakeEncryptorEngineTesting[password]}"}]
@@ -1112,7 +1115,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |      {
           |        "shouldBeInterpolated" : "${rudder-data.fakeEncryptorEngineTesting[password]}"
           |      }
-          |  ]
+          |  ],
           |  "moreData" : {
           |    "nestedStruct" : {
           |       "array" : [{"value":"${rudder-data.fakeEncryptorEngineTesting[password]}"}]
@@ -1134,7 +1137,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |      {
           |        "shouldBeInterpolated" : "encrypted-string-test"
           |      }
-          |  ]
+          |  ],
           |  "moreData" : {
           |    "nestedStruct" : {
           |       "array" : [{"value":"encrypted-string-test"}]
@@ -1144,8 +1147,8 @@ class TestNodeAndGlobalParameterLookup extends Specification {
           |""".stripMargin
       }
 
-      (runParseJValue(JsonParser.parse(before), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after))) and
-      (runParseJValue(JsonParser.parse(before2), toNodeContext(context, Map())) must beEqualTo(JsonParser.parse(after)))
+      (runParseJValue(parseJson(before), toNodeContext(context, Map())) must beEqualTo(parseJson(after))) and
+      (runParseJValue(parseJson(before2), toNodeContext(context, Map())) must beEqualTo(parseJson(after)))
     }
   }
 
@@ -1283,7 +1286,7 @@ class TestNodeAndGlobalParameterLookup extends Specification {
 
     "correclty return the compacted json string for 1-length" in {
       compare("${node.properties[datacenter]}", ("datacenter", json) :: Nil) must beEqualTo(
-        Right(net.liftweb.json.compactRender(jparse(json)))
+        Right(jparse(json).toJson)
       )
     }
 
