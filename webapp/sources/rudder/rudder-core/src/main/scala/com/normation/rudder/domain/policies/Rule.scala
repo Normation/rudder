@@ -41,6 +41,9 @@ import com.normation.GitVersion.Revision
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import zio.json.JsonCodec
+import zio.json.JsonDecoder
+import zio.json.JsonEncoder
 
 final case class RuleUid(value: String) extends AnyVal {
   def debugString: String = value
@@ -58,13 +61,18 @@ final case class RuleId(uid: RuleUid, rev: Revision = GitVersion.DEFAULT_REV) {
 
 object RuleId {
 
-  // parse a directiveId which was serialize by "id.serialize"
+  // parse a directiveId which was serialized by "id.serialize"
   def parse(s: String): Either[String, RuleId] = {
     GitVersion.parseUidRev(s).map {
       case (id, rev) =>
         RuleId(RuleUid(id), rev)
     }
   }
+
+  given JsonCodec[RuleId] = new JsonCodec(
+    JsonEncoder[String].contramap[RuleId](_.serialize),
+    JsonDecoder[String].mapOrFail(RuleId.parse)
+  )
 }
 
 /**

@@ -1653,7 +1653,6 @@ object NodeFactSerialisation {
 
   object SimpleCodec {
 
-    implicit val codecNodeId:        JsonCodec[NodeId]        = JsonCodec.string.transform[NodeId](NodeId(_), _.value)
     implicit val codecJsonOsDetails: JsonCodec[JsonOsDetails] = DeriveJsonCodec.gen
 
     implicit val decoderOsDetails: JsonDecoder[OsDetails] = JsonDecoder[JsonOsDetails].map { jod =>
