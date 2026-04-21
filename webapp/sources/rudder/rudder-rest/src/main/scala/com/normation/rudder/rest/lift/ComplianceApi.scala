@@ -37,11 +37,9 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box.*
-import com.normation.errors.*
+import com.normation.errors.{Unexpected as _, *}
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -74,21 +72,19 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.{ComplianceApi as API, *}
-import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.CsvCompliance.*
-import com.normation.rudder.rest.data.JsonCompliance.*
+import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.zio.currentTimeMillis
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import scala.collection.MapView
 import scala.collection.immutable
 import zio.Chunk
@@ -100,28 +96,29 @@ class ComplianceApi(
     readDirective:     RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
-  def extractComplianceLevel(params: Map[String, List[String]]): Box[Option[Int]] = {
+  def extractComplianceLevel(params: Map[String, List[String]]): IOResult[Option[Int]] = {
     params.get("level") match {
-      case None | Some(Nil) => Full(None)
+      case None | Some(Nil) => None.succeed
       case Some(h :: tail)  => // only take into account the first level param is several are passed
-        try { Full(Some(h.toInt)) }
+        try { Some(h.toInt).succeed }
         catch {
           case ex: NumberFormatException =>
-            Failure(s"level (displayed level of compliance details) must be an integer, was: '${h}'")
+            Inconsistency(s"level (displayed level of compliance details) must be an integer, was: '${h}'").fail
         }
     }
   }
 
-  def extractPercentPrecision(params: Map[String, List[String]]): Box[Option[CompliancePrecision]] = {
+  def extractPercentPrecision(params: Map[String, List[String]]): IOResult[Option[CompliancePrecision]] = {
     params.get("precision") match {
-      case None | Some(Nil) => Full(None)
+      case None | Some(Nil) => None.succeed
       case Some(h :: tail)  => // only take into account the first level param is several are passed
         for {
-          extracted <- try { Full(h.toInt) }
+          extracted <- try { h.toInt.succeed }
                        catch {
-                         case ex: NumberFormatException => Failure(s"percent precison must be an integer, was: '${h}'")
+                         case ex: NumberFormatException =>
+                           Inconsistency(s"percent precision must be an integer, was: '${h}'").fail
                        }
-          level     <- CompliancePrecision.fromPrecision(extracted)
+          level     <- CompliancePrecision.fromPrecision(extracted).toIO
         } yield {
           Some(level)
         }
@@ -129,12 +126,12 @@ class ComplianceApi(
     }
   }
 
-  def extractComplianceFormat(params: Map[String, List[String]]): Box[ComplianceFormat] = {
+  def extractComplianceFormat(params: Map[String, List[String]]): IOResult[ComplianceFormat] = {
     params.get("format") match {
       case None | Some(Nil) | Some("" :: Nil) =>
-        Full(ComplianceFormat.JSON) // by default if no there is no format, should I choose the only one available ?
+        ComplianceFormat.JSON.succeed // by default if no there is no format, should I choose the only one available ?
       case Some(format :: _)                  =>
-        ComplianceFormat.fromValue(format).toBox
+        ComplianceFormat.fromValue(format).left.map(Inconsistency.apply).toIO
     }
   }
 
@@ -165,44 +162,36 @@ class ComplianceApi(
   }
 
   object GetRules extends LiftApiModule0 {
-    val schema:                                                                                                API.GetRulesCompliance.type = API.GetRulesCompliance
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
+    override val schema: API.GetRulesCompliance.type = API.GetRulesCompliance
 
-      implicit val qc: QueryContext = authzToken.qc
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+
+      given qc: QueryContext = authzToken.qc
 
       (for {
-        level        <- extractComplianceLevel(req.params)
-        precision    <- extractPercentPrecision(req.params)
-        computeLevel <- Full(if (version.value <= 6) {
-                          None
-                        } else {
-                          level
-                        })
-        rules        <- complianceService.getRulesCompliance(computeLevel)
+        level     <- extractComplianceLevel(req.params)
+        precision <- extractPercentPrecision(req.params)
+        rules     <- complianceService.getRulesCompliance(level)
       } yield {
-        if (version.value <= 6) {
-          rules.map(_.toJsonV6)
-        } else {
-          rules.map(
-            _.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-          ) // by default, all details are displayed
-        }
-      }) match {
-        case Full(rules) =>
-          toJsonResponse(None, ("rules" -> rules))
+        // by default, all details are displayed
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for all rules")).messageChain
-          toJsonError(None, JString(message))
-      }
+        rules.map(_.transformInto[ComplianceApiData.JsonByRuleCompliance.ByRuleRuleComplianceApi])
+      }).chainError("Could not get compliance for all rules").toLiftResponseList(params, schema)
     }
   }
 
   object GetRuleId extends LiftApiModule {
-    val schema: OneParam = API.GetRulesComplianceId
-    def process(
+    override val schema: OneParam = API.GetRulesComplianceId
+
+    override def process(
         version:    ApiVersion,
         path:       ApiPath,
         ruleId:     String,
@@ -210,49 +199,34 @@ class ComplianceApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
+        t1 <- currentTimeMillis
+
         level     <- extractComplianceLevel(req.params)
-        t1         = System.currentTimeMillis
         precision <- extractPercentPrecision(req.params)
-        id        <- RuleId.parse(ruleId).toBox
-        t2         = System.currentTimeMillis
+        id        <- RuleId.parse(ruleId).toIO.chainError(s"Parameter '${ruleId}' doesn't have a valid rule ID format'")
 
         rule <- complianceService.getRuleCompliance(id, level)
-        t3    = System.currentTimeMillis
-        _     = TimingDebugLogger.trace(s"API GetRuleId - getting query param in ${t2 - t1} ms")
-        _     = TimingDebugLogger.trace(s"API GetRuleId - getting rule compliance in ${t3 - t2} ms")
+
+        t2 <- currentTimeMillis
+        _  <- TimingDebugLoggerPure.trace(s"API GetRuleId - getting rule compliance in ${t2 - t2} ms")
 
       } yield {
-        if (version.value <= 6) {
-          rule.toJsonV6
-        } else {
-          val json = rule.toJson(
-            level.getOrElse(10),
-            precision.getOrElse(CompliancePrecision.Level2)
-          ) // by default, all details are displayed
-          val t4 = System.currentTimeMillis
-          TimingDebugLogger.trace(s"API GetRuleId - serialize to json in ${t4 - t3} ms")
-          json
-        }
-      }) match {
-        case Full(rule) =>
-          toJsonResponse(None, ("rules" -> List(rule)))
+        // by default, all details are displayed
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for rule '${ruleId}'")).messageChain
-          toJsonError(None, JString(message))
-      }
+        List(rule.transformInto[ComplianceApiData.JsonByRuleCompliance.ByRuleRuleComplianceApi])
+      }).toLiftResponseList(params, schema)
     }
   }
 
   object GetDirectiveId extends LiftApiModule {
-    val schema: API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
+    override val schema: API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
 
-    def process(
+    override def process(
         version:     ApiVersion,
         path:        ApiPath,
         directiveId: String,
@@ -260,101 +234,92 @@ class ComplianceApi(
         params:      DefaultParams,
         authzToken:  AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
+
       (for {
         level     <- extractComplianceLevel(req.params)
-        t1         = System.currentTimeMillis
+        t1        <- currentTimeMillis
         precision <- extractPercentPrecision(req.params)
         format    <- extractComplianceFormat(req.params)
-        id        <- DirectiveId.parse(directiveId).toBox
-        d         <- readDirective.getDirective(id.uid).notOptional(s"Directive with id '${id.serialize}' not found'").toBox
-        t2         = System.currentTimeMillis
-        _          = TimingDebugLogger.trace(s"API DirectiveCompliance - getting query param in ${t2 - t1} ms")
+        id        <- DirectiveId.parse(directiveId).toIO
+        d         <- readDirective.getDirective(id.uid).notOptional(s"Directive with id '${id.serialize}' not found'")
+        t2        <- currentTimeMillis
+        _         <- TimingDebugLoggerPure.trace(s"API DirectiveCompliance - getting query param in ${t2 - t1} ms")
         directive <- complianceService.getDirectiveCompliance(d, level)
-        t3         = System.currentTimeMillis
-        _          = TimingDebugLogger.trace(s"API DirectiveCompliance - getting directive compliance '${id.uid.value}' in ${t3 - t2} ms")
-      } yield {
-        format match {
-          case ComplianceFormat.CSV  =>
-            PlainTextResponse(directive.toCsv) // CSVFormat take cares of line separator
-          case ComplianceFormat.JSON =>
-            val json = directive.toJson(
-              level.getOrElse(10),
-              precision.getOrElse(CompliancePrecision.Level2)
-            ) // by default, all details are displayed
-            val t4 = System.currentTimeMillis
-            TimingDebugLogger.trace(s"API DirectiveCompliance - serialize to json in ${t4 - t3} ms")
-            toJsonResponse(None, ("directiveCompliance" -> json))
+        t3        <- currentTimeMillis
+        _          = TimingDebugLoggerPure.trace(
+                       s"API DirectiveCompliance - getting directive compliance '${id.uid.value}' in ${t3 - t2} ms"
+                     )
+      } yield (level, precision, format, directive))
+        .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, format, directive) =>
+          format match {
+            case ComplianceFormat.CSV =>
+              PlainTextResponse(directive.toCsv) // CSVFormat take cares of line separator
+
+            case ComplianceFormat.JSON =>
+              // by default, all details are displayed
+              given l: Int                 = level.getOrElse(10)
+              given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+              given f: Boolean             = params.prettify
+
+              val d = ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceContainer(
+                directive.transformInto[ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi]
+              )
+
+              // not sure why we don't return the "id" field by setting None here
+              RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema), d, None)
+          }
         }
-      }) match {
-        case Full(compliance) => compliance
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for directive '${directiveId}'")).messageChain
-          toJsonError(None, JString(message))
-      }
     }
   }
 
   object GetDirectives extends LiftApiModule0 {
-    val schema: API.GetDirectivesCompliance.type = API.GetDirectivesCompliance
+    override val schema: API.GetDirectivesCompliance.type = API.GetDirectivesCompliance
 
-    def process0(
+    override def process0(
         version:    ApiVersion,
         path:       ApiPath,
         req:        Req,
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
         level      <- extractComplianceLevel(req.params)
-        t1          = System.currentTimeMillis
+        t1         <- currentTimeMillis
         precision  <- extractPercentPrecision(req.params)
-        t2          = System.currentTimeMillis
-        _           = TimingDebugLogger.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
-        t4          = System.currentTimeMillis
+        t2         <- currentTimeMillis
+        _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
+        t4         <- currentTimeMillis
         directives <- complianceService.getDirectivesCompliance(level)
-        t5          = System.currentTimeMillis
-        _           = TimingDebugLogger.trace(s"API DirectivesCompliance - getting directives compliance in ${t5 - t4} ms")
+        t5         <- currentTimeMillis
+        _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - getting directives compliance in ${t5 - t4} ms")
+        json        = {
+          given l: Int                 = level.getOrElse(10)
+          given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
+          directives.map(_.transformInto[ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi])
+        }
+        t6         <- currentTimeMillis
+        _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - serialize to json in ${t6 - t5} ms")
       } yield {
-        val json = directives.map(
-          _.toJson(
-            level.getOrElse(10),
-            precision.getOrElse(CompliancePrecision.Level2)
-          )
-        ) // by default, all details are displayed
-        val t6 = System.currentTimeMillis
-        TimingDebugLogger.trace(s"API DirectivesCompliance - serialize to json in ${t6 - t5} ms")
         json
-      }) match {
-        case Full(rule) =>
-          toJsonResponse(None, ("directivesCompliance" -> rule))
-
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for directives'")).messageChain
-          toJsonError(None, JString(message))
-      }
+      }).toLiftResponseList(params, schema)
     }
   }
 
   object GetNodeGroupSummary extends LiftApiModule0 {
-    val schema: API.GetNodeGroupComplianceSummary.type = API.GetNodeGroupComplianceSummary
-    def process0(
+    override val schema: API.GetNodeGroupComplianceSummary.type = API.GetNodeGroupComplianceSummary
+
+    override def process0(
         version:    ApiVersion,
         path:       ApiPath,
         req:        Req,
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
         precision <- extractPercentPrecision(req.params)
@@ -364,26 +329,29 @@ class ComplianceApi(
 
         group <- complianceService.getNodeGroupComplianceSummary(targets, precision)
       } yield {
-        JArray(group.toList.map {
-          case (id, (global, targeted)) =>
-            (("id"      -> id) ~
-            ("targeted" -> targeted.toJson(1, precision.getOrElse(CompliancePrecision.Level2))) ~
-            ("global"   -> global.toJson(1, precision.getOrElse(CompliancePrecision.Level2))))
-        })
-      }) match {
-        case Full(groups) =>
-          toJsonResponse(None, ("nodeGroups" -> groups))
+        given l: Int                 = 1 // it's a summary
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance summary")).messageChain
-          toJsonError(None, JString(message))
+        group.toList.map {
+          case (id, (global, targeted)) =>
+            ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupSummaryApi(
+              id,
+              targeted.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi],
+              global.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+            )
+        }
+      }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
+        given f: Boolean = params.prettify
+        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
+        RudderJsonResponse.successList(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x)
       }
     }
   }
 
   object GetNodeGroupId extends LiftApiModule {
-    val schema: OneParam = API.GetNodeGroupComplianceId
-    def process(
+    override val schema: OneParam = API.GetNodeGroupComplianceId
+
+    override def process(
         version:    ApiVersion,
         path:       ApiPath,
         groupId:    String,
@@ -391,31 +359,30 @@ class ComplianceApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
         level     <- extractComplianceLevel(req.params)
         precision <- extractPercentPrecision(req.params)
-        target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toBox
+        target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toIO
         group     <- complianceService.getNodeGroupCompliance(target, level)
       } yield {
-        group.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-      }) match {
-        case Full(group) =>
-          toJsonResponse(None, ("nodeGroups" -> List(group)))
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for node group '${groupId}'")).messageChain
-          toJsonError(None, JString(message))
+        group.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+      }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
+        given f: Boolean = params.prettify
+        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
+        RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x, None)
       }
     }
   }
 
   object GetNodeGroupTargetId extends LiftApiModule {
-    val schema: OneParam = API.GetNodeGroupComplianceTargetId
-    def process(
+    override val schema: OneParam = API.GetNodeGroupComplianceTargetId
+
+    override def process(
         version:    ApiVersion,
         path:       ApiPath,
         groupId:    String,
@@ -423,60 +390,55 @@ class ComplianceApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
         level     <- extractComplianceLevel(req.params)
         precision <- extractPercentPrecision(req.params)
-        target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toBox
+        target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toIO
         group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance = false)
       } yield {
-        group.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-      }) match {
-        case Full(group) =>
-          toJsonResponse(None, ("nodeGroups" -> List(group)))
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get targeted compliance for node group '${groupId}'")).messageChain
-          toJsonError(None, JString(message))
+        group.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+      }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
+        given f: Boolean = params.prettify
+        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
+        RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x, None)
       }
     }
   }
 
   object GetNodes extends LiftApiModule0 {
-    val schema:                                                                                                API.GetNodesCompliance.type = API.GetNodesCompliance
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+    override val schema: API.GetNodesCompliance.type = API.GetNodesCompliance
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
 
       (for {
         level     <- extractComplianceLevel(req.params)
         precision <- extractPercentPrecision(req.params)
-        nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase).toBox
+        nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase)
       } yield {
-        if (version.value <= 6) {
-          nodes.map(_.toJsonV6)
-        } else {
-          nodes.map(_.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2)))
-        }
-      }) match {
-        case Full(nodes) =>
-          toJsonResponse(None, ("nodes" -> nodes))
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ ("Could not get compliances for nodes")).messageChain
-          toJsonError(None, JString(message))
-      }
+        nodes.map(_.transformInto[ComplianceApiData.JsonByNodeCompliance.ByNodeNodeComplianceApi])
+      }).chainError("Could not get compliances for nodes").toLiftResponseList(params, schema)
     }
   }
 
   object GetNodeId extends LiftApiModule {
-    val schema: OneParam = API.GetNodeComplianceId
+    override val schema: OneParam = API.GetNodeComplianceId
 
-    def process(
+    override def process(
         version:    ApiVersion,
         path:       ApiPath,
         nodeId:     String,
@@ -484,35 +446,25 @@ class ComplianceApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
         level     <- extractComplianceLevel(req.params)
         precision <- extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderBase).toBox
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderBase)
       } yield {
-        if (version.value <= 6) {
-          node.toJsonV6
-        } else {
-          node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-        }
-      }) match {
-        case Full(node) =>
-          toJsonResponse(None, ("nodes" -> List(node)))
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for node '${nodeId}'")).messageChain
-          toJsonError(None, JString(message))
-      }
+        node.transformInto[ComplianceApiData.JsonByNodeCompliance.ByNodeNodeComplianceApi]
+      }).chainError(s"Could not get compliance for node '${nodeId}'").toLiftResponseOne(params, schema, None)
     }
   }
 
   object GetNodeSystemCompliance extends LiftApiModule {
-    val schema: OneParam = API.GetNodeSystemCompliance
+    override val schema: OneParam = API.GetNodeSystemCompliance
 
-    def process(
+    override def process(
         version:    ApiVersion,
         path:       ApiPath,
         nodeId:     String,
@@ -520,47 +472,40 @@ class ComplianceApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc       = authzToken.qc
+      given qc: QueryContext = authzToken.qc
 
       (for {
         level     <- extractComplianceLevel(req.params)
         precision <- extractPercentPrecision(req.params)
-        node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderSystem).toBox
+        node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderSystem)
       } yield {
-        node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
-      }) match {
-        case Full(node) =>
-          toJsonResponse(None, ("nodes" -> List(node)))
+        given l: Int                 = level.getOrElse(10)
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
 
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get compliance for node '${nodeId}'")).messageChain
-          toJsonError(None, JString(message))
-      }
+        node.transformInto[ComplianceApiData.JsonByNodeCompliance.ByNodeNodeComplianceApi]
+      }).chainError(s"Could not get compliance for node '${nodeId}'").toLiftResponseOne(params, schema, None)
     }
   }
 
   object GetGlobal extends LiftApiModule0 {
-    val schema:                                                                                                API.GetGlobalCompliance.type = API.GetGlobalCompliance
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                 = {
-      implicit val action   = schema.name
-      implicit val prettify = params.prettify
-      implicit val qc: QueryContext = authzToken.qc
+    override val schema: API.GetGlobalCompliance.type = API.GetGlobalCompliance
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
 
       (for {
         precision     <- extractPercentPrecision(req.params)
-        optCompliance <- complianceService.getGlobalCompliance().toBox
+        optCompliance <- complianceService.getGlobalCompliance()
       } yield {
-        optCompliance.toJson(precision.getOrElse(CompliancePrecision.Level2))
-      }) match {
-        case Full(json) =>
-          toJsonResponse(None, json)
-
-        case eb: EmptyBox =>
-          val message = (eb ?~ (s"Could not get global compliance (for non system rules)")).messageChain
-          toJsonError(None, JString(message))
-      }
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+        optCompliance.transformInto[ComplianceApiData.JsonGlobalCompliance.GlobalComplianceApi].withContainer
+      }).chainError("Could not get global compliance (for non system rules)").toLiftResponseOne(params, schema, None)
     }
   }
 
@@ -568,6 +513,7 @@ class ComplianceApi(
     // attempt to parse a "target" first because format is more specific
     RuleTarget.unserOne(str).orElse(NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_)))
   }
+
 }
 
 /**
@@ -1170,7 +1116,7 @@ class ComplianceAPIService(
     }
   }
 
-  def getRuleCompliance(ruleId: RuleId, level: Option[Int])(implicit qc: QueryContext): Box[ByRuleRuleCompliance] = {
+  def getRuleCompliance(ruleId: RuleId, level: Option[Int])(implicit qc: QueryContext): IOResult[ByRuleRuleCompliance] = {
     for {
       rule    <- rulesRepo.get(ruleId)
       reports <- getByRulesCompliance(Seq(rule), level)
@@ -1178,9 +1124,11 @@ class ComplianceAPIService(
     } yield {
       report
     }
-  }.toBox
+  }
 
-  def getDirectiveCompliance(directive: Directive, level: Option[Int])(implicit qc: QueryContext): Box[ByDirectiveCompliance] = {
+  def getDirectiveCompliance(directive: Directive, level: Option[Int])(implicit
+      qc: QueryContext
+  ): IOResult[ByDirectiveCompliance] = {
     for {
       directiveLib <- directiveRepo.getFullDirectiveLibrary()
       reports      <- getByDirectivesCompliance(Seq(directive), directiveLib.allDirectives, level)
@@ -1189,13 +1137,13 @@ class ComplianceAPIService(
     } yield {
       report
     }
-  }.toBox
+  }
 
   def getNodeGroupCompliance(
       target:             SimpleTarget,
       level:              Option[Int],
       isGlobalCompliance: Boolean = true
-  )(implicit qc: QueryContext): Box[ByNodeGroupCompliance] = {
+  )(implicit qc: QueryContext): IOResult[ByNodeGroupCompliance] = {
     for {
       t1          <- currentTimeMillis
       nodeFacts   <- nodeFactRepos.getAll()
@@ -1297,7 +1245,7 @@ class ComplianceAPIService(
     } yield {
       res
     }
-  }.toBox
+  }
 
   /**
    * Get global and targeted compliance at level 1 (without any details) with global compliance at left and targeted at right
@@ -1305,7 +1253,7 @@ class ComplianceAPIService(
   def getNodeGroupComplianceSummary(
       targets:   Seq[SimpleTarget],
       precision: Option[CompliancePrecision]
-  )(implicit qc: QueryContext): Box[Map[String, (ByNodeGroupCompliance, ByNodeGroupCompliance)]] = {
+  )(implicit qc: QueryContext): IOResult[Map[String, (ByNodeGroupCompliance, ByNodeGroupCompliance)]] = {
     // container class to hold information for global targets
     final case class GlobalTargetInfo(
         name:                 String,
@@ -1436,10 +1384,10 @@ class ComplianceAPIService(
       } yield {
         bothGlobalTargeted.toMap
       }
-    }.toBox
+    }
   }
 
-  def getDirectivesCompliance(level: Option[Int])(implicit qc: QueryContext): Box[Seq[ByDirectiveCompliance]] = {
+  def getDirectivesCompliance(level: Option[Int])(implicit qc: QueryContext): IOResult[Seq[ByDirectiveCompliance]] = {
     for {
       directiveLib <- directiveRepo.getFullDirectiveLibrary()
       directives    = directiveLib.allDirectives.values.map(_._2).toSeq
@@ -1447,13 +1395,9 @@ class ComplianceAPIService(
     } yield {
       reports
     }
-  }.toBox
-
-  def getRulesCompliance(level: Option[Int])(implicit qc: QueryContext): Box[Seq[ByRuleRuleCompliance]] = {
-    getRulesCompliancePure(level).toBox
   }
 
-  def getRulesCompliancePure(level: Option[Int])(implicit qc: QueryContext): IOResult[Seq[ByRuleRuleCompliance]] = {
+  def getRulesCompliance(level: Option[Int])(implicit qc: QueryContext): IOResult[Seq[ByRuleRuleCompliance]] = {
     for {
       rules   <- rulesRepo.getAll()
       reports <- getByRulesCompliance(rules, level)

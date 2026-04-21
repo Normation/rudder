@@ -188,7 +188,7 @@ object ComplianceApi       extends Enum[ComplianceApi] with ApiModuleProvider[Co
     val z: Int = implicitly[Line].value
     val description    = "Get the global compliance (alike what one has on Rudder main dashboard)"
     val (action, path) = GET / "compliance"
-    val dataContainer: Some[String]            = Some("globalCompliance")
+    val dataContainer: Option[String]          = None // hand-managed in the DTO
     val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
   }
 
@@ -196,7 +196,7 @@ object ComplianceApi       extends Enum[ComplianceApi] with ApiModuleProvider[Co
     val z: Int = implicitly[Line].value
     val description    = "Get a directive's compliance"
     val (action, path) = GET / "compliance" / "directives" / "{id}"
-    val dataContainer: Some[String]            = Some("directiveCompliance")
+    val dataContainer: Option[String]          = None
     val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
   }
 

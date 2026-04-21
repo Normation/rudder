@@ -2252,8 +2252,6 @@ trait RudderJsonEncoders {
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
   import com.normation.rudder.score.ScoreSerializer.*
 
-  implicit lazy val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
-  implicit lazy val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
   implicit lazy val groupCategoryIdEncoder: JsonEncoder[NodeGroupCategoryId] = JsonEncoder[String].contramap(_.value)
   implicit lazy val hookEncoder:            JsonEncoder[JRHooks]             = DeriveJsonEncoder.gen
   implicit lazy val rulesEncoder:           JsonEncoder[JRRules]             = DeriveJsonEncoder.gen

@@ -41,9 +41,7 @@ import com.normation.GitVersion.Revision
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
-import zio.json.JsonCodec
-import zio.json.JsonDecoder
-import zio.json.JsonEncoder
+import zio.json.*
 
 final case class RuleUid(value: String) extends AnyVal {
   def debugString: String = value
@@ -69,10 +67,7 @@ object RuleId {
     }
   }
 
-  given JsonCodec[RuleId] = new JsonCodec(
-    JsonEncoder[String].contramap[RuleId](_.serialize),
-    JsonDecoder[String].mapOrFail(RuleId.parse)
-  )
+  given JsonCodec[RuleId] = JsonCodec.string.transformOrFail(RuleId.parse, _.serialize)
 }
 
 /**

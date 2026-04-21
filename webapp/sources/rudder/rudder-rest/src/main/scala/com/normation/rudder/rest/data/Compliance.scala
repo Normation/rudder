@@ -45,15 +45,18 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
+import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import enumeratum.*
+import fs2.Chunk
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import java.lang
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
 import scala.collection.immutable
+import zio.json.JsonEncoder
 
 /**
  * Here, we want to present two views of compliance:
@@ -72,6 +75,8 @@ import scala.collection.immutable
  * So we define two hierarchy of classes, with the name convention
  * starting by "ByRule" or "ByNode".
  */
+
+final case class AllByRuleRuleCompliance(rules: Chunk[Seq[ByRuleRuleCompliance]])
 
 /**
  * Compliance for a rules.
@@ -451,6 +456,8 @@ object CsvCompliance {
       component: ByRuleComponentCompliance,
       block:     List[String]
   ): Seq[(List[String], String, String, String, String, String)] = {
+    import com.normation.rudder.rest.data.ComplianceApiData.*
+
     component match {
       case component: ByRuleValueCompliance =>
         component.nodes.flatMap { node =>
@@ -461,7 +468,7 @@ object CsvCompliance {
                 component.name,
                 node.name,
                 value.componentValue,
-                JsonCompliance.statusDisplayName(report.reportType),
+                report.reportType.serialize,
                 report.message.getOrElse("")
               )
             }
@@ -491,733 +498,6 @@ object CsvCompliance {
   }
 }
 
-object JsonCompliance {
-
-  // global compliance
-  implicit class JsonGlobalCompliance(val optCompliance: Option[(ComplianceLevel, Long)]) extends AnyVal {
-    def toJson(precision: CompliancePrecision): JValue = {
-      optCompliance match {
-        case Some((details, value)) =>
-          ("globalCompliance"      -> (
-            ("compliance"          -> value)
-            ~ ("complianceDetails" -> percents(details, precision))
-          ))
-
-        case None =>
-          ("globalCompliance" -> (
-            ("compliance"     -> -1)
-          ))
-      }
-    }
-  }
-
-  implicit class JsonbyDirectiveCompliance(val directive: ByDirectiveCompliance) extends AnyVal {
-    def toJsonV6: JObject = (
-      ("id"                    -> directive.id.serialize)
-        ~ ("name"              -> directive.name)
-        ~ ("compliance"        -> directive.compliance.complianceWithoutPending())
-        ~ ("policyMode"        -> directive.policyMode.name)
-        ~ ("complianceDetails" -> percents(directive.compliance, CompliancePrecision.Level2))
-        ~ ("rules"             -> rules(directive.rules, 10, CompliancePrecision.Level2))
-        ~ ("nodes"             -> byNodes(directive.nodes, 10, CompliancePrecision.Level2))
-    )
-    def toJson(level: Int, precision: CompliancePrecision): JObject = (
-      ("id"                    -> directive.id.serialize)
-        ~ ("name"              -> directive.name)
-        ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
-        ~ ("mode"              -> directive.mode.name)
-        ~ ("policyMode"        -> directive.policyMode.name)
-        ~ ("complianceDetails" -> percents(directive.compliance, precision))
-        ~ ("rules"             -> rules(directive.rules, level, precision))
-        ~ ("nodes"             -> byNodes(directive.nodes, level, precision))
-    )
-
-    private def byNodes(
-        nodes:     Seq[ByDirectiveNodeCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(nodes.map { node =>
-          (
-            ("id"                  -> node.id.value)
-            ~ ("name"              -> node.name)
-            ~ ("policyMode"        -> node.policyMode.name)
-            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(node.compliance, precision))
-            ~ ("rules"             -> byRule(node.rules, level, precision))
-          )
-        })
-      }
-    }
-
-    private def byRule(
-        rules:     Seq[ByDirectiveByNodeRuleCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(rules.map { rule =>
-          (
-            ("id"                  -> rule.id.uid.value)
-            ~ ("name"              -> rule.name)
-            ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> rule.policyMode.name)
-            ~ ("complianceDetails" -> percents(rule.compliance, precision))
-            ~ ("components"        -> byNodeByDirectiveByComponents(rule.components, level, precision))
-          )
-        })
-      }
-    }
-
-    private def byNodeByDirectiveByComponents(
-        comps:     Seq[ByRuleByNodeByDirectiveByComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 4) None
-      else {
-        Some(comps.map { component =>
-          (
-            ("name"                -> component.name)
-            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(component.compliance, precision))
-            ~ (component match {
-              case component: ByRuleByNodeByDirectiveByBlockCompliance =>
-                ("components" -> byNodeByDirectiveByComponents(component.subComponents, level, precision))
-              case component: ByRuleByNodeByDirectiveByValueCompliance =>
-                ("values" -> values(component.values, level))
-            })
-          )
-        })
-      }
-    }
-
-    private def rules(
-        rules:     Seq[ByDirectiveByRuleCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(rules.map { rule =>
-          (
-            ("id"                  -> rule.id.uid.value)
-            ~ ("name"              -> rule.name)
-            ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> rule.policyMode.name)
-            ~ ("complianceDetails" -> percents(rule.compliance, precision))
-            ~ ("skippedDetails"    -> rule.skippedDetails.map(s =>
-              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
-            ))
-            ~ ("components"        -> components(rule.components, level, precision))
-          )
-        })
-      }
-    }
-
-    private def components(
-        comps:     Seq[ByRuleComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(comps.map { component =>
-          (
-            ("name"                -> component.name)
-            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(component.compliance, precision))
-            ~ (component match {
-              case component: ByRuleBlockCompliance => // this case should not happened because we are only get nodes compliance here
-                ("components" -> components(component.subComponents, level, precision))
-              case component: ByRuleValueCompliance =>
-                ("nodes" -> nodes(component.nodes, level, precision))
-            })
-          )
-        })
-      }
-    }
-
-    def values(values: Seq[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
-      if (level < 5) None
-      else {
-        Some(values.map { value =>
-          (
-            ("value"     -> value.componentValue)
-            ~ ("reports" -> value.messages.map { report =>
-              (
-                ("status"    -> statusDisplayName(report.reportType))
-                ~ ("message" -> report.message)
-              )
-            })
-          )
-        })
-      }
-    }
-    private def nodes(
-        nodes:     Seq[ByRuleNodeCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 4) None
-      else {
-        Some(nodes.map { node =>
-          (
-            ("id"                  -> node.id.value)
-            ~ ("name"              -> node.name)
-            ~ ("policyMode"        -> node.policyMode.name)
-            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(node.compliance, precision))
-            ~ ("values"            -> values(node.values, level))
-          )
-        })
-      }
-
-    }
-
-  }
-
-  implicit class JsonByRuleCompliance(val rule: ByRuleRuleCompliance) extends AnyVal {
-    def toJsonV6: JObject = (
-      ("id"                    -> rule.id.serialize)
-        ~ ("name"              -> rule.name)
-        ~ ("compliance"        -> rule.compliance.complianceWithoutPending())
-        ~ ("policyMode"        -> rule.policyMode.name)
-        ~ ("complianceDetails" -> percents(rule.compliance, CompliancePrecision.Level2))
-        ~ ("directives"        -> directives(rule.directives, 10, CompliancePrecision.Level2))
-    )
-
-    /*
-     * level:
-     * - up to 1 : rules,
-     * - 2: rules & directives
-     * - 3: rules, directives, components
-     * - 4 and up: rules, directives, components, node and component values
-     */
-
-    def toJson(level: Int, precision: CompliancePrecision): JObject = (
-      ("id"                    -> rule.id.serialize)
-        ~ ("name"              -> rule.name)
-        ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
-        ~ ("mode"              -> rule.mode.name)
-        ~ ("policyMode"        -> rule.policyMode.name)
-        ~ ("complianceDetails" -> percents(rule.compliance, precision))
-        ~ ("directives"        -> directives(rule.directives, level, precision))
-        ~ ("nodes"             -> byNodes(rule.nodes, level, precision))
-    )
-
-    private def directives(
-        directives: Seq[ByRuleDirectiveCompliance],
-        level:      Int,
-        precision:  CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(directives.map { directive =>
-          (
-            ("id"                  -> directive.id.serialize)
-            ~ ("name"              -> directive.name)
-            ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> directive.policyMode.name)
-            ~ ("complianceDetails" -> percents(directive.compliance, precision))
-            ~ ("skippedDetails"    -> directive.skippedDetails.map(s =>
-              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
-            ))
-            ~ ("components"        -> components(directive.components, level, precision))
-          )
-        })
-      }
-    }
-    private def byNodes(
-        nodes:     Seq[GroupComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(nodes.map { node =>
-          (
-            ("id"                  -> node.id.value)
-            ~ ("name"              -> node.name)
-            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> node.policyMode.name)
-            ~ ("complianceDetails" -> percents(node.compliance, precision))
-            ~ ("directives"        -> byNodesByDirectives(node.directives, level, precision))
-          )
-        })
-      }
-    }
-
-    private def byNodesByDirectives(
-        directives: Seq[ByRuleByNodeByDirectiveCompliance],
-        level:      Int,
-        precision:  CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(directives.map { directive =>
-          (
-            ("id"                  -> directive.id.serialize)
-            ~ ("name"              -> directive.name)
-            ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> directive.policyMode.name)
-            ~ ("complianceDetails" -> percents(directive.compliance, precision))
-            ~ ("components"        -> byNodeByDirectiveByComponents(directive.components, level, precision))
-          )
-        })
-      }
-    }
-    private def components(
-        comps:     Seq[ByRuleComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(comps.map { component =>
-          (
-            ("name"                -> component.name)
-            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(component.compliance, precision))
-            ~ (component match {
-              case component: ByRuleBlockCompliance =>
-                ("components" -> components(component.subComponents, level, precision))
-              case component: ByRuleValueCompliance =>
-                ("nodes" -> nodes(component.nodes, level, precision))
-            })
-          )
-        })
-      }
-    }
-
-    private def byNodeByDirectiveByComponents(
-        comps:     Seq[ByRuleByNodeByDirectiveByComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 4) None
-      else {
-        Some(comps.map { component =>
-          (
-            ("name"                -> component.name)
-            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(component.compliance, precision))
-            ~ (component match {
-              case component: ByRuleByNodeByDirectiveByBlockCompliance =>
-                ("components" -> byNodeByDirectiveByComponents(component.subComponents, level, precision))
-              case component: ByRuleByNodeByDirectiveByValueCompliance =>
-                ("values" -> values(component.values, level))
-            })
-          )
-        })
-      }
-    }
-
-    def values(values: Seq[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
-      if (level < 5) None
-      else {
-        Some(values.map { value =>
-          (
-            ("value"     -> value.componentValue)
-            ~ ("reports" -> value.messages.map { report =>
-              (
-                ("status"    -> statusDisplayName(report.reportType))
-                ~ ("message" -> report.message)
-              )
-            })
-          )
-        })
-      }
-    }
-    private def nodes(
-        nodes:     Seq[ByRuleNodeCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 4) None
-      else {
-        Some(nodes.map { node =>
-          (
-            ("id"                  -> node.id.value)
-            ~ ("name"              -> node.name)
-            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> node.policyMode.name)
-            ~ ("complianceDetails" -> percents(node.compliance, precision))
-            ~ ("values"            -> values(node.values, level))
-          )
-        })
-      }
-
-    }
-
-  }
-
-  implicit class JsonByNodeGroupCompliance(val nodeGroup: ByNodeGroupCompliance) extends AnyVal {
-
-    def toJson(level: Int, precision: CompliancePrecision): JObject = {
-      (("id"                 -> nodeGroup.id)
-      ~ ("name"              -> nodeGroup.name)
-      ~ ("compliance"        -> nodeGroup.compliance.complianceWithoutPending(precision))
-      ~ ("mode"              -> nodeGroup.mode.name)
-      ~ ("complianceDetails" -> percents(nodeGroup.compliance, precision))
-      ~ ("rules"             -> byRule(nodeGroup.rules, level, precision))
-      ~ ("nodes"             -> byNode(nodeGroup.nodes, level, precision)))
-    }
-
-    private def byRule(
-        rules:     Seq[ByNodeGroupRuleCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(rules.map { rule =>
-          (("id"                 -> rule.id.serialize)
-          ~ ("name"              -> rule.name)
-          ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
-          ~ ("policyMode"        -> rule.policyMode.name)
-          ~ ("complianceDetails" -> percents(rule.compliance, precision))
-          ~ ("directives"        -> directives(rule.directives, level, precision)))
-        })
-      }
-    }
-
-    private def byNode(
-        nodes:     Seq[ByNodeGroupNodeCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(nodes.map { node =>
-          (("id"                 -> node.id.value)
-          ~ ("name"              -> node.name)
-          ~ ("mode"              -> node.mode.name)
-          ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
-          ~ ("policyMode"        -> node.policyMode.name)
-          ~ ("complianceDetails" -> percents(node.compliance, precision))
-          ~ ("rules"             -> byNodeRules(node.rules, level, precision)))
-        })
-      }
-    }
-
-    private def byNodeRules(
-        rules:     Seq[ByNodeRuleCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(rules.map { rule =>
-          (
-            ("id"                  -> rule.id.serialize)
-            ~ ("name"              -> rule.name)
-            ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> rule.policyMode.name)
-            ~ ("complianceDetails" -> percents(rule.compliance, precision))
-            ~ ("directives"        -> byNodeDirectives(rule.directives, level, precision))
-          )
-        })
-      }
-    }
-
-    private def byNodeDirectives(
-        directives: Seq[ByNodeDirectiveCompliance],
-        level:      Int,
-        precision:  CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(directives.map { directive =>
-          (
-            ("id"                  -> directive.id.serialize)
-            ~ ("name"              -> directive.name)
-            ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> directive.policyMode.name)
-            ~ ("complianceDetails" -> percents(directive.compliance, precision))
-            ~ ("components"        -> byNodeComponents(directive.components, level, precision))
-          )
-        })
-      }
-    }
-
-    private def byNodeComponents(
-        comps:     List[ComponentStatusReport],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(comps.map {
-          case component =>
-            (
-              ("name"                -> component.componentName)
-              ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-              ~ ("complianceDetails" -> percents(component.compliance, precision))
-              ~ (component match {
-                case component: BlockStatusReport =>
-                  ("components" -> byNodeComponents(component.subComponents, level, precision))
-                case component: ValueStatusReport => ("values" -> values(component.componentValues, level))
-              })
-            )
-        })
-      }
-    }
-
-    private def directives(
-        directives: Seq[ByNodeGroupByRuleDirectiveCompliance],
-        level:      Int,
-        precision:  CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(directives.map { directive =>
-          (
-            ("id"                  -> directive.id.serialize)
-            ~ ("name"              -> directive.name)
-            ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> directive.policyMode.name)
-            ~ ("complianceDetails" -> percents(directive.compliance, precision))
-            ~ ("skippedDetails"    -> directive.skippedDetails.map(s =>
-              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
-            ))
-            ~ ("components"        -> components(directive.components, level, precision))
-          )
-        })
-      }
-    }
-
-    private def components(
-        comps:     Seq[ByRuleComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(comps.map { component =>
-          (
-            ("name"                -> component.name)
-            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(component.compliance, precision))
-            ~ (component match {
-              case component: ByRuleBlockCompliance =>
-                ("components" -> components(component.subComponents, level, precision))
-              case component: ByRuleValueCompliance =>
-                ("nodes" -> nodes(component.nodes, level, precision))
-            })
-          )
-        })
-      }
-    }
-
-    private def nodes(
-        nodes:     Seq[ByRuleNodeCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 4) None
-      else {
-        Some(nodes.map { node =>
-          (
-            ("id"                  -> node.id.value)
-            ~ ("name"              -> node.name)
-            ~ ("compliance"        -> node.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> node.policyMode.name)
-            ~ ("complianceDetails" -> percents(node.compliance, precision))
-            ~ ("values"            -> values(node.values, level))
-          )
-        })
-      }
-    }
-
-    private def values(values: Seq[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
-      if (level < 5) None
-      else {
-        Some(values.map { value =>
-          (
-            ("value"     -> value.componentValue)
-            ~ ("reports" -> value.messages.map { report =>
-              (
-                ("status"    -> statusDisplayName(report.reportType))
-                ~ ("message" -> report.message)
-              )
-            })
-          )
-        })
-      }
-    }
-
-  }
-
-  implicit class JsonByNodeCompliance(val n: ByNodeNodeCompliance) extends AnyVal {
-    def toJsonV6: JObject = (
-      ("id"                    -> n.id.value)
-        ~ ("compliance"        -> n.compliance.complianceWithoutPending())
-        ~ ("policyMode"        -> n.policyMode.name)
-        ~ ("complianceDetails" -> percents(n.compliance, CompliancePrecision.Level2))
-        ~ ("rules"             -> rules(n.nodeCompliances, 10, CompliancePrecision.Level2))
-    )
-
-    /*
-     * level:
-     * - up to 1 : nodes,
-     * - 2: nodes & rules
-     * - 3: nodes, rules, directives
-     * - 4: nodes, rules, directives, components
-     * - 5 and up: nodes, rules, directives, components and component values
-     */
-
-    def toJson(level: Int, precision: CompliancePrecision): JObject = (
-      ("id"                    -> n.id.value)
-        ~ ("name"              -> n.name)
-        ~ ("compliance"        -> n.compliance.complianceWithoutPending(precision))
-        ~ ("mode"              -> n.mode.name)
-        ~ ("policyMode"        -> n.policyMode.name)
-        ~ ("complianceDetails" -> percents(n.compliance, precision))
-        ~ ("rules"             -> rules(n.nodeCompliances, level, precision))
-    )
-
-    private def rules(
-        rules:     Seq[ByNodeRuleCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 2) None
-      else {
-        Some(rules.map { rule =>
-          (
-            ("id"                  -> rule.id.serialize)
-            ~ ("name"              -> rule.name)
-            ~ ("compliance"        -> rule.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> rule.policyMode.name)
-            ~ ("complianceDetails" -> percents(rule.compliance, precision))
-            ~ ("directives"        -> directives(rule.directives, level, precision))
-          )
-        })
-      }
-    }
-
-    private def directives(
-        directives: Seq[ByNodeDirectiveCompliance],
-        level:      Int,
-        precision:  CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(directives.map { directive =>
-          (
-            ("id"                  -> directive.id.serialize)
-            ~ ("name"              -> directive.name)
-            ~ ("compliance"        -> directive.compliance.complianceWithoutPending(precision))
-            ~ ("policyMode"        -> directive.policyMode.name)
-            ~ ("complianceDetails" -> percents(directive.compliance, precision))
-            ~ ("skippedDetails"    -> directive.skippedDetails.map(s =>
-              ("overridingRuleId" -> s.overridingRuleId.serialize) ~ ("overridingRuleName" -> s.overridingRuleName)
-            ))
-            ~ ("components"        -> components(directive.components, level, precision))
-          )
-        })
-      }
-    }
-
-    private def components(
-        comps:     List[ComponentStatusReport],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 4) None
-      else {
-        Some(comps.map {
-          case component =>
-            (
-              ("name"                -> component.componentName)
-              ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-              ~ ("complianceDetails" -> percents(component.compliance, precision))
-              ~ (component match {
-                case component: BlockStatusReport =>
-                  ("components" -> components(component.subComponents, level, precision))
-                case component: ValueStatusReport => ("values" -> values(component.componentValues, level))
-              })
-            )
-        })
-      }
-    }
-
-    private def values(componentValues: List[ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
-      if (level < 5) None
-      else {
-        Some(componentValues.map {
-          case value =>
-            (
-              ("value"     -> value.componentValue)
-              ~ ("reports" -> value.messages.map { report =>
-                (
-                  ("status"    -> statusDisplayName(report.reportType))
-                  ~ ("message" -> report.message)
-                )
-              })
-            )
-        })
-      }
-    }
-
-  }
-
-  def statusDisplayName(r: ReportType): String = {
-    import ReportType.*
-
-    r match {
-      case EnforceNotApplicable => "successNotApplicable"
-      case EnforceSuccess       => "successAlreadyOK"
-      case EnforceRepaired      => "successRepaired"
-      case EnforceError         => "error"
-      case AuditCompliant       => "auditCompliant"
-      case AuditNonCompliant    => "auditNonCompliant"
-      case AuditError           => "auditError"
-      case AuditNotApplicable   => "auditNotApplicable"
-      case Unexpected           => "unexpectedUnknownComponent"
-      case Missing              => "unexpectedMissingComponent"
-      case NoAnswer             => "noReport"
-      case Disabled             => "reportsDisabled"
-      case Pending              => "applying"
-      case BadPolicyMode        => "badPolicyMode"
-    }
-  }
-
-  /**
-   * By default, we want to only display non 0 compliance percent
-   *
-   * We also want to define clear user facing severity levels, in particular,
-   * the semantic of unexpected / missing and no answer is not clear at all.
-   *
-   */
-  private def percents(c: ComplianceLevel, precision: CompliancePrecision): Map[String, Double] = {
-    import ReportType.*
-
-    // we want at most `precision` decimals
-    val pc = CompliancePercent.fromLevels(c, precision)
-    Map(
-      statusDisplayName(EnforceNotApplicable) -> pc.notApplicable,
-      statusDisplayName(EnforceSuccess)       -> pc.success,
-      statusDisplayName(EnforceRepaired)      -> pc.repaired,
-      statusDisplayName(EnforceError)         -> pc.error,
-      statusDisplayName(Unexpected)           -> pc.unexpected,
-      statusDisplayName(Missing)              -> pc.missing,
-      statusDisplayName(NoAnswer)             -> pc.noAnswer,
-      statusDisplayName(Disabled)             -> pc.reportsDisabled,
-      statusDisplayName(Pending)              -> pc.pending,
-      statusDisplayName(AuditCompliant)       -> pc.compliant,
-      statusDisplayName(AuditNotApplicable)   -> pc.auditNotApplicable,
-      statusDisplayName(AuditError)           -> pc.auditError,
-      statusDisplayName(AuditNonCompliant)    -> pc.nonCompliant,
-      statusDisplayName(BadPolicyMode)        -> pc.badPolicyMode
-    ).filter { case (k, v) => v > 0 }.view.mapValues(percent => percent).toMap
-  }
-}
-
 sealed trait ComplianceFormat extends EnumEntry {
   def value: String
 }
@@ -1235,4 +515,661 @@ object ComplianceFormat extends Enum[ComplianceFormat] {
       case Some(action) => Right(action)
     }
   }
+}
+
+/*
+ * This is used for serialization of compliance API object. These are pure DTO
+ */
+object ComplianceApiData {
+  // generic transformers
+  private given complianceLevelTransformer(using precision: CompliancePrecision): Transformer[ComplianceLevel, Double] =
+    _.complianceWithoutPending(precision)
+
+  private given complianceSerializableTransformer(using
+      precision: CompliancePrecision
+  ): Transformer[ComplianceLevel, ComplianceSerializable] = x =>
+    CompliancePercent.fromLevels(x, precision).transformInto[ComplianceSerializable]
+
+  private given JsonEncoder[ComputedPolicyMode] = JsonEncoder.string.contramap(_.name)
+
+  final case class SkippedDetailsApi(
+      overridingRuleId:   RuleId,
+      overridingRuleName: String
+  ) derives JsonEncoder
+
+  private given Transformer[SkippedDetails, SkippedDetailsApi] =
+    Transformer.define[SkippedDetails, SkippedDetailsApi].buildTransformer
+
+  final case class ReportMessageApi(
+      status:  ReportType,
+      message: Option[String]
+  ) derives JsonEncoder
+
+  private given Transformer[MessageStatusReport, ReportMessageApi] =
+    Transformer.define[MessageStatusReport, ReportMessageApi].withFieldRenamed(_.reportType, _.status).buildTransformer
+
+  given JsonEncoder[ReportType] = JsonEncoder.string.contramap(_.serialize)
+
+  extension (rt: ReportType) {
+    def serialize: String = rt match {
+      case EnforceNotApplicable => "successNotApplicable"
+      case EnforceSuccess       => "successAlreadyOK"
+      case EnforceRepaired      => "successRepaired"
+      case EnforceError         => "error"
+      case AuditCompliant       => "auditCompliant"
+      case AuditNonCompliant    => "auditNonCompliant"
+      case AuditError           => "auditError"
+      case AuditNotApplicable   => "auditNotApplicable"
+      case Unexpected           => "unexpectedUnknownComponent"
+      case Missing              => "unexpectedMissingComponent"
+      case NoAnswer             => "noReport"
+      case Disabled             => "reportsDisabled"
+      case Pending              => "applying"
+      case BadPolicyMode        => "badPolicyMode"
+    }
+  }
+
+  final case class ComponentValueStatusReportApi(
+      value:   String,
+      reports: Seq[ReportMessageApi]
+  ) derives JsonEncoder
+
+  private given Transformer[ComponentValueStatusReport, ComponentValueStatusReportApi] = {
+    Transformer
+      .define[ComponentValueStatusReport, ComponentValueStatusReportApi]
+      .withFieldRenamed(_.componentValue, _.value)
+      .withFieldComputed(_.reports, x => x.messages.map(_.transformInto[ReportMessageApi]))
+      .buildTransformer
+  }
+
+  final case class ByRuleNodeComplianceApi(
+      id:                NodeId,
+      name:              String,
+      compliance:        Double,
+      policyMode:        ComputedPolicyMode,
+      complianceDetails: ComplianceSerializable,
+      values:            Option[Seq[ComponentValueStatusReportApi]]
+  ) derives JsonEncoder
+
+  private given byRuleNodeComplianceApi(using
+      precision: CompliancePrecision,
+      level:     Int
+  ): Transformer[ByRuleNodeCompliance, ByRuleNodeComplianceApi] = {
+    Transformer
+      .define[ByRuleNodeCompliance, ByRuleNodeComplianceApi]
+      .withFieldComputed(
+        _.values,
+        x => if (level < 5) None else Some(x.values.map(_.transformInto[ComponentValueStatusReportApi]))
+      )
+      .withFieldRenamed(_.compliance, _.complianceDetails)
+      .buildTransformer
+  }
+
+  final case class ByRuleByNodeByDirectiveByComponentComplianceApi(
+      name:              String,
+      compliance:        Double,
+      complianceDetails: ComplianceSerializable,
+      components:        Option[Seq[ByRuleByNodeByDirectiveByComponentComplianceApi]],
+      values:            Option[Seq[ComponentValueStatusReportApi]]
+  ) derives JsonEncoder
+
+  given byRuleByNodeByDirectiveByComponentComplianceApi(using
+      precision: CompliancePrecision,
+      level:     Int
+  ): Transformer[ByRuleByNodeByDirectiveByComponentCompliance, ByRuleByNodeByDirectiveByComponentComplianceApi] = {
+    (src: ByRuleByNodeByDirectiveByComponentCompliance) =>
+      {
+        val (subComponents, values) = src match {
+          case ByRuleByNodeByDirectiveByBlockCompliance(_, _, scs) =>
+            (Some(scs.map(_.transformInto[ByRuleByNodeByDirectiveByComponentComplianceApi])), None)
+          case ByRuleByNodeByDirectiveByValueCompliance(_, _, vs)  =>
+            if (level < 5) (None, None)
+            else (None, Some(vs.map(_.transformInto[ComponentValueStatusReportApi])))
+        }
+        ByRuleByNodeByDirectiveByComponentComplianceApi(
+          src.name,
+          src.compliance.transformInto[Double],
+          src.compliance.transformInto[ComplianceSerializable],
+          subComponents,
+          values
+        )
+      }
+  }
+
+  // GLOBAL
+  object JsonGlobalCompliance {
+
+    // we need that extra layer because we must not have a data container to avoid [] and keep compat
+    final case class GlobalComplianceContainer(globalCompliance: GlobalComplianceApi) derives JsonEncoder
+
+    final case class GlobalComplianceApi(compliance: Long, complianceDetails: Option[ComplianceSerializable])
+        derives JsonEncoder {
+      def withContainer: GlobalComplianceContainer = GlobalComplianceContainer(this)
+    }
+
+    given globalComplianceApi(using
+        precision: CompliancePrecision
+    ): Transformer[Option[(ComplianceLevel, Long)], GlobalComplianceApi] = {
+      case None         => GlobalComplianceApi(-1, None)
+      case Some((l, v)) => GlobalComplianceApi(v, Some(l.transformInto[ComplianceSerializable]))
+    }
+  }
+
+  // DIRECTIVES
+  object JsonByDirectiveCompliance {
+
+    // this is needed to keep compat with pre-9.2 format:  { "data" : { "directiveCompliance" : { "id"....
+    final case class ByDirectiveComplianceContainer(directiveCompliance: ByDirectiveComplianceApi) derives JsonEncoder
+
+    final case class ByDirectiveComplianceApi(
+        id:                DirectiveId,
+        name:              String,
+        compliance:        Double,
+        mode:              ComplianceModeName,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        rules:             Option[Seq[ByDirectiveByRuleComplianceApi]],
+        nodes:             Option[Seq[ByDirectiveNodeComplianceApi]]
+    ) derives JsonEncoder
+
+    given byDirectiveCompliance(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByDirectiveCompliance, ByDirectiveComplianceApi] = {
+      Transformer
+        .define[ByDirectiveCompliance, ByDirectiveComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.rules,
+          x => if (level < 2) None else Some(x.rules.map(_.transformInto[ByDirectiveByRuleComplianceApi]))
+        )
+        .withFieldComputed(
+          _.nodes,
+          x => if (level < 2) None else Some(x.nodes.map(_.transformInto[ByDirectiveNodeComplianceApi]))
+        )
+        .buildTransformer
+    }
+
+    final case class ByDirectiveByRuleComplianceApi(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        skippedDetails:    Option[SkippedDetailsApi],
+        components:        Option[Seq[ByRuleComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given byDirectiveByRuleComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByDirectiveByRuleCompliance, ByDirectiveByRuleComplianceApi] = {
+      Transformer
+        .define[ByDirectiveByRuleCompliance, ByDirectiveByRuleComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.components,
+          x => if (level < 3) None else Some(x.components.map(_.transformInto[ByRuleComponentComplianceApi]))
+        )
+        .buildTransformer
+    }
+
+    final case class ByRuleComponentComplianceApi(
+        name:              String,
+        compliance:        Double,
+        complianceDetails: ComplianceSerializable,
+        components:        Option[Seq[ByRuleComponentComplianceApi]],
+        nodes:             Option[Seq[ByRuleNodeComplianceApi]]
+    ) derives JsonEncoder
+
+    given byRuleComponentComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleComponentCompliance, ByRuleComponentComplianceApi] = { (src: ByRuleComponentCompliance) =>
+      {
+        val (subComponents, nodes) = src match {
+          case ByRuleBlockCompliance(_, _, scs) =>
+            (Some(scs.map(_.transformInto[ByRuleComponentComplianceApi])), None)
+
+          case ByRuleValueCompliance(_, _, ns) =>
+            if (level < 4) (None, None)
+            else (None, Some(ns.map(_.transformInto[ByRuleNodeComplianceApi])))
+        }
+        ByRuleComponentComplianceApi(
+          src.name,
+          src.compliance.transformInto[Double],
+          src.compliance.transformInto[ComplianceSerializable],
+          subComponents,
+          nodes
+        )
+      }
+    }
+
+    final case class ByDirectiveNodeComplianceApi(
+        id:                NodeId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        rules:             Option[Seq[ByDirectiveByNodeRuleComplianceApi]]
+    ) derives JsonEncoder
+
+    given byDirectiveNodeComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByDirectiveNodeCompliance, ByDirectiveNodeComplianceApi] = {
+      Transformer
+        .define[ByDirectiveNodeCompliance, ByDirectiveNodeComplianceApi]
+        .withFieldComputed(
+          _.rules,
+          x => if (level < 3) None else Some(x.rules.map(_.transformInto[ByDirectiveByNodeRuleComplianceApi]))
+        )
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .buildTransformer
+    }
+
+    final case class ByDirectiveByNodeRuleComplianceApi(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        components:        Option[Seq[ByRuleByNodeByDirectiveByComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given byDirectiveByNodeRuleComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByDirectiveByNodeRuleCompliance, ByDirectiveByNodeRuleComplianceApi] = {
+      Transformer
+        .define[ByDirectiveByNodeRuleCompliance, ByDirectiveByNodeRuleComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.components,
+          x => if (level < 4) None else Some(x.components.map(_.transformInto[ByRuleByNodeByDirectiveByComponentComplianceApi]))
+        )
+        .buildTransformer
+    }
+  }
+
+  // RULES
+  object JsonByRuleCompliance {
+
+    final case class ByRuleRuleComplianceApi(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        mode:              ComplianceModeName,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        directives:        Option[Seq[ByRuleDirectiveComplianceApi]],
+        nodes:             Option[Seq[GroupComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given byRuleRuleCompliance(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleRuleCompliance, ByRuleRuleComplianceApi] = {
+      Transformer
+        .define[ByRuleRuleCompliance, ByRuleRuleComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.directives,
+          x => if (level < 2) None else Some(x.directives.map(_.transformInto[ByRuleDirectiveComplianceApi]))
+        )
+        .withFieldComputed(_.nodes, x => if (level < 2) None else Some(x.nodes.map(_.transformInto[GroupComponentComplianceApi])))
+        .buildTransformer
+    }
+
+    final case class ByRuleDirectiveComplianceApi(
+        id:                DirectiveId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        skippedDetails:    Option[SkippedDetailsApi],
+        components:        Option[Seq[ByRuleComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given byRuleDirectiveComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleDirectiveCompliance, ByRuleDirectiveComplianceApi] = {
+      Transformer
+        .define[ByRuleDirectiveCompliance, ByRuleDirectiveComplianceApi]
+        .withFieldComputed(
+          _.components,
+          x => if (level < 3) None else Some(x.components.map(_.transformInto[ByRuleComponentComplianceApi]))
+        )
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .buildTransformer
+    }
+
+    final case class ByRuleComponentComplianceApi(
+        name:              String,
+        compliance:        Double,
+        complianceDetails: ComplianceSerializable,
+        components:        Option[Seq[ByRuleComponentComplianceApi]],
+        nodes:             Option[Seq[ByRuleNodeComplianceApi]]
+    ) derives JsonEncoder
+
+    given byRuleComponentComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleComponentCompliance, ByRuleComponentComplianceApi] = { (src: ByRuleComponentCompliance) =>
+      {
+        val (subComponents, nodes) = src match {
+          case ByRuleBlockCompliance(_, _, scs) =>
+            (Some(scs.map(_.transformInto[ByRuleComponentComplianceApi])), None)
+
+          case ByRuleValueCompliance(_, _, ns) =>
+            if (level < 4) (None, None)
+            else (None, Some(ns.map(_.transformInto[ByRuleNodeComplianceApi])))
+        }
+        ByRuleComponentComplianceApi(
+          src.name,
+          src.compliance.transformInto[Double],
+          src.compliance.transformInto[ComplianceSerializable],
+          subComponents,
+          nodes
+        )
+      }
+    }
+
+    final case class GroupComponentComplianceApi(
+        id:                NodeId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        directives:        Option[Seq[ByRuleByNodeByDirectiveComplianceApi]]
+    ) derives JsonEncoder
+
+    given groupComponentComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[GroupComponentCompliance, GroupComponentComplianceApi] = {
+      Transformer
+        .define[GroupComponentCompliance, GroupComponentComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.directives,
+          x => if (level < 3) None else Some(x.directives.map(_.transformInto[ByRuleByNodeByDirectiveComplianceApi]))
+        )
+        .buildTransformer
+    }
+
+    final case class ByRuleByNodeByDirectiveComplianceApi(
+        id:                DirectiveId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        components:        Option[Seq[ByRuleByNodeByDirectiveByComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given byRuleByNodeByDirectiveComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleByNodeByDirectiveCompliance, ByRuleByNodeByDirectiveComplianceApi] = {
+      Transformer
+        .define[ByRuleByNodeByDirectiveCompliance, ByRuleByNodeByDirectiveComplianceApi]
+        .withFieldComputed(
+          _.components,
+          x => if (level < 4) None else Some(x.components.map(_.transformInto[ByRuleByNodeByDirectiveByComponentComplianceApi]))
+        )
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .buildTransformer
+    }
+  }
+
+  // GROUPS
+  object JsonByNodeGroupCompliance {
+
+    final case class ByNodeGroupSummaryApi(
+        id:       String,
+        targeted: ByNodeGroupComplianceApi,
+        global:   ByNodeGroupComplianceApi
+    ) derives JsonEncoder
+
+    final case class ByNodeGroupComplianceApi(
+        // id is actually a target name, ie serialized node group id or special target name without "group:" or other prefix
+        id:                String,
+        name:              String,
+        compliance:        Double,
+        mode:              ComplianceModeName,
+        complianceDetails: ComplianceSerializable,
+        rules:             Option[Seq[ByNodeGroupRuleComplianceApi]],
+        nodes:             Option[Seq[ByNodeGroupNodeComplianceApi]]
+    ) derives JsonEncoder
+
+    given byNodeGroupComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByNodeGroupCompliance, ByNodeGroupComplianceApi] = {
+      Transformer
+        .define[ByNodeGroupCompliance, ByNodeGroupComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.rules,
+          x => if (level < 2) None else Some(x.rules.map(_.transformInto[ByNodeGroupRuleComplianceApi]))
+        )
+        .withFieldComputed(
+          _.nodes,
+          x => if (level < 2) None else Some(x.nodes.map(_.transformInto[ByNodeGroupNodeComplianceApi]))
+        )
+        .buildTransformer
+    }
+
+    final case class ByNodeGroupRuleComplianceApi(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        directives:        Option[Seq[ByNodeGroupByRuleDirectiveComplianceApi]]
+    ) derives JsonEncoder
+
+    given byDirectiveByRuleComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByNodeGroupRuleCompliance, ByNodeGroupRuleComplianceApi] = {
+      Transformer
+        .define[ByNodeGroupRuleCompliance, ByNodeGroupRuleComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.directives,
+          x => if (level < 3) None else Some(x.directives.map(_.transformInto[ByNodeGroupByRuleDirectiveComplianceApi]))
+        )
+        .buildTransformer
+    }
+
+    final case class ByNodeGroupByRuleDirectiveComplianceApi(
+        id:                DirectiveId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        skippedDetails:    Option[SkippedDetailsApi],
+        components:        Option[Seq[ByRuleComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given byNodeGroupByRuleDirectiveComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByNodeGroupByRuleDirectiveCompliance, ByNodeGroupByRuleDirectiveComplianceApi] = {
+      Transformer
+        .define[ByNodeGroupByRuleDirectiveCompliance, ByNodeGroupByRuleDirectiveComplianceApi]
+        .withFieldComputed(
+          _.components,
+          x => if (level < 4) None else Some(x.components.map(_.transformInto[ByRuleComponentComplianceApi]))
+        )
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .buildTransformer
+    }
+
+    final case class ByRuleComponentComplianceApi(
+        name:              String,
+        compliance:        Double,
+        complianceDetails: ComplianceSerializable,
+        components:        Option[Seq[ByRuleComponentComplianceApi]],
+        nodes:             Option[Seq[ByRuleNodeComplianceApi]]
+    ) derives JsonEncoder
+
+    given byRuleComponentComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleComponentCompliance, ByRuleComponentComplianceApi] = { (src: ByRuleComponentCompliance) =>
+      {
+        val (subComponents, nodes) = src match {
+          case ByRuleBlockCompliance(_, _, scs) =>
+            (Some(scs.map(_.transformInto[ByRuleComponentComplianceApi])), None)
+
+          case ByRuleValueCompliance(_, _, ns) =>
+            if (level < 5) (None, None)
+            else (None, Some(ns.map(_.transformInto[ByRuleNodeComplianceApi])))
+        }
+        ByRuleComponentComplianceApi(
+          src.name,
+          src.compliance.transformInto[Double],
+          src.compliance.transformInto[ComplianceSerializable],
+          subComponents,
+          nodes
+        )
+      }
+    }
+
+    final case class ByNodeGroupNodeComplianceApi(
+        id:                NodeId,
+        name:              String,
+        mode:              ComplianceModeName,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        rules:             Option[Seq[ByNodeRuleComplianceApi]]
+    ) derives JsonEncoder
+
+    given byNodeGroupNodeCompliance(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByNodeGroupNodeCompliance, ByNodeGroupNodeComplianceApi] = {
+      Transformer
+        .define[ByNodeGroupNodeCompliance, ByNodeGroupNodeComplianceApi]
+        .withFieldComputed(
+          _.rules,
+          x => if (level < 3) None else Some(x.rules.map(_.transformInto[ByNodeRuleComplianceApi]))
+        )
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .buildTransformer
+    }
+
+    final case class ByNodeRuleComplianceApi(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        directives:        Option[Seq[ByNodeDirectiveComplianceApi]]
+    ) derives JsonEncoder
+
+    given byNodeRuleComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByNodeRuleCompliance, ByNodeRuleComplianceApi] = {
+      Transformer
+        .define[ByNodeRuleCompliance, ByNodeRuleComplianceApi]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.directives,
+          x => if (level < 4) None else Some(x.directives.map(_.transformInto[ByNodeDirectiveComplianceApi]))
+        )
+        .buildTransformer
+    }
+  }
+
+  final case class ByNodeDirectiveComplianceApi(
+      id:                DirectiveId,
+      name:              String,
+      compliance:        Double,
+      policyMode:        ComputedPolicyMode,
+      complianceDetails: ComplianceSerializable,
+      components:        Option[Seq[ComponentStatusReportApi]]
+  ) derives JsonEncoder
+
+  given byNodeDirectiveComplianceApi(using
+      precision: CompliancePrecision,
+      level:     Int
+  ): Transformer[ByNodeDirectiveCompliance, ByNodeDirectiveComplianceApi] = {
+    Transformer
+      .define[ByNodeDirectiveCompliance, ByNodeDirectiveComplianceApi]
+      .withFieldRenamed(_.compliance, _.complianceDetails)
+      .withFieldComputed(
+        _.components,
+        x => if (level < 5) None else Some(x.components.map(_.transformInto[ComponentStatusReportApi]))
+      )
+      .buildTransformer
+  }
+
+  final case class ComponentStatusReportApi(
+      name:              String,
+      compliance:        Double,
+      complianceDetails: ComplianceSerializable,
+      components:        Option[Seq[ComponentStatusReportApi]],
+      values:            Option[Seq[ComponentValueStatusReportApi]]
+  ) derives JsonEncoder
+
+  given byRuleComponentComplianceApi(using
+      precision: CompliancePrecision,
+      level:     Int
+  ): Transformer[ComponentStatusReport, ComponentStatusReportApi] = { (src: ComponentStatusReport) =>
+    {
+      val (subComponents, values) = src match {
+        case BlockStatusReport(_, _, scs) =>
+          (Some(scs.map(_.transformInto[ComponentStatusReportApi])), None)
+
+        case ValueStatusReport(_, _, vs) =>
+          if (level < 4) (None, None)
+          else (None, Some(vs.map(_.transformInto[ComponentValueStatusReportApi])))
+      }
+      ComponentStatusReportApi(
+        src.componentName,
+        src.compliance.transformInto[Double],
+        src.compliance.transformInto[ComplianceSerializable],
+        subComponents,
+        values
+      )
+    }
+  }
+
+  // NODES
+  object JsonByNodeCompliance {
+    final case class ByNodeNodeComplianceApi(
+        id:                NodeId, // compliance by nodes
+        name:              String,
+        compliance:        Double,
+        mode:              ComplianceModeName,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        rules:             Option[Seq[JsonByNodeGroupCompliance.ByNodeRuleComplianceApi]]
+    ) derives JsonEncoder
+
+    given byNodeNodeComplianceApi(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByNodeNodeCompliance, ByNodeNodeComplianceApi] = {
+      Transformer
+        .define[ByNodeNodeCompliance, ByNodeNodeComplianceApi]
+        .withFieldComputed(
+          _.rules,
+          x => {
+            if (level < 2) None
+            else Some(x.nodeCompliances.map(_.transformInto[JsonByNodeGroupCompliance.ByNodeRuleComplianceApi]))
+          }
+        )
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .buildTransformer
+    }
+
+  }
+
 }

@@ -37,10 +37,11 @@
 
 package com.normation.rudder.domain.reports
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
 import com.normation.rudder.domain.reports.CompliancePrecision.Level2
 import io.scalaland.chimney.*
-import net.liftweb.common.*
 import zio.Chunk
 import zio.json.*
 import zio.json.ast.*
@@ -405,15 +406,15 @@ object CompliancePrecision       {
   case object Level4 extends CompliancePrecision { val precision = 4 }
   case object Level5 extends CompliancePrecision { val precision = 5 }
 
-  def fromPrecision(i: Int): Box[CompliancePrecision] = {
+  def fromPrecision(i: Int): PureResult[CompliancePrecision] = {
     i match {
-      case Level0.precision => Full(Level0)
-      case Level1.precision => Full(Level1)
-      case Level2.precision => Full(Level2)
-      case Level3.precision => Full(Level3)
-      case Level4.precision => Full(Level4)
-      case Level5.precision => Full(Level5)
-      case _                => Failure(s"Invalid level for compliance precision ${i}, valid values are 0 to 5")
+      case Level0.precision => Right(Level0)
+      case Level1.precision => Right(Level1)
+      case Level2.precision => Right(Level2)
+      case Level3.precision => Right(Level3)
+      case Level4.precision => Right(Level4)
+      case Level5.precision => Right(Level5)
+      case _                => Left(Inconsistency(s"Invalid level for compliance precision ${i}, valid values are 0 to 5"))
     }
   }
 }
