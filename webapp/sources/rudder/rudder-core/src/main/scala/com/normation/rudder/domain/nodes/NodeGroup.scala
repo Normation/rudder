@@ -47,6 +47,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.SubGroupComparator
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import zio.json.*
 
 /**
  * UUId type for Node Groups, so that they
@@ -75,6 +76,8 @@ object NodeGroupId {
         NodeGroupId(NodeGroupUid(id), rev)
     }
   }
+
+  given JsonCodec[NodeGroupId] = JsonCodec.string.transformOrFail(NodeGroupId.parse, _.serialize)
 }
 
 object NodeGroup {

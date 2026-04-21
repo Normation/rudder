@@ -140,6 +140,12 @@ object RudderJsonResponse {
     def fromSchema(schema: EndpointSchema): ResponseSchema = ResponseSchema(schema.name, schema.dataContainer)
   }
 
+  extension (s: EndpointSchema) {
+    def toResponseSchema: ResponseSchema = {
+      ResponseSchema.fromSchema(s)
+    }
+  }
+
   sealed trait ResponseError {
     def errorMsg: Option[String]
     def toLiftErrorResponse(id: Option[String], schema: ResponseSchema)(using
@@ -258,51 +264,20 @@ object RudderJsonResponse {
   // must be available.
   object syntax {
     extension [A](result: IOResult[Seq[A]]) {
-      def toLiftResponseList(params: DefaultParams, schema: ResponseSchema)(using encoder: JsonEncoder[A]): LiftResponse = {
-        given prettify: Boolean = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-
-              // here, we don't want to return stack trace, since it can be security vulnerability
-              internalError(None, schema, err.msg)
-            },
-            seq => successList(schema, seq.toList)
-          )
-          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, schema, err.getMessage)))
-          .runNow
-      }
       def toLiftResponseList(params: DefaultParams, schema: EndpointSchema)(using encoder: JsonEncoder[A]): LiftResponse = {
-        toLiftResponseList(params, ResponseSchema.fromSchema(schema))
-      }
-
-      def toLiftResponseCsv(params: DefaultParams, schema: ResponseSchema, id: IdTrace[A])(using
-          csv:    Csv[A],
-          header: Csv.Header[A]
-      ): LiftResponse = {
-        import com.normation.utils.Csv.*
         given prettify: Boolean = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
-            },
-            a => PlainTextResponse(a.toList.toCsv)
-          )
-          .runNow
+        result.toLiftResponseGeneric(params, schema, IdTrace.Const(None))(seq =>
+          successList(ResponseSchema.fromSchema(schema), seq.toList)
+        )
       }
 
       def toLiftResponseCsv(params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
           csv:    Csv[A],
           header: Csv.Header[A]
-      ): LiftResponse = toLiftResponseCsv(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))
-
-      def toLiftResponseCsv(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
-          csv:    Csv[A],
-          header: Csv.Header[A]
-      ): LiftResponse = toLiftResponseCsv(params, ResponseSchema.fromSchema(schema), IdTrace.Success[A](id))
+      ): LiftResponse = {
+        import com.normation.utils.Csv.*
+        result.toLiftResponseGeneric(params, schema, IdTrace.Const(id))(a => PlainTextResponse(a.toList.toCsv))
+      }
     }
 
     // ADT that matches error or success to determine the id value to use/compute
@@ -326,8 +301,8 @@ object RudderJsonResponse {
     }
 
     extension [A](result: IOResult[A]) {
-      private def toLiftResponseOne(params: DefaultParams, schema: ResponseSchema, id: IdTrace[A])(using
-          encoder: JsonEncoder[A]
+      def toLiftResponseGeneric(params: DefaultParams, schema: EndpointSchema, id: IdTrace[A])(
+          process: A => LiftResponse
       ): LiftResponse = {
         given prettify: Boolean = params.prettify
         result
@@ -336,27 +311,38 @@ object RudderJsonResponse {
               ApiLogger.ResponseError.info(err.fullMsg)
 
               // here, we don't want to return stack trace, since it can be security vulnerability
-              internalError(id.error, schema, err.msg)
+              internalError(id.error, ResponseSchema.fromSchema(schema), err.msg)
             },
-            one => successOne(schema, one, id.success(one))
+            a => process(a)
           )
-          .catchAllDefect(err => zio.ZIO.succeed(internalError(id.error, schema, err.getMessage)))
+          .catchAllDefect(err => zio.ZIO.succeed(internalError(id.error, ResponseSchema.fromSchema(schema), err.getMessage)))
           .runNow
+      }
+    }
+
+    extension [A](result: IOResult[A]) {
+      private def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: IdTrace[A])(using
+          encoder: JsonEncoder[A]
+      ): LiftResponse = {
+        given prettify: Boolean = params.prettify
+        result.toLiftResponseGeneric(params, schema, id)(one =>
+          successOne(ResponseSchema.fromSchema(schema), one, id.success(one))
+        )
       }
       def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
           encoder: JsonEncoder[A]
       ): LiftResponse = {
-        toLiftResponseOne(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))
+        toLiftResponseOne(params, schema, IdTrace.Const[A](id))
       }
       def toLiftResponseOne(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
           encoder: JsonEncoder[A]
       ): LiftResponse = {
-        toLiftResponseOne(params, ResponseSchema.fromSchema(schema), IdTrace.Success(id))
+        toLiftResponseOne(params, schema, IdTrace.Success(id))
       }
       // when the computation give the response schema
       def toLiftResponseOneMap[B](
           params:      DefaultParams,
-          errorSchema: ResponseSchema,
+          errorSchema: EndpointSchema,
           map:         A => (ResponseSchema, B, Option[String])
       )(using encoder: JsonEncoder[B]): LiftResponse = {
         given prettify: Boolean = params.prettify
@@ -366,121 +352,80 @@ object RudderJsonResponse {
               ApiLogger.ResponseError.info(err.fullMsg)
 
               // here, we don't want to return stack trace, since it can be security vulnerability
-              internalError(None, errorSchema, err.msg)
+              internalError(None, errorSchema.toResponseSchema, err.msg)
             },
             one => {
               val (schema, x, id) = map(one)
               successOne(schema, x, id)
             }
           )
-          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, errorSchema, err.getMessage)))
+          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, errorSchema.toResponseSchema, err.getMessage)))
           .runNow
       }
 
       // to create responses with specific API errors, we provide syntax using evidence on type A : Either[_, _]
       def toLiftResponseOneEither[B: JsonEncoder](
           params: DefaultParams,
-          schema: ResponseSchema,
+          schema: EndpointSchema,
           id:     IdTrace[A]
       )(using ev: A <:< Either[ResponseError, B]): LiftResponse = {
         given prettify: Boolean = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
-            },
-            either => {
-              ev.apply(either) match {
-                case Left(e)  => e.toLiftErrorResponse(id.error, schema)
-                case Right(b) => successOne[B](schema, b, id.success(either))
-              }
-            }
-          )
-          .runNow
+        result.toLiftResponseGeneric(params, schema, id)(either => {
+          ev.apply(either) match {
+            case Left(e)  => e.toLiftErrorResponse(id.error, ResponseSchema.fromSchema(schema))
+            case Right(b) => successOne[B](ResponseSchema.fromSchema(schema), b, id.success(either))
+          }
+        })
       }
       def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
           ev: A <:< Either[ResponseError, B]
       ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))
+        toLiftResponseOneEither(params, schema, IdTrace.Const[A](id))
       }
       def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
           ev: A <:< Either[ResponseError, B]
       ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), IdTrace.Success(id))
+        toLiftResponseOneEither(params, schema, IdTrace.Success(id))
       }
 
       def toLiftResponseZeroEither(
           params: DefaultParams,
-          schema: ResponseSchema,
+          schema: EndpointSchema,
           id:     IdTrace[A]
       )(using ev: A <:< Either[ResponseError, Any]): LiftResponse = {
         given prettify: Boolean = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
-            },
-            either => {
-              ev.apply(either) match {
-                case Left(e)  => e.toLiftErrorResponse(id.error, schema)
-                case Right(_) => successZero(schema)
-              }
-            }
-          )
-          .runNow
+        result.toLiftResponseGeneric(params, schema, IdTrace.Const(None))(either => {
+          ev.apply(either) match {
+            case Left(e)  => e.toLiftErrorResponse(id.error, schema.toResponseSchema)
+            case Right(_) => successZero(schema.toResponseSchema)
+          }
+        })
       }
       def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: Option[String])(using
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), IdTrace.Const[A](id))(using ev)
+        toLiftResponseZeroEither(params, schema, IdTrace.Const[A](id))(using ev)
       }
 
       def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(using
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), IdTrace.Success[A](id))(using ev)
+        toLiftResponseZeroEither(params, schema, IdTrace.Success[A](id))(using ev)
       }
     }
     // when you don't have any response, just a success
     extension (result:    IOResult[Unit]) {
-      def toLiftResponseZeroUnit(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
-        given prettify: Boolean = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-              internalError(None, schema, err.fullMsg)
-            },
-            _ => successZero(schema)
-          )
-          .runNow
-      }
       def toLiftResponseZeroUnit(params: DefaultParams, schema: EndpointSchema): LiftResponse = {
-        toLiftResponseZeroUnit(params, ResponseSchema.fromSchema(schema))
+        given prettify: Boolean = params.prettify
+        result.toLiftResponseGeneric(params, schema, IdTrace.Const(None))(_ => successZero(schema.toResponseSchema))
       }
     }
 
     // when you don't have any parameter, just a message as response
     extension (result: IOResult[String]) {
-      def toLiftResponseZero(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
-        given prettify: Boolean = params.prettify
-        result
-          .fold(
-            err => {
-              ApiLogger.ResponseError.info(err.fullMsg)
-
-              // here, we don't want to return stack trace, since it can be security vulnerability
-              internalError(None, schema, err.msg)
-            },
-            msg => successZero(schema, msg)
-          )
-          .catchAllDefect(err => zio.ZIO.succeed(internalError(None, schema, err.getMessage)))
-          .runNow
-      }
       def toLiftResponseZero(params: DefaultParams, schema: EndpointSchema): LiftResponse = {
-        toLiftResponseZero(params, ResponseSchema.fromSchema(schema))
+        given prettify: Boolean = params.prettify
+        result.toLiftResponseGeneric(params, schema, IdTrace.Const(None))(msg => successZero(schema.toResponseSchema, msg))
       }
     }
   }

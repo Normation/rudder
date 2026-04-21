@@ -12,7 +12,7 @@ import Ui.Datatable exposing (Category, SubCategories(..))
 
 decodeGetGroupsCompliance : Decoder (List GroupComplianceSummary)
 decodeGetGroupsCompliance =
-  at [ "data" , "nodeGroups" ] (list decodeGroupCompliance)
+  at [ "data" , "groupCompliance" ] (list decodeGroupCompliance)
 
 decodeGroupCompliance : Decoder GroupComplianceSummary
 decodeGroupCompliance =

@@ -239,14 +239,14 @@ class GroupsApi(
           .map((s, g) => (s, g.transformInto[JRGroupV21]))
           .toLiftResponseOneMap(
             params,
-            RudderJsonResponse.ResponseSchema.fromSchema(schema),
+            schema,
             (schema, group) => (schema, group, Some(group.id))
           )
       } else {
         schemaGroup
           .toLiftResponseOneMap(
             params,
-            RudderJsonResponse.ResponseSchema.fromSchema(schema),
+            schema,
             (schema, group) => (schema, group, Some(group.id))
           )
       }

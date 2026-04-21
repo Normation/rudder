@@ -1,3 +1,131 @@
+description: Get compliance summary
+method: GET
+url: /secure/api/compliance/summary/groups?groups=g1,g2,g3
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeGroupComplianceSummary",
+      "result" : "success",
+      "data" : {
+        "groupCompliance" : [
+          {
+            "id" : "g1",
+            "targeted" : {
+              "id" : "g1",
+              "name" : "G1",
+              "compliance" : 60.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 40.0,
+                "successRepaired" : 20.0,
+                "error" : 40.0
+              }
+            },
+            "global" : {
+              "id" : "g1",
+              "name" : "G1",
+              "compliance" : 60.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 40.0,
+                "successRepaired" : 20.0,
+                "error" : 40.0
+              }
+            }
+          },
+          {
+            "id" : "g2",
+            "targeted" : {
+              "id" : "g2",
+              "name" : "G2",
+              "compliance" : 0.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {}
+            },
+            "global" : {
+              "id" : "g2",
+              "name" : "G2",
+              "compliance" : 50.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 50.0,
+                "error" : 50.0
+              }
+            }
+          },
+          {
+            "id" : "g3",
+            "targeted" : {
+              "id" : "g3",
+              "name" : "G3",
+              "compliance" : 0.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "error" : 100.0
+              }
+            },
+            "global" : {
+              "id" : "g3",
+              "name" : "G3",
+              "compliance" : 66.66,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 33.33,
+                "successRepaired" : 33.33,
+                "error" : 33.34
+              }
+            }
+          }
+        ]
+      }
+    }
+---
+description: Before version 24, container name is incorrect
+method: GET
+url: /api/23/compliance/summary/groups
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeGroupComplianceSummary",
+      "result" : "success",
+      "data" : {
+        "nodeGroups" : []
+      }
+    }
+---
+description: Get global compliance
+method: GET
+url: /api/latest/compliance
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGlobalCompliance",
+      "result" : "success",
+      "data" : {
+        "globalCompliance" : {
+          "compliance" : 38,
+          "complianceDetails" : {
+            "applying" : 6.86,
+            "successNotApplicable" : 2.45,
+            "successAlreadyOK" : 12.25,
+            "successRepaired" : 11.76,
+            "auditCompliant" : 6.37,
+            "auditNonCompliant" : 3.43,
+            "auditError" : 15.68,
+            "auditNotApplicable" : 2.94,
+            "unexpectedUnknownComponent" : 1.47,
+            "unexpectedMissingComponent" : 2.45,
+            "noReport" : 7.35,
+            "reportsDisabled" : 26.5,
+            "badPolicyMode" : 0.49
+          }
+        }
+      }
+    }
+---
 description: Get a node group's global compliance for group G1 (simple example)
 method: GET
 url: /secure/api/compliance/groups/g1
@@ -8,7 +136,7 @@ response:
       "action" : "getNodeGroupComplianceId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "g1",
             "name" : "G1",
@@ -16,8 +144,8 @@ response:
             "mode" : "full-compliance",
             "complianceDetails" : {
               "successAlreadyOK" : 40.0,
-              "error" : 40.0,
-              "successRepaired" : 20.0
+              "successRepaired" : 20.0,
+              "error" : 40.0
             },
             "rules" : [
               {
@@ -236,8 +364,8 @@ response:
                 "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 33.33,
-                  "error" : 33.34,
-                  "successRepaired" : 33.33
+                  "successRepaired" : 33.33,
+                  "error" : 33.34
                 },
                 "rules" : [
                   {
@@ -456,6 +584,86 @@ response:
       }
     }
 ---
+description: Get a node group's global compliance for group G1 (simple example, limited to 2 levels, int precision)
+method: GET
+url: /secure/api/compliance/groups/g1?level=2&precision=0
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeGroupComplianceId",
+      "result" : "success",
+      "data" : {
+        "groupCompliance" : [
+          {
+            "id" : "g1",
+            "name" : "G1",
+            "compliance" : 60.0,
+            "mode" : "full-compliance",
+            "complianceDetails" : {
+              "successAlreadyOK" : 40.0,
+              "successRepaired" : 20.0,
+              "error" : 40.0
+            },
+            "rules" : [
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                }
+              },
+              {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                }
+              },
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                }
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 66.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 33.0,
+                  "successRepaired" : 33.0,
+                  "error" : 34.0
+                }
+              },
+              {
+                "id" : "n2",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 50.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 50.0,
+                  "error" : 50.0
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
 description: Get a node group's targeted compliance for group G1 (simple example)
 method: GET
 url: /secure/api/compliance/groups/g1/target
@@ -466,7 +674,7 @@ response:
       "action" : "getNodeGroupComplianceTargetId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "g1",
             "name" : "G1",
@@ -474,8 +682,8 @@ response:
             "mode" : "full-compliance",
             "complianceDetails" : {
               "successAlreadyOK" : 40.0,
-              "error" : 40.0,
-              "successRepaired" : 20.0
+              "successRepaired" : 20.0,
+              "error" : 40.0
             },
             "rules" : [
               {
@@ -694,8 +902,8 @@ response:
                 "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 33.33,
-                  "error" : 33.34,
-                  "successRepaired" : 33.33
+                  "successRepaired" : 33.33,
+                  "error" : 33.34
                 },
                 "rules" : [
                   {
@@ -924,7 +1132,7 @@ response:
       "action" : "getNodeGroupComplianceId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "g3",
             "name" : "G3",
@@ -932,8 +1140,8 @@ response:
             "mode" : "full-compliance",
             "complianceDetails" : {
               "successAlreadyOK" : 33.33,
-              "error" : 33.34,
-              "successRepaired" : 33.33
+              "successRepaired" : 33.33,
+              "error" : 33.34
             },
             "rules" : [
               {
@@ -1096,8 +1304,8 @@ response:
                 "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 33.33,
-                  "error" : 33.34,
-                  "successRepaired" : 33.33
+                  "successRepaired" : 33.33,
+                  "error" : 33.34
                 },
                 "rules" : [
                   {
@@ -1235,7 +1443,7 @@ response:
       "action" : "getNodeGroupComplianceTargetId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "g3",
             "name" : "G3",
@@ -1364,7 +1572,7 @@ response:
       "action" : "getNodeGroupComplianceId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "bg1",
             "name" : "G1",
@@ -1372,8 +1580,8 @@ response:
             "mode" : "full-compliance",
             "complianceDetails" : {
               "successAlreadyOK" : 50.01,
-              "error" : 33.33,
-              "successRepaired" : 16.66
+              "successRepaired" : 16.66,
+              "error" : 33.33
             },
             "rules" : [
               {
@@ -1642,8 +1850,8 @@ response:
                 "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 33.33,
-                  "error" : 33.34,
-                  "successRepaired" : 33.33
+                  "successRepaired" : 33.33,
+                  "error" : 33.34
                 },
                 "rules" : [
                   {
@@ -1911,7 +2119,7 @@ response:
       "action" : "getNodeGroupComplianceTargetId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "bg1",
             "name" : "G1",
@@ -2210,7 +2418,7 @@ response:
       "action" : "getNodeGroupComplianceId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "bg6",
             "name" : "G6",
@@ -2602,7 +2810,7 @@ response:
       "action" : "getNodeGroupComplianceTargetId",
       "result" : "success",
       "data" : {
-        "nodeGroups" : [
+        "groupCompliance" : [
           {
             "id" : "bg6",
             "name" : "G6",
@@ -2907,8 +3115,8 @@ response:
             "policyMode" : "audit",
             "complianceDetails" : {
               "successAlreadyOK" : 33.33,
-              "error" : 33.34,
-              "successRepaired" : 33.33
+              "successRepaired" : 33.33,
+              "error" : 33.34
             },
             "rules" : [
               {
@@ -4568,8 +4776,8 @@ response:
                     {
                       "id" : "bn1",
                       "name" : "node1.localhost",
-                      "policyMode" : "audit",
                       "compliance" : 0.0,
+                      "policyMode" : "audit",
                       "complianceDetails" : {
                         "error" : 100.0
                       },
@@ -4596,8 +4804,8 @@ response:
                     {
                       "id" : "bn2",
                       "name" : "node1.localhost",
-                      "policyMode" : "audit",
                       "compliance" : 0.0,
+                      "policyMode" : "audit",
                       "complianceDetails" : {
                         "error" : 100.0
                       },
@@ -4635,8 +4843,8 @@ response:
                     {
                       "id" : "n1",
                       "name" : "node1.localhost",
-                      "policyMode" : "enforce",
                       "compliance" : 0.0,
+                      "policyMode" : "enforce",
                       "complianceDetails" : {
                         "error" : 100.0
                       },
@@ -4663,8 +4871,8 @@ response:
                     {
                       "id" : "n2",
                       "name" : "node1.localhost",
-                      "policyMode" : "enforce",
                       "compliance" : 0.0,
+                      "policyMode" : "enforce",
                       "complianceDetails" : {
                         "error" : 100.0
                       },
@@ -4688,8 +4896,8 @@ response:
             {
               "id" : "bn2",
               "name" : "node1.localhost",
-              "policyMode" : "audit",
               "compliance" : 0.0,
+              "policyMode" : "audit",
               "complianceDetails" : {
                 "error" : 100.0
               },
@@ -4727,8 +4935,8 @@ response:
             {
               "id" : "bn1",
               "name" : "node1.localhost",
-              "policyMode" : "audit",
               "compliance" : 0.0,
+              "policyMode" : "audit",
               "complianceDetails" : {
                 "error" : 100.0
               },
@@ -4766,8 +4974,8 @@ response:
             {
               "id" : "n2",
               "name" : "node1.localhost",
-              "policyMode" : "enforce",
               "compliance" : 0.0,
+              "policyMode" : "enforce",
               "complianceDetails" : {
                 "error" : 100.0
               },
@@ -4805,8 +5013,8 @@ response:
             {
               "id" : "n1",
               "name" : "node1.localhost",
-              "policyMode" : "enforce",
               "compliance" : 0.0,
+              "policyMode" : "enforce",
               "complianceDetails" : {
                 "error" : 100.0
               },
@@ -4845,6 +5053,19 @@ response:
         }
       }
     }
+---
+description: Get directive Directive2 compliance (CSV)
+method: GET
+url: /secure/api/compliance/directives/directive2?format=csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Rule","Block","Component","Node","Value","Status","Message"
+    "R3","","directive2-component-br3-bn1","node1.localhost","directive2-component-value-br3-bn1","error",""
+    "R3","","directive2-component-br3-bn2","node1.localhost","directive2-component-value-br3-bn2","error",""
+    "R3","","directive2-component-r3-n1","node1.localhost","directive2-component-value-r3-n1","error",""
+    "R3","","directive2-component-r3-n2","node1.localhost","directive2-component-value-r3-n2","error",""
 ---
 description: Get all directives compliance
 method: GET
@@ -4906,8 +5127,8 @@ response:
                       {
                         "id" : "bn4",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -4934,8 +5155,8 @@ response:
                       {
                         "id" : "bn5",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -4959,8 +5180,8 @@ response:
               {
                 "id" : "bn4",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -4998,8 +5219,8 @@ response:
               {
                 "id" : "bn5",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5065,8 +5286,8 @@ response:
                       {
                         "id" : "n1",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -5104,8 +5325,8 @@ response:
                       {
                         "id" : "bn1",
                         "name" : "node1.localhost",
-                        "policyMode" : "audit",
                         "compliance" : 100.0,
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -5129,8 +5350,8 @@ response:
               {
                 "id" : "bn1",
                 "name" : "node1.localhost",
-                "policyMode" : "audit",
                 "compliance" : 100.0,
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successRepaired" : 100.0
                 },
@@ -5168,8 +5389,8 @@ response:
               {
                 "id" : "n1",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successRepaired" : 100.0
                 },
@@ -5275,8 +5496,8 @@ response:
                       {
                         "id" : "bn1",
                         "name" : "node1.localhost",
-                        "policyMode" : "audit",
                         "compliance" : 100.0,
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5303,8 +5524,8 @@ response:
                       {
                         "id" : "bn2",
                         "name" : "node1.localhost",
-                        "policyMode" : "audit",
                         "compliance" : 100.0,
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5354,8 +5575,8 @@ response:
                       {
                         "id" : "bn3",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5382,8 +5603,8 @@ response:
                       {
                         "id" : "bn2",
                         "name" : "node1.localhost",
-                        "policyMode" : "audit",
                         "compliance" : 100.0,
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5410,8 +5631,8 @@ response:
                       {
                         "id" : "bn5",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5438,8 +5659,8 @@ response:
                       {
                         "id" : "bn4",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5463,8 +5684,8 @@ response:
               {
                 "id" : "bn4",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5502,8 +5723,8 @@ response:
               {
                 "id" : "bn5",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5541,8 +5762,8 @@ response:
               {
                 "id" : "bn2",
                 "name" : "node1.localhost",
-                "policyMode" : "audit",
                 "compliance" : 100.0,
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5608,8 +5829,8 @@ response:
               {
                 "id" : "bn1",
                 "name" : "node1.localhost",
-                "policyMode" : "audit",
                 "compliance" : 100.0,
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5647,8 +5868,8 @@ response:
               {
                 "id" : "bn3",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5714,8 +5935,8 @@ response:
                       {
                         "id" : "n1",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5742,8 +5963,8 @@ response:
                       {
                         "id" : "n2",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 100.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -5767,8 +5988,8 @@ response:
               {
                 "id" : "n2",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5806,8 +6027,8 @@ response:
               {
                 "id" : "n1",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 100.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -5953,8 +6174,8 @@ response:
                       {
                         "id" : "bn1",
                         "name" : "node1.localhost",
-                        "policyMode" : "audit",
                         "compliance" : 0.0,
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -5981,8 +6202,8 @@ response:
                       {
                         "id" : "bn2",
                         "name" : "node1.localhost",
-                        "policyMode" : "audit",
                         "compliance" : 0.0,
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -6020,8 +6241,8 @@ response:
                       {
                         "id" : "n1",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 0.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -6048,8 +6269,8 @@ response:
                       {
                         "id" : "n2",
                         "name" : "node1.localhost",
-                        "policyMode" : "enforce",
                         "compliance" : 0.0,
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -6073,8 +6294,8 @@ response:
               {
                 "id" : "bn2",
                 "name" : "node1.localhost",
-                "policyMode" : "audit",
                 "compliance" : 0.0,
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "error" : 100.0
                 },
@@ -6112,8 +6333,8 @@ response:
               {
                 "id" : "bn1",
                 "name" : "node1.localhost",
-                "policyMode" : "audit",
                 "compliance" : 0.0,
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "error" : 100.0
                 },
@@ -6151,8 +6372,8 @@ response:
               {
                 "id" : "n2",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 0.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "error" : 100.0
                 },
@@ -6190,8 +6411,8 @@ response:
               {
                 "id" : "n1",
                 "name" : "node1.localhost",
-                "policyMode" : "enforce",
                 "compliance" : 0.0,
+                "policyMode" : "enforce",
                 "complianceDetails" : {
                   "error" : 100.0
                 },
