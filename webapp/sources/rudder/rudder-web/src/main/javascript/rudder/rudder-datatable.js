@@ -1717,6 +1717,7 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
           }
 
       }
+    , "lengthMenu": [ [10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000] ]
     , "dom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
       '>rt<"dataTables_wrapper_bottom"lip>'
   };
