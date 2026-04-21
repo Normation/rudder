@@ -38,14 +38,18 @@
 package com.normation.rudder.rest
 
 import com.normation.JsonSpecMatcher
+import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
+import com.normation.rudder.rest.internal.JStatusResponse
 import com.normation.rudder.rest.internal.SharedFilesAPI
 import net.liftweb.common.Full
-import net.liftweb.http.JsonResponse
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import scala.annotation.nowarn
+import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
+@nowarn
 class SharedFilesApiTest extends Specification with JsonSpecMatcher {
 
   val restTestSetUp = RestTestSetUp.newEnv
@@ -61,14 +65,14 @@ class SharedFilesApiTest extends Specification with JsonSpecMatcher {
         Map("destination" -> "/")
       ) {
         // This is still the old Lift Json response, migrate to JsonRudderApiResponse after migrating SharedFilesAPI to zio-json
-        case Full(jsonResponse: JsonResponse) =>
+        case Full(jsonResponse: LiftJsonResponse[JStatusResponse]) =>
           jsonResponse.code must beEqualTo(200)
-          jsonResponse.json.toJsCmd must equalsJsonSemantic("""
-                                                              |{
-                                                              |  "success":true,
-                                                              |  "error":null
-                                                              |}
-                                                              |""".stripMargin)
+          jsonResponse.json.toJson must equalsJsonSemantic("""
+                                                             |{
+                                                             |  "success":true,
+                                                             |  "error":null
+                                                             |}
+                                                             |""".stripMargin)
 
         case err => ko(s"I got an error in test: ${err}")
       }
@@ -87,15 +91,15 @@ class SharedFilesApiTest extends Specification with JsonSpecMatcher {
         Map("destination" -> "/")
       ) {
         // This is still the old Lift Json response, migrate to JsonRudderApiResponse after migrating SharedFilesAPI to zio-json
-        case Full(jsonResponse: JsonResponse) =>
+        case Full(jsonResponse: LiftJsonResponse[JStatusResponse]) =>
           jsonResponse.code must beEqualTo(413)
           val maxSize = restTestSetUp.liftRules.maxMimeSize / 1024 / 1024
-          jsonResponse.json.toJsCmd must equalsJsonSemantic(s"""
-                                                               |{
-                                                               |  "success":false,
-                                                               |  "error":"File exceeds the maximum upload size of ${maxSize}MB"
-                                                               |}
-                                                               |""".stripMargin)
+          jsonResponse.json.toJson must equalsJsonSemantic(s"""
+                                                              |{
+                                                              |  "success":false,
+                                                              |  "error":"File exceeds the maximum upload size of ${maxSize}MB"
+                                                              |}
+                                                              |""".stripMargin)
 
         case err => ko(s"I got an error in test: ${err}")
       }
