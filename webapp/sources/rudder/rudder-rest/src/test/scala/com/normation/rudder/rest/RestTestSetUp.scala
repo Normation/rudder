@@ -184,7 +184,6 @@ import net.liftweb.http.LiftRulesMocker
 import net.liftweb.http.Req
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.mockweb.MockWeb
 import net.liftweb.util.FieldError
@@ -206,6 +205,8 @@ import scala.xml.Elem
 import scala.xml.NodeSeq
 import sourcecode.Line
 import zio.*
+import zio.json.*
+import zio.json.ast.*
 import zio.syntax.*
 import zio.test.*
 
@@ -1242,11 +1243,10 @@ class RestTest(liftRules: LiftRules) {
   def POST(path:   String): MockHttpServletRequest = mockRequest(path, "POST")
   def DELETE(path: String): MockHttpServletRequest = mockRequest(path, "DELETE")
 
-  private def mockJsonRequest(path: String, method: String, data: JValue) = {
+  private def mockJsonRequest(path: String, method: String, data: Json) = {
     val mockReq = mockRequest(path, method)
-    import net.liftweb.json.JsonAST
 
-    mockReq.body = JsonAST.prettyRender(data).getBytes()
+    mockReq.body = data.toJson.getBytes()
     mockReq.contentType = "application/json"
     mockReq
   }
@@ -1258,7 +1258,7 @@ class RestTest(liftRules: LiftRules) {
     mockReq
   }
 
-  def jsonPUT(path: String, json: JValue): MockHttpServletRequest = {
+  def jsonPUT(path: String, json: Json): MockHttpServletRequest = {
     mockJsonRequest(path, "PUT", json)
   }
 
@@ -1266,7 +1266,7 @@ class RestTest(liftRules: LiftRules) {
     mockJsonRequest(path, "PUT", json)
   }
 
-  def jsonPOST(path: String, json: JValue): MockHttpServletRequest = {
+  def jsonPOST(path: String, json: Json): MockHttpServletRequest = {
     mockJsonRequest(path, "POST", json)
   }
 
@@ -1307,10 +1307,10 @@ class RestTest(liftRules: LiftRules) {
     execRequestResponse(DELETE(path))(tests)
   }
 
-  def testPUTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]):  MatchResult[T] = {
+  def testPUTResponse[T](path: String, json: Json)(tests: Box[LiftResponse] => MatchResult[T]):    MatchResult[T] = {
     execRequestResponse(jsonPUT(path, json))(tests)
   }
-  def testPOSTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
+  def testPOSTResponse[T](path: String, json: Json)(tests: Box[LiftResponse] => MatchResult[T]):   MatchResult[T] = {
     execRequestResponse(jsonPOST(path, json))(tests)
   }
   def testPUTResponse[T](path: String, json: String)(tests: Box[LiftResponse] => MatchResult[T]):  MatchResult[T] = {
@@ -1344,10 +1344,10 @@ class RestTest(liftRules: LiftRules) {
     doReq(DELETE(path))(tests)
   }
 
-  def testPUT[T](path: String, json: JValue)(tests: Req => MatchResult[T]):  MatchResult[T] = {
+  def testPUT[T](path: String, json: Json)(tests: Req => MatchResult[T]):  MatchResult[T] = {
     doReq(jsonPUT(path, json))(tests)
   }
-  def testPOST[T](path: String, json: JValue)(tests: Req => MatchResult[T]): MatchResult[T] = {
+  def testPOST[T](path: String, json: Json)(tests: Req => MatchResult[T]): MatchResult[T] = {
     doReq(jsonPOST(path, json))(tests)
   }
 

@@ -54,7 +54,6 @@ import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
-import net.liftweb.json.JsonDSL.*
 
 /*
  * This trait allows to check for authorisation on a given boundedendpoint
@@ -316,7 +315,7 @@ object OldInternalApiAuthz {
           resp
         } else {
           ApiLogger.warn(fail(u.name).messageChain)
-          RestUtils.toJsonError(None, fail(u.name).messageChain, ForbiddenError)
+          RudderJsonResponse.generic.forbiddenError(false, fail(u.name).messageChain)
         }
       case None    =>
         val failure = {
@@ -325,7 +324,7 @@ object OldInternalApiAuthz {
           )
         }
         ApiLogger.warn(failure.messageChain)
-        RestUtils.toJsonError(None, failure.messageChain, ForbiddenError)
+        RudderJsonResponse.generic.unauthorizedError(false, failure.messageChain)
     }
   }
 

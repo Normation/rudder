@@ -38,39 +38,12 @@
 package com.normation.rudder.rest
 
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.domain.logger.ApiLogger
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.*
-import net.liftweb.http.provider.HTTPCookie
-import net.liftweb.json.*
-import net.liftweb.json.JsonAST.RenderSettings
-import net.liftweb.json.JsonDSL.*
 import net.liftweb.util.Helpers.tryo
-
-/*
- * A JsonResponse able to keep pretty format is asked to.
- * It's basically a copy/post of lift JsonResponse
- */
-case class JsonResponsePrettify(
-    json:     JValue,
-    headers:  List[(String, String)],
-    cookies:  List[HTTPCookie],
-    code:     Int,
-    prettify: Boolean
-) extends LiftResponse {
-  def toResponse: InMemoryResponse = {
-    val bytes = (if (prettify) RestUtils.render(json) else compactRender(json)).getBytes("UTF-8")
-    InMemoryResponse(
-      bytes,
-      ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json; charset=utf-8") :: headers,
-      cookies,
-      code
-    )
-  }
-}
 
 /**
  */
@@ -107,72 +80,6 @@ object RestUtils {
       case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
     }
   }
-
-  def getPrettify(req: Req): Box[Boolean] = {
-    req.json match {
-      case Full(json) =>
-        json \ "prettify" match {
-          case JBool(prettify) => Full(prettify)
-          case JNothing        => Full(false)
-          case x               => Failure(s"Not a valid value for 'prettify' parameter, current value is : ${x}")
-        }
-      case _          =>
-        req.params.get("prettify") match {
-          case None                 => Full(false)
-          case Some("true" :: Nil)  => Full(true)
-          case Some("false" :: Nil) => Full(false)
-          case _                    => Failure("Prettify should only have one value, and should be set to true or false")
-        }
-    }
-  }
-
-  /**
-   * Our own JSON render function to extends net.liftweb.json.JsonAst.render function
-   * All code is taken from JsonAst object from lift-json_2.10-2.5.1.jar (dépendency used in rudder 2.10 at least)
-   * and available at: https://github.com/lift/framework/blob/2.5.1/core/json/src/main/scala/net/liftweb/json/JsonAST.scala#L392
-   * What we added:
-   *   - add a new line after each element in array
-   *   - Add a new line at the end and beginning of an array and indent one more level array data
-   *   - space after colon
-   *
-   *   TODO: see if/how it is possible to get the same behaviour
-   */
-  def render(value: JValue): String = {
-    JsonAST.render(value, RenderSettings.pretty.copy(spaceAfterFieldName = true))
-  }
-
-  def effectiveResponse(
-      id:       Option[String],
-      message:  JValue,
-      status:   HttpStatus,
-      action:   String,
-      prettify: Boolean
-  ): LiftResponse = {
-    status match {
-      case _: RestError =>
-        // Log any error
-        ApiLogger.ResponseError.info(compactRender(message))
-      case _ => // Do nothing
-    }
-    val json = ("action" -> action) ~
-      ("id"             -> id) ~
-      ("result"         -> status.status) ~
-      (status.container -> message)
-
-    JsonResponsePrettify(json, List(), List(), status.code, prettify)
-  }
-
-  def toJsonResponse(id: Option[String], message: JValue)(implicit action: String, prettify: Boolean): LiftResponse = {
-    effectiveResponse(id, message, RestOk, action, prettify)
-  }
-
-  def toJsonError(id: Option[String], message: JValue, error: RestError = InternalError)(implicit
-      action:   String = "rest",
-      prettify: Boolean
-  ): LiftResponse = {
-    effectiveResponse(id, message, error, action, prettify)
-  }
-
 }
 
 trait HttpStatus {
