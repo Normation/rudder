@@ -54,12 +54,12 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JsonAST.JString
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import scala.collection.*
+import zio.json.DecoderOps
 
 /**
  * Show the reports from cfengine (raw data)
@@ -94,25 +94,23 @@ class LogDisplayer(
     val refresh = ajaxRefresh(nodeId, runDate, tableId)
     def getEventsInterval(jsonInterval: String): JsCmd = {
       import net.liftweb.util.Helpers.tryo
-      import net.liftweb.json.parse
 
       val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 
       (for {
-        parsed   <- tryo(
-                      parse(jsonInterval)
-                    ) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
-        startStr <- parsed \ "start" match {
-                      case JString("")       => Full(None)
-                      case JString(startStr) =>
+        parsed   <-
+          jsonInterval
+            .fromJson[JsonLogInterval]
+            .toBox ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
+        startStr <- parsed.start match {
+                      case ""       => Full(None)
+                      case startStr =>
                         tryo(Some(DateTime.parse(startStr, format))) ?~! s"Error when trying to parse start date '${startStr}"
-                      case _                 => Failure("Invalid value for start date")
                     }
-        endStr   <- parsed \ "end" match {
-                      case JString("")     => Full(None)
-                      case JString(endStr) =>
+        endStr   <- parsed.end match {
+                      case ""     => Full(None)
+                      case endStr =>
                         tryo(Some(DateTime.parse(endStr, format))) ?~! s"Error when trying to parse end date '${endStr}"
-                      case _               => Failure("Invalid value for end date")
                     }
       } yield {
         (startStr, endStr) match {

@@ -52,12 +52,15 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import scala.xml.*
+import zio.json.*
+
+// also used in LogDisplayer
+final case class JsonLogInterval(start: String, end: String) derives JsonDecoder
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -92,30 +95,25 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
       val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 
       displayEvents(for {
-        parsed   <- tryo(
-                      parse(jsonInterval) // TODO use zio-json
-                    ) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON data structure with fields 'start' and 'end'"
-        startStr <- parsed \ "start" match {
-                      case JString(startStr) if startStr.nonEmpty =>
-                        val date =
-                          tryo(DateTime.parse(startStr, format)) ?~! s"Error when trying to parse start date '${startStr}"
-                        date match {
-                          case Full(d) => Full(Some(new Timestamp(d.getMillis)))
-                          case eb: EmptyBox =>
-                            eb ?~! s"Invalid start date"
-                        }
-                      case _                                      => Full(None)
-                    }
-        endStr   <- parsed \ "end" match {
-                      case JString(endStr) if endStr.nonEmpty =>
-                        val date = tryo(DateTime.parse(endStr, format)) ?~! s"Error when trying to parse end date '${endStr}"
-                        date match {
-                          case Full(d) => Full(Some(new Timestamp(d.getMillis)))
-                          case eb: EmptyBox =>
-                            eb ?~! s"Invalid end date"
-                        }
-                      case _                                  => Full(None)
-                    }
+        parsed   <-
+          jsonInterval
+            .fromJson[JsonLogInterval]
+            .toBox ?~! s"Error when trying to parse '${jsonInterval}' as a JSON data structure with fields 'start' and 'end'"
+        startStr <- {
+          val date =
+            tryo(DateTime.parse(parsed.start, format)) ?~! s"Error when trying to parse start date '${parsed.start}"
+          date match {
+            case Full(d) => Full(Some(new Timestamp(d.getMillis)))
+            case eb: EmptyBox => eb ?~! s"Invalid start date"
+          }
+        }
+        endStr   <- {
+          val date = tryo(DateTime.parse(parsed.end, format)) ?~! s"Error when trying to parse end date '${parsed.end}"
+          date match {
+            case Full(d) => Full(Some(new Timestamp(d.getMillis)))
+            case eb: EmptyBox => eb ?~! s"Invalid end date"
+          }
+        }
         filter    = EventLogRequest(
                       0,
                       0,

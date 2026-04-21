@@ -58,10 +58,10 @@ import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.*
 import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
+import zio.json.*
 
 object Groups {
   val htmlId_groupTree           = "groupTree"
@@ -456,17 +456,16 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
   }
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
+  final private case class JsonArg(sourceGroupId: String, destCatId: String) derives JsonDecoder
   private def moveGroup(lib: FullNodeGroupCategory)(arg: String)(implicit qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
-        case JObject(child) <- JsonParser.parse(arg)
-        case JField("sourceGroupId", JString(sourceGroupId)) <- child
-        case JField("destCatId", JString(destCatId)) <- child
+        parsed <- arg.fromJson[JsonArg]
       } yield {
-        (sourceGroupId, destCatId)
+        (parsed.sourceGroupId, parsed.destCatId)
       }) match {
-        case (sourceGroupId, destCatId) :: Nil =>
+        case Right(sourceGroupId, destCatId) =>
           (for {
             result <-
               woNodeGroupRepository
@@ -498,7 +497,7 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
                 )
               )
           }
-        case _                                 => Alert("Error while trying to move group: bad client parameters")
+        case _                               => Alert("Error while trying to move group: bad client parameters")
       }
     } catch {
       case e: Exception => Alert("Error while trying to move group")
@@ -509,13 +508,11 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
-        case JObject(child) <- JsonParser.parse(arg)
-        case JField("sourceCatId", JString(sourceCatId)) <- child
-        case JField("destCatId", JString(destCatId)) <- child
+        parsed <- arg.fromJson[JsonArg]
       } yield {
-        (sourceCatId, destCatId)
+        (parsed.sourceGroupId, parsed.destCatId)
       }) match {
-        case (sourceCatId, destCatId) :: Nil =>
+        case Right(sourceCatId, destCatId) =>
           (for {
             category <- Box(
                           lib.allCategories.get(NodeGroupCategoryId(sourceCatId))
@@ -550,7 +547,7 @@ class Groups extends StatefulSnippet with SecureExtendableSnippet[Groups] {
                 )
               )
           }
-        case _                               => Alert("Error while trying to move group: bad client parameters")
+        case _                             => Alert("Error while trying to move group: bad client parameters")
       }
     } catch {
       case e: Exception => Alert("Error while trying to move group")

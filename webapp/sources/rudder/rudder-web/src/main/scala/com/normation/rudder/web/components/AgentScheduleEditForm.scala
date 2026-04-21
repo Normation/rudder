@@ -97,40 +97,27 @@ class AgentScheduleEditForm(
    * Parse a json input into a cf-agent Scedule
    */
   def parseJsonSchedule(s: String): Box[AgentRunInterval] = {
-    import net.liftweb.json.*
-    val json = parse(s)
-
     (for {
-      case JObject(child) <- json
-      case JField("overrides", ov) <- child
-      case JField("interval", JInt(i)) <- child
-      case JField("startHour", JInt(h)) <- child
-      case JField("startMinute", JInt(m)) <- child
-      case JField("splayHour", JInt(sh)) <- child
-      case JField("splayMinute", JInt(sm)) <- child
+      parsed <- s.fromJson[JsonSchedule]
     } yield {
-      val splayTime     = (sh.toInt * 60) + sm.toInt
-      val overrideValue = ov match {
-        case JBool(ov) => Some(ov)
-        case _         => None
-      }
+      val splayTime = (parsed.splayHour * 60) + parsed.splayMinute
 
       AgentRunInterval(
-        overrideValue,
-        i.toInt,
-        m.toInt,
-        h.toInt,
+        parsed.overrides,
+        parsed.interval,
+        parsed.startMinute,
+        parsed.startHour,
         splayTime
       )
     }) match {
-      case head :: _ =>
+      case Right(head) =>
         if (head.interval <= head.splaytime) {
           Failure("Cannot save an agent schedule with a splaytime higher than or equal to agent run interval")
         } else {
           Full(head)
         }
-      case Nil       =>
-        Failure(s"Could not parse ${s} as a valid cf-agent schedule")
+      case Left(err)   =>
+        Failure(s"Could not parse ${s} as a valid cf-agent schedule: ${err}")
     }
   }
 
@@ -177,6 +164,15 @@ class AgentScheduleEditForm(
     transform(agentScheduleTemplate);
   }
 }
+
+final private case class JsonSchedule(
+    overrides:   Option[Boolean],
+    interval:    Int,
+    startHour:   Int,
+    startMinute: Int,
+    splayHour:   Int,
+    splayMinute: Int
+) derives JsonDecoder
 
 // this one is only needed for the elm init in cfagentScheduleConfiguration above
 @jsonExplicitNull

@@ -50,10 +50,10 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
+import zio.json.*
 
 /**
  * A component to display a tree based on a
@@ -149,17 +149,16 @@ class RuleCategoryTree(
   }
   private val isDirectiveApplication = directive.isDefined
 
+  final case class JsonMoveCategory(sourceCatId: String, destCatId: String) derives JsonDecoder
   private def moveCategory(arg: String)(using qc: QueryContext): JsCmd = {
     // parse arg, which have to  be json object with sourceGroupId, destCatId
     try {
       (for {
-        case JObject(child) <- JsonParser.parse(arg)
-        case JField("sourceCatId", JString(sourceCatId)) <- child
-        case JField("destCatId", JString(destCatId)) <- child
+        parsed <- arg.fromJson[JsonMoveCategory]
       } yield {
-        (RuleCategoryId(sourceCatId), RuleCategoryId(destCatId))
+        (RuleCategoryId(parsed.sourceCatId), RuleCategoryId(parsed.destCatId))
       }) match {
-        case (sourceCatId, destCatId) :: Nil =>
+        case Right(sourceCatId, destCatId) =>
           (for {
             category <- roRuleCategoryRepository.get(sourceCatId)
             result   <-
@@ -189,7 +188,7 @@ class RuleCategoryTree(
                 )
               )
           }
-        case _                               => Alert("Error while trying to move group: bad client parameters")
+        case _                             => Alert("Error while trying to move group: bad client parameters")
       }
     } catch {
       case e: Exception => Alert("Error while trying to move group")
