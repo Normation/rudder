@@ -45,7 +45,6 @@ import com.normation.rudder.rest.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST.JString
 import scala.util.control.NonFatal
 
 final case class DefaultParams(
@@ -274,7 +273,17 @@ class LiftHandler(
       case ApiError.BadParam(x, _)   => "Bad parameters for request: " + x
       case ApiError.Authz(x, _)      => "Authorization error: " + x
     }
-    Full(RestUtils.toJsonError(None, JString(msg), error.restCode)(using error.apiName, prettify = true))
+    Full(
+      RudderJsonResponse.LiftJsonResponse(
+        RudderJsonResponse.JsonRudderApiResponse.error(
+          None,
+          RudderJsonResponse.ResponseSchema(error.apiName, Some(error.restCode.container)),
+          msg
+        ),
+        prettify = true,
+        error.restCode.code
+      )
+    )
   }
 
   // Get the lift object that can be added in lift rooting logic

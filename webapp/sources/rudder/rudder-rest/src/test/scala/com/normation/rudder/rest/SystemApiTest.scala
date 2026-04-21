@@ -55,6 +55,7 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
+import zio.json.*
 import zio.json.ast.Json.*
 
 @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
@@ -434,7 +435,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
 
     restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() match {
 
-      case Full(resp: InMemoryResponse)                    =>
+      case Full(resp: InMemoryResponse)                                 =>
         val filenameRegex = """attachment;\s*filename="(.*)"""".r
         val filename      = resp.headers.collectFirst {
           case (h, filenameRegex(filename)) if h.equalsIgnoreCase("Content-Disposition") => filename
@@ -458,13 +459,12 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
         )) and (testDir must org.specs2.matcher.ContentMatchers
           .haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
           .withFilter(filterGeneratedFile))
-      case Full(JsonResponsePrettify(json, _, _, code, _)) =>
-        import net.liftweb.http.js.JsExp.*
+      case Full(r @ RudderJsonResponse.LiftJsonResponse(json, _, code)) =>
         (code must beEqualTo(500)) and
-        (json.toJsCmd must beMatching(
+        (r.encoder.encodeJson(json, None).toString must beMatching(
           ".*Error when trying to get archive as a Zip: SystemError: Error when retrieving commit revision.*"
         ))
-      case x                                               =>
+      case x                                                            =>
         ko
     }
   }

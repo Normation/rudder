@@ -112,7 +112,8 @@ object RudderJsonResponse {
 
   //////////////////////////// Lift JSON response ////////////////////////////
 
-  final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(using encoder: JsonEncoder[A])
+  // val in using is necessary to access the encoder in tests
+  final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(using val encoder: JsonEncoder[A])
       extends LiftResponse {
     def toResponse: InMemoryResponse = {
       // Indent is not the number of space per indentation, but the level of indentation for this elem starts...

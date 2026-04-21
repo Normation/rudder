@@ -183,11 +183,16 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
          |}""".stripMargin.replaceAll("""\n""", "")
     }
 
+    def parseJson(s: String): Json = s.fromJson[Json] match {
+      case Right(v)  => v
+      case Left(err) => throw new RuntimeException(s"Error when parsing test data: ${err}")
+    }
+
     "save one campaign" in {
 
       val resp = s"""[$c1json]"""
 
-      restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(c1json)) {
+      restTest.testPOSTResponse("/secure/api/campaigns", parseJson(c1json)) {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
           map.asInstanceOf[Map[String, List[Json]]]("campaigns").toJson must equalsJsonSemantic(resp)
         case err                                                                        =>
@@ -231,7 +236,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
     "save campaign without schedule timezone" in {
       val resp = s"[${c2jsonTz(tz)}]"
 
-      restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(c2json)) {
+      restTest.testPOSTResponse("/secure/api/campaigns", parseJson(c2json)) {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
           map.asInstanceOf[Map[String, List[Json]]]("campaigns").toJson must equalsJsonSemantic(resp)
         case err                                                                        =>
@@ -243,7 +248,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
       val jsonWithTz = c2jsonTz("Antarctica/South_Pole")
       val resp       = s"[${jsonWithTz}]"
 
-      restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(jsonWithTz)) {
+      restTest.testPOSTResponse("/secure/api/campaigns", parseJson(jsonWithTz)) {
         case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, _, Some(map), _), _, _)) =>
           map.asInstanceOf[Map[String, List[Json]]]("campaigns").toJson must equalsJsonSemantic(resp)
         case err                                                                        =>
@@ -254,7 +259,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
     "refuse to save a campaign with offset timezone" in {
       val jsonWithTz = c2jsonTz("+01:00")
 
-      restTest.testPOSTResponse("/secure/api/campaigns", net.liftweb.json.parse(jsonWithTz)) {
+      restTest.testPOSTResponse("/secure/api/campaigns", parseJson(jsonWithTz)) {
         case Full(LiftJsonResponse(JsonRudderApiResponseError(_, _, _, Some(err)), _, _)) =>
           err must contain("Error parsing schedule time zone, unknown IANA ID : '+01:00'")
         case s                                                                            =>
