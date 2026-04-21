@@ -2,12 +2,13 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 use std::{
-    io,
-    io::{BufRead, Lines, Write},
+    env::{self, VarError},
+    io::{self, BufRead, Lines, Write},
     str::FromStr,
 };
 
-use anyhow::{Error, bail};
+use anyhow::{Context, Error, Result, bail};
+use log::info;
 use serde::Serialize;
 
 use crate::cfengine::protocol::Request;
@@ -95,6 +96,35 @@ impl CfengineRunner {
         Ok(())
     }
 
+    fn setup_logging() -> Result<()> {
+        let logfile = match env::var("RUDDER_AGENT_MODULE_LOG") {
+            Err(VarError::NotPresent) => return Ok(()), // logging is disabled
+            Err(e) => bail!("{e}"),
+            Ok(v) => v,
+        };
+
+        let progname = std::env::current_exe()?
+            .file_name()
+            .context("Could not get program name")?
+            .to_string_lossy()
+            .to_string();
+
+        fern::Dispatch::new()
+            .format(move |out, message, record| {
+                out.finish(format_args!(
+                    "{} [{}] {} {}\n",
+                    chrono::Local::now().format("%Y-%m-%dT%H:%M:%S%.3f"),
+                    record.level(),
+                    progname,
+                    message
+                ))
+            })
+            .chain(fern::log_file(logfile)?)
+            .apply()?;
+
+        Ok(())
+    }
+
     /// Write lines followed by two empty lines
     fn write_json<W: Write, L: Write, D: Serialize>(
         output: &mut W,
@@ -102,7 +132,10 @@ impl CfengineRunner {
         data: D,
     ) -> Result<(), Error> {
         let json = serde_json::to_string(&data)?;
-        Self::write_line(output, &json)
+        Self::write_line(output, &json)?;
+        info!("-> {json}");
+
+        Ok(())
     }
 
     fn try_parse_request(line: &str) -> Result<Request, Vec<String>> {
@@ -132,6 +165,8 @@ impl CfengineRunner {
         mut output: W,
         mut logger: L,
     ) -> Result<(), Error> {
+        Self::setup_logging()?;
+
         // Parse agent header
         let mut input = input.lines();
         let first_line = Self::read_line(&mut input)?;
@@ -150,6 +185,8 @@ impl CfengineRunner {
         // Now we're all set up, let's run the executor main loop
         loop {
             let line = Self::read_line(&mut input)?;
+            info!("<- {line}");
+
             //let line = dbg!(line);
             // Lazily run initializer, in case it is expensive
             if !initialized {
