@@ -47,6 +47,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
+import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
 class ReportLineTest extends Specification {
@@ -96,10 +97,10 @@ class ReportLineTest extends Specification {
       case "cr" => Full("Rule name")
     }
 
-    LogDisplayer.getReportsLineForNode(reports, dirName, ruleName).toJson.toJsCmd.strip() must beEqualTo(
-      """[{"executionDate": "2024-12-14 14:47:53Z", "runDate": "2024-12-14 14:47:53Z", "kind": "result", "status": "error", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
-        | {"executionDate": "2024-12-14 14:47:53Z", "runDate": "2024-12-14 14:47:53Z", "kind": "audit", "status": "compliant", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "foo", "message": "message"},
-        | {"executionDate": "2024-12-14 14:47:53Z", "runDate": "2024-12-14 14:47:53Z", "kind": "result", "status": "success", "ruleName": "Rule name", "directiveName": "Directive name", "component": "component", "value": "bar", "message": "message"}
+    LogDisplayer.getReportsLineForNode(reports, dirName, ruleName).toJson.strip() must beEqualTo(
+      """[{"executionDate":"2024-12-14 14:47:53Z","runDate":"2024-12-14 14:47:53Z","kind":"result","status":"error","ruleName":"Rule name","directiveName":"Directive name","component":"component","value":"foo","message":"message"},
+        |{"executionDate":"2024-12-14 14:47:53Z","runDate":"2024-12-14 14:47:53Z","kind":"audit","status":"compliant","ruleName":"Rule name","directiveName":"Directive name","component":"component","value":"foo","message":"message"},
+        |{"executionDate":"2024-12-14 14:47:53Z","runDate":"2024-12-14 14:47:53Z","kind":"result","status":"success","ruleName":"Rule name","directiveName":"Directive name","component":"component","value":"bar","message":"message"}
         |]""".stripMargin.replaceAll("\n", "").strip()
     )
   }

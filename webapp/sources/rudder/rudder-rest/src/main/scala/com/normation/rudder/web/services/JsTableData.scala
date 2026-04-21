@@ -39,24 +39,16 @@ package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.reports.ComplianceLevel
 import net.liftweb.common.Loggable
-import net.liftweb.http.js.JE.JsArray
-import net.liftweb.http.js.JsExp
-import net.liftweb.http.js.JsObj
-import net.liftweb.util.Helpers.*
-import org.apache.commons.text.StringEscapeUtils
+import zio.json.*
+import zio.json.ast.*
 
 /*
  * That class represent a Line in a DataTable.
  */
 trait JsTableLine extends Loggable {
 
-  def json(freshName: () => String): JsObj
-
-  // this is needed because DataTable doesn't escape HTML element when using table.rows.add
-  def escapeHTML(s: String): JsExp = JsExp.strToJsExp(StringEscapeUtils.escapeHtml4(s))
-
   import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
-  def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray
+  def jsCompliance(compliance: ComplianceLevel): Json.Arr = compliance.toJsArray
 
 }
 
@@ -64,9 +56,9 @@ trait JsTableLine extends Loggable {
  * That class a set of Data to use in datatable
  * It should be used as data parameter when creating datatable in javascript
  */
-final case class JsTableData[T <: JsTableLine](lines: List[T]) {
+final case class JsTableData[T <: JsTableLine](lines: List[T])
 
-  def json(freshName: () => String): JsArray = JsArray(lines.map(_.json(freshName)))
+object JsTableData {
 
-  def toJson: JsArray = json(() => nextFuncName)
+  given jsTableDataEncoder[T <: JsTableLine: JsonEncoder]: JsonEncoder[JsTableData[T]] = JsonEncoder.list.contramap(_.lines)
 }

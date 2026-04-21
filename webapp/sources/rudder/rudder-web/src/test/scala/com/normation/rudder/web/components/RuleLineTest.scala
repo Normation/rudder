@@ -50,6 +50,7 @@ import net.liftweb.http.js.JsCmds.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
+import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
 class RuleLineTest extends Specification {
@@ -82,22 +83,22 @@ class RuleLineTest extends Specification {
       )
     )
 
-    RuleGrid.getRulesData(lines, None, callback, catName).toJson.toJsCmd.replaceAll("\n", "") ===
-    """[{"name": "50. Deploy PLOP STACK", "id": "rule2", "description": "global config for all nodes",
-      | "applying": false, "category": "root rule category", "status": "In application", "trClass": "",
-      | "policyMode": "enabled", "explanation": "the mode is enabled", "tags": "{}", "tagsDisplayed": [],
-      | "callback": function(action) {lift.ajax('cb=' + encodeURIComponent(window.location = "rule2";), null, null, null);}
+    RuleGrid.getRulesData(lines, None, callback, catName).toJson.replaceAll("\n", "") ===
+    """[{"name":"50. Deploy PLOP STACK","id":"rule2","description":"global config for all nodes",
+      |"applying":false,"category":"root rule category","status":"In application","trClass":"",
+      |"policyMode":"enabled","explanation":"the mode is enabled","tags":"{}","tagsDisplayed":[],
+      |"callback":function(action) {lift.ajax('cb=' + encodeURIComponent(window.location = "rule2";), null, null, null);}
       |}]""".stripMargin.replaceAll("\n", "")
   }
 
   "Error Line serialisation" >> {
     val lines = List(ErrorLine(mockRules.rules.rpmRule, "enabled", "the mode is enabled", nodeIsEmpty = false))
 
-    RuleGrid.getRulesData(lines, None, callback, catName).toJson.toJsCmd.replaceAll("\n", "") ===
-    """[{"name": "50. Deploy PLOP STACK", "id": "rule2", "description": "global config for all nodes",
-      | "applying": false, "category": "root rule category", "status": "N/A", "trClass": " error",
-      | "policyMode": "enabled", "explanation": "the mode is enabled", "tags": "{}", "tagsDisplayed": [],
-      | "callback": function(action) {lift.ajax('cb=' + encodeURIComponent(window.location = "rule2";), null, null, null);}
+    RuleGrid.getRulesData(lines, None, callback, catName).toJson.replaceAll("\n", "") ===
+    """[{"name":"50. Deploy PLOP STACK","id":"rule2","description":"global config for all nodes",
+      |"applying":false,"category":"root rule category","status":"N/A","trClass":" error",
+      |"policyMode":"enabled","explanation":"the mode is enabled","tags":"{}","tagsDisplayed":[],
+      |"callback":function(action) {lift.ajax('cb=' + encodeURIComponent(window.location = "rule2";), null, null, null);}
       |}]""".stripMargin.replaceAll("\n", "")
   }
 }
