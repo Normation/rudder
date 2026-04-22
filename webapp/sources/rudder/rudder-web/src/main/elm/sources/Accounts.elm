@@ -100,15 +100,21 @@ update msg model =
                 tenants =
                     editAccount |> Maybe.andThen .selectedTenants |> Maybe.withDefault []
             in
-            ( { model | ui = { ui | modalState = modalState }, editAccount = editAccount }, Cmd.batch [ shareAcl (encodeTokenAcl tokenId acl), focusAccountTenants (encodeAccountTenants tokenId tenants) ] )
+            ( { model | ui = { ui | modalState = modalState }, editAccount = editAccount }, Cmd.batch [ shareAcl (encodeTokenAcl tokenId acl), focusAccountTenants (encodeAccountTenants tokenId tenants), clearTooltips () ] )
 
 
         UpdateFilters filters ->
             let
                 ui =
                     model.ui
+                cmd =
+                    if filters /= ui.filters then
+                        resetTooltips ()
+
+                    else
+                        Cmd.none
             in
-            ( { model | ui = { ui | filters = filters } }, Cmd.none )
+            ( { model | ui = { ui | filters = filters } }, cmd )
 
         GetAccountsResult res ->
             case res of
@@ -123,7 +129,7 @@ update msg model =
 
                     in
                     ( { model | accounts = accounts, ui = { modelUi | loadingAccounts = False, pluginAclInit = True, pluginTenantsInit = True } }
-                    , Cmd.batch [ initTooltips "" ]
+                    , resetTooltips ()
                     )
 
                 Err err ->
