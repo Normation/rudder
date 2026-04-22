@@ -257,18 +257,6 @@ object MergePolicyService {
             s"'${nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter " +
             s"at random for the policy generation."
           )
-          import net.liftweb.json.*
-          implicit val formats: Formats = DefaultFormats
-          def r(j: JValue) = if (j == JNothing) "{}" else prettyRender(j)
-
-          val jmain = Extraction.decompose(main)
-          PolicyGenerationLogger.error("First directivedraft: " + prettyRender(jmain))
-          seq.tail.foreach { x =>
-            val diff = jmain.diff(Extraction.decompose(x))
-            PolicyGenerationLogger.error(
-              s" Diff with other draft: \nadded:${r(diff.added)} \nchanged:${r(diff.changed)} \ndeleted:${r(diff.deleted)}"
-            )
-          }
         }
         main
     }
