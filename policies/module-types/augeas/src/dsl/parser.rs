@@ -394,6 +394,7 @@ mod tests {
 
             clear /path/to/node # another command
             touch /path/to/node
+            touch /path/to/node[2]
 
             quit
             save
@@ -429,6 +430,7 @@ mod tests {
             Expr::Remove("/path/to/node".into()),
             Expr::Clear("/path/to/node".into()),
             Expr::Touch("/path/to/node".into()),
+            Expr::Touch("/path/to/node[2]".into()),
             Expr::Quit,
             Expr::Save,
             Expr::Load,
