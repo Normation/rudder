@@ -3954,6 +3954,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "similar",
+ "skip_bom",
  "tempfile",
  "test-generator",
  "uuid",
@@ -4524,6 +4525,12 @@ name = "siphasher"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2aa850e253778c88a04c3d7323b043aeda9d3e30d5971937c1855769763678e"
+
+[[package]]
+name = "skip_bom"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b665adf9d8f5f5f2d2d4efae74c2872ea64665d737228a65bac282e664e8c549"
 
 [[package]]
 name = "slab"
