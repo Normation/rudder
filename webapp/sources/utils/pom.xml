@@ -54,10 +54,6 @@ limitations under the License.
       <artifactId>lift-common_2.13</artifactId>
     </dependency>
     <dependency>
-      <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_2.13</artifactId>
-    </dependency>
-    <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>fastparse_${scala-binary-version}</artifactId>
     </dependency>
