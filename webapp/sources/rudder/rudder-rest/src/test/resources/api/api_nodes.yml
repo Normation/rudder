@@ -1194,7 +1194,7 @@ response:
             "description" : "a simple string param",
             "inheritMode" : "map",
             "provider" : "inherited",
-            "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+            "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
             "hierarchyStatus" : {
               "hasChildTypeConflicts" : false,
               "fullHierarchy" : {
@@ -1440,7 +1440,7 @@ response:
         "value" : "some string",
         "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {
@@ -1455,7 +1455,7 @@ response:
         "value" : "some string",
         "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {
@@ -1471,7 +1471,7 @@ response:
         "description" : "a simple string param",
         "inheritMode" : "map",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {
@@ -1493,7 +1493,7 @@ response:
         "description" : "a simple string param",
         "inheritMode" : "map",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {
@@ -1515,7 +1515,7 @@ response:
         "description" : "a simple string param",
         "inheritMode" : "map",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {
@@ -1536,7 +1536,7 @@ response:
         "value" : "some string",
         "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {
@@ -1551,7 +1551,7 @@ response:
         "value" : "some string",
         "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>global property 'stringParam'</b>:<pre>&quot;some string&quot;</pre></p>",
         "hierarchyStatus" : {
           "hasChildTypeConflicts" : false,
           "fullHierarchy" : {

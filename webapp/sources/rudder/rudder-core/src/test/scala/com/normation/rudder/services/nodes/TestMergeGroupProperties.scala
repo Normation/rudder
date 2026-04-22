@@ -42,6 +42,9 @@ import com.normation.GitVersion
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.apidata.JsonResponseObjects.InheritedPropertyStatus
+import com.normation.rudder.apidata.JsonResponseObjects.JRProperty
+import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.GroupTarget
@@ -71,15 +74,14 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueFactory
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import org.junit.runner.*
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.reflect.ClassTag
-import zio.Chunk
-import zio.NonEmptyChunk
+import zio.*
+import zio.json.*
+import zio.json.ast.Json.*
 
 @RunWith(classOf[JUnitRunner])
 class TestMergeGroupProperties extends Specification {
@@ -763,46 +765,52 @@ class TestMergeGroupProperties extends Specification {
         )
 
       successMerged must haveClass[SuccessNodePropertyHierarchy]
-      val props    = successMerged.resolved
-      val actual   = props.toList.toApiJsonRenderParents
-      val expected = JArray(
-        List(
-          ("name"          -> "foo")
-          ~ ("value"       -> (
-            ("child"       -> "child value")
-            ~ ("global"    -> "global value")
-            ~ ("node"      -> "node value")
-            ~ ("override"  -> "node")
-            ~ ("parent"    -> "parent value")
-          ))
-          ~ ("provider"    -> "overridden")
-          ~ ("inheritMode" -> JNothing) // I don't understand why I need to add it
-          ~ ("hierarchy"   ->
-          """<p>from global property <b>foo (foo)</b>:<pre>{
-            |    &quot;global&quot; : &quot;global value&quot;,
-            |    &quot;override&quot; : &quot;global&quot;
-            |}
-            |</pre></p><p>from group <b>parent1 (parent1)</b>:<pre>{
-            |    &quot;override&quot; : &quot;parent&quot;,
-            |    &quot;parent&quot; : &quot;parent value&quot;
-            |}
-            |</pre></p><p>from group <b>child (child)</b>:<pre>{
-            |    &quot;child&quot; : &quot;child value&quot;,
-            |    &quot;override&quot; : &quot;child&quot;
-            |}
-            |</pre></p><p>from node <b>node1.localhost (node1)</b>:<pre>{
-            |    &quot;node&quot; : &quot;node value&quot;,
-            |    &quot;override&quot; : &quot;node&quot;
-            |}
-            |</pre></p>""".stripMargin)
-          ~ ("origval"     -> (
-            ("node"        -> "node value")
-            ~ ("override"  -> "node")
-          ))
+      val props    = successMerged.resolved.map(InheritedPropertyStatus.from)
+      val actual   = props
+        .map(
+          JRProperty
+            .fromInheritedPropertyStatus(_, RenderInheritedProperties.HTML, escapeHtml = true)
+            // we set hierarchy to none since we don't have a real hierarchy here
+            .modify(_.hierarchyStatus)
+            .setTo(None)
+        )
+        .toJson
+      val expected = Arr(
+        Chunk(
+          Obj(
+            "name"      -> Str("foo"),
+            "value"     -> Obj(
+              "child"    -> Str("child value"),
+              "global"   -> Str("global value"),
+              "node"     -> Str("node value"),
+              "override" -> Str("node"),
+              "parent"   -> Str("parent value")
+            ),
+            "provider"  -> Str("overridden"),
+            "hierarchy" ->
+            Str("""<p>from <b>global property 'foo'</b>:<pre>{
+                  |    &quot;global&quot; : &quot;global value&quot;,
+                  |    &quot;override&quot; : &quot;global&quot;
+                  |}
+                  |</pre></p><p>from <b>group 'parent1' (parent1)</b>:<pre>{
+                  |    &quot;override&quot; : &quot;parent&quot;,
+                  |    &quot;parent&quot; : &quot;parent value&quot;
+                  |}
+                  |</pre></p><p>from <b>group 'child' (child)</b>:<pre>{
+                  |    &quot;child&quot; : &quot;child value&quot;,
+                  |    &quot;override&quot; : &quot;child&quot;
+                  |}
+                  |</pre></p><p>from <b>node 'node1.localhost' (node1)</b>:<pre>{
+                  |    &quot;node&quot; : &quot;node value&quot;,
+                  |    &quot;override&quot; : &quot;node&quot;
+                  |}
+                  |</pre></p>""".stripMargin),
+            "origval"   -> Obj("node" -> Str("node value"), "override" -> Str("node"))
+          )
         )
       )
 
-      actual must beEqualTo(expected)
+      actual must beEqualTo(expected.toJson)
     }
   }
   // only match error sub type to expected one

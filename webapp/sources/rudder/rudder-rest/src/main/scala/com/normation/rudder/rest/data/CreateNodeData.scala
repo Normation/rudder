@@ -189,8 +189,6 @@ final case class ResultHolder(
 )
 
 object ResultHolder {
-  import com.normation.rudder.apidata.implicits.*
-
   implicit val failureEncoder: JsonEncoder[(String, CreationError)] =
     JsonEncoder[Map[String, CreationError]].contramap(Map(_))
 

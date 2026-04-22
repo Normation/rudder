@@ -44,7 +44,6 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.rest.ApiModuleProvider

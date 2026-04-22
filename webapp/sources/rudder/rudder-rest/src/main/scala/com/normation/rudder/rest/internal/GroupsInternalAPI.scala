@@ -39,7 +39,6 @@ package com.normation.rudder.rest.internal
 import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath

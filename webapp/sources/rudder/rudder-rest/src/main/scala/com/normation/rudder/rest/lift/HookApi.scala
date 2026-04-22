@@ -4,7 +4,6 @@ import better.files.File
 import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRHooks
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
