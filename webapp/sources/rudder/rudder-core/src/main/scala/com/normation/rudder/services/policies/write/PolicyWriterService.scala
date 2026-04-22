@@ -84,8 +84,6 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
-import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import zio.*
@@ -297,15 +295,14 @@ class PolicyWriterServiceImpl(
 
   private def writeNodePropertiesFile(agentNodeConfig: AgentNodeConfiguration) = {
 
-    def generateNodePropertiesJson(properties: Seq[NodeProperty]): JValue = {
-      import net.liftweb.json.JsonDSL.*
-      ("properties" -> properties.toDataJson)
+    def generateNodePropertiesJson(properties: Seq[NodeProperty]): Json = {
+      Json.Obj("properties" -> properties.toDataJson)
     }
 
     val path            = Constants.GENERATED_PROPERTY_DIR
     val file            = File(agentNodeConfig.paths.newFolder, path, Constants.GENERATED_PROPERTY_FILE)
     val jsonProperties  = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
-    val propertyContent = JsonAST.prettyRender(jsonProperties)
+    val propertyContent = jsonProperties.toJsonPretty
 
     for {
       _ <-
@@ -317,17 +314,16 @@ class PolicyWriterServiceImpl(
   }
 
   private def writeRudderParameterFile(agentNodeConfig: AgentNodeConfiguration): IOResult[Unit] = {
-    def generateParametersJson(parameters: Set[ParameterEntry]): JValue = {
+    def generateParametersJson(parameters: Set[ParameterEntry]): Json = {
       import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-      import net.liftweb.json.JsonDSL.*
-      ("parameters" -> parameters.toDataJson)
+      Json.Obj("parameters" -> parameters.toDataJson)
     }
 
     val file             = File(agentNodeConfig.paths.newFolder, Constants.GENERATED_PARAMETER_FILE)
     val jsonParameters   = generateParametersJson(
       agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentType))
     )
-    val parameterContent = JsonAST.prettyRender(jsonParameters)
+    val parameterContent = jsonParameters.toJsonPretty
 
     for {
       _ <- PolicyGenerationLoggerPure.trace(s"Create parameter file '${agentNodeConfig.paths.newFolder}/${file.name}'")
@@ -341,7 +337,7 @@ class PolicyWriterServiceImpl(
    * For all the writing part, we want to limit the number of concurrent workers on two aspects:
    * - we want an I/O thread-pool, which knows what to do when a thread is blocked for a long time,
    *   and risks thread exhaustion
-   *   (it can happens, since we have a number of files to write, some maybe big)
+   *   (it can happen, since we have a number of files to write, some maybe big)
    * - we want to limit the total number of concurrent execution to avoid blowing up the number
    *   of open files, concurrent hooks, etc. This is not directly linked to the number of CPU,
    *   but clearly there is no point having a pool of 4 threads for 1000 nodes which will

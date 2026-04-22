@@ -39,10 +39,11 @@ package com.normation.rudder.domain.queries
 
 import com.normation.BoxSpecMatcher
 import net.liftweb.common.*
-import net.liftweb.json.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
+import zio.json.*
+import zio.json.ast.*
 
 @RunWith(classOf[JUnitRunner])
 class JsonSelectTest extends Specification with BoxSpecMatcher with Loggable {
@@ -66,14 +67,7 @@ class JsonSelectTest extends Specification with BoxSpecMatcher with Loggable {
     "retrieve first" in {
       val res = JsonSelect.fromPath("$.store.book", json).map(_.head)
 
-      res mustFullEq (compactRender(parse("""
-            {
-                "category": "reference",
-                "author": "Nigel Rees",
-                "title": "Sayings of the Century",
-                "price": 8.95
-            }
-        """)))
+      res mustFullEq ("""{"category":"reference","author":"Nigel Rees","title":"Sayings of the Century","price":8.95}""")
     }
   }
 
@@ -106,7 +100,7 @@ class JsonSelectTest extends Specification with BoxSpecMatcher with Loggable {
                 "isbn": "0-395-19395-8",
                 "price": 22.99
             }"""
-      ).map(s => compactRender(parse(s))))
+      ).map(_.fromJson[Json].getOrElse(throw RuntimeException("parsing error")).toJson))
     }
     "retrieve NUMBER childrens forming an array" in {
       JsonSelect.fromPath("$.store.book[*].price", json) mustFullEq (List("8.95", "12.99", "8.99", "22.99"))

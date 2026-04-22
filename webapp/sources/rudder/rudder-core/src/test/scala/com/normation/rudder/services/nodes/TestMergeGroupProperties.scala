@@ -54,7 +54,6 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.GroupPropertyHierarchy
 import com.normation.rudder.domain.properties.InheritMode
-import com.normation.rudder.domain.properties.JsonPropertyHierarchySerialisation.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
@@ -849,7 +848,7 @@ class TestMergeGroupProperties extends Specification {
             ok("")
           } else {
             ko(
-              s"Properties were not the ones expected, got Both with left : ${l} and right ${r.props}\nbut expected left ${leftError} and right ${rightSuccess}"
+              s"Properties were not the ones expected, got Both with left : ${l} and right ${r}\nbut expected left ${leftError} and right ${rightSuccess}"
             )
           }
         case o: Ior[?, ?] =>

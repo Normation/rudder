@@ -8,10 +8,8 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.properties.GroupProp
-import com.typesafe.config.ConfigRenderOptions
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import org.apache.commons.text.StringEscapeUtils
 import zio.*
 import zio.json.enumeratum.*
 
@@ -324,7 +322,7 @@ case class FailedNodePropertyHierarchy private (
 object FailedNodePropertyHierarchy {
 
   /**
-   * Constuctor needs to validate that properties in success does not intersect specific node property errors
+   * Constructor needs to validate that properties in success does not intersect specific node property errors
    */
   def apply(
       it:             Iterable[PropertyHierarchy],
@@ -375,82 +373,4 @@ object ResolvedNodePropertyHierarchy {
     }
   }
 
-}
-
-/**
- * The part dealing with JsonSerialisation of node related
- * attributes (especially properties) and parameters
- */
-object JsonPropertyHierarchySerialisation {
-
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
-
-  implicit class ParentPropertyToJSon(val p: ParentProperty[?]) extends AnyVal {
-    def toJson: JValue = {
-      p match {
-        case ParentProperty.Global(value) =>
-          (
-            ("kind"            -> p.kind.entryName)
-            ~ ("name"          -> p.name)
-            ~ ("value"         -> GenericProperty.toJsonValue(p.value.value))
-            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.resolvedValue.value))
-          )
-
-        case _ =>
-          (
-            ("kind"            -> p.kind.entryName)
-            ~ ("name"          -> p.name)
-            ~ ("id"            -> p.id)
-            ~ ("value"         -> GenericProperty.toJsonValue(p.value.value))
-            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.resolvedValue.value))
-          )
-      }
-    }
-  }
-
-  implicit class JsonNodePropertyHierarchy(val prop: PropertyHierarchy) extends AnyVal {
-    private def buildHierarchy(displayParents: ParentProperty[?] => JValue): JObject = {
-
-      prop.prop.toJsonObj ~ ("hierarchy" -> displayParents(prop.hierarchy)) ~ ("origval" -> GenericProperty.toJsonValue(
-        prop.hierarchy.value.value
-      ))
-
-    }
-
-    def toApiJson: JObject = {
-      buildHierarchy(list => list.toJson)
-    }
-
-    def toApiJsonRenderParents: JObject = {
-      def displayElem(p: ParentProperty[?]): String = {
-        (p match {
-          case _: ParentProperty.Global => None
-          case n: ParentProperty.Node   => n.parentProperty.map(displayElem)
-          case g: ParentProperty.Group  => g.parentProperty.map(displayElem)
-        }).getOrElse("") +
-        s"<p>from ${p.kind match {
-            case ParentPropertyKind.Global => p.kind.entryName + " property"
-            case _                         => p.kind.entryName
-          }} <b>${p.name}${if (p.id.isEmpty) {
-            ""
-          } else s" (${p.id})"}</b>:<pre>${StringEscapeUtils
-            .escapeHtml4(p.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"
-      }
-
-      buildHierarchy(displayElem.andThen(JString))
-    }
-
-  }
-
-  implicit class JsonNodePropertiesHierarchy(val props: List[PropertyHierarchy]) extends AnyVal {
-    def toApiJson: JArray = {
-      JArray(props.sortBy(_.prop.name).map(p => p.toApiJson))
-    }
-
-    def toApiJsonRenderParents: JArray = {
-      JArray(props.sortBy(_.prop.name).map(p => p.toApiJsonRenderParents))
-    }
-
-  }
 }

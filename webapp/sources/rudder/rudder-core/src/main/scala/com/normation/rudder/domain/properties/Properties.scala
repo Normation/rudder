@@ -48,8 +48,6 @@ import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.*
 import enumeratum.*
-import net.liftweb.json.*
-import scala.annotation.nowarn
 import zio.json
 import zio.json.*
 import zio.json.ast.*
@@ -369,14 +367,6 @@ object GenericProperty {
       value.render(option)
     }
   }
-  def serializeJson(value: JValue):                               String = {
-    // special case for string: we need to remove "" for compat with agents
-    value match {
-      case JNothing   => ""
-      case JString(s) => s
-      case x          => compactRender(x)
-    }
-  }
 
   /*
    * Merge two json values, overriding or merging recursively
@@ -571,27 +561,6 @@ object GenericProperty {
     def serializeGlobalParameter: String = value.render(ConfigRenderOptions.concise().setComments(true))
   }
 
-  /**
-   * Parse a JSON JValue to ConfigValue. It always succeeds.
-   * @deprecated for removal, please use the {@link #fromZioJson()} method instead.
-   */
-  @Deprecated(since = "7.0", forRemoval = true)
-  def fromJsonValue(value: JValue):          ConfigValue = {
-    import scala.jdk.CollectionConverters.*
-    value match {
-      case JNothing | JNull => ConfigValueFactory.fromAnyRef("")
-      case JString(s)       => ConfigValueFactory.fromAnyRef(s)
-      case JDouble(d)       => ConfigValueFactory.fromAnyRef(d)
-      case JInt(num)        => ConfigValueFactory.fromAnyRef(num)
-      case JBool(b)         => ConfigValueFactory.fromAnyRef(b)
-      case JObject(arr)     => {
-        val m = new java.util.HashMap[String, ConfigValue]()
-        arr.foreach(f => m.put(f.name, fromJsonValue(f.value): @nowarn("msg=deprecated")))
-        ConfigValueFactory.fromMap(m)
-      }
-      case JArray(arr)      => ConfigValueFactory.fromIterable(arr.map(x => fromJsonValue(x): @nowarn("msg=deprecated")).asJava)
-    }
-  }
   def fromZioJson(value: zio.json.ast.Json): ConfigValue = {
     import zio.json.ast.Json.*
 
@@ -618,27 +587,6 @@ object GenericProperty {
         ConfigValueFactory.fromMap(m)
       }
       case Arr(arr) => ConfigValueFactory.fromIterable(arr.map(x => fromZioJson(x)).asJava)
-    }
-  }
-
-  def toJsonValue(value: ConfigValue): JValue = {
-    value.valueType() match {
-      case ConfigValueType.NULL    => JNothing
-      case ConfigValueType.BOOLEAN => JBool(value.unwrapped().asInstanceOf[Boolean])
-      case ConfigValueType.NUMBER  =>
-        value.unwrapped() match {
-          case f: java.lang.Float   => JDouble(f.doubleValue())
-          case d: java.lang.Double  => JDouble(d)
-          case i: java.lang.Integer => JInt(BigInt(i))
-          case l: java.lang.Long    => JInt(BigInt(l))
-          case error =>
-            throw new IllegalArgumentException(
-              s"Error with config value '${value}': it says it is a NUMBER but it is: ${value.unwrapped()}. Please report the bug."
-            )
-        }
-      case ConfigValueType.STRING  => JString(value.unwrapped().asInstanceOf[String])
-      // the only safe and compatible way for array/object seems to be to render and then parse
-      case _                       => parse(value.render(ConfigRenderOptions.concise()))
     }
   }
 
@@ -738,7 +686,6 @@ object GenericProperty {
     // get the Hocon string, with comments if any
     def valueAsDebugString: String = GenericProperty.serializeToHocon(p.value)
     // get value as a JValue
-    def jsonValue:          JValue = toJsonValue(p.value)
     def jsonZio:            Json   = toJsonZio(p.value)
   }
 
@@ -770,29 +717,14 @@ object GenericProperty {
    * Implicit class to render properties to JSON
    */
   implicit class PropertyToJson(val x: GenericProperty[?]) extends AnyVal {
-
-    def toJsonObj: JObject = {
-      import net.liftweb.json.JsonDSL.*
-      (
-        ("name"          -> x.name)
-        ~ ("value"       -> parse(x.value.render(ConfigRenderOptions.concise())))
-        ~ ("provider"    -> x.provider.map(_.value))
-        ~ ("inheritMode" -> x.inheritMode.map(_.value))
-      )
-    }
-
     def toData: String = x.config.root().render(ConfigRenderOptions.concise().setComments(true))
   }
 
   implicit class JsonProperties(val props: Seq[GenericProperty[?]]) extends AnyVal {
-    def toApiJson: JArray = {
-      JArray(props.map(_.toJsonObj).toList)
-    }
 
-    def toDataJson: JObject = {
-      import net.liftweb.json.JsonDSL.*
-
-      props.map(x => JField(x.name, x.jsonValue)).toList.sortBy(_.name)
+    // used in policy generation
+    def toDataJson: Json = {
+      Json.Obj(props.map(x => (x.name, x.jsonZio)).toList.sortBy(_._1)*)
     }
   }
 }
@@ -971,23 +903,10 @@ object CompareProperties {
  */
 object JsonPropertySerialisation {
 
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
-
-  implicit class JsonParameter(val x: ParameterEntry) extends AnyVal {
-    def toJson: JObject = (
-      ("name"      -> x.parameterName)
-        ~ ("value" -> x.escapedValue)
-    )
-  }
-
+  // used in policy generation
   implicit class JsonParameters(val parameters: Set[ParameterEntry]) extends AnyVal {
-    def dataJson(x: ParameterEntry): JField = {
-      JField(x.parameterName, x.escapedValue)
-    }
-
-    def toDataJson: JObject = {
-      parameters.map(dataJson(_)).toList.sortBy(_.name)
+    def toDataJson: Json = {
+      Json.Obj(parameters.map(p => (p.parameterName, Json.Str(p.escapedValue))).toList.sortBy(_._1)*)
     }
   }
 
