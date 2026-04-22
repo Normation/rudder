@@ -82,7 +82,7 @@ displayAccountsTable model =
                     [ class "relative-date"
                     , attribute "data-bs-toggle" "tooltip"
                     , attribute "data-bs-placement" "top"
-                    , attribute "title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
+                    , attribute "data-bs-original-title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
                     , onClick (Copy (Iso8601.fromTime d))
                     ]
                     , DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d
@@ -133,7 +133,7 @@ displayAccountsTable model =
           , span
             [ attribute "data-bs-toggle" "tooltip"
             , attribute "data-bs-placement" "top"
-            , attribute "title"
+            , attribute "data-bs-original-title"
               ( buildTooltipContent "Token"
                 ( a.tokenGenerationDate
                     |> Maybe.Extra.unpack
@@ -199,7 +199,7 @@ displayAccountDescription a =
       [ class "fa fa-question-circle icon-info"
       , attribute "data-bs-toggle" "tooltip"
       , attribute "data-bs-placement" "top"
-      , attribute "title" (buildTooltipContent "Description" a.description)
+      , attribute "data-bs-original-title" (buildTooltipContent "Description" a.description)
       ][]
 
 exposeToken : Maybe Token -> String

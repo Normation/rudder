@@ -17,7 +17,9 @@
   </head>
 
   <div data-lift="administration.ApiAccounts.body">
-    <div id="accounts-app"></div>
+    <div id="accounts-app-container">
+      <div id="accounts-app"></div>
+    </div>
     <script data-lift="with-nonce">
       var app;
       $(document).ready(function () {
@@ -43,12 +45,14 @@
         app.ports.copy.subscribe(function (str) {
           copy(str);
         });
-        // Initialize tooltips
-        app.ports.initTooltips.subscribe(function (msg) {
-          setTimeout(function () {
-            initBsTooltips();
-          }, 600);
-        });
+        // Tooltips
+        app.ports.clearTooltips.subscribe(removeBsTooltips)
+        app.ports.resetTooltips.subscribe(async function () {
+          const tooltipsSelector = '#accounts-app-container [data-bs-toggle="tooltip"]'
+          disposeBsTooltips(tooltipsSelector)
+          await waitForElementAsync(tooltipsSelector)
+          initBsTooltips(tooltipsSelector)
+        })
       });
     </script>
     <div id="acl-app"></div>
