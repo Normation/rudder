@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
 use serde::Serialize;
@@ -36,14 +36,18 @@ impl Secedit {
 
     pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<Outcome> {
         let mut config = self.export()?;
-        let report = config_search_and_replace(&mut config, &data)?;
+        let default_config = get_default_config()?;
+
+        let report = config_search_and_replace(&mut config, &default_config, &data)?;
         let json_report = serde_json::to_string(&report)?;
+        // Output report
         println!("{json_report}");
+
         if !audit {
             self.apply_config(&config)?;
             // Check if the configuration was applied
             let mut new_config = self.export()?;
-            let new_report = config_search_and_replace(&mut new_config, &data)?;
+            let new_report = config_search_and_replace(&mut new_config, &default_config, &data)?;
             if !new_report.diff.is_empty() {
                 let data = serde_json::to_string(&data)?;
                 bail!("Could not apply configuration:\n{data}")
@@ -94,6 +98,18 @@ impl Secedit {
     }
 }
 
+fn get_default_config() -> Result<Ini> {
+    let opt = ParseOption {
+        enabled_escape: false,
+        ..Default::default()
+    };
+    let defltbase = Path::new("C:\\Windows\\inf\\defltbase.inf");
+    // TODO: update to new utf16 handling implementation.
+    let default = Ini::load_from_str_opt(&read_utf16_file(defltbase)?, opt)?;
+
+    Ok(default)
+}
+
 fn parse_config(path: &Path) -> Result<Ini> {
     let data = read_utf16_file(path)?;
     let opt = ParseOption {
@@ -136,9 +152,29 @@ fn invoke_with_args(args: Vec<&str>) -> Result<()> {
     Ok(())
 }
 
-fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Result<Report> {
+fn validate_property(key: &str, section: &str, value: &Value) -> Result<String> {
+    match value {
+        Value::String(s) if property_is_string(key, section) => Ok(s.clone()),
+        Value::String(s) => Err(anyhow!(
+            "Invalid value '{s}' for property '{key}'. String values are not supported for this property."
+        )),
+        Value::Number(n) if property_is_string(key, section) => Err(anyhow!(
+            "Invalid value '{n}' for property '{key}'. Integer values are not supported for this property."
+        )),
+        Value::Number(n) => Ok(n.to_string()),
+        Value::Null => Ok(String::default()),
+        _ => Err(anyhow!(
+            "Invalid value '{value}'. Only strings and numbers are supported."
+        )),
+    }
+}
+
+fn config_search_and_replace(
+    config: &mut Ini,
+    default: &Ini,
+    data: &Map<String, Value>,
+) -> Result<Report> {
     let mut report = Report::default();
-    let mut diff = String::new();
 
     for (section, section_data) in data {
         if section.as_str() == "Registry Values" {
@@ -148,7 +184,7 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
             continue;
         }
 
-        let props = match config.section_mut(Some(section)) {
+        let properties = match config.section_mut(Some(section)) {
             Some(m) => m,
             None => {
                 report
@@ -168,45 +204,69 @@ fn config_search_and_replace(config: &mut Ini, data: &Map<String, Value>) -> Res
             }
         };
 
-        for (key, value) in entries {
-            match props.get(key) {
-                Some(old) => {
-                    let new = match value {
-                        Value::String(s) if property_is_string(key, section) => s.clone(),
-                        Value::String(s) => {
-                            report.errors.push(format!("Invalid value '{s}' for property '{key}'. String values are not supported for this property."));
-                            continue;
-                        }
-                        Value::Number(n) if property_is_string(key, section) => {
-                            report.errors.push(format!("Invalid value '{n}' for property '{key}'. Integer values are not supported for this property."));
-                            continue;
-                        }
-                        Value::Number(n) => n.to_string(),
-                        _ => {
+        for (key, new_value) in entries {
+            let new_value = validate_property(key, section, new_value)?.replace("\"", "");
+            let new_value = if new_value.is_empty() {
+                // set to default value if the provided property is empty
+
+                let default_properties = match default.section(Some(section)) {
+                    Some(m) => m,
+                    None => {
+                        report.errors.push(format!(
+                            "section '{section}' does not exist in the default configuration"
+                        ));
+                        continue;
+                    }
+                };
+                match default_properties.get(key) {
+                    Some(default_value) => default_value.replace("\"", ""),
+                    None => {
+                        report
+                            .errors
+                            .push(format!("Property '{key}' does not have a default value"));
+                        continue;
+                    }
+                }
+            } else {
+                new_value
+            };
+            let old_value = match properties.get(key) {
+                Some(old_value) => old_value.replace("\"", ""),
+                None => {
+                    let default_properties = match default.section(Some(section)) {
+                        Some(m) => m,
+                        None => {
                             report.errors.push(format!(
-                                "Invalid value '{value}'. Only strings and numbers are supported.",
+                                "section '{section}' does not exist in the default configuration"
                             ));
                             continue;
                         }
                     };
-
-                    let new = new.replace("\"", "");
-                    let old = old.replace("\"", "");
-
-                    if new != old {
-                        let diffline = format!("\n- {key}={old}\n+ {key}={new}");
-                        diff.push_str(&diffline);
-                        props.insert(key, new);
+                    match default_properties.get(key) {
+                        Some(default_value) => {
+                            let default_value = default_value.replace("\"", "");
+                            // Insert default value
+                            properties.insert(key, &default_value);
+                            default_value
+                        }
+                        None => {
+                            report
+                                .errors
+                                .push(format!("key '{key}' in section '{section}' does not exist"));
+                            continue;
+                        }
                     }
                 }
-                None => report
-                    .errors
-                    .push(format!("key '{key}' in section '{section}' does not exist")),
+            };
+
+            if !key_equal(&new_value, &old_value) {
+                let diffline = format!("\n- {key}={old_value}\n+ {key}={new_value}");
+                report.diff.push_str(&diffline);
+                properties.insert(key, &new_value);
             }
         }
     }
 
-    report.diff = diff;
     if !report.errors.is_empty() {
         report.status = Outcome::NonCompliant;
     }
@@ -224,6 +284,19 @@ fn property_is_string(key: &str, section: &str) -> bool {
         (_, "Privilege Rights") => true,
         // else must be an Integer
         _ => false,
+    }
+}
+
+fn key_equal(a: &str, b: &str) -> bool {
+    if a.contains(",") {
+        let mut sids_a: Vec<&str> = a.split(',').map(|p| p.trim()).collect();
+        let mut sids_b: Vec<&str> = b.split(',').map(|p| p.trim()).collect();
+        sids_a.sort();
+        sids_b.sort();
+
+        sids_a == sids_b
+    } else {
+        a == b
     }
 }
 
@@ -245,8 +318,21 @@ mod test {
             MaximumPasswordAge = 42
             NewAdministratorName = \"Administrator\"
             NewGuestName = \"Guest\"
+            LockoutBadCount = 42
             [Unicode]
             Unicode = \"yes\"",
+            opt,
+        )
+        .unwrap();
+
+        let opt = ParseOption {
+            enabled_escape: false,
+            ..Default::default()
+        };
+        let default = Ini::load_from_str_opt(
+            "[System Access]
+            ResetLockoutCount = 10
+            ",
             opt,
         )
         .unwrap();
@@ -257,12 +343,14 @@ mod test {
                 "MinimumPasswordAge": 0,
                 "MaximumPasswordAge": 21,
                 "NewAdministratorName": "Administrator2",
-                "NewGuestName": "Guest"
+                "NewGuestName": "Guest",
+                "LockoutBadCount": 42,
+                "ResetLockoutCount": 10
             }
         });
         let data = data.as_object().unwrap();
 
-        let res = config_search_and_replace(&mut config, data);
+        let res = config_search_and_replace(&mut config, &default, data);
 
         assert!(res.is_ok());
         assert_eq!(
@@ -281,35 +369,36 @@ mod test {
             config.get_from(Some("System Access"), "MaximumPasswordAge"),
             Some("21")
         );
+        assert_eq!(
+            config.get_from(Some("System Access"), "LockoutBadCount"),
+            Some("42")
+        );
+        assert_eq!(
+            config.get_from(Some("System Access"), "ResetLockoutCount"),
+            Some("10")
+        );
+    }
 
-        let opt = ParseOption {
-            enabled_escape: false,
-            ..Default::default()
-        };
+    #[test]
+    fn test_search_and_replace_with_unordered_sid() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/config.ini");
+        let mut config = parse_config(&path).unwrap();
 
-        let mut config = Ini::load_from_str_opt(
-            "[System Access]
-            MinimumPasswordAge = 0
-            MaximumPasswordAge = 42
-            NewAdministratorName = \"Administrator\"
-            NewGuestName = \"Guest\"",
-            opt,
-        )
-        .unwrap();
-
-        let bad_data = json!(
-        {
-            "System Access": {
-                "MinimumPasswordAge": 0,
-                "MaximumPasswordAge": "BOUM",
-                "NewAdministratorName": "Administrator2",
-                "NewGuestName": "Guest"
-            }
+        let data = json!({
+          "Privilege Rights": {
+              "SeNetworkLogonRight": "*S-1-5-32-545,*S-1-5-32-544,*S-1-5-32-551,*S-1-1-0"
+          }
         });
-        let bad_data = bad_data.as_object().unwrap();
+        let data = data.as_object().unwrap();
+        let res = config_search_and_replace(&mut config, &Ini::new(), data).unwrap();
+        assert!(res.errors.is_empty());
 
-        let res = config_search_and_replace(&mut config, bad_data).unwrap();
-        assert!(!res.errors.is_empty());
+        assert_eq!(
+            config
+                .get_from(Some("Privilege Rights"), "SeNetworkLogonRight")
+                .unwrap(),
+            "*S-1-1-0,*S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551"
+        );
     }
 
     #[test]
@@ -325,7 +414,7 @@ mod test {
           }
         });
         let data = data.as_object().unwrap();
-        let _ = config_search_and_replace(&mut config, data);
+        let _ = config_search_and_replace(&mut config, &Ini::new(), data);
         assert_eq!(
             config
                 .get_from(Some("System Access"), "MaximumPasswordAge")
@@ -370,10 +459,30 @@ mod test {
           }
         });
         let data = data.as_object().unwrap();
-        let report = config_search_and_replace(&mut config, data).unwrap();
+        let report = config_search_and_replace(&mut config, &Ini::new(), data).unwrap();
         assert_eq!(
             report.diff,
             "\n- MinimumPasswordLength=0\n+ MinimumPasswordLength=12\n- NewAdministratorName=Administrator\n+ NewAdministratorName=Ferris"
         );
+    }
+
+    #[test]
+    fn test_key_equal() {
+        let res = key_equal("valid", "valid");
+        assert!(res);
+        let res = key_equal("invalid", "valid");
+        assert!(!res);
+
+        let res = key_equal(
+            "invalid,*S-1-1-0,*S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551",
+            "*S-1-1-0,*S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551",
+        );
+        assert!(!res);
+
+        let res = key_equal(
+            "*S-1-1-0,*S-1-5-32-544,*S-1-5-32-545,*S-1-5-32-551",
+            "*S-1-5-32-551,*S-1-1-0,*S-1-5-32-545,*S-1-5-32-544",
+        );
+        assert!(res);
     }
 }
