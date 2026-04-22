@@ -49,7 +49,7 @@ import * as htmlFormatter from '../libs/jsondiffpatch/lib/formatters/html.js'
  *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
  *   }
  */
-function createEventLogTable(gridId, data, contextPath, refresh) {
+function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone) {
 
   var columns = [ {
     "width"       : "10%"
@@ -77,10 +77,15 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
   , "orderable": false
   } ];
 
+
   var params =
   { "filter" : true
   , "processing" : true
   , "serverSide" : true
+  , "columnDefs": [{
+      targets: 1,
+      render: DataTable.render.zonedDateTime(serverTimezone)
+    }]
   , "ajax" :
     { "type" : "POST"
     , "contentType": "application/json"
@@ -102,7 +107,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
         row = $(row);
         row.attr("id",data.id);
         if (data.hasDetails) {
-          row.addClass("curspoint");
+          row.addClass("cursorPointer");
           // Remove all previously added callbacks on row or you will get problems
           row.unbind();
           // Add callback to open the line
@@ -157,6 +162,10 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                       jsondiffpatch.diff(nodePropertiesDiff.from, nodePropertiesDiff.to)
                     )
                   }
+                  const linesDiff = response["data"]["linesDiff"]
+                  if (linesDiff) {
+                    makeDiff(linesDiff.from, linesDiff.to, `linesdiff-${data.id}`)
+                  }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
                   createErrorNotification("Error while retrieve eventlog details: " + jqXHR.responseJSON.errorDetails)
@@ -170,6 +179,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           }
 
       }
+    , "lengthMenu": [ [10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000] ]
     , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
       '>t<"dataTables_wrapper_bottom"lip>'
     , "buttons" : [ csvButtonConfig("change_logs") ],
