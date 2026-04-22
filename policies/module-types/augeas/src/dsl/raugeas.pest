@@ -13,7 +13,7 @@ escape_char = @{ "\\" ~ ("\"" | "'" | "\\" | "n" | "r" | "t") }
 // Capture inner string content without quotes with escape support
 double_quoted_content = @{ (escape_char | !("\"" | "\\") ~ ANY)* }
 single_quoted_content = @{ (escape_char | !("'" | "\\") ~ ANY)* }
-unquoted_string = @{ (!(WHITESPACE | "," | "]" | NEWLINE | COMMENT) ~ ANY)+ }
+unquoted_string = @{ (!(WHITESPACE | "," | NEWLINE | COMMENT) ~ ANY)+ }
 
 string = _{
     ("\"" ~ double_quoted_content ~ "\"") |
