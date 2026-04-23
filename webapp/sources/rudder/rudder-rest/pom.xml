@@ -119,13 +119,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
 
-    <!-- it seems to not be resolved, don't know why - lift-json -->
-    <dependency>
-      <groupId>com.thoughtworks.paranamer</groupId>
-      <artifactId>paranamer</artifactId>
-      <version>2.8.3</version>
-    </dependency>
-
     <!-- Doing HTTP requests for remote run -->
     <dependency>
       <groupId>org.scalaj</groupId>

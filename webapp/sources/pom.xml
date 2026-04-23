@@ -567,11 +567,6 @@ limitations under the License.
       </dependency>
       <dependency>
         <groupId>net.liftweb</groupId>
-        <artifactId>lift-json_2.13</artifactId>
-        <version>${lift-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>net.liftweb</groupId>
         <artifactId>lift-util_2.13</artifactId>
         <version>${lift-version}</version>
         <exclusions>

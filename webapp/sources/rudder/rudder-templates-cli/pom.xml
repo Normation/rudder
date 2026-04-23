@@ -83,12 +83,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </build>
 
   <dependencies>
-
-    <dependency>
-      <groupId>net.liftweb</groupId>
-      <artifactId>lift-json_2.13</artifactId>
-      <version>${lift-version}</version>
-    </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-common_2.13</artifactId>
