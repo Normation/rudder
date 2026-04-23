@@ -1251,7 +1251,6 @@ class RestTest(liftRules: LiftRules) {
     mockReq
   }
 
-  // String-based API alternative to lift-json
   private def mockJsonRequest(path: String, method: String, data: String) = {
     val mockReq = mockRequest(path, method)
     mockReq.body_=(data, "application/json")
