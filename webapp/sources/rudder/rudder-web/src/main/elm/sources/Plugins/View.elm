@@ -619,7 +619,7 @@ buildModal loading title body saveAction =
 
             else
                 button [ type_ "button", class "btn btn-success", onClick saveAction ]
-                    [ text "Confirm & Restart" ]
+                    [ text "Confirm and restart" ]
     in
     div [ class "modal modal-plugins fade show", style "display" "block" ]
         [ div [ class "modal-backdrop fade show", onClick (SetModalState NoModal) ] []
@@ -681,12 +681,12 @@ modalBody action explanation allPlugins =
                 ]
 
         displaySuccess success actionText =
-            [ p [] [ strong [] [ text "Rudder will restart" ], text <| " to " ++ actionText ++ " " ++ String.Extra.pluralize "plugin" "plugins" (Set.size success) ++ " :" ]
+            [ p [] [ strong [] [ text "Rudder will restart" ], text <| " to " ++ actionText ++ " " ++ String.Extra.pluralize "plugin" "plugins" (Set.size success) ++ ":" ]
             , successHtml success
             ]
 
         displayError errors actionText =
-            [ p [] [ strong [] [ text <| "Following plugins cannot be " ++ pastAction actionText ++ " : " ] ]
+            [ p [] [ strong [] [ text <| "The following plugins cannot be " ++ pastAction actionText ++ ": " ] ]
             , div [ class "callout-fade callout-warning plugin-action" ]
                 (errors
                     |> List.map
