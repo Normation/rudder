@@ -301,7 +301,7 @@ response:
                   "now":"a json"
                 },
                "description":"a string at first",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"a string\"</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"now\" : \"a json\"\n}\n</pre></p>",
+               "hierarchy":"<p>from <b>global property 'badOverrideType'</b>:<pre>\"a string\"</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"now\" : \"a json\"\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : true,
                  "fullHierarchy" : {
@@ -337,7 +337,7 @@ response:
                 },
                "description":"a simple string param",
                "provider" : "overridden",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>{\n    \"array\" : [\n        1,\n        3,\n        2\n    ],\n    \"json\" : {\n        \"var1\" : \"val1\",\n        \"var2\" : \"val2\"\n    },\n    \"string\" : \"a string\"\n}\n</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"array\" : [\n        5,\n        6\n    ],\n    \"group\" : \"string\",\n    \"json\" : {\n        \"g1\" : \"g1\"\n    }\n}\n</pre></p>",
+               "hierarchy":"<p>from <b>global property 'jsonParam'</b>:<pre>{\n    \"array\" : [\n        1,\n        3,\n        2\n    ],\n    \"json\" : {\n        \"var1\" : \"val1\",\n        \"var2\" : \"val2\"\n    },\n    \"string\" : \"a string\"\n}\n</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"array\" : [\n        5,\n        6\n    ],\n    \"group\" : \"string\",\n    \"json\" : {\n        \"g1\" : \"g1\"\n    }\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
                  "fullHierarchy" : {
@@ -368,7 +368,7 @@ response:
                "description":"a simple string param",
                 "inheritMode":"opa",
                 "provider":"inherited",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"some string\"</pre></p>",
+               "hierarchy":"<p>from <b>global property 'modeParam'</b>:<pre>\"some string\"</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
                  "fullHierarchy" : {
@@ -387,7 +387,7 @@ response:
                 },
                "description":"rudder system config",
                 "provider":"inherited",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p>",
+               "hierarchy":"<p>from <b>global property 'rudder'</b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
                  "fullHierarchy" : {
@@ -407,7 +407,7 @@ response:
                "description":"a simple string param",
                "inheritMode":"map",
                "provider" : "overridden",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"some string\"</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"string\"</pre></p>",
+               "hierarchy":"<p>from <b>global property 'stringParam'</b>:<pre>\"some string\"</pre></p><p>from <b>group 'Real nodes' (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"string\"</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
                  "fullHierarchy" : {
@@ -428,7 +428,7 @@ response:
                 "value":"some string",
                "description":"a simple string param",
                 "provider":"inherited",
-               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"some string\"</pre></p>",
+               "hierarchy":"<p>from <b>global property 'systemParam'</b>:<pre>\"some string\"</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
                  "fullHierarchy" : {

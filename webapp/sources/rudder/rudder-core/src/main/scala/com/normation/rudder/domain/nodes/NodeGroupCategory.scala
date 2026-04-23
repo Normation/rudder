@@ -41,11 +41,16 @@ import com.normation.rudder.domain.categories.ItemCategory
 import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import zio.json.JsonCodec
 
 /**
  * The Id for the server group category
  */
 final case class NodeGroupCategoryId(value: String) extends AnyVal
+
+object NodeGroupCategoryId {
+  given JsonCodec[NodeGroupCategoryId] = JsonCodec.string.transform(NodeGroupCategoryId.apply, _.value)
+}
 
 /**
  * A server group category is quite similar to a Technique category :

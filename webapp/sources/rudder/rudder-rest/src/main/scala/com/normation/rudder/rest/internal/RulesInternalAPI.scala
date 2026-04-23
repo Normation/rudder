@@ -40,7 +40,6 @@ import com.normation.errors.EitherToIoResult
 import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId

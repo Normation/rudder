@@ -1032,8 +1032,6 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
 
   // see https://issues.rudder.io/issues/28007, the groups format have changed in 9.0 API, but archives API needs to support old ones
   "import group with JSON format previous to API v21" >> {
-    import com.normation.rudder.apidata.implicits.*
-
     /*
      * Copy the content of a existing archive into an import directory, zip-it
      */

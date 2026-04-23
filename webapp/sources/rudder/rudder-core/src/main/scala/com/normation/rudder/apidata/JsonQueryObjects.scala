@@ -663,12 +663,11 @@ trait RudderJsonDecoders {
   implicit val queryDecoder:                    JsonDecoder[StringQuery]         = DeriveJsonDecoder.gen[JQStringQuery].map(_.toQueryString)
 
   // Rest group
-  implicit val nodeGroupCategoryIdDecoder: JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId.apply)
-  implicit val groupPropertyDecoder:       JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
-  implicit val groupPropertyDecoder2:      JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
-  implicit val groupCategoryDecoder:       JsonDecoder[JQGroupCategory]     =
+  implicit val groupPropertyDecoder:  JsonDecoder[JQGroupProperty] = DeriveJsonDecoder.gen
+  implicit val groupPropertyDecoder2: JsonDecoder[GroupProperty]   = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
+  implicit val groupCategoryDecoder:  JsonDecoder[JQGroupCategory] =
     DeriveJsonDecoder.gen[JQGroupCategory].mapOrFail(JQGroupCategory.validate)
-  implicit val groupDecoder:               JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen
+  implicit val groupDecoder:          JsonDecoder[JQGroup]         = DeriveJsonDecoder.gen
 
   // Settings
   implicit val allowedNetworkChunkDecoder: JsonDecoder[Chunk[AllowedNetwork]] =

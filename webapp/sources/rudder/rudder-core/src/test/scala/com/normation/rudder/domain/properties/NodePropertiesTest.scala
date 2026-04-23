@@ -41,6 +41,8 @@ import net.liftweb.common.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import zio.json.*
+import zio.json.ast.*
 
 /*
  * Our internal representation of node properties must correctly serialize/unserialise to JSON
@@ -67,21 +69,21 @@ class NodePropertiesTest extends Specification with Loggable {
 
     val expected = {
       """{
-        |  "jsonArray":[
+        |  "jsonArray" : [
         |    "one",
         |    2,
         |    true
         |  ],
-        |  "jsonProp":{
-        |    "jsonObject":"ok"
+        |  "jsonProp" : {
+        |    "jsonObject" : "ok"
         |  },
-        |  "stringArray":[
+        |  "stringArray" : [
         |    "array"
         |  ],
-        |  "stringSimple":"simple string"
+        |  "stringSimple" : "simple string"
         |}""".stripMargin
     }
-    val json     = net.liftweb.json.prettyRender(props.toDataJson)
+    val json     = props.toDataJson.toJsonPretty
 
     json === expected
   }

@@ -331,7 +331,7 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
       extends GroupApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    =
-      "Get all proporeties for that group, included inherited ones, for displaying in group property tab (internal)"
+      "Get all properties for that group, included inherited ones, for displaying in group property tab (internal)"
     val (action, path) = GET / "groups" / "{id}" / "displayInheritedProperties"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Read :: Nil
   }

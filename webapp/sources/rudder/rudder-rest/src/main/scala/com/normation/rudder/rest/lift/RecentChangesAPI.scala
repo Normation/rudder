@@ -41,7 +41,6 @@ import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.JRRecentChanges
 import com.normation.rudder.apidata.JsonResponseObjects.JRResultRepairedReport
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.rest.ApiPath

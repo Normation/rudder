@@ -37,4 +37,4 @@
 
 package com.normation.rudder.apidata
 
-object implicits extends RudderJsonDecoders with RudderJsonEncoders
+object implicits extends RudderJsonDecoders

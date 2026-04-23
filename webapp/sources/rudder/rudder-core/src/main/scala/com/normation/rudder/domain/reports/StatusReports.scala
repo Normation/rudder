@@ -49,6 +49,7 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import zio.*
+import zio.json.*
 import zio.json.ast.Json.*
 
 /**
@@ -243,6 +244,9 @@ object RunAnalysisKind       extends Enum[RunAnalysisKind] {
   case object ComputeCompliance         extends RunAnalysisKind
 
   override def values: IndexedSeq[RunAnalysisKind] = findValues
+
+  given JsonEncoder[RunAnalysisKind] = JsonEncoder[String].contramap(_.entryName)
+
 }
 
 final case class RunAnalysis(

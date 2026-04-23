@@ -43,7 +43,6 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure

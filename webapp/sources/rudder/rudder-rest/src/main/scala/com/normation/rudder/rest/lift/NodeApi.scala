@@ -49,7 +49,6 @@ import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.NodeLogger
@@ -245,10 +244,6 @@ class NodeApi(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
 
-      implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-      }
-
       (for {
         level <- restExtractor.extractNodeDetailLevelFromParams(req.params).chainError("error with node level detail").toIO
         res   <-
@@ -410,10 +405,7 @@ class NodeApi(
     val schema: API.ListAcceptedNodes.type = API.ListAcceptedNodes
     val restExtractor = zioJsonExtractor
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val qc:                     QueryContext                   = authzToken.qc
-      implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-      }
+      implicit val qc: QueryContext = authzToken.qc
       val state = AcceptedInventory
       (for {
         optLevel <-
@@ -436,10 +428,7 @@ class NodeApi(
     val restExtractor = zioJsonExtractor
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val qc:                     QueryContext                   = authzToken.qc
-      implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-      }
+      implicit val qc: QueryContext = authzToken.qc
       val state = PendingInventory
       (for {
         optLevel <-
