@@ -233,7 +233,7 @@ radioButton groupName selected toMsg index ( labelText, value ) =
 
 displayActionButtons : PluginsViewModel -> List (Html Msg)
 displayActionButtons { selected, installAction, uninstallAction, enableAction, disableAction } =
-    [ button [ class "btn btn-primary me-2", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
+    [ button [ class "btn btn-primary", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
     , actionInstallUpgradeButton ((\(PluginsAction { explanation }) -> explanation) installAction)
     , div [ class "dropdown header-buttons" ]
         [ button [ class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown", attribute "aria-expanded" "false" ]
@@ -353,7 +353,7 @@ displayPluginsSection totalCount pluginsModel =
                                     ]
                                ]
                         )
-                    , div [ class "plugins-actions-buttons" ]
+                    , div [ class "plugins-actions-buttons gap-2" ]
                         (displayActionButtons pluginsModel)
                     ]
                 , {- line with type filters and status filters -}
