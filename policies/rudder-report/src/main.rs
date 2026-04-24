@@ -35,7 +35,7 @@ pub fn parse_raw_report_file(p: PathBuf) -> Vec<Report> {
         .filter_map(|r| r.ok())
         .flat_map(|raw_report| raw_report.into_reports())
         .collect();
-    parsed_reports.sort_by(|a, b| a.execution_datetime.cmp(&b.execution_datetime));
+    parsed_reports.sort_by_key(|a| a.execution_datetime);
     parsed_reports
 }
 

@@ -83,15 +83,13 @@ impl Webapp {
                         }
                     }
                 }
-                Event::Text(e) => {
-                    if in_extra_classpath {
-                        return Ok(e
-                            .decode()?
-                            .as_ref()
-                            .split(',')
-                            .map(|s| s.to_string())
-                            .collect());
-                    }
+                Event::Text(e) if in_extra_classpath => {
+                    return Ok(e
+                        .decode()?
+                        .as_ref()
+                        .split(',')
+                        .map(|s| s.to_string())
+                        .collect());
                 }
                 _ => (),
             }

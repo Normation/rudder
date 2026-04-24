@@ -6,6 +6,7 @@ mod gpgv;
 pub(crate) mod sequoia;
 
 use anyhow::{Result, bail};
+use digest_io::IoWrapper;
 use regex::Regex;
 use sha2::{Digest, Sha512};
 use std::path::PathBuf;
@@ -71,10 +72,10 @@ pub enum VerificationSuccess {
 ///
 /// Reads the file at once, not a problem for small files.
 fn file_sha512(path: &Path) -> Result<String> {
-    let mut hasher = Sha512::new();
+    let mut hasher = IoWrapper(Sha512::new());
     let mut file = File::open(path)?;
     io::copy(&mut file, &mut hasher)?;
-    let hash = hasher.finalize();
+    let hash = hasher.0.finalize();
     Ok(base16ct::lower::encode_string(&hash))
 }
 

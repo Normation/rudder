@@ -43,7 +43,7 @@ impl Step {
             Target::Unix => Command::new("/bin/sh")
                 .arg("-c")
                 .arg(&self.command)
-                .envs(env.into_iter())
+                .envs(env)
                 .current_dir(cwd)
                 .output()?,
             Target::Windows => {
@@ -56,7 +56,7 @@ impl Step {
                     .args(POWERSHELL_OPTS)
                     .arg("-Command")
                     .arg(format!("&'{}'", &script.canonicalize()?.to_string_lossy()))
-                    .envs(env.into_iter())
+                    .envs(env)
                     .current_dir(cwd)
                     .output()?
             }
