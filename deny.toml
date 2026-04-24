@@ -41,6 +41,8 @@ unused-allowed-license = "allow"
 ignore = [
     # No fix for rand 0.8, and risk is acceptable
     "RUSTSEC-2026-0097",
+    # We don't use diasel with sqlite backend
+    "RUSTSEC-2026-0111",
 ]
 
 [bans]
