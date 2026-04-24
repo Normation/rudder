@@ -78,37 +78,69 @@ showParam model call state methodParam params =
                                                              Nothing
                                                 ) constraintErrors
       _ -> []
+    parameterInput =
+      let
+        commonAttributes =
+          [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+          , onFocus DisableDragDrop
+          , readonly (not model.hasWriteRights)
+          , id ("param-" ++ methodParam.name.value)
+          , onInput (MethodCallParameterModified call methodParam.name)
+          ]
+      in
+      case methodParam.constraints.select of
+        Nothing ->
+          element "textarea"
+            |> addAttributeList
+              ( List.append
+                commonAttributes
+                [ class "form-control"
+                , rows  1
+                , value displayedValue
+                -- to deactivate plugin "Grammarly" or "Language Tool" from
+                -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+                , attribute "data-gramm" "false"
+                , attribute "data-gramm_editor" "false"
+                , attribute "data-enable-grammarly" "false"
+                , spellcheck False
+                ]
+              )
+        Just list ->
+          let
+            selectValue = if String.isEmpty displayedValue then "default" else displayedValue
+          in
+            element "select"
+              |> addAttributeList commonAttributes
+              |> addAttribute (value selectValue)
+              |> addClass "form-select"
+              |> appendChildList
+                ( list
+                |> List.filter (\opt -> not (String.isEmpty opt.value))
+                |> List.map
+                  (\opt ->
+                    element "option"
+                      |> addAttributeList
+                        [ value opt.value
+                        , selected (selectValue == opt.value)
+                        ]
+                      |> appendText (Maybe.withDefault opt.value opt.name)
+                  )
+                )
   in
     element "div"
       |> addClass "form-group method-parameter"
       |> appendChildList
         [ element "label"
-          |> addAttribute (for "param-index")
+          |> addClass "mb-1 d-inline-flex align-items-baseline"
+          |> addAttribute (for ("param-" ++ methodParam.name.value))
           |> appendChildList
             [ element "span"
               |> appendChild (element "span" |> appendText (String.Extra.toTitleCase methodParam.name.value))
               |> appendChild isMandatory
-              |> appendChild (element "span" |> appendText " -")
-              |> appendChild (element "span" |> addClass "badge badge-secondary d-inline-flex align-items-center" |> appendText methodParam.type_)
-            , element "small" |> appendText (" " ++ methodParam.description) |> addClass "ms-2"
+              |> appendChild (element "span" |> appendText "•" |> addClass "text-secondary mx-1")
+            , element "small" |> appendText methodParam.description |> addClass "text-secondary fw-medium"
             ]
-        , element "textarea"
-          |> addAttributeList
-            [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-            , onFocus DisableDragDrop
-            , readonly (not model.hasWriteRights)
-            , name "param"
-            , class "form-control"
-            , rows  1
-            , value displayedValue
-            , onInput  (MethodCallParameterModified call methodParam.name)
-            -- to deactivate plugin "Grammarly" or "Language Tool" from
-            -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
-            , attribute "data-gramm" "false"
-            , attribute "data-gramm_editor" "false"
-            , attribute "data-enable-grammarly" "false"
-            , spellcheck False
-            ]
+        , parameterInput
         ]
       |> appendChildConditional ( element "ul"
         |> addClass "list-unstyled"
