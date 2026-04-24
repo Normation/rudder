@@ -63,6 +63,7 @@ parameterName param =
 showParam: Model -> MethodCall -> ValidationState MethodCallParamError -> MethodParameter -> List CallParameter -> Element Msg
 showParam model call state methodParam params =
   let
+    paramLabel = String.Extra.toSentenceCase (String.replace "_" " " methodParam.name.value)
     displayedValue = List.Extra.find (.id >> (==) methodParam.name ) params |> Maybe.map (.value >> displayValue) |> Maybe.withDefault ""
     isMandatory =
       if methodParam.constraints.allowEmpty |> Maybe.withDefault False then
@@ -86,7 +87,7 @@ showParam model call state methodParam params =
           |> addAttribute (for "param-index")
           |> appendChildList
             [ element "span"
-              |> appendChild (element "span" |> appendText (String.Extra.toTitleCase methodParam.name.value))
+              |> appendChild (element "span" |> appendText paramLabel)
               |> appendChild isMandatory
               |> appendChild (element "span" |> appendText " -")
               |> appendChild (element "span" |> addClass "badge badge-secondary d-inline-flex align-items-center" |> appendText methodParam.type_)
