@@ -92,7 +92,7 @@ pipeline {
                     label 'generic-docker'
                     filename 'relay/sources/relayd/Dockerfile'
                     // mount cache
-                    args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry'
+                    args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry/cache'
                 }
             }
             steps {
