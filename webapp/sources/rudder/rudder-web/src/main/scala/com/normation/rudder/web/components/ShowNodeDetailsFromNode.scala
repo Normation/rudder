@@ -55,7 +55,6 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.score.ComplianceScore
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue.NoScore
-import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId

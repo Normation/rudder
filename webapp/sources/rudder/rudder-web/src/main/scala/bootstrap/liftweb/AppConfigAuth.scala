@@ -335,9 +335,7 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(rudderUserListProvider)
 
   @Bean def fileAuthenticationProvider: AuthenticationProvider = {
-    @nowarn("cat=deprecation")
-    val provider = new DaoAuthenticationProvider()
-    provider.setUserDetailsService(rudderUserDetailsService): @nowarn("cat=deprecation")
+    val provider = new DaoAuthenticationProvider(rudderUserDetailsService)
     provider.setPasswordEncoder(rudderUserDetailsService.authConfigProvider.authConfig.encoder)
 
     // we need to register a callback to check and update users file and a callback to update password encoder when needed
@@ -403,11 +401,7 @@ class AppConfigAuth extends ApplicationContextAware {
                                EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
                              )
     } yield {
-      @nowarn("cat=deprecation")
-      val provider = new DaoAuthenticationProvider()
-      provider.setUserDetailsService(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo)): @nowarn(
-        "cat=deprecation"
-      )
+      val provider = new DaoAuthenticationProvider(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))
       provider.setPasswordEncoder(encoder) // force password encoder to the one we want
       provider
     }).runNow

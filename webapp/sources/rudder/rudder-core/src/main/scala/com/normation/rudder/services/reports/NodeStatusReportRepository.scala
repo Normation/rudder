@@ -54,7 +54,7 @@ import doobie.*
 import doobie.implicits.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import zio.{System as _, *}
+import zio.*
 import zio.interop.catz.*
 
 /*

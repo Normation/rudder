@@ -37,7 +37,7 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.errors.{Unexpected as _, *}
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure

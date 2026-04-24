@@ -53,12 +53,12 @@ import com.normation.rudder.domain.queries.CriterionComposition.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.zio.currentTimeMillis
-import com.unboundid.ldap.sdk.{LDAPConnection as _, SearchScope as _, *}
+import com.unboundid.ldap.sdk.{SearchScope as _, *}
 import com.unboundid.ldap.sdk.DereferencePolicy.NEVER
 import java.util.regex.Pattern
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import zio.{System as _, *}
+import zio.*
 import zio.syntax.*
 
 /*
