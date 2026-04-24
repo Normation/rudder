@@ -148,7 +148,7 @@ object Boot {
               replaceCSPRestrictionDirectives("object-src", "'none'")(_)
             )
             .pipe(
-              _ :+ ("base-uri" -> "'none'") :+ ("report-uri" -> s"${S.contextPath}/${LiftRules.liftContextRelativePath}/content-security-policy-report")
+              _ :+ ("base-uri" -> "'none'") :+ ("report-uri" -> s"${S.contextPath}/${LiftRules.liftContextRelativePath().mkString("/")}/content-security-policy-report")
             )
         )
         val newCspHeaders = csp
@@ -185,7 +185,7 @@ object Boot {
       }
     }
 
-    // Assembles directives, separated by ";" and ommits empty directives
+    // Assembles directives, separated by ";" and omits empty directives
     private def compileCSPHeader(directives: List[(String, String)]): String = {
       directives.collect { // copied also from lift header generation
         case (category, restrictions) if restrictions.nonEmpty =>

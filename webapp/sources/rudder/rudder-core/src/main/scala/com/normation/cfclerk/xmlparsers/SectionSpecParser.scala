@@ -263,7 +263,7 @@ class SectionSpecParser(variableParser: VariableSpecParser, validateReporting: B
     }
 
     (node.child
-      .filter(child => !child.isEmpty && child.label != "#PCDATA")
+      .filter(child => !child.isEmpty && child.label != "#PCDATA" && child.label != "#REM")
       .toList
       .traverse { child =>
         child.label match {

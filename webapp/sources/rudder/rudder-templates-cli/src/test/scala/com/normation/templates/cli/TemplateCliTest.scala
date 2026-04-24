@@ -49,8 +49,10 @@ import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
+import scala.annotation.nowarn
 
 @RunWith(classOf[JUnitRunner])
+@nowarn("cat=deprecation")
 class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
 
   sequential
