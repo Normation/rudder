@@ -327,7 +327,7 @@ pipeline {
                             script {
                                 docker.image('postgres:13-trixie').withRun('-u 0:0 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
                                     docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
-                                          .inside("-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet --link=${c.id}:postgres") {
+                                          .inside("-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache --link=${c.id}:postgres") {
                                         dir('relay/sources/relayd') {
                                             sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
                                             sh script: 'make check', label: 'relayd tests'
@@ -359,7 +359,7 @@ pipeline {
                             label 'generic-docker'
                             filename 'relay/sources/rudder-package/Dockerfile'
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet'
+                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     steps {
@@ -396,7 +396,7 @@ pipeline {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
                             additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet'
+                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     steps {
@@ -441,7 +441,7 @@ pipeline {
                             label 'generic-arm-docker'
                             filename 'policies/agent.Dockerfile'
                             additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     steps {
@@ -540,7 +540,7 @@ pipeline {
                             label 'generic-docker'
                             filename 'ci/common.Dockerfile'
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     when { expression { latestVersion == true } }
@@ -577,7 +577,7 @@ pipeline {
                             filename 'policies/Dockerfile'
                             additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     when { not { branch 'master' } }
@@ -795,7 +795,7 @@ pipeline {
                             filename 'policies/Dockerfile'
                             additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
+                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     steps {
