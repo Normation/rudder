@@ -92,4 +92,12 @@
    <packageUrl regex="true">^pkg:maven/com\.jayway\.jsonpath/json\-path@2.8.0$</packageUrl>
    <cve>CVE-2023-51074</cve>
 </suppress>
+<!-- False positive, the scanner relates it to a cpe on akka -->
+<suppress>
+   <notes><![CDATA[
+   file name: scala-xml_3-2.4.0.jar
+   ]]></notes>
+   <packageUrl regex="true">^pkg:maven/org.scala-lang.modules/scala-xml_3@2.4.0.*$</packageUrl>
+   <cve>CVE-2017-1000034</cve>
+</suppress>
 </suppressions>
