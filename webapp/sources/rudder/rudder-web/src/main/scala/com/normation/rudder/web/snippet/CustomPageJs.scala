@@ -53,7 +53,7 @@ object CustomPageJs extends DispatchSnippet {
 
   val liftJsScriptSrc = s"${S.contextPath}/${LiftRules.resourceServerPath}/lift.js"
 
-  def pageJsScriptSrc = s"${S.contextPath}/${LiftRules.liftContextRelativePath}/page/${S.renderVersion}.js"
+  def pageJsScriptSrc = s"${S.contextPath}/${LiftRules.liftContextRelativePath().mkString("/")}/page/${S.renderVersion}.js"
 
   def dispatch: DispatchIt = { case "pageScript" => _ => pageScript }
 
@@ -68,6 +68,6 @@ object CustomPageJs extends DispatchSnippet {
   }
 
   private def scriptUrl(scriptFile: String) = {
-    S.encodeURL(s"/${LiftRules.liftContextRelativePath}/$scriptFile")
+    S.encodeURL(s"/${LiftRules.liftContextRelativePath().mkString("/")}/$scriptFile")
   }
 }

@@ -54,8 +54,7 @@ import scala.xml.PrettyPrinter
 @RunWith(classOf[JUnitRunner])
 class TestMigrateLogbackXml extends Specification with ContentMatchers with AfterAll {
 
-  val xml    = {
-    <configuration scan="true" scanPeriod="5 seconds">
+  val xml = <configuration scan="true" scanPeriod="5 seconds">
       <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
           <Pattern>%d{{[yyyy-MM-dd HH:mm:ssZ]}} %-5level %logger - %msg%n%ex{{full}}</Pattern>
@@ -117,9 +116,8 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
         <appender-ref ref="STDOUT"/>
       </logger>
     </configuration>
-  }
-  val result = {
-    <configuration scan="true" scanPeriod="5 seconds">
+
+  val result = <configuration scan="true" scanPeriod="5 seconds">
     <property name="WEBAPP_DIR" value="/var/log/rudder/webapp"/>
     <property name="APILOG_DIR" value="${WEBAPP_DIR}/api"/>
     <appender name="APILOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -180,7 +178,6 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
         <appender-ref ref="STDOUT"/>
       </logger>
     </configuration>
-  }
 
   val migration     = new FixedPathLoggerMigration()
   val prettyPrinter = new PrettyPrinter(120, 4)
@@ -213,6 +210,7 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
 
     content must beEqualTo(previous_content)
   }
+
   "may be ran twice without breaking the logback.xml file" >> {
 
     val logback8_2_migrated = tmpDir / "logback-8.2-migrated.xml"

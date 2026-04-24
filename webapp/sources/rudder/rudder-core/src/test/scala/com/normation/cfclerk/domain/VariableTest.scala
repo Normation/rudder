@@ -109,8 +109,7 @@ class VariableTest extends Specification {
     val variables = scala.collection.mutable.Map[String, Variable]()
     for {
       elt      <- (doc \\ "VARIABLES")
-      specNode <- elt.nonEmptyChildren
-      if (!specNode.isInstanceOf[Text])
+      specNode <- elt.nonEmptyChildren.collect { case x: Elem => x }
     } {
       val (spec, other) = variableSpecParser
         .parseSectionVariableSpec("default section", specNode)

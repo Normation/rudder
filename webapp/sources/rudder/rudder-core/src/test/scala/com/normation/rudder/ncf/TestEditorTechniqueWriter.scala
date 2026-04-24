@@ -626,7 +626,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   s"Preparing files for technique ${technique.id.value}" should {
 
     "Should write yaml file without problem" in {
-      TechniqueWriterImpl.writeYaml(technique_any)(basePath).runNow must beEqualToIgnoringSep(techniquePath_yaml)
+      val res = TechniqueWriterImpl.writeYaml(technique_any)(basePath).runNow
+      res must beEqualToIgnoringSep(techniquePath_yaml)
     }
 
     "Should generate expected yaml content for our technique" in {

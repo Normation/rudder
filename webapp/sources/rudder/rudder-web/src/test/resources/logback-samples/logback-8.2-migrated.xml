@@ -1,4 +1,4 @@
-<configuration scanPeriod="5 seconds" scan="true">
+<configuration scan="true" scanPeriod="5 seconds">
     <property name="WEBAPP_DIR" value="/var/log/rudder/webapp"/>
     <property name="APILOG_DIR" value="${WEBAPP_DIR}/api"/>
     <appender name="APILOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -71,7 +71,7 @@
       It can be overwritten when the application is launched with the
       Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
     -->
-    <property value="/var/log/rudder/compliance" name="REPORT_DIR"/>
+    <property name="REPORT_DIR" value="/var/log/rudder/compliance"/>
     <!--
       A file log appender for exploitation logs about Rest API Calls
      -->
@@ -85,7 +85,7 @@
     <!--
       A file log appender for exploitation logs about failure reports.
     -->
-    <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="REPORTLOG">
+    <appender name="REPORTLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${REPORT_DIR}/non-compliant-reports.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -127,21 +127,21 @@
       to be written.
       You should activate that log only for debugging purpose.
     -->
-    <logger level="off" name="trace.ldif.in.file"/>
+    <logger name="trace.ldif.in.file" level="off"/>
     <!--
       Debug inventory processing
       ==========================
       This logger allows to log information about inventories processing: detection in
       /var/rudder/inventories/incoming, parsing, signature validity, etc
     -->
-    <logger level="info" name="inventory-processing"/>
+    <logger name="inventory-processing" level="info"/>
     <!--
       Debug LDAP queries related to inventory search
       ==============================================
       Uncomment and set to "debug" or "trace" to have precise logs about
       LDAP queries done by the node search engine
     -->
-    <logger level="info" name="com.normation.rudder.services.queries"/>
+    <logger name="com.normation.rudder.services.queries" level="info"/>
     <!--
       Debug Node acceptation/group
       ============================
@@ -151,9 +151,9 @@
       - nodes.pending.policies: info about policies applied to a pending node once accepted
       - nodes.delete: information about cleaning steps when deleting a node.
     -->
-    <logger level="info" name="nodes"/>
+    <logger name="nodes" level="info"/>
     <!-- Specific logger for Dynamic group update -->
-    <logger level="info" name="dynamic-group"/>
+    <logger name="dynamic-group" level="info"/>
     <!-- timing info for dynamic groups -->
     <!--  <logger name="dynamic-group.timing" level="info" />-->
     <!--
@@ -165,14 +165,14 @@
       To enable that debug, set level to "debug".
       To disable that debug, set level to "off".
      -->
-    <logger level="off" name="rudder.debug.nodeconfiguration"/>
+    <logger name="rudder.debug.nodeconfiguration" level="off"/>
     <!--
       New node registration
       =====================
       Set level to debug or trace to have more precise information
       about the different acceptation steps of nodes.
      -->
-    <logger level="info" name="nodes.pending"/>
+    <logger name="nodes.pending" level="info"/>
     <!--
       if you want detailled information about how policies that will be applied
       to a node are calculated, uncomment that:
@@ -186,7 +186,7 @@
       Set level to debug or trace to have more information about plugin
       registration and information.
      -->
-    <logger level="info" name="com.normation.rudder.plugins"/>
+    <logger name="com.normation.rudder.plugins" level="info"/>
     <!--
        Promise generation and writing
        ==============================
@@ -198,32 +198,32 @@
       Set to info to only have macro information, debug to have timing information about
       sub-steps (good for debugging performances issues), trace to have more information.
     -->
-    <logger level="info" name="com.normation.rudder.services.policies.PolicyGenerationServiceImpl"/>
+    <logger name="com.normation.rudder.services.policies.PolicyGenerationServiceImpl" level="info"/>
     <!--
       The following logger take care of promises writing. Set to debug or trace to
       have these information.
     -->
-    <logger level="info" name="com.normation.rudder.services.policies.write"/>
+    <logger name="com.normation.rudder.services.policies.write" level="info"/>
     <!--
       The following logger take care of information about reading techniques in repository
     -->
-    <logger level="info" name="techniques.reader"/>
+    <logger name="techniques.reader" level="info"/>
     <!--
       This logger may help debug cases in JS Directive engine, like ticket #13014.
       Set to debug to get stack traces and more details errors.
     -->
-    <logger level="info" name="jsDirectiveParam"/>
+    <logger name="jsDirectiveParam" level="info"/>
     <!--
         This logger allows to log information about policy generation
     -->
-    <logger additivity="false" level="info" name="policy.generation">
+    <logger name="policy.generation" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
     <!--
         This logger allows to log information about expected reports in policy generation
     -->
-    <logger additivity="false" level="info" name="policy.generation.expected_reports">
+    <logger name="policy.generation.expected_reports" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -231,9 +231,9 @@
         These two loggers allows to log information about policy generation performance.
         Use debug or trace level. Trace is very verbose.
     -->
-    <logger level="info" name="policy.generation.timing"/>
-    <logger level="info" name="org.eclipse.jetty"/>
-    <logger level="info" name="policy.generation.timing.buildNodeConfig"/>
+    <logger name="policy.generation.timing" level="info"/>
+    <logger name="org.eclipse.jetty" level="info"/>
+    <logger name="policy.generation.timing.buildNodeConfig" level="info"/>
     <!--
       For the following logger where "OPSLOG" is defined, will get the logs in both the
       webapp logs and file config in OPSLOG (by default, /var/log/rudder/core/rudder-webapp.log
@@ -249,7 +249,7 @@
       what is sooooo long - and should not.
       Set to debug or trace to have information.
     -->
-    <logger additivity="false" level="info" name="bootstrap">
+    <logger name="bootstrap" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
         <appender-ref ref="STDOUT"/>
@@ -262,7 +262,7 @@
       of Rudder internals.
       Set to debug or trace to have information.
     -->
-    <logger additivity="false" level="info" name="debug_timing">
+    <logger name="debug_timing" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -272,7 +272,7 @@
       Information on cache, interesting for Rudder 3.0 and up
       Set to debug or trace to have information.
     -->
-    <logger level="info" name="compliance"/>
+    <logger name="compliance" level="info"/>
     <!--
       =================
       Compliance calcul
@@ -284,7 +284,7 @@
       date/time ok regarding run interval and compliance mode, etc.)
       Trace level is quite verbose.
     -->
-    <logger additivity="false" level="info" name="explain_compliance">
+    <logger name="explain_compliance" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -307,7 +307,7 @@
       takes more than 100ms to complete.
       At trace, you get them all.
     -->
-    <logger additivity="false" level="off" name="sql">
+    <logger name="sql" level="off" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
         <appender-ref ref="STDOUT"/>
@@ -323,7 +323,7 @@
       in clear text by some loggers, just add the setting and
       the appropriate comment for them in the current file.
     -->
-    <logger additivity="false" level="info" name="application">
+    <logger name="application" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -338,7 +338,7 @@
       ================
       This logger is in charge of all scheduled jobs and batches
     -->
-    <logger additivity="false" level="info" name="scheduled.job">
+    <logger name="scheduled.job" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -347,7 +347,7 @@
       ========================
       Log information about migration processus, for example in case of internal data format updates
     -->
-    <logger additivity="false" level="info" name="migration">
+    <logger name="migration" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -355,30 +355,30 @@
       Log historization activity (name historization for configuration elements).
       You most likelly don't want more information on that.
     -->
-    <logger additivity="false" level="info" name="historization">
+    <logger name="historization" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
     <!--
       Log about configuration information for the status of some specific parts of Rudder
     -->
-    <logger level="info" name="status">
+    <logger name="status" level="info">
         <appender-ref ref="STDOUT"/>
     </logger>
     <!--
         This logger allows to log information about reports, especially DB cleaning operation
     -->
-    <logger additivity="false" level="info" name="report">
+    <logger name="report" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
-    <logger additivity="false" level="info" name="campaign">
+    <logger name="campaign" level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
     <!--
       Logs about change requests and validation workflows
     -->
-    <logger additivity="false" level="info" name="changeRequest">
+    <logger name="changeRequest" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -389,7 +389,7 @@
       Log all non compliant reports in the REPORTLOG defined above
       (by default, /var/log/rudder/compliance/non-compliant-reports.log
     -->
-    <logger additivity="false" level="info" name="non-compliant-reports">
+    <logger name="non-compliant-reports" level="info" additivity="false">
         <appender-ref ref="REPORTLOG"/>
     </logger>
     <!--
@@ -399,7 +399,7 @@
       Uncomment and set to "debug" or "trace" to get debugging information about the
       quicksearch: what is the parsed query, how many results come from each backend, etc.
      -->
-    <logger level="info" name="com.normation.rudder.services.quicksearch"/>
+    <logger name="com.normation.rudder.services.quicksearch" level="info"/>
     <!--
       Hooks
       ==========
@@ -409,7 +409,7 @@
       Debug level will display hooks with their parameter (may be quite noisy when there
       is a lot of nodes implied). Trace add system information (like environment variables).
     -->
-    <logger additivity="false" level="info" name="hooks">
+    <logger name="hooks" level="info" additivity="false">
         <appender-ref ref="OPSLOG"/>
         <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
         <appender-ref ref="STDOUT"/>
@@ -425,7 +425,7 @@
         Trace level is quite verbose and print for each request result for ALL path tested (100 of lines)
 
     -->
-    <logger additivity="false" level="info" name="api-processing">
+    <logger name="api-processing" level="info" additivity="false">
         <appender-ref ref="APILOG"/>
         <appender-ref ref="STDOUT"/>
     </logger>
@@ -443,7 +443,7 @@
       sensitive information (e.g. session ID, cookie) to be output
       in clear text. Change it at your own risk!
     -->
-    <logger level="info" name="comet_trace"/>
+    <logger name="comet_trace" level="info"/>
     <!--
       Spring Framework log level
       ==========================
@@ -454,7 +454,7 @@
       sensitive information (e.g. session ID, cookie) to be output
       in clear text. Change it at your own risk!
     -->
-    <logger level="warn" name="org.springframework"/>
+    <logger name="org.springframework" level="warn"/>
     <!--
       We don't need to have timing information for each
       HTTP request.
@@ -462,13 +462,13 @@
       level for that logger to (at least) "info"
       Nor information about CometActor or session lifecycle
      -->
-    <logger level="warn" name="net.liftweb.util.TimeHelpers"/>
-    <logger level="warn" name="net.liftweb.http.CometActor"/>
-    <logger level="warn" name="net.liftweb.http.SessionMaster"/>
+    <logger name="net.liftweb.util.TimeHelpers" level="warn"/>
+    <logger name="net.liftweb.http.CometActor" level="warn"/>
+    <logger name="net.liftweb.http.SessionMaster" level="warn"/>
     <!--
       We don't need logs about each autoCommit for postgresql connection
      -->
-    <logger level="warn" name="com.zaxxer.hikari"/>
+    <logger name="com.zaxxer.hikari" level="warn"/>
     <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
     <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
     <!-- Uncomment to have precise log about auth-backends plugin if installed -->

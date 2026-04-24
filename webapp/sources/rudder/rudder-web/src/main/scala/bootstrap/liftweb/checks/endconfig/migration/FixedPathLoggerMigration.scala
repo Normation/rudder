@@ -116,7 +116,7 @@ class FixedPathLoggerMigration extends BootstrapChecks {
     }
   }
 
-  def migrateLogback(xml: NodeSeq) = {
+  def migrateLogback(xml: NodeSeq): NodeSeq = {
     addProperties(addApiAppender(addAppender(removeProperties(removeStdoutAppender(xml)))))
   }
 
@@ -158,7 +158,9 @@ class FixedPathLoggerMigration extends BootstrapChecks {
 
       val prettyPrinter = new PrettyPrinter(120, 4)
 
-      logbackFile.write(prettyPrinter.formatNodes(newLogback))
+      val content           = prettyPrinter.formatNodes(newLogback)
+      val withLastLineBreak = if (content.lastOption.contains('\n')) content else content + '\n'
+      logbackFile.write(withLastLineBreak)
     }
   }
 }
