@@ -47,7 +47,6 @@ import com.normation.rudder.domain.logger.DynamicGroupLoggerPure
 import com.normation.rudder.domain.logger.ScheduledJobLogger
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.queries.*
-import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.DateFormaterService

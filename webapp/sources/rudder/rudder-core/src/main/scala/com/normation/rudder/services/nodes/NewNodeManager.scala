@@ -69,7 +69,7 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
-import zio.{System as _, *}
+import zio.*
 import zio.syntax.*
 
 /**

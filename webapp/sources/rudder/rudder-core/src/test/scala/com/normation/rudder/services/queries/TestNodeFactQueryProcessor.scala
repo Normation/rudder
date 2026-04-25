@@ -58,7 +58,7 @@ import net.liftweb.common.Failure
 import org.junit.*
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import zio.{test as _, *}
+import zio.*
 import zio.syntax.*
 import zio.test.*
 import zio.test.Assertion.*
