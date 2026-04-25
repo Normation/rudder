@@ -37,7 +37,7 @@
 
 package com.normation.utils
 
-import org.joda.time.{Days as _, *}
+import org.joda.time.*
 import org.joda.time.format.*
 import org.junit.Test
 import org.junit.runner.RunWith

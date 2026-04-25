@@ -79,7 +79,6 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import zio.*
-import zio.System as _
 import zio.syntax.*
 
 /**

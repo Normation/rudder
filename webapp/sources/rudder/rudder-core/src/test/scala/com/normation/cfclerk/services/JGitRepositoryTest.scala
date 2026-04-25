@@ -77,7 +77,7 @@ import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import scala.annotation.nowarn
 import scala.util.Random
-import zio.{System as _, *}
+import zio.*
 import zio.syntax.*
 
 /**

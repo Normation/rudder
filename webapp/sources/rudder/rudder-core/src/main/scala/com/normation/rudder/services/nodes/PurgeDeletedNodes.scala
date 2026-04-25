@@ -47,7 +47,7 @@ import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.services.nodes.NodeInfoService.A_MOD_TIMESTAMP
 import org.joda.time.DateTime
-import zio.{System as _, *}
+import zio.*
 
 trait PurgeDeletedNodes {
 
