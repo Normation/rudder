@@ -96,45 +96,6 @@ class ComplianceApi(
     readDirective:     RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
-  def extractComplianceLevel(params: Map[String, List[String]]): IOResult[Option[Int]] = {
-    params.get("level") match {
-      case None | Some(Nil) => None.succeed
-      case Some(h :: tail)  => // only take into account the first level param is several are passed
-        try { Some(h.toInt).succeed }
-        catch {
-          case ex: NumberFormatException =>
-            Inconsistency(s"level (displayed level of compliance details) must be an integer, was: '${h}'").fail
-        }
-    }
-  }
-
-  def extractPercentPrecision(params: Map[String, List[String]]): IOResult[Option[CompliancePrecision]] = {
-    params.get("precision") match {
-      case None | Some(Nil) => None.succeed
-      case Some(h :: tail)  => // only take into account the first level param is several are passed
-        for {
-          extracted <- try { h.toInt.succeed }
-                       catch {
-                         case ex: NumberFormatException =>
-                           Inconsistency(s"percent precision must be an integer, was: '${h}'").fail
-                       }
-          level     <- CompliancePrecision.fromPrecision(extracted).toIO
-        } yield {
-          Some(level)
-        }
-
-    }
-  }
-
-  def extractComplianceFormat(params: Map[String, List[String]]): IOResult[ComplianceFormat] = {
-    params.get("format") match {
-      case None | Some(Nil) | Some("" :: Nil) =>
-        ComplianceFormat.JSON.succeed // by default if no there is no format, should I choose the only one available ?
-      case Some(format :: _)                  =>
-        ComplianceFormat.fromValue(format).left.map(Inconsistency.apply).toIO
-    }
-  }
-
   def schemas: ApiModuleProvider[API] = API
 
   /*
@@ -175,8 +136,8 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         rules     <- complianceService.getRulesCompliance(level)
       } yield {
         // by default, all details are displayed
@@ -204,8 +165,8 @@ class ComplianceApi(
       (for {
         t1 <- currentTimeMillis
 
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         id        <- RuleId.parse(ruleId).toIO.chainError(s"Parameter '${ruleId}' doesn't have a valid rule ID format'")
 
         rule <- complianceService.getRuleCompliance(id, level)
@@ -237,10 +198,10 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
         t1        <- currentTimeMillis
-        precision <- extractPercentPrecision(req.params)
-        format    <- extractComplianceFormat(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        format    <- ComplianceUtils.extractComplianceFormat(req.params)
         id        <- DirectiveId.parse(directiveId).toIO
         d         <- readDirective.getDirective(id.uid).notOptional(s"Directive with id '${id.serialize}' not found'")
         t2        <- currentTimeMillis
@@ -254,7 +215,7 @@ class ComplianceApi(
         .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, format, directive) =>
           format match {
             case ComplianceFormat.CSV =>
-              PlainTextResponse(directive.toCsv) // CSVFormat take cares of line separator
+              PlainTextResponse(directive.toCsv) // CSVFormat takes care of line separators
 
             case ComplianceFormat.JSON =>
               // by default, all details are displayed
@@ -286,9 +247,9 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level      <- extractComplianceLevel(req.params)
+        level      <- ComplianceUtils.extractComplianceLevel(req.params)
         t1         <- currentTimeMillis
-        precision  <- extractPercentPrecision(req.params)
+        precision  <- ComplianceUtils.extractPercentPrecision(req.params)
         t2         <- currentTimeMillis
         _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
         t4         <- currentTimeMillis
@@ -322,7 +283,7 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        precision <- extractPercentPrecision(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         targets    = req.params.getOrElse("groups", List.empty).flatMap { nodeGroups =>
                        nodeGroups.split(",").toList.flatMap(parseSimpleTargetOrNodeGroupId(_).toOption)
                      }
@@ -362,8 +323,8 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toIO
         group     <- complianceService.getNodeGroupCompliance(target, level)
       } yield {
@@ -393,8 +354,8 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toIO
         group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance = false)
       } yield {
@@ -423,8 +384,8 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase)
       } yield {
         given l: Int                 = level.getOrElse(10)
@@ -449,8 +410,8 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderBase)
       } yield {
         given l: Int                 = level.getOrElse(10)
@@ -475,8 +436,8 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- extractComplianceLevel(req.params)
-        precision <- extractPercentPrecision(req.params)
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
         node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderSystem)
       } yield {
         given l: Int                 = level.getOrElse(10)
@@ -500,7 +461,7 @@ class ComplianceApi(
       given qc: QueryContext = authzToken.qc
 
       (for {
-        precision     <- extractPercentPrecision(req.params)
+        precision     <- ComplianceUtils.extractPercentPrecision(req.params)
         optCompliance <- complianceService.getGlobalCompliance()
       } yield {
         given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)

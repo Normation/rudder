@@ -1,5 +1,6 @@
 module Rules.ViewTabDirectives exposing (..)
 
+import Date as Time
 import Dict
 import Dict.Extra
 import Html exposing (..)
@@ -11,6 +12,7 @@ import List
 import Maybe.Extra
 import Set
 import NaturalOrdering as N exposing (compareOn)
+import Task
 import Tuple3
 
 import Rules.DataTypes exposing (..)
@@ -131,9 +133,10 @@ directivesTab model details =
           ]
       else
         text ""
-    (complianceFilterBtn, complianceFilterContainer) =
+    (complianceFilterBtn, exportComplianceToCsvBtn, complianceFilterContainer) =
       if noCompliance then
         ( text ""
+        , text ""
         , text ""
         )
       else
@@ -141,6 +144,9 @@ directivesTab model details =
           [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
           , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
           ]
+        , button
+            [class "btn btn-sm btn-primary btn-export me-2", onClick (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByDirective rule.id) Time.today)) ]
+            [ text "Export " , i [ class "fa fa-download" ] [] ]
         , displayComplianceFilters complianceFilters UpdateComplianceFilters
         )
 
@@ -153,7 +159,9 @@ directivesTab model details =
             [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filter
             , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
             , complianceFilterBtn
-            , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
+            , div [class "ms-auto my-auto"]
+              [ exportComplianceToCsvBtn
+              , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]]
             ]
           , complianceFilterContainer
           ]
@@ -229,7 +237,7 @@ directivesTab model details =
       div[class "tab-table-content"]
       ( List.append
         [ div [class "table-title mb-3"]
-          [ h4 [class "mb-0"][text "Compliance by directives"]
+          [ h4 [class "mb-0"][text "Compliance by directive"]
           , ( if model.ui.hasWriteRights then
               button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editDirectives = True }})][text "Select ", i[class "fa fa-plus-circle"][]]
             else

@@ -2362,7 +2362,8 @@ object RudderConfigInit {
           new RuleApi(
             zioJsonExtractor,
             ruleApiService13,
-            stringUuidGenerator
+            stringUuidGenerator,
+            complianceAPIService
           ),
           new SystemApi(
             systemApiService11,

@@ -1098,3 +1098,120 @@ response:
         }
       }
     }
+---
+description: Get rule compliance by directive
+method: GET
+url: /api/latest/rules/br6/compliance/byDirective
+params:
+  format: json
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getRuleComplianceByDirective",
+      "result":"success",
+      "data" : {
+        "id" : "br6",
+        "name" : "R6",
+        "compliance" : 100.0,
+        "mode" : "full-compliance",
+        "policyMode" : "enforce",
+        "complianceDetails" : {
+          "successAlreadyOK" : 100.0
+        },
+        "directives" : [
+          {
+            "id" : "directive-copyGitFile",
+            "name" : "directive-copyGitFile",
+            "compliance" : 100.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "components" : [
+              {
+                "name" : "directive-copyGitFile-component-br6-bn4",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "nodes" : [
+                  {
+                    "id" : "bn4",
+                    "name" : "node1.localhost",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive-copyGitFile-component-value-br6-bn4",
+                        "reports" : [
+                          {
+                            "status" : "successAlreadyOK"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name" : "directive-copyGitFile-component-br6-bn5",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "nodes" : [
+                  {
+                    "id" : "bn5",
+                    "name" : "node1.localhost",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive-copyGitFile-component-value-br6-bn5",
+                        "reports" : [
+                          {
+                            "status" : "successAlreadyOK"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+            "compliance" : 0.0,
+            "policyMode" : "skipped",
+            "complianceDetails" : {},
+            "skippedDetails" : {
+              "overridingRuleId" : "br5",
+              "overridingRuleName" : "R5"
+            },
+            "components" : []
+          }
+        ]
+      }
+    }
+---
+description: Get rule compliance by directive
+method: GET
+url: /api/latest/rules/br6/compliance/byDirective
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Directive","Block","Component","Node","Value","Status","Message"
+    "directive-copyGitFile","","directive-copyGitFile-component-br6-bn4","node1.localhost","directive-copyGitFile-component-value-br6-bn4","successAlreadyOK",""
+    "directive-copyGitFile","","directive-copyGitFile-component-br6-bn5","node1.localhost","directive-copyGitFile-component-value-br6-bn5","successAlreadyOK",""

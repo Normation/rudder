@@ -414,3 +414,19 @@ deleteCategory category model =
         }
   in
    req
+
+getRuleComplianceByDirective : RuleId -> String -> Model -> Cmd Msg
+getRuleComplianceByDirective ruleId filename model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
+        , url     = getUrl model [ "rules", ruleId.value, "compliance", "byDirective" ] [ Url.Builder.string "format" "csv"]
+        , body    = emptyBody
+        , expect  = expectString (RuleComplianceCsvExported filename)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req

@@ -1040,7 +1040,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       uuidGen,
       directiveApiService14
     ),
-    new RuleApi(zioJsonExtractor, ruleApiService14, uuidGen),
+    new RuleApi(zioJsonExtractor, ruleApiService14, uuidGen, mockCompliance.complianceAPIService),
     new RulesInternalApi(ruleInternalApiService, ruleApiService14),
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
