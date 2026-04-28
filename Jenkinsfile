@@ -55,6 +55,7 @@ pipeline {
                         sh script: ''
                         dir('dsc') {
                             git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                branch: "branches/rudder/${version}",
                                 credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
                             sh script: 'make ncf NCF_OUTPUT=$(pwd)/../policies/lib/ncf', label: 'install local Windows agent'
                         }
