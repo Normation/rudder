@@ -84,64 +84,62 @@ showParam model call state methodParam params =
           [ stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
           , onFocus DisableDragDrop
           , readonly (not model.hasWriteRights)
+          , class "form-control"
           , id ("param-" ++ methodParam.name.value)
+          , value displayedValue
           , onInput (MethodCallParameterModified call methodParam.name)
+          -- to deactivate plugin "Grammarly" or "Language Tool" from
+          -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
+          , attribute "data-gramm" "false"
+          , attribute "data-gramm_editor" "false"
+          , attribute "data-enable-grammarly" "false"
+          , spellcheck False
           ]
       in
-      case methodParam.constraints.select of
-        Nothing ->
-          element "textarea"
-            |> addAttributeList
-              ( List.append
-                commonAttributes
-                [ class "form-control"
-                , rows  1
-                , value displayedValue
-                -- to deactivate plugin "Grammarly" or "Language Tool" from
-                -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
-                , attribute "data-gramm" "false"
-                , attribute "data-gramm_editor" "false"
-                , attribute "data-enable-grammarly" "false"
-                , spellcheck False
-                ]
-              )
-        Just list ->
-          let
-            selectValue = if String.isEmpty displayedValue then "default" else displayedValue
-          in
-            element "select"
-              |> addAttributeList commonAttributes
-              |> addAttribute (value selectValue)
-              |> addClass "form-select"
-              |> appendChildList
-                ( list
-                |> List.filter (\opt -> not (String.isEmpty opt.value))
-                |> List.map
-                  (\opt ->
-                    element "option"
-                      |> addAttributeList
-                        [ value opt.value
-                        , selected (selectValue == opt.value)
-                        ]
-                      |> appendText (Maybe.withDefault opt.value opt.name)
+        case methodParam.constraints.select of
+          Nothing ->
+            [ element "textarea"
+              |> addAttributeList ((rows  1) :: commonAttributes)
+            ]
+
+          Just list ->
+            let
+              datalistId = "param-" ++ methodParam.name.value ++ "-options"
+            in
+              [ element "input"
+                |> addAttributeList ((attribute "list" datalistId) :: commonAttributes)
+              , element "datalist"
+                |> addAttribute (id datalistId)
+                |> appendChildList
+                  ( list
+                  |> List.filter (\opt -> not (String.isEmpty opt.value))
+                  |> List.map
+                    (\opt ->
+                      element "option"
+                        |> addAttributeList
+                          [ value opt.value
+                          ]
+                    )
                   )
-                )
+              ]
   in
     element "div"
       |> addClass "form-group method-parameter"
       |> appendChildList
-        [ element "label"
-          |> addClass "mb-1 d-inline-flex align-items-baseline"
-          |> addAttribute (for ("param-" ++ methodParam.name.value))
-          |> appendChildList
-            [ element "span"
-              |> appendChild (element "span" |> appendText (String.Extra.toTitleCase methodParam.name.value))
-              |> appendChild isMandatory
-              |> appendChild (element "span" |> appendText "•" |> addClass "text-secondary mx-1")
-            , element "small" |> appendText methodParam.description |> addClass "text-secondary fw-medium"
-            ]
-        , parameterInput
-        ]
+        ( List.append
+          [ element "label"
+            |> addClass "mb-1 d-inline-flex align-items-baseline"
+            |> addAttribute (for ("param-" ++ methodParam.name.value))
+            |> appendChildList
+              [ element "span"
+                |> appendChild (element "span" |> appendText (String.Extra.toTitleCase methodParam.name.value))
+                |> appendChild isMandatory
+                |> appendChild (element "span" |> appendText "•" |> addClass "text-secondary mx-1")
+              , element "small" |> appendText methodParam.description |> addClass "text-secondary fw-medium"
+              ]
+          ]
+          parameterInput
+        )
       |> appendChildConditional ( element "ul"
         |> addClass "list-unstyled"
         |> appendChildList (errors |> List.map (\e -> element "li" |> addClass "text-danger" |> appendText e))
@@ -191,13 +189,18 @@ checkConstraintOnParameter call constraint =
                       Just regex -> if Regex.contains regex (displayValue call.value) then
                                        [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' cannot match the following regexp: " ++ (Maybe.withDefault "" constraint.notMatchRegex) ) }]
                                     else
+
                                       []
+    {--
+     -- This check has been removed to allow the use of variables (such as technique parameters, iterators, etc.)
+     --
     checkSelect = Maybe.map ( \ select -> if List.any ( .value >> (==) (displayValue call.value) ) select then
                      []
                    else
                      [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "' must equal one of the values from the following list: " ++ (String.join ", " (select |> List.map .value)) )} ]
                   ) constraint.select |> Maybe.withDefault []
-    checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck, checkSelect ] |> List.concat
+    --}
+    checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck ] |> List.concat
   in
     if List.isEmpty checks then ValidState else InvalidState checks
 
