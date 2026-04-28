@@ -196,7 +196,7 @@ function vendor_css(cb) {
 function scss(cb) {
     // with the pinned sass version we could ignore some deprecations :
     // https://github.com/twbs/bootstrap/issues/40962#issuecomment-2470260308
-    const deprecations = ['color-functions', 'global-builtin', 'import'];
+    const deprecations = ['color-functions', 'global-builtin', 'import', 'if-function'];
     const rudderScss = src(paths.scss.src)
       .pipe(sourcemaps.init())
       .pipe(sass({style: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
