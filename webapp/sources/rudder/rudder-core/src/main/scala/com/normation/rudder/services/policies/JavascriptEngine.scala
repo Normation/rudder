@@ -46,6 +46,8 @@ import com.normation.rudder.domain.logger.JsDirectiveParamLogger
 import com.normation.rudder.domain.logger.JsDirectiveParamLoggerPure
 import com.normation.rudder.services.policies.JsEngine.*
 import enumeratum.*
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.security.NoSuchAlgorithmException
 import java.util.concurrent.*
 import javax.script.Bindings
@@ -418,11 +420,25 @@ object JsEngine {
         Context
           .newBuilder("js")
           .engine(engine)
+          .sandbox(SandboxPolicy.TRUSTED)
+          .in(new ByteArrayInputStream("".getBytes()))
+          .out(new ByteArrayOutputStream())
+          .err(new ByteArrayOutputStream())
+          .allowAllAccess(false)
           .allowHostAccess(HostAccess.EXPLICIT)
           .allowIO(IOAccess.NONE)
-          .allowCreateProcess(false)
-          .allowCreateThread(false)
-          .allowNativeAccess(false)
+          // all the following option would allow for a fine tuned vm, but are only available in
+          // commercial version of GraalVM. Keeping them in comment to avoid attempt them again
+          // in the future.
+//          .option("engine.MaxIsolateMemory", "128MB")
+//          .option("sandbox.MaxHeapMemory", "128MB")
+//          .option("sandbox.MaxCPUTime", "2s")
+//          .option("sandbox.MaxStatements", "50000")
+//          .option("sandbox.MaxStackFrames", "2")
+//          .option("sandbox.MaxThreads", "1")
+//          .option("sandbox.MaxASTDepth", "10")
+//          .option("sandbox.MaxOutputStreamSize", "32B")
+//          .option("sandbox.MaxErrorStreamSize", "0B")
           .build()
       )
     )(x => effectUioUnit(x.close(true)))
@@ -481,7 +497,20 @@ object JsEngine {
     protected[policies] def getJsEngine(number: Int): IOResult[GraalEngine] = {
       val message =
         s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
-      IOResult.attempt(message)(GraalEngine(Engine.create()))
+      IOResult.attempt(message)(
+        GraalEngine(
+          Engine
+            .newBuilder("js")
+            .sandbox(SandboxPolicy.TRUSTED) // this is unfortunately needed to change js option value
+            .option("js.intl-402", "false")
+            .allowExperimentalOptions(false)
+            // add redirection of in/out/err stream to avoid escaping
+            .in(new ByteArrayInputStream("".getBytes()))
+            .out(new ByteArrayOutputStream())
+            .err(new ByteArrayOutputStream())
+            .build()
+        )
+      )
     }
   }
 
