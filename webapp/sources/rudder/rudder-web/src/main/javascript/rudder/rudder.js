@@ -757,7 +757,7 @@ function changeTimezone(date, ianatz) {
  */
 function displayDateTime(date = new Date(), timeZone = dateOptions.timeZone) {
   // get current offset
-  const format = Intl.DateTimeFormat(undefined, { timeZone, timeZoneName: "longOffset" });
+  const format = Intl.DateTimeFormat("en", { timeZone, timeZoneName: "longOffset" });
   const [_, gmtOffset] = format.format(date).split("GMT")
   const offset = gmtOffset == "" ? "Z" : gmtOffset
   return date.toISOString().replace('T', ' ').replace(/\..*$/, offset);
