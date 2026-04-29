@@ -189,18 +189,20 @@ checkConstraintOnParameter call constraint =
                       Just regex -> if Regex.contains regex (displayValue call.value) then
                                        [ConstraintError { id = call.id, message = ("Parameter '" ++ call.id.value ++"' cannot match the following regexp: " ++ (Maybe.withDefault "" constraint.notMatchRegex) ) }]
                                     else
-
                                       []
-    {--
-     -- This check has been removed to allow the use of variables (such as technique parameters, iterators, etc.)
-     --
-    checkSelect = Maybe.map ( \ select -> if List.any ( .value >> (==) (displayValue call.value) ) select then
+
+    checkVariableUsage = case Regex.fromString "^\\${.*}$" of
+        Nothing -> False
+        Just regex -> Regex.contains regex (displayValue call.value)
+
+    checkSelect = Maybe.map ( \ select -> if (List.any ( .value >> (==) (displayValue call.value) ) select) || checkVariableUsage then
                      []
                    else
-                     [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "' must equal one of the values from the following list: " ++ (String.join ", " (select |> List.map .value)) )} ]
+                     [ConstraintError { id = call.id, message =  ( "Parameter '" ++ call.id.value ++ "' must equal one of the values from the following list: " ++ (String.join ", " (select |> List.filter (\c -> not (String.isEmpty c.value)) |> List.map .value)) ++ ", or use a variable that contains one of these values." )} ]
                   ) constraint.select |> Maybe.withDefault []
-    --}
-    checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck ] |> List.concat
+
+
+    checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck, checkSelect ] |> List.concat
   in
     if List.isEmpty checks then ValidState else InvalidState checks
 
