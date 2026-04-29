@@ -381,7 +381,6 @@ limitations under the License.
     <!-- keep M4 because https://issues.rudder.io/issues/28527 -->
     <commons-fileupload>2.0.0-M4</commons-fileupload>
     <commons-csv-version>1.14.1</commons-csv-version>
-    <jgit-version>7.6.0.202603022253-r</jgit-version>
     <spring-version>7.0.7</spring-version>
     <spring-security-version>7.1.0-RC1</spring-security-version>
     <asm-version>9.9.1</asm-version>
