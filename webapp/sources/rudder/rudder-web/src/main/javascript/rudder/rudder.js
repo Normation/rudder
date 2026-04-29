@@ -108,23 +108,27 @@ function jqCheckAll( id, name )
    $("input[name=" + name + "][type='checkbox']").prop('checked', $('#' + id).is(':checked'));
 }
 
+/* datetimepicker in jquery 4.0.0 : functions that were removed */
+$.trim = x => typeof x === "string " ? x.trim() : x
+$.isFunction = x => typeof x === "function"
+
 /* popin */
 
 // increase the default animation speed to exaggerate the effect
-  $.fx.speeds._default = 1000;
-  $(function() {
-    $('#dialog').dialog({
-      autoOpen: false,
-      position: [250,100],
-      width: 535,
-      show: '',
-      hide: ''
-    });
-    $('#openerAccount').click(function() {
-      $('#dialog').dialog('open');
-      return false;
-    });
+$.fx.speeds._default = 1000;
+$(function() {
+  $('#dialog').dialog({
+    autoOpen: false,
+    position: [250,100],
+    width: 535,
+    show: '',
+    hide: ''
   });
+  $('#openerAccount').click(function() {
+    $('#dialog').dialog('open');
+    return false;
+  });
+});
 
 function processKey(e , buttonId){
     if (null == e)
