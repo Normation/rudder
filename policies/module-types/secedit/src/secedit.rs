@@ -104,8 +104,12 @@ fn get_default_config() -> Result<Ini> {
         ..Default::default()
     };
     let defltbase = Path::new("C:\\Windows\\inf\\defltbase.inf");
+
     // TODO: update to new utf16 handling implementation.
-    let default = Ini::load_from_str_opt(&read_utf16_file(defltbase)?, opt)?;
+    let utf8_file = read_utf16_file(defltbase)?;
+
+    let cleaned = utf8_file.trim_end_matches(['\r', '\n', '\x1A']);
+    let default = Ini::load_from_str_opt(cleaned, opt)?;
 
     Ok(default)
 }
