@@ -20,6 +20,7 @@ import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
 
 import Ui.Datatable exposing (SortOrder(..), Category, SubCategories(..))
+import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 
 -- PORTS / SUBSCRIPTIONS
@@ -350,13 +351,25 @@ update msg model =
           ({model | mode = RuleForm  details}, initTooltips "")
         _ -> (model, Cmd.none)
 
-    DisableRule ->
+    SaveEnabledRule ->
       case model.mode of
         RuleForm details ->
           let
             rule     = details.originRule
             cmdAction = case rule of
-              Just oR -> saveDisableAction {oR | enabled = not oR.enabled} model
+              Just oR -> saveStatusAction {oR | enabled = True} model
+              Nothing -> initTooltips ""
+          in
+            (model, cmdAction)
+        _   -> (model, Cmd.none)
+
+    SaveDisabledRule ->
+      case model.mode of
+        RuleForm details ->
+          let
+            rule     = details.originRule
+            cmdAction = case rule of
+              Just oR -> saveStatusAction {oR | enabled = False} model
               Nothing -> initTooltips ""
           in
             (model, cmdAction)
@@ -514,15 +527,13 @@ update msg model =
         (newModel, Cmd.none)
 
     OpenDeletionPopup rule ->
-      case model.mode of
-        RuleForm rd ->
-          let
-            ui = model.ui
-            crSettings = case ui.crSettings of
-              Just cr -> Just { cr | changeRequestName = ("Delete Rule '" ++ rd.rule.name ++ "'") }
-              Nothing -> Nothing
-          in
-            ( { model | ui = {ui | modal = DeletionValidation rule crSettings, crSettings = crSettings} } , Cmd.none )
+      case ( model.mode, model.ui.crSettings ) of
+        ( RuleForm _, Just cr ) ->
+          deleteRuleModalState rule cr model
+
+        ( RuleForm _, Nothing ) ->
+          ( model |> setModalState (DeletionValidation rule Nothing) , Cmd.none )
+
         _ -> (model, Cmd.none)
 
     OpenDeletionPopupCat category ->
@@ -533,29 +544,42 @@ update msg model =
             ( { model | ui = {ui | modal = DeletionValidationCat category } } , Cmd.none )
         _ -> (model, Cmd.none)
 
-    OpenDeactivationPopup rule ->
-      case model.mode of
-        RuleForm rd ->
-          let
-            ui = model.ui
-            crSettings = case ui.crSettings of
-              Just cr -> Just { cr | changeRequestName = ("Deactivate Rule '" ++ rd.rule.name ++ "'")}
-              Nothing -> Nothing
-          in
-            ( { model | ui = {ui | modal = DeactivationValidation rule crSettings, crSettings = crSettings}} , Cmd.none )
-        _ -> (model, Cmd.none)
+    OpenDisablePopup ->
+      case ( model.mode, model.ui.crSettings ) of
+        ( RuleForm { rule }, Just cr ) ->
+          disableRuleModalState rule cr model
 
-    OpenSaveAuditMsgPopup rule crSettings ->
-      case model.mode of
-        RuleForm rd ->
-          let
-            ui = model.ui
-            creation = (isNothing rd.originRule)
-            action = if creation then "Create" else "Update"
-            newCrSettings = { crSettings | changeRequestName = (action ++ " Rule '" ++ rd.rule.name ++ "'")}
-          in
-            ( { model | ui = {ui | modal = SaveAuditMsg creation rule rd.originRule newCrSettings, crSettings = (Just newCrSettings)}} , Cmd.none )
-        _ -> (model, Cmd.none)
+        ( RuleForm { rule }, Nothing ) ->
+          ( model |> setModalState (DisableValidation rule Nothing) , Cmd.none )
+
+        _ ->
+          ( model, Cmd.none )
+
+    OpenEnablePopup ->
+      case ( model.mode, model.ui.crSettings ) of
+        ( RuleForm { rule }, Just cr ) ->
+          enableRuleModalState rule cr model
+
+        ( RuleForm { rule }, Nothing ) ->
+          ( model |> setModalState (EnableValidation rule Nothing) , Cmd.none )
+
+        _ ->
+          ( model, Cmd.none )
+
+    SaveRule rule ->
+      case ( model.mode, model.ui.crSettings ) of
+        ( RuleForm rd, Just cr ) ->
+          if cr.enableChangeMessage || cr.enableChangeRequest then
+            saveRuleModalState rd cr model
+
+          else
+            update (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing rd.originRule))) model
+
+        ( RuleForm rd, Nothing ) ->
+          update (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing rd.originRule))) model
+
+        _ ->
+          ( model, Cmd.none )
 
     ClosePopup callback ->
       let
@@ -663,7 +687,8 @@ update msg model =
         ui = model.ui
         newModalState = case ui.modal of
           SaveAuditMsg c r oR s      -> SaveAuditMsg c r oR settings
-          DeactivationValidation r s -> DeactivationValidation r (Just settings)
+          DisableValidation r s -> DisableValidation r (Just settings)
+          EnableValidation r s -> EnableValidation r (Just settings)
           DeletionValidation  r s    -> DeletionValidation r (Just settings)
           _ -> ui.modal
       in
@@ -695,3 +720,51 @@ processApiError apiName err model =
 
 getUrl : Model -> String
 getUrl model = model.contextPath ++ "/secure/configurationManager/ruleManagement"
+
+
+saveRuleModalState : RuleDetails -> ChangeRequestSettings -> Model -> ( Model, Cmd msg )
+saveRuleModalState { originRule, rule } crSettings model =
+  let
+    creation = (isNothing originRule)
+    action = if creation then "Create" else "Update"
+    newCrSettings = { crSettings | changeRequestName = (action ++ " Rule '" ++ rule.name ++ "'")}
+    state = SaveAuditMsg creation rule originRule newCrSettings
+  in
+  ( model |> setModalState state |> setCrSettings newCrSettings, Cmd.none )
+
+
+deleteRuleModalState : Rule -> ChangeRequestSettings -> Model -> ( Model, Cmd msg )
+deleteRuleModalState rule crSettings model =
+  let
+    newCrSettings = { crSettings | changeRequestName = ("Delete Rule '" ++ rule.name ++ "'") }
+    state = DeletionValidation rule (Just newCrSettings)
+  in
+  ( model |> setModalState state |> setCrSettings newCrSettings, Cmd.none )
+
+
+disableRuleModalState : Rule -> ChangeRequestSettings -> Model -> ( Model, Cmd msg )
+disableRuleModalState rule crSettings model =
+  let
+    newCrSettings = { crSettings | changeRequestName = ("Disable Rule '" ++ rule.name ++ "'") }
+    state = DisableValidation rule (Just newCrSettings)
+  in
+  ( model |> setModalState state |> setCrSettings newCrSettings, Cmd.none )
+
+
+enableRuleModalState : Rule -> ChangeRequestSettings -> Model -> ( Model, Cmd msg )
+enableRuleModalState rule crSettings model =
+  let
+    newCrSettings = { crSettings | changeRequestName = ("Enable Rule '" ++ rule.name ++ "'") }
+    state = EnableValidation rule (Just newCrSettings)
+  in
+  ( model |> setModalState state |> setCrSettings newCrSettings, Cmd.none )
+
+
+setModalState : ModalState -> Model -> Model
+setModalState state ({ ui } as model) =
+  { model | ui = { ui | modal = state } }
+
+
+setCrSettings : ChangeRequestSettings -> Model -> Model
+setCrSettings settings ({ ui } as model) =
+  { model | ui = { ui | crSettings = Just settings } }

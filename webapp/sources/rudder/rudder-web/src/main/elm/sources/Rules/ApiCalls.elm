@@ -350,10 +350,9 @@ saveRuleDetails ruleDetails creation model =
   in
     req
 
-saveDisableAction : Rule -> Model ->  Cmd Msg
-saveDisableAction ruleDetails model =
+saveStatusAction : Rule -> Model ->  Cmd Msg
+saveStatusAction ruleDetails model =
   let
-    changeAction = "Disable "
     req =
       request
         { method  = "POST"

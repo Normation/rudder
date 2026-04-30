@@ -132,107 +132,36 @@ view model =
       CategoryForm details ->
         (editionTemplateCat model details)
 
-    changeAuditForm : ChangeRequestSettings -> Html Msg
-    changeAuditForm crSettings =
-      if crSettings.enableChangeMessage || crSettings.enableChangeRequest then
-        div []
-        [ h4 [class "audit-title"] [text "Change audit log"]
-        , ( if crSettings.enableChangeRequest then
-          div[class "form-group"]
-          [ label[]
-             [ text "Change request title"
-            ]
-            , input [type_ "text", class "form-control", onInput (\s -> UpdateCrSettings {crSettings | changeRequestName = s}), value crSettings.changeRequestName ][]
-          ]
-          else
-          text ""
-          )
-        , div[class "form-group"]
-          [ label[]
-            [ text "Change audit message"
-            , text (if crSettings.enableChangeMessage && crSettings.mandatoryChangeMessage then " (required)" else "")
-            ]
-            , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | message = s}), value crSettings.message ][]
-          ]
-        ]
-      else
-        text ""
-
     modal = case model.ui.modal of
       NoModal -> text ""
       DeletionValidation rule crSettings ->
-        let
-          (auditForm, btnDisabled) = case crSettings of
-            Just s  ->
-              ( changeAuditForm s
-              , (s.mandatoryChangeMessage && String.isEmpty s.message)
-              )
-            Nothing ->
-              ( text ""
-              , False
-              )
-        in
-          div [ tabindex -1, class "modal fade show", style "display" "block" ]
-          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
-          , div [ class "modal-dialog" ] [
-              div [ class "modal-content" ] [
-                div [ class "modal-header" ] [
-                  h5 [ class "modal-title" ] [ text "Delete Rule"]
-                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
-                ]
-              , div [ class "modal-body" ]
-                [ h4 [class "text-center"][text ("Are you sure you want to Delete rule '"++ rule.name ++"'?")]
-                , auditForm
-                ]
-              , div [ class "modal-footer" ] [
-                  button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
-                  [ text "Cancel " ]
-                , button [ class "btn btn-danger", onClick (ClosePopup (CallApi False (deleteRule rule))), disabled btnDisabled ]
-                  [ text "Delete "
-                  , i [ class "fa fa-times-circle" ] []
-                  ]
-                ]
-              ]
-            ]
-          ]
-      DeactivationValidation rule crSettings ->
-        let
-          (txtDisabled, iconDisabled) = if rule.enabled then ("Disable", "fa fa-ban") else ("Enable", "fa fa-check-circle")
-          (auditForm, btnDisabled) = case crSettings of
-            Just s  ->
-              ( changeAuditForm s
-              , (s.mandatoryChangeMessage && String.isEmpty s.message)
-              )
-            Nothing ->
-              ( text ""
-              , False
-              )
+        viewModal
+        { action = Delete
+        , ruleName = rule.name
+        , crSettings = crSettings
+        , btnMsg = ClosePopup (CallApi False (deleteRule rule))
+        , btnClass = "btn btn-danger"
+        , btnIconClass = "fa fa-times-circle"
+        }
+      DisableValidation rule crSettings ->
+        viewModal
+        { action = Disable
+        , ruleName = rule.name
+        , crSettings = crSettings
+        , btnMsg = ClosePopup SaveDisabledRule
+        , btnClass = "btn btn-primary"
+        , btnIconClass = "fa fa-ban"
+        }
+      EnableValidation rule crSettings ->
+        viewModal
+        { action = Enable
+        , ruleName = rule.name
+        , crSettings = crSettings
+        , btnMsg = ClosePopup SaveEnabledRule
+        , btnClass = "btn btn-primary"
+        , btnIconClass = "fa fa-check-circle"
+        }
 
-        in
-          div [ tabindex -1, class "modal fade show", style "display" "block" ]
-          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
-          , div [ class "modal-dialog" ] [
-              div [ class "modal-content" ]  [
-                div [ class "modal-header" ] [
-                  h5[ class "modal-title" ] [ text (txtDisabled ++" Rule")]
-                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
-                ]
-              , div [ class "modal-body" ]
-                [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisabled ++" rule '"++ rule.name ++"'?")]
-                , auditForm
-                ]
-              , div [ class "modal-footer" ] [
-                  button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
-                  [ text "Cancel "
-                  ]
-                , button [ class "btn btn-primary", onClick (ClosePopup DisableRule), disabled btnDisabled ]
-                  [ text (txtDisabled ++ " ")
-                  , i [ class iconDisabled ] []
-                  ]
-                ]
-              ]
-            ]
-          ]
       DeletionValidationCat category ->
         div [ tabindex -1, class "modal fade show", style "display" "block" ]
          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
@@ -257,49 +186,14 @@ view model =
            ]
          ]
       SaveAuditMsg creation rule originRule crSettings ->
-        let
-          action = if creation then "Create" else "Update"
-          saveBtnClass = if crSettings.enableChangeRequest then "btn-primary" else "btn-success"
-        in
-          div [ tabindex -1, class "modal fade show", style "display" "block" ]
-          [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
-          , div [ class "modal-dialog" ]
-            [ div [ class "modal-content" ]
-              [ div [ class "modal-header" ]
-                [ h5 [ class "modal-title" ] [ text (action ++" Rule")]
-                , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
-                ]
-              , div [ class "modal-body" ]
-                [ h4 [class "text-center"]
-                  [ text "Are you sure that you want to "
-                  , text (String.toLower action)
-                  , text " this rule ?"
-                  ]
-                , if crSettings.enableChangeRequest then
-                    div [class "text-center alert alert-info"]
-                    [ i [ class "fa fa-info-circle" ] []
-                    , text "Workflows are enabled, your change has to be validated in a change request"
-                    ]
-                  else
-                    text ""
-                , changeAuditForm crSettings
-                ]
-              , div [ class "modal-footer" ]
-                [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ]
-                  [ text "Cancel "
-                  ]
-                , button [ class ("btn " ++ saveBtnClass), onClick (ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))), disabled (crSettings.mandatoryChangeMessage && String.isEmpty crSettings.message) ]
-                  ( if crSettings.enableChangeRequest then
-                    [ text "Open request"
-                    ]
-                  else
-                    [ text action
-                    ]
-                  )
-                ]
-              ]
-            ]
-          ]
+        viewModal
+        { action = if creation then Create else Update
+        , ruleName = rule.name
+        , crSettings = Just crSettings
+        , btnMsg = ClosePopup (CallApi True (saveRuleDetails rule (isNothing originRule)))
+        , btnClass = "btn btn-success"
+        , btnIconClass = ""
+        }
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]
