@@ -1,7 +1,7 @@
 module Groups.Init exposing (..)
 
 import Compliance.Html exposing (buildComplianceBar)
-import Compliance.Utils exposing (defaultComplianceFilter, getAllComplianceValues)
+import Compliance.Utils exposing (defaultComplianceFilter)
 import Dict exposing (Dict)
 
 import Html exposing (Html, div, span, text)
@@ -11,6 +11,7 @@ import List.Nonempty as NonEmptyList
 
 import Groups.ApiCalls exposing (..)
 import Groups.DataTypes exposing (..)
+import Groups.ViewUtils exposing (..)
 
 import Html.Attributes exposing (class)
 import Ordering exposing (Ordering)
@@ -103,7 +104,7 @@ initTable =
         columns =
             (NonEmptyList.Nonempty
                 { name = (ColumnName "Name"), renderHtml = .name >> text, ordering = Ordering.byField (.name >> String.toLower) }
-                [ { name = (ColumnName "Category"), renderHtml = .category >> categoryToString >> text, ordering = Ordering.byField (.category >> categoryToString >> String.toLower) }
+                [ { name = (ColumnName "Category"), renderHtml = .category >> Maybe.withDefault "" >> text, ordering = Ordering.byField (.category >> Maybe.withDefault "" >> String.toLower) }
                 , { name = (ColumnName "Global compliance"), renderHtml = .globalCompliance >> complianceToHtml, ordering = Ordering.byFieldWith compareCompliance .globalCompliance  }
                 , { name = (ColumnName "Targeted compliance"), renderHtml = .targetedCompliance >> complianceToHtml, ordering = Ordering.byFieldWith compareCompliance .targetedCompliance }])
 
