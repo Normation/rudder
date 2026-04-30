@@ -204,7 +204,7 @@ updateGroupsTableFilter model =
         searchFieldGroups g =
             [ g.id.value
             , g.name
-            ] ++ Maybe.Extra.toList g.category ++ Maybe.Extra.toList (Maybe.map (getCategoryName model) g.category)
+            ] ++ Maybe.Extra.toList g.category ++ Maybe.Extra.toList (Maybe.map (getCategoryName model.groupsTree) g.category)
         search = model.ui.groupFilters.filter
         predicate = Filters.applyString search (Filters.byValues searchFieldGroups)
     in
