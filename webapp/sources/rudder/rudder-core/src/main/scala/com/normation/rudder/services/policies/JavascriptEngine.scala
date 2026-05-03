@@ -420,12 +420,12 @@ object JsEngine {
         Context
           .newBuilder("js")
           .engine(engine)
-          .sandbox(SandboxPolicy.TRUSTED)
+          .sandbox(SandboxPolicy.CONSTRAINED)
           .in(new ByteArrayInputStream("".getBytes()))
           .out(new ByteArrayOutputStream())
           .err(new ByteArrayOutputStream())
           .allowAllAccess(false)
-          .allowHostAccess(HostAccess.EXPLICIT)
+          .allowHostAccess(HostAccess.CONSTRAINED)
           .allowIO(IOAccess.NONE)
           // all the following option would allow for a fine tuned vm, but are only available in
           // commercial version of GraalVM. Keeping them in comment to avoid attempt them again
@@ -501,8 +501,9 @@ object JsEngine {
         GraalEngine(
           Engine
             .newBuilder("js")
-            .sandbox(SandboxPolicy.TRUSTED) // this is unfortunately needed to change js option value
-            .option("js.intl-402", "false")
+            .sandbox(SandboxPolicy.CONSTRAINED)
+            // can't be disabled in CONSTRAINED, but in any case, we can't remove icu4j
+            // .option("js.intl-402", "false")
             .allowExperimentalOptions(false)
             // add redirection of in/out/err stream to avoid escaping
             .in(new ByteArrayInputStream("".getBytes()))
