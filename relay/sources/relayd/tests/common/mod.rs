@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use rand::Rng;
+use rand::RngExt;
 use std::{process::Command, thread, time};
 
 /// WARNING: Sensitive to collisions (birthday problem).

@@ -73,9 +73,6 @@ async fn failure(file: ReceivedFile, directory: RootDirectory) -> Result<(), Err
 pub fn queue_id_from_file(file: &Path) -> String {
     let mut hasher = Sha256::new();
     hasher.update(file.file_name().unwrap_or(file.as_os_str()).as_bytes());
-    format!(
-        // 32 chars is enough
-        "{:.32X}",
-        hasher.finalize()
-    )
+    let hash = hasher.finalize();
+    hex::encode_upper(&hash[..16]).to_string()
 }
