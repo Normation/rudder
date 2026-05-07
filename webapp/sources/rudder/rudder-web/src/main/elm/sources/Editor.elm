@@ -143,7 +143,7 @@ navigateToTechnique id =
 
 defaultBlockUiInfo : MethodBlock -> MethodBlockUiInfo
 defaultBlockUiInfo block =
-  MethodBlockUiInfo Closed Children Unchanged False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach))
+  MethodBlockUiInfo Closed Children Unchanged (ForeachUI False False (defaultNewForeach block.foreachName block.foreach))
 
 defaultTechniqueUi : Technique -> TechniqueUiInfo
 defaultTechniqueUi technique =
@@ -686,7 +686,7 @@ update msg model =
             TechniqueDetails t o ui editInfo ->
               let
                 technique =  { t | elems =  t.elems ++ [Block Nothing newCall]  }
-                newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Opened Children (InvalidState [EmptyComponent]) False (ForeachUI False False (defaultNewForeach newCall.foreachName newCall.foreach)))) ) ui.blockUI }
+                newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Opened Children (InvalidState [EmptyComponent]) (ForeachUI False False (defaultNewForeach newCall.foreachName newCall.foreach)))) ) ui.blockUI }
               in
               { model | mode = TechniqueDetails technique o newUi editInfo }
             _ -> model
@@ -832,7 +832,7 @@ update msg model =
                        blockState = checkBlockConstraint block
                        updateBlockState = \originUiBlock -> case originUiBlock of
                                                               Just _ -> Just { methodBlockUiInfo | validation = blockState}
-                                                              Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
+                                                              Nothing -> Just (MethodBlockUiInfo Closed Children blockState (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
                      in
                       { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
                 ( Block id block, Nothing) ->
@@ -840,7 +840,7 @@ update msg model =
                        blockState = checkBlockConstraint block
                        updateBlockState = \originUiBlock -> case originUiBlock of
                                                               Just uiBlock -> Just { uiBlock | validation = blockState}
-                                                              Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
+                                                              Nothing -> Just (MethodBlockUiInfo Closed Children blockState (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
                      in
                       { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
 

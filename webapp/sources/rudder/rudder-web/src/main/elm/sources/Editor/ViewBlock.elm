@@ -258,7 +258,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                advanced
              , result
              ]
-    Children -> showChildren model block  { uiInfo | showChildDetails = True } techniqueUi parentId
+    Children -> showChildren model block uiInfo techniqueUi parentId
     BlockReporting ->
       let
         -- main select
@@ -518,12 +518,18 @@ blockBody model parentId block ui techniqueUi =
                                        )
                                 )
                    Closed -> element "div"
-                             |> addClass "method-name"
-                             |> addStyleListConditional [ ("font-style", "italic"), ("opacity", "0.7") ]  (String.isEmpty block.component)
-                             |> addClassConditional "text-danger"  (String.isEmpty block.component)
+                             |> addClass "method-name pb-2"
+                             |> appendChild
+                               ( element "span"
+                                 |> addClass "badge badge-secondary ms-0 me-2"
+                                 |> appendChild (element "i" |> addClass "fa fa-stream ms-2 text-light" )
+                                 |> prependText (String.fromInt (List.length block.calls ) )
+                               )
                              |> appendChild
                                 ( element "span" |> appendText  (if (String.isEmpty block.component) then "No component name" else block.component)
                                   |> addClass "name-content"
+                                  |> addStyleListConditional [ ("font-style", "italic"), ("opacity", "0.7") ]  (String.isEmpty block.component)
+                                  |> addClassConditional "text-danger" (String.isEmpty block.component)
                                   |> addActionStopPropagation ("mousedown" , DisableDragDrop)
                                   |> addActionStopPropagation ("click" , DisableDragDrop)
                                   |> addActionStopPropagation ("mouseover" , HoverMethod Nothing)
@@ -561,17 +567,16 @@ blockBody model parentId block ui techniqueUi =
                ]
           , element "div"
             |> addClass "flex-column block-name-container"
-            |> appendChild condition -- (block.condition.os /= Nothing || block.condition.advanced /= "")
+            |> appendChild condition
             |> appendChild methodName
          ]
        |> appendChildConditional
          (blockDetail block parentId ui techniqueUi model )
              (ui.mode == Opened)
 
-       |>appendChildConditional (showChildren model block ui techniqueUi parentId)
-             (ui.mode == Closed)
-
      ]
+  -- |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
+  -- |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd (InBlock block))
 
 showChildren : Model -> MethodBlock -> MethodBlockUiInfo -> TechniqueUiInfo -> Maybe CallId ->  Element Msg
 showChildren model block ui techniqueUi parentId =
@@ -583,20 +588,6 @@ showChildren model block ui techniqueUi parentId =
      |> appendChildConditional
         ( element "li"
           |> addStyle ("margin-bottom", "0")
-          |> appendChild
-            ( element "button"
-              |> addClass "btn btn-default"
-              |> appendChild (element "span" |> appendText ((if ui.showChildDetails then "Hide" else "Show") ++ " content"))
-              |> appendChild (
-                 element "span"
-                  |> addClass "badge badge-secondary badge-block"
-                  |> addStyle ("font-size", "10px")
-                  |> appendChild (element "span" |> appendText (String.fromInt (List.length block.calls ) ) )
-               )
-              |> appendChild (element "span" |> appendText " ")
-              |> appendChild (element "span" |> addClass  ("expandBlockChild fas fa-chevron-" ++ (if ui.showChildDetails then "up" else "down")))
-              |> addActionStopAndPrevent ("click", UIBlockAction block.id { ui | showChildDetails = not ui.showChildDetails})
-            )
         ) (ui.mode == Closed && (not (List.isEmpty block.calls) ))
      |> appendChildConditional
         ( element "li"
@@ -607,11 +598,10 @@ showChildren model block ui techniqueUi parentId =
                |> addClass "fas fa-sign-in-alt me-1"
                |> addStyle ("transform", "rotate(90deg)")
              , element "span"
-               |> appendText " Drag and drop generic methods here to fill this component"
+               |> appendText "Drag and drop generic methods here to fill this component"
              ]
-
           |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
-          |> addClass (if (DragDrop.isCurrentDropTarget model.dnd (InBlock block)) then " drop-target" else  "")
+          |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd (InBlock block))
         ) (List.isEmpty block.calls)
      |> appendChildConditional
         ( element "li"
@@ -647,11 +637,10 @@ showChildren model block ui techniqueUi parentId =
                    List.reverse (dropTarget :: base)
               Block _ b ->
                 let
-                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True (ForeachUI False False (defaultNewForeach b.foreachName b.foreach))) (Dict.get b.id.value techniqueUi.blockUI)
+                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState (ForeachUI False False (defaultNewForeach b.foreachName b.foreach))) (Dict.get b.id.value techniqueUi.blockUI)
                 in
                   [ showMethodBlock model techniqueUi methodUi (Just block.id) b ]
             )
-            |> List.map ( addClass (if ui.showChildDetails then "show-method" else "hide-method"))
            ) block.calls )
      )
 
