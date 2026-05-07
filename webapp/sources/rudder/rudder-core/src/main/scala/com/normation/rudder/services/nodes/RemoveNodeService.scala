@@ -315,7 +315,9 @@ class RemoveNodeServiceImpl(
     def getNodePath(node: CoreNodeFact): IOResult[NodePoliciesPaths] = {
       // accumulate all the node infos from node id to root through relay servers
       def recGetParent(node: CoreNodeFact): IOResult[Map[NodeId, CoreNodeFact]] = {
-        if (node.id == Constants.ROOT_POLICY_SERVER_ID) {
+        // stop when reaching root, and avoid infinite recursion if for some reason, policy server
+        // is incorrectly set to current node
+        if (node.id == Constants.ROOT_POLICY_SERVER_ID || node.id == node.rudderSettings.policyServerId) {
           Map((node.id, node)).succeed
         } else {
           for {
