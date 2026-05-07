@@ -65,11 +65,26 @@ object DateFormaterService {
 
     // see https://stackoverflow.com/a/47753227 - read other solution and the comment in them, too
     def toZonedDateTime: ZonedDateTime = self.toJavaInstant.atZone(ZoneId.of(self.getZone.getID, ZoneId.SHORT_IDS))
+
+    def toOffsetDateTime: OffsetDateTime = {
+      OffsetDateTime.ofInstant(
+        self.toJavaInstant,
+        ZoneOffset.ofTotalSeconds(self.getZone.getOffset(self) / 2000)
+      )
+    }
   }
 
   extension (self: Instant) {
     def toJodaDateTime: DateTime = new DateTime(self.toEpochMilli, DateTimeZone.UTC)
   }
+
+  extension (self: OffsetDateTime)
+    def toJodaDateTime: DateTime = {
+      new DateTime(
+        self.toInstant.toEpochMilli,
+        DateTimeZone.forOffsetMillis(self.getOffset.getTotalSeconds * 1000)
+      )
+    }
 
   implicit class JavaTimeToJoda(x: ZonedDateTime) {
     // see https://stackoverflow.com/a/37335420 - read other solution and the comment in them, too
@@ -143,6 +158,7 @@ object DateFormaterService {
    * Format a date for serialisation (json, database, etc). We use
    * ISO 8601 (rfc 3339) for that (without millis)
    */
+  @Deprecated("use serializeOffsetDateTime with javatime instead")
   def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis.withZoneUTC())
 
   def serializeZDT(datetime: ZonedDateTime): String =

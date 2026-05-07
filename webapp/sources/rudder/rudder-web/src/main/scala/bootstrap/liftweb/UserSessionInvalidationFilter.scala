@@ -50,8 +50,7 @@ import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import java.io.IOException
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.ZoneOffset
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 import zio.*
@@ -120,14 +119,12 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                             .fail
                       },
                       _ => {
-                        userRepository.logCloseSession(
-                          user.getUsername,
-                          DateTime.now(DateTimeZone.UTC),
-                          endSessionReason
-                        ) *>
-                        ApplicationLoggerPure.info(
-                          s"User session for user '${username}' is invalidated because : ${reason}"
-                        )
+                        for {
+                          now <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+                          _   <- userRepository.logCloseSession(user.getUsername, now, endSessionReason)
+                          _   <-
+                            ApplicationLoggerPure.info(s"User session for user '${username}' is invalidated because : ${reason}")
+                        } yield ()
                       }
                     )
                 case _                 =>

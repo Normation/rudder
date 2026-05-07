@@ -6,8 +6,8 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.inventory.services.core.WriteOnlySoftwareDAO
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import zio.*
 import zio.syntax.*
 
@@ -63,7 +63,7 @@ class SoftwareServiceImpl(
                                            dir.createDirectories()
                                            File(
                                              dir,
-                                             s"${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}-unreferenced-software-dns.txt"
+                                             s"${DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))}-unreferenced-software-dns.txt"
                                            )
                                          }
                                     _ <- IOResult.attempt {

@@ -42,8 +42,8 @@ import bootstrap.liftweb.BootstrapLogger
 import com.normation.rudder.users.*
 import com.normation.zio.*
 import jakarta.servlet.UnavailableException
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.ZoneOffset
+import zio.Clock
 
 /**
  * This class check that all user sessions are closed
@@ -56,8 +56,10 @@ class CloseOpenUserSessions(
 
   @throws(classOf[UnavailableException])
   override def checks(): Unit = {
-    userRepository
-      .closeAllOpenSession(DateTime.now(DateTimeZone.UTC), "sessions still opened while Rudder is starting")
+    (for {
+      now <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+      _   <- userRepository.closeAllOpenSession(now, "sessions still opened while Rudder is starting")
+    } yield ())
       .catchAll(err => BootstrapLogger.error(s"Error when closing user sessions when Rudder restart: ${err.fullMsg}"))
       .runNow
   }

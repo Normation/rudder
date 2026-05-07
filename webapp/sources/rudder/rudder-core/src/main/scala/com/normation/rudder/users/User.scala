@@ -48,6 +48,7 @@ import com.normation.utils.DateFormaterService
 import enumeratum.*
 import io.scalaland.chimney.Transformer
 import java.security.SecureRandom
+import java.time.OffsetDateTime
 import org.joda.time.DateTime
 import zio.json.*
 import zio.json.ast.Json
@@ -243,12 +244,12 @@ final case class StatusHistory(status: UserStatus, trace: EventTrace)
  */
 case class UserInfo(
     id:            String,
-    creationDate:  DateTime,
+    creationDate:  OffsetDateTime,
     status:        UserStatus,
     managedBy:     String,
     name:          Option[String],
     email:         Option[String],
-    lastLogin:     Option[DateTime],
+    lastLogin:     Option[OffsetDateTime],
     statusHistory: List[StatusHistory],
     otherInfo:     Json.Obj
 )
@@ -265,12 +266,12 @@ final case class SessionId(value: String)
 case class UserSession(
     userId:       String,
     sessionId:    SessionId,
-    creationDate: DateTime,
+    creationDate: OffsetDateTime,
     authMethod:   String,
     permissions:  List[String],
     authz:        List[String],
     tenants:      Option[String],
-    endDate:      Option[DateTime],
+    endDate:      Option[OffsetDateTime],
     endCause:     Option[String]
 ) {
   def isOpen: Boolean = endDate.isEmpty

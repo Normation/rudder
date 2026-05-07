@@ -42,10 +42,14 @@ import com.normation.errors
 import com.normation.eventlog.EventActor
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie
+import com.normation.utils.DateFormaterService.toJodaDateTime
+import com.normation.utils.DateFormaterService.toOffsetDateTime
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import doobie.syntax.connectionio.*
 import doobie.syntax.string.*
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -84,7 +88,7 @@ class UserRepositoryUtilsTest extends Specification {
         .map(u => {
           u -> UserInfo(
             u,
-            dateInit,
+            dateInit.toOffsetDateTime,
             UserStatus.Active,
             AUTH_PLUGIN_NAME_LOCAL,
             None,
@@ -102,7 +106,7 @@ class UserRepositoryUtilsTest extends Specification {
     def updateInitUserWithTrace(name: String, trace: EventTrace): UserInfo = {
       userInfosInit(name)
         .modify(_.creationDate)
-        .setTo(trace.actionDate)
+        .setTo(trace.actionDate.toOffsetDateTime)
         .modify(_.statusHistory)
         // default initial status. For now the computeUpdatedUserList method does not append the trace
         .setTo(StatusHistory(UserStatus.Active, trace) :: Nil)
@@ -253,7 +257,7 @@ class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
 
   // Running some queries must return some results (after the tests in the supertrait).
   "select query" >> {
-    val trace = EventTrace(actor, dateInit)
+    val trace = EventTrace(actor, dateInit.toJodaDateTime)
     val users = List("user1", "user2")
     "with empty criteria defaulting to None" in {
       // reset all users to known ones
@@ -291,7 +295,8 @@ class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
       // lastLogin of user2 being after other dates allows filtering inactive users : user1
       val lastLogin        = dateInit.plusMonths(1)
       transactRunEither(
-        (repo.lastLoginUpdate("user2", lastLogin) *> repo.select(users, Some(notLoggedInSince), defaultToNone = true, Nil, None))
+        (repo.lastLoginUpdate("user2", lastLogin) *> repo
+          .select(users, Some(notLoggedInSince), defaultToNone = true, Nil, None))
           .transact(_)
       ).map(_.map(_._1)) must beRight(
         containTheSameElementsAs(List("user1"))
@@ -335,11 +340,11 @@ trait UserRepositoryTest extends Specification with Loggable {
   implicit class ForceTimeUTC(users: List[UserInfo]) {
     def toUTC: List[UserInfo] = users.map(u => {
       u.modify(_.creationDate)
-        .using(_.toDateTime(DateTimeZone.UTC))
+        .using(_.withOffsetSameInstant(ZoneOffset.UTC))
         .modify(_.statusHistory)
         .using(hs => hs.map(h => h.modify(_.trace.actionDate).using(_.toDateTime(DateTimeZone.UTC))))
         .modify(_.lastLogin)
-        .using(_.map(_.toDateTime(DateTimeZone.UTC)))
+        .using(_.map(_.withOffsetSameInstant(ZoneOffset.UTC)))
     })
   }
 
@@ -351,14 +356,14 @@ trait UserRepositoryTest extends Specification with Loggable {
 
   def repo: UserRepository
 
-  val actor:    EventActor = EventActor("test")
-  val dateInit: DateTime   = DateTime.parse("2023-09-01T01:01:01Z")
+  val actor:    EventActor     = EventActor("test")
+  val dateInit: OffsetDateTime = OffsetDateTime.parse("2023-09-01T01:01:01Z")
 
   "basic sequential operations with users" >> {
     val users = List("alice", "bob", "charlie", "mallory")
 
     // INIT USERS
-    val traceInit     = EventTrace(actor, dateInit)
+    val traceInit     = EventTrace(actor, dateInit.toJodaDateTime)
     val historyInit   = List(StatusHistory(UserStatus.Active, traceInit))
     val userInfosInit = {
       /*
@@ -370,15 +375,15 @@ trait UserRepositoryTest extends Specification with Loggable {
        */
       users.map(u => {
         UserInfo(
-          u,
-          dateInit,
-          UserStatus.Active,
-          AUTH_PLUGIN_NAME_LOCAL,
-          None,
-          None,
-          None,
-          historyInit,
-          Json.Obj()
+          id = u,
+          creationDate = dateInit,
+          status = UserStatus.Active,
+          managedBy = AUTH_PLUGIN_NAME_LOCAL,
+          name = None,
+          email = None,
+          lastLogin = None,
+          statusHistory = historyInit,
+          otherInfo = Json.Obj()
         )
       })
     }
@@ -546,19 +551,19 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
 
     // William is added from OIDC
-    val dateWilliamOidc      = DateTime.parse("2023-09-05T05:05:05Z")
-    val traceWilliamOidc     = EventTrace(actor, dateWilliamOidc)
+    val dateWilliamOidc      = OffsetDateTime.parse("2023-09-05T05:05:05Z")
+    val traceWilliamOidc     = EventTrace(actor, dateWilliamOidc.toJodaDateTime)
     val userInfosWilliamOidc = {
       userInfosBobOidc :+ UserInfo(
-        "william",
-        dateWilliamOidc,
-        UserStatus.Active,
-        AUTH_PLUGIN_NAME_REMOTE,
-        None,
-        None,
-        None,
-        StatusHistory(UserStatus.Active, traceWilliamOidc) :: Nil,
-        Json.Obj()
+        id = "william",
+        creationDate = dateWilliamOidc,
+        status = UserStatus.Active,
+        managedBy = AUTH_PLUGIN_NAME_REMOTE,
+        name = None,
+        email = None,
+        lastLogin = None,
+        statusHistory = StatusHistory(UserStatus.Active, traceWilliamOidc) :: Nil,
+        otherInfo = Json.Obj()
       )
     }
 
@@ -590,19 +595,19 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
 
     // Xavier is added from OIDC
-    val dateXavierOidc      = DateTime.parse("2023-09-07T07:07:07Z")
-    val traceXavierOidc     = EventTrace(actor, dateXavierOidc)
+    val dateXavierOidc      = OffsetDateTime.parse("2023-09-07T07:07:07Z")
+    val traceXavierOidc     = EventTrace(actor, dateXavierOidc.toJodaDateTime)
     val userInfosXavierOidc = {
       userInfosBobDisabled :+ UserInfo(
-        "xavier",
-        dateXavierOidc,
-        UserStatus.Active,
-        AUTH_PLUGIN_NAME_REMOTE,
-        None,
-        None,
-        None,
-        StatusHistory(UserStatus.Active, traceXavierOidc) :: Nil,
-        Json.Obj()
+        id = "xavier",
+        creationDate = dateXavierOidc,
+        status = UserStatus.Active,
+        managedBy = AUTH_PLUGIN_NAME_REMOTE,
+        name = None,
+        email = None,
+        lastLogin = None,
+        statusHistory = StatusHistory(UserStatus.Active, traceXavierOidc) :: Nil,
+        otherInfo = Json.Obj()
       )
     }
 
@@ -633,8 +638,8 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
 
     // BOB deleted, then purged and added back in OIDC
-    val dateBobPurged      = DateTime.parse("2023-09-08T08:08:08Z")
-    val traceBobPurged     = EventTrace(actor, dateBobPurged)
+    val dateBobPurged      = OffsetDateTime.parse("2023-09-08T08:08:08Z")
+    val traceBobPurged     = EventTrace(actor, dateBobPurged.toJodaDateTime)
     val userInfosBobPurged = {
       /*
        * When bob is purged and added back from OIDC (ie not in the list of user from the files):
@@ -645,15 +650,15 @@ trait UserRepositoryTest extends Specification with Loggable {
       userInfosOidcDeleted.map {
         case u if (u.id == "bob") =>
           UserInfo(
-            u.id,
-            dateBobPurged,
-            UserStatus.Active,
-            AUTH_PLUGIN_NAME_REMOTE,
-            None,
-            None,
-            None,
-            StatusHistory(UserStatus.Active, traceBobPurged) :: Nil,
-            Json.Obj()
+            id = u.id,
+            creationDate = dateBobPurged,
+            status = UserStatus.Active,
+            managedBy = AUTH_PLUGIN_NAME_REMOTE,
+            name = None,
+            email = None,
+            lastLogin = None,
+            statusHistory = StatusHistory(UserStatus.Active, traceBobPurged) :: Nil,
+            otherInfo = Json.Obj()
           )
 
         case u => u
@@ -673,34 +678,34 @@ trait UserRepositoryTest extends Specification with Loggable {
 
   "testing purge" >> {
 
-    val date1 = DateTime.parse("2021-01-01T01:01:01Z")
-    val date2 = DateTime.parse("2022-02-02T02:02:02Z")
-    val date3 = DateTime.parse("2023-03-03T03:03:03Z")
-    val date4 = DateTime.parse("2024-04-04T04:04:04Z")
-    val date5 = DateTime.parse("2025-05-05T05:05:05Z")
-    val date6 = DateTime.parse("2023-09-06T06:06:06Z")
+    val date1 = OffsetDateTime.parse("2021-01-01T01:01:01Z")
+    val date2 = OffsetDateTime.parse("2022-02-02T02:02:02Z")
+    val date3 = OffsetDateTime.parse("2023-03-03T03:03:03Z")
+    val date4 = OffsetDateTime.parse("2024-04-04T04:04:04Z")
+    val date5 = OffsetDateTime.parse("2025-05-05T05:05:05Z")
+    val date6 = OffsetDateTime.parse("2023-09-06T06:06:06Z")
 
-    val trace1          = EventTrace(actor, date1)
-    val traceAllDeleted = EventTrace(actor, date6)
+    val trace1          = EventTrace(actor, date1.toJodaDateTime)
+    val traceAllDeleted = EventTrace(actor, date6.toJodaDateTime)
 
     val userInfosAllDeleted = List(
       UserInfo(
-        "david",
-        date1,
-        UserStatus.Deleted,
-        AUTH_PLUGIN_NAME_LOCAL,
-        None,
-        None,
-        Some(date4),
-        List(StatusHistory(UserStatus.Deleted, traceAllDeleted), StatusHistory(UserStatus.Active, trace1)),
-        Json.Obj()
+        id = "david",
+        creationDate = date1,
+        status = UserStatus.Deleted,
+        managedBy = AUTH_PLUGIN_NAME_LOCAL,
+        name = None,
+        email = None,
+        lastLogin = Some(date4),
+        statusHistory = List(StatusHistory(UserStatus.Deleted, traceAllDeleted), StatusHistory(UserStatus.Active, trace1)),
+        otherInfo = Json.Obj()
       )
     )
 
     "deleting+purging all users not logged in since a date in the future should remove all users" >> {
       // set delete trace event to "dateInit" to make it simpler to know when the "deleted before" must be set to
       repo
-        .delete(Nil, Some(dateInit.plusYears(1)), Nil, None, EventTrace(actor, dateInit))
+        .delete(Nil, Some(dateInit.plusYears(1)), Nil, None, EventTrace(actor, dateInit.toJodaDateTime))
         .tap(users => errors.effectUioUnit(logger.debug(s"Users were marked deleted: ${users}")))
         .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob")) // william is already deleted
 
@@ -715,15 +720,31 @@ trait UserRepositoryTest extends Specification with Loggable {
     "add back users with different properties" >> {
       (
         // Alice logged but not since date2
-        repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice"), EventTrace(actor, date1)) *>
-        repo.logStartSession("alice", List("role1"), List.empty, "", SessionId("sessionAlice1"), AUTH_PLUGIN_NAME_LOCAL, date2) *>
+        repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice"), EventTrace(actor, date1.toJodaDateTime)) *>
+        repo.logStartSession(
+          "alice",
+          List("role1"),
+          List.empty,
+          "",
+          SessionId("sessionAlice1"),
+          AUTH_PLUGIN_NAME_LOCAL,
+          date2
+        ) *>
         // Bob created at date1 but never logged since
-        repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob"), EventTrace(actor, date1)) *>
+        repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob"), EventTrace(actor, date1.toJodaDateTime)) *>
         // same for Charlie from OIDC
-        repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("charlie"), EventTrace(actor, date1)) *>
+        repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("charlie"), EventTrace(actor, date1.toJodaDateTime)) *>
         // David created on date1 and logged recently
-        repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob", "david"), EventTrace(actor, date1)) *>
-        repo.logStartSession("david", List("role1"), List.empty, "", SessionId("sessionDavid1"), AUTH_PLUGIN_NAME_LOCAL, date4)
+        repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, List("alice", "bob", "david"), EventTrace(actor, date1.toJodaDateTime)) *>
+        repo.logStartSession(
+          "david",
+          List("role1"),
+          List.empty,
+          "",
+          SessionId("sessionDavid1"),
+          AUTH_PLUGIN_NAME_LOCAL,
+          date4
+        )
       ).runNow
 
       val users = repo.getAll().runNow
@@ -732,35 +753,35 @@ trait UserRepositoryTest extends Specification with Loggable {
     }
 
     "disable all before date4 only not local must only disable charlie (set disable to date2)" >> {
-      repo.disable(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), EventTrace(actor, date2)).runNow
+      repo.disable(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), EventTrace(actor, date2.toJodaDateTime)).runNow
       val users = repo.getAll().runNow.toUTC
       (users.map(_.id) must containTheSameElementsAs(List("alice", "bob", "charlie", "david"))) and
       (users.filter(_.status == UserStatus.Disabled).map(_.id) must containTheSameElementsAs(List("charlie"))) and
       (users.collectFirst { case u if (u.id == "charlie") => u.statusHistory.head } must beEqualTo(
-        Some(StatusHistory(UserStatus.Disabled, EventTrace(actor, date2, "")))
+        Some(StatusHistory(UserStatus.Disabled, EventTrace(actor, date2.toJodaDateTime, "")))
       ))
     }
 
     "delete all before date4 only not local must only delete charlie (set delete to date2)" >> {
-      repo.delete(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), None, EventTrace(actor, date2)).runNow
+      repo.delete(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), None, EventTrace(actor, date2.toJodaDateTime)).runNow
       val users = repo.getAll().runNow.toUTC
       (users.map(_.id) must containTheSameElementsAs(List("alice", "bob", "charlie", "david"))) and
       (users.filter(_.status == UserStatus.Deleted).size === 1) and
       (
         users.collectFirst { case u if (u.id == "charlie") => u.statusHistory.head } must beEqualTo(
-          Some(StatusHistory(UserStatus.Deleted, EventTrace(actor, date2, "")))
+          Some(StatusHistory(UserStatus.Deleted, EventTrace(actor, date2.toJodaDateTime, "")))
         )
       )
     }
 
     "delete all before date4 only not local must only remove charlie" >> {
-      repo.purge(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), EventTrace(actor, date5)).runNow
+      repo.purge(Nil, Some(date4), List(AUTH_PLUGIN_NAME_LOCAL), EventTrace(actor, date5.toJodaDateTime)).runNow
       repo.getAll().runNow.map(_.id) must containTheSameElementsAs(List("alice", "bob", "david"))
     }
 
     "delete+purge all before date4 must also remove alice, bob" >> {
-      (repo.delete(Nil, Some(date4), Nil, None, EventTrace(actor, date3)) *>
-      repo.purge(Nil, Some(date4), Nil, EventTrace(actor, date5))).runNow
+      (repo.delete(Nil, Some(date4), Nil, None, EventTrace(actor, date3.toJodaDateTime)) *>
+      repo.purge(Nil, Some(date4), Nil, EventTrace(actor, date5.toJodaDateTime))).runNow
       repo.getAll().runNow.map(_.id) must containTheSameElementsAs(List("david"))
     }
 

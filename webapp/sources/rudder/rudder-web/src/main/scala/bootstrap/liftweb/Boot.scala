@@ -81,6 +81,7 @@ import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
 import java.net.URI
 import java.time.ZonedDateTime
+import java.time.ZoneOffset
 import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -91,8 +92,6 @@ import net.liftweb.sitemap.Loc.*
 import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
 import org.apache.commons.text.StringEscapeUtils
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.reflections.Reflections
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
@@ -356,37 +355,37 @@ object UserLogout {
       case auth =>
         auth.getPrincipal() match {
           case u: RudderUserDetail =>
-            val redirects: IterableOnce[Option[URI]] = {
-              (RudderConfig.userRepository.logCloseSession(u.getUsername, DateTime.now(DateTimeZone.UTC), endCause) *>
-              RudderConfig.eventLogRepository
-                .saveEventLog(
-                  ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-                  LogoutEventLog(
-                    EventLogDetails(
-                      modificationId = None,
-                      principal = EventActor(u.getUsername),
-                      details = EventLog.emptyDetails,
-                      reason = None
-                    )
-                  )
-                ) *>
-              logoutActions.get.flatMap(actions => {
-                ZIO.foreach(actions)(a => {
-                  a.exec(auth)
-                    .catchAll(err => {
-                      ApplicationLoggerPure.error(
-                        s"Error when performing logout action '${a.id}': ${err.fullMsg}"
-                      ) *> None.succeed
-                    })
-                })
-              }))
-                .catchAll(err =>
-                  ApplicationLoggerPure.error(s"Error when saving user login event log result: ${err.fullMsg}") *> None.succeed
-                )
-                .runNow
-            }
-
-            redirects.iterator.toSeq.headOption.flatten
+            (
+              for {
+                now       <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+                _         <- RudderConfig.userRepository.logCloseSession(u.getUsername, now, endCause)
+                _         <- RudderConfig.eventLogRepository.saveEventLog(
+                               ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+                               LogoutEventLog(
+                                 EventLogDetails(
+                                   modificationId = None,
+                                   principal = EventActor(u.getUsername),
+                                   details = EventLog.emptyDetails,
+                                   reason = None
+                                 )
+                               )
+                             )
+                actions   <- logoutActions.get
+                redirects <- ZIO.foreach(actions) { action =>
+                               action
+                                 .exec(auth)
+                                 .catchAll { err =>
+                                   ApplicationLoggerPure.error(
+                                     s"Error when performing logout action '${action.id}': ${err.fullMsg}"
+                                   ) *> None.succeed
+                                 }
+                             }
+              } yield redirects.headOption.flatten
+            )
+              .catchAll(err =>
+                ApplicationLoggerPure.error(s"Error when saving user login event log result: ${err.fullMsg}") *> None.succeed
+              )
+              .runNow
 
           case x => // impossible to know who is login out
             ApplicationLogger.debug(

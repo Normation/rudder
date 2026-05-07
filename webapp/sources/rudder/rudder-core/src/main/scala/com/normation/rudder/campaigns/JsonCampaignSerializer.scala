@@ -107,7 +107,7 @@ class CampaignSerializer {
 
 object CampaignSerializer {
   implicit val idEncoder:               JsonEncoder[CampaignId]              = JsonEncoder[String].contramap(_.value)
-  implicit val dateTime:                JsonEncoder[DateTime]                = JsonEncoder[String].contramap(DateFormaterService.serialize)
+  implicit val dateTime:                JsonEncoder[DateTime]                = DateFormaterService.json.encoderDateTime
   implicit val dayOfWeek:               JsonEncoder[DayOfWeek]               = JsonEncoder[Int].contramap(_.value)
   implicit val monthlySchedulePosition: JsonEncoder[MonthlySchedulePosition] = JsonEncoder[Int].contramap(s => {
     s match {

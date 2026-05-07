@@ -78,14 +78,14 @@ import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
 import java.io.FileOutputStream
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.zip.ZipFile
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.OutputStreamResponse
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.revwalk.RevWalk
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -107,7 +107,9 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
 
-  val testDir: File = File(s"/tmp/test-rudder-response-content-${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}")
+  val testDir: File = File(
+    s"/tmp/test-rudder-response-content-${DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))}"
+  )
   testDir.createDirectoryIfNotExists(true)
 
   override def afterAll(): Unit = {

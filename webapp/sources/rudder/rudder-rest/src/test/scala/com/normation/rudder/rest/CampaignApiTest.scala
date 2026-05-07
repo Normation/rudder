@@ -47,10 +47,11 @@ import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponseError
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -71,7 +72,9 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
   ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
   val restTest      = new RestTest(restTestSetUp.liftRules)
 
-  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}")
+  val testDir: File = File(
+    s"/tmp/test-rudder-campaign-${DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))}"
+  )
   testDir.createDirectoryIfNotExists(true)
 
   override def afterAll(): Unit = {

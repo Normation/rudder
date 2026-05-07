@@ -44,6 +44,7 @@ import com.normation.rudder.Role
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.users.CurrentUser
 import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -74,7 +75,7 @@ class UserInformation extends DispatchSnippet with DefaultExtendableSnippet[User
         val lastSession = userRepo.getLastPreviousLogin(u.getUsername).runNow match {
           case None    => ""
           case Some(s) =>
-            s"Last login on '${DateFormaterService.getDisplayDate(s.creationDate)}' with '${s.authMethod}' authentication"
+            s"Last login on '${DateFormaterService.getDisplayDate(s.creationDate.toJodaDateTime)}' with '${s.authMethod}' authentication"
         }
 
         "#openerAccount" #> <span id="openerAccount" title={List(roles, lastSession).mkString("\n")}>{displayName}</span>

@@ -63,8 +63,8 @@ import com.normation.zio.*
 import java.io.InputStream
 import java.nio.file.NoSuchFileException
 import java.security.PublicKey as JavaSecPubKey
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
 import scala.annotation.nowarn
@@ -442,7 +442,7 @@ class InventoryMover(
    */
   def writeErrorLogFile(failedInventoryPath: File, result: InventoryProcessStatus): UIO[Unit] = {
     import com.normation.rudder.inventory.StatusLog.*
-    val date       = DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))
+    val date       = DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))
     val rejectPath = failedInventoryPath.pathAsString + s".reject-${date}.log"
 
     // this must never lead to a bubbling failure
