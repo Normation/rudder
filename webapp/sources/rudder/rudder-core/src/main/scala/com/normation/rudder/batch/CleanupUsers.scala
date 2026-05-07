@@ -43,11 +43,9 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.*
 import com.normation.utils.CronParser.*
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.zio.*
 import cron4s.CronExpr
 import java.time.Duration
-import java.time.ZoneOffset
 import zio.*
 
 /**
@@ -87,7 +85,7 @@ class CleanupUsers(
    */
   val cleanup: UIO[Unit] = for {
     start <- currentOffsetDateTimeUTC
-    trace  = EventTrace(RudderEventActor, start.toJodaDateTime, _)
+    trace  = EventTrace(RudderEventActor, start, _)
     _     <-
       // disable current users known not to be admin
       getNonAdminUserIds

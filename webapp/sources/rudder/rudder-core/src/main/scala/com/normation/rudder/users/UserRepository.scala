@@ -45,7 +45,6 @@ import com.normation.errors.SystemError
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.toOffsetDateTime
 import com.softwaremill.quicklens.*
 import doobie.*
 import doobie.free.connection.unit as connectionUnit
@@ -254,7 +253,7 @@ object UserRepository {
             k,
             UserInfo(
               k,
-              trace.actionDate.toOffsetDateTime,
+              trace.actionDate,
               UserStatus.Active,
               origin,
               None,
@@ -444,7 +443,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       case StatusHistory(UserStatus.Deleted, EventTrace(_, d, _)) :: _ =>
         date match {
           case None        => false
-          case Some(limit) => d.toOffsetDateTime.isBefore(limit)
+          case Some(limit) => d.isBefore(limit)
         }
       case _                                                           =>
         false
@@ -1027,8 +1026,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
                       case None        => selected.map(_._1)
                       case Some(limit) =>
                         selected.collect {
-                          case (id, StatusHistory(UserStatus.Deleted, trace) :: t)
-                              if (trace.actionDate.toOffsetDateTime.isBefore(limit)) =>
+                          case (id, StatusHistory(UserStatus.Deleted, trace) :: t) if (trace.actionDate.isBefore(limit)) =>
                             id
                         }
                     }

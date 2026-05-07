@@ -230,7 +230,7 @@ object UserStatus extends Enum[UserStatus] {
   }
 }
 
-final case class EventTrace(actor: EventActor, actionDate: DateTime, reason: String = "")
+final case class EventTrace(actor: EventActor, actionDate: OffsetDateTime, reason: String = "")
 
 /*
  * Track changes in Status.

@@ -81,14 +81,13 @@ import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService.toJodaDateTime
+import com.normation.zio.currentOffsetDateTimeUTC
 import enumeratum.*
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
 import java.time.OffsetDateTime
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import sourcecode.Line
 import zio.ZIO
 import zio.syntax.*
@@ -503,13 +502,14 @@ class UserManagementApiImpl(
       UserManagementIO
         .inUserFileSemaphore(for {
           user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be activated")
+          now        <- currentOffsetDateTimeUTC
           jsonStatus <- user.status match {
                           case UserStatus.Active   => JsonStatus(UserStatus.Active).succeed
                           case UserStatus.Disabled => {
                             val eventTrace = EventTrace(
-                              authzToken.qc.actor,
-                              DateTime.now(DateTimeZone.UTC),
-                              "User current disabled status set to 'active' by user management API"
+                              actor = authzToken.qc.actor,
+                              actionDate = now,
+                              reason = "User current disabled status set to 'active' by user management API"
                             )
                             (userRepo.setActive(List(user.id), eventTrace) *> userService.reloadPure())
                               .as(JsonStatus(UserStatus.Active))
@@ -539,13 +539,14 @@ class UserManagementApiImpl(
       UserManagementIO
         .inUserFileSemaphore(for {
           user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be disabled")
+          now        <- currentOffsetDateTimeUTC
           jsonStatus <- user.status match {
                           case UserStatus.Disabled => JsonStatus(UserStatus.Disabled).succeed
                           case UserStatus.Active   => {
                             val eventTrace = EventTrace(
-                              authzToken.qc.actor,
-                              DateTime.now(DateTimeZone.UTC),
-                              "User current active status set to 'disabled' by user management API"
+                              actor = authzToken.qc.actor,
+                              actionDate = now,
+                              reason = "User current active status set to 'disabled' by user management API"
                             )
                             (userRepo.disable(List(user.id), None, List.empty, eventTrace) *> userService.reloadPure())
                               .as(JsonStatus(UserStatus.Disabled))
