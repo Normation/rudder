@@ -39,13 +39,16 @@ package com.normation.rudder.batch
 
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
+import com.normation.utils.DateFormaterService.toJodaDateTime
+import java.time.Duration
+import java.time.OffsetDateTime
 import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
-import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.DurationInt
+import scala.jdk.DurationConverters.JavaDurationOps
+import scala.math.Ordered.orderingToOrdered
+import zio.durationInt
 
 // -----------------------------------------------------
 // Constants and private objects and classes
@@ -53,15 +56,16 @@ import scala.concurrent.duration.DurationInt
 
 sealed trait AbstractActorUpdateMessage
 object AbstractActorUpdateMessage {
-  case object StartUpdate                                                                    extends AbstractActorUpdateMessage
-  final case class UpdateResult[T](id: Long, start: DateTime, end: DateTime, result: Box[T]) extends AbstractActorUpdateMessage
+  case object StartUpdate extends AbstractActorUpdateMessage
+  final case class UpdateResult[T](id: Long, start: OffsetDateTime, end: OffsetDateTime, result: Box[T])
+      extends AbstractActorUpdateMessage
 }
 
 sealed trait UpdaterStates //states into wich the updater process can be
 //the process is idle
-case object IdleUpdater                                       extends UpdaterStates
+case object IdleUpdater                                             extends UpdaterStates
 //an update is currently running for the given nodes
-final case class StartProcessing(id: Long, started: DateTime) extends UpdaterStates
+final case class StartProcessing(id: Long, started: OffsetDateTime) extends UpdaterStates
 //the process gave a result
 
 /**
@@ -117,20 +121,23 @@ trait AbstractScheduler {
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUpdater
     private var onePending = false
+
+    extension (self: Duration) def display: String = self.toScala.toCoarsest.toString
+
     private val realUpdateInterval: Duration = {
       if (updateInterval < schedulerMinimumIntervalTime) {
         logger.warn(
-          s"Value '${updateInterval.toCoarsest}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime}'"
+          s"Value '${updateInterval.display}' for ${propertyName} is too small for [${displayName}] scheduler interval, using '${schedulerMinimumIntervalTime.display}'"
         )
         schedulerMinimumIntervalTime
       } else {
         if (updateInterval > schedulerMaximumIntervalTime) {
           logger.warn(
-            s"Value '${updateInterval.toCoarsest}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime}'"
+            s"Value '${updateInterval.display}' for ${propertyName} is too big for [${displayName}] scheduler interval, using '${schedulerMaximumIntervalTime.display}'"
           )
           schedulerMaximumIntervalTime
         } else {
-          logger.info(s"Starting [${displayName}] scheduler with a period of '${updateInterval.toCoarsest}'")
+          logger.info(s"Starting [${displayName}] scheduler with a period of '${updateInterval.display}'")
           updateInterval
         }
       }
@@ -146,7 +153,7 @@ trait AbstractScheduler {
           case IdleUpdater =>
             logger.debug(s"[${displayName}] Scheduled task starting")
             updateId = updateId + 1
-            TaskProcessor ! StartProcessing(updateId, new DateTime)
+            TaskProcessor ! StartProcessing(updateId, OffsetDateTime.now())
           case _: StartProcessing if (!onePending) =>
             logger.trace(s"Add a pending task for [${displayName}] scheduler")
             onePending = true
@@ -167,22 +174,24 @@ trait AbstractScheduler {
         LAPinger.schedule(this, AbstractActorUpdateMessage.StartUpdate, realUpdateInterval.toMillis)
 
         // log some information
-        val format = ISODateTimeFormat.dateTimeNoMillis()
+        val format         = ISODateTimeFormat.dateTimeNoMillis()
+        val startFormatted = start.toJodaDateTime.toString(format)
+        val endFormatted   = end.toJodaDateTime.toString(format)
 
         result match {
           case e: EmptyBox =>
             val error = {
-              (e ?~! s"Error when executing [${displayName}] scheduler task started at ${start.toString(format)}, ended at ${end
-                  .toString(format)}.")
+              (e ?~! s"Error when executing [${displayName}] scheduler task started at ${startFormatted}, ended at ${endFormatted}.")
             }
             logger.error(error.messageChain)
           case Full(x) =>
-            val executionTimeInMs = end.getMillis() - start.getMillis()
-            logger.debug(s"[${displayName}] Scheduled task finished in ${executionTimeInMs} ms (started at ${start
-                .toString(format)}, finished at ${end.toString(format)})")
-            if (executionTimeInMs >= updateInterval.toMillis) {
+            val executionTime = java.time.Duration.between(start, end)
+            logger.debug(
+              s"[${displayName}] Scheduled task finished in ${executionTime.toMillis} ms (started at ${startFormatted}, finished at ${endFormatted})"
+            )
+            if (executionTime >= updateInterval) {
               ApplicationLogger.warn(
-                s"[${displayName}] Task frequency is set too low! Last task took ${executionTimeInMs} ms but tasks are scheduled every ${updateInterval.toMillis} ms. Adjust ${propertyName} if this problem persists."
+                s"[${displayName}] Task frequency is set too low! Last task took ${executionTime.toMillis} ms but tasks are scheduled every ${updateInterval.toMillis} ms. Adjust ${propertyName} if this problem persists."
               )
             }
         }
@@ -200,9 +209,14 @@ trait AbstractScheduler {
           try {
             val result = executeTask(processId)
 
-            if (updateManager != null)
-              updateManager ! AbstractActorUpdateMessage.UpdateResult(processId, startTime, new DateTime, result)
-            else this ! StartProcessing(processId, startTime)
+            if (updateManager != null) {
+              updateManager ! AbstractActorUpdateMessage.UpdateResult(
+                id = processId,
+                start = startTime,
+                end = OffsetDateTime.now(),
+                result = result
+              )
+            } else this ! StartProcessing(id = processId, started = startTime)
           } catch {
             case e: Throwable =>
               e match {

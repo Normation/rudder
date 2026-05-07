@@ -776,8 +776,8 @@ object RudderParsedProperties {
   // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
   val RUDDER_AUTOARCHIVEITEMS: Boolean = config.getBoolean("rudder.autoArchiveItems") // true
 
-  val RUDDER_REPORTS_EXECUTION_INTERVAL: duration.Duration =
-    config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds.asScala
+  val RUDDER_REPORTS_EXECUTION_INTERVAL: java.time.Duration =
+    config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds
 
   val HISTORY_INVENTORIES_ROOTDIR: String = config.getString("history.inventories.rootdir")
 

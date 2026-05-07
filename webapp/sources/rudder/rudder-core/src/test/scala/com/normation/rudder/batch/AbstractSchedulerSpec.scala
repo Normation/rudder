@@ -40,15 +40,17 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import java.time.Duration
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.slf4j.LoggerFactory
-import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import zio.Scope
 import zio.UIO
 import zio.ZIO
+import zio.durationInt
+import zio.durationLong
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner
@@ -91,7 +93,7 @@ class AbstractSchedulerSpec extends ZIOSpecDefault {
     test("should log scheduling period when instantiated with a value in the right range") {
       for {
         capture  <- captureLogger("scheduled.job", Level.INFO)
-        scheduler = TestScheduler(interval = Duration.apply("5 seconds"))
+        scheduler = TestScheduler(interval = 5.seconds)
       } yield {
         assert(capture.logs)(contains("[INFO] Starting [test scheduler] scheduler with a period of '5 seconds'"))
       }
@@ -99,7 +101,7 @@ class AbstractSchedulerSpec extends ZIOSpecDefault {
     test("should log simplified scheduling period when instantiated with a value in the right range") {
       for {
         capture  <- captureLogger("scheduled.job", Level.INFO)
-        scheduler = TestScheduler(interval = Duration.apply("5000000000 nanoseconds"))
+        scheduler = TestScheduler(interval = 5000000000L.nanoseconds)
       } yield {
         assert(capture.logs)(contains("[INFO] Starting [test scheduler] scheduler with a period of '5 seconds'"))
       }
@@ -107,7 +109,7 @@ class AbstractSchedulerSpec extends ZIOSpecDefault {
     test("should log period is too high when instantiated with an out of range value") {
       for {
         capture  <- captureLogger("scheduled.job", Level.INFO)
-        scheduler = TestScheduler(interval = Duration.apply("10 minutes"))
+        scheduler = TestScheduler(interval = 10.minutes)
       } yield {
         assert(capture.logs)(
           contains("[WARN] Value '10 minutes' for prop is too big for [test scheduler] scheduler interval, using '5 minutes'")
@@ -117,7 +119,7 @@ class AbstractSchedulerSpec extends ZIOSpecDefault {
     test("should log simplified scheduling period when instantiated with an out of range value") {
       for {
         capture  <- captureLogger("scheduled.job", Level.INFO)
-        scheduler = TestScheduler(interval = Duration.apply("600 seconds"))
+        scheduler = TestScheduler(interval = 600.seconds)
       } yield {
         assert(capture.logs)(
           contains("[WARN] Value '10 minutes' for prop is too big for [test scheduler] scheduler interval, using '5 minutes'")
@@ -127,7 +129,7 @@ class AbstractSchedulerSpec extends ZIOSpecDefault {
     test("should log period is too low when instantiated with an out of range value") {
       for {
         capture  <- captureLogger("scheduled.job", Level.INFO)
-        scheduler = TestScheduler(interval = Duration.apply("100 ms"))
+        scheduler = TestScheduler(interval = 100.milliseconds)
       } yield {
         assert(capture.logs)(
           contains(
@@ -139,7 +141,7 @@ class AbstractSchedulerSpec extends ZIOSpecDefault {
     test("should log simplified scheduling period when instantiated with an low out of range value") {
       for {
         capture  <- captureLogger("scheduled.job", Level.INFO)
-        scheduler = TestScheduler(interval = Duration.apply("100000000 nanoseconds"))
+        scheduler = TestScheduler(interval = 100000000L.nanoseconds)
       } yield {
         assert(capture.logs)(
           contains(
