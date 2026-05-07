@@ -45,6 +45,7 @@ import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserStatus
 import com.normation.rudder.users.ValidatedUserList
 import com.normation.zio.UnsafeRun
+import com.normation.zio.currentOffsetDateTimeUTC
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
@@ -120,7 +121,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                       },
                       _ => {
                         for {
-                          now <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+                          now <- currentOffsetDateTimeUTC
                           _   <- userRepository.logCloseSession(user.getUsername, now, endSessionReason)
                           _   <-
                             ApplicationLoggerPure.info(s"User session for user '${username}' is invalidated because : ${reason}")

@@ -357,7 +357,7 @@ object UserLogout {
           case u: RudderUserDetail =>
             (
               for {
-                now       <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+                now       <- currentOffsetDateTimeUTC
                 _         <- RudderConfig.userRepository.logCloseSession(u.getUsername, now, endCause)
                 _         <- RudderConfig.eventLogRepository.saveEventLog(
                                ModificationId(RudderConfig.stringUuidGenerator.newUuid),

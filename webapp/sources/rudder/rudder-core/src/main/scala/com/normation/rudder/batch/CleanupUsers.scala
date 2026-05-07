@@ -86,7 +86,7 @@ class CleanupUsers(
    *
    */
   val cleanup: UIO[Unit] = for {
-    start <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+    start <- currentOffsetDateTimeUTC
     trace  = EventTrace(RudderEventActor, start.toJodaDateTime, _)
     _     <-
       // disable current users known not to be admin

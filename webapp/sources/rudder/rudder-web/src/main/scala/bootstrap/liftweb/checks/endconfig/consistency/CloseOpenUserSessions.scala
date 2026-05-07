@@ -57,7 +57,7 @@ class CloseOpenUserSessions(
   @throws(classOf[UnavailableException])
   override def checks(): Unit = {
     (for {
-      now <- Clock.instant.map(_.atOffset(ZoneOffset.UTC))
+      now <- currentOffsetDateTimeUTC
       _   <- userRepository.closeAllOpenSession(now, "sessions still opened while Rudder is starting")
     } yield ())
       .catchAll(err => BootstrapLogger.error(s"Error when closing user sessions when Rudder restart: ${err.fullMsg}"))
