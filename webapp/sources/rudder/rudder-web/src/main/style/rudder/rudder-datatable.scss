@@ -451,6 +451,11 @@ tr.parametersDescription {
   background-color: #fff;
   transition-property: background-color;
   transition-duration: .2s;
+
+  &.current,
+  &.current:hover {
+    background-color: $rudder-bg-gray;
+  }
 }
 .dataTables_paginate > .ui-button:hover,
 .dataTables_paginate > span > .ui-button:hover,
