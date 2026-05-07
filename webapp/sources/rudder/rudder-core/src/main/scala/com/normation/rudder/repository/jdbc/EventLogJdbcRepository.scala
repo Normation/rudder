@@ -429,7 +429,9 @@ object EventLogJdbcRepository {
       None
     } else {
       val v = "%" + search.value + "%"
-      Some(fr"(temp1.filter ilike ${v} OR temp1.eventtype ilike ${v})")
+      Some(
+        fr"(temp1.filter ilike ${v} OR (temp1.id::text) like ${search.value} OR temp1.principal ilike ${v} OR (temp1.creationdate::text) ilike ${v})"
+      )
     }
   }
 }
