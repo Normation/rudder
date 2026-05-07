@@ -445,6 +445,11 @@ tr.parametersDescription {
   background-color: #fff;
   transition-property: background-color;
   transition-duration: .2s;
+
+  &.current,
+  &.current:hover {
+    background-color: $rudder-bg-gray;
+  }
 }
 .dt-paging > .ui-button:hover,
 .dt-paging > span > .ui-button:hover,
