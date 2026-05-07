@@ -637,8 +637,8 @@ object PolicyServerConfigurationObjects {
     )
     NodeGroup(
       idGroupHasPolicyServer(nodeId),
-      s"All nodes managed by '${nodeId.value}' policy server",
-      s"All nodes known by Rudder directly connected to the '${nodeId.value}' server. This group exists only as internal purpose and should not be used to configure Nodes.",
+      s"All Linux nodes managed by '${nodeId.value}' policy server",
+      s"All Linux nodes known by Rudder directly connected to the '${nodeId.value}' server. This group exists only as internal purpose and should not be used to configure Nodes.",
       Nil,
       Some(
         Query(

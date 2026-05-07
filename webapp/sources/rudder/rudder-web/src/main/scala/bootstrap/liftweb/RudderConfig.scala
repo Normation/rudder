@@ -3570,6 +3570,7 @@ object RudderConfigInit {
         techniqueStatusService,
         gitConfigRepo.rootDirectory.pathAsString
       ),
+      new MigrateRelayServerGroupDisplayName(rwLdap, rudderDit),
       new FixedPathLoggerMigration(),
       new DropNodeComplianceTables(doobie),
       new TriggerPolicyUpdate(
