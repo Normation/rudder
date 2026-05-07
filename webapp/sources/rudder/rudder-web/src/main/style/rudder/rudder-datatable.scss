@@ -448,7 +448,7 @@ tr.parametersDescription {
 
   &.current,
   &.current:hover {
-    background-color: $rudder-bg-gray;
+    background-color: rudder.$bg-gray;
   }
 }
 .dt-paging > .ui-button:hover,
