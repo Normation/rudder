@@ -40,7 +40,16 @@ package com.normation.rudder.campaigns
 import cats.implicits.*
 import com.normation.errors.*
 import com.normation.utils.DateFormaterService
-import org.joda.time.*
+import com.normation.utils.DateFormaterService.JavaTimeToJoda
+import com.normation.utils.DateFormaterService.toOffsetDateTime
+import java.time.OffsetDateTime
+import java.time.ZonedDateTime
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.TemporalAdjusters.dayOfWeekInMonth
+import org.joda.time.DateTime
+import scala.math.Ordered.orderingToOrdered
 
 /*
  * This object contains the logic to compute campaign event dates.
@@ -48,31 +57,40 @@ import org.joda.time.*
  */
 object CampaignDateScheduler {
 
-  implicit class DateTimeTzOps(date: DateTime) {
-    def adjustScheduleTimeZone(optTimeZone: Option[ScheduleTimeZone])(implicit defaultTz: DateTimeZone): DateTime = {
-      optTimeZone.flatMap(_.toDateTimeZone) match {
+  extension (date: OffsetDateTime) {
+    def adjustScheduleTimeZone(optTimeZone: Option[ScheduleTimeZone])(implicit defaultTz: ZoneId): ZonedDateTime = {
+      optTimeZone.flatMap(_.toZoneId) match {
         // no schedule time zone (or invalid one) means the default one should be used
-        case None             => date.withZone(defaultTz)
-        case Some(scheduleTz) => date.withZone(scheduleTz)
+        case None             => date.atZoneSameInstant(defaultTz)
+        case Some(scheduleTz) => date.atZoneSameInstant(scheduleTz)
       }
     }
   }
 
-  private def nextDateFromDayTime(date: DateTime, start: DayTime): DateTime = {
-    (if (
-       date.getDayOfWeek > start.day.value
-       || (date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
-       || (date.getDayOfWeek == start.day.value && date.getHourOfDay == start.realHour && date.getMinuteOfHour > start.realMinute)
-     ) {
-       date.plusWeeks(1)
-     } else {
-       date
-     })
-      .withDayOfWeek(start.day.value)
-      .withHourOfDay(start.realHour)
-      .withMinuteOfHour(start.realMinute)
-      .withSecondOfMinute(0)
-      .withMillisOfSecond(0)
+  extension (self: ZonedDateTime)
+    def withTime(time: Time): ZonedDateTime = {
+      self
+        .withHour(time.realHour)
+        .withMinute(time.realMinute)
+        .truncatedTo(ChronoUnit.MINUTES)
+    }
+
+  private def nextDateFromDayTime(date: ZonedDateTime, start: DayTime): ZonedDateTime = {
+    if (
+      date.getDayOfWeek > start.day.toJavaTime
+      || (date.getDayOfWeek == start.day.toJavaTime && date.getHour > start.realHour)
+      || (date.getDayOfWeek == start.day.toJavaTime && date.getHour == start.realHour && date.getMinute > start.realMinute)
+    ) {
+      date
+        .plusWeeks(1)
+        .`with`(TemporalAdjusters.previousOrSame(start.day.toJavaTime))
+        .withTime(start.asTime)
+    } else {
+      date
+        .`with`(TemporalAdjusters.nextOrSame(start.day.toJavaTime))
+        .withTime(start.asTime)
+    }
+
   }
 
   def nextCampaignDate(
@@ -80,7 +98,7 @@ object CampaignDateScheduler {
       date:     DateTime
   ): PureResult[Option[(DateTime, DateTime)]] = {
     // Schedule needs to be adjusted to current server timezone, not to the one from the base schedule date
-    implicit val currentTz: DateTimeZone = DateTimeZone.getDefault()
+    given currentTz: ZoneId = ZoneId.systemDefault()
     schedule match {
       case OneShot(start, end) =>
         if (start.isBefore(end)) {
@@ -90,98 +108,63 @@ object CampaignDateScheduler {
             None.asRight
           }
         } else {
-
           Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService
               .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").asLeft
         }
 
       case Daily(start, end, tz) =>
-        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
+        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
         val startDate           = {
-          (if (
-             scheduleInitialDate
-               .getHourOfDay() > start.realHour || (scheduleInitialDate.getHourOfDay() == start.realHour && scheduleInitialDate
-               .getMinuteOfHour() > start.realMinute)
-           ) {
-             scheduleInitialDate.plusDays(1)
-           } else {
-             scheduleInitialDate
-           })
-            .withHourOfDay(start.realHour)
-            .withMinuteOfHour(start.realMinute)
-            .withSecondOfMinute(0)
-            .withMillisOfSecond(0)
+          if (
+            scheduleInitialDate.getHour > start.realHour ||
+            (scheduleInitialDate.getHour == start.realHour && scheduleInitialDate.getMinute > start.realMinute)
+          ) {
+            scheduleInitialDate.plusDays(1).withTime(start)
+          } else {
+            scheduleInitialDate.withTime(start)
+          }
         }
 
         val endDate = {
-          (if (end.realHour < start.realHour || (end.realHour == start.realHour && end.realMinute < start.realMinute)) {
-             startDate.plusDays(1)
-           } else {
-             startDate
-           }).withHourOfDay(end.realHour).withMinuteOfHour(end.realMinute).withSecondOfMinute(0).withMillisOfSecond(0)
+          if (end.realHour < start.realHour || (end.realHour == start.realHour && end.realMinute < start.realMinute)) {
+            startDate.plusDays(1).withTime(end)
+          } else {
+            startDate.withTime(end)
+          }
         }
 
-        Some((startDate, endDate)).asRight
+        Some((startDate.toJoda, endDate.toJoda)).asRight
 
       case WeeklySchedule(start, end, tz) =>
-        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
+        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
         val startDate           = nextDateFromDayTime(scheduleInitialDate, start)
         val endDate             = nextDateFromDayTime(startDate, end)
 
-        Some((startDate, endDate)).asRight
+        Some((startDate.toJoda, endDate.toJoda)).asRight
 
       case MonthlySchedule(position, start, end, tz) =>
-        val scheduleInitialDate  = date.adjustScheduleTimeZone(tz)
-        val realHour             = start.realHour
-        val realMinutes          = start.realMinute
-        val day                  = start.day
-        def base(date: DateTime) = (position match {
-          case First      =>
-            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
-            if ((t.getYear == date.getYear && t.getMonthOfYear < date.getMonthOfYear) || t.getYear + 1 == date.getYear) {
-              t.plusWeeks(1)
-            } else {
-              t
-            }
-          case Second     =>
-            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
-            if ((t.getYear == date.getYear && t.getMonthOfYear < date.getMonthOfYear) || t.getYear + 1 == date.getYear) {
-              t.plusWeeks(2)
-            } else {
-              t.plusWeeks(1)
-            }
-          case Third      =>
-            val t = date.withDayOfMonth(1).withDayOfWeek(day.value)
-            if ((t.getYear == date.getYear && t.getMonthOfYear < date.getMonthOfYear) || t.getYear + 1 == date.getYear) {
-              t.plusWeeks(3)
-            } else {
-              t.plusWeeks(2)
-            }
-          case Last       =>
-            val t = date.plusMonths(1).withDayOfMonth(1).withDayOfWeek(day.value)
-            if ((t.getYear == date.getYear && t.getMonthOfYear > date.getMonthOfYear) || t.getYear == date.getYear + 1) {
-              t.minusWeeks(1)
-            } else {
-              t
-            }
-          case SecondLast =>
-            val t = date.plusMonths(1).withDayOfMonth(1).withDayOfWeek(day.value)
-            if ((t.getYear == date.getYear && t.getMonthOfYear > date.getMonthOfYear) || t.getYear == date.getYear + 1) {
-              t.minusWeeks(2)
-            } else {
-              t.minusWeeks(1)
-            }
-        }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
-        val currentMonthStart    = base(scheduleInitialDate)
-        val startDate            = {
-          if (scheduleInitialDate.isAfter(currentMonthStart)) {
-            base(scheduleInitialDate.plusMonths(1))
-          } else {
-            currentMonthStart
-          }
+        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
+
+        val ordinalForDayOfWeekInMonth = position match {
+          case First      => 1
+          case Second     => 2
+          case Third      => 3
+          case Last       => -1
+          case SecondLast => -2
         }
-        val endDate              = nextDateFromDayTime(startDate, end)
-        Some((startDate, endDate)).asRight
+
+        def computeMonthStart(date: ZonedDateTime) = date
+          .`with`(dayOfWeekInMonth(ordinalForDayOfWeekInMonth, start.day.toJavaTime))
+          .withTime(start.asTime)
+
+        val currentMonthStart = computeMonthStart(scheduleInitialDate)
+        val startDate         = if (scheduleInitialDate.isAfter(currentMonthStart)) {
+          computeMonthStart(scheduleInitialDate.plusMonths(1))
+        } else {
+          currentMonthStart
+        }
+        val endDate           = nextDateFromDayTime(startDate, end)
+        Some((startDate.toJoda, endDate.toJoda)).asRight
     }
   }
 }

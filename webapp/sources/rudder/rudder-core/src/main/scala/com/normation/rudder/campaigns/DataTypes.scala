@@ -47,6 +47,7 @@ import java.time.Instant
 import java.time.ZoneId
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
+import scala.util.Try
 import zio.json.*
 import zio.json.enumeratum.*
 
@@ -202,6 +203,19 @@ case object Sunday extends DayOfWeek {
   val value = 7
 }
 
+extension (self: DayOfWeek)
+  def toJavaTime: java.time.DayOfWeek = {
+    self match {
+      case Monday    => java.time.DayOfWeek.MONDAY
+      case Tuesday   => java.time.DayOfWeek.TUESDAY
+      case Wednesday => java.time.DayOfWeek.WEDNESDAY
+      case Thursday  => java.time.DayOfWeek.THURSDAY
+      case Friday    => java.time.DayOfWeek.FRIDAY
+      case Saturday  => java.time.DayOfWeek.SATURDAY
+      case Sunday    => java.time.DayOfWeek.SUNDAY
+    }
+  }
+
 case class Time(hour: Int, minute: Int) {
   val realHour:   Int = hour   % 24
   val realMinute: Int = minute % 60
@@ -212,8 +226,9 @@ case class DayTime(
     hour:   Int,
     minute: Int
 ) {
-  val realHour:   Int = hour   % 24
-  val realMinute: Int = minute % 60
+  val realHour:   Int  = hour   % 24
+  val realMinute: Int  = minute % 60
+  def asTime:     Time = Time(hour, minute)
 }
 
 case class ScheduleTimeZone(
@@ -223,6 +238,7 @@ case class ScheduleTimeZone(
     try { Option(DateTimeZone.forID(id)) }
     catch { case _: Throwable => None }
   }
+  def toZoneId:       Option[ZoneId]       = Try(ZoneId.of(id)).toOption
 }
 object ScheduleTimeZone                 {
   def parse(s: String): Either[String, ScheduleTimeZone] = {
