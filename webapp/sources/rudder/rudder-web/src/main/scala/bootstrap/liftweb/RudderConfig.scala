@@ -3605,6 +3605,7 @@ object RudderConfigInit {
         ncfTechniqueReader,
         resourceFileService
       ),
+      new MigrateRelayServerGroupDisplayName(rwLdap, rudderDit),
       new FixedPathLoggerMigration(),
       new DropNodeComplianceTables(doobie),
       new TriggerPolicyUpdate(
