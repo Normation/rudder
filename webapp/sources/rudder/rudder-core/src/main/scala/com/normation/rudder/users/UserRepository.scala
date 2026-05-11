@@ -112,7 +112,7 @@ trait UserRepository {
    */
   def setExistingUsers(
       origin:          String,
-      users:           List[String],
+      userIds:         List[String],
       trace:           EventTrace,
       isCaseSensitive: Boolean = true
   ): IOResult[Set[String]]
@@ -124,7 +124,7 @@ trait UserRepository {
    */
   def addUser(
       origin:          String,
-      user:            String,
+      userId:          String,
       trace:           EventTrace,
       isCaseSensitive: Boolean = true
   ): IOResult[Boolean]
@@ -146,7 +146,7 @@ trait UserRepository {
    * Returns the list of impacted userIds
    */
   def disable(
-      userId:            List[String],
+      userIds:           List[String],
       notLoggedSince:    Option[DateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
@@ -174,7 +174,7 @@ trait UserRepository {
    * Returns the list of impacted userIds
    */
   def delete(
-      userId:            List[String],
+      userIds:           List[String],
       notLoggedSince:    Option[DateTime],
       excludeFromOrigin: List[String],
       initialStatus:     Option[UserStatus],
@@ -199,7 +199,7 @@ trait UserRepository {
    * Returns the list of impacted userIds
    */
   def purge(
-      userId:            List[String],
+      userIds:           List[String],
       deletedSince:      Option[DateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
@@ -209,10 +209,10 @@ trait UserRepository {
    * Set given user to "active", changing its `deleted` or `disabled` status.
    * If the user does not exist, it's an error.
    */
-  def setActive(userId: List[String], trace: EventTrace): IOResult[Unit]
+  def setActive(userIds: List[String], trace: EventTrace): IOResult[Unit]
 
   def updateInfo(
-      id:        String,
+      userId:    String,
       name:      Option[Option[String]],
       email:     Option[Option[String]],
       otherInfo: Option[Json.Obj]
@@ -370,7 +370,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
 
   override def setExistingUsers(
       origin:          String,
-      users:           List[String],
+      userIds:         List[String],
       trace:           EventTrace,
       isCaseSensitive: Boolean
   ): IOResult[Set[String]] = {
@@ -383,7 +383,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     userBase.modify { current =>
       val zombies = current.filter {
         case (k, v) =>
-          (v.status == UserStatus.Deleted && users.contains(k))
+          (v.status == UserStatus.Deleted && userIds.contains(k))
       }
       val managed = current.filter {
         case (k, v) =>
@@ -391,7 +391,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       }
 
       val currentUsersLowercase = current.view.keySet.map(_.toLowerCase)
-      val updatedUsers          = UserRepository.computeUpdatedUserList(users, origin, trace, zombies, managed)
+      val updatedUsers          = UserRepository.computeUpdatedUserList(userIds, origin, trace, zombies, managed)
 
       isCaseSensitive match {
         case true  =>
@@ -404,13 +404,13 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     }
   }
 
-  override def addUser(origin: String, user: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
+  override def addUser(origin: String, userId: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
     userBase.get
       .flatMap(m => {
         val current = m.collect { case (k, u) if u.managedBy == origin && u.status != UserStatus.Deleted => k }.toList
-        setExistingUsers(origin, current :+ user, trace, isCaseSensitive)
+        setExistingUsers(origin, current :+ userId, trace, isCaseSensitive)
       })
-      .map(!_.contains(user))
+      .map(!_.contains(userId))
   }
 
   override def getAll(): IOResult[List[UserInfo]] = {
@@ -532,11 +532,11 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     }
   }
 
-  override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
+  override def setActive(userIds: List[String], trace: EventTrace): IOResult[Unit] = {
     userBase.update {
       _.map {
         case (k, u) =>
-          if (userId.contains(u.id) && u.status == UserStatus.Disabled) {
+          if (userIds.contains(u.id) && u.status == UserStatus.Disabled) {
             (
               k,
               u.modify(_.status)
@@ -562,16 +562,16 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
   }
 
   override def updateInfo(
-      id:        String,
+      userId:    String,
       name:      Option[Option[String]],
       email:     Option[Option[String]],
       otherInfo: Option[Json.Obj]
   ): IOResult[Unit] = {
     userBase.update(users => {
-      users.get(id) match {
+      users.get(userId) match {
         case None    => users
         case Some(u) =>
-          users + (id -> u
+          users + (userId -> u
             .modify(_.name)
             .setToIfDefined(name)
             .modify(_.email)
@@ -732,23 +732,23 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   override def setExistingUsers(
       origin:          String,
-      users:           List[String],
+      userIds:         List[String],
       trace:           EventTrace,
       isCaseSensitive: Boolean
   ): IOResult[Set[String]] = {
     transactIOResult("Error when updating the list of users") { xa =>
-      setUsers(origin, users, trace, isCaseSensitive).transact(xa)
+      setUsers(origin, userIds, trace, isCaseSensitive).transact(xa)
     }
   }
 
-  override def addUser(origin: String, user: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
-    transactIOResult(s"Error when adding user '${user}' from '${origin}'") { xa =>
+  override def addUser(origin: String, userId: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
+    transactIOResult(s"Error when adding user '${userId}' from '${origin}'") { xa =>
       (for {
         current  <- fr"select id from users where managedby = ${origin} and status <> 'deleted'".query[String].to[List]
-        added     = current :+ user
+        added     = current :+ userId
         notAdded <- setUsers(origin, added, trace, isCaseSensitive)
       } yield {
-        !notAdded.contains(user)
+        !notAdded.contains(userId)
       }).transact(xa)
     }
   }
@@ -1024,8 +1024,8 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   }
 
   // only disabled user can be set back to active
-  override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
-    changeStatus(userId, None, Nil, trace, UserStatus.Active, Some(fr"status = ${UserStatus.Disabled.value}")).unit
+  override def setActive(userIds: List[String], trace: EventTrace): IOResult[Unit] = {
+    changeStatus(userIds, None, Nil, trace, UserStatus.Active, Some(fr"status = ${UserStatus.Disabled.value}")).unit
   }
 
   override def getAll(): IOResult[List[UserInfo]] = {
@@ -1048,7 +1048,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   }
 
   override def updateInfo(
-      id:        String,
+      userId:    String,
       name:      Option[Option[String]],
       email:     Option[Option[String]],
       otherInfo: Option[Json.Obj]
@@ -1063,9 +1063,9 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     params match {
       case Nil       => ZIO.unit
       case h :: tail =>
-        val sql = fr"""update users""" ++ Fragments.set(h, tail*) ++ fr"""where id = ${id}"""
+        val sql = fr"""update users""" ++ Fragments.set(h, tail*) ++ fr"""where userId = ${userId}"""
 
-        transactIOResult(s"Error when updating user information for '${id}'")(xa => sql.update.run.transact(xa)).unit
+        transactIOResult(s"Error when updating user information for '${userId}'")(xa => sql.update.run.transact(xa)).unit
     }
   }
 
