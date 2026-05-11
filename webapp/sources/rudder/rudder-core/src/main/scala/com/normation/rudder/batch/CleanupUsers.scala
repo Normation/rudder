@@ -91,15 +91,15 @@ class CleanupUsers(
     _    <-
       // disable current users known not to be admin
       getNonAdminUserIds
-        .flatMap(
+        .flatMap(userIds => {
           userRepository
             .disable(
-              _,
-              Some(d.minus(disableInactive.toMillis)),
-              Nil,
-              trace(s"User was inactive since last '${disableInactive.render}'")
+              userIds = userIds,
+              notLoggedSince = Some(d.minus(disableInactive.toMillis)),
+              excludeFromOrigin = Nil,
+              trace = trace(s"User was inactive since last '${disableInactive.render}'")
             )
-        )
+        })
         .foldZIO(
           err => logger.error(s"Error when disabling user accounts inactive since '${disableInactive.render}': ${err.fullMsg}"),
           disabledUsers => {
@@ -115,11 +115,11 @@ class CleanupUsers(
         )
     _    <- userRepository
               .delete(
-                Nil,
-                Some(d.minus(deleteInactive.toMillis)),
-                localBackends,
-                Some(UserStatus.Disabled),
-                trace(s"User was inactive since last '${deleteInactive.render}")
+                userIds = Nil,
+                notLoggedSince = Some(d.minus(deleteInactive.toMillis)),
+                excludeFromOrigin = localBackends,
+                initialStatus = Some(UserStatus.Disabled),
+                trace = trace(s"User was inactive since last '${deleteInactive.render}")
               )
               .foldZIO(
                 err => logger.error(s"Error when deleting user accounts inactive since '${deleteInactive.render}': ${err.fullMsg}"),
@@ -133,10 +133,10 @@ class CleanupUsers(
               )
     _    <- userRepository
               .purge(
-                Nil,
-                Some(d.minus(purgeDeleted.toMillis)),
-                Nil,
-                trace(s"User is purged definitively '${purgeDeleted.render}' after being deleted")
+                userIds = Nil,
+                deletedSince = Some(d.minus(purgeDeleted.toMillis)),
+                excludeFromOrigin = Nil,
+                trace = trace(s"User is purged definitively '${purgeDeleted.render}' after being deleted")
               )
               .foldZIO(
                 err => logger.error(s"Error when purging user accounts deleted since '${purgeDeleted.render}': ${err.fullMsg}"),
@@ -154,7 +154,7 @@ class CleanupUsers(
     dos   = d.minus(purgeSessions.toMillis)
     _    <-
       userRepository
-        .deleteOldSessions(dos) // success is already logged
+        .deleteOldSessions(olderThan = dos) // success is already logged
         .catchAll(err => {
           logger.error(
             s"Error when purging user sessions older than '${DateFormaterService.serialize(d)}': ${err.fullMsg}"

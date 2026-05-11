@@ -831,50 +831,50 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     override def setExistingUsers(
         origin:          String,
-        users:           List[String],
+        userIds:         List[String],
         trace:           EventTrace,
         isCaseSensitive: Boolean
     ): IOResult[Set[String]] = ???
 
     override def addUser(
         origin:          String,
-        user:            String,
+        userId:          String,
         trace:           EventTrace,
         isCaseSensitive: Boolean
     ): IOResult[Boolean] = ???
 
     override def disable(
-        userId:            List[String],
+        userIds:           List[String],
         notLoggedSince:    Option[DateTime],
         excludeFromOrigin: List[String],
         trace:             EventTrace
     ): IOResult[List[String]] = {
-      userId.succeed
+      userIds.succeed
     }
 
     override def delete(
-        userId:            List[String],
+        userIds:           List[String],
         notLoggedSince:    Option[DateTime],
         excludeFromOrigin: List[String],
         initialStatus:     Option[UserStatus],
         trace:             EventTrace
     ): IOResult[List[String]] = {
-      userId.succeed
+      userIds.succeed
     }
 
     override def purge(
-        userId:            List[String],
+        userIds:           List[String],
         deletedSince:      Option[DateTime],
         excludeFromOrigin: List[String],
         trace:             EventTrace
     ): IOResult[List[String]] = ???
 
-    override def setActive(userId: List[String], trace: EventTrace): IOResult[Unit] = {
+    override def setActive(userIds: List[String], trace: EventTrace): IOResult[Unit] = {
       ZIO.unit
     }
 
     override def updateInfo(
-        id:        String,
+        userId:    String,
         name:      Option[Option[String]],
         email:     Option[Option[String]],
         otherInfo: Option[Json.Obj]

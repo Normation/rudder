@@ -461,10 +461,10 @@ class UserManagementService(
   /**
    * User information fields in the database
    */
-  def updateInfo(id: String, updateUser: UpdateUserInfo): IOResult[Unit] = {
+  def updateInfo(userId: String, updateUser: UpdateUserInfo): IOResult[Unit] = {
     // always update fields, at worst they will be updated with an empty value
     userRepository.updateInfo(
-      id,
+      userId,
       Some(updateUser.name),
       Some(updateUser.email),
       updateUser.otherInfo

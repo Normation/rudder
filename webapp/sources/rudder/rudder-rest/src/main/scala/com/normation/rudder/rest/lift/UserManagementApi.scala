@@ -473,17 +473,17 @@ class UserManagementApiImpl(
     def process(
         version:    ApiVersion,
         path:       ApiPath,
-        id:         String,
+        userId:     String,
         req:        Req,
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
       (for {
         u <- ZioJsonExtractor.parseJson[UpdateUserInfo](req).toIO
-        _ <- userManagementService.updateInfo(id, u)
+        _ <- userManagementService.updateInfo(userId, u)
       } yield {
         u.transformInto[JsonUpdatedUserInfo]
-      }).chainError(s"Could not update user '${id}' information").toLiftResponseOne(params, schema, _ => Some(id))
+      }).chainError(s"Could not update user '${userId}' information").toLiftResponseOne(params, schema, _ => Some(userId))
     }
   }
 
