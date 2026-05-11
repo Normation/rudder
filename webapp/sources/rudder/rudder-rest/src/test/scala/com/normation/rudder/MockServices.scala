@@ -105,6 +105,7 @@ import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import java.time.OffsetDateTime
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import scala.collection.MapView
@@ -816,18 +817,18 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
         tenants:           String,
         sessionId:         SessionId,
         authenticatorName: String,
-        date:              DateTime
+        date:              OffsetDateTime
     ): IOResult[Unit] = ???
 
-    override def logCloseSession(userId: String, date: DateTime, cause: String): IOResult[Unit] = ???
+    override def logCloseSession(userId: String, date: OffsetDateTime, cause: String): IOResult[Unit] = ???
 
-    override def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit] = ???
+    override def closeAllOpenSession(endDate: OffsetDateTime, endCause: String): IOResult[Unit] = ???
 
     override def getLastPreviousLogin(userId: String, closedSessionsOnly: Boolean): IOResult[Option[UserSession]] = {
       userSessions.find(us => us.userId == userId && (!closedSessionsOnly || !us.isOpen)).succeed
     }
 
-    override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = ???
+    override def deleteOldSessions(olderThan: OffsetDateTime): IOResult[Unit] = ???
 
     override def setExistingUsers(
         origin:          String,
@@ -845,7 +846,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     override def disable(
         userIds:           List[String],
-        notLoggedSince:    Option[DateTime],
+        notLoggedSince:    Option[OffsetDateTime],
         excludeFromOrigin: List[String],
         trace:             EventTrace
     ): IOResult[List[String]] = {
@@ -854,7 +855,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     override def delete(
         userIds:           List[String],
-        notLoggedSince:    Option[DateTime],
+        notLoggedSince:    Option[OffsetDateTime],
         excludeFromOrigin: List[String],
         initialStatus:     Option[UserStatus],
         trace:             EventTrace
@@ -864,7 +865,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
     override def purge(
         userIds:           List[String],
-        deletedSince:      Option[DateTime],
+        deletedSince:      Option[OffsetDateTime],
         excludeFromOrigin: List[String],
         trace:             EventTrace
     ): IOResult[List[String]] = ???
@@ -937,7 +938,7 @@ object MockUserManagement {
     List(
       UserInfo( // user3 not in the file will get empty permissions and authz
         "user3",
-        DateTime.parse("2024-02-01T01:01:01Z"),
+        OffsetDateTime.parse("2024-02-01T01:01:01Z"),
         UserStatus.Disabled,
         "manager",
         Some("User 3"),
@@ -948,7 +949,7 @@ object MockUserManagement {
       ),
       UserInfo(
         "user2",
-        DateTime.parse("2024-02-01T01:01:01Z"),
+        OffsetDateTime.parse("2024-02-01T01:01:01Z"),
         UserStatus.Active,
         "file",
         None,
@@ -959,7 +960,7 @@ object MockUserManagement {
       ),
       UserInfo(
         "user1",
-        DateTime.parse("2024-02-01T01:01:01Z"),
+        OffsetDateTime.parse("2024-02-01T01:01:01Z"),
         UserStatus.Active,
         "file",
         None,
@@ -975,7 +976,7 @@ object MockUserManagement {
       UserSession(
         "user2",
         SessionId("s2-2"),
-        DateTime.parse("2024-02-29T00:00:00Z"),
+        OffsetDateTime.parse("2024-02-29T00:00:00Z"),
         "file",
         List.empty,
         List.empty,
@@ -986,12 +987,12 @@ object MockUserManagement {
       UserSession(
         "user2",
         SessionId("s2-1"),
-        DateTime.parse("2024-02-28T12:34:00Z"),
+        OffsetDateTime.parse("2024-02-28T12:34:00Z"),
         "file",
         List.empty,
         List.empty,
         Some("a-previous-tenant-zone"),
-        Some(DateTime.parse("2024-02-28T12:34:00Z")),
+        Some(OffsetDateTime.parse("2024-02-28T12:34:00Z")),
         None
       )
     )

@@ -45,8 +45,7 @@ import com.normation.utils.CronParser.*
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import cron4s.CronExpr
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
+import java.time.Duration
 import zio.*
 
 /**
@@ -85,17 +84,16 @@ class CleanupUsers(
    *
    */
   val cleanup: UIO[Unit] = for {
-    t0   <- currentTimeMillis
-    d     = new DateTime(t0, DateTimeZone.UTC)
-    trace = EventTrace(RudderEventActor, d, _)
-    _    <-
+    start <- currentOffsetDateTimeUTC
+    trace  = EventTrace(RudderEventActor, start, _)
+    _     <-
       // disable current users known not to be admin
       getNonAdminUserIds
         .flatMap(userIds => {
           userRepository
             .disable(
               userIds = userIds,
-              notLoggedSince = Some(d.minus(disableInactive.toMillis)),
+              notLoggedSince = Some(start.minus(disableInactive)),
               excludeFromOrigin = Nil,
               trace = trace(s"User was inactive since last '${disableInactive.render}'")
             )
@@ -113,55 +111,54 @@ class CleanupUsers(
               .unit
           }
         )
-    _    <- userRepository
-              .delete(
-                userIds = Nil,
-                notLoggedSince = Some(d.minus(deleteInactive.toMillis)),
-                excludeFromOrigin = localBackends,
-                initialStatus = Some(UserStatus.Disabled),
-                trace = trace(s"User was inactive since last '${deleteInactive.render}")
-              )
-              .foldZIO(
-                err => logger.error(s"Error when deleting user accounts inactive since '${deleteInactive.render}': ${err.fullMsg}"),
-                deletedUsers => {
-                  ZIO
-                    .unless(deletedUsers.isEmpty)(
-                      logger.info(s"Following users status changed from 'disabled' to 'deleted': '${deletedUsers.mkString("', '")}'")
-                    )
-                    .unit
-                }
-              )
-    _    <- userRepository
-              .purge(
-                userIds = Nil,
-                deletedSince = Some(d.minus(purgeDeleted.toMillis)),
-                excludeFromOrigin = Nil,
-                trace = trace(s"User is purged definitively '${purgeDeleted.render}' after being deleted")
-              )
-              .foldZIO(
-                err => logger.error(s"Error when purging user accounts deleted since '${purgeDeleted.render}': ${err.fullMsg}"),
-                purgedUsers => {
-                  ZIO
-                    .unless(purgedUsers.isEmpty)(
-                      logger.info(
-                        s"Users were purged from the database because they were configured to be purged ${purgeDeleted.render} after deletion. Users list is : '${purgedUsers
-                            .mkString("', '")}'"
-                      )
-                    )
-                    .unit
-                }
-              )
-    dos   = d.minus(purgeSessions.toMillis)
-    _    <-
+    _     <- userRepository
+               .delete(
+                 userIds = Nil,
+                 notLoggedSince = Some(start.minus(deleteInactive)),
+                 excludeFromOrigin = localBackends,
+                 initialStatus = Some(UserStatus.Disabled),
+                 trace = trace(s"User was inactive since last '${deleteInactive.render}")
+               )
+               .foldZIO(
+                 err => logger.error(s"Error when deleting user accounts inactive since '${deleteInactive.render}': ${err.fullMsg}"),
+                 deletedUsers => {
+                   ZIO
+                     .unless(deletedUsers.isEmpty)(
+                       logger.info(s"Following users status changed from 'disabled' to 'deleted': '${deletedUsers.mkString("', '")}'")
+                     )
+                     .unit
+                 }
+               )
+    _     <- userRepository
+               .purge(
+                 userIds = Nil,
+                 deletedSince = Some(start.minus(purgeDeleted)),
+                 excludeFromOrigin = Nil,
+                 trace = trace(s"User is purged definitively '${purgeDeleted.render}' after being deleted")
+               )
+               .foldZIO(
+                 err => logger.error(s"Error when purging user accounts deleted since '${purgeDeleted.render}': ${err.fullMsg}"),
+                 purgedUsers => {
+                   ZIO
+                     .unless(purgedUsers.isEmpty)(
+                       logger.info(
+                         s"Users were purged from the database because they were configured to be purged ${purgeDeleted.render} after deletion. Users list is : '${purgedUsers
+                             .mkString("', '")}'"
+                       )
+                     )
+                     .unit
+                 }
+               )
+    _     <-
       userRepository
-        .deleteOldSessions(olderThan = dos) // success is already logged
+        .deleteOldSessions(olderThan = start.minus(purgeSessions)) // success is already logged
         .catchAll(err => {
           logger.error(
-            s"Error when purging user sessions older than '${DateFormaterService.serialize(d)}': ${err.fullMsg}"
+            s"Error when purging user sessions older than '${DateFormaterService.serializeOffsetDateTime(start)}': ${err.fullMsg}"
           )
         })
-    t1   <- currentTimeMillis
-    _    <- logger.info(s"Cleaning user accounts and sessions performed in ${Duration.fromMillis(t1 - t0).render}")
+    end   <- Clock.instant
+    _     <- logger.info(s"Cleaning user accounts and sessions performed in ${Duration.between(start, end).render}")
   } yield ()
 
   // Must not fail.

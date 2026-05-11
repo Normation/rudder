@@ -38,9 +38,9 @@
 package com.normation.rudder.batch
 
 import com.normation.rudder.reports.execution.ReportsExecutionService
+import java.time.Duration
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
-import scala.concurrent.duration.Duration
 
 /**
  * That batch scheduler periodically store Nodes executions.

@@ -75,7 +75,7 @@ final case class RestEventLog(
 object RestEventLog {
 
   // We still have Joda DateTime because we map an event log field using chimney
-  implicit val datetimeEncoder:    JsonEncoder[DateTime]     = JsonEncoder[String].contramap(DateFormaterService.serialize)
+  implicit val datetimeEncoder:    JsonEncoder[DateTime]     = DateFormaterService.json.encoderDateTime
   implicit val eventActorEncoder:  JsonEncoder[EventActor]   = JsonEncoder[String].contramap(_.name)
   implicit val descriptionEncoder: JsonEncoder[NodeSeq]      = JsonEncoder[String].contramap(_.toString())
   implicit val encoder:            JsonEncoder[RestEventLog] = DeriveJsonEncoder.gen[RestEventLog]

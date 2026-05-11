@@ -88,7 +88,7 @@ final case class UpdateUserInfo(
 
 object Serialisation {
 
-  implicit val dateTime:                     JsonEncoder[DateTime]              = JsonEncoder[String].contramap(DateFormaterService.serialize)
+  implicit val dateTime:                     JsonEncoder[DateTime]              = DateFormaterService.json.encoderDateTime
   implicit val userStatusEncoder:            JsonEncoder[UserStatus]            = JsonEncoder[String].contramap(_.value)
   implicit val providerRoleExtensionEncoder: JsonEncoder[ProviderRoleExtension] =
     JsonEncoder[String].contramap(_.name)

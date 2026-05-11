@@ -64,7 +64,6 @@ import jakarta.servlet.http.HttpServletResponse
 import java.time.Instant
 import java.util.Collection
 import net.liftweb.common.*
-import org.joda.time.DateTime
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
@@ -394,11 +393,12 @@ class AppConfigAuth extends ApplicationContextAware {
       override def authConfig: UserList = SingleUserList(encoder, admin)
     }
     (for {
+      now                 <- currentOffsetDateTimeUTC
       rootAccountUserRepo <- InMemoryUserRepository.make()
       _                   <- rootAccountUserRepo.setExistingUsers(
                                "root-account",
                                admin.map(_.getUsername).toList,
-                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
+                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, now)
                              )
     } yield {
       val provider = new DaoAuthenticationProvider(new RudderInMemoryUserDetailsService(authConfigProvider, rootAccountUserRepo))

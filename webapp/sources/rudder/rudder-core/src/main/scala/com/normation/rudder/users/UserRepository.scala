@@ -51,7 +51,7 @@ import doobie.free.connection.unit as connectionUnit
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.util.invariant.UnexpectedContinuation
-import org.joda.time.DateTime
+import java.time.OffsetDateTime
 import zio.*
 import zio.interop.catz.*
 import zio.json.ast.*
@@ -74,15 +74,15 @@ trait UserRepository {
       tenants:           String, // this is the serialisation of tenants (ie nodePerms.value)
       sessionId:         SessionId,
       authenticatorName: String,
-      date:              DateTime
+      date:              OffsetDateTime
   ): IOResult[Unit]
 
-  def logCloseSession(userId: String, date: DateTime, cause: String): IOResult[Unit]
+  def logCloseSession(userId: String, date: OffsetDateTime, cause: String): IOResult[Unit]
 
   /*
    * Close all opened sessions (typically for when rudder restart)
    */
-  def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit]
+  def closeAllOpenSession(endDate: OffsetDateTime, endCause: String): IOResult[Unit]
 
   /*
    * Get the last previous session for user
@@ -93,7 +93,7 @@ trait UserRepository {
   /*
    * Delete session that are older than the given date
    */
-  def deleteOldSessions(olderThan: DateTime): IOResult[Unit]
+  def deleteOldSessions(olderThan: OffsetDateTime): IOResult[Unit]
 
   /*
    * Get users created by the given authenticator
@@ -147,7 +147,7 @@ trait UserRepository {
    */
   def disable(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
   ): IOResult[List[String]]
@@ -175,7 +175,7 @@ trait UserRepository {
    */
   def delete(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       initialStatus:     Option[UserStatus],
       trace:             EventTrace
@@ -200,7 +200,7 @@ trait UserRepository {
    */
   def purge(
       userIds:           List[String],
-      deletedSince:      Option[DateTime],
+      deletedSince:      Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
   ): IOResult[List[String]]
@@ -339,23 +339,33 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
-      date:              DateTime
+      date:              OffsetDateTime
   ): IOResult[Unit] = {
     sessionBase.update(
-      UserSession(userId, sessionId, date, authenticatorName, permissions.sorted, authz.sorted, Some(tenants), None, None) :: _
+      UserSession(
+        userId = userId,
+        sessionId = sessionId,
+        creationDate = date,
+        authMethod = authenticatorName,
+        permissions = permissions.sorted,
+        authz = authz.sorted,
+        tenants = Some(tenants),
+        endDate = None,
+        endCause = None
+      ) :: _
     ) *>
     userBase.update(_.map { case (k, v) => if (k == userId) (k, v.modify(_.lastLogin).setTo(Some(date))) else (k, v) })
   }
 
-  private def closeSession(userSession: UserSession, endDate: DateTime, endCause: String): UserSession = {
+  private def closeSession(userSession: UserSession, endDate: OffsetDateTime, endCause: String): UserSession = {
     userSession.modify(_.endDate).setTo(Some(endDate)).modify(_.endCause).setTo(Some(endCause))
   }
 
-  override def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit] = {
+  override def closeAllOpenSession(endDate: OffsetDateTime, endCause: String): IOResult[Unit] = {
     sessionBase.update(_.map(s => if (s.endDate.isEmpty) closeSession(s, endDate, endCause) else s))
   }
 
-  override def logCloseSession(userId: String, date: DateTime, cause: String): IOResult[Unit] = {
+  override def logCloseSession(userId: String, date: OffsetDateTime, cause: String): IOResult[Unit] = {
     sessionBase.update(_.map(s => if (s.userId == userId) closeSession(s, date, cause) else s))
   }
 
@@ -364,7 +374,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     sessionBase.get.map(_.find(s => s.userId == userId && (!closedSessionsOnly || s.endDate.isDefined)))
   }
 
-  override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = {
+  override def deleteOldSessions(olderThan: OffsetDateTime): IOResult[Unit] = {
     sessionBase.update(_.collect { case session if (session.creationDate.isAfter(olderThan)) => session })
   }
 
@@ -420,7 +430,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
   // predicates to purge user, ie return true if the user is to be purged
   private def predicateUser(u: UserInfo, ids: List[String]) = ids.contains(u.id)
 
-  private def predicateLogDate(u: UserInfo, date: Option[DateTime]) = {
+  private def predicateLogDate(u: UserInfo, date: Option[OffsetDateTime]) = {
     (date, u.lastLogin) match {
       case (None, _)                 => false
       case (Some(limit), None)       => u.creationDate.isBefore(limit)
@@ -428,7 +438,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     }
   }
 
-  private def predicateDeletedSince(u: UserInfo, date: Option[DateTime]) = {
+  private def predicateDeletedSince(u: UserInfo, date: Option[OffsetDateTime]) = {
     u.statusHistory match { // only deleted get purged with that filter
       case StatusHistory(UserStatus.Deleted, EventTrace(_, d, _)) :: _ =>
         date match {
@@ -452,7 +462,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
 
   override def disable(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
   ): IOResult[List[String]] = {
@@ -461,10 +471,8 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       val m          = users.map {
         case (k, u) =>
           if (
-            (predicateUser(u, userIds) || predicateLogDate(
-              u,
-              notLoggedSince
-            )) && u.status == UserStatus.Active && predicateNotOrigin(u, excludeFromOrigin)
+            (predicateUser(u, userIds) || predicateLogDate(u, notLoggedSince)) &&
+            u.status == UserStatus.Active && predicateNotOrigin(u, excludeFromOrigin)
           ) {
             modUserIds = k :: modUserIds
             (
@@ -484,7 +492,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
 
   override def delete(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       initialStatus:     Option[UserStatus],
       trace:             EventTrace
@@ -494,10 +502,8 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       val m          = users.map {
         case (k, u) =>
           if (
-            (predicateUser(u, userIds) || predicateLogDate(
-              u,
-              notLoggedSince
-            )) && predicateInitialStatus(u, initialStatus) && predicateNotOrigin(u, excludeFromOrigin)
+            (predicateUser(u, userIds) || predicateLogDate(u, notLoggedSince)) &&
+            predicateInitialStatus(u, initialStatus) && predicateNotOrigin(u, excludeFromOrigin)
           ) {
             modUserIds = k :: modUserIds
             (
@@ -517,7 +523,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
 
   override def purge(
       userIds:           List[String],
-      deletedSince:      Option[DateTime],
+      deletedSince:      Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
   ): IOResult[List[String]] = {
@@ -611,7 +617,6 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
  *   endCause     text
  */
 class JdbcUserRepository(doobie: Doobie) extends UserRepository {
-  import com.normation.rudder.db.Doobie.*
   import com.normation.rudder.db.json.implicits.*
   import com.normation.rudder.users.UserSerialization.*
   import doobie.*
@@ -621,43 +626,49 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   implicit val userWrite: Write[UserInfo] = {
     Write[
-      (String, DateTime, String, String, Option[String], Option[String], Option[DateTime], List[StatusHistory], Json.Obj)
-    ].contramap {
-      case u =>
-        (u.id, u.creationDate, u.status.value, u.managedBy, u.name, u.email, u.lastLogin, u.statusHistory, u.otherInfo)
-    }
+      (
+          String,
+          OffsetDateTime,
+          String,
+          String,
+          Option[String],
+          Option[String],
+          Option[OffsetDateTime],
+          List[StatusHistory],
+          Json.Obj
+      )
+    ].contramap(u =>
+      (u.id, u.creationDate, u.status.value, u.managedBy, u.name, u.email, u.lastLogin, u.statusHistory, u.otherInfo)
+    )
   }
 
   implicit val userStatusMeta: Meta[UserStatus] = Meta[String].tiemap(UserStatus.parse(_))(_.value)
 
   implicit val userRead: Read[UserInfo] = {
     Read[
-      (String, DateTime, String, String, Option[String], Option[String], Option[DateTime], List[StatusHistory], Json.Obj)
-    ].map {
-      (u: (
-          (
-              String,
-              DateTime,
-              String,
-              String,
-              Option[String],
-              Option[String],
-              Option[DateTime],
-              List[StatusHistory],
-              Json.Obj
-          )
-      )) =>
-        UserInfo(
-          u._1,
-          u._2,
-          UserStatus.parse(u._3).toOption.getOrElse(UserStatus.Disabled),
-          u._4,
-          u._5,
-          u._6,
-          u._7,
-          u._8,
-          u._9
-        )
+      (
+          String,
+          OffsetDateTime,
+          String,
+          String,
+          Option[String],
+          Option[String],
+          Option[OffsetDateTime],
+          List[StatusHistory],
+          Json.Obj
+      )
+    ].map { u =>
+      UserInfo(
+        id = u._1,
+        creationDate = u._2,
+        status = UserStatus.parse(u._3).toOption.getOrElse(UserStatus.Disabled),
+        managedBy = u._4,
+        name = u._5,
+        email = u._6,
+        lastLogin = u._7,
+        statusHistory = u._8,
+        otherInfo = u._9
+      )
     }
   }
 
@@ -671,7 +682,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
-      date:              DateTime
+      date:              OffsetDateTime
   ): IOResult[Unit] = {
     transactIOResult(s"Error when saving session '${sessionId.value}' info for user '${userId}'")(xa => {
       (for {
@@ -686,13 +697,13 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     }).catchSome { case SystemError(_, ex: IllegalArgumentException) => Inconsistency(ex.getMessage).fail }
   }
 
-  override def logCloseSession(userId: String, endDate: DateTime, endCause: String): IOResult[Unit] = {
+  override def logCloseSession(userId: String, endDate: OffsetDateTime, endCause: String): IOResult[Unit] = {
     val sql =
       sql"""update usersessions set enddate = ${endDate}, endcause = ${endCause} where enddate is null and userid = ${userId}"""
     transactIOResult(s"Error when closing opened session for user '${userId}'")(xa => sql.update.run.transact(xa)).unit
   }
 
-  override def closeAllOpenSession(endDate: DateTime, endCause: String): IOResult[Unit] = {
+  override def closeAllOpenSession(endDate: OffsetDateTime, endCause: String): IOResult[Unit] = {
     val sql = sql"""update usersessions set enddate = ${endDate}, endcause = ${endCause} where enddate is null returning userid"""
     transactIOResult(s"Error when closing opened user session")(xa => sql.query[String].to[List].transact(xa)).flatMap(users =>
       logger.info(s"Close open sessions with reason '${endCause}' for users '${users.mkString("', '")}'")
@@ -717,15 +728,15 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     )
   }
 
-  override def deleteOldSessions(olderThan: DateTime): IOResult[Unit] = {
+  override def deleteOldSessions(olderThan: OffsetDateTime): IOResult[Unit] = {
     val sql = sql"""delete from usersessions where creationdate < ${olderThan}"""
 
-    transactIOResult(s"Error when purging user sessions older then: ${DateFormaterService.serialize(olderThan)}")(xa =>
-      sql.update.run.transact(xa)
+    transactIOResult(s"Error when purging user sessions older then: ${DateFormaterService.serializeOffsetDateTime(olderThan)}")(
+      xa => sql.update.run.transact(xa)
     ).tapSome {
       case deletedSessionCount if deletedSessionCount > 0 =>
         logger.info(
-          s"${deletedSessionCount} user sessions older than ${DateFormaterService.serialize(olderThan)} were deleted"
+          s"${deletedSessionCount} user sessions older than ${DateFormaterService.serializeOffsetDateTime(olderThan)} were deleted"
         )
     }.unit
   }
@@ -848,7 +859,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       tenants:           String,
       sessionId:         SessionId,
       authenticatorName: String,
-      date:              DateTime
+      date:              OffsetDateTime
   ): ConnectionIO[Int] = {
     sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, authz, tenants)
         values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${authz.sorted}, ${tenants})""".update.run
@@ -856,7 +867,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   private[users] def lastLoginUpdate(
       userId: String,
-      date:   DateTime
+      date:   OffsetDateTime
   ): ConnectionIO[Int] = {
     sql"""update users set lastlogin = ${date} where id = ${userId}""".update.run
   }
@@ -867,7 +878,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     case h :: t => Some(Fragments.in(fr"id", NonEmptyList.of(h, t*)))
   }
 
-  private[users] def predicateLogDate(lastLogin: Option[DateTime]): Option[Fragment] = lastLogin match {
+  private[users] def predicateLogDate(lastLogin: Option[OffsetDateTime]): Option[Fragment] = lastLogin match {
     case None        => None
     case Some(limit) => // look for lastlogin and if null (coalesce) creationdate
       Some(fr"COALESCE(lastlogin, creationdate) < ${limit}")
@@ -883,7 +894,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   // if both userIds and notLoggedSince are empty/None, select all or none depending of defaultToNone value
   private[users] def select(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       defaultToNone:     Boolean,         // if both userIds = Nil and notLoggedSince = None, if true return no user else all matching other params
       excludeFromOrigin: List[String],
       andSelectFragment: Option[Fragment] // refined selection
@@ -906,7 +917,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   // change status of an user
   private[users] def changeStatus(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace,
       targetStatus:      UserStatus,
@@ -931,8 +942,8 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
         (
           for {
             selected <- select(
-                          userIds,
-                          notLoggedSince,
+                          userIds = userIds,
+                          notLoggedSince = notLoggedSince,
                           defaultToNone = true,
                           excludeFromOrigin = excludeFromOrigin,
                           andSelectFragment = andSelectFragment
@@ -956,7 +967,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   override def delete(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       initialStatus:     Option[UserStatus],
       trace:             EventTrace
@@ -975,7 +986,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   override def disable(
       userIds:           List[String],
-      notLoggedSince:    Option[DateTime],
+      notLoggedSince:    Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
   ): IOResult[List[String]] = {
@@ -991,14 +1002,14 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
 
   override def purge(
       userIds:           List[String],
-      deletedSince:      Option[DateTime],
+      deletedSince:      Option[OffsetDateTime],
       excludeFromOrigin: List[String],
       trace:             EventTrace
   ): IOResult[List[String]] = {
 
     transactIOResult(
       s"Error when purging users with condition: [ids in: ${userIds.mkString(", ")} ; " +
-      s"deleted since: ${deletedSince.map(DateFormaterService.serialize(_)).getOrElse("ignored")} ; " +
+      s"deleted since: ${deletedSince.map(DateFormaterService.serializeOffsetDateTime).getOrElse("ignored")} ; " +
       s"exclude backends: ${excludeFromOrigin.mkString(", ")} "
     )(xa => {
       (for {
@@ -1015,7 +1026,8 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
                       case None        => selected.map(_._1)
                       case Some(limit) =>
                         selected.collect {
-                          case (id, StatusHistory(UserStatus.Deleted, trace) :: t) if (trace.actionDate.isBefore(limit)) => id
+                          case (id, StatusHistory(UserStatus.Deleted, trace) :: t) if (trace.actionDate.isBefore(limit)) =>
+                            id
                         }
                     }
         _        <- Update[String]("delete from users where id = ?").updateMany(toDelete)
