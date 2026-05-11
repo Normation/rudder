@@ -60,6 +60,7 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.rudder.web.snippet.WithNonce
@@ -662,16 +663,48 @@ object DisplayNode extends Loggable {
     }
           </div>
           
+          <!-- todo fix here -->
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>
-          <div class="markdown" id="nodeDocumentation">
-          </div>
-          {
+            <div id="nodeDocumentationFieldMarkdownContainer">
+              <label class="fw-normal">Edit documentation
+                <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('nodeDocumentationField')"></i>
+              </label>
+              <div class="markdown">
+                <div id="nodeDocumentationFieldMarkdown"></div>
+              </div>
+            </div>
+            <div id="nodeDocumentationFieldContainer" class="d-flex d-none">
+              <div id="nodeDocumentationField">
+                
+                {
+      new WBTextAreaField("Documentation", nodeFact.documentation.getOrElse("")) {
+        override def setFilter             = notNull :: trim :: Nil
+        override def className             = "form-control"
+        override def labelClassName        = ""
+        override def subContainerClassName = ""
+        override def containerClassName    = "col-12 pe-2"
+        override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
+      }.toForm_!
+    }
+              </div>
+              <div>
+                {cancelDocumentationEdit()} 
+                {saveDocumentationEdit(nodeFact)}
+                {
       WithNonce.scriptWithNonce(
-        Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))
+        Script(
+          OnLoad(
+            JsRaw(
+              s"setupMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, 'nodeDocumentationField')"
+            )
+          )
+        )
       )
     }
+              </div>
+            </div>
         </div>
       </div>
       <div class="rudder-info">
@@ -713,6 +746,94 @@ object DisplayNode extends Loggable {
       </div>
     </div>
   }
+
+  /*
+  private val documentationTextArea = {
+    new WBTextAreaField("Documentation") {
+      override def setFilter             = notNull :: trim :: Nil
+      override def className             = "form-control"
+      override def labelClassName        = ""
+      override def subContainerClassName = ""
+      override def containerClassName    = "col-12 pe-2"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
+    }
+  }
+
+   */
+
+  private def cancelDocumentationEdit(): NodeSeq = {
+    SHtml.ajaxButton(
+      "Cancel",
+      (() => JsRaw("toggleMarkdownEditor('nodeDocumentationField');").cmd),
+      ("class", "btn btn-danger")
+    )
+  }
+
+  private def saveDocumentationEdit(nodeFact: NodeFact): NodeSeq = {
+    SHtml.ajaxButton(
+      "Save",
+      (() => saveDocumentation(nodeFact) & JsRaw("toggleMarkdownEditor('nodeDocumentationField');").cmd),
+      ("class", "btn btn-success")
+    )
+  }
+
+  private def saveDocumentation(nodeFact: NodeFact): JsCmd = {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+      CurrentUser.actor,
+      Instant.now(),
+      Some("Node documentation changed"),
+      None,
+      CurrentUser.nodePerms
+    )
+
+    // val docvalue = //todo
+
+    (for {
+      node   <- RudderConfig.nodeFactRepository
+                  .get(nodeFact.id)(using cc.toQuery)
+                  .notOptional(s"Cannot update node with id ${nodeFact.id.value}: there is no node with that id")
+      newNode = node.modify(_.documentation).setTo(Some("mydesc"))
+      _      <- RudderConfig.nodeFactRepository.save(newNode)
+    } yield {
+      Noop
+    }).catchAll { err =>
+      val js: JsCmd = JsRaw(
+        s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
+              .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
+          "Please contact your server admin to resolve the problem. " +
+          s"Error was: '${err.fullMsg}'"}")"""
+      ) // JsRaw ok, escaped
+      js.succeed
+    }.runNow
+  }
+
+  /*
+  private def editNodeDocumentation(nodeFact: NodeFact): NodeSeq = {
+
+    // fixme content :           {
+    //      WithNonce.scriptWithNonce(
+    //        Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))
+    //      )
+    //    }
+
+    SHtml.ajaxEditable(
+      SHtml.text(s"${Str(nodeFact.documentation.getOrElse("")).toJsCmd}", _ => ()),
+      SHtml.text(s"${Str(nodeFact.documentation.getOrElse("")).toJsCmd}", s => println("Edited with " + s)),
+      () => { println("submitted"); Noop }
+    )
+
+    /*
+    SHtml.ajaxButton(
+      (<text>Edit documentation</text><span class="fa fa-pencil ms-2"></span>),
+      () => editableDocumentation()
+    ) % ("class", "btn btn-default")
+   */
+
+    // <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" title="Edit documentation"></i>
+  }
+
+   */
 
   private def htmlId(jsId:   JsNodeId, prefix: String): String = prefix + jsId.toString
   private def htmlId_#(jsId: JsNodeId, prefix: String): String = "#" + prefix + jsId.toString
@@ -817,6 +938,7 @@ object DisplayNode extends Loggable {
         // confirmation button
         SHtml.ajaxButton(
           "Reset security token",
+          // todo here
           () => resetKeyStatus(nodeFact) & JsRaw(""" hideBsModal("basePopup") """)
         ) % ("class", "btn btn-danger")
       }

@@ -352,6 +352,7 @@ class DirectiveEditForm(
       "#tagField *" #> tagsEditForm.tagsForm("directiveTags", "directiveEditTagsApp", updateTag, isRule = false) &
       "#directiveID *" #> { directive.id.uid.value } &
       "#shortDescriptionField" #> directiveShortDescription.toForm_! &
+        //here
       "#longDescriptionField" #> directiveLongDescription.toForm_! &
       "#priority" #> directivePriority.toForm_! &
       "#policyModesLabel" #> policyModesLabel &

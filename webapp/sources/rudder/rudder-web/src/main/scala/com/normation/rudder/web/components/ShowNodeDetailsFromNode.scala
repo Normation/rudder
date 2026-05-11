@@ -60,6 +60,7 @@ import com.normation.rudder.score.ScoreValue.NoScore
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
@@ -75,6 +76,7 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import scala.xml.NodeSeq
+import scala.xml.Text
 
 object ShowNodeDetailsFromNode {
 
@@ -285,6 +287,7 @@ class ShowNodeDetailsFromNode(
       Some(node.creationDate),
       isDisplayingInPopup = withinPopup
     ) &
+    "#nodeDocumentationField" #> documentationTextArea.toForm_! &
     "#nodeInventory *" #> DisplayNode.showInventoryVerticalMenu(sm, node) &
     "#reportsDetails *" #> reportDisplayer.asyncDisplay(
       node,
@@ -302,6 +305,7 @@ class ShowNodeDetailsFromNode(
       RudderConfig.reportingService.findSystemNodeStatusReport(_).toBox,
       onlySystem = true
     ) &
+    // todo here
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
     "#logsDetails *" #> WithNonce.scriptWithNonce(Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid")))) &
     "#node_parameters -*" #> (if (node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty
@@ -314,6 +318,17 @@ class ShowNodeDetailsFromNode(
     "data-bs-target=#node_reports -*" #> <span class={
       s"badge-compliance-score ${globalScore.details.find(_.scoreId == ComplianceScore.scoreId).map(_.value).getOrElse(NoScore).value} sm"
     }></span>).apply(serverDetailsTemplate)
+  }
+
+  private val documentationTextArea = {
+    new WBTextAreaField("Documentation") {
+      override def setFilter             = notNull :: trim :: Nil
+      override def className             = "form-control"
+      override def labelClassName        = ""
+      override def subContainerClassName = ""
+      override def containerClassName    = "col-12 pe-2"
+      override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
+    }
   }
 
   /**
