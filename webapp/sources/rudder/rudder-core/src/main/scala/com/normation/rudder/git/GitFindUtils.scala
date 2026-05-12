@@ -97,6 +97,7 @@ object GitFindUtils extends NamedZioLogger {
       while (tw.next) {
         paths += tw.getPathString
       }
+      tw.close()
 
       paths.toSet
     }
