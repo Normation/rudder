@@ -65,7 +65,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTargetInfo
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.git.FileTreeFilter
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
@@ -87,7 +86,6 @@ import java.io.InputStream
 import java.nio.file.Paths
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.treewalk.TreeWalk
 import zio.*
 import zio.syntax.*
 
@@ -168,7 +166,7 @@ class GitParseRules(
     for {
       treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
       // rules are just under "rules", but use list to check is one exists on that revtree
-      rules  <- GitFindUtils.listFiles(repo.db, treeId, List(rulesDirectory.directoryPath), uid.value + ".xml" :: Nil)
+      rules  <- GitFindUtils.listFiles(repo.db, treeId, List(rulesDirectory.directoryPath), s"/${uid.value}.xml" :: Nil)
       res    <- rules.toList match {
                   case Nil      => None.succeed
                   case h :: Nil =>
@@ -378,7 +376,7 @@ class GitParseGroupLibrary(
       // nodegroups are any where in the subtree with parent directory name == uuid of the group category.
       // So we need to find the group by name, and split path to get its category. Be careful, the name of root
       // category is not "groups" but "GroupRoot"
-      groups <- GitFindUtils.listFiles(repo.db, treeId, List(groupsDirectory.directoryPath), uid.value + ".xml" :: Nil)
+      groups <- GitFindUtils.listFiles(repo.db, treeId, List(groupsDirectory.directoryPath), s"/{uid.value}.xml" :: Nil)
       res    <- groups.toList match {
                   case Nil      => None.succeed
                   case h :: Nil =>
@@ -465,7 +463,7 @@ class GitParseTechniqueLibrary(
       _      <- ConfigurationLoggerPure.revision.debug(s"Looking for technique: ${id.debugString}")
       treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
       _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
-      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${id.withDefaultRev.serialize}/${techniqueMetadata}"))
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"/${id.withDefaultRev.serialize}/${techniqueMetadata}"))
       _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
       tuple  <- paths.size match {
                   case 0 =>
@@ -557,7 +555,7 @@ class GitParseTechniqueLibrary(
                    repo.db,
                    current,
                    List(root),
-                   List(s"${name.value}/${version.toVersionString}/${metadata}")
+                   List(s"/${name.value}/${version.toVersionString}/${metadata}")
                  ) // we are just looking for the path here
       path    <- optPath.toList match {
                    case Nil      => Inconsistency(s"Technique '${name.value}/${version.toVersionString}' not found f").fail
@@ -590,23 +588,19 @@ class GitParseTechniqueLibrary(
     /*
      * find the path of the technique version
      */
-    def getFilePath(db: Repository, revTreeId: ObjectId, techniqueId: TechniqueId) = {
-      IOResult.attempt {
-        // a first walk to find categories
-        val tw     = new TreeWalk(db)
-        // there is no directory in git, only files
-        val filter = new FileTreeFilter(List(root + "/"), List(techniqueId.withDefaultRev.serialize + "/" + techniqueMetadata))
-        tw.setFilter(filter)
-        tw.setRecursive(true)
-        tw.reset(revTreeId)
-
-        var path = Option.empty[String]
-        while (tw.next && path.isEmpty) {
-          path = Some(tw.getPathString)
-          tw.close()
+    def getFilePath(db: Repository, revTreeId: ObjectId, techniqueId: TechniqueId): IOResult[Option[String]] = {
+      GitFindUtils
+        .listFiles(db, revTreeId, List(root + "/"), List("/" + techniqueId.withDefaultRev.serialize + "/" + techniqueMetadata))
+        .flatMap { set =>
+          set.toList match {
+            case Nil         => None.succeed
+            case path :: Nil => Some(path.replaceAll("/" + techniqueMetadata, "")).succeed
+            case several     =>
+              Inconsistency(
+                s"Error when looking for technique '${techniqueId.serialize}', several paths match: '${several.mkString("', '")}'"
+              ).fail
+          }
         }
-        path.map(_.replaceAll("/" + techniqueMetadata, ""))
-      }
     }
 
     for {
@@ -680,7 +674,7 @@ class GitParseActiveTechniqueLibrary(
       _      <- ConfigurationLoggerPure.revision.debug(s"Looking for directive: ${DirectiveId(uid, rev).debugString}")
       treeId <- GitFindUtils.findRevTreeFromRevString(repo.db, rev.value)
       _      <- ConfigurationLoggerPure.revision.trace(s"Git tree corresponding to revision: ${rev.value}: ${treeId.toString}")
-      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"${uid.value}.xml"))
+      paths  <- GitFindUtils.listFiles(repo.db, treeId, List(root), List(s"/${uid.value}.xml"))
       _      <- ConfigurationLoggerPure.revision.trace(s"Found candidate paths: ${paths}")
       pair   <- paths.size match {
                   case 0 =>
@@ -726,7 +720,7 @@ class GitParseActiveTechniqueLibrary(
       current <- revisionProvider.currentRevTreeId
       // find the file name, then look for revision for that path
       optPath <-
-        GitFindUtils.listFiles(repo.db, current, List(root), List(uid.serialize + ".xml")) // not sur about the version here
+        GitFindUtils.listFiles(repo.db, current, List(root), List(s"/${uid.serialize}.xml")) // not sur about the version here
       path    <- optPath.toList match {
                    case Nil      => Inconsistency(s"Directive with UID '${uid.value}' not found f").fail
                    case p :: Nil => p.succeed
