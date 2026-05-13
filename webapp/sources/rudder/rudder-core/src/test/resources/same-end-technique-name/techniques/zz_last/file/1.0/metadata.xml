@@ -1,0 +1,30 @@
+<TECHNIQUE name="Packages">
+  <DESCRIPTION>This technique operates on individual packages.
+
+  It will ensure that the defined packages are in the desired state using the appropriate package manager.</DESCRIPTION>
+
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+
+  <BUNDLES>
+    <NAME>package_management</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="packageManagement"/>
+  </TMLS>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>PACKAGE_LIST</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <SECTION name="Package" multivalued="true" component="true" componentKey="PACKAGE_LIST">
+      <INPUT>
+        <NAME>PACKAGE_LIST</NAME>
+        <DESCRIPTION>Package name (or path)</DESCRIPTION>
+        <LONGDESCRIPTION>You can use a path to install a local package, when using the "present" state.</LONGDESCRIPTION>
+      </INPUT>
+      </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
+
