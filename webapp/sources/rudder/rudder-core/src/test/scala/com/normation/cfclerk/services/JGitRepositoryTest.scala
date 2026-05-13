@@ -240,7 +240,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
       }
 
-      "does nothing when the category already exsits" in {
+      "does nothing when the category already exists" in {
         techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again").runNow
         val lastCommitMsg = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
 
