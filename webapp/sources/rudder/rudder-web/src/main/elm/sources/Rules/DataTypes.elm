@@ -34,9 +34,18 @@ type alias Tag =
 type ModalState
     = NoModal
     | DeletionValidation Rule (Maybe ChangeRequestSettings)
-    | DeactivationValidation Rule (Maybe ChangeRequestSettings)
+    | DisableValidation Rule (Maybe ChangeRequestSettings)
+    | EnableValidation Rule (Maybe ChangeRequestSettings)
     | DeletionValidationCat (Category Rule)
     | SaveAuditMsg Bool Rule (Maybe Rule) ChangeRequestSettings
+
+
+type ModalAction
+    = Delete
+    | Create
+    | Update
+    | Disable
+    | Enable
 
 
 type RuleTarget
@@ -350,14 +359,16 @@ type Msg
     | GetRuleChanges (Result Error (Dict String (List Changes)))
     | GetRepairedReportsResult RuleId ZonedDateTime ZonedDateTime (Result Error (List RepairedReport))
     | GetTechniquesTreeResult (Result Error ( Category Technique, List Technique ))
-    | DeleteRule (Result Error ( RuleId, String ))
+    | DeleteRule (Result Error Rule)
     | DeleteCategory (Result Error ( String, String ))
-    | DisableRule
+    | SaveDisabledRule
+    | SaveEnabledRule
     | CloneRule Rule RuleId
-    | OpenDeletionPopup Rule
     | OpenDeletionPopupCat (Category Rule)
-    | OpenDeactivationPopup Rule
-    | OpenSaveAuditMsgPopup Rule ChangeRequestSettings
+    | OpenDeletionPopup Rule
+    | OpenDisablePopup
+    | OpenEnablePopup
+    | SaveRule Rule
     | ClosePopup Msg
     | Ignore
     | ToggleRow String String

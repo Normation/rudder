@@ -43,7 +43,7 @@ editionTemplate model details =
       case originRule of
         Just or ->
           let
-            (txtDisabled, iconDisabled) = if rule.enabled then ("Disable", "fa fa-ban") else ("Enable", "fa fa-check-circle")
+            (txtDisabled, iconDisabled, editMsg) = if rule.enabled then ("Disable", "fa fa-ban", OpenDisablePopup) else ("Enable", "fa fa-check-circle", OpenEnablePopup)
           in
             (
             [ button [ class "btn btn-default dropdown-toggle" , attribute "data-bs-toggle" "dropdown" ]
@@ -58,7 +58,7 @@ editionTemplate model details =
                   ]
                 ]
               , li []
-                [ a [ class "dropdown-item", onClick (OpenDeactivationPopup rule)]
+                [ a [ class "dropdown-item", onClick editMsg]
                   [ i [ class iconDisabled] []
                   , text txtDisabled
                   ]
@@ -150,25 +150,6 @@ editionTemplate model details =
     nbDirectives = case originRule of
       Just oR -> Maybe.withDefault 0 details.numberOfDirectives
       Nothing -> 0
-
-    saveAction =
-      let
-        defaultAction = checkAction (CallApi True (saveRuleDetails rule (Maybe.Extra.isNothing details.originRule)))
-        checkAction action =
-          if String.isEmpty (String.trim rule.name) then
-            Ignore
-          else
-            action
-      in
-        case model.ui.crSettings of
-          Just cr ->
-            if cr.enableChangeMessage || cr.enableChangeRequest then
-              checkAction (OpenSaveAuditMsgPopup rule cr)
-            else
-              defaultAction
-          Nothing ->
-            defaultAction
-
   in
     div [class "main-container"]
     [ div [class "main-header "]
@@ -183,7 +164,7 @@ editionTemplate model details =
           :: (
             if model.ui.hasWriteRights then
               [ div [ class "btn-group" ]  topButtons
-              , btnSave model.ui.saving (String.isEmpty (String.trim rule.name)) saveAction
+              , btnSave model.ui.saving (String.isEmpty (String.trim rule.name)) (SaveRule rule)
               ]
             else
               []
