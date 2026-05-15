@@ -404,19 +404,7 @@ update msg model =
                 ( Just { cr | message = "" }
                 , ( if cr.enableChangeRequest then
                   case ruleDetails.changeRequestId of
-                    Just id ->
-                      let
-                        message = "Change request #"++ id ++" successfully created."
-                        linkUrl = model.contextPath ++ "/secure/configurationManager/changes/changeRequest/" ++ id
-                        linkTxt = "See details of change request #" ++ id
-                        encodeToastInfo =
-                          object
-                          [ ("message", string message)
-                          , ("linkUrl", string linkUrl)
-                          , ("linkTxt", string linkTxt)
-                          ]
-                      in
-                        linkSuccessNotification encodeToastInfo
+                    Just id -> crNotification model.contextPath id
                     Nothing -> defaultNotif
                   else
                   defaultNotif
@@ -482,20 +470,48 @@ update msg model =
     SaveCategoryResult (Err err) ->
       processApiError "Saving Category" err model
 
-    DeleteRule (Ok (ruleId, ruleName)) ->
-      case model.mode of
-        RuleForm r ->
+    DeleteRule (Ok { changeRequestId, id, name }) ->
+      let
+        ui = model.ui
+        defaultNotification = successNotification ("Rule '"++ name ++"' successfully deleted")
+      in
+      case ( model.mode, model.ui.crSettings ) of
+        ( RuleForm r, Just s ) ->
           let
-            newMode  = if r.rule.id == ruleId then RuleTable else model.mode
-            ui = model.ui
-            crSettings = case ui.crSettings of
-              Just s  -> Just { s | message = ""}
-              Nothing -> Nothing
+            changeRequestNotification =
+              case changeRequestId of
+                Just crId -> crNotification model.contextPath crId
+                Nothing -> defaultNotification
 
-            newModel = { model | mode = newMode, ui = { ui | crSettings = crSettings} }
+            ( mode, crSettings, cmd ) =
+              if r.rule.id == id && not s.enableChangeRequest then
+                ( RuleTable
+                , Just { s | message = ""}
+                , Cmd.batch [defaultNotification, getRulesTree model, pushUrl ("", "") ]
+                )
+
+              else if s.enableChangeRequest then
+                ( model.mode
+                , Just { s | message = ""}
+                , changeRequestNotification
+                )
+
+              else
+                ( model.mode
+                , Just { s | message = ""}
+                , Cmd.batch [defaultNotification, getRulesTree model, pushUrl ("", "") ]
+                )
           in
-            (newModel, Cmd.batch [successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"), getRulesTree newModel, pushUrl ("", "") ])
-        _ -> (model, Cmd.none)
+          ( { model | mode = mode, ui = { ui | crSettings = crSettings} }, cmd )
+
+        ( RuleForm r, Nothing ) ->
+          let
+            newMode = if r.rule.id == id then RuleTable else model.mode
+          in
+          ( { model | mode = newMode }, Cmd.batch [defaultNotification, getRulesTree model, pushUrl ("", "") ] )
+
+        _ ->
+          (model, Cmd.none)
 
     DeleteRule (Err err) ->
       processApiError "Deleting Rule" err model
@@ -768,3 +784,19 @@ setModalState state ({ ui } as model) =
 setCrSettings : ChangeRequestSettings -> Model -> Model
 setCrSettings settings ({ ui } as model) =
   { model | ui = { ui | crSettings = Just settings } }
+
+
+crNotification : String -> String -> Cmd Msg
+crNotification contextPath crId =
+  let
+    message = "Change request #"++ crId ++" successfully created."
+    linkUrl = contextPath ++ "/secure/configurationManager/changes/changeRequest/" ++ crId
+    linkTxt = "See details of change request #" ++ crId
+    encodeToastInfo =
+      object
+      [ ("message", string message)
+      , ("linkUrl", string linkUrl)
+      , ("linkTxt", string linkTxt)
+      ]
+  in
+    linkSuccessNotification encodeToastInfo

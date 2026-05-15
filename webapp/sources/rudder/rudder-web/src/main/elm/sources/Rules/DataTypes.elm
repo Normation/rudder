@@ -343,7 +343,7 @@ type Msg
     | GetRuleChanges (Result Error (Dict String (List Changes)))
     | GetRepairedReportsResult RuleId ZonedDateTime ZonedDateTime (Result Error (List RepairedReport))
     | GetTechniquesTreeResult (Result Error ( Category Technique, List Technique ))
-    | DeleteRule (Result Error ( RuleId, String ))
+    | DeleteRule (Result Error Rule)
     | DeleteCategory (Result Error ( String, String ))
     | SaveDisabledRule
     | SaveEnabledRule
