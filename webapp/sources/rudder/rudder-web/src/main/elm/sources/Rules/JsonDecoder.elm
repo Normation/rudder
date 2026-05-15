@@ -98,13 +98,9 @@ toTags lst =
     succeed
       ( List.map (\t -> Tag (Tuple.first t) (Tuple.second t)) concatList )
 
-decodeDeleteRuleResponse : Decoder (RuleId,String)
+decodeDeleteRuleResponse : Decoder Rule
 decodeDeleteRuleResponse =
-  at ["data", "rules" ](index 0
-  ( succeed Tuple.pair
-     |> required "id" (map RuleId string)
-     |> required "displayName" string
-  ))
+  at ["data", "rules" ] (index 0 decodeRule)
 
 decodeIdCategory: Decoder (String, String)
 decodeIdCategory =

@@ -92,7 +92,7 @@ nodesTab model details =
             , tbody []
               ( if (List.length childs) <= 0 then
                 [ tr[]
-                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule is not applied on any Node."] ]
+                  [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule is not applied on any node."] ]
                 ]
               else if List.length nodesChildren == 0 then
                 [ tr[]
