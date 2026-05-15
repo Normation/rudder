@@ -1,6 +1,8 @@
 package com.normation.utils
 
 import com.normation.utils.DateFormaterService.JavaTimeToJoda
+import com.normation.utils.DateFormaterService.toJodaDateTime
+import com.normation.utils.DateFormaterService.toOffsetDateTime
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
@@ -50,6 +52,18 @@ class DateFormaterServiceSpec extends ZIOSpecDefault {
     .filterNot(_.getZone.toString.startsWith("SystemV")) // not supported by joda
 
   def spec = suite("DateFormaterService")(
+    suite("extension methods")(
+      test("toOffsetDateTime + toJodateDateTime should be idempotent") {
+        check(
+          Gen
+            .offsetDateTime(
+              min = Instant.EPOCH.atOffset(ZoneOffset.UTC),
+              max = Instant.parse("9999-01-01T00:00:00Z").atOffset(ZoneOffset.UTC)
+            )
+            .map(_.truncatedTo(ChronoUnit.MILLIS))
+        )(offsetDateTime => assert(offsetDateTime.toJodaDateTime.toOffsetDateTime)(equalTo(offsetDateTime)))
+      }
+    ),
     test("basicDateTimeFormatter should behave like jodatime ISODateTimeFormat.basicDateTime()") {
       check(Gen.instant(min = Instant.EPOCH, max = Instant.parse("9999-01-01T00:00:00Z"))) { input =>
         assert(DateFormaterService.formatAsBasicDateTime(input))(

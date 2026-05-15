@@ -155,7 +155,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import scala.collection.mutable.Buffer
-import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import zio.{Scheduler as _, System as _, *}
@@ -776,8 +775,8 @@ object RudderParsedProperties {
   // THIS ONE IS STILL USED FOR USERS USING GIT REPLICATION
   val RUDDER_AUTOARCHIVEITEMS: Boolean = config.getBoolean("rudder.autoArchiveItems") // true
 
-  val RUDDER_REPORTS_EXECUTION_INTERVAL: duration.Duration =
-    config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds.asScala
+  val RUDDER_REPORTS_EXECUTION_INTERVAL: java.time.Duration =
+    config.getInt("rudder.batch.storeAgentRunTimes.updateInterval").seconds
 
   val HISTORY_INVENTORIES_ROOTDIR: String = config.getString("history.inventories.rootdir")
 

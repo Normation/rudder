@@ -38,6 +38,8 @@ import com.normation.errors.SystemError
 import com.normation.errors.effectUioUnit
 import io.scalaland.chimney.cats.*
 import io.scalaland.chimney.partial.*
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.{Logger as _, *}
 import org.slf4j.*
@@ -440,6 +442,8 @@ object errors {
 }
 
 object zio {
+
+  val currentOffsetDateTimeUTC: UIO[OffsetDateTime] = Clock.instant.map(_.atOffset(ZoneOffset.UTC))
 
   val currentTimeMillis: ZIO[Any, Nothing, Long] = ZIO.clockWith(_.currentTime(TimeUnit.MILLISECONDS))
 //    ZIO.access[_root_.zio.clock.Clock](_.get.currentTime(TimeUnit.MILLISECONDS))

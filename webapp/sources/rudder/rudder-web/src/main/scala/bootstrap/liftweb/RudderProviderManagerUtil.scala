@@ -7,9 +7,9 @@ import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.SessionId
 import com.normation.rudder.users.UserRepository
 import com.normation.zio.UnsafeRun
-import org.joda.time.DateTime
 import org.springframework.web.context.request.RequestAttributes
 import org.springframework.web.context.request.ServletRequestAttributes
+import zio.Clock
 import zio.syntax.*
 
 /**
@@ -23,35 +23,41 @@ object RudderProviderManagerUtil {
       provider:          String,
       requestAttributes: RequestAttributes
   ): Unit = {
-    (userRepository
-      .logStartSession(
-        details.getUsername,
-        com.normation.rudder.Role.toDisplayNames(details.roles),
-        com.normation.rudder.Rights
-          .combineAll(details.roles.toList.map(_.rights))
-          .authorizationTypes
-          .toList
-          .map(_.id),
-        details.accessGrant.value,
-        sessionId,
-        provider,
-        DateTime.now
-      )
-      .catchSome {
-        case Inconsistency(msg) =>
-          requestAttributes match {
-            case requestAttrs: ServletRequestAttributes =>
-              IOResult.attempt(requestAttrs.getRequest().getSession(false).invalidate())
-            case _ =>
-              // There is nothing we can do to change the user session programmatically, user will have to change session id manually
-              ApplicationLoggerPure.warn(
-                "Rudder does not know how to handle the current authentication request using " + requestAttributes.getClass.getName + ". Please retry to log in after clearing the browser cache."
-              ) *>
-              Inconsistency("Refused authentication: " + msg).fail
-          }
-      } *> // user session is started with known rights and password, we need to update users sessions cache to invalidate any change in user access
-    LiftSpringApplicationContext.springContext
-      .getBean(classOf[UserSessionInvalidationFilter])
-      .updateUser(details)).runNow
+
+    (for {
+      now <- Clock.currentDateTime
+      _   <- userRepository
+               .logStartSession(
+                 details.getUsername,
+                 com.normation.rudder.Role.toDisplayNames(details.roles),
+                 com.normation.rudder.Rights
+                   .combineAll(details.roles.toList.map(_.rights))
+                   .authorizationTypes
+                   .toList
+                   .map(_.id),
+                 details.accessGrant.value,
+                 sessionId,
+                 provider,
+                 now
+               )
+               .catchSome {
+                 case Inconsistency(msg) =>
+                   requestAttributes match {
+                     case requestAttrs: ServletRequestAttributes =>
+                       IOResult.attempt(requestAttrs.getRequest().getSession(false).invalidate())
+                     case _ =>
+                       // There is nothing we can do to change the user session programmatically, user will have to change session id manually
+                       ApplicationLoggerPure.warn(
+                         "Rudder does not know how to handle the current authentication request using " + requestAttributes.getClass.getName + ". Please retry to log in after clearing the browser cache."
+                       ) *>
+                       Inconsistency("Refused authentication: " + msg).fail
+                   }
+               }
+      _   <-
+        // user session is started with known rights and password, we need to update users sessions cache to invalidate any change in user access
+        LiftSpringApplicationContext.springContext
+          .getBean(classOf[UserSessionInvalidationFilter])
+          .updateUser(details)
+    } yield ()).runNow
   }
 }

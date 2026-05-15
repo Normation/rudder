@@ -80,13 +80,14 @@ import com.normation.rudder.users.UserManagementService
 import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
+import com.normation.utils.DateFormaterService.toJodaDateTime
+import com.normation.zio.currentOffsetDateTimeUTC
 import enumeratum.*
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
+import java.time.OffsetDateTime
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import sourcecode.Line
 import zio.ZIO
 import zio.syntax.*
@@ -269,7 +270,7 @@ class UserManagementApiImpl(
                 }
                 .map {
                   case (lastClosedSession, lastSession) =>
-                    implicit val previousLogin: Option[DateTime] = lastClosedSession.map(_.creationDate)
+                    implicit val previousLogin: Option[OffsetDateTime] = lastClosedSession.map(_.creationDate)
 
                     // depending on provider property configuration, we should merge or override roles
                     val mainProviderRoleExtension = getProviderRoleExtensions().get(u.managedBy)
@@ -501,13 +502,14 @@ class UserManagementApiImpl(
       UserManagementIO
         .inUserFileSemaphore(for {
           user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be activated")
+          now        <- currentOffsetDateTimeUTC
           jsonStatus <- user.status match {
                           case UserStatus.Active   => JsonStatus(UserStatus.Active).succeed
                           case UserStatus.Disabled => {
                             val eventTrace = EventTrace(
-                              authzToken.qc.actor,
-                              DateTime.now(DateTimeZone.UTC),
-                              "User current disabled status set to 'active' by user management API"
+                              actor = authzToken.qc.actor,
+                              actionDate = now,
+                              reason = "User current disabled status set to 'active' by user management API"
                             )
                             (userRepo.setActive(List(user.id), eventTrace) *> userService.reloadPure())
                               .as(JsonStatus(UserStatus.Active))
@@ -537,13 +539,14 @@ class UserManagementApiImpl(
       UserManagementIO
         .inUserFileSemaphore(for {
           user       <- userRepo.get(id).notOptional(s"User '$id' does not exist therefore cannot be disabled")
+          now        <- currentOffsetDateTimeUTC
           jsonStatus <- user.status match {
                           case UserStatus.Disabled => JsonStatus(UserStatus.Disabled).succeed
                           case UserStatus.Active   => {
                             val eventTrace = EventTrace(
-                              authzToken.qc.actor,
-                              DateTime.now(DateTimeZone.UTC),
-                              "User current active status set to 'disabled' by user management API"
+                              actor = authzToken.qc.actor,
+                              actionDate = now,
+                              reason = "User current active status set to 'disabled' by user management API"
                             )
                             (userRepo.disable(List(user.id), None, List.empty, eventTrace) *> userService.reloadPure())
                               .as(JsonStatus(UserStatus.Disabled))
@@ -607,8 +610,8 @@ class UserManagementApiImpl(
       authz:         Rights,
       info:          UserInfo,
       providersInfo: Map[String, JsonProviderInfo],
-      lastLogin:     Option[DateTime]
-  )(implicit previousLogin: Option[DateTime]): JsonUser = {
+      lastLogin:     Option[OffsetDateTime]
+  )(implicit previousLogin: Option[OffsetDateTime]): JsonUser = {
     // NoRights and AnyRights directly map to known user permissions. AnyRights takes precedence over NoRights.
     if (authz.authorizationTypes.contains(AuthorizationType.AnyRights)) {
       JsonUser.anyRights(
@@ -619,8 +622,8 @@ class UserManagementApiImpl(
         status,
         providersInfo,
         getDisplayTenants(nodePerms),
-        lastLogin = lastLogin,
-        previousLogin = previousLogin
+        lastLogin = lastLogin.map(_.toJodaDateTime),
+        previousLogin = previousLogin.map(_.toJodaDateTime)
       )
     } else if (authz.authorizationTypes.isEmpty || authz.authorizationTypes.contains(AuthorizationType.NoRights)) {
       JsonUser.noRights(
@@ -631,8 +634,8 @@ class UserManagementApiImpl(
         status,
         providersInfo,
         getDisplayTenants(nodePerms),
-        lastLogin = lastLogin,
-        previousLogin = previousLogin
+        lastLogin = lastLogin.map(_.toJodaDateTime),
+        previousLogin = previousLogin.map(_.toJodaDateTime)
       )
     } else {
       JsonUser(
@@ -643,8 +646,8 @@ class UserManagementApiImpl(
         status,
         providersInfo,
         getDisplayTenants(nodePerms),
-        lastLogin = lastLogin,
-        previousLogin = previousLogin
+        lastLogin = lastLogin.map(_.toJodaDateTime),
+        previousLogin = previousLogin.map(_.toJodaDateTime)
       )
     }
   }
@@ -652,7 +655,7 @@ class UserManagementApiImpl(
   implicit def transformDbUserToJsonUser(implicit
       userInfo:      UserInfo,
       nodePerms:     TenantAccessGrant,
-      previousLogin: Option[DateTime]
+      previousLogin: Option[OffsetDateTime]
   ): Transformer[UserSession, JsonUser] = {
     def getDisplayPermissions(userSession: UserSession): JsonRoles = {
       JsonRoles(userSession.permissions.flatMap {
@@ -686,9 +689,9 @@ class UserManagementApiImpl(
           )
         }
       )
-      .withFieldComputed(_.lastLogin, s => Some(s.creationDate))
+      .withFieldComputed(_.lastLogin, s => Some(s.creationDate.toJodaDateTime))
       .withFieldConst(_.tenants, getDisplayTenants(nodePerms))
-      .withFieldConst(_.previousLogin, previousLogin)
+      .withFieldConst(_.previousLogin, previousLogin.map(_.toJodaDateTime))
       .withFieldConst(_.customRights, JsonRights.empty)
       .buildTransformer
   }
@@ -702,7 +705,7 @@ class UserManagementApiImpl(
    */
   private def transformProvidedUser(userInfo: UserInfo, nodePerms: TenantAccessGrant, lastSession: Option[UserSession])(implicit
       allRoles:      Set[Role],
-      previousLogin: Option[DateTime]
+      previousLogin: Option[OffsetDateTime]
   ): JsonUser = {
     lastSession match {
       case None              => {

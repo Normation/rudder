@@ -45,13 +45,12 @@ import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserStatus
 import com.normation.rudder.users.ValidatedUserList
 import com.normation.zio.UnsafeRun
+import com.normation.zio.currentOffsetDateTimeUTC
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import java.io.IOException
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 import zio.*
@@ -120,14 +119,12 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                             .fail
                       },
                       _ => {
-                        userRepository.logCloseSession(
-                          user.getUsername,
-                          DateTime.now(DateTimeZone.UTC),
-                          endSessionReason
-                        ) *>
-                        ApplicationLoggerPure.info(
-                          s"User session for user '${username}' is invalidated because : ${reason}"
-                        )
+                        for {
+                          now <- currentOffsetDateTimeUTC
+                          _   <- userRepository.logCloseSession(user.getUsername, now, endSessionReason)
+                          _   <-
+                            ApplicationLoggerPure.info(s"User session for user '${username}' is invalidated because : ${reason}")
+                        } yield ()
                       }
                     )
                 case _                 =>
