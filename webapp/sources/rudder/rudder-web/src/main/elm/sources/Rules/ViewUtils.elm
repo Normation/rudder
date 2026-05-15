@@ -5,7 +5,7 @@ import Dict exposing (Dict)
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (custom, onClick)
+import Html.Events exposing (custom, onClick, onInput)
 import Json.Decode as Decode
 import List
 import List.Extra
@@ -14,12 +14,14 @@ import NaturalOrdering as N
 import Tuple3
 
 import Rules.DataTypes exposing (..)
+import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 import Compliance.DataTypes exposing (..)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (..)
 import Ui.Datatable exposing (SortOrder(..), sortTable, thClass, Category, getAllCats, getAllElems, getSubElems)
 import Utils.TooltipUtils exposing (buildTooltipContent)
+
 
 onCustomClick : msg -> Html.Attribute msg
 onCustomClick msg =
@@ -1069,3 +1071,124 @@ buildListCategories sep categoryId parentId c =
           List.append currentOption listCategories
     in
       newList
+
+
+viewCrSettingsAlert : ChangeRequestSettings -> Html Msg
+viewCrSettingsAlert cr =
+    if cr.enableChangeRequest then
+        div [class "text-center alert alert-info"]
+        [ i [ class "fa fa-info-circle" ] []
+        , text "Workflows are enabled, your change has to be validated in a change request"
+        ]
+    else
+        text ""
+
+
+actionText : ModalAction -> String
+actionText action =
+    case action of
+        Delete ->
+            "Delete"
+
+        Update ->
+            "Update"
+
+        Create ->
+            "Create"
+
+        Enable ->
+            "Enable"
+
+        Disable ->
+            "Disable"
+
+
+viewChangeAuditForm : ChangeRequestSettings -> Html Msg
+viewChangeAuditForm crSettings =
+    if crSettings.enableChangeMessage || crSettings.enableChangeRequest then
+      div []
+      [ if crSettings.enableChangeRequest then
+          div [class "text-center alert alert-info"]
+          [ i [ class "fa fa-info-circle" ] []
+          , text "Workflows are enabled, your change has to be validated in a change request"
+          ]
+        else
+          text ""
+      , h4 [class "audit-title"] [text "Change audit log"]
+      , ( if crSettings.enableChangeRequest then
+        div[class "form-group"]
+        [ label[]
+           [ text "Change request title"
+          ]
+          , input [type_ "text", class "form-control", onInput (\s -> UpdateCrSettings {crSettings | changeRequestName = s}), value crSettings.changeRequestName ][]
+        ]
+        else
+        text ""
+        )
+      , div[class "form-group"]
+        [ label[]
+          [ text "Change audit message"
+          , text (if crSettings.enableChangeMessage && crSettings.mandatoryChangeMessage then " (required)" else "")
+          ]
+          , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | message = s}), value crSettings.message ][]
+        ]
+      ]
+    else
+      text ""
+
+viewModal :
+    { action : ModalAction
+    , ruleName : String
+    , crSettings : Maybe ChangeRequestSettings
+    , btnMsg : Msg
+    , btnClass : String
+    , btnIconClass : String } -> Html Msg
+viewModal { action, ruleName, crSettings, btnMsg, btnClass, btnIconClass } =
+    let
+        ( auditForm, btnDisabled, changeRequestEnabled ) =
+            case crSettings of
+                Just s  ->
+                    ( viewChangeAuditForm s
+                    , (s.mandatoryChangeMessage && String.isEmpty s.message)
+                    , s.enableChangeRequest
+                    )
+
+                Nothing ->
+                    ( text ""
+                    , False
+                    , False
+                    )
+
+        buttonAttrs =
+            if changeRequestEnabled then
+                [ disabled btnDisabled, class "btn btn-primary", onClick btnMsg ]
+
+            else
+                [ disabled btnDisabled, class btnClass, onClick btnMsg ]
+
+        buttonHtml =
+            if changeRequestEnabled then
+                [ text "Open request" ]
+
+            else
+                [ text (actionText action), text " ", i [ class btnIconClass ] [] ]
+    in
+    div [ tabindex -1, class "modal fade show d-block" ]
+    [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
+    , div [ class "modal-dialog" ] [
+        div [ class "modal-content" ]  [
+          div [ class "modal-header" ] [
+            h5[ class "modal-title" ] [ text (actionText action ++ " rule")]
+          , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
+          ]
+        , div [ class "modal-body" ]
+          [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower (actionText action) ++" rule '"++ ruleName ++"'?")]
+          , auditForm
+          ]
+        , div [ class "modal-footer" ]
+          [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ] [ text "Cancel" ]
+          , button ((disabled btnDisabled) :: buttonAttrs) buttonHtml
+          ]
+        ]
+      ]
+    ]
