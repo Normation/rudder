@@ -390,7 +390,8 @@ class DirectiveEditForm(
                  |var main = document.getElementById("directiveComplianceApp")
                  |var initValues = {
                  |  directiveId : "${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}",
-                 |  contextPath : contextPath
+                 |  contextPath : contextPath,
+                 |  timeZone :  localStorage.getItem('timeZone') ?? 'UTC',
                  |};
                  |var app = Elm.Directivecompliance.init({node: main, flags: initValues});
                  |app.ports.errorNotification.subscribe(function(str) {
@@ -409,7 +410,15 @@ class DirectiveEditForm(
                  |$$("#complianceNav").hide();
                  |}else{
                  |$$("#complianceNav").show();
-                 |}""".stripMargin) // JsRaw OK, input are encoded via encJs
+                 |}
+                 |const recentActivityMain = document.getElementById("directiveRecentActivityApp")
+                 |const recentActivityInitValues = {
+                 |  directiveId : "${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}",
+                 |  contextPath : contextPath
+                 |};
+                 |const recentActivityApp = Elm.DirectiveRecentActivity.init({node: recentActivityMain, flags: initValues});
+                 |
+                 |""".stripMargin) // JsRaw OK, input are encoded via encJs
       )
     )
 
