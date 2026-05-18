@@ -81,7 +81,7 @@
                         </div>
 
                         <div class="row gx-2 gx-lg-3 gx-xl-4 my-2 my-lg-3 my-xl-4">
-                            <div class="col-md-auto">
+                            <div class="col-md-auto mt-2 mt-md-0">
                                 <div id="nodeOverview" class="card h-100">
                                     <h5 class="card-title py-2 px-3 mb-0">Global score breakdown</h5>
                                     <div class="card-body">
@@ -106,7 +106,7 @@
 
                     </div>
                     <lift:authz role="administration_read">
-                        <div class="col-lg-4 col-xl-3 activity-container mb-2 mb-lg-3 mb-xl-4">
+                        <div class="activity-container col-lg-4 col-xl-3 mb-2 mb-lg-3 mb-xl-4">
                             <div class="row h-100">
                                 <div class="col">
                                     <div class="card h-100">
@@ -118,36 +118,28 @@
                                 </div>
                             </div>
                         </div>
-                    <lift:authz role="administration_read">
+                    </lift:authz>
                 </div>
 
                 <div class="row g-2 g-lg-3 g-xl-4 mb-2 mb-lg-3 mb-xl-4 flex-wrap">
                     <div class="col-auto flex-grow-1">
-                        <div id="scoreBreakdown" class="card">
-                            <h5 class="card-title py-2 px-3 mb-0">Score breakdown</h5>
-                            <div class="card-body">
-                              <div class="node-charts gap-1 gap-lg-2 gap-xl-4"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-auto flex-grow-1">
-                        <div id="nodeBreakdown" class="card">
+                        <div id="nodeBreakdown" class="card h-100 canvas-only">
                             <h5 class="card-title py-2 px-3 mb-0">Node breakdown</h5>
                             <div class="card-body">
-                                <div class="node-charts gap-1 gap-lg-2 gap-xl-4">
+                                <div class="node-charts d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4">
 
-                                    <div class="node-chart px-1 px-xl-3 mb-4">
+                                    <div class="node-chart px-1 px-xl-3">
                                         <h4 class="px-2">By OS</h4>
-                                        <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
                                             <canvas id="nodeOs"></canvas>
                                             <div  id="nodeOs-legend"></div>
                                             <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.inventoryInfo" > </div></div>
                                         </div>
                                     </div>
 
-                                    <div class="node-chart px-1 px-xl-3 mb-4">
+                                    <div class="node-chart px-1 px-xl-3">
                                         <h4 class="px-2">By agent version</h4>
-                                        <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
                                             <canvas id="nodeAgents" > </canvas>
                                             <div  id="nodeAgents-legend"></div>
                                             <div data-lift="lazy-load?template=lazy-load-spinner"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
@@ -155,6 +147,22 @@
                                     </div>
 
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto flex-grow-1">
+                        <div class="card canvas-only h-100">
+                            <h5 class="card-title py-2 px-3 mb-0">Patches & vulnerabilities</h5>
+                            <div class="card-body">
+                                <div class="patch-vuln-charts d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-auto flex-grow-1">
+                        <div class="card canvas-only h-100">
+                            <h5 class="card-title py-2 px-3 mb-0">Security benchmarks</h5>
+                            <div class="card-body">
+                                <div class="security-benchmark-charts d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4"></div>
                             </div>
                         </div>
                     </div>

@@ -37,7 +37,7 @@
 
 @use 'rudder-variables' as rudder;
 
-$doughnut-size : 180px;
+$doughnut-size : 160px;
 
 .homePage > .container-fluid{
   height: calc(100vh - 50px);
@@ -54,6 +54,9 @@ $doughnut-size : 180px;
   overflow: hidden;
 }
 
+.homePage .col-auto:not(:has(> .canvas-only canvas)){
+  display: none !important;
+}
 .homePage a.card{
   $duration: .2s;
 
@@ -147,14 +150,7 @@ $doughnut-size : 180px;
   box-shadow: inset 0 0 2px rgb(0 0 0 / 10%);
 }
 
-/* Node Breakdown */
-.node-charts {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.node-charts .node-chart canvas,
-#nodeCompliance,
+.homePage canvas,
 .placeholder-doughnut-chart{
   width : $doughnut-size !important;
   height: $doughnut-size !important;
@@ -211,7 +207,7 @@ $doughnut-size : 180px;
 .activity-container{
 
   .card-body{
-    height: 350px;
+    height: 300px;
     overflow: auto;
     padding: 0;
   }

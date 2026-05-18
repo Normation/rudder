@@ -75,15 +75,26 @@ const homePage = (
 
   doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]));
 
+  const complianceContainer = ".node-charts";
+  const patchVulnContainer = ".patch-vuln-charts";
+  const benchmarkContainer = ".security-benchmark-charts";
+  const chartContainers = {
+    'compliance': complianceContainer,
+    'system-updates': patchVulnContainer,
+    'cve': patchVulnContainer,
+  };
+
   scoreDetails.forEach(function(score) {
-    $("#scoreBreakdown .node-charts").append(
-              `<div class="node-chart px-1 px-xl-3 mb-4">
-                <h4 class="px-2">${score.name}</h4>
-                <div class="d-flex align-items-center justify-content-between">
+    const chartContainer = chartContainers[score.scoreId] ?? benchmarkContainer;
+    $(chartContainer).append(
+              `<div class="node-chart px-1 px-xl-3">
+                <h4 class="px-2">${score.scoreId == "compliance" ? "By compliance" : score.name}</h4>
+                <div class="d-flex align-items-center">
                   <canvas id="score-${score.scoreId}" > </canvas>
                   <div  id="score-${score.scoreId}-legend"></div>
                 </div>
-              </div>`)
+              </div>`
+    )
     var complianceHColors = score.data.colors.map(x => complianceHoverColors[x]);
     var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
     var noScoreIndex = score.data.labels.indexOf("No score")
