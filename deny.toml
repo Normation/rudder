@@ -42,8 +42,16 @@ unused-allowed-license = "allow"
 ignore = [
     # No fix for rand 0.8, and risk is acceptable
     "RUSTSEC-2026-0097",
-    # We don't use diasel with sqlite backend
+    # We don't use diesel with sqlite backend
     "RUSTSEC-2026-0111",
+    # We don't use diesel with sqlite backend
+    "RUSTSEC-2026-0137",
+    # We don't use diesel with sqlite backend
+    "RUSTSEC-2026-0135",
+    # We don't use diesel with MySQL backend
+    "RUSTSEC-2026-0134",
+    # We don't use diesel CopyToQuery with the PostgreSQL backend
+    "RUSTSEC-2026-0136",
 ]
 
 [bans]
