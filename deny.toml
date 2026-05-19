@@ -40,6 +40,10 @@ unused-allowed-license = "allow"
 
 [advisories]
 ignore = [
+    # No fix for rand 0.8, and risk is acceptable
+    "RUSTSEC-2026-0097",
+    # We don't use diesel with sqlite backend
+    "RUSTSEC-2026-0111",
     # We don't use diesel with sqlite backend
     "RUSTSEC-2026-0137",
     # We don't use diesel with sqlite backend
