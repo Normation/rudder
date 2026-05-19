@@ -2,8 +2,10 @@ port module Rules exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Date
 import Dict
 import Dict.Extra
+import File.Download
 import Http exposing (..)
 import Result
 import List.Extra
@@ -13,15 +15,11 @@ import Rudder.Filters
 import Rudder.Table exposing (OutMsg(..))
 import Rules.ChangeRequest exposing (initCrSettings)
 import Task
-import Time
-import Time.DateTime
-import Time.Iso8601
 import UUID
 import Json.Encode exposing (..)
-
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
-import Rules.Init exposing (entryToStringList, init)
+import Rules.Init exposing (init)
 import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
 
@@ -724,19 +722,33 @@ update msg model =
       in
       handleOutMsg model groupsTable tabMsg outMsgOpt
 
-    ExportCsvWithCurrentDate time ->
+    -- Export full rules table to CSV
+    ExportCsvWithCurrentDate date ->
       let
-        timeStr =
-          time
-          |> Time.DateTime.fromPosix
-          |> Time.Iso8601.fromDateTime
-          -- remove millis
-          |> String.toList |> List.take 10 |> String.fromList
+        timeStr = date |> Date.format "yyyy-MM-dd"
         filename = "rudder_rules_" ++ timeStr
         (groupsTable, tabMsg, outMsgOpt) =
             Rudder.Table.updateExportToCsv model.rulesTable filename
       in
       handleOutMsg model groupsTable tabMsg outMsgOpt
+
+    -- Export compliance sorted by directive of a single rule to CSV
+    ExportRuleComplianceByDirective ruleId date ->
+        let
+          timeStr = date |> Date.format "yyyy-MM-dd"
+          filename = "rudder_rule_" ++ (ruleId.value) ++ "_compliance_by_directive_" ++ timeStr ++ ".csv"
+          cmd = getRuleComplianceByDirective ruleId filename model
+        in
+        (model, cmd)
+
+    RuleComplianceCsvExported filename res ->
+      case res of
+        Ok content ->
+          (model, File.Download.string filename "text/csv" content)
+        Err err ->
+          processApiError "Export rule compliance" err model
+
+
 
 toRuleWithCompliance : Model -> Rule -> RuleWithCompliance
 toRuleWithCompliance model rule =
@@ -794,7 +806,7 @@ handleOutMsg model groupsTable tabMsg outMsgOpt =
             (newModel, Cmd.batch [newMsg, tabMsg])
 
         Just CsvExportRequested ->
-            (model, Task.perform ExportCsvWithCurrentDate Time.now)
+            (model, Task.perform ExportCsvWithCurrentDate Date.today)
 
         _ ->
             ( {model | rulesTable = groupsTable}, tabMsg )

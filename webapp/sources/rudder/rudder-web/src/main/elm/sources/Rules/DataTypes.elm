@@ -1,11 +1,11 @@
 module Rules.DataTypes exposing (..)
 
 import Compliance.DataTypes exposing (..)
+import Date
 import Dict exposing (Dict)
 import Http exposing (Error)
 import Rudder.Table
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
-import Time
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
 import Ui.Datatable exposing (TableFilters, SortOrder, Category, getAllElems, getAllCats, getSubElems)
@@ -383,4 +383,6 @@ type Msg
     | RefreshReportsTable RuleId
     | UpdateCrSettings ChangeRequestSettings
     | RudderTableMsg (Rudder.Table.Msg Msg)
-    | ExportCsvWithCurrentDate Time.Posix
+    | ExportCsvWithCurrentDate Date.Date
+    | ExportRuleComplianceByDirective RuleId Date.Date
+    | RuleComplianceCsvExported String (Result Error String)

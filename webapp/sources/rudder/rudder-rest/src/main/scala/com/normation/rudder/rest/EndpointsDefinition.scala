@@ -1052,6 +1052,14 @@ object RuleApi       extends Enum[RuleApi] with ApiModuleProvider[RuleApi]      
     val authz:                  List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
   }
 
+  case object GetRuleComplianceByDirective extends RuleApi with OneParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance by directive for the given rule"
+    val (action, path) = GET / "rules" / "{id}" / "compliance" / "byDirective"
+    override def dataContainer: Option[String]          = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+
   def endpoints: List[RuleApi] = values.toList.sortBy(_.z)
 
   def values = findValues

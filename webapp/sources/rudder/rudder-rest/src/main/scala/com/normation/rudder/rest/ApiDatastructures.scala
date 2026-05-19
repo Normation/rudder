@@ -276,6 +276,7 @@ trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.
 trait StartsAtVersion21 extends EndpointSchema { val versions: ApiV.From = ApiV.From(21) } // Rudder 8.3
 trait StartsAtVersion22 extends EndpointSchema { val versions: ApiV.From = ApiV.From(22) } // Rudder 9.0
 trait StartsAtVersion23 extends EndpointSchema { val versions: ApiV.From = ApiV.From(23) } // Rudder 9.1
+trait StartsAtVersion24 extends EndpointSchema { val versions: ApiV.From = ApiV.From(24) } // Rudder 9.2
 
 // utility extension trait to define the kind of API
 trait PublicApi   extends EndpointSchema { val kind: ApiKind.Public.type = ApiKind.Public     }

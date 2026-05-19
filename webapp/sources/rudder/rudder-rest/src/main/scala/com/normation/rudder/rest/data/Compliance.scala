@@ -41,6 +41,8 @@ import cats.Order
 import cats.data.NonEmptyList
 import cats.syntax.list.*
 import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
@@ -48,6 +50,7 @@ import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
+import com.normation.utils.Csv
 import enumeratum.*
 import fs2.Chunk
 import io.scalaland.chimney.*
@@ -57,6 +60,7 @@ import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
 import scala.collection.immutable
 import zio.json.JsonEncoder
+import zio.syntax.ToZio
 
 /**
  * Here, we want to present two views of compliance:
@@ -454,9 +458,8 @@ object CsvCompliance {
 
   def recurseComponent(
       component: ByRuleComponentCompliance,
-      block:     List[String]
-  ): Seq[(List[String], String, String, String, String, String)] = {
-    import com.normation.rudder.rest.data.ComplianceApiData.*
+      block:     List[ComponentField]
+  ): Seq[RuleComponentResult] = {
 
     component match {
       case component: ByRuleValueCompliance =>
@@ -464,18 +467,18 @@ object CsvCompliance {
           node.values.flatMap { value =>
             value.messages.map { report =>
               (
-                block,
-                component.name,
-                node.name,
-                value.componentValue,
-                report.reportType.serialize,
-                report.message.getOrElse("")
+                BlockField(block),
+                ComponentField(component),
+                NodeField(node),
+                ValueField(value),
+                StatusField(report),
+                MessageField(report)
               )
             }
           }
         }
       case component: ByRuleBlockCompliance =>
-        component.subComponents.flatMap(c => recurseComponent(c, block ::: (component.name :: Nil)))
+        component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component) :: Nil)))
     }
   }
 
@@ -486,14 +489,93 @@ object CsvCompliance {
           c                                            <- r.components
           (block, component, node, value, status, msg) <- recurseComponent(c, Nil)
         } yield {
-          List(r.name, block.mkString(","), component, node, value, status, msg)
+          List(r.name, block, component, node, value, status, msg)
         }
       }
-      // csvFormat take care of the line separator
+      // csvFormat takes care of line separators
       val out      = new lang.StringBuilder()
       csvFormat.printRecord(out, "Rule", "Block", "Component", "Node", "Value", "Status", "Message")
       csvLines.foreach(l => csvFormat.printRecord(out, l*))
       out.toString
+    }
+  }
+
+  /** Trait that contains Csv[A] and Csv.Header.One[A] instances 
+   * that are common to all values that can be converted to CSV */
+  trait CsvField[A <: String] {
+    given Csv[A] = Csv.instance(a => a)
+    given Csv.Header.One[A] with {}
+  }
+
+  opaque type DirectiveField = String
+  object DirectiveField extends CsvField[DirectiveField] {
+    def apply(directive: ByRuleDirectiveCompliance) = directive.name
+  }
+
+  opaque type BlockField = String
+  object BlockField extends CsvField[BlockField] {
+    def apply(block: List[ComponentField]) = block.mkString(",")
+  }
+
+  opaque type ComponentField = String
+  object ComponentField extends CsvField[ComponentField] {
+    def apply(value: ByRuleValueCompliance) = value.name
+    def apply(block: ByRuleBlockCompliance) = block.name
+  }
+
+  opaque type NodeField = String
+  object NodeField extends CsvField[NodeField] {
+    def apply(node: ByRuleNodeCompliance) = node.name
+  }
+
+  opaque type ValueField = String
+  object ValueField extends CsvField[ValueField] {
+    def apply(value: ComponentValueStatusReport) = value.componentValue
+  }
+
+  opaque type StatusField = String
+  object StatusField extends CsvField[StatusField] {
+    import com.normation.rudder.rest.data.ComplianceApiData.serialize
+    def apply(report: MessageStatusReport) = report.reportType.serialize
+  }
+
+  opaque type MessageField = String
+  object MessageField extends CsvField[MessageField] {
+    def apply(report: MessageStatusReport) = report.message.getOrElse("")
+  }
+
+  type RuleComponentResult =
+    (block: BlockField, component: ComponentField, node: NodeField, value: ValueField, status: StatusField, message: MessageField)
+
+  case class RuleComplianceCsv(
+      directive: DirectiveField,
+      block:     BlockField,
+      component: ComponentField,
+      node:      NodeField,
+      value:     ValueField,
+      status:    StatusField,
+      message:   MessageField
+  ) derives Csv
+  object RuleComplianceCsv {
+    import com.normation.rudder.rest.data.CsvCompliance.RuleComponentResult
+
+    given (using directive: ByRuleDirectiveCompliance): Transformer[RuleComponentResult, RuleComplianceCsv] = {
+      Transformer
+        .define[RuleComponentResult, RuleComplianceCsv]
+        .withFieldConst(_.directive, DirectiveField(directive))
+        .buildTransformer
+    }
+
+    given Transformer[ByRuleRuleCompliance, Seq[RuleComplianceCsv]] = (rule: ByRuleRuleCompliance) => {
+      rule.directives.flatMap(d => {
+        for {
+          c   <- d.components
+          res <- recurseComponent(c, Nil)
+        } yield {
+          given ByRuleDirectiveCompliance = d
+          res.transformInto[RuleComplianceCsv]
+        }
+      })
     }
   }
 }
@@ -921,6 +1003,30 @@ object ComplianceApiData {
         .withFieldRenamed(_.compliance, _.complianceDetails)
         .buildTransformer
     }
+
+    final case class RuleComplianceByDirectiveJson(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        mode:              ComplianceModeName,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        directives:        Option[Seq[ByRuleDirectiveComplianceApi]]
+    ) derives JsonEncoder
+
+    given ruleComplianceByDirectiveJson(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleRuleCompliance, RuleComplianceByDirectiveJson] = {
+      Transformer
+        .define[ByRuleRuleCompliance, RuleComplianceByDirectiveJson]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(
+          _.directives,
+          x => if (level < 2) None else Some(x.directives.map(_.transformInto[ByRuleDirectiveComplianceApi]))
+        )
+        .buildTransformer
+    }
   }
 
   // GROUPS
@@ -1172,4 +1278,47 @@ object ComplianceApiData {
 
   }
 
+}
+
+object ComplianceUtils {
+  def extractComplianceLevel(params: Map[String, List[String]]): IOResult[Option[Int]] = {
+    params.get("level") match {
+      case None | Some(Nil) => None.succeed
+      case Some(h :: tail)  => // only take into account the first level param is several are passed
+        try {
+          Some(h.toInt).succeed
+        } catch {
+          case ex: NumberFormatException =>
+            Inconsistency(s"level (displayed level of compliance details) must be an integer, was: '${h}'").fail
+        }
+    }
+  }
+
+  def extractPercentPrecision(params: Map[String, List[String]]): IOResult[Option[CompliancePrecision]] = {
+    params.get("precision") match {
+      case None | Some(Nil) => None.succeed
+      case Some(h :: tail)  => // only take into account the first level param is several are passed
+        for {
+          extracted <- try {
+                         h.toInt.succeed
+                       } catch {
+                         case ex: NumberFormatException =>
+                           Inconsistency(s"percent precision must be an integer, was: '${h}'").fail
+                       }
+          level     <- CompliancePrecision.fromPrecision(extracted).toIO
+        } yield {
+          Some(level)
+        }
+
+    }
+  }
+
+  def extractComplianceFormat(params: Map[String, List[String]]): IOResult[ComplianceFormat] = {
+    params.get("format") match {
+      case None | Some(Nil) | Some("" :: Nil) =>
+        ComplianceFormat.JSON.succeed // by default if no there is no format, should I choose the only one available ?
+      case Some(format :: _)                  =>
+        ComplianceFormat.fromValue(format).left.map(Inconsistency.apply).toIO
+    }
+  }
 }

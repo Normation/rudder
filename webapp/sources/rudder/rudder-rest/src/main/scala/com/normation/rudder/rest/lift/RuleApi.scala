@@ -50,10 +50,16 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.repository.*
 import com.normation.rudder.rest.{RuleApi as API, *}
+import com.normation.rudder.rest.data.ComplianceApiData
+import com.normation.rudder.rest.data.ComplianceFormat
+import com.normation.rudder.rest.data.ComplianceUtils
+import com.normation.rudder.rest.data.CsvCompliance.RuleComplianceCsv
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.services.policies.RuleApplicationStatusService
@@ -61,17 +67,21 @@ import com.normation.rudder.services.workflows.*
 import com.normation.rudder.tenants.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
+import com.normation.utils.Csv.toCsv
 import com.normation.utils.StringUuidGenerator
+import io.scalaland.chimney.syntax.transformInto
 import net.liftweb.http.LiftResponse
+import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import scala.collection.MapView
 import zio.*
 import zio.syntax.*
 
 class RuleApi(
-    zioJsonExtractor: ZioJsonExtractor,
-    service:          RuleApiService14,
-    uuidGen:          StringUuidGenerator
+    zioJsonExtractor:  ZioJsonExtractor,
+    service:           RuleApiService14,
+    uuidGen:           StringUuidGenerator,
+    complianceService: ComplianceAPIService
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
@@ -90,6 +100,7 @@ class RuleApi(
       case API.DeleteRuleCategory              => DeleteRuleCategory
       case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
       case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
+      case API.GetRuleComplianceByDirective    => GetRuleComplianceByDirective
     }
   }
 
@@ -286,6 +297,56 @@ class RuleApi(
         rid <- RuleId.parse(id).toIO
         res <- service.unloadRule(rid, params, authzToken.qc.actor)
       } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
+    }
+  }
+
+  object GetRuleComplianceByDirective extends LiftApiModule {
+    override val schema: OneParam = API.GetRuleComplianceByDirective
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        ruleId:     String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      import ComplianceApi.*
+
+      (for {
+        t1 <- Clock.instant
+
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        format    <- ComplianceUtils.extractComplianceFormat(req.params)
+        id        <- RuleId.parse(ruleId).toIO.chainError(s"Parameter '${ruleId}' doesn't have a valid rule ID format'")
+
+        rule <- complianceService.getRuleCompliance(id, level)
+
+        t2 <- Clock.instant
+        _  <- TimingDebugLoggerPure.trace(
+                s"API GetRuleId - getting rule compliance in ${Duration.fromInterval(t1, t2).toString} ms"
+              )
+
+      } yield (level, precision, format, rule))
+        .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, format, rule) =>
+          format match {
+            case ComplianceFormat.CSV  =>
+              PlainTextResponse(rule.transformInto[Seq[RuleComplianceCsv]].toCsv) // CSVFormat takes care of line separators
+            case ComplianceFormat.JSON =>
+              // by default, all details are displayed
+              given l:        Int                 = level.getOrElse(10)
+              given p:        CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+              given prettify: Boolean             = params.prettify
+
+              val complianceByDirective = rule
+                .transformInto[ComplianceApiData.JsonByRuleCompliance.RuleComplianceByDirectiveJson]
+
+              RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema), complianceByDirective, None)
+          }
+        }
     }
   }
 
