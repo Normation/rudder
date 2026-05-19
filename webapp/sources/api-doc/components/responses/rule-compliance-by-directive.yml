@@ -1,0 +1,140 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+type: object
+required:
+  - result
+  - action
+  - data
+properties:
+  result:
+    type: string
+    description: Result of the request
+    enum:
+      - success
+      - error
+    example: success
+  action:
+    type: string
+    description: The id of the action
+    enum:
+      - getRuleComplianceByDirective
+  data:
+    type: object
+    required:
+      - id
+      - mode
+      - compliance
+      - complianceDetails
+      - directives
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: id of the rule
+        example: f37f4928-fcb5-4acf-a422-d40f123a9670
+      mode:
+        type: string
+        enum:
+          - full-compliance
+          - changes-only
+          - reports-disabled
+      compliance:
+        type: number
+        format: float
+        description: Rule compliance level
+        example: 57.43
+      complianceDetails:
+        $ref: '../schemas/compliance-details.yml'
+      directives:
+        type: array
+        items:
+          type: object
+          required:
+            - id
+            - name
+            - compliance
+            - complianceDetails
+            - components
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: id of the directive
+              example: 835c068d-f01e-44c0-a0f4-7a436d46ad35
+            name:
+              type: string
+              description: Name of the directive
+              example: Test users
+            policyMode:
+              type: string
+              enum:
+                - default
+                - audit
+                - enforce
+              description: Policy mode of the directive
+              example: audit
+            compliance:
+              type: number
+              format: float
+              description: Directive compliance level
+              example: 100.0
+            complianceDetails:
+              $ref: '../schemas/compliance-details.yml'
+            components:
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - compliance
+                  - complianceDetails
+                  - nodes
+                properties:
+                  name:
+                    type: string
+                    description: Name of the component
+                    example: MOTD Configuration
+                  compliance:
+                    type: number
+                    format: float
+                    description: Directive compliance level
+                    example: 100.0
+                  complianceDetails:
+                    $ref: '../schemas/compliance-details.yml'
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - compliance
+                        - complianceDetails
+                        - values
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: id of the node
+                          example: 1c0957c1-9101-464e-b4cf-8983a5293a07
+                        name:
+                          type: string
+                          description: Name of the node
+                          example: server.rudder.local
+                        compliance:
+                          type: number
+                          format: float
+                          description: Directive compliance level
+                          example: 83.34
+                        complianceDetails:
+                          $ref: '../schemas/compliance-details.yml'
+                        policyMode:
+                          type: string
+                          enum:
+                            - default
+                            - audit
+                            - enforce
+                          description: Policy mode of the directive
+                          example: audit
+                        values:
+                          $ref: '../schemas/compliance-values.yml'

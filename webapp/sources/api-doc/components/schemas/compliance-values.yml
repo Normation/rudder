@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+type: array
+items:
+  type: object
+  required:
+    - value
+    - reports
+  properties:
+    value:
+      type: string
+      example: Hello John Doe
+    reports:
+      type: array
+      items:
+        type: object
+        required:
+          - status
+        properties:
+          status:
+            type: string
+            example: successAlreadyOK
+          message:
+            type: string
+            example: The MOTD is correctly configured with "Hello John Doe"

@@ -1,6 +1,6 @@
 module Rules.ViewTabDirectives exposing (..)
 
-import Date as Time
+import Date
 import Dict
 import Dict.Extra
 import Html exposing (..)
@@ -144,9 +144,7 @@ directivesTab model details =
           [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
           , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
           ]
-        , button
-            [class "btn btn-sm btn-primary btn-export me-2", onClick (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByDirective rule.id) Time.today)) ]
-            [ text "Export " , i [ class "fa fa-download" ] [] ]
+        , exportToCsvButton (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByDirective rule.id) Date.today))
         , displayComplianceFilters complianceFilters UpdateComplianceFilters
         )
 

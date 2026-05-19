@@ -329,6 +329,10 @@ paths:
     $ref: paths/rules/compliance.yml
   "/rules/{ruleId}/compliance":
     $ref: paths/rules/compliance-id.yml
+  "/rules/{ruleId}/compliance/byDirective":
+    $ref: paths/rules/compliance-by-directive.yml
+  "/rules/{ruleId}/compliance/byNode":
+    $ref: paths/rules/compliance-by-node.yml
   "/branding":
     $ref: paths/branding/conf.yml
   "/branding/reload":

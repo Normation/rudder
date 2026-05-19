@@ -1,5 +1,6 @@
 module Rules.ViewTabNodes exposing (..)
 
+import Date
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -7,6 +8,7 @@ import Html.Events exposing (onClick, onInput)
 import List.Extra
 import List
 import Maybe.Extra
+import Task
 import Tuple3
 
 import Rules.DataTypes exposing (..)
@@ -15,6 +17,7 @@ import Rules.ViewUtils exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
 import Ui.Datatable exposing (SortOrder(..), Category, getAllElems, generateLoadingTable)
+import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
 nodesTab : Model -> RuleDetails -> Html Msg
@@ -80,7 +83,9 @@ nodesTab model details =
               [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
               , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
               ]
-            , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]
+            , div [class "ms-auto my-auto"]
+              [ exportToCsvButton (CallApi model.ui.saving (\_ -> Task.perform (ExportRuleComplianceByNode details.rule.id) Date.today))
+              , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable details.rule.id)][i [class "fa fa-refresh"][]]]
             ]
           , displayComplianceFilters complianceFilters UpdateComplianceFilters
           ]
@@ -109,7 +114,7 @@ nodesTab model details =
     div[class "tab-table-content"]
     ( List.append
       [ div [class "table-title mb-3"]
-        [ h4 [class "mb-0"][text "Compliance by nodes"]
+        [ h4 [class "mb-0"][text "Compliance by node"]
         , ( if model.ui.hasWriteRights then
             button [class "btn btn-default btn-icon", onClick (UpdateRuleForm {details | ui = {ui | editGroups = True}, tab = Groups})]
             [ text "Select groups", i[class "fa fa-plus-circle" ][]]

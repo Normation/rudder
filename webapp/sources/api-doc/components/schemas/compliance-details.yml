@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+type: object
+properties:
+  successAlreadyOK:
+    type: number
+    format: float
+    example: 100.0
+  noReport:
+    type: number
+    format: float
+    example: 0.0
+  successNotApplicable:
+    type: number
+    format: float
+    example: 0.0
+  unexpectedMissingComponent:
+    type: number
+    format: float
+    example: 0.0
+  error:
+    type: number
+    format: float
+    example: 0.0
+  unexpectedUnknownComponent:
+    type: number
+    format: float
+    example: 0.0
+  successRepaired:
+    type: number
+    format: float
+    example: 0.0
