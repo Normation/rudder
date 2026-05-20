@@ -1,6 +1,7 @@
 [workspace]
 members = [
            "policies/agent",
+           "policies/agentd",
            "policies/rudderc",
            "policies/rudder-module-type",
            "policies/rudder-cli",
