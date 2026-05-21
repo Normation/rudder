@@ -39,7 +39,7 @@
 bundle agent file_from_shared_folder(source, path, hash_type)
 {
   vars:
-      "class_prefix" string => "file_from_shared_folder_${canonified_path}";
+      "class_prefix" string =>  canonify("file_from_shared_folder_${path}");
 
       "audit_arg"    string => "";
     (global_dry_run|dry_run)::
