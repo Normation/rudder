@@ -39,9 +39,7 @@ properties:
     format: rfc3339
     example: 2025-05-10T23:59:59Z
   tenants:
-    description: a comma separated list of tenants allowed for that account. See tenant documentation for syntax.
-    type: string
-    example: "*"
+    $ref: './tenant-ids.yml'
   authorizationType:
     description: >-
       Authorization type for that account: 

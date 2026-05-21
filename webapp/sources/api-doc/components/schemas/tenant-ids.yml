@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+type: string
+description: a comma separated list of tenant IDs (validated with non empty alpha-num and hyphen) allowed for that account, or special value "\*" / "-".
+oneOf:
+  - const: '*'
+  - const: '-'
+  - pattern: '^([A-Za-z0-9][A-Za-z0-9_-]*)(,([A-Za-z0-9][A-Za-z0-9_-]*))*$'
+example: '*'
