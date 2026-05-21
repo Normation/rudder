@@ -368,7 +368,7 @@ limitations under the License.
     <scala-version>3.8.3</scala-version>
     <scala-binary-version>3</scala-binary-version>
     <scala-xml-version>2.4.0</scala-xml-version>
-    <lift-version>4.0.0-RC1</lift-version>
+    <lift-version>4.0.0</lift-version>
     <slf4j-version>2.0.17</slf4j-version>
     <logback-version>1.5.32</logback-version>
     <janino-version>3.1.12</janino-version>
@@ -379,7 +379,7 @@ limitations under the License.
     <commons-text-version>1.15.0</commons-text-version>
     <commons-codec-version>1.22.0</commons-codec-version>
     <!-- keep M4 because https://issues.rudder.io/issues/28527 -->
-    <commons-fileupload>2.0.0-M4</commons-fileupload>
+    <commons-fileupload>2.0.0-M5</commons-fileupload>
     <commons-csv-version>1.14.1</commons-csv-version>
     <jgit-version>7.6.0.202603022253-r</jgit-version>
     <spring-version>7.0.7</spring-version>
@@ -565,10 +565,6 @@ limitations under the License.
         <artifactId>lift-util_3</artifactId>
         <version>${lift-version}</version>
         <exclusions>
-          <exclusion>
-            <artifactId>scala3-compiler_3</artifactId>
-            <groupId>org.scala-lang</groupId>
-          </exclusion>
           <exclusion>
             <artifactId>mail</artifactId>
             <groupId>javax.mail</groupId>
