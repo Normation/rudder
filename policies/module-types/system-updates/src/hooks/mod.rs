@@ -83,7 +83,6 @@ pub trait RunHooks: ToString {
             match self.is_runnable(p.as_path()) {
                 Ok(()) => {
                     res.stdout(format!("Running hook '{}'", p.display()));
-                    res.stderr(format!("Running hook '{}'", p.display()));
                     rudder_info!("Running hook '{}'", p.display());
                     let hook_res = ResultOutput::command(
                         cmd,
