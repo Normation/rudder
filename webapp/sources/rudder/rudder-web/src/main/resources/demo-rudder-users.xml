@@ -94,6 +94,6 @@
 
 <authentication hash="argon2id" case-sensitivity="true">
   <!--
-    <user name="NAME" password="REPLACE_BY_HASH" permissions="ROLE" />
+    <user name="NAME" password="REPLACE_BY_HASH" permissions="ROLE" tenants="*" />
   -->
 </authentication>
