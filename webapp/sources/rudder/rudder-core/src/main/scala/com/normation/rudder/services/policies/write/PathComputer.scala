@@ -41,6 +41,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentType.CfeCommunity
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FilenameUtils
@@ -172,7 +173,7 @@ class PathComputerImpl(
                 s"Can not find the parent node with id '${pid.value}' of node '${toNode.fqdn}' (${toNodeId.value}) when trying to build the policies files for node ${fromNodeId.value}"
               )
           result <- parent match {
-                      case root if root.id == NodeId("root") =>
+                      case root if root.id == Constants.ROOT_POLICY_SERVER_ID =>
                         // root is a specific case, it is the root of everything
                         recurseComputePath(fromNodeId, root.id, path, allNodeConfig, root.id :: chain)
 
