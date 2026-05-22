@@ -312,8 +312,8 @@ class TestMigrateTableCampaignEvents extends DBCommon {
             CampaignId("1c2fceec"),
             "test1 #2",
             CampaignEventState.Finished,
-            "2024-04-01 10:00:00+00".dateJT,
-            "2024-04-01 16:00:00+00".dateJT,
+            OffsetDateTime.parse("2024-04-01T10:00:00+00"),
+            OffsetDateTime.parse("2024-04-01T16:00:00+00"),
             CampaignType("software-update")
           )
         )
@@ -328,8 +328,8 @@ class TestMigrateTableCampaignEvents extends DBCommon {
           None,
           Some(5),
           None,
-          afterDate = Some("2024-03-01 10:00:00+00".dateJT),
-          beforeDate = Some("2024-05-01 10:00:00+00".dateJT),
+          afterDate = Some(DateTime.parse("2024-03-01T10:00:00+00")),
+          beforeDate = Some(DateTime.parse("2024-05-01T10:00:00+00")),
           Some(CampaignSortOrder.StartDate),
           Some(CampaignSortDirection.Desc)
         )
@@ -351,15 +351,15 @@ class TestMigrateTableCampaignEvents extends DBCommon {
         CampaignId("1c2fceec"),
         "test new #1",
         CampaignEventState.Scheduled,
-        "2024-04-01 10:00:00+00".dateJT,
-        "2024-04-01 16:00:00+00".dateJT,
+        OffsetDateTime.parse("2024-04-01T10:00:00+00"),
+        OffsetDateTime.parse("2024-04-01T16:00:00+00"),
         CampaignType("software-update")
       )
 
       val s = e.copy(
         state = CampaignEventState.Skipped("user asked to skip event"),
-        start = "2024-04-02 10:00:00+00".dateJT,
-        end = "2024-04-02 10:00:00+00".dateJT
+        start = OffsetDateTime.parse("2024-04-02T10:00:00+00"),
+        end = OffsetDateTime.parse("2024-04-02T10:00:00+00")
       )
 
       val res = (for {
@@ -386,15 +386,15 @@ class TestMigrateTableCampaignEvents extends DBCommon {
         CampaignId("77d4cb38"),
         "testing time #7",
         CampaignEventState.Skipped("User skipped campaign event"),
-        "2024-03-26 10:59:00+00".dateJT,
-        "2024-03-26 11:59:00+00".dateJT,
+        OffsetDateTime.parse("2024-03-26T10:59:00+00"),
+        OffsetDateTime.parse("2024-03-26T11:59:00+00"),
         CampaignType("system-update")
       )
 
       val s = e.copy(
         state = CampaignEventState.Skipped("user asked to skip event"),
-        start = "2024-04-02 10:00:00+00".dateJT,
-        end = "2024-04-02 10:00:00+00".dateJT
+        start = OffsetDateTime.parse("2024-04-02T10:00:00+00"),
+        end = OffsetDateTime.parse("2024-04-02T10:00:00+00")
       )
 
       val expectedUpdate = s.copy(state = e.state) // keep state

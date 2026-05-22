@@ -180,6 +180,34 @@ class DateFormaterServiceTest extends ZIOSpecDefault {
           equalTo(DateFormaterService.serialize(input.toJoda))
         )
       }
-    })
+    }),
+    suite("getDisplayDate")(
+      test("should display the same date using joda.DataTime and Instant") {
+        check(
+          Gen
+            .offsetDateTime(
+              min = Instant.EPOCH.atOffset(ZoneOffset.UTC),
+              max = Instant.parse("9999-01-01T00:00:00Z").atOffset(ZoneOffset.UTC)
+            )
+        ) { input =>
+          assert(DateFormaterService.getDisplayDate(input.toInstant))(
+            equalTo(DateFormaterService.getDisplayDate(input.toJodaDateTime))
+          )
+        }
+      },
+      test("should display the same date using joda.DataTime and Instant") {
+        check(
+          Gen
+            .offsetDateTime(
+              min = Instant.EPOCH.atOffset(ZoneOffset.UTC),
+              max = Instant.parse("9999-01-01T00:00:00Z").atOffset(ZoneOffset.UTC)
+            )
+        ) { input =>
+          assert(DateFormaterService.getDisplayDate(input))(
+            equalTo(DateFormaterService.getDisplayDate(input.toJodaDateTime))
+          )
+        }
+      }
+    )
   ) @@ TestAspect.shrinks(0)
 }

@@ -42,13 +42,13 @@ import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.ScheduledType
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.json.implicits.*
-import com.normation.utils.DateFormaterService.toJavaInstant
 import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.time.Instant
+import java.time.OffsetDateTime
 import org.joda.time.DateTime
 import zio.*
 import zio.interop.catz.*
@@ -102,7 +102,6 @@ trait CampaignEventRepository {
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
-  import com.normation.rudder.db.Doobie.DateTimeMeta
   import doobie.*
 
   implicit val campaignEventStateMeta: Meta[CampaignEventStateType] =
@@ -179,8 +178,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignId:   CampaignId,
       name:         String,
       state:        CampaignEventStateType,
-      start:        DateTime,
-      end:          DateTime,
+      start:        OffsetDateTime,
+      end:          OffsetDateTime,
       campaignType: CampaignType
   )
 
@@ -201,8 +200,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       campaignId:   CampaignId,
       name:         String,
       state:        CampaignEventStateType,
-      start:        DateTime,
-      end:          DateTime,
+      start:        OffsetDateTime,
+      end:          OffsetDateTime,
       campaignType: CampaignType,
       data:         Option[DATA]
   ) {
@@ -236,8 +235,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       import com.normation.rudder.campaigns.CampaignEventState.*
       Transformer
         .define[CampaignEvent, CampaignEventHistoryInsert]
-        .withFieldComputed(_.start, x => x.start.toJavaInstant)
-        .withFieldComputed(_.end, x => Some(x.end.toJavaInstant))
+        .withFieldComputed(_.start, x => x.start.toInstant)
+        .withFieldComputed(_.end, x => Some(x.end.toInstant))
         .withFieldComputed(_.state, _.state.value)
         .withFieldComputed(
           _.data,

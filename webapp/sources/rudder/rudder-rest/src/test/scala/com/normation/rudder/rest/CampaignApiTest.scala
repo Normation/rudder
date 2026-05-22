@@ -161,7 +161,7 @@ class CampaignApiTest extends Specification with BeforeEach with AfterAll with L
             val next = events.collectFirst { case x if x.id != ce0.id => x }
               .getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
-            (next.start.getMillis must be_>(System.currentTimeMillis())) and
+            (next.start must be_>(OffsetDateTime.now())) and
             (next.state.value must beEqualTo(ScheduledType)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }

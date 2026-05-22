@@ -100,10 +100,7 @@ class DirectiveScheduleEventsTest extends Specification {
     }
 
     "generate exactly one event for a future one shot" in {
-      val oneShot = {
-        import com.normation.utils.DateFormaterService.toJodaDateTime
-        OneShot(date(20, 4).toJodaDateTime, date(20, 6).toJodaDateTime)
-      }
+      val oneShot = OneShot(date(20, 4).atOffset(ZoneOffset.UTC), date(20, 6).atOffset(ZoneOffset.UTC))
       DirectiveScheduleEvents.targetWindows(oneShot, now, bounds) must beRight(
         List(ScheduleWindow(date(20, 4), date(20, 6)))
       )

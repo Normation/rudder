@@ -44,7 +44,6 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
-import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
@@ -64,7 +63,7 @@ class CampaignSchedulerTest extends Specification {
       val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(First, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone.UTC)),
-          now.withYear(2022).withMonth(12).withDayOfMonth(7).toJodaDateTime
+          now.withYear(2022).withMonth(12).withDayOfMonth(7)
         )
 
       s must haveSchedule(
@@ -92,7 +91,7 @@ class CampaignSchedulerTest extends Specification {
       val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(Second, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone.UTC)),
-          now.withYear(2022).withMonth(12).withDayOfMonth(14).toJodaDateTime
+          now.withYear(2022).withMonth(12).withDayOfMonth(14)
         )
 
       s must haveSchedule(
@@ -119,7 +118,7 @@ class CampaignSchedulerTest extends Specification {
       val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(Third, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone.UTC)),
-          now.withYear(2022).withMonth(12).withDayOfMonth(21).toJodaDateTime
+          now.withYear(2022).withMonth(12).withDayOfMonth(21)
         )
 
       s must haveSchedule(
@@ -147,7 +146,7 @@ class CampaignSchedulerTest extends Specification {
       val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(Last, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone.UTC)),
-          now.withYear(2022).withMonth(12).withDayOfMonth(7).toJodaDateTime
+          now.withYear(2022).withMonth(12).withDayOfMonth(7)
         )
 
       s must haveSchedule(
@@ -175,7 +174,7 @@ class CampaignSchedulerTest extends Specification {
       val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(SecondLast, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone.UTC)),
-          now.withYear(2022).withMonth(12).withDayOfMonth(7).toJodaDateTime
+          now.withYear(2022).withMonth(12).withDayOfMonth(7)
         )
 
       s must haveSchedule(
@@ -204,7 +203,7 @@ class CampaignSchedulerTest extends Specification {
       val start = now.plusDays(1)
       val end   = now.plusDays(2)
 
-      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start.toJodaDateTime, end.toJodaDateTime), now.toJodaDateTime)
+      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveSchedule(start, end)
     }
@@ -213,7 +212,7 @@ class CampaignSchedulerTest extends Specification {
       val start = now.minusDays(2)
       val end   = now.minusDays(1)
 
-      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start.toJodaDateTime, end.toJodaDateTime), now.toJodaDateTime)
+      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveNoSchedule
     }
@@ -222,9 +221,9 @@ class CampaignSchedulerTest extends Specification {
       val start = now.plusDays(2)
       val end   = now.plusDays(1)
 
-      val res      = CampaignDateScheduler.nextCampaignDate(OneShot(start.toJodaDateTime, end.toJodaDateTime), now.toJodaDateTime)
+      val res      = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
       val sameDate =
-        CampaignDateScheduler.nextCampaignDate(OneShot(start.toJodaDateTime, start.toJodaDateTime), now.toJodaDateTime)
+        CampaignDateScheduler.nextCampaignDate(OneShot(start, start), now)
 
       val beError = beLeft[RudderError].like {
         case Inconsistency(msg) => msg must startWith(s"Cannot schedule a one shot event")
@@ -237,7 +236,7 @@ class CampaignSchedulerTest extends Specification {
       val start = now.plusDays(1).atZoneSameInstant(zone).toOffsetDateTime
       val end   = now.plusDays(2).atZoneSameInstant(zone).toOffsetDateTime
 
-      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start.toJodaDateTime, end.toJodaDateTime), now.toJodaDateTime)
+      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveSchedule(start, end)
     }
@@ -249,7 +248,7 @@ class CampaignSchedulerTest extends Specification {
       val end   = now.plusHours(6).atZoneSimilarLocal(zone).toOffsetDateTime // 1h before now
 
       val res =
-        CampaignDateScheduler.nextCampaignDate(OneShot(start.toJodaDateTime, end.toJodaDateTime), now.toJodaDateTime)
+        CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveNoSchedule
     }
@@ -264,7 +263,7 @@ class CampaignSchedulerTest extends Specification {
         val start = Time(16, 30)
         val end   = Time(20, 30)
 
-        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
 
         val nextDate = currentDate.withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusHours(4))
@@ -274,7 +273,7 @@ class CampaignSchedulerTest extends Specification {
         val start = Time(10, 30)
         val end   = Time(14, 30)
 
-        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
 
         val nextDay =
           currentDate.plusDays(1).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -285,7 +284,7 @@ class CampaignSchedulerTest extends Specification {
         val start = Time(12, 30)
         val end   = Time(16, 30)
 
-        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
 
         val nextDay =
           currentDate.plusDays(1).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -300,7 +299,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -322,7 +321,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -346,7 +345,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -370,7 +369,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -395,7 +394,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Friday, 16, 0)
         val end   = DayTime(Saturday, 16, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextDate = currentDate.withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusDays(1))
@@ -405,7 +404,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Monday, 16, 0)
         val end   = DayTime(Tuesday, 16, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextWeek = currentDate
           .plusDays(3)
@@ -420,7 +419,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Monday, 12, 0)
         val end   = DayTime(Tuesday, 12, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextWeek = currentDate
           .plusDays(3)
@@ -436,7 +435,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Sunday, 12, 0)
         val end   = DayTime(Monday, 12, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextWeek = currentDate
           .plusDays(2)
@@ -456,7 +455,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -478,7 +477,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -502,7 +501,7 @@ class CampaignSchedulerTest extends Specification {
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
-          currentDate.toJodaDateTime
+          currentDate
         )
 
         val scheduleDate = currentDate
@@ -528,7 +527,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -547,7 +546,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 10, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
 
         val nextDate = OffsetDateTime.parse("2024-12-02T10:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusDays(2))
@@ -561,7 +560,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Friday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(1).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -577,7 +576,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -596,7 +595,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 10, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
 
         val nextDate = OffsetDateTime.parse("2024-12-09T10:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusDays(2))
@@ -609,7 +608,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Friday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(8).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -625,7 +624,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -644,7 +643,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 10, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
 
         val nextDate = OffsetDateTime.parse("2024-12-16T10:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusDays(2))
@@ -657,7 +656,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Friday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(15).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -673,7 +672,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
 
         val nextDate = OffsetDateTime.parse("2024-11-18T16:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusDays(2))
@@ -686,7 +685,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Wednesday, 10, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
 
         // in december 2024 the second last monday of the month is yet one week after
         val nextDate = OffsetDateTime.parse("2024-12-23T10:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -700,7 +699,7 @@ class CampaignSchedulerTest extends Specification {
         val end         = DayTime(Friday, 16, 0)
 
         val res =
-          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate.toJodaDateTime)
+          CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(22).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -715,7 +714,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 16, 0)
         val end         = DayTime(Wednesday, 16, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
 
         val nextDate = OffsetDateTime.parse("2024-11-25T16:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
         res must haveSchedule(nextDate, nextDate.plusDays(2))
@@ -727,7 +726,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 10, 0)
         val end         = DayTime(Wednesday, 10, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
 
         // in december 2024 the last monday of the month is yet one week after
         val nextDate = OffsetDateTime.parse("2024-12-30T10:00:00Z").atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -740,7 +739,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Wednesday, 16, 0)
         val end         = DayTime(Friday, 16, 0)
 
-        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate.toJodaDateTime)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(29).withHour(start.hour).withMinute(start.minute).atZoneSimilarLocal(defaultTz).toOffsetDateTime
@@ -752,19 +751,19 @@ class CampaignSchedulerTest extends Specification {
   // we need to compare ISO date time strings, specs2 seems to not detect equality with the timezone setup for each test
   private val format = ISODateTimeFormat.dateTime()
 
-  private def haveScheduleStart(date: DateTime)                        = {
-    beRight(beSome(be_===(date.toString(format)))) ^^ ((t: PureResult[Option[(DateTime, DateTime)]]) =>
-      t.map(_.map { case (start, _) => start.toString(format) })
+  private def haveScheduleStart(date: OffsetDateTime)                  = {
+    beRight(beSome(be_===(date.toJodaDateTime.toString(format)))) ^^ ((t: PureResult[Option[(OffsetDateTime, OffsetDateTime)]]) =>
+      t.map(_.map { case (start, _) => start.toJodaDateTime.toString(format) })
     )
   }
-  private def haveScheduleEnd(date: DateTime)                          = {
-    beRight(beSome(be_===(date.toString(format)))) ^^ ((t: PureResult[Option[(DateTime, DateTime)]]) =>
-      t.map(_.map { case (_, end) => end.toString(format) })
+  private def haveScheduleEnd(date: OffsetDateTime)                    = {
+    beRight(beSome(be_===(date.toJodaDateTime.toString(format)))) ^^ ((t: PureResult[Option[(OffsetDateTime, OffsetDateTime)]]) =>
+      t.map(_.map { case (_, end) => end.toJodaDateTime.toString(format) })
     )
   }
   private def haveSchedule(start: OffsetDateTime, end: OffsetDateTime) = {
-    haveScheduleStart(start.toJodaDateTime) and haveScheduleEnd(end.toJodaDateTime)
+    haveScheduleStart(start) and haveScheduleEnd(end)
   }
 
-  private def haveNoSchedule: Matcher[PureResult[Option[(DateTime, DateTime)]]] = beRight(beNone)
+  private def haveNoSchedule: Matcher[PureResult[Option[(OffsetDateTime, OffsetDateTime)]]] = beRight(beNone)
 }

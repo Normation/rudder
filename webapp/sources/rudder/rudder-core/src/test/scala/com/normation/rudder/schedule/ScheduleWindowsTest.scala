@@ -39,7 +39,6 @@ package com.normation.rudder.schedule
 
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.schedule.ScheduleWindows.Windows
-import com.normation.utils.DateFormaterService.toJodaDateTime
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -136,7 +135,7 @@ class ScheduleWindowsTest extends Specification {
 
   "a one shot schedule" should {
     // OneShot is still a Joda-Time API
-    val oneShot = OneShot(date(10, 4).toJodaDateTime, date(10, 6).toJodaDateTime)
+    val oneShot = OneShot(date(10, 4).atOffset(ZoneOffset.UTC), date(10, 6).atOffset(ZoneOffset.UTC))
 
     "have no window before it" in {
       ScheduleWindows.findWindows(oneShot, date(9, 12)) must beRight(Windows(None, None))
@@ -155,7 +154,10 @@ class ScheduleWindowsTest extends Specification {
     }
 
     "be an error when end is before start" in {
-      ScheduleWindows.findWindows(OneShot(date(10, 6).toJodaDateTime, date(10, 4).toJodaDateTime), date(10, 5)) must beLeft
+      ScheduleWindows.findWindows(
+        OneShot(date(10, 6).atOffset(ZoneOffset.UTC), date(10, 4).atOffset(ZoneOffset.UTC)),
+        date(10, 5)
+      ) must beLeft
     }
   }
 
