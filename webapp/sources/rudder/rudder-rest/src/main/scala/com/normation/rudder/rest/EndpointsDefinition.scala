@@ -967,66 +967,73 @@ sealed trait RuleApi extends EnumEntry with EndpointSchema with GeneralApi with 
 }
 object RuleApi       extends Enum[RuleApi] with ApiModuleProvider[RuleApi]                {
 
-  case object ListRules              extends RuleApi with ZeroParam with StartsAtVersion2 with SortIndex {
+  case object ListRules   extends RuleApi with ZeroParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "List all rules with their information"
     val (action, path) = GET / "rules"
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
   }
-  case object CreateRule             extends RuleApi with ZeroParam with StartsAtVersion2 with SortIndex {
+  case object CreateRule  extends RuleApi with ZeroParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Create a new rule"
     val (action, path) = PUT / "rules"
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
   }
   // must be before rule details, else it is never reached
-  case object GetRuleTree            extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex {
+  case object GetRuleTree extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get rule categories and rule structured in a tree format"
     val (action, path) = GET / "rules" / "tree"
     override def dataContainer: Option[String]          = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
   }
-  case object RuleDetails            extends RuleApi with OneParam with StartsAtVersion2 with SortIndex  {
+
+  case object GetRulesCompliance     extends RuleApi with GeneralApi with ZeroParam with StartsAtVersion7 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance information for all rules"
+    val (action, path) = GET / "rules" / "compliance"
+    val authz: List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object RuleDetails            extends RuleApi with OneParam with StartsAtVersion2 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Get information about given rule"
     val (action, path) = GET / "rules" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
   }
-  case object DeleteRule             extends RuleApi with OneParam with StartsAtVersion2 with SortIndex  {
+  case object DeleteRule             extends RuleApi with OneParam with StartsAtVersion2 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Delete given rule"
     val (action, path) = DELETE / "rules" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
   }
-  case object UpdateRule             extends RuleApi with OneParam with StartsAtVersion2 with SortIndex  {
+  case object UpdateRule             extends RuleApi with OneParam with StartsAtVersion2 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Update information about given rule"
     val (action, path) = POST / "rules" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
   }
-  case object GetRuleCategoryDetails extends RuleApi with OneParam with StartsAtVersion6 with SortIndex  {
+  case object GetRuleCategoryDetails extends RuleApi with OneParam with StartsAtVersion6 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Get information about given rule category"
     val (action, path) = GET / "rules" / "categories" / "{id}"
     override def dataContainer: Option[String]          = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Rule.Read :: Nil
   }
-  case object DeleteRuleCategory     extends RuleApi with OneParam with StartsAtVersion6 with SortIndex  {
+  case object DeleteRuleCategory     extends RuleApi with OneParam with StartsAtVersion6 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Delete given category"
     val (action, path) = DELETE / "rules" / "categories" / "{id}"
     override def dataContainer: Some[String]            = Some("rulesCategories")
     val authz:                  List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
   }
-  case object UpdateRuleCategory     extends RuleApi with OneParam with StartsAtVersion6 with SortIndex  {
+  case object UpdateRuleCategory     extends RuleApi with OneParam with StartsAtVersion6 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Update information about given rule category"
     val (action, path) = POST / "rules" / "categories" / "{id}"
     override def dataContainer: Option[String]          = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
   }
-  case object CreateRuleCategory     extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex {
+  case object CreateRuleCategory     extends RuleApi with ZeroParam with StartsAtVersion6 with SortIndex                 {
     val z: Int = implicitly[Line].value
     val description    = "Create a new rule category"
     val (action, path) = PUT / "rules" / "categories"
@@ -1050,6 +1057,13 @@ object RuleApi       extends Enum[RuleApi] with ApiModuleProvider[RuleApi]      
     val (action, path) = POST / "rules" / "revision" / "unload" / "{id}"
     override def dataContainer: Option[String]          = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Rule.Write :: Nil
+  }
+
+  case object GetRulesComplianceId extends RuleApi with GeneralApi with OneParam with StartsAtVersion7 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance information for a given rule"
+    val (action, path) = GET / "rules" / "{id}" / "compliance"
+    val authz: List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
   }
 
   case object GetRuleComplianceByDirective extends RuleApi with OneParam with StartsAtVersion24 with SortIndex {

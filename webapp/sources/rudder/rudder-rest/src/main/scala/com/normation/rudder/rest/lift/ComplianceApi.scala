@@ -122,6 +122,11 @@ class ComplianceApi(
     }
   }
 
+  /**
+   * This endpoint is marked for deprecation and will be replaced with the GetRulesCompliance endpoint in the RulesApi
+   * This endpoint will be deleted in version 10. 
+   * @deprecated
+   */
   object GetRules extends LiftApiModule0 {
     override val schema: API.GetRulesCompliance.type = API.GetRulesCompliance
 
@@ -149,6 +154,11 @@ class ComplianceApi(
     }
   }
 
+  /**
+   * This endpoint is marked for deprecation and will be replaced with the GetRulesComplianceId endpoint in the RulesApi
+   * This endpoint will be deleted in version 10. 
+   * @deprecated
+   */
   object GetRuleId extends LiftApiModule {
     override val schema: OneParam = API.GetRulesComplianceId
 
