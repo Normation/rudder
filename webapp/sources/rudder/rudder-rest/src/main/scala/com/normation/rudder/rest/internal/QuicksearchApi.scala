@@ -117,7 +117,7 @@ class QuicksearchApi(
 
       (for {
         results <- quicksearch.search(token, limit)(using authzToken.qc)
-        filtered = prepare(results, limit.getOrElse(MAX_RES_BY_KIND), authzToken.user)
+        filtered = prepare(results, limit.getOrElse(MAX_RES_BY_KIND), authzToken.user, req.contextPath)
       } yield filtered).toLiftResponseList(params, schema)
     }
   }
@@ -155,7 +155,12 @@ class QuicksearchApi(
    *   crunching the browser with thousands of answers
    */
 
-  private def prepare(results: Set[QuickSearchResult], maxByKind: Int, user: AuthenticatedUser): List[JsonResultType] = {
+  private def prepare(
+      results:     Set[QuickSearchResult],
+      maxByKind:   Int,
+      user:        AuthenticatedUser,
+      contextPath: String
+  ): List[JsonResultType] = {
     val filteredResult = filter(results, user)
     // group by kind, and build the summary for each
     val map            = filteredResult.groupBy(_.id.tpe).map {
@@ -184,7 +189,7 @@ class QuicksearchApi(
         None
       } else {
         Some(
-          JsonResultType(summary, Chunk.fromIterable(res.map(JsonSearchResultItem.from)))
+          JsonResultType(summary, Chunk.fromIterable(res.map(JsonSearchResultItem.from(contextPath))))
         )
       }
     }
@@ -231,7 +236,8 @@ class QuicksearchApi(
 
   private object JsonSearchResultItem {
 
-    def from(r: QuickSearchResult): JsonSearchResultItem = {
+    // contextPath is expected to be like "/rudder"
+    def from(contextPath: String)(r: QuickSearchResult): JsonSearchResultItem = {
       import com.normation.inventory.domain.NodeId
       import com.normation.rudder.domain.nodes.NodeGroupId
       import com.normation.rudder.domain.policies.DirectiveUid
@@ -240,12 +246,12 @@ class QuicksearchApi(
 
       import linkUtil.*
       val url = r.id match {
-        case QRNodeId(value)      => nodeLink(NodeId(value))
-        case QRRuleId(value)      => ruleLink(RuleId(RuleUid(value)))
-        case QRDirectiveId(value) => directiveLink(DirectiveUid(value))
-        case QRTechniqueId(value) => techniqueLink(value)
-        case QRGroupId(value)     => groupLink(NodeGroupId(NodeGroupUid(value)))
-        case QRParameterId(value) => globalParameterLink(value)
+        case QRNodeId(value)      => baseNodeLink(NodeId(value))
+        case QRRuleId(value)      => baseRuleLink(RuleId(RuleUid(value)))
+        case QRDirectiveId(value) => baseDirectiveLink(DirectiveUid(value))
+        case QRTechniqueId(value) => baseTechniqueLink(value)
+        case QRGroupId(value)     => baseGroupLink(NodeGroupId(NodeGroupUid(value)))
+        case QRParameterId(value) => baseGlobalParameterLink(value)
       }
 
       // limit description length to avoid having a whole file printed
@@ -264,7 +270,7 @@ class QuicksearchApi(
         // matched value
         r.value,
         desc,
-        url
+        contextPath + url
       )
     }
   }
