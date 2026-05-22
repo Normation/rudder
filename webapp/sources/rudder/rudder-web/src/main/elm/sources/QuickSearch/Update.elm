@@ -1,69 +1,112 @@
-module QuickSearch.Update exposing (..)
+module QuickSearch.Update exposing (update, Msg(..), update_, Effect(..))
 
 import Debounce
+import Http
 import Http.Detailed as Detailed
-import List.Extra
 import QuickSearch.ApiCalls exposing (getSearchResult)
-import QuickSearch.Datatypes exposing (..)
-import QuickSearch.Init exposing (debounceConfig)
+import QuickSearch.Model exposing (..)
 import QuickSearch.JsonDecoder exposing (decodeErrorDetails)
 import QuickSearch.Port exposing (errorNotification)
 
+debounceConfig : Debounce.Config Msg
+debounceConfig =
+  { strategy = Debounce.later 500
+  , transform = DebounceMsg
+  }
+
+type Msg = UpdateFilter Filter
+  | UpdateSearch String
+  | GetResults (Result (Detailed.Error String) (Http.Metadata, List SearchResult))
+  | DebounceMsg Debounce.Msg
+  | Close
+  | Open
+
+type Effect
+    = ErrorNotification String
+    | DebouncePush String
+    | InternalDebounceMsg Debounce.Msg
+    | NoEffect
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update  msg model =
+    let (updatedModel, effect) = update_ msg model
+    in case effect of
+            ErrorNotification message ->
+                (updatedModel, errorNotification message)
+
+            NoEffect ->
+                (updatedModel, Cmd.none)
+
+            DebouncePush search ->
+                let (debounce, cmd) = Debounce.push debounceConfig search updatedModel.debounceSearch
+                in (updatedModel |> setDebounce debounce, cmd)
+
+            InternalDebounceMsg debMsg ->
+                 let
+                    ( debounce, cmd ) =
+                        Debounce.update
+                            debounceConfig
+                            (Debounce.takeLast (
+                              \s ->  if String.length s > 2 then getSearchResult model s GetResults else Cmd.none
+                            ))
+                            debMsg
+                            model.debounceSearch
+
+                 in (model |> setDebounce debounce, cmd)
+
+
+withEffect : Effect -> Model -> ( Model , Effect )
+withEffect effect model =
+    ( model , effect )
+
+withNoEffect = withEffect NoEffect
+
+update_ : Msg -> Model -> ( Model, Effect )
+update_  msg model =
   case msg of
-      UpdateFilter filter->
+      UpdateFilter filter ->
           case filter of
               All ->
-                ({model| selectedFilter = []},Cmd.none)
+                model
+                |> removeSelectedFilters
+                |> withNoEffect
+
               FilterKind k ->
-                  let
-                   updatedFilter = if List.member k model.selectedFilter then List.Extra.remove k model.selectedFilter else k :: model.selectedFilter
-                  in
-                    ({model| selectedFilter = updatedFilter },Cmd.none)
-      UpdateSearch search->
-        let
-          state = if String.isEmpty search then Closed
-                  else if String.length search <= 3 then Opened
-                  else Searching
-          (debounce, cmd) =
-            Debounce.push debounceConfig search model.debounceSearch
+                model
+                |> toggleSelectedFilter k
+                |> withNoEffect
 
+      UpdateSearch search ->
+        model
+        |> setSearch search
+        |> withEffect (DebouncePush search)
 
-          newModel = {model| search = search, state = state, debounceSearch = debounce}
-        in
-          (newModel,cmd)
       GetResults (Ok (_, r)) ->
-        ({model| results = r, state = Opened},Cmd.none)
+        model
+        |> setResults r
+        |> withNoEffect
+
       GetResults (Err e) ->
-        ({model | results = [] }, processApiError "getting search results" e)
+        model
+        |> setResults []
+        |> withEffect (processApiError "getting search results" e)
+
       Close ->
-        ({model | state = Closed }, Cmd.none)
+        model
+        |> close
+        |> withNoEffect
+
       Open ->
-        let
-          newState =
-            if (String.isEmpty model.search) then Closed
-            else
-              case model.state of
-                Searching -> Searching
-                _ -> Opened
-        in
-          ({model | state = newState }, Cmd.none)
+        model
+        |> open
+        |> withNoEffect
+
       DebounceMsg debMsg ->
-          let
-            ( debounce, cmd ) =
-              Debounce.update
-                  debounceConfig
-                  (Debounce.takeLast (
-                    \s ->  if String.length s > 2  then getSearchResult model s else Cmd.none
-                  ))
-                  debMsg
-                  model.debounceSearch
-          in
-            ({model | debounceSearch = debounce}, cmd)
+        model
+        |> withEffect (InternalDebounceMsg debMsg)
 
 
-processApiError : String -> Detailed.Error String -> Cmd Msg
+processApiError : String -> Detailed.Error String -> Effect
 processApiError apiName err =
   let
     formatApiNameMessage msg = "Error when "++ apiName ++ " : \n" ++ msg
@@ -83,4 +126,4 @@ processApiError apiName err =
         Detailed.BadBody metadata body msg ->
           formatApiNameMessage msg
   in
-    errorNotification message
+    ErrorNotification message

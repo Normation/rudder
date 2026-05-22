@@ -4,7 +4,7 @@ import List.Extra
 import Http exposing (Error)
 import Dict exposing (Dict)
 import Json.Encode exposing (Value)
-import QuickSearch.Datatypes exposing (SearchResult)
+import QuickSearch.Model exposing (SearchResult)
 import Ui.Datatable exposing (SortOrder)
 --
 -- All our data types
@@ -120,11 +120,11 @@ extractUsage result =
   let
     directives =
       result
-        |> List.filter (\s -> s.header.type_ == QuickSearch.Datatypes.Directive)
+        |> List.filter (\s -> s.header.type_ == QuickSearch.Model.Directive)
         |> List.head
     techniques =
       result
-        |> List.filter (\s -> s.header.type_ == QuickSearch.Datatypes.Technique)
+        |> List.filter (\s -> s.header.type_ == QuickSearch.Model.Technique)
         |> List.head
   in
     PropertyUsage directives techniques
