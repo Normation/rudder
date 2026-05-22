@@ -48,6 +48,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.SignStyle
 import java.time.temporal.ChronoField.*
+import java.time.temporal.ChronoUnit
 import java.util.TimeZone
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -106,6 +107,16 @@ object DateFormaterService {
     implicit val decoderZonedDateTime: JsonDecoder[ZonedDateTime] =
       JsonDecoder[String].mapOrFail(parseDateZDT(_).left.map(_.fullMsg))
 
+    // by having two codecs for the OffsetDateTime, the caller has to make an explicit
+    // choice to please to compiler, preventing accidental behaviours
+    implicit val offsetDateTimeTruncatedToSecondsEncoder: JsonEncoder[OffsetDateTime] =
+      JsonEncoder.offsetDateTime.contramap(_.truncatedTo(ChronoUnit.SECONDS))
+    implicit val offsetDateTimeTruncatedToSecondsDecoder: JsonDecoder[OffsetDateTime] =
+      JsonDecoder.offsetDateTime.map(_.truncatedTo(ChronoUnit.SECONDS))
+
+    implicit val offsetDateTimeEncoder: JsonEncoder[OffsetDateTime] = JsonEncoder.offsetDateTime
+    implicit val offsetDateTimeDecoder: JsonDecoder[OffsetDateTime] = JsonDecoder.offsetDateTime
+
     implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = _.toZonedDateTime
 
     implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
@@ -113,6 +124,8 @@ object DateFormaterService {
     }
 
     implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = _.toJavaInstant
+
+    implicit val transformOffsetDateTimeInstant: Transformer[OffsetDateTime, Instant] = _.toInstant
 
     implicit val transformInstantDateTime: Transformer[Instant, DateTime] = _.toJodaDateTime
 
@@ -152,6 +165,10 @@ object DateFormaterService {
 
   def getDisplayDate(instant: Instant): String = {
     getDisplayDate(toDateTime(instant))
+  }
+
+  def getDisplayDate(offsetDateTime: OffsetDateTime): String = {
+    getDisplayDate(offsetDateTime.toJodaDateTime)
   }
 
   /*

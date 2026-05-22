@@ -44,9 +44,9 @@ import com.normation.rudder.hooks.HookReturnCode
 import enumeratum.*
 import io.scalaland.chimney.*
 import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.json.*
 import zio.json.enumeratum.*
 
@@ -231,12 +231,7 @@ case class DayTime(
 }
 
 case class ScheduleTimeZone(id: ZoneId) extends AnyVal {
-
-  def toDateTimeZone: Option[DateTimeZone] = {
-    try { Option(DateTimeZone.forID(id.getId)) }
-    catch { case _: Throwable => None }
-  }
-  def asString:       String               = id.getId
+  def asString: String = id.getId
 }
 object ScheduleTimeZone {
 
@@ -276,12 +271,14 @@ case class WeeklySchedule(
 }
 
 @jsonHint("one-shot")
-case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule {
-  override def tz:                                     None.type        = None
+case class OneShot(start: OffsetDateTime, end: OffsetDateTime) extends CampaignSchedule {
+  override def tz:                                     Option[ScheduleTimeZone] = None
   // just change the start and end time to the timezone
-  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = timeZone.toDateTimeZone match {
-    case None        => this
-    case Some(value) => copy(start = start.withZone(value), end = end.withZone(value))
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule         = {
+    copy(
+      start = start.atZoneSameInstant(timeZone.id).toOffsetDateTime,
+      end = end.atZoneSameInstant(timeZone.id).toOffsetDateTime
+    )
   }
 }
 
@@ -329,13 +326,16 @@ case class CampaignEvent(
     campaignId:   CampaignId,
     name:         String,
     state:        CampaignEventState,
-    start:        DateTime,
-    end:          DateTime,
+    start:        OffsetDateTime,
+    end:          OffsetDateTime,
     campaignType: CampaignType
 )
 
 object CampaignEvent {
-  import com.normation.utils.DateFormaterService.json.*
+  import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsDecoder
+  import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsEncoder
+  import com.normation.utils.DateFormaterService.json.transformOffsetDateTimeInstant
+
   implicit val campaignEventDecoder: JsonDecoder[CampaignEvent] = DeriveJsonDecoder.gen
   implicit val campaignEventEncoder: JsonEncoder[CampaignEvent] = DeriveJsonEncoder.gen
 

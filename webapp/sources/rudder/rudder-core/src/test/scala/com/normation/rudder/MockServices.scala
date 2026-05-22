@@ -136,7 +136,7 @@ import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.*
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.toJavaInstant
+import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -145,6 +145,7 @@ import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
 import doobie.Fragment
 import java.time.Instant
+import java.time.ZoneOffset
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -3425,8 +3426,8 @@ class MockCampaign() {
       c0.info.id,
       "campaign #0",
       CampaignEventState.Finished,
-      new DateTime(0, DateTimeZone.UTC),
-      new DateTime(1, DateTimeZone.UTC),
+      Instant.ofEpochMilli(0).atOffset(ZoneOffset.UTC),
+      Instant.ofEpochMilli(1).atOffset(ZoneOffset.UTC),
       TestCampaignType
     )
   }
@@ -3488,8 +3489,8 @@ class MockCampaign() {
       val h = CampaignEventHistory(
         e0.id,
         e0.state,
-        e0.start.toJavaInstant,
-        Some(e0.end.toJavaInstant)
+        e0.start.toInstant,
+        Some(e0.end.toInstant)
       )
       Ref.make(Map((e0.id -> (e0, h :: Nil)))).runNow
     }
@@ -3508,8 +3509,8 @@ class MockCampaign() {
         val h       = CampaignEventHistory(
           event.id,
           event.state,
-          event.start.toJavaInstant,
-          Some(event.end.toJavaInstant)
+          event.start.toInstant,
+          Some(event.end.toInstant)
         )
         map + ((event.id, (event, h :: history)))
       }
@@ -3546,12 +3547,12 @@ class MockCampaign() {
 
       val afterDateFiltered = afterDate match {
         case None     => stateFiltered
-        case Some(id) => stateFiltered.map(_.filter(_._1.end.isAfter(id)))
+        case Some(id) => stateFiltered.map(_.filter(_._1.end.toJodaDateTime.isAfter(id)))
       }
 
       val beforeDateFiltered = beforeDate match {
         case None     => afterDateFiltered
-        case Some(id) => afterDateFiltered.map(_.filter(_._1.start.isBefore(id)))
+        case Some(id) => afterDateFiltered.map(_.filter(_._1.start.toJodaDateTime.isBefore(id)))
       }
 
       val ordered = order match {
@@ -3620,12 +3621,12 @@ class MockCampaign() {
 
       val afterDateFiltered: CampaignEvent => Boolean = afterDate match {
         case None      => stateFiltered
-        case Some(id_) => ev => stateFiltered(ev) && ev.end.isAfter(id_)
+        case Some(id_) => ev => stateFiltered(ev) && ev.end.toJodaDateTime.isAfter(id_)
       }
 
       val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
         case None      => afterDateFiltered
-        case Some(id_) => ev => afterDateFiltered(ev) && ev.start.isBefore(id_)
+        case Some(id_) => ev => afterDateFiltered(ev) && ev.start.toJodaDateTime.isBefore(id_)
       }
 
       for {
@@ -3645,8 +3646,8 @@ class MockCampaign() {
         repo,
         NoopCampaignHooksService,
         new StringUuidGeneratorImpl(),
-        0,
-        0
+        0.hour,
+        0.hour
       )
       .runNow
   }
