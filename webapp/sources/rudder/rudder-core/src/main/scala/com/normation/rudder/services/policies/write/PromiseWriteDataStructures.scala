@@ -122,11 +122,9 @@ final case class AgentNodeWritableConfiguration(
  * A back-up folder is also provided to save a copy.
  */
 final case class NodePoliciesPaths(
-    nodeId:     NodeId,
-    baseFolder: String, // /var/rudder/share/xxxx-xxxxx-xxxx/rules/cfengine-community
-
-    newFolder: String, // /var/rudder/share/xxxx-xxxxx-xxxx/rules.new/cfengine-community
-
+    nodeId:       NodeId,
+    baseFolder:   String, // /var/rudder/share/xxxx-xxxxx-xxxx/rules/cfengine-community
+    newFolder:    String, // /var/rudder/share/xxxx-xxxxx-xxxx/rules.new/cfengine-community
     backupFolder: Option[String]
 )
 
