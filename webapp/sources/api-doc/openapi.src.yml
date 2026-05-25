@@ -325,6 +325,10 @@ paths:
     $ref: paths/rules/category-id.yml
   "/rules/tree":
     $ref: paths/rules/tree.yml
+  "/rules/compliance":
+    $ref: paths/rules/compliance.yml
+  "/rules/{ruleId}/compliance":
+    $ref: paths/rules/compliance-id.yml
   "/branding":
     $ref: paths/branding/conf.yml
   "/branding/reload":

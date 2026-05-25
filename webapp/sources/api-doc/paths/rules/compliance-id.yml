@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Compliance details for all rules
-  description: Get current compliance of all the rules of a Rudder server
-  operationId: getRulesComplianceOld
+  summary: Compliance details by rule
+  description: Get current compliance of a rule of a Rudder server
+  operationId: getRuleCompliance
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
     - $ref: ../../components/parameters/compliance-percent-precision.yml
+    - $ref: ../../components/parameters/rule-id.yml
   responses:
     "200":
       description: Success
@@ -30,7 +31,7 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getRulesCompliance
+                  - getRuleCompliance
               data:
                 type: object
                 required:
@@ -94,7 +95,7 @@ get:
                               format: float
                               example: 2.63
   tags:
-    - Compliance
+    - Rules
   x-codeSamples:
     - lang: curl
       source:
