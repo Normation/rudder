@@ -100,6 +100,8 @@ class RuleApi(
       case API.DeleteRuleCategory              => DeleteRuleCategory
       case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
       case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
+      case API.GetRulesCompliance              => GetRulesCompliance
+      case API.GetRulesComplianceId            => GetRulesComplianceId
       case API.GetRuleComplianceByDirective    => GetRuleComplianceByDirective
     }
   }
@@ -297,6 +299,71 @@ class RuleApi(
         rid <- RuleId.parse(id).toIO
         res <- service.unloadRule(rid, params, authzToken.qc.actor)
       } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
+    }
+  }
+
+  object GetRulesCompliance extends LiftApiModule0 {
+    override val schema: API.GetRulesCompliance.type = API.GetRulesCompliance
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        rules     <- complianceService.getRulesCompliance(level)
+      } yield {
+        // by default, all details are displayed
+        given l: Int = level.getOrElse(10)
+
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+        rules.map(_.transformInto[ComplianceApiData.JsonByRuleCompliance.ByRuleRuleComplianceApi])
+      }).chainError("Could not get compliance for all rules").toLiftResponseList(params, schema)
+    }
+  }
+
+  object GetRulesComplianceId extends LiftApiModule {
+    override val schema: OneParam = API.GetRulesComplianceId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        ruleId:     String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        t1 <- Clock.instant
+
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        id        <- RuleId.parse(ruleId).toIO.chainError(s"Parameter '${ruleId}' doesn't have a valid rule ID format'")
+
+        rule <- complianceService.getRuleCompliance(id, level)
+
+        t2 <- Clock.instant
+        _  <-
+          TimingDebugLoggerPure.trace(s"API GetRuleId - getting rule compliance in ${Duration.fromInterval(t1, t2).toString} ms")
+
+      } yield {
+        // by default, all details are displayed
+        given l: Int = level.getOrElse(10)
+
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+        List(rule.transformInto[ComplianceApiData.JsonByRuleCompliance.ByRuleRuleComplianceApi])
+      }).toLiftResponseList(params, schema)
     }
   }
 

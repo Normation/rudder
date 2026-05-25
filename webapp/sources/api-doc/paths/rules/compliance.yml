@@ -3,7 +3,7 @@
 get:
   summary: Compliance details for all rules
   description: Get current compliance of all the rules of a Rudder server
-  operationId: getRulesComplianceOld
+  operationId: getRulesCompliance
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
     - $ref: ../../components/parameters/compliance-percent-precision.yml
@@ -94,7 +94,7 @@ get:
                               format: float
                               example: 2.63
   tags:
-    - Compliance
+    - Rules
   x-codeSamples:
     - lang: curl
       source:
