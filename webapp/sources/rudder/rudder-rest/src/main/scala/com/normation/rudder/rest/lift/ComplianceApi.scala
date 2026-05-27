@@ -784,7 +784,7 @@ class ComplianceAPIService(
                 }
                 ByRuleDirectiveCompliance(
                   directiveId,
-                  directive.map(_._2.name).getOrElse("Unknown directive"),
+                  DirectiveName(directive.map(_._2.name).getOrElse("Unknown directive")),
                   ComplianceLevel.sum(
                     nodeDirectives.map(_._2.compliance)
                   ),

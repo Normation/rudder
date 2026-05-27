@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.rest.data.CsvCompliance.CsvField
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.Csv
 import enumeratum.*
@@ -59,6 +60,7 @@ import java.lang
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
 import scala.collection.immutable
+import zio.json.JsonCodec
 import zio.json.JsonEncoder
 import zio.syntax.ToZio
 
@@ -174,9 +176,17 @@ final case class ByNodeGroupByRuleDirectiveCompliance(
     components:     Seq[ByRuleComponentCompliance]
 )
 
+opaque type DirectiveName = String
+object DirectiveName extends CsvField[DirectiveName] {
+
+  given jsonCodec: JsonCodec[DirectiveName] = JsonCodec.string
+
+  def apply(name: String): DirectiveName = name
+}
+
 final case class ByRuleDirectiveCompliance(
     id:             DirectiveId,
-    name:           String,
+    name:           DirectiveName,
     compliance:     ComplianceLevel,
     skippedDetails: Option[SkippedDetails],
     policyMode:     ComputedPolicyMode,
@@ -238,7 +248,7 @@ final case class GroupComponentCompliance(
 
 final case class ByRuleByNodeByDirectiveCompliance(
     id:             DirectiveId,
-    name:           String,
+    name:           DirectiveName,
     compliance:     ComplianceLevel,
     skippedDetails: Option[SkippedDetails],
     policyMode:     ComputedPolicyMode,
@@ -507,11 +517,6 @@ object CsvCompliance {
     given Csv.Header.One[A] with {}
   }
 
-  opaque type DirectiveField = String
-  object DirectiveField extends CsvField[DirectiveField] {
-    def apply(directive: ByRuleDirectiveCompliance) = directive.name
-  }
-
   opaque type BlockField = String
   object BlockField extends CsvField[BlockField] {
     def apply(block: List[ComponentField]) = block.mkString(",")
@@ -548,7 +553,7 @@ object CsvCompliance {
     (block: BlockField, component: ComponentField, node: NodeField, value: ValueField, status: StatusField, message: MessageField)
 
   case class RuleComplianceCsv(
-      directive: DirectiveField,
+      directive: DirectiveName,
       block:     BlockField,
       component: ComponentField,
       node:      NodeField,
@@ -562,7 +567,7 @@ object CsvCompliance {
     given (using directive: ByRuleDirectiveCompliance): Transformer[RuleComponentResult, RuleComplianceCsv] = {
       Transformer
         .define[RuleComponentResult, RuleComplianceCsv]
-        .withFieldConst(_.directive, DirectiveField(directive))
+        .withFieldConst(_.directive, directive.name)
         .buildTransformer
     }
 
@@ -905,7 +910,7 @@ object ComplianceApiData {
 
     final case class ByRuleDirectiveComplianceApi(
         id:                DirectiveId,
-        name:              String,
+        name:              DirectiveName,
         compliance:        Double,
         policyMode:        ComputedPolicyMode,
         complianceDetails: ComplianceSerializable,
@@ -983,7 +988,7 @@ object ComplianceApiData {
 
     final case class ByRuleByNodeByDirectiveComplianceApi(
         id:                DirectiveId,
-        name:              String,
+        name:              DirectiveName,
         compliance:        Double,
         policyMode:        ComputedPolicyMode,
         complianceDetails: ComplianceSerializable,
