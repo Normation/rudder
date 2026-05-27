@@ -432,9 +432,9 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.15
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.16
   NAME 'vmMemory'
   DESC 'process virtual memory'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 #
 # A machine can have some complex "physicale" elements:
 # * bios
