@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # used to setup Rust build containers
 
 rustup component add clippy
