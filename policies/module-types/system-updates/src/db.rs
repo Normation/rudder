@@ -249,6 +249,20 @@ impl PackageDatabase {
             .map(|_| ())
     }
 
+    /// Reboot if needed. Should follow the Update action
+    pub fn reboot(&mut self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
+        self.conn
+            .execute(
+                "update update_events set status = ?1, report = ?2 where event_id = ?3",
+                (
+                    UpdateStatus::RunningReboot.to_string(),
+                    serde_json::to_string(report).unwrap(),
+                    &event_id,
+                ),
+            )
+            .map(|_| ())
+    }
+
     /// Schedule post-event action. Can happen after a reboot in a separate run.
     ///
     pub fn schedule_post_event(
