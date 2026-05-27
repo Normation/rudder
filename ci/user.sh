@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # Jenkins user with correct uid
 USER_ID=$1
 mkdir /home/jenkins
