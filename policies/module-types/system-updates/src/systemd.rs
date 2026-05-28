@@ -24,6 +24,8 @@ pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
         );
     }
 
+    let services = systemd_get_restartable_services(services);
+
     // Make sure the units are up-to-date
     let mut c = Command::new("systemctl");
     c.arg("daemon-reload");
@@ -41,4 +43,30 @@ pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
         CommandCapture::StdoutStderr,
     ));
     res.clear_ok()
+}
+
+fn systemd_get_restartable_services(services: &[String]) -> Vec<&str> {
+    let mut res = Vec::new();
+
+    for service in services {
+        let output = Command::new("systemctl")
+            .arg("show")
+            .arg(service)
+            .arg("-p")
+            .arg("RefuseManualStop")
+            .arg("--value")
+            .output();
+
+        let output = match output {
+            Ok(o) if o.status.success() => o,
+            _ => continue,
+        };
+
+        let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+        if value.contains("no") {
+            res.push(service.as_str());
+        }
+    }
+    res
 }
