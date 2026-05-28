@@ -109,7 +109,7 @@ const homePage = (
 
   }
 
-  doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]));
+  doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]), onClickDoughnuts);
 
   scoreDetails.forEach(function(score) {
     $("#scoreBreakdown .node-charts").append(
@@ -119,7 +119,7 @@ const homePage = (
                 <div  id="score-${score.scoreId}-legend"></div>
               </div>`)
     var complianceHColors = score.data.colors.map(x => complianceHoverColors[x]);
-    var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
+    var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors, onClickDoughnuts);
     var noScoreIndex = score.data.labels.indexOf("No score")
     // Hide no score details, chart is a promise execute only when fulfilled
     if (noScoreIndex !== -1) {
