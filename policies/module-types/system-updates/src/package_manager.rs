@@ -266,6 +266,8 @@ impl PackageManager {
                 "" => None,
                 // Apparently it can happen on CentOS7, very likely a bug. See #26194.
                 ".service" => None,
+                // Ignore yum warning (see #28896).
+                s if s.contains(" ") => None,
                 service => Some(service.to_string()),
             })
             .collect()
@@ -459,6 +461,8 @@ mod tests {
             "ser1\0ser2".to_string(),
             "".to_string(),
             " ".to_string(),
+            "A little error!".to_string(),
+            "A bigger error\non multiple lignes".to_string(),
         ];
         std::assert_eq!(
             PackageManager::parse_services(&i),
