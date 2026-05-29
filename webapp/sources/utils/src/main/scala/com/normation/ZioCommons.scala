@@ -593,7 +593,7 @@ object RudderLogger {
 
   extension (logger: RudderLogger) {
 
-    def logEffect: Logger = logger
+    def logEffect: RudderEffectLogger = RudderEffectLogger(logger)
 
     /*
      * We don't want that errors happening during log be propagated to the app error channel,
@@ -632,6 +632,32 @@ object RudderLogger {
   }
 }
 
+// non ZIO version - used to make parameters lazy
+opaque type RudderEffectLogger = Logger
+object RudderEffectLogger {
+  def apply(logger: Logger): RudderEffectLogger = logger
+
+  extension (logger: RudderEffectLogger) {
+    def trace(msg: => String): Unit = if (logger.isTraceEnabled()) logger.trace(msg) else ()
+    def debug(msg: => String): Unit = if (logger.isDebugEnabled()) logger.debug(msg) else ()
+    def info(msg:  => String): Unit = if (logger.isInfoEnabled()) logger.info(msg) else ()
+    def warn(msg:  => String): Unit = if (logger.isWarnEnabled()) logger.warn(msg) else ()
+    def error(msg: => String): Unit = if (logger.isErrorEnabled()) logger.error(msg) else ()
+
+    def trace(msg: => String, t: Throwable): Unit = if (logger.isTraceEnabled()) logger.trace(msg, t) else ()
+    def debug(msg: => String, t: Throwable): Unit = if (logger.isDebugEnabled()) logger.debug(msg, t) else ()
+    def info(msg:  => String, t: Throwable): Unit = if (logger.isInfoEnabled()) logger.info(msg, t) else ()
+    def warn(msg:  => String, t: Throwable): Unit = if (logger.isErrorEnabled()) logger.warn(msg, t) else ()
+    def error(msg: => String, t: Throwable): Unit = if (logger.isWarnEnabled()) logger.error(msg, t) else ()
+
+    def isTraceEnabled: Boolean = logger.isTraceEnabled()
+    def isDebugEnabled: Boolean = logger.isDebugEnabled()
+    def isInfoEnabled:  Boolean = logger.isInfoEnabled()
+    def isWarnEnabled:  Boolean = logger.isWarnEnabled()
+    def isErrorEnabled: Boolean = logger.isErrorEnabled()
+  }
+}
+
 // a default implementation that accepts a name for the logger.
 // it will respect slf4j namespacing with ".".
 trait NamedZioLogger {
@@ -645,7 +671,7 @@ trait NamedZioLogger {
   // for compatibility with current Lift convention, use logger = this
   def logPure: NamedZioLogger = this
 
-  def logEffect: Logger = internalLogger.logEffect
+  def logEffect: RudderEffectLogger = internalLogger.logEffect
 
   /*
    * We don't want that errors happening during log be propagated to the app error channel,
