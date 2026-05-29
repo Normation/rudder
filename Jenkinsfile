@@ -789,6 +789,38 @@ pipeline {
                         }
                     }
                 }
+        stage('deps-npm') {
+            agent {
+                dockerfile {
+                    label 'generic-docker'
+                    filename 'webapp/sources/Dockerfile'
+                    // and share maven cache
+                    args '-u 0:0 -v /srv/cache/maven:/root/.m2'
+                }
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('webapp/sources/rudder/rudder-web/src/main/') {
+                        sh script: 'npm_config_loglevel=error npm ci --no-audit', label: "install dependencies"
+                        sh script: 'npx better-npm-audit audit --level high', label: "check npm dependencies"
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        errors.add("npm")
+                        failedBuild = true
+                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+                always {
+                   echo "currentBuild.result=${currentBuild.result}"
+                   echo "currentBuild.currentResult=${currentBuild.currentResult}"
+                }
+            }
+        }
                 stage('policies') {
                     agent {
                         dockerfile {
