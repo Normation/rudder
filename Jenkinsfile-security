@@ -56,7 +56,7 @@ pipeline {
         }
 
         stage('deps-npm') {
-            when { not { changeRequest() } }
+            when { true }
             agent {
                 dockerfile {
                     label 'generic-docker'
