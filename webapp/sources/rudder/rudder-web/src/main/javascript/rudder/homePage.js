@@ -73,7 +73,7 @@ const homePage = (
     $("#globalComplianceStats").html(stats);
   }
 
-  doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]));
+  doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]), onClickDoughnuts);
 
   const complianceContainer = ".node-charts";
   const patchVulnContainer = ".patch-vuln-charts";
@@ -96,7 +96,7 @@ const homePage = (
               </div>`
     )
     var complianceHColors = score.data.colors.map(x => complianceHoverColors[x]);
-    var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors);
+    var scoreChart = doughnutChart('score-'+ score.scoreId, score.data, score.data.colors, complianceHColors, onClickDoughnuts);
     var noScoreIndex = score.data.labels.indexOf("No score")
     // Hide no score details, chart is a promise execute only when fulfilled
     if (noScoreIndex !== -1) {
