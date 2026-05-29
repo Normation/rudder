@@ -83,6 +83,10 @@ pipeline {
                         slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
                 }
+                always {
+                   echo "currentBuild.result=${currentBuild.result}"
+                   echo "currentBuild.currentResult=${currentBuild.currentResult}"
+                }
             }
         }
         stage('deps-rust') {
