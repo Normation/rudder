@@ -289,7 +289,7 @@ object RunHooks {
 
     def logReturnCode(result: HookReturnCode): IOResult[Unit] = {
       for {
-        _ <- ZIO.when(PureHooksLogger.logEffect.isTraceEnabled()) {
+        _ <- PureHooksLogger.ifTraceEnabled {
                PureHooksLogger.For(logIdentifier).trace(s"  -> results: ${result.msg}") *>
                PureHooksLogger.For(logIdentifier).trace(s"  -> stdout : ${result.stdout}") *>
                PureHooksLogger.For(logIdentifier).trace(s"  -> stderr : ${result.stderr}")

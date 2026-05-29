@@ -308,7 +308,7 @@ class RuddercServiceImpl(
 
   def logReturnCode(result: RuddercResult): IOResult[Unit] = {
     for {
-      _ <- ZIO.when(RuddercLogger.logEffect.isTraceEnabled()) {
+      _ <- RuddercLogger.ifTraceEnabled {
              RuddercLogger.trace(s"  -> results: ${result.code.toString}") *>
              RuddercLogger.trace(
                s"  -> modified files: ${result.fileStatus.map(s => s"${s.path}: ${s.state.value}").mkString(" ; ")}"
