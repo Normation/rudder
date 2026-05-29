@@ -89,7 +89,6 @@ pipeline {
             }
         }
         stage('deps-rust') {
-            when { not { changeRequest() } }
             agent {
                 dockerfile {
                     label 'generic-docker'
@@ -101,7 +100,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check', label: 'check relayd dependencies'
+                    sh script: 'cargo deny chec', label: 'check relayd dependencies'
                     sh script: 'cargo deny list > target/rust-dependencies.txt', label: 'list rust dependencies'
                 }
             }
@@ -163,6 +162,9 @@ pipeline {
 
 def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {
   def msg ="*${version} - rudder dependency check* - <"+currentBuild.absoluteUrl+"|Link>"
+
+  echo "updateSlack"
+  echo "errors=${errors}"
 
   if (changeUrl == null) {
 
