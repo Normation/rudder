@@ -790,6 +790,7 @@ pipeline {
                     }
                 }
         stage('deps-npm') {
+            when { true }
             agent {
                 dockerfile {
                     label 'generic-docker'
