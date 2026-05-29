@@ -430,3 +430,19 @@ getRuleComplianceByDirective ruleId filename model =
         }
   in
     req
+
+getRuleComplianceByNode : RuleId -> String -> Model -> Cmd Msg
+getRuleComplianceByNode ruleId filename model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
+        , url     = getUrl model [ "rules", ruleId.value, "compliance", "byNode" ] [ Url.Builder.string "format" "csv"]
+        , body    = emptyBody
+        , expect  = expectString (RuleComplianceCsvExported filename)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req

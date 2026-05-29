@@ -741,6 +741,15 @@ update msg model =
         in
         (model, cmd)
 
+    -- Export compliance sorted by node of a single rule to CSV
+    ExportRuleComplianceByNode ruleId date ->
+        let
+          timeStr = date |> Date.format "yyyy-MM-dd"
+          filename = "rudder_rule_" ++ (ruleId.value) ++ "_compliance_by_node_" ++ timeStr ++ ".csv"
+          cmd = getRuleComplianceByNode ruleId filename model
+        in
+        (model, cmd)
+
     RuleComplianceCsvExported filename res ->
       case res of
         Ok content ->

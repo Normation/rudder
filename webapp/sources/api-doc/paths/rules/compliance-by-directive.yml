@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+get:
+  summary: Compliance details of a rule by directive
+  description: Get current compliance of a rule of a Rudder server, sorted by directive
+  operationId: getRuleComplianceByDirective
+  parameters:
+    - in: query
+      name: format
+      schema:
+        type: string
+        enum:
+          - csv
+          - json
+        default: json
+      description: format of export
+      style: form
+      explode: false
+    - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
+    - $ref: ../../components/parameters/rule-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/responses/rule-compliance-by-directive.yml"
+        text/plain:
+          schema:
+            type: string
+          example: |
+            "Directive","Block","Component","Node","Value","Status","Message"
+            "directive-copyGitFile","","directive-copyGitFile-component-br6-bn4","node1.localhost","directive-copyGitFile-component-value-br6-bn4","successAlreadyOK",""
+            "directive-copyGitFile","","directive-copyGitFile-component-br6-bn5","node1.localhost","directive-copyGitFile-component-value-br6-bn5","successAlreadyOK",""
+
+  tags:
+    - Rules

@@ -547,7 +547,7 @@ object CsvCompliance {
   type RuleComponentResult =
     (block: BlockField, component: ComponentField, node: NodeField, value: ValueField, status: StatusField, message: MessageField)
 
-  case class RuleComplianceCsv(
+  case class RuleComplianceByDirectiveCsv(
       directive: DirectiveField,
       block:     BlockField,
       component: ComponentField,
@@ -556,24 +556,61 @@ object CsvCompliance {
       status:    StatusField,
       message:   MessageField
   ) derives Csv
-  object RuleComplianceCsv {
+  object RuleComplianceByDirectiveCsv {
     import com.normation.rudder.rest.data.CsvCompliance.RuleComponentResult
 
-    given (using directive: ByRuleDirectiveCompliance): Transformer[RuleComponentResult, RuleComplianceCsv] = {
+    given (using
+        directive: ByRuleDirectiveCompliance
+    ): Transformer[RuleComponentResult, RuleComplianceByDirectiveCsv] = {
       Transformer
-        .define[RuleComponentResult, RuleComplianceCsv]
+        .define[RuleComponentResult, RuleComplianceByDirectiveCsv]
         .withFieldConst(_.directive, DirectiveField(directive))
         .buildTransformer
     }
 
-    given Transformer[ByRuleRuleCompliance, Seq[RuleComplianceCsv]] = (rule: ByRuleRuleCompliance) => {
+    given Transformer[ByRuleRuleCompliance, Seq[RuleComplianceByDirectiveCsv]] = (rule: ByRuleRuleCompliance) => {
       rule.directives.flatMap(d => {
         for {
           c   <- d.components
           res <- recurseComponent(c, Nil)
         } yield {
           given ByRuleDirectiveCompliance = d
-          res.transformInto[RuleComplianceCsv]
+          res.transformInto[RuleComplianceByDirectiveCsv]
+        }
+      })
+    }
+  }
+
+  case class RuleComplianceByNodeCsv(
+      node:      NodeField,
+      directive: DirectiveField,
+      block:     BlockField,
+      component: ComponentField,
+      value:     ValueField,
+      status:    StatusField,
+      message:   MessageField
+  ) derives Csv
+
+  object RuleComplianceByNodeCsv {
+
+    import com.normation.rudder.rest.data.CsvCompliance.RuleComponentResult
+
+    given (using directive: ByRuleDirectiveCompliance): Transformer[RuleComponentResult, RuleComplianceByNodeCsv] = {
+      Transformer
+        .define[RuleComponentResult, RuleComplianceByNodeCsv]
+        .withFieldConst(_.directive, DirectiveField(directive))
+        .buildTransformer
+    }
+
+    given Transformer[ByRuleRuleCompliance, Seq[RuleComplianceByNodeCsv]] = (rule: ByRuleRuleCompliance) => {
+      rule.directives.flatMap(d => {
+        for {
+          c   <- d.components
+          res <- recurseComponent(c, Nil)
+        } yield {
+          given ByRuleDirectiveCompliance = d
+
+          res.transformInto[RuleComplianceByNodeCsv]
         }
       })
     }
@@ -1025,6 +1062,27 @@ object ComplianceApiData {
           _.directives,
           x => if (level < 2) None else Some(x.directives.map(_.transformInto[ByRuleDirectiveComplianceApi]))
         )
+        .buildTransformer
+    }
+
+    final case class RuleComplianceByNodeJson(
+        id:                RuleId,
+        name:              String,
+        compliance:        Double,
+        mode:              ComplianceModeName,
+        policyMode:        ComputedPolicyMode,
+        complianceDetails: ComplianceSerializable,
+        nodes:             Option[Seq[GroupComponentComplianceApi]]
+    ) derives JsonEncoder
+
+    given ruleComplianceByNodeJson(using
+        precision: CompliancePrecision,
+        level:     Int
+    ): Transformer[ByRuleRuleCompliance, RuleComplianceByNodeJson] = {
+      Transformer
+        .define[ByRuleRuleCompliance, RuleComplianceByNodeJson]
+        .withFieldRenamed(_.compliance, _.complianceDetails)
+        .withFieldComputed(_.nodes, x => if (level < 2) None else Some(x.nodes.map(_.transformInto[GroupComponentComplianceApi])))
         .buildTransformer
     }
   }

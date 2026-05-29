@@ -2594,7 +2594,7 @@ response:
     }
     }
 ---
-description: Get rule compliance by directive
+description: Get rule compliance by directive in JSON format
 method: GET
 url: /api/latest/rules/br6/compliance/byDirective
 params:
@@ -2698,7 +2698,7 @@ response:
       }
     }
 ---
-description: Get rule compliance by directive
+description: Get rule compliance by directive in CSV format
 method: GET
 url: /api/latest/rules/br6/compliance/byDirective
 params:
@@ -2710,3 +2710,119 @@ response:
     "Directive","Block","Component","Node","Value","Status","Message"
     "directive-copyGitFile","","directive-copyGitFile-component-br6-bn4","node1.localhost","directive-copyGitFile-component-value-br6-bn4","successAlreadyOK",""
     "directive-copyGitFile","","directive-copyGitFile-component-br6-bn5","node1.localhost","directive-copyGitFile-component-value-br6-bn5","successAlreadyOK",""
+---
+description: Get rule compliance by node in JSON format
+method: GET
+url: /api/latest/rules/br6/compliance/byNode
+params:
+  format: json
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRuleComplianceByNode",
+      "result" : "success",
+      "data" : {
+        "id" : "br6",
+        "name" : "R6",
+        "compliance" : 100.0,
+        "mode" : "full-compliance",
+        "policyMode" : "enforce",
+        "complianceDetails" : {
+          "successAlreadyOK" : 100.0
+        },
+        "nodes" : [
+          {
+            "id" : "bn4",
+            "name" : "node1.localhost",
+            "compliance" : 100.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive-copyGitFile",
+                "name" : "directive-copyGitFile",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn4",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive-copyGitFile-component-value-br6-bn4",
+                        "reports" : [
+                          {
+                            "status" : "successAlreadyOK"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn5",
+            "name" : "node1.localhost",
+            "compliance" : 100.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive-copyGitFile",
+                "name" : "directive-copyGitFile",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn5",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive-copyGitFile-component-value-br6-bn5",
+                        "reports" : [
+                          {
+                            "status" : "successAlreadyOK"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get rule compliance by node in CSV format
+method: GET
+url: /api/latest/rules/br6/compliance/byNode
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Node","Directive","Block","Component","Value","Status","Message"
+    "node1.localhost","directive-copyGitFile","","directive-copyGitFile-component-br6-bn4","directive-copyGitFile-component-value-br6-bn4","successAlreadyOK",""
+    "node1.localhost","directive-copyGitFile","","directive-copyGitFile-component-br6-bn5","directive-copyGitFile-component-value-br6-bn5","successAlreadyOK",""

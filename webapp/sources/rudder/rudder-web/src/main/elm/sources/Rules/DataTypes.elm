@@ -385,4 +385,5 @@ type Msg
     | RudderTableMsg (Rudder.Table.Msg Msg)
     | ExportCsvWithCurrentDate Date.Date
     | ExportRuleComplianceByDirective RuleId Date.Date
+    | ExportRuleComplianceByNode RuleId Date.Date
     | RuleComplianceCsvExported String (Result Error String)
