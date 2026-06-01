@@ -184,33 +184,6 @@ trait BlockComplianceByNode[Sub <: ComponentCompliance] extends ComponentComplia
 
 sealed trait StatusReport extends HasCompliance
 
-/**
- * Define two aggregated view of compliance: by node (for
- * a given rule) and by rules (for a given node).
- */
-final class RuleStatusReport private (
-    val forRule: RuleId,
-    val report:  AggregatedStatusReport
-) extends StatusReport {
-  lazy val compliance: ComplianceLevel                     = report.compliance
-  lazy val byNodes:    Map[NodeId, AggregatedStatusReport] =
-    report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
-}
-
-object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]): RuleStatusReport = {
-    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)))
-  }
-
-  /*
-   * Build rule status reports from node reports, deciding which directives should be "skipped"
-   */
-  def fromNodeStatusReports(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
-    val toKeep = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
-    RuleStatusReport(ruleId, toKeep)
-  }
-}
-
 /*
  * meta information about a run compliance analysis -
  * in particular about policy mode errors (agent aborted,
@@ -292,32 +265,140 @@ final case class RunAnalysis(
   }
 }
 
+/**
+ * ComposedCompliance is the value of computed compliance (AggregatedStatusReport)
+ * for each policy type. It's typically for a node, but the aggregation can be
+ * list of nodes, rules, etc.
+ */
+opaque type ComposedReport = Map[PolicyTypeName, AggregatedStatusReport]
+
+object ComposedReport {
+
+  def apply(map: Map[PolicyTypeName, AggregatedStatusReport]): ComposedReport = map
+  def apply(statusReport: Iterable[RuleNodeStatusReport]): ComposedReport = {
+    statusReport.groupBy(_.complianceTag).map { case (tag, reports) => (tag, AggregatedStatusReport(reports)) }
+  }
+
+  extension (nc: ComposedReport) {
+    // Get the compliance level for a given type, or compliance 0 is that type is missing
+    def getCompliance(t: PolicyTypeName): ComplianceLevel = {
+      nc.get(t) match {
+        case Some(x) => x.compliance
+        case None    => ComplianceLevel()
+      }
+    }
+
+    // Get the underlying representation. Typically used in transformers.
+    // Try to avoid it.
+    def getUnderlyingMap: Map[PolicyTypeName, AggregatedStatusReport] = nc
+
+    // Get the computed global compliance level.
+    // For compat reason, node compliance is the sum of all aspects
+    def getComplianceLevel: ComplianceLevel = ComplianceLevel.sum(nc.values.map(_.compliance))
+
+    // get the underlying RuleNodeStatusReports
+    def getReports(
+        keepReport: (r: RuleNodeStatusReport) => Boolean = _ => true
+    ): Chunk[RuleNodeStatusReport] = {
+
+      Chunk.fromIterable(
+        (nc: Map[PolicyTypeName, AggregatedStatusReport]).flatMap((_, agg) => agg.reports.iterator.filter(keepReport))
+      )
+    }
+
+    // a version that let the user know if that policy type is defined
+    def getReportsForPolicyType(pt: PolicyTypeName): Option[Chunk[RuleNodeStatusReport]] = {
+      nc.get(pt).map(x => Chunk.fromIterable(x.reports))
+    }
+
+    // filtering methods
+
+    def nonEmpty: Boolean = (nc: Map[PolicyTypeName, AggregatedStatusReport]).nonEmpty
+    def isEmpty:  Boolean = (nc: Map[PolicyTypeName, AggregatedStatusReport]).isEmpty
+
+    // Filter for only one policy type
+    def forPolicyType(t: PolicyTypeName): ComposedReport = {
+      nc.get(t) match {
+        case Some(r) => Map((t, r))
+        case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
+      }
+    }
+
+    def filterByRules(ruleIds: Set[RuleId]): ComposedReport = {
+      nc.map((tag, r) => (tag, r.filterByRules(ruleIds)))
+    }
+
+    def filterByDirectives(directiveIds: Set[DirectiveId]): ComposedReport = {
+      nc.map((tag, r) => (tag, r.filterByDirectives(directiveIds)))
+    }
+  }
+}
+
+// Utility to convert between node and rule status reports
+object ConvertStatusReport {
+
+  /*
+   * convert to proto-RuleStatusReports. Final aggregation is not done,
+   * because where it's used (like in ComplianceApi), more filtering need to be done
+   */
+  def fromNodesToRules(
+      nodes:      Iterable[NodeStatusReport],
+      keepReport: (r: RuleNodeStatusReport) => Boolean = _ => true
+  ): Map[RuleId, Iterable[RuleNodeStatusReport]] = {
+
+    nodes
+      .flatMap(_.reports.getReports(keepReport))
+      .groupBy(_.ruleId)
+  }
+
+}
+
+/**
+ * Define two aggregated view of compliance: by node (for
+ * a given rule) and by rules (for a given node).
+ */
+final class RuleStatusReport private (
+    val forRule: RuleId,
+    val report:  AggregatedStatusReport
+) extends StatusReport {
+  override lazy val compliance: ComplianceLevel                     = report.compliance
+  lazy val byNodes:             Map[NodeId, AggregatedStatusReport] =
+    report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
+}
+
+object RuleStatusReport {
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]): RuleStatusReport = {
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)))
+  }
+
+  /*
+   * Build rule status reports from node reports, deciding which directives should be "skipped"
+   */
+  def fromNodeStatusReports(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
+    val toKeep = nodeReports.values.flatMap(_.reports.getReports(_.ruleId == ruleId))
+    RuleStatusReport(ruleId, toKeep)
+  }
+}
+
+/**
+ * A `NodeStatusReport` is the artifact giving the compliance for a node, for a run, given expected reports and
+ * a current time (compliance depends on expected reports version).
+ * Compliance is split on several `PolicyType`, at least `system` and `user` one.
+ */
 final case class NodeStatusReport(
     nodeId:     NodeId,
     runInfo:    RunAnalysis,
     statusInfo: RunComplianceInfo,
-    reports:    Map[PolicyTypeName, AggregatedStatusReport]
+    reports:    ComposedReport
 ) extends StatusReport {
   // for compat reason, node compliance is the sum of all aspects
-  lazy val compliance: ComplianceLevel = ComplianceLevel.sum(reports.values.map(_.compliance))
+  override lazy val compliance: ComplianceLevel = reports.getComplianceLevel
 
-  // get the compliance level for a given type, or compliance 0 is that type is missing
-  def getCompliance(t: PolicyTypeName): ComplianceLevel = {
-    reports.get(t) match {
-      case Some(x) => x.compliance
-      case None    => ComplianceLevel()
-    }
-  }
-
-  def systemCompliance: ComplianceLevel = getCompliance(PolicyTypeName.rudderSystem)
-  def baseCompliance:   ComplianceLevel = getCompliance(PolicyTypeName.rudderBase)
+  def systemCompliance: ComplianceLevel = reports.getCompliance(PolicyTypeName.rudderSystem)
+  def baseCompliance:   ComplianceLevel = reports.getCompliance(PolicyTypeName.rudderBase)
 
   def forPolicyType(t: PolicyTypeName): NodeStatusReport = {
-    val r = reports.get(t) match {
-      case Some(r) => Map((t, r))
-      case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
-    }
-    NodeStatusReport(nodeId, runInfo, statusInfo, r)
+    NodeStatusReport(nodeId, runInfo, statusInfo, reports.forPolicyType(t))
   }
 }
 
@@ -354,7 +435,7 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByRules(ruleIds)) }
+      nodeStatusReport.reports.filterByRules(ruleIds)
     )
   }
 
@@ -364,7 +445,7 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByDirectives(directiveIds)) }
+      nodeStatusReport.reports.filterByDirectives(directiveIds)
     )
   }
 }
@@ -507,7 +588,7 @@ final case class DirectiveStatusReport(
 
 object DirectiveStatusReport {
 
-  def merge(directives: List[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
+  def merge(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
     directives.groupBy(_.directiveId).map {
       case (directiveId, reports) =>
         val tags          = {
@@ -807,13 +888,19 @@ object JsonPostgresqlSerialization {
     implicit val a: Transformer[JNodeStatusReport, NodeStatusReport] = {
       Transformer
         .define[JNodeStatusReport, NodeStatusReport]
-        .withFieldComputed(_.reports, _.reports.map { case (a, b) => (a, b.transformInto[AggregatedStatusReport]) }.toMap)
+        .withFieldComputed(
+          _.reports,
+          r => ComposedReport(r.reports.map { case (a, b) => (a, b.transformInto[AggregatedStatusReport]) }.toMap)
+        )
         .buildTransformer
     }
     implicit val b: Transformer[NodeStatusReport, JNodeStatusReport] = {
       Transformer
         .define[NodeStatusReport, JNodeStatusReport]
-        .withFieldComputed(_.reports, _.reports.map { case (a, b) => (a, b.transformInto[JAggregatedStatusReport]) }.toSeq)
+        .withFieldComputed(
+          _.reports,
+          _.reports.getUnderlyingMap.map((a, b) => (a, b.transformInto[JAggregatedStatusReport])).toSeq
+        )
         .buildTransformer
     }
 

@@ -251,18 +251,18 @@ class StatusReportTest extends Specification {
     }
 
     "Correctly compute the by rule compliance" in {
-      report
-        .reports(PolicyTypeName.rudderBase)
+      report.reports
+        .forPolicyType(PolicyTypeName.rudderBase)
         .filterByRules(Set(RuleId(RuleUid("r1"))))
-        .compliance === ComplianceLevel(pending = 2) and
-      report
-        .reports(PolicyTypeName.rudderBase)
+        .getComplianceLevel === ComplianceLevel(pending = 2) and
+      report.reports
+        .forPolicyType(PolicyTypeName.rudderBase)
         .filterByRules(Set(RuleId(RuleUid("r2"))))
-        .compliance === ComplianceLevel(success = 1) and
-      report
-        .reports(PolicyTypeName.rudderBase)
+        .getComplianceLevel === ComplianceLevel(success = 1) and
+      report.reports
+        .forPolicyType(PolicyTypeName.rudderBase)
         .filterByRules(Set(RuleId(RuleUid("r3"))))
-        .compliance === ComplianceLevel(error = 1)
+        .getComplianceLevel === ComplianceLevel(error = 1)
     }
 
   }

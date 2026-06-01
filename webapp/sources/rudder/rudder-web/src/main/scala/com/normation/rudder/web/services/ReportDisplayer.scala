@@ -721,7 +721,7 @@ class ReportDisplayer(
      */
     for {
       (_, directive) <-
-        DirectiveStatusReport.merge(nodeStatusReports.reports.toList.flatMap(_._2.reports.toList.flatMap(_.directives.values)))
+        DirectiveStatusReport.merge(nodeStatusReports.reports.getReports().flatMap(_.directives.values))
       value          <- directive.getValues(v => v.status == status)
     } yield {
       val (techName, techVersion) = directiveLib.allDirectives

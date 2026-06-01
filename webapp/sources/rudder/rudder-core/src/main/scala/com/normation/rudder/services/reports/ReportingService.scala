@@ -153,10 +153,7 @@ object ReportingService {
   }
 
   def complianceByPolicyType(report: NodeStatusReport, policyType: PolicyTypeName): ComplianceLevel = {
-    ComplianceLevel.sum(report.reports.toSeq.collect {
-      case (t, r) if t == policyType =>
-        r.compliance
-    })
+    report.reports.getCompliance(policyType)
   }
 
   /**
@@ -172,7 +169,7 @@ object ReportingService {
     if (reports.isEmpty) {
       None
     } else { // aggregate values
-      val complianceLevel = ComplianceLevel.sum(reports.flatMap(_._2.reports.map(_._2.compliance)))
+      val complianceLevel = ComplianceLevel.sum(reports.map(_._2.reports.getComplianceLevel))
       val n2              = System.currentTimeMillis
       TimingDebugLogger.trace(s"Aggregating compliance level for  global user compliance in: ${n2 - n1}ms")
 
