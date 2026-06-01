@@ -37,72 +37,66 @@
 
 package com.normation.rudder.metrics
 
-import com.normation.zio.ZioRuntime
 import java.util.concurrent.TimeUnit
 import org.junit.runner.RunWith
-import org.specs2.mutable.*
-import org.specs2.runner.JUnitRunner
 import zio.{Scheduler as _, *}
 import zio.test.*
+import zio.test.junit.ZTestJUnitRunner
 
-@RunWith(classOf[JUnitRunner])
-class SchedulerTest extends Specification {
+@RunWith(classOf[ZTestJUnitRunner])
+class SchedulerTest extends ZIOSpecDefault {
+  import TestClock.adjust
 
-  "A complicated schedule" should {
-    /*
-     * with min = 10 and max = 20
-     * in :        1 min 5 min        11 min 19 min         32 min          56 min
-     *             +1    +4           +6     +8             +13             +24
-     * out: 0 min              10 min               20 min  32 min   52 min      62 min  82 min ...
-     *
-     */
+  override def spec: Spec[TestEnvironment & Scope, Any] = {
+    suite("ScheduleTest")(test("A complicated schedule should yield execution at the correct time") {
+      /*
+       * with min = 10 and max = 20
+       * in :        1 min 5 min        11 min 19 min         32 min          56 min
+       *             +1    +4           +6     +8             +13             +24
+       * out: 0 min              10 min               20 min  32 min   52 min      62 min  82 min ...
+       *
+       */
 
-    "yield execution at the correct time" in {
-      val prog = {
-        def adjust(d: Duration) = {
-          testClock.flatMap(_.adjust(d))
-        }
-        def take(q: Queue[Long], r: Ref[List[Long]]): UIO[Unit] = {
-          for {
-            x <- q.take
-            _ <- r.update(x :: _)
-          } yield ()
-        }
-
+      def take(q: Queue[Long], r: Ref[List[Long]]): UIO[Unit] = {
         for {
-
-          q <- Queue.unbounded[Long]
-          r <- Ref.make(List.empty[Long])
-          c  = ZIO.clockWith(_.currentTime(TimeUnit.MINUTES)).flatMap(t => q.offer(t)).unit
-          s <- Scheduler.make[Unit](10.minutes, 20.minutes, Unit => c, ZIO.unit)
-          // start prog and trigger event
-          f <- s.start
-          _ <- s.triggerSchedule(())
-          _ <- take(q, r)                                  // 0 min
-          _ <- adjust(1.minutes) *> s.triggerSchedule(())  //  1 min
-          _ <- adjust(4.minutes) *> s.triggerSchedule(())  //  5 min
-          _ <- adjust(5.minutes)                           // 10 min
-          _ <- take(q, r)                                  // 10 min
-          _ <- adjust(1.minutes) *> s.triggerSchedule(())  // 11 min
-          _ <- adjust(8.minutes) *> s.triggerSchedule(())  // 19 min
-          _ <- adjust(1.minutes)                           // 20 min
-          _ <- take(q, r)                                  // 20 min
-          _ <- adjust(12.minutes) *> s.triggerSchedule(()) // 32 min
-          _ <- take(q, r)                                  // 32 min
-          _ <- adjust(20.minutes)                          // 52 min
-          _ <- take(q, r)                                  // 52 min
-          _ <- s.triggerSchedule(())                       // 52 min
-          _ <- adjust(10.minutes)                          // 62 min
-          _ <- take(q, r)                                  // 62 min
-          _ <- adjust(20.minutes)                          // 82 min
-          _ <- take(q, r)                                  // 82 min
-          _ <- adjust(20.minutes)                          // 102 min
-          _ <- take(q, r)                                  // 102 min
-          l <- r.get
-        } yield l.reverse
+          x <- q.take
+          _ <- r.update(x :: _)
+        } yield ()
       }
-      val l    = ZioRuntime.unsafeRun(prog.provideLayer(Scope.default >>> testEnvironment))
-      l must containTheSameElementsAs(List(0L, 10L, 20L, 32L, 52L, 62L, 82L, 102L))
-    }
+
+      for {
+        q <- Queue.unbounded[Long]
+        r <- Ref.make(List.empty[Long])
+        c  = ZIO.clockWith(_.currentTime(TimeUnit.MINUTES)).flatMap(t => q.offer(t)).unit
+        s <- Scheduler.make[Unit](10.minutes, 20.minutes, _ => c, ZIO.unit)
+        // start prog and trigger event
+        f <- s.start
+        _ <- s.triggerSchedule(())
+        _ <- take(q, r)                                  //   0 min
+        _ <- adjust(1.minutes) *> s.triggerSchedule(())  //   1 min
+        _ <- adjust(4.minutes) *> s.triggerSchedule(())  //   5 min
+        _ <- adjust(5.minutes)                           //  10 min
+        _ <- take(q, r)                                  //  10 min
+        _ <- adjust(1.minutes) *> s.triggerSchedule(())  //  11 min
+        _ <- adjust(8.minutes) *> s.triggerSchedule(())  //  19 min
+        _ <- adjust(1.minutes)                           //  20 min
+        _ <- take(q, r)                                  //  20 min
+        _ <- adjust(12.minutes) *> s.triggerSchedule(()) //  32 min
+        _ <- take(q, r)                                  //  32 min
+        _ <- adjust(20.minutes)                          //  52 min
+        _ <- take(q, r)                                  //  52 min
+        _ <- s.triggerSchedule(())                       //  52 min
+        _ <- adjust(10.minutes)                          //  62 min
+        _ <- take(q, r)                                  //  62 min
+        _ <- adjust(20.minutes)                          //  82 min
+        _ <- take(q, r)                                  //  82 min
+        _ <- adjust(20.minutes)                          // 102 min
+        _ <- take(q, r)                                  // 102 min
+        l <- r.get
+      } yield {
+        assert(l)(Assertion.hasSameElementsDistinct(List(0L, 10L, 20L, 32L, 52L, 62L, 82L, 102L)))
+      }
+    })
   }
+
 }
