@@ -38,10 +38,14 @@ class CreateCloneGroupPopup(
   private val uuidGen               = RudderConfig.stringUuidGenerator
   private val userPropertyService   = RudderConfig.userPropertyService
 
-  private val categories       = roNodeGroupRepository.getAllNonSystemCategories()
+  private val categories       = roNodeGroupRepository.getAllNonSystemCategories()(using snippetQC)
   // Fetch the parent category, if any
-  private val parentCategoryId =
-    nodeGroup.flatMap(x => roNodeGroupRepository.getNodeGroupCategory(x.id).toBox).map(_.id.value).getOrElse("")
+  private val parentCategoryId = {
+    nodeGroup
+      .flatMap(x => roNodeGroupRepository.getNodeGroupCategory(x.id)(using snippetQC).toBox)
+      .map(_.id.value)
+      .getOrElse("")
+  }
 
   var createContainer = false
 

@@ -6,8 +6,8 @@ import Maybe.Extra
 import NaturalOrdering
 import List.Extra
 
-import Html exposing (Attribute, Html, div, span, table, tbody, td, th, thead, tr)
-import Html.Attributes exposing (attribute, class, disabled, style)
+import Html exposing (Attribute, Html, b, div, span, table, tbody, td, text, th, thead, tr)
+import Html.Attributes exposing (attribute, class, disabled, style, title)
 import Html exposing (ul, li, i)
 
 import Groups.DataTypes exposing (..)
@@ -174,3 +174,27 @@ complianceDataAvailable compliance =
         + allComplianceValues.pending.value
         + allComplianceValues.reportsDisabled.value
         + allComplianceValues.noReport.value == 0 ) then False else True
+
+
+badgeSecurityTags : Maybe SecurityTag -> Html Msg
+badgeSecurityTags mTag =
+  case mTag of
+    Nothing ->
+      text ""
+    Just Open ->
+      text ""
+    Just (ByTenants tenants) ->
+      let
+        tenantNames = String.join ", " tenants
+        nbTenants   = List.length tenants
+        label       = if nbTenants == 0 then "no tenants" else tenantNames
+      in
+      span
+        [ class "tenants-label"
+        , attribute "data-bs-toggle" "tooltip"
+        , attribute "data-bs-placement" "top"
+        , title ("Tenants: " ++ label)
+        ]
+        [ i [ class "fa fa-building" ] []
+        , b [] [ text (String.fromInt nbTenants) ]
+        ]

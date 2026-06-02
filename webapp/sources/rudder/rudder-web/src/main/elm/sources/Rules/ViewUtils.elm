@@ -574,6 +574,32 @@ buildTagsTree tags =
         text ""
 
 
+badgeSecurityTags : Maybe SecurityTag -> Html Msg
+badgeSecurityTags mTag =
+    case mTag of
+        Nothing ->
+            text ""
+
+        Just Open ->
+            text ""
+
+        Just (ByTenants tenants) ->
+            let
+                tenantNames = String.join ", " tenants
+                nbTenants   = List.length tenants
+                label       = if nbTenants == 0 then "no tenants" else tenantNames
+            in
+            span
+                [ class "tenants-label"
+                , attribute "data-bs-toggle" "tooltip"
+                , attribute "data-bs-placement" "top"
+                , title ("Tenants: " ++ label)
+                ]
+                [ i [ class "fa fa-building" ] []
+                , b [] [ text (String.fromInt nbTenants) ]
+                ]
+
+
 buildTagsList : List Tag -> Html Msg
 buildTagsList tags =
     let
@@ -1203,3 +1229,4 @@ exportToCsvButton onClickAction =
       [ span []
         [ text "Export "
         , i [ class "fa fa-download" ] []]]
+

@@ -63,13 +63,13 @@ import zio.json.*
 import zio.syntax.*
 
 class WoLDAPNodeRepository(
-    nodeDit:      NodeDit,
-    acceptedDit:  InventoryDit,
-    mapper:       LDAPEntityMapper,
-    ldap:         LDAPConnectionProvider[RwLDAPConnection],
-    actionLogger: EventLogRepository,
-    nodeLibMutex: ScalaReadWriteLock, // that's a scala-level mutex to have some kind of consistency with LDAP
-
+    nodeDit:              NodeDit,
+    acceptedDit:          InventoryDit,
+    mapper:               LDAPEntityMapper,
+    ldap:                 LDAPConnectionProvider[RwLDAPConnection],
+    actionLogger:         EventLogRepository,
+    nodeLibMutex:         ScalaReadWriteLock,
+    // that's a scala-level mutex to have some kind of consistency with LDAP
     cacheExpectedReports: InvalidateCache[CacheExpectedReportAction],
     cacheConfiguration:   InvalidateCache[CacheComplianceQueueAction]
 ) extends WoNodeRepository with NamedZioLogger {

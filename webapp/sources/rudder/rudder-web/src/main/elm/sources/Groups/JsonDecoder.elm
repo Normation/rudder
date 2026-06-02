@@ -47,6 +47,13 @@ decodeCategoryGroupTarget =
     |> required "targets"     (list decodeTarget)
 
 
+decodeSecurityTag : Decoder SecurityTag
+decodeSecurityTag =
+  oneOf
+    [ string |> andThen (\s -> if s == "open" then succeed Open else fail ("Unknown security tag value: " ++ s))
+    , map ByTenants (field "tenants" (list string))
+    ]
+
 decodeGroup : Decoder Group
 decodeGroup =
   succeed Group
@@ -57,6 +64,7 @@ decodeGroup =
     |> required "dynamic"     bool
     |> required "enabled"     bool
     |> required "target"      string
+    |> optional "security"    (map Just decodeSecurityTag) Nothing
 
 decodeTarget : Decoder Group
 decodeTarget =
@@ -68,3 +76,4 @@ decodeTarget =
     |> hardcoded True
     |> required "enabled"     bool
     |> required "target"      string
+    |> optional "security"    (map Just decodeSecurityTag) Nothing

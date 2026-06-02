@@ -46,9 +46,6 @@ import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.WindowsType
 import com.normation.inventory.ldap.core.TimingDebugLoggerPure
-import com.normation.ldap.sdk.BuildFilter.*
-import com.normation.ldap.sdk.FALSE
-import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.ComplianceLogger
@@ -121,12 +118,11 @@ object HomePageUtils {
 class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable {
 
   private val nodeFactRepo     = RudderConfig.nodeFactRepository
-  private val ldap             = RudderConfig.roLDAPConnectionProvider
-  private val rudderDit        = RudderConfig.rudderDit
   private val reportingService = RudderConfig.reportingService
   private val roRuleRepo       = RudderConfig.roRuleRepository
   private val scoreService     = RudderConfig.rci.scoreService
   private val directiveRepo    = RudderConfig.roDirectiveRepository
+  private val groupRepo        = RudderConfig.roNodeGroupRepository
 
   override val secureDispatch: QueryContext ?=> DispatchIt = {
 
@@ -154,7 +150,7 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
     }
   }
 
-  def pendingNodes(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
+  def pendingNodes(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     displayCount(countPendingNodes, "pending nodes")
   }
 
@@ -162,23 +158,23 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
     displayCount(Full(nodeCount), "accepted nodes")
   }
 
-  def rules(html: NodeSeq): NodeSeq = {
+  def rules(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     displayCount(countAllRules(), "rules")
   }
 
-  def directives(html: NodeSeq): NodeSeq = {
+  def directives(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     displayCount(countAllDirectives(), "directives")
   }
 
-  def groups(html: NodeSeq): NodeSeq = {
+  def groups(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     displayCount(countAllGroups(), "groups")
   }
 
-  def techniques(html: NodeSeq): NodeSeq = {
+  def techniques(html: NodeSeq)(using qc: QueryContext): NodeSeq = {
     displayCount(countAllTechniques(), "techniques")
   }
 
-  def getAllCompliance(allNodes: Map[NodeId, CoreNodeFact])(implicit qc: QueryContext): NodeSeq = {
+  def getAllCompliance(allNodes: Map[NodeId, CoreNodeFact])(using qc: QueryContext): NodeSeq = {
     // this needs to be outside of the zio for-comprehension context to see the right node facts
     val nodes = allNodes.filter(_._2.rudderSettings.state.isEnabled).keys.toSet
     (for {
@@ -411,21 +407,19 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
     res
   }
 
-  private def countPendingNodes(implicit qc: QueryContext): Box[Int] = {
-    nodeFactRepo.getAll()(using qc, SelectNodeStatus.Pending).map(_.size)
-  }.toBox
+  private def countPendingNodes(using qc: QueryContext): Box[Int] = {
+    nodeFactRepo.getAll()(using qc, SelectNodeStatus.Pending).map(_.size).toBox
+  }
 
-  private def countAllRules(): Box[Int] = {
+  private def countAllRules()(using qc: QueryContext): Box[Int] = {
     roRuleRepo.getIds().map(_.size).toBox
   }
 
-  private def countAllDirectives(): Box[Int] = {
-    ldap.flatMap { con =>
-      con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_DIRECTIVE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
-    }.map(x => x.size)
-  }.toBox
+  private def countAllDirectives()(using qc: QueryContext): Box[Int] = {
+    directiveRepo.getFullDirectiveLibrary().map(_.allDirectives.size).toBox
+  }
 
-  private def countAllTechniques(): Box[Int] = {
+  private def countAllTechniques()(using qc: QueryContext): Box[Int] = {
     // for techniques, we can't easily rely on LDAP attribute, because we can have a mix of isSystem/policyType.
     // So just use the repo.
     directiveRepo
@@ -434,13 +428,12 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
         // here, we only want to count one technique whatever the number of versions, but only the ones enabled and of type "base"
         case (_, at) if at.policyTypes.isBase && at.isEnabled => Math.min(1, at.techniques.count(_._2.policyTypes.isBase))
       }.sum)
-  }.toBox
+      .toBox
+  }
 
-  private def countAllGroups(): Box[Int] = {
-    ldap
-      .flatMap(con => con.searchSub(rudderDit.GROUP.dn, OR(IS(OC_RUDDER_NODE_GROUP), IS(OC_SPECIAL_TARGET)), "1.1"))
-      .map(x => x.size)
-  }.toBox
+  private def countAllGroups()(using qc: QueryContext): Box[Int] = {
+    groupRepo.getAll().map(_.size).toBox
+  }
 
   private def displayCount(count: Box[Int], name: String) = {
     Text((count match {

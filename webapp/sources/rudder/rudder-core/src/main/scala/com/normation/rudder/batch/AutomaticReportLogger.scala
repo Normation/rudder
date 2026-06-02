@@ -66,7 +66,7 @@ object StartAutomaticReporting
  * A class that periodically check if there is some new non compliant reports to log.
  *
  * parameter reportLogInterval define the interval between two reports check
- * Informations of logs a are taken from different repository
+ * Information of logs are taken from different repository
  */
 class AutomaticReportLogger(
     propertyRepository:  RudderPropertiesRepository,
@@ -79,6 +79,9 @@ class AutomaticReportLogger(
 
   private val propertyName = "rudder.batch.reports.logInterval"
   val logger               = ScheduledJobLogger
+
+  // that class has system level read on every tenants
+  given cc: QueryContext = QueryContext.systemQC
 
   if (reportLogInterval < 1) {
     logger.info("Disable automatic non-compliant logger since property %s is 0 or negative".format(propertyName))
@@ -115,7 +118,7 @@ class AutomaticReportLogger(
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
             val isSuccess = (for {
               hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind).toIO
-              nodes          <- nodeFactRepository.getAll()(using QueryContext.systemQC)
+              nodes          <- nodeFactRepository.getAll()
               rules          <- ruleRepository.getAll(true)
               directives     <- directiveRepository.getFullDirectiveLibrary()
             } yield {
@@ -229,7 +232,7 @@ class AutomaticReportLogger(
       val startAt = lastProcessedId + 1
       logger.debug(s"Writing non-compliant-report logs between ids ${startAt} and ${maxId} (both included)")
       (for {
-        nodes      <- nodeFactRepository.getAll()(using QueryContext.systemQC)
+        nodes      <- nodeFactRepository.getAll()
         rules      <- ruleRepository.getAll(true)
         directives <- directiveRepository.getFullDirectiveLibrary()
       } yield {

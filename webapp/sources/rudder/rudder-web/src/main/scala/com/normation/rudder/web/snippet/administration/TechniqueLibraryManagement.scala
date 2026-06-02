@@ -112,7 +112,7 @@ class TechniqueLibraryManagement extends SecureDispatchSnippet with Loggable {
   // current states for the page - they will be kept only for the duration
   // of one request and its followng Ajax requests
 
-  private val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary.map(_.id).toBox
+  private val rootCategoryId = roActiveTechniqueRepository.getActiveTechniqueLibrary(using snippetQC).map(_.id).toBox
 
   private val currentTechniqueDetails         = new LocalSnippet[TechniqueEditForm]
   private val currentTechniqueCategoryDetails = new LocalSnippet[TechniqueCategoryEditForm]

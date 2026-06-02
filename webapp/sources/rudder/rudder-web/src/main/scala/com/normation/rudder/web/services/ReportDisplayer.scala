@@ -555,7 +555,9 @@ class ReportDisplayer(
   }
 
   // Handle show/hide logic of buttons, and rewrite button/container ids to avoid conflicts between tabs
-  private def displayRunLogs(nodeId: NodeId, runDate: Option[DateTime], tabId: String, tableId: String): NodeSeq = {
+  private def displayRunLogs(nodeId: NodeId, runDate: Option[DateTime], tabId: String, tableId: String)(using
+      qc: QueryContext
+  ): NodeSeq = {
     val btnId               = s"allLogButton-${tabId}"
     val logRunId            = s"logRun-${tabId}"
     val complianceLogGridId = s"complianceLogsGrid-${tabId}"

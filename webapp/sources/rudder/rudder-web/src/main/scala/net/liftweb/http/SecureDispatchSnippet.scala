@@ -56,11 +56,22 @@ trait SecureDispatchSnippet extends DispatchSnippet {
     CurrentUser.queryContext.withQCOr(loggedInsecureDispatch)(secureDispatch)
   }
 
+  private def logInvaliAccess: Unit = ApplicationLoggerPure.Auth.logEffect.warn(
+    s"Snippet '${this.getClass.getName}' can't be accessed in current security context (user is not authenticated)"
+  )
+
   private def loggedInsecureDispatch: DispatchIt = {
-    ApplicationLoggerPure.Auth.logEffect.warn(
-      s"Snippet '${this.getClass.getName}' can't be accessed in current security context (user is not authenticated)"
-    )
+    logInvaliAccess
     PartialFunction.empty
+  }
+
+  // A method for having a query context available even during class instantiation
+  // This need to be a val to avoid evaluation on ZIO runtime: https://github.com/Normation/rudder/pull/7188
+  val snippetQC: QueryContext = {
+    CurrentUser.queryContext.getOrElse {
+      logInvaliAccess
+      QueryContext.noneQC
+    }
   }
 
 }

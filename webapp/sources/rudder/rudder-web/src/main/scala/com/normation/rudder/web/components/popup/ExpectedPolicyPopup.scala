@@ -68,17 +68,19 @@ class ExpectedPolicyPopup(
     htmlId_popup: String,
     nodeSrv:      Srv
 ) extends SecureDispatchSnippet with Loggable {
-  import ExpectedPolicyPopup.*
+  import com.normation.rudder.web.components.popup.ExpectedPolicyPopup.*
 
   private val ruleRepository  = RudderConfig.roRuleRepository
   private val dynGroupService = RudderConfig.dynGroupService
   private val checkDynGroup   = RudderConfig.pendingNodeCheckGroup
 
-  def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => { _ => display } }
+  override def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "display" => { _ => display }
+  }
 
   def display(using qc: QueryContext): NodeSeq = {
     // find the list of dyn groups on which that server would be and from that, the Rules
-    val rulesGrid: NodeSeq = getDependantRulesForNode match {
+    val rulesGrid: NodeSeq = getDependantRulesForNode() match {
       case Full(seq) =>
         val noDisplay = DisplayColumn.Force(display = false)
 
@@ -108,7 +110,7 @@ class ExpectedPolicyPopup(
     )(expectedTechnique)
   }
 
-  private val getDependantRulesForNode: Box[Seq[Rule]] = {
+  private def getDependantRulesForNode()(using qc: QueryContext): Box[Seq[Rule]] = {
     for {
       allDynGroups <- dynGroupService.getAllDynGroups()
       dynGroups    <- checkDynGroup

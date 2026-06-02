@@ -41,7 +41,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup.*
@@ -212,11 +211,8 @@ class CreateCloneDirectivePopup(
           woDirectiveRepository
             .saveDirective(
               activeTechnique.id,
-              cloneDirective,
-              ModificationId(uuidGen.newUuid),
-              qc.actor,
-              reasons.map(_.get)
-            )
+              cloneDirective
+            )(using qc.newCC(reasons.map(_.get)))
             .toBox match {
             case Full(_) => {
               closePopup() & onSuccessCallback(cloneDirective)

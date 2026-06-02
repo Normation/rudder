@@ -123,10 +123,11 @@ trait NodeFactRepository {
   }
 
   /*
-   * Get the number of active managed nodes.
-   * This should be made fast, because it's typically used in license check.
+   * Get the number of active managed nodes visible in the given security context.
+   * This should be made fast, because it's typically used in license check (use `systemQC`
+   * there to get the non-tenant-scoped, global count).
    */
-  def getNumberOfManagedNodes(): IOResult[Int]
+  def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[Int]
 
   /*
    * Get node on given status
@@ -155,7 +156,7 @@ trait NodeFactRepository {
     statusCompat(status, (qc, s) => slowGet(nodeId)(using qc, s, attrs))
   }
 
-  def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]]
+  def getNodesBySoftwareName(softName: String)(using qc: QueryContext): IOResult[List[(NodeId, Software)]]
 
   /*
    * get all node facts.
@@ -340,39 +341,39 @@ object CoreNodeFactRepository {
   }
 
   def make(
-      storage:       NodeFactStorage,
-      softByName:    GetNodesBySoftwareName,
-      tenantRepos:   TenantService,
-      tenantService: TenantCheckLogic,
-      callbacks:     Chunk[NodeFactChangeEventCallback],
-      savePreChecks: Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
+      storage:          NodeFactStorage,
+      softByName:       GetNodesBySoftwareName,
+      tenantService:    TenantService,
+      tenantCheckLogic: TenantCheckLogic,
+      callbacks:        Chunk[NodeFactChangeEventCallback],
+      savePreChecks:    Chunk[NodeFact => IOResult[Unit]] = defaultSavePreChecks // that should really be used apart in some tests
   ): IOResult[CoreNodeFactRepository] = for {
     _        <- InventoryDataLogger.debug("Getting pending node info for node fact repos")
     pending  <- storage.getAllPending()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Getting accepted node info for node fact repos")
     accepted <- storage.getAllAccepted()(using SelectFacts.none).map(f => (f.id, f.toCore)).runCollect.map(_.toMap)
     _        <- InventoryDataLogger.debug("Creating node fact repos")
-    repo     <- make(storage, softByName, tenantRepos, tenantService, pending, accepted, callbacks, savePreChecks)
+    repo     <- make(storage, softByName, tenantService, tenantCheckLogic, pending, accepted, callbacks, savePreChecks)
   } yield {
     repo
   }
 
   def make(
-      storage:       NodeFactStorage,
-      softByName:    GetNodesBySoftwareName,
-      tenantRepo:    TenantService,
-      tenantService: TenantCheckLogic,
-      pending:       Map[NodeId, CoreNodeFact],
-      accepted:      Map[NodeId, CoreNodeFact],
-      callbacks:     Chunk[NodeFactChangeEventCallback],
-      savePreChecks: Chunk[NodeFact => IOResult[Unit]]
+      storage:          NodeFactStorage,
+      softByName:       GetNodesBySoftwareName,
+      tenantService:    TenantService,
+      tenantCheckLogic: TenantCheckLogic,
+      pending:          Map[NodeId, CoreNodeFact],
+      accepted:         Map[NodeId, CoreNodeFact],
+      callbacks:        Chunk[NodeFactChangeEventCallback],
+      savePreChecks:    Chunk[NodeFact => IOResult[Unit]]
   ): UIO[CoreNodeFactRepository] = for {
     p    <- Ref.make(pending)
     a    <- Ref.make(accepted)
     lock <- ReentrantLock.make()
     cbs  <- Ref.make(callbacks)
   } yield {
-    new CoreNodeFactRepository(storage, softByName, tenantRepo, tenantService, p, a, cbs, savePreChecks, lock)
+    new CoreNodeFactRepository(storage, softByName, tenantService, tenantCheckLogic, p, a, cbs, savePreChecks, lock)
   }
 
   // a version for tests
@@ -427,8 +428,8 @@ class SoftDaoGetNodesBySoftwareName(val softwareDao: ReadOnlySoftwareDAO) extend
 class CoreNodeFactRepository(
     storage:          NodeFactStorage,
     softwareByName:   GetNodesBySoftwareName,
-    tenantRepository: TenantService,
-    tenantService:    TenantCheckLogic,
+    tenantService:    TenantService,
+    tenantCheckLogic: TenantCheckLogic,
     pendingNodes:     Ref[Map[NodeId, CoreNodeFact]],
     acceptedNodes:    Ref[Map[NodeId, CoreNodeFact]],
     callbacks:        Ref[Chunk[NodeFactChangeEventCallback]],
@@ -501,7 +502,7 @@ class CoreNodeFactRepository(
   private[nodes] def getOnRef(ref: Ref[Map[NodeId, CoreNodeFact]], nodeId: NodeId)(implicit
       qc: QueryContext
   ): IOResult[Option[CoreNodeFact]] = {
-    tenantService.getMapView(ref, nodeId)
+    tenantCheckLogic.getMapView(ref, nodeId)
   }
 
   /*
@@ -533,7 +534,11 @@ class CoreNodeFactRepository(
     }
   }
 
-  override def getNumberOfManagedNodes(): IOResult[Int] = enabledNodes.get
+  override def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[Int] = {
+    // fast path: admin (and everyone when the tenant feature is disabled) uses the precomputed global count
+    if (qc.accessGrant == TenantAccessGrant.All) enabledNodes.get
+    else acceptedNodes.get.map(ns => countEnabled(ns.filter { case (_, n) => qc.accessGrant.canSee(n) }))
+  }
 
   override def get(
       nodeId: NodeId
@@ -585,13 +590,13 @@ class CoreNodeFactRepository(
                       }
                     }
                 }
-    } yield tenantService.flatMap(res)
+    } yield tenantCheckLogic.flatMap(res)
   }
 
   private[nodes] def getAllOnRef[A](
       ref: Ref[Map[NodeId, CoreNodeFact]]
   )(implicit qc: QueryContext): IOResult[MapView[NodeId, CoreNodeFact]] = {
-    tenantService.filterMapView(ref)
+    tenantCheckLogic.filterMapView(ref)
   }
 
   override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
@@ -607,7 +612,7 @@ class CoreNodeFactRepository(
   }
 
   override def slowGetAll()(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOStream[NodeFact] = {
-    tenantService.filterStream(
+    tenantCheckLogic.filterStream(
       if (attrs == SelectFacts.none) {
         ZStream.fromIterableZIO(getAll()(using qc, status).map(_.map(cnf => NodeFact.fromMinimal(cnf._2))))
       } else {
@@ -622,8 +627,23 @@ class CoreNodeFactRepository(
     )
   }
 
-  override def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
-    softwareByName(softName)
+  override def getNodesBySoftwareName(softName: String)(using qc: QueryContext): IOResult[List[(NodeId, Software)]] = {
+    for {
+      res      <- softwareByName(softName)
+      // the DAO returns (nodeId, software) for ALL nodes regardless of tenant: filter out the
+      // ones the current security context can't see. Nodes unknown to the cache are only visible
+      // to admins (same semantic as `canSee` on an absent/untagged object).
+      accepted <- acceptedNodes.get
+      pending  <- pendingNodes.get
+    } yield {
+      res.filter {
+        case (id, _) =>
+          accepted.get(id).orElse(pending.get(id)) match {
+            case Some(nf) => qc.accessGrant.canSee(nf)
+            case None     => qc.accessGrant.canSee(Option.empty[SecurityTag])
+          }
+      }
+    }
   }
 
   /*
@@ -652,7 +672,7 @@ class CoreNodeFactRepository(
         nodes.get(nodeId) match {
           case None           => (Right(StorageChangeEventDelete.Noop(nodeId)), nodes)
           case Some(existing) =>
-            tenantService.checkDelete(existing, cc) match {
+            tenantCheckLogic.checkDelete(existing, cc) match {
               case Left(err) => (Left(err), nodes)
               case Right(n)  =>
                 val e = StorageChangeEventDelete.Deleted(NodeFact.fromMinimal(n), SelectFacts.none)
@@ -702,8 +722,8 @@ class CoreNodeFactRepository(
                                    Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
                                }
         (nodeFact, selected) = pair
-        tenantStatus        <- tenantRepository.getStatus
-        es                  <- tenantService.manageUpdate(core, nodeFact, cc, tenantStatus) { updated =>
+        tenantStatus        <- tenantService.getStatus
+        es                  <- tenantCheckLogic.manageUpdate(core, nodeFact, cc, tenantStatus) { updated =>
                                  for {
                                    // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
                                    // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.

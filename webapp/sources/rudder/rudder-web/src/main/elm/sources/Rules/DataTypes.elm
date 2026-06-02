@@ -31,6 +31,11 @@ type alias Tag =
     }
 
 
+type SecurityTag
+    = Open
+    | ByTenants (List String)
+
+
 type ModalState
     = NoModal
     | DeletionValidation Rule (Maybe ChangeRequestSettings)
@@ -83,6 +88,7 @@ type alias Rule =
     , status : RuleStatus
     , tags : List Tag
     , changeRequestId : Maybe String
+    , security : Maybe SecurityTag
     }
 
 
@@ -249,6 +255,7 @@ type alias RuleWithCompliance =
     , compliance : Maybe RuleComplianceGlobal
     , changes : Float
     , tags : List Tag
+    , security : Maybe SecurityTag
     }
 
 

@@ -74,6 +74,7 @@ import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.XmlSafe
 import java.io.File
 import java.io.FileNotFoundException
@@ -728,7 +729,7 @@ trait ActiveTechniqueModificationCallback {
       activeTechnique: ActiveTechnique,
       parents:         List[ActiveTechniqueCategoryId],
       gitCommit:       Option[(ModificationId, PersonIdent, Option[String])]
-  ): IOResult[Seq[DirectiveNotArchived]]
+  )(using qc: QueryContext): IOResult[Seq[DirectiveNotArchived]]
 
   /**
    * What to do on activeTechnique deletion
@@ -763,7 +764,7 @@ class UpdatePiOnActiveTechniqueEvent(
       activeTechnique: ActiveTechnique,
       parents:         List[ActiveTechniqueCategoryId],
       gitCommit:       Option[(ModificationId, PersonIdent, Option[String])]
-  ): IOResult[Seq[DirectiveNotArchived]] = {
+  )(using qc: QueryContext): IOResult[Seq[DirectiveNotArchived]] = {
 
     logPure.debug("Executing archivage of PIs for UPT '%s'".format(activeTechnique))
 
@@ -868,7 +869,9 @@ class GitActiveTechniqueArchiverImpl(
       // strategy for callbaack:
       // if at least one callback is in error, we don't execute the others and the full ActiveTechnique is in error.
       // if none is in error, we are going to next step
-      callbacks <- ZIO.foreach(uptModificationCallback.toList)(_.onArchive(activeTechnique, parents, gitCommit))
+      // archiving is a system-level operation, the callbacks see all tenants
+      callbacks <-
+        ZIO.foreach(uptModificationCallback.toList)(_.onArchive(activeTechnique, parents, gitCommit)(using QueryContext.systemQC))
       _         <- gitCommit match {
                      case Some((modId, commiter, reason)) =>
                        commitAddFileWithModId(

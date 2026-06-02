@@ -269,7 +269,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       None
     )
   }
-  implicit val qc:                QueryContext  = QueryContext.todoQC
+
+  implicit val qc: QueryContext = QueryContext.systemQC
 
   "basic change in node fact" should {
     "saving core node fact must not kill software" in {
@@ -425,14 +426,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     val ccA = ChangeContext
       .newForRudder()
       .modify(_.accessGrant)
-      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
 
     val qcNone = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.None)
-    val qcA    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
-    val qcB    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
+    val qcA    =
+      QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+    val qcB    =
+      QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB")))))
     val qcAB   = QueryContext.testQC
       .modify(_.accessGrant)
-      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")))))
     val nodeId = NodeId("node0")
 
     "allow to filter all nodes with no access" in {
@@ -537,7 +540,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         initTs  <- tenantRepository.tenantIds.getAndSet(Set())
         qc       = QueryContext.testQC
                      .modify(_.accessGrant)
-                     .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+                     .setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")))))
         refined <- tenantRepository.refineTenantAccessGrant(qc.accessGrant)
         nodes   <- factRepo.getAll()(using qc.copy(accessGrant = refined), SelectNodeStatus.Accepted)
         // restore tenants
@@ -704,7 +707,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "the count of active nodes changes if we disable one" >> {
       factStorage.clearCallStack
       val (n1, n2) = (for {
-        n1   <- factRepo.getNumberOfManagedNodes()
+        n1   <- factRepo.getNumberOfManagedNodes()(using QueryContext.testQC)
         node <- factRepo
                   .get(node7id)(using QueryContext.testQC, SelectNodeStatus.Accepted)
                   .notOptional("node7 must be here")
@@ -714,7 +717,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
                     .setTo(NodeState.Ignored)
 
         _  <- factRepo.save(updated)(using testChangeContext)
-        n2 <- factRepo.getNumberOfManagedNodes()
+        n2 <- factRepo.getNumberOfManagedNodes()(using QueryContext.testQC)
 
       } yield (n1, n2)).runNow
 
