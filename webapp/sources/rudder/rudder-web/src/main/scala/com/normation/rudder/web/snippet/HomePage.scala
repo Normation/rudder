@@ -197,7 +197,7 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
 
       // TODO : we could first compute per nodes, and then compute the globalCompliance by excluding the pending nodes
       compliancePerNodes =
-        reports.map { case (nodeId, status) => (nodeId, ComplianceLevel.sum(status.reports.map(_._2.compliance))) }
+        reports.map { case (nodeId, status) => (nodeId, status.reports.getComplianceLevel) }
       global             = if (reports.isEmpty) {
                              None
                            } else {

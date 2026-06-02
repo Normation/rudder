@@ -61,6 +61,7 @@ import com.normation.rudder.domain.reports.BlockStatusReport
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.reports.ComponentStatusReport
+import com.normation.rudder.domain.reports.ConvertStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -86,7 +87,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import scala.collection.MapView
-import scala.collection.immutable
 import zio.Chunk
 import zio.ZIO
 import zio.syntax.*
@@ -124,7 +124,7 @@ class ComplianceApi(
 
   /**
    * This endpoint is marked for deprecation and will be replaced with the GetRulesCompliance endpoint in the RulesApi
-   * This endpoint will be deleted in version 10. 
+   * This endpoint will be deleted in version 10.
    * @deprecated
    */
   object GetRules extends LiftApiModule0 {
@@ -156,7 +156,7 @@ class ComplianceApi(
 
   /**
    * This endpoint is marked for deprecation and will be replaced with the GetRulesComplianceId endpoint in the RulesApi
-   * This endpoint will be deleted in version 10. 
+   * This endpoint will be deleted in version 10.
    * @deprecated
    */
   object GetRuleId extends LiftApiModule {
@@ -587,16 +587,13 @@ class ComplianceAPIService(
 
       globalPolicyMode <- getGlobalPolicyMode
 
-      reportsByRule = reportsByNode.flatMap {
-                        case (_, status) =>
-                          status.reports
-                            .get(PolicyTypeName.rudderBase)
-                            .map(_.reports)
-                            .getOrElse(Set.empty)
-                            .filter(r => ruleIds.contains(r.ruleId))
-                      }.groupBy(_.ruleId)
-      t7           <- currentTimeMillis
-      _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
+      reportsByRule = ConvertStatusReport.fromNodesToRules(
+                        reportsByNode.values,
+                        r => r.complianceTag == PolicyTypeName.rudderBase && ruleIds.contains(r.ruleId)
+                      )
+
+      t7 <- currentTimeMillis
+      _  <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
     } yield {
 
@@ -721,7 +718,7 @@ class ComplianceAPIService(
       t6            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - findRuleNodeStatusReports in ${t6 - t5} ms")
 
-      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports.flatMap(_._2.reports) }.groupBy(_.ruleId)
+      reportsByRule = ConvertStatusReport.fromNodesToRules(reportsByNode.values)
       t7            = System.currentTimeMillis()
       _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
@@ -760,7 +757,7 @@ class ComplianceAPIService(
           val (_, policyMode) =
             nodeAndPolicyModeByRules.get(ruleId).getOrElse((Chunk.empty, ComputePolicyMode.global(globalPolicyMode)))
           // aggregate by directives, if level is at least 2
-          val byDirectives: Map[DirectiveId, immutable.Iterable[(NodeId, DirectiveStatusReport)]] = if (computedLevel < 2) {
+          val byDirectives: Map[DirectiveId, Iterable[(NodeId, DirectiveStatusReport)]] = if (computedLevel < 2) {
             Map()
           } else {
             reports.flatMap(r => r.directives.values.map(d => (r.nodeId, d)).toSeq).groupBy(_._2.directiveId)
@@ -792,7 +789,7 @@ class ComplianceAPIService(
                   directiveMode, {
                     // here we want the compliance by components of the directive.
                     // if level is high enough, get all components and group by their name
-                    val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
+                    val byComponents: Map[String, Iterable[(NodeId, ComponentStatusReport)]] = if (computedLevel < 3) {
                       Map()
                     } else {
                       nodeDirectives.flatMap { case (nodeId, d) => d.components.map(c => (nodeId, c)).toSeq }
@@ -895,18 +892,13 @@ class ComplianceAPIService(
       t2            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - findRuleNodeStatusReports in ${t2 - t1} ms")
 
-      reportsByRule = reportsByNode.flatMap {
-                        case (_, status) =>
-                          // TODO: separate reports that have 'overridden policies' here (skipped)
-                          status.reports
-                            .get(PolicyTypeName.rudderBase)
-                            .map(_.reports)
-                            .getOrElse(Set.empty)
-                            .filter(r =>
-                              (isGlobalCompliance || rules.keySet.contains(r.ruleId)) && currentGroupNodeIds.contains(r.nodeId)
-                            )
-                      }.groupBy(_.ruleId)
-      //
+      reportsByRule = ConvertStatusReport.fromNodesToRules(
+                        reportsByNode.values,
+                        r => {
+                          r.complianceTag == PolicyTypeName.rudderBase &&
+                          (isGlobalCompliance || rules.keySet.contains(r.ruleId)) && currentGroupNodeIds.contains(r.nodeId)
+                        }
+                      )
       t3           <- currentTimeMillis
       _            <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - group reports by rules in ${t3 - t2} ms")
 
@@ -917,7 +909,7 @@ class ComplianceAPIService(
       val nonEmptyRules = reportsByRule.toSeq.flatMap {
         case (ruleId, reports) =>
           // aggregate by directives, if level is at least 2
-          val byDirectives: Map[DirectiveId, immutable.Iterable[(NodeId, DirectiveStatusReport)]] = if (computedLevel < 2) {
+          val byDirectives: Map[DirectiveId, Iterable[(NodeId, DirectiveStatusReport)]] = if (computedLevel < 2) {
             Map()
           } else {
             reports.flatMap(r => r.directives.values.map(d => (r.nodeId, d)).toSeq).groupBy(_._2.directiveId)
@@ -964,7 +956,7 @@ class ComplianceAPIService(
                         // here we want the compliance by components of the directive.
                         // if level is high enough, get all components and group by their name
                         {
-                          val byComponents: Map[String, immutable.Iterable[(NodeId, ComponentStatusReport)]] = {
+                          val byComponents: Map[String, Iterable[(NodeId, ComponentStatusReport)]] = {
                             if (computedLevel < 3) {
                               Map()
                             } else {
@@ -1018,11 +1010,9 @@ class ComplianceAPIService(
         case (nodeId, status) if currentGroupNodeIds.contains(nodeId) =>
           // For non global compliance, we only want the compliance for the rules in the group
           val reports        = status.reports
-            .get(PolicyTypeName.rudderBase)
-            .map(_.reports)
-            .getOrElse(Set.empty)
-            .filter(r => isGlobalCompliance || rules.keySet.contains(r.ruleId))
-            .toSeq
+            .getReports(r =>
+              r.complianceTag == PolicyTypeName.rudderBase && (isGlobalCompliance || rules.keySet.contains(r.ruleId))
+            )
             .sortBy(_.ruleId.serialize)
           val nodePolicyMode = nodeFacts.get(nodeId).flatMap(_.rudderSettings.policyMode)
           val nodeMode       = ComputePolicyMode.nodeMode(globalMode, nodePolicyMode)
@@ -1495,13 +1485,11 @@ class ComplianceAPIService(
             ByNodeNodeCompliance(
               nodeId,
               nodeInfos.get(nodeId).map(_._1).getOrElse("Unknown node"),
-              ComplianceLevel.sum(status.reports.map(_._2.compliance)),
+              status.reports.getComplianceLevel,
               compliance.mode, // Add this line to include no
               nodePolicyMode,
               status.reports
-                .get(policyType)
-                .toSeq
-                .flatMap(_.reports)
+                .getReports(r => r.complianceTag == policyType)
                 .flatMap(r => ruleMap.get(r.ruleId).map(r -> _))
                 .map {
                   case (r, rule) =>

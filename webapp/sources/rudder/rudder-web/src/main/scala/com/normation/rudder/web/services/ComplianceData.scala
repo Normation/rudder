@@ -404,11 +404,8 @@ object ComplianceData extends Loggable {
   ): RuleComplianceLines = {
 
     val ruleComplianceLine = for {
-      (ruleId, aggregate) <- (report.reports
-                               .getOrElse(tag, AggregatedStatusReport(Nil))
-                               .reports
-                               .groupBy(_.ruleId)
-                               .map { case (id, rules) => (id, AggregatedStatusReport(rules)) })
+      (ruleId, aggregate) <-
+        ConvertStatusReport.fromNodesToRules(List(report)).map((id, rules) => (id, AggregatedStatusReport(rules)))
       rule                <- rules.find(_.id == ruleId)
     } yield {
       val nodeMode = allNodeInfos.get(nodeId).flatMap(_.rudderSettings.policyMode)

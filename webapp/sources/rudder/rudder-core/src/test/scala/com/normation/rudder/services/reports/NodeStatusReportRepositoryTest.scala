@@ -207,7 +207,7 @@ class NodeStatusReportRepositoryTest extends Specification {
     // we have one modification because we changed kind from pending to "keep"
     counter.getCount("p") === 1
     // but we kept the existing report with some report (vs missing which has no rule status reports)
-    counter.get("p").reports must not(beEmpty)
+    counter.get("p").reports.getUnderlyingMap must not(beEmpty)
   }
 
   // see issue: https://issues.rudder.io/issues/27180 - when a missing node is cleaned up, we need to keep compliance
