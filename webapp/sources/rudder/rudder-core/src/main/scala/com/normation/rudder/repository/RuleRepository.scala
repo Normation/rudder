@@ -37,10 +37,10 @@
 
 package com.normation.rudder.repository
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 
 /**
  * The directive repository.
@@ -54,25 +54,26 @@ trait RoRuleRepository {
   /**
    * Try to find the rule with the given ID.
    */
-  def getOpt(ruleId: RuleId): IOResult[Option[Rule]]
+  def getOpt(ruleId: RuleId)(using qc: QueryContext): IOResult[Option[Rule]]
 
   /**
    * Find the rule with the given ID (error if not found)
    */
-  def get(ruleId: RuleId): IOResult[Rule] = getOpt(ruleId).notOptional(s"Rule with id '${ruleId.serialize}' was not found")
+  def get(ruleId: RuleId)(using qc: QueryContext): IOResult[Rule] =
+    getOpt(ruleId).notOptional(s"Rule with id '${ruleId.serialize}' was not found")
 
   /**
    * Return all rules.
    * To get only applied one, you can post-filter the seq
    * with the method RuleTargetService#isApplied
    */
-  def getAll(includeSystem: Boolean = false): IOResult[Seq[Rule]]
+  def getAll(includeSystem: Boolean = false)(using qc: QueryContext): IOResult[Seq[Rule]]
 
   /**
    * Return all rules ids.
    * Optionnaly include system rules
    */
-  def getIds(includeSystem: Boolean = false): IOResult[Set[RuleId]]
+  def getIds(includeSystem: Boolean = false)(using qc: QueryContext): IOResult[Set[RuleId]]
 
 }
 
@@ -88,7 +89,7 @@ trait WoRuleRepository {
    *
    * We can't create a rule with a revision, it will fail. Use #load for that.
    */
-  def create(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff]
+  def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff]
 
   /**
    * Update the rule with the given ID with the given
@@ -99,7 +100,7 @@ trait WoRuleRepository {
    *
    * We can't update a rule with a revision, it will fail. Use #load for that.
    */
-  def update(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyRuleDiff]]
+  def update(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]]
 
   /**
    * Load a rule with a specific revision in LDAP for generation - that means
@@ -111,20 +112,20 @@ trait WoRuleRepository {
    * - when revision is a specific commit id, it will always be a noop,
    * - when revision is a moving reference, like a branch name, HEAD is loaded.
    */
-  def load(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]
+  def load(rule: Rule)(using cc: ChangeContext): IOResult[Unit]
 
   /**
    * Unload a rule with the corresponding uid/revision: it will stop to be taken into account in
    * policy generation. If the revision is DEFAULT_REVISION, that method will fail and you should
    * use delete for that.
    */
-  def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]
+  def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit]
 
   /**
    * Update the system configuration rule with the given ID with the given
    * parameters.
    */
-  def updateSystem(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Option[ModifyRuleDiff]]
+  def updateSystem(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]]
 
   /**
    * Delete the rule with the given ID.
@@ -133,9 +134,9 @@ trait WoRuleRepository {
    * and error or not).
    * A system rule can not be deleted.
    */
-  def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff]
+  def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff]
 
-  def deleteSystemRule(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff]
+  def deleteSystemRule(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff]
 
   /**
    * A (dangerous) method that replace all existing rules

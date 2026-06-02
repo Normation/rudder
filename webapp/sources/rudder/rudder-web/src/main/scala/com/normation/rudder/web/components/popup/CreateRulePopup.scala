@@ -40,7 +40,6 @@ package com.normation.rudder.web.components.popup
 import CreateOrCloneRulePopup.*
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
@@ -226,7 +225,7 @@ class CreateOrCloneRulePopup(
       }
 
       val createRule = {
-        woRuleRepository.create(rule, ModificationId(uuidGen.newUuid), qc.actor, reason.map(_.get)).toBox match {
+        woRuleRepository.create(rule)(using qc.newCC(reason.map(_.get))).toBox match {
           case Full(x)          =>
             onSuccessCallback(rule) & closePopup()
           case Empty            =>

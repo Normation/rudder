@@ -45,6 +45,7 @@ import com.normation.rudder.domain.logger.StatusLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.SimpleActor
 import zio.*
 import zio.syntax.*
@@ -259,11 +260,11 @@ class TechniqueCheckStatusService(
 class TechniqueActiveStatusService(directiveRepo: RoDirectiveRepository) extends ReadEditorTechniqueActiveStatus {
 
   override def getActiveStatus(id: BundleName): IOResult[Option[TechniqueActiveStatus]]          = {
-    directiveRepo.getActiveTechnique(TechniqueName(id.value)).map(_.map(techniqueActiveStatus(_)))
+    directiveRepo.getActiveTechnique(TechniqueName(id.value))(using QueryContext.systemQC).map(_.map(techniqueActiveStatus(_)))
   }
   override def getActiveStatuses():             IOResult[Map[BundleName, TechniqueActiveStatus]] = {
     directiveRepo
-      .getFullDirectiveLibrary()
+      .getFullDirectiveLibrary()(using QueryContext.systemQC)
       .map(_.allActiveTechniques.map((_, t) => techniqueId(t) -> techniqueActiveStatus(t)).toMap)
   }
 

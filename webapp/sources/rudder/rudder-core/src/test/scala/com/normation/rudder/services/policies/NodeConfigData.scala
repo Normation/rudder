@@ -80,6 +80,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
 import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -874,7 +875,7 @@ class TestNodeConfiguration(
     subCategories = List(),
     targetInfos = List(),
     isSystem = true,
-    security = None
+    security = Some(SecurityTag.Open) // root must be open
   )
 
   val groupLib: FullNodeGroupCategory = emptyGroupLib.copy(

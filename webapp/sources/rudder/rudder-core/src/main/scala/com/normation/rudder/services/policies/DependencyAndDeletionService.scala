@@ -40,8 +40,6 @@ package com.normation.rudder.services.policies
 import com.normation.NamedZioLogger
 import com.normation.box.*
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.LDAPIOResult.*
@@ -60,6 +58,7 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.*
 import zio.*
 import zio.syntax.*
@@ -129,11 +128,8 @@ trait DependencyAndDeletionService {
    * Return the list of items actually modified.
    */
   def cascadeDeleteDirective(
-      id:     DirectiveUid,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): Box[DirectiveDependencies]
+      id: DirectiveUid
+  )(using cc: ChangeContext): Box[DirectiveDependencies]
 
   /**
    * Find all rules and directives that depend on that
@@ -159,11 +155,8 @@ trait DependencyAndDeletionService {
    * Return the list of items actually modified.
    */
   def cascadeDeleteTechnique(
-      id:     ActiveTechniqueId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): Box[TechniqueDependencies]
+      id: ActiveTechniqueId
+  )(using cc: ChangeContext): Box[TechniqueDependencies]
 
   /**
    * Find all rules that depend on that
@@ -297,24 +290,21 @@ class DependencyAndDeletionServiceImpl(
    * Return the list of items actually deleted.
    */
   override def cascadeDeleteDirective(
-      id:     DirectiveUid,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): Box[DirectiveDependencies] = {
+      id: DirectiveUid
+  )(using cc: ChangeContext): Box[DirectiveDependencies] = {
     for {
       configRules  <- findDependencies.findRulesForDirective(id)
       diff         <- woDirectiveRepository
-                        .delete(id, modId, actor, reason)
+                        .delete(id)
                         .chainError(s"Error when deleting policy instance with ID '${id.value}'.")
       updatedRules <- ZIO.foreach(configRules) { rule =>
                         // check that directive is actually in rule directives, and remove it
                         if (rule.directiveIds.exists(i => id == i.uid)) {
                           val newRule        = rule.copy(directiveIds = rule.directiveIds.filterNot(_.uid == id))
                           val updatedRuleRes = if (rule.isSystem) {
-                            woRuleRepository.updateSystem(newRule, modId, actor, reason)
+                            woRuleRepository.updateSystem(newRule)
                           } else {
-                            woRuleRepository.update(newRule, modId, actor, reason)
+                            woRuleRepository.update(newRule)
                           }
                           updatedRuleRes.chainError(
                             s"Can not remove directive '${id.value}' from rule with ID '${rule.id.serialize}'. %s".format {
@@ -352,6 +342,8 @@ class DependencyAndDeletionServiceImpl(
       boxGroupLib:  Box[FullNodeGroupCategory],
       onlyForState: ModificationStatus = DontCare
   ): Box[TechniqueDependencies] = {
+    // dependency look-up is a system-level query, not tenant-restricted
+    given qc: QueryContext = QueryContext.systemQC
     for {
       directives <- roDirectiveRepository.getDirectives(id)
       // if we are asked only for enable directives, remove disabled ones
@@ -396,18 +388,14 @@ class DependencyAndDeletionServiceImpl(
    * Return the list of items actually deleted.
    */
   def cascadeDeleteTechnique(
-      id:     ActiveTechniqueId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): Box[TechniqueDependencies] = {
+      id: ActiveTechniqueId
+  )(using cc: ChangeContext): Box[TechniqueDependencies] = {
+    given qc: QueryContext = cc.toQC
     for {
       directives             <- roDirectiveRepository.getDirectives(id)
       piMap                   = directives.map(directive => (directive.id.uid, directive)).toMap
-      deletedPis             <- ZIO.foreach(directives) { directive =>
-                                  cascadeDeleteDirective(directive.id.uid, modId, actor, reason = reason).toIO
-                                }
-      deletedActiveTechnique <- woDirectiveRepository.deleteActiveTechnique(id, modId, actor, reason)
+      deletedPis             <- ZIO.foreach(directives)(directive => cascadeDeleteDirective(directive.id.uid).toIO)
+      deletedActiveTechnique <- woDirectiveRepository.deleteActiveTechnique(id)
     } yield {
       val allCrs     = scala.collection.mutable.Map[RuleId, Rule]()
       val directives = deletedPis.map {
@@ -446,7 +434,7 @@ class DependencyAndDeletionServiceImpl(
           case (id, seq) =>
             for {
               optPair <- roDirectiveRepository
-                           .getActiveTechniqueAndDirective(id)
+                           .getActiveTechniqueAndDirective(id)(using QueryContext.systemQC)
                            .chainError(s"Error when retrieving directive with ID '${id.debugString}'")
               // here, if we don't have a directive for the ID, we assume it's a directive that was
               // deleted but not cleanly removed everywhere.
@@ -497,9 +485,9 @@ class DependencyAndDeletionServiceImpl(
       // Update the Rule and save it
       val updatedRule    = rule.copy(targets = updatedTargets)
       val updatedRuleRes = if (rule.isSystem) {
-        woRuleRepository.updateSystem(updatedRule, cc.modId, cc.actor, cc.message)
+        woRuleRepository.updateSystem(updatedRule)
       } else {
-        woRuleRepository.update(updatedRule, cc.modId, cc.actor, cc.message)
+        woRuleRepository.update(updatedRule)
       }
       updatedRuleRes.chainError(s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.serialize}'.")
     }

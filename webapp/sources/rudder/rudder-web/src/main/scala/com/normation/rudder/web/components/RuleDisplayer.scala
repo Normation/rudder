@@ -79,7 +79,7 @@ class RuleDisplayer(
       case Some(appManagement) =>
         Full(appManagement.rootCategory)
       case None                =>
-        roCategoryRepository.getRootCategory().toBox
+        CurrentUser.queryContext.withQCOr(Empty)(roCategoryRepository.getRootCategory().toBox)
     }
   }
 

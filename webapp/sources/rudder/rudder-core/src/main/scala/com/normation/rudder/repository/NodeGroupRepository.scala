@@ -43,6 +43,7 @@ import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.Utils
@@ -213,6 +214,16 @@ final case class FullNodeGroupCategory(
 
 }
 
+object FullNodeGroupCategory {
+  given HasSecurityTag[FullNodeGroupCategory] with {
+    extension (a: FullNodeGroupCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): FullNodeGroupCategory = a.copy(security = security)
+    }
+  }
+}
+
 trait RoNodeGroupRepository {
 
   /**
@@ -222,7 +233,7 @@ trait RoNodeGroupRepository {
    */
   def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory]
 
-  def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean]
+  def categoryExists(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean]
 
   /**
    * Get a server group by its id. Fail if not present.
@@ -248,30 +259,29 @@ trait RoNodeGroupRepository {
    * @param id
    * @return
    */
-  def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory]
+  def getNodeGroupCategory(id: NodeGroupId)(using qc: QueryContext): IOResult[NodeGroupCategory]
 
   /**
    * Get all node groups defined in that repository
    */
-  // TODO: add QC
-  def getAll(): IOResult[Seq[NodeGroup]]
+  def getAll()(using qc: QueryContext): IOResult[Seq[NodeGroup]]
 
   /**
    * Get all node groups by ids
    */
-  def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]]
+  def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext): IOResult[Seq[NodeGroup]]
 
   /**
    * Get all the node group id and the set of ndoes within
    * Goal is to be more efficient
    */
-  def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]]
+  def getAllNodeIds()(using qc: QueryContext): IOResult[Map[NodeGroupId, Set[NodeId]]]
 
   /**
    * Get all the node group id and the set of ndoes within
    * Goal is to be more efficient
    */
-  def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]]
+  def getAllNodeIdsChunk()(using qc: QueryContext): IOResult[Map[NodeGroupId, Chunk[NodeId]]]
 
   /**
    * Get all pairs of (category details, Set(node groups) )
@@ -291,11 +301,11 @@ trait RoNodeGroupRepository {
 
   /**
    * Retrieve all groups that have at least one of the given
-   * node ID in there member list.
+   * node ID in their member list.
    * @param nodeIds
    * @return
    */
-  def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]]
+  def findGroupWithAnyMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]]
 
   /**
    * Retrieve all groups that have ALL given node ID in their
@@ -303,18 +313,18 @@ trait RoNodeGroupRepository {
    * @param nodeIds
    * @return
    */
-  def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]]
+  def findGroupWithAllMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]]
 
   /**
    * Root group category
    */
-  def getRootCategory(): NodeGroupCategory
+  def getRootCategory()(using qc: QueryContext): NodeGroupCategory
 
-  def getRootCategoryPure(): IOResult[NodeGroupCategory]
+  def getRootCategoryPure()(using qc: QueryContext): IOResult[NodeGroupCategory]
 
   /**
    * Get all pairs of (categoryid, category)
-   * in a map in which keys are the parent category of the
+   * in a map in which keys are the parent category of
    * the template. The map is sorted by categories:
    * SortedMap {
    *   "/"           -> [root]
@@ -323,26 +333,26 @@ trait RoNodeGroupRepository {
    *   "/cat2"       -> [/cat2_details]
    *   ...
    */
-  def getCategoryHierarchy: IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
+  def getCategoryHierarchy(using qc: QueryContext): IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]]
 
   /**
    * Return all categories
    * @return
    */
-  def getAllGroupCategories(includeSystem: Boolean = false): IOResult[Seq[NodeGroupCategory]]
+  def getAllGroupCategories(includeSystem: Boolean = false)(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]]
 
   /**
    * Get a group category by its id
    * @param id
    * @return
    */
-  def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory]
+  def getGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory]
 
   /**
    * Get the direct parent of the given category.
    * Fails if the category is not in the repository or for root category
    */
-  def getParentGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory]
+  def getParentGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory]
 
   /**
    * Return the list of parents for that category, the nearest parent
@@ -350,13 +360,13 @@ trait RoNodeGroupRepository {
    * The last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
-  def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]]
+  def getParents_NodeGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[List[NodeGroupCategory]]
 
   /**
    * Returns all non system categories + the root category
    * Caution, they are "lightweight" group categories (no children)
    */
-  def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]]
+  def getAllNonSystemCategories()(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]]
 
 }
 
