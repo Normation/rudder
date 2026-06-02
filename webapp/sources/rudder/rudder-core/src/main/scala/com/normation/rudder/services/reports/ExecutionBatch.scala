@@ -391,28 +391,16 @@ final case class NodeStatusReportInternal(
     runInfo:    RunAndConfigInfo,
     statusInfo: RunComplianceInfo,
     overrides:  List[OverriddenPolicy],
-    reports:    Map[PolicyTypeName, AggregatedStatusReport]
+    reports:    ComposedReport
 ) {
   // for compat reason, node compliance is the sum of all aspects
-  lazy val compliance: ComplianceLevel = ComplianceLevel.sum(reports.values.map(_.compliance))
+  lazy val compliance: ComplianceLevel = reports.getComplianceLevel
 
-  // get the compliance level for a given type, or compliance 0 is that type is missing
-  def getCompliance(t: PolicyTypeName): ComplianceLevel = {
-    reports.get(t) match {
-      case Some(x) => x.compliance
-      case None    => ComplianceLevel()
-    }
-  }
-
-  def systemCompliance: ComplianceLevel = getCompliance(PolicyTypeName.rudderSystem)
-  def baseCompliance:   ComplianceLevel = getCompliance(PolicyTypeName.rudderBase)
+  def systemCompliance: ComplianceLevel = reports.getCompliance(PolicyTypeName.rudderSystem)
+  def baseCompliance:   ComplianceLevel = reports.getCompliance(PolicyTypeName.rudderBase)
 
   def forPolicyType(t: PolicyTypeName): NodeStatusReportInternal = {
-    val r = reports.get(t) match {
-      case Some(r) => Map((t, r))
-      case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
-    }
-    NodeStatusReportInternal(nodeId, runInfo, statusInfo, overrides, r)
+    NodeStatusReportInternal(nodeId, runInfo, statusInfo, overrides, reports.forPolicyType(t))
   }
 
   def toNodeStatusReport(): NodeStatusReport = {
@@ -493,20 +481,18 @@ object NodeStatusReportInternal {
     }
 
     // group map and aggregate
-    val aggregates = {
-      (reportWithOverridden ++ fullyOverridden).groupBy(_.complianceTag).map {
-        case (tag, reports) => (tag, AggregatedStatusReport(reports))
-      }
-    }
+    val aggregates = ComposedReport(reportWithOverridden ++ fullyOverridden)
     NodeStatusReportInternal(nodeId, runInfo, statusInfo, overrides, aggregates)
   }
 }
 
 /**
- * An execution batch contains the node reports for a given Rule / Directive at a given date
- * An execution Batch is at a given time <- TODO : Is it relevant when we have several node ?
+ * Compute node compliance (`NodeStatusReports`) from runs.
+ * This is purely algorithmic (pure).
+ * There is two main function:
+ * - `computeNodesRunInfo` : for a set of nodes, compute their run/expected report information based on a given "now"
+ * - `getNodeStatusReports`: for one node, given its run status and reports, compute compliance
  */
-
 object ExecutionBatch extends Loggable {
   // these patterns must be reluctant matches to avoid strange things
   // when two variables are presents, or something like: ${foo}xxxxxx}.
@@ -598,7 +584,6 @@ object ExecutionBatch extends Loggable {
    * For each node, get the config it has.
    * This method bases its result on THE LAST RUN
    * of each node, and try to discover the run linked information (datetime, config id).
-   *
    */
   def computeNodesRunInfo(
       // The set of run associated with ALL requested node.

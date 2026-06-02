@@ -44,6 +44,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
+import com.normation.rudder.domain.reports.ConvertStatusReport
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.tenants.QueryContext
@@ -133,12 +134,7 @@ class AsyncComplianceService(
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
-        // We need to take values before flatmap, because we are using a Map here and will lose values on first level because keys are policyTypes
-        // Using values at each level ensure that we still have all our data at the end
-        val found      = reports.values.flatMap(_.reports.values).flatMap(_.reports).groupBy(_.ruleId).map {
-          case (ruleId, reports) =>
-            toCompliance(ruleId, reports)
-        }
+        val found      = ConvertStatusReport.fromNodesToRules(reports.values).map((ruleId, rs) => toCompliance(ruleId, rs))
         // add missing elements with "None" compliance, see #7281, #8030, #8141, #11842
         val missingIds = ruleIds -- found.keySet
         found ++ (missingIds.map(id => (id, None)))

@@ -99,7 +99,7 @@ class JsonPostresqlSerializationTest extends Specification {
   def buildReport(runAnalysis: RunAnalysis, reports: Map[PolicyTypeName, AggregatedStatusReport])(implicit
       nid: NodeId
   ): NodeStatusReport =
-    NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, reports)
+    NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, ComposedReport(reports))
 
   /*
    * Create a reports of:
