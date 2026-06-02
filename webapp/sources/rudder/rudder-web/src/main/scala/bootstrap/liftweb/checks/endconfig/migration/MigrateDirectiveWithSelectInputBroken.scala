@@ -42,11 +42,12 @@ import bootstrap.liftweb.BootstrapLogger
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.ncf.*
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import zio.*
@@ -67,6 +68,9 @@ class MigrateDirectiveWithSelectInputBroken(
 
   def updateDirectivesWithSelectInputBroken: ZIO[Any, RudderError, Unit] = {
     val modificationId = ModificationId(uuidGenerator.newUuid)
+    // this is a system migration, it operates on all tenants
+    given cc: ChangeContext = ChangeContext.newForRudder().withModId(modificationId)
+    given qc: QueryContext  = QueryContext.systemQC
     for {
       res        <- techniqueReader.readTechniquesMetadataFile
       techniques  = res.techniques.filter(_.parameters.exists(_.constraints.exists(_.select.isDefined)))
@@ -99,12 +103,8 @@ class MigrateDirectiveWithSelectInputBroken(
                         }
                         saved               <- ZIO.foreach(updatedDirectives)(d => {
                                                  writeDirectives
-                                                   .saveDirective(
-                                                     atId,
-                                                     d,
-                                                     modificationId,
-                                                     RudderEventActor,
-                                                     Some(s"Updating invalid parameters in directive ${d.id.serialize}")
+                                                   .saveDirective(atId, d)(using
+                                                     cc.withMsg(s"Updating invalid parameters in directive ${d.id.serialize}")
                                                    )
                                                    .map(_ => Right(d.id))
                                                    .catchAll(err => Left((d.id, err)).succeed)

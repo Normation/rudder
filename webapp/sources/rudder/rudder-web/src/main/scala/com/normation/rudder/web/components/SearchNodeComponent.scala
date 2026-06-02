@@ -919,7 +919,7 @@ object SearchNodeComponent {
             // we need to query for the list of groups here
             val subGroups: Seq[SelectableOption[String]] = {
               (for {
-                res <- subGroupComparatorRepo().getGroups
+                res <- subGroupComparatorRepo().getGroups(using QueryContext.todoQC)
               } yield {
                 val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.serialize, name) }
                 // if current value is defined but not in the list, add it with a "missing group" label

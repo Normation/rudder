@@ -269,7 +269,8 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       None
     )
   }
-  implicit val qc:                QueryContext  = QueryContext.todoQC
+
+  implicit val qc: QueryContext = QueryContext.systemQC
 
   "basic change in node fact" should {
     "saving core node fact must not kill software" in {
@@ -704,7 +705,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "the count of active nodes changes if we disable one" >> {
       factStorage.clearCallStack
       val (n1, n2) = (for {
-        n1   <- factRepo.getNumberOfManagedNodes()
+        n1   <- factRepo.getNumberOfManagedNodes()(using QueryContext.testQC)
         node <- factRepo
                   .get(node7id)(using QueryContext.testQC, SelectNodeStatus.Accepted)
                   .notOptional("node7 must be here")
@@ -714,7 +715,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
                     .setTo(NodeState.Ignored)
 
         _  <- factRepo.save(updated)(using testChangeContext)
-        n2 <- factRepo.getNumberOfManagedNodes()
+        n2 <- factRepo.getNumberOfManagedNodes()(using QueryContext.testQC)
 
       } yield (n1, n2)).runNow
 

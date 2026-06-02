@@ -201,7 +201,7 @@ class NodeGroupForm(
     })
   }
 
-  private def showRelatedRulesTree(target: RuleTarget): NodeSeq = {
+  private def showRelatedRulesTree(target: RuleTarget)(using qc: QueryContext): NodeSeq = {
     val relatedRules                     = {
       dependencyService
         .targetDependencies(target)
@@ -211,7 +211,7 @@ class NodeGroupForm(
     }
     val (includingGroup, excludingGroup) = {
       ZIO
-        .foreach(relatedRules)(ruleRepository.get)
+        .foreach(relatedRules)(r => ruleRepository.get(r))
         .map(_.partition(r => RuleTarget.merge(r.targets).includes(target)))
         .map { case (included, excluded) => (included.map(_.id), excluded.map(_.id)) }
         .runNow

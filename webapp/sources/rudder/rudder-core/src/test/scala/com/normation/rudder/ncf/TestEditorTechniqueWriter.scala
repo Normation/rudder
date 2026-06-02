@@ -89,6 +89,7 @@ import com.normation.rudder.services.workflows.RuleChangeRequest
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import java.io.File as JFile
 import java.io.InputStream
@@ -183,37 +184,53 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   // Not used in test for now
   def readDirectives: RoDirectiveRepository = new RoDirectiveRepository {
 
-    def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = ???
+    def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] = ???
 
-    def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
+    def getDirective(directiveId: DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]] = ???
 
-    def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
+    def getDirectiveWithContext(
+        directiveId: DirectiveUid
+    )(using qc: QueryContext): IOResult[Option[(domain.Technique, ActiveTechnique, Directive)]] = ???
 
-    def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    def getActiveTechniqueAndDirective(
+        id: DirectiveId
+    )(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]] = ???
 
-    def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
+    def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[Directive]] = ???
 
     def getActiveTechniqueByCategory(
         includeSystem: Boolean
-    ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+    )(using qc: QueryContext): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
 
-    def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
+    def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[Option[ActiveTechnique]] =
+      ???
 
-    def getActiveTechnique(techniqueName: TechniqueName): IOResult[Option[ActiveTechnique]] = ???
+    def getActiveTechnique(techniqueName: TechniqueName)(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = ???
 
-    def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = ???
+    def activeTechniqueBreadCrump(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = ???
 
-    def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = ???
+    def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = ???
 
-    def getAllActiveTechniqueCategories(includeSystem: Boolean): IOResult[Seq[ActiveTechniqueCategory]] = ???
+    def getAllActiveTechniqueCategories(includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[ActiveTechniqueCategory]] = ???
 
-    def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechniqueCategory]] = ???
 
-    def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory] = ???
+    def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
+        qc: QueryContext
+    ): IOResult[ActiveTechniqueCategory] =
+      ???
 
-    def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] = ???
+    def getParentsForActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = ???
 
-    def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory] = ???
+    def getParentsForActiveTechnique(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = ???
 
     def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
   }
@@ -221,24 +238,15 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
   def writeDirectives: WoDirectiveRepository = new WoDirectiveRepository {
     def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = ???
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = ???
     def saveSystemDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = ???
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = ???
     def delete(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = ???
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = ???
     def addTechniqueInUserLibrary(
         categoryId:    ActiveTechniqueCategoryId,
         techniqueName: TechniqueName,
@@ -258,11 +266,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         datetimes: Map[TechniqueVersion, Instant]
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def deleteActiveTechnique(
-        id:     ActiveTechniqueId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        id: ActiveTechniqueId
+    )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     def addActiveTechniqueCategory(
         that: ActiveTechniqueCategory,
         into: ActiveTechniqueCategoryId
@@ -280,11 +285,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         optionNewName: Option[ActiveTechniqueCategoryId]
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
     override def deleteSystemDirective(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = ???
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = ???
   }
 
   def workflowLevelService: WorkflowLevelService = new WorkflowLevelService {

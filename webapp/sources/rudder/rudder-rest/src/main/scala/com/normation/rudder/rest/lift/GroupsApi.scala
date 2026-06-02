@@ -460,7 +460,7 @@ class GroupApiService14(
       id       <- workflow.startWorkflow(cr)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory().id), optCrId)
+      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory()(using cc.toQC).id), optCrId)
     }
   }
 
@@ -480,7 +480,7 @@ class GroupApiService14(
   )(implicit cc: ChangeContext): ZIO[Any, RudderError, JRGroup] = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       (for {
-        rootCat  <- readGroup.getRootCategoryPure()
+        rootCat  <- readGroup.getRootCategoryPure()(using cc.toQC)
         cat       = change.category.getOrElse(rootCat.id)
         saveDiff <- writeGroup.create(change.newGroup, cat)
         // after group creation, its properties should be computed and resolved

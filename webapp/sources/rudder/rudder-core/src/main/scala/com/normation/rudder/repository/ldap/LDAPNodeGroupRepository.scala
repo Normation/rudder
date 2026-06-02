@@ -64,6 +64,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_IS_ENABLED
 import com.normation.rudder.domain.RudderLDAPConstants.A_IS_SYSTEM
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_RULE_TARGET
+import com.normation.rudder.domain.RudderLDAPConstants.A_SECURITY_TAG
 import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
@@ -81,6 +82,7 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantCheckLogic
 import com.normation.rudder.tenants.TenantService
 import com.unboundid.ldap.sdk.DN
@@ -89,6 +91,7 @@ import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common.*
 import scala.collection.immutable.SortedMap
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 class RoLDAPNodeGroupRepository(
@@ -101,6 +104,17 @@ class RoLDAPNodeGroupRepository(
   repo =>
 
   override def loggerName: String = this.getClass.getName
+
+  // tenant filtering is silent by default but can be traced with the appropriate DEBUG log
+  private def debugTenantFiltering[A: HasSecurityTag](a: A)(using qc: QueryContext): UIO[Unit] = {
+    ApplicationLoggerPure.Tenant.debug(s"Filtering out group library item '${a.debugId}' for '${qc.actor.name}'")
+  }
+
+  // read the security tag of a node group LDAP entry. Groups are never the root category,
+  // so there is no `Open` special case to handle here (contrary to categories mapping).
+  private def groupEntrySecurity(e: LDAPEntry): Option[SecurityTag] = {
+    e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+  }
 
   /**
    * Find sub entries (children group categories and server groups for
@@ -189,7 +203,8 @@ class RoLDAPNodeGroupRepository(
                                             .foreach(category.items) { targetInfo =>
                                               targetInfo.target match {
                                                 case group: GroupTarget =>
-                                                  this.getNodeGroup(group.groupId).map { case (g, catId) => Some(g) }
+                                                  // getNodeGroupOpt already filters by tenant: invisible groups are dropped
+                                                  this.getNodeGroupOpt(group.groupId).map(_.map(_._1))
                                                 // just ignore other target type
                                                 case _ => None.succeed
                                               }
@@ -215,21 +230,28 @@ class RoLDAPNodeGroupRepository(
                    case None    => None.succeed
                    case Some(x) =>
                      for {
-                       g        <- mapper
-                                     .entry2NodeGroup(x)
-                                     .toIO
-                                     .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
-                       allNodes <- nodeFactRepo.getAll()
-                       nodeIds   = g.serverList.intersect(allNodes.keySet.toSet)
-                       y         = g.copy(serverList = nodeIds)
-                     } yield Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent)))
+                       g   <- mapper
+                                .entry2NodeGroup(x)
+                                .toIO
+                                .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
+                       // filter out the group if it can't be seen in the current security context
+                       res <- tenantService.filter(g) match {
+                                case None    => debugTenantFiltering(g).as(None)
+                                case Some(_) =>
+                                  for {
+                                    allNodes <- nodeFactRepo.getAll()
+                                    nodeIds   = g.serverList.intersect(allNodes.keySet.toSet)
+                                    y         = g.copy(serverList = nodeIds)
+                                  } yield Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent)))
+                              }
+                     } yield res
                  }
     } yield {
       sg
     })
   }
 
-  def getAllGroupCategories(includeSystem: Boolean = false): IOResult[Seq[NodeGroupCategory]] = {
+  def getAllGroupCategories(includeSystem: Boolean = false)(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] = {
     groupLibMutex.readLock {
       for {
         con             <- ldap
@@ -237,8 +259,15 @@ class RoLDAPNodeGroupRepository(
         categoryEntries <- con.searchSub(rudderDit.GROUP.dn, filter)
         ids              = categoryEntries.map(e => mapper.dn2NodeGroupCategoryId(e.dn))
         result          <- ZIO.foreach(ids)(id => getGroupCategory(id))
+        // only keep categories that can be seen in the current security context
+        filtered        <- ZIO.foreach(result)(c => {
+                             tenantService.filter(c) match {
+                               case Some(x) => Some(x).succeed
+                               case None    => debugTenantFiltering(c).as(None)
+                             }
+                           })
       } yield {
-        result
+        filtered.flatten
       }
     }
   }
@@ -248,14 +277,14 @@ class RoLDAPNodeGroupRepository(
    * (see for ex: #18983)
    * Kept only for backward compatibility.
    */
-  def getRootCategory(): NodeGroupCategory = {
+  def getRootCategory()(using qc: QueryContext): NodeGroupCategory = {
     com.normation.zio.ZioRuntime.runNow(getRootCategoryPure().either) match {
       case Right(root) => root
       case Left(e)     => throw new RuntimeException(e.msg)
     }
   }
 
-  def getRootCategoryPure(): IOResult[NodeGroupCategory] = {
+  def getRootCategoryPure()(using qc: QueryContext): IOResult[NodeGroupCategory] = {
     for {
       con               <- ldap
       rootCategoryEntry <-
@@ -283,13 +312,15 @@ class RoLDAPNodeGroupRepository(
    * The last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
-  def getParentsForCategory(id: NodeGroupCategoryId, root: NodeGroupCategory): IOResult[List[NodeGroupCategory]] = {
+  def getParentsForCategory(id: NodeGroupCategoryId, root: NodeGroupCategory)(using
+      qc: QueryContext
+  ): IOResult[List[NodeGroupCategory]] = {
     // TODO : LDAPify that, we can have the list of all DN from id to root at the begining
     if (id == root.id) Nil.succeed
     else getParentGroupCategory(id).flatMap(parent => getParentsForCategory(parent.id, root).map(parents => parent :: parents))
   }
 
-  override def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean] = {
+  override def categoryExists(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean] = {
     for {
       con           <- ldap
       categoryEntry <- groupLibMutex.readLock(getCategoryEntry(con, id, "dn"))
@@ -299,7 +330,7 @@ class RoLDAPNodeGroupRepository(
   /**
    * Get a group category by its id
    * */
-  def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
+  def getGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
     for {
       con           <- ldap
       categoryEntry <- groupLibMutex.readLock {
@@ -319,7 +350,7 @@ class RoLDAPNodeGroupRepository(
    * Get the direct parent of the given category.
    * Fails if the category is not in the repository or for root category
    */
-  def getParentGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
+  def getParentGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
     groupLibMutex.readLock {
       for {
         con                 <- ldap
@@ -338,7 +369,7 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-  def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = {
+  def getParents_NodeGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[List[NodeGroupCategory]] = {
     // TODO : LDAPify that, we can have the list of all DN from id to root at the begining (just dn.getParent until rudderDit.NOE_GROUP.dn)
     for {
       root <- getRootCategoryPure()
@@ -355,7 +386,7 @@ class RoLDAPNodeGroupRepository(
    * Returns all non system categories + the root category
    * Caution, they are "lightweight" group categories (no children)
    */
-  def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = {
+  def getAllNonSystemCategories()(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] = {
     groupLibMutex.readLock {
       for {
         con               <- ldap
@@ -368,8 +399,15 @@ class RoLDAPNodeGroupRepository(
         categoryEntries   <- con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)), IS(OC_GROUP_CATEGORY)))
         allEntries         = categoryEntries :+ rootCategoryEntry
         entries           <- allEntries.toVector.traverse(x => mapper.entry2NodeGroupCategory(x)).toIO
+        // only keep categories that can be seen in the current security context
+        filtered          <- ZIO.foreach(entries)(c => {
+                               tenantService.filter(c) match {
+                                 case Some(x) => Some(x).succeed
+                                 case None    => debugTenantFiltering(c).as(None)
+                               }
+                             })
       } yield {
-        entries
+        filtered.flatten
       }
     }
   }
@@ -385,7 +423,7 @@ class RoLDAPNodeGroupRepository(
    *   "/cat2"       -> [/cat2_details]
    *   ...
    */
-  def getCategoryHierarchy: IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
+  def getCategoryHierarchy(using qc: QueryContext): IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
     for {
       allCats     <- getAllNonSystemCategories()
       rootCat     <- getRootCategoryPure()
@@ -409,7 +447,7 @@ class RoLDAPNodeGroupRepository(
    * @param id
    * @return
    */
-  def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
+  def getNodeGroupCategory(id: NodeGroupId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
     groupLibMutex.readLock {
       for {
         con                 <- ldap
@@ -427,40 +465,54 @@ class RoLDAPNodeGroupRepository(
     }
   }
 
-  def getAll(): IOResult[Seq[NodeGroup]] = {
+  def getAll()(using qc: QueryContext): IOResult[Seq[NodeGroup]] = {
     for {
-      con     <- ldap
+      con      <- ldap
       // for each directive entry, map it. if one fails, all fails
-      entries <- groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, EQ(A_OC, OC_RUDDER_NODE_GROUP)))
-      groups  <- ZIO.foreach(entries)(groupEntry => {
-                   mapper
-                     .entry2NodeGroup(groupEntry)
-                     .toIO
-                     .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
-                 })
+      entries  <- groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, EQ(A_OC, OC_RUDDER_NODE_GROUP)))
+      groups   <- ZIO.foreach(entries)(groupEntry => {
+                    mapper
+                      .entry2NodeGroup(groupEntry)
+                      .toIO
+                      .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+                  })
+      // only keep groups that can be seen in the current security context
+      filtered <- ZIO.foreach(groups)(g => {
+                    tenantService.filter(g) match {
+                      case Some(x) => Some(x).succeed
+                      case None    => debugTenantFiltering(g).as(None)
+                    }
+                  })
     } yield {
-      groups
+      filtered.flatten
     }
   }
 
-  def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = {
+  def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext): IOResult[Seq[NodeGroup]] = {
     for {
-      con     <- ldap
+      con      <- ldap
       // for each directive entry, map it. if one fails, all fails
-      entries <-
+      entries  <-
         groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize))*)))
-      groups  <- ZIO.foreach(entries)(groupEntry => {
-                   mapper
-                     .entry2NodeGroup(groupEntry)
-                     .toIO
-                     .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
-                 })
+      groups   <- ZIO.foreach(entries)(groupEntry => {
+                    mapper
+                      .entry2NodeGroup(groupEntry)
+                      .toIO
+                      .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+                  })
+      // only keep groups that can be seen in the current security context
+      filtered <- ZIO.foreach(groups)(g => {
+                    tenantService.filter(g) match {
+                      case Some(x) => Some(x).succeed
+                      case None    => debugTenantFiltering(g).as(None)
+                    }
+                  })
     } yield {
-      groups
+      filtered.flatten
     }
   }
 
-  def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = {
+  def getAllNodeIds()(using qc: QueryContext): IOResult[Map[NodeGroupId, Set[NodeId]]] = {
     for {
       con     <- ldap
       // for each directive entry, map it. if one fails, all fails
@@ -470,13 +522,15 @@ class RoLDAPNodeGroupRepository(
                      .entryToGroupNodeIds(groupEntry)
                      .toIO
                      .chainError(s"Error when transforming LDAP entry into a list of noes. Entry: ${groupEntry}")
+                     .map(idNodes => (idNodes, groupEntrySecurity(groupEntry)))
                  })
     } yield {
-      groups.toMap
+      // only keep groups that can be seen in the current security context
+      groups.collect { case (idNodes, sec) if qc.accessGrant.canSee(sec) => idNodes }.toMap
     }
   }
 
-  def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
+  def getAllNodeIdsChunk()(using qc: QueryContext): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
     for {
       con     <- ldap
       // for each directive entry, map it. if one fails, all fails
@@ -486,18 +540,22 @@ class RoLDAPNodeGroupRepository(
                      .entryToGroupNodeIdsChunk(groupEntry)
                      .toIO
                      .chainError(s"Error when transforming LDAP entry into a list of nodes. Entry: ${groupEntry}")
+                     .map(idNodes => (idNodes, groupEntrySecurity(groupEntry)))
                  })
     } yield {
-      groups.toMap
+      // only keep groups that can be seen in the current security context
+      groups.collect { case (idNodes, sec) if qc.accessGrant.canSee(sec) => idNodes }.toMap
     }
   }
 
-  private def findGroupWithFilter(filter: Filter): IOResult[Seq[NodeGroupId]] = {
+  private def findGroupWithFilter(filter: Filter)(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
     groupLibMutex.readLock {
       for {
         con      <- ldap
-        entries  <- con.searchSub(rudderDit.GROUP.dn, filter, "1.1")
-        groupIds <- ZIO.foreach(entries) { entry =>
+        // we need the security tag to filter out groups that can't be seen in the current security context
+        entries  <- con.searchSub(rudderDit.GROUP.dn, filter, A_SECURITY_TAG)
+        visible   = entries.filter(e => qc.accessGrant.canSee(groupEntrySecurity(e)))
+        groupIds <- ZIO.foreach(visible) { entry =>
                       rudderDit.GROUP
                         .getGroupId(entry.dn)
                         .toIO
@@ -516,7 +574,7 @@ class RoLDAPNodeGroupRepository(
    * @param nodeIds
    * @return
    */
-  def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
+  def findGroupWithAnyMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
     val filter = AND(
       IS(OC_RUDDER_NODE_GROUP),
       OR(nodeIds.distinct.map(nodeId => EQ(LDAPConstants.A_NODE_UUID, nodeId.value))*)
@@ -530,7 +588,7 @@ class RoLDAPNodeGroupRepository(
    * @param nodeIds
    * @return
    */
-  def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
+  def findGroupWithAllMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
     val filter = AND(
       IS(OC_RUDDER_NODE_GROUP),
       AND(nodeIds.distinct.map(nodeId => EQ(LDAPConstants.A_NODE_UUID, nodeId.value))*)
@@ -777,6 +835,7 @@ class WoLDAPNodeGroupRepository(
   override def addGroupCategoryToCategory(that: NodeGroupCategory, into: NodeGroupCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategory] = {
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
       con                 <- ldap
       parentCategoryEntry <-
@@ -839,6 +898,7 @@ class WoLDAPNodeGroupRepository(
    * Update an existing group category
    */
   override def saveGroupCategory(category: NodeGroupCategory)(implicit cc: ChangeContext): IOResult[NodeGroupCategory] = {
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(
       for {
         con              <- ldap
@@ -895,6 +955,7 @@ class WoLDAPNodeGroupRepository(
   override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategory] = {
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
       con              <- ldap
       oldParents       <- if (autoExportOnModify) {
@@ -951,12 +1012,15 @@ class WoLDAPNodeGroupRepository(
   override def delete(id: NodeGroupCategoryId, checkEmpty: Boolean = true)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategoryId] = {
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
       con     <- ldap
       deleted <- getCategoryEntry(con, id).flatMap {
                    case Some(entry) =>
                      mapper.entry2NodeGroupCategory(entry).toIO.flatMap { category =>
                        for {
+                         // a category can be deleted only if the current security context can see it
+                         _           <- tenantService.checkDelete(category, cc).toIO
                          parents     <- if (autoExportOnModify) {
                                           getParents_NodeGroupCategory(id)
                                         } else Nil.succeed
@@ -994,6 +1058,7 @@ class WoLDAPNodeGroupRepository(
    * The id used to save it will be the id provided by the nodeGroup
    */
   override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff] = {
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
       con           <- ldap
       exists        <- checkNodeGroupExists(con, nodeGroup)
@@ -1143,7 +1208,8 @@ class WoLDAPNodeGroupRepository(
       con:       RwLDAPConnection,
       nodeGroup: NodeGroup
   )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
-    val entry = mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
+    given QueryContext = cc.toQC
+    val entry          = mapper.nodeGroupToLdap(nodeGroup, existing.dn.getParent)
     // note: this is not protected by a lock because of the risk of calling it in a read lock
     // in a subclass. All callers must call it in a `writeLock`.
     for {
@@ -1203,7 +1269,11 @@ class WoLDAPNodeGroupRepository(
         oldGroup <-
           mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.serialize}'")
         newGroup  = oldGroup.copy(serverList = (oldGroup.serverList -- delete) ++ add)
-        result   <- saveModifyNodeGroupDiff(existing, con, newGroup)
+        // check that the current security context is allowed to modify that group (tag is unchanged here)
+        status   <- tenantRepo.getStatus
+        result   <- tenantService.manageUpdate(Some(oldGroup), newGroup, cc, status) { ng =>
+                      saveModifyNodeGroupDiff(existing, con, ng)
+                    }
       } yield {
         result
       }
@@ -1215,22 +1285,28 @@ class WoLDAPNodeGroupRepository(
       containerId: NodeGroupCategoryId
   )(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     import cc.*
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
-      con         <- ldap
-      oldParents  <- if (autoExportOnModify) {
-                       (for {
-                         parent  <- getNodeGroupCategory(nodeGroupId)
-                         parents <- getParents_NodeGroupCategory(parent.id)
-                       } yield (parent :: parents).map(_.id))
-                     } else Nil.succeed
-      existing    <- getSGEntry(con, nodeGroupId).notOptional(
-                       "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.serialize)
-                     )
-      oldGroup    <- mapper
-                       .entry2NodeGroup(existing)
-                       .toIO
-                       .chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
-      systemCheck <- if (oldGroup.isSystem) "You can not move system group".fail else ZIO.unit
+      con          <- ldap
+      oldParents   <- if (autoExportOnModify) {
+                        (for {
+                          parent  <- getNodeGroupCategory(nodeGroupId)
+                          parents <- getParents_NodeGroupCategory(parent.id)
+                        } yield (parent :: parents).map(_.id))
+                      } else Nil.succeed
+      existing     <- getSGEntry(con, nodeGroupId).notOptional(
+                        "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.serialize)
+                      )
+      oldGroup     <- mapper
+                        .entry2NodeGroup(existing)
+                        .toIO
+                        .chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
+      // a group can be moved only if the current security context can see both the group and the
+      // destination category
+      _            <- cc.accessGrant.canSeeOrFail(oldGroup)(ZIO.unit)
+      destCategory <- getGroupCategory(containerId)
+      _            <- cc.accessGrant.canSeeOrFail(destCategory)(ZIO.unit)
+      systemCheck  <- if (oldGroup.isSystem) "You can not move system group".fail else ZIO.unit
 
       groupRDN      <- existing.rdn.notOptional("Error when retrieving RDN for an existing group - seems like a bug")
       name          <- checkNameAlreadyInUse(con, oldGroup.name, nodeGroupId)
@@ -1274,6 +1350,7 @@ class WoLDAPNodeGroupRepository(
    * @return
    */
   override def delete(id: NodeGroupId)(implicit cc: ChangeContext): IOResult[DeleteNodeGroupDiff] = {
+    given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
       con          <- ldap
       parents      <- if (autoExportOnModify) {
@@ -1287,6 +1364,8 @@ class WoLDAPNodeGroupRepository(
       existing     <-
         getSGEntry(con, id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(id))
       oldGroup     <- mapper.entry2NodeGroup(existing).toIO
+      // a group can be deleted only if the current security context can see it
+      _            <- tenantService.checkDelete(oldGroup, cc).toIO
       deleted      <- {
         getSGEntry(con, id, "1.1") flatMap {
           case Some(entry) => {

@@ -118,7 +118,7 @@ class TechniqueEditForm(
   private var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
     for {
       tech          <- Box(technique)
-      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name).toBox
+      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name)(using snippetQC).toBox
       activeTech    <- optActiveTech
     } yield {
       activeTech
@@ -373,7 +373,8 @@ class TechniqueEditForm(
         JsRaw("hideBsModal('deleteActionDialog');") & { // JsRaw ok, const
           val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, qc.actor, crReasonsRemovePopup.map(_.get))
+            deleted <-
+              dependencyService.cascadeDeleteTechnique(id)(using qc.newCC(crReasonsRemovePopup.map(_.get)).withModId(modId))
             deploy  <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Policy update request sent")
@@ -538,10 +539,11 @@ class TechniqueEditForm(
    * of given root Active Technique library.
    * The template may not be present in the library.
    */
-  private def findUserBreadCrump(target: Technique): Option[List[ActiveTechniqueCategory]] = {
+  private def findUserBreadCrump(target: Technique)(using qc: QueryContext): Option[List[ActiveTechniqueCategory]] = {
     // find the potential WBUsreTechnique for given WBTechnique
     (for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).toBox.flatMap(Box(_))
+      activeTechnique <-
+        roActiveTechniqueRepository.getActiveTechnique(target.id.name).toBox.flatMap(Box(_))
       crump           <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id).toBox
     } yield {
       crump.reverse

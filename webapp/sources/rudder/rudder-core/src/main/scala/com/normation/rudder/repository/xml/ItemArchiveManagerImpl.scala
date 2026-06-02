@@ -185,7 +185,7 @@ class ItemArchiveManagerImpl(
     for {
       // Treat categories before treating Rules
       categories  <- exportRuleCategories(commiter, modId, actor, reason)
-      rules       <- roRuleRepository.getAll(false)
+      rules       <- roRuleRepository.getAll(false)(using QueryContext.systemQC)
       cleanedRoot <- IOResult.attempt(FileUtils.cleanDirectory(gitRuleArchiver.getItemDirectory))
       saved       <- ZIO.foreach(rules.filterNot(_.isSystem))(rule => gitRuleArchiver.archiveRule(rule, None))
       commitId    <- gitRuleArchiver.commitRules(modId, commiter, reason)
@@ -201,10 +201,9 @@ class ItemArchiveManagerImpl(
       actor:    EventActor,
       reason:   Option[String]
   ): IOResult[(GitArchiveId, NotArchivedElements)] = {
-    // case class SavedDirective( saved:Seq[String, ])
-
+    // export is a system-level operation, it sees all tenants
     for {
-      catWithUPT  <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)
+      catWithUPT  <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)(using QueryContext.systemQC)
       // remove systems categories, we don't want to export them anymore
       okCatWithUPT = catWithUPT.toMap.collect {
                        // always include root category, even if it's a system one
@@ -323,7 +322,7 @@ class ItemArchiveManagerImpl(
       reason:   Option[String]
   ): IOResult[GitArchiveId] = {
     for {
-      parameters <- roParameterRepository.getAllGlobalParameters()
+      parameters <- roParameterRepository.getAllGlobalParameters()(using QueryContext.systemQC)
       _          <- IOResult.attempt(FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory))
       _          <- ZIO.foreach(parameters)(param => gitParameterArchiver.archiveParameter(param, None))
       commitId   <- gitParameterArchiver.commitParameters(modId, commiter, reason)

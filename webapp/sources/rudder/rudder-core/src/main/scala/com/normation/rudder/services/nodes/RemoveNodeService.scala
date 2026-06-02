@@ -170,7 +170,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
   override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
     // here, we need to return "RemovedInventory" in case of missing node, so CoreNodeFactRepo #getStatus
     // is not what we want;
-    backend.get(nodeId)(using QueryContext.todoQC, SelectNodeStatus.Any).map {
+    backend.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Any).map {
       case None    => Set(RemovedInventory)
       case Some(x) => Set(x.rudderSettings.status)
     }
@@ -467,7 +467,7 @@ class RemoveNodeFromGroups(
   )(implicit cc: ChangeContext): UIO[Unit] = {
     (for {
       _            <- NodeLoggerPure.Delete.debug(s"  - remove node ${nodeId.value} from his groups")
-      nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))
+      nodeGroupIds <- roNodeGroupRepository.findGroupWithAnyMember(Seq(nodeId))(using cc.toQC)
       _            <- ZIO.foreach(nodeGroupIds) { nodeGroupId =>
                         val msg = Some("Automatic update of group due to deletion of node " + nodeId.value)
                         woNodeGroupRepository

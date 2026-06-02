@@ -45,10 +45,11 @@ import com.normation.GitVersion
 import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.ZioRuntime
 import zio.json.*
@@ -74,27 +75,27 @@ class CheckRudderGlobalProperties(
     .flatMap(list => ZIO.foreach(list)(_.as[GlobalPropertiesJson].toIO.map(_.toGlobalParam)))
 
   private def updateOne(modId: ModificationId, p: GlobalParameter): IOResult[Unit] = {
+    // system bootstrap check: no user context, act as Rudder with full access grant
+    given qc: QueryContext = QueryContext.systemQC
     for {
       saved <- roParamRepo.getGlobalParameter(p.name)
       _     <- saved match {
                  case None                                                      =>
                    BootstrapLogger.info(s"Creating missing global properties '${p.name}' with value: '${p.valueAsString}''") *>
-                   woParamRepo.saveParameter(
-                     p,
-                     modId,
-                     RudderEventActor,
-                     Some(s"Creating global system parameter '${p.name}' to its default value")
+                   woParamRepo.saveParameter(p)(using
+                     ChangeContext
+                       .newForRudder(Some(s"Creating global system parameter '${p.name}' to its default value"))
+                       .withModId(modId)
                    )
                  case Some(s) if p.value != s.value || p.provider != s.provider =>
                    val provider = p.provider.getOrElse(PropertyProvider.systemPropertyProvider).value
                    BootstrapLogger.info(
                      s"Resetting global properties '${p.name}' from $provider provider to value: ${p.valueAsString}"
                    ) *>
-                   woParamRepo.updateParameter(
-                     p,
-                     modId,
-                     RudderEventActor,
-                     Some(s"Resetting global system properties '${p.name}' to its default value")
+                   woParamRepo.updateParameter(p)(using
+                     ChangeContext
+                       .newForRudder(Some(s"Resetting global system properties '${p.name}' to its default value"))
+                       .withModId(modId)
                    )
                  case _                                                         => ZIO.unit
                }

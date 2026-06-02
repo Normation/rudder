@@ -184,7 +184,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       .map(g => (g.id, Chunk.fromIterable(g.serverList)))
       .toMap
 
-    override def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
+    override def getAllNodeIdsChunk()(using qc: QueryContext): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
       nodesByGroup.succeed
     }
 
@@ -208,27 +208,29 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).succeed
     }
 
-    def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]] = nodeGroups.filter(x => ids.contains(x.id)).succeed
+    def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext): IOResult[Seq[NodeGroup]] =
+      nodeGroups.filter(x => ids.contains(x.id)).succeed
 
-    def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] =
+    def getGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] =
       getFullGroupLibrary()(using QueryContext.testQC).map(_.toNodeGroupCategory)
 
-    def categoryExists(id:       NodeGroupCategoryId): IOResult[Boolean]           = ???
-    def getNodeGroupCategory(id: NodeGroupId):         IOResult[NodeGroupCategory] = ???
-    def getAll():        IOResult[Seq[NodeGroup]]                = ???
-    def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] = ???
+    def categoryExists(id:                   NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean]                = ???
+    def getNodeGroupCategory(id:             NodeGroupId)(using qc:         QueryContext): IOResult[NodeGroupCategory]      = ???
+    def getAll()(using qc:                   QueryContext): IOResult[Seq[NodeGroup]] = ???
+    def getAllNodeIds()(using qc:            QueryContext): IOResult[Map[NodeGroupId, Set[NodeId]]] = ???
     def getGroupsByCategory(includeSystem: Boolean)(implicit
         qc: QueryContext
     ): IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]] = ???
-    def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = ???
-    def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = ???
-    def getRootCategory():     NodeGroupCategory                                                 = ???
-    def getRootCategoryPure(): IOResult[NodeGroupCategory]                                       = ???
-    def getCategoryHierarchy:  IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = ???
-    def getAllGroupCategories(includeSystem: Boolean):             IOResult[Seq[NodeGroupCategory]]  = ???
-    def getParentGroupCategory(id:           NodeGroupCategoryId): IOResult[NodeGroupCategory]       = ???
-    def getParents_NodeGroupCategory(id:     NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = ???
-    def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = ???
+    def findGroupWithAnyMember(nodeIds:      Seq[NodeId])(using qc:         QueryContext): IOResult[Seq[NodeGroupId]]       = ???
+    def findGroupWithAllMember(nodeIds:      Seq[NodeId])(using qc:         QueryContext): IOResult[Seq[NodeGroupId]]       = ???
+    def getRootCategory()(using qc:          QueryContext): NodeGroupCategory = ???
+    def getRootCategoryPure()(using qc:      QueryContext): IOResult[NodeGroupCategory] = ???
+    def getCategoryHierarchy(using qc:       QueryContext): IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = ???
+    def getAllGroupCategories(includeSystem: Boolean)(using qc:             QueryContext): IOResult[Seq[NodeGroupCategory]] = ???
+    def getParentGroupCategory(id:           NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory]      = ???
+    def getParents_NodeGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[List[NodeGroupCategory]] =
+      ???
+    def getAllNonSystemCategories()(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] = ???
   }
 
   object nodeFactRepo extends NodeFactRepository {
@@ -250,16 +252,16 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).map(n => (n.id, n)).toMap.view.succeed
     }
 
-    override def getNumberOfManagedNodes(): IOResult[RuntimeFlags] = 8.succeed
-    def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
-    def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
-    def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
+    override def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[RuntimeFlags] = 8.succeed
+    def registerChangeCallbackAction(callback:       NodeFactChangeEventCallback): IOResult[Unit] = ???
+    def getStatus(id:                                NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
+    def get(nodeId:                                  NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
     def slowGet(
         nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
-    def getNodesBySoftwareName(softName:       String): IOResult[List[(NodeId, Software)]] = ???
-    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      IOStream[NodeFact]              = ???
-    def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
+    def getNodesBySoftwareName(softName:             String)(using qc:      QueryContext): IOResult[List[(NodeId, Software)]] = ???
+    def slowGetAll()(implicit qc:                    QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      IOStream[NodeFact]              = ???
+    def save(nodeFact:                               NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
     def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
       ???
     def updateInventory(inventory: FullInventory, software: Option[Iterable[Software]])(implicit
@@ -272,37 +274,21 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
   // We want to ignore rules that are defined in `MockRules` because they may target all nodes and pollute our compliance tests
   private def rulesRepo(rules: List[Rule]) = new RoRuleRepository with WoRuleRepository {
-    override def getOpt(ruleId: RuleId):         IOResult[Option[Rule]] = {
+    override def getOpt(ruleId: RuleId)(using qc: QueryContext):         IOResult[Option[Rule]] = {
       rules.find(_.id == ruleId).succeed
     }
-    override def getAll(includeSystem: Boolean): IOResult[Seq[Rule]]    = {
+    override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]]    = {
       rules.succeed
     }
 
-    override def getIds(includeSystem:            Boolean): IOResult[Set[RuleId]] = ???
-    override def create(rule:                     Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = ???
-    override def update(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = ???
-    override def load(rule:                       Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]        = ???
-    override def unload(ruleId:                   RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]        = ???
-    override def updateSystem(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = ???
-    override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] =
-      ???
-    override def deleteSystemRule(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = ???
+    override def getIds(includeSystem:            Boolean)(using qc: QueryContext):  IOResult[Set[RuleId]]            = ???
+    override def create(rule:                     Rule)(using cc:    ChangeContext): IOResult[AddRuleDiff]            = ???
+    override def update(rule:                     Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???
+    override def load(rule:                       Rule)(using cc:    ChangeContext): IOResult[Unit]                   = ???
+    override def unload(ruleId:                   RuleId)(using cc:  ChangeContext): IOResult[Unit]                   = ???
+    override def updateSystem(rule:               Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???
+    override def delete(id:                       RuleId)(using cc:  ChangeContext): IOResult[DeleteRuleDiff]         = ???
+    override def deleteSystemRule(id:             RuleId)(using cc:  ChangeContext): IOResult[DeleteRuleDiff]         = ???
     override def swapRules(newRules:              Seq[Rule]): IOResult[RuleArchiveId] = ???
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ???
   }

@@ -123,10 +123,11 @@ trait NodeFactRepository {
   }
 
   /*
-   * Get the number of active managed nodes.
-   * This should be made fast, because it's typically used in license check.
+   * Get the number of active managed nodes visible in the given security context.
+   * This should be made fast, because it's typically used in license check (use `systemQC`
+   * there to get the non-tenant-scoped, global count).
    */
-  def getNumberOfManagedNodes(): IOResult[Int]
+  def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[Int]
 
   /*
    * Get node on given status
@@ -155,7 +156,7 @@ trait NodeFactRepository {
     statusCompat(status, (qc, s) => slowGet(nodeId)(using qc, s, attrs))
   }
 
-  def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]]
+  def getNodesBySoftwareName(softName: String)(using qc: QueryContext): IOResult[List[(NodeId, Software)]]
 
   /*
    * get all node facts.
@@ -533,7 +534,11 @@ class CoreNodeFactRepository(
     }
   }
 
-  override def getNumberOfManagedNodes(): IOResult[Int] = enabledNodes.get
+  override def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[Int] = {
+    // fast path: admin (and everyone when the tenant feature is disabled) uses the precomputed global count
+    if (qc.accessGrant == TenantAccessGrant.All) enabledNodes.get
+    else acceptedNodes.get.map(ns => countEnabled(ns.filter { case (_, n) => qc.accessGrant.canSee(n) }))
+  }
 
   override def get(
       nodeId: NodeId
@@ -622,8 +627,23 @@ class CoreNodeFactRepository(
     )
   }
 
-  override def getNodesBySoftwareName(softName: String): IOResult[List[(NodeId, Software)]] = {
-    softwareByName(softName)
+  override def getNodesBySoftwareName(softName: String)(using qc: QueryContext): IOResult[List[(NodeId, Software)]] = {
+    for {
+      res      <- softwareByName(softName)
+      // the DAO returns (nodeId, software) for ALL nodes regardless of tenant: filter out the
+      // ones the current security context can't see. Nodes unknown to the cache are only visible
+      // to admins (same semantic as `canSee` on an absent/untagged object).
+      accepted <- acceptedNodes.get
+      pending  <- pendingNodes.get
+    } yield {
+      res.filter {
+        case (id, _) =>
+          accepted.get(id).orElse(pending.get(id)) match {
+            case Some(nf) => qc.accessGrant.canSee(nf)
+            case None     => qc.accessGrant.canSee(Option.empty[SecurityTag])
+          }
+      }
+    }
   }
 
   /*

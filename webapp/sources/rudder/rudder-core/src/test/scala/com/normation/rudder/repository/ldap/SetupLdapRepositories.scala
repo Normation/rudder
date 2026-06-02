@@ -231,6 +231,8 @@ trait SetupLdapRepositories {
     roLdap,
     ldapMapper,
     mockTechniques.techniqueRepo,
+    tenantService,
+    tenantRepo,
     new ZioTReentrantLock("directive-lock")
   )
 
@@ -243,17 +245,33 @@ trait SetupLdapRepositories {
     gitArchiver,
     gitArchiver,
     personIdent,
+    tenantService,
+    tenantRepo,
     false
   )
 
   lazy val lockRule   = new ZioTReentrantLock("rule-lock")
-  lazy val roRuleRepo = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, lockRule)
+  lazy val roRuleRepo = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, tenantService, tenantRepo, lockRule)
+  lazy val woRuleRepo = new WoLDAPRuleRepository(
+    roRuleRepo,
+    rwLdap,
+    ldapDiffMapper,
+    roGroupRepo,
+    eventLogRepo,
+    gitArchiver,
+    personIdent,
+    tenantService,
+    tenantRepo,
+    false
+  )
 
   lazy val lockProperty         = new ZioTReentrantLock("property-lock")
   lazy val roGlobalPropertyRepo = new RoLDAPParameterRepository(
     rudderDit,
     roLdap,
     ldapMapper,
+    tenantService,
+    tenantRepo,
     lockProperty
   )
 
@@ -264,6 +282,8 @@ trait SetupLdapRepositories {
     eventLogRepo,
     gitArchiver,
     personIdent,
+    tenantService,
+    tenantRepo,
     false
   )
 

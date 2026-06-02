@@ -79,16 +79,19 @@ class NodeGroupCategoryForm(
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private val checkRights                = CurrentUser.checkRights
 
-  val categories: Seq[NodeGroupCategory] = roGroupCategoryRepository.getAllNonSystemCategories().toBox match {
-    case eb: EmptyBox =>
-      val f = eb ?~! "Can not get Group root category"
-      logger.error(f.messageChain)
-      f.rootExceptionCause.foreach(ex => logger.error("Exception was:", ex))
-      Seq()
-    case Full(cats) => cats.filter(x => x.id != _nodeGroupCategory.id)
+  val categories: Seq[NodeGroupCategory] = {
+    roGroupCategoryRepository.getAllNonSystemCategories()(using QueryContext.todoQC).toBox match {
+      case eb: EmptyBox =>
+        val f = eb ?~! "Can not get Group root category"
+        logger.error(f.messageChain)
+        f.rootExceptionCause.foreach(ex => logger.error("Exception was:", ex))
+        Seq()
+      case Full(cats) => cats.filter(x => x.id != _nodeGroupCategory.id)
+    }
   }
 
-  val parentCategory: Box[NodeGroupCategory] = roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id).toBox
+  val parentCategory: Box[NodeGroupCategory] =
+    roGroupCategoryRepository.getParentGroupCategory(nodeGroupCategory.id)(using QueryContext.todoQC).toBox
 
   val parentCategoryId: String = parentCategory match {
     case Full(x) => x.id.value

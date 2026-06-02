@@ -56,11 +56,21 @@ trait SecureDispatchSnippet extends DispatchSnippet {
     CurrentUser.queryContext.withQCOr(loggedInsecureDispatch)(secureDispatch)
   }
 
+  private def logInvaliAccess: Unit = ApplicationLoggerPure.Auth.logEffect.warn(
+    s"Snippet '${this.getClass.getName}' can't be accessed in current security context (user is not authenticated)"
+  )
+
   private def loggedInsecureDispatch: DispatchIt = {
-    ApplicationLoggerPure.Auth.logEffect.warn(
-      s"Snippet '${this.getClass.getName}' can't be accessed in current security context (user is not authenticated)"
-    )
+    logInvaliAccess
     PartialFunction.empty
+  }
+
+  // a method for having a query context available even during class instantiation
+  lazy val snippetQC: QueryContext = {
+    CurrentUser.queryContext.getOrElse {
+      logInvaliAccess
+      QueryContext.noneQC
+    }
   }
 
 }

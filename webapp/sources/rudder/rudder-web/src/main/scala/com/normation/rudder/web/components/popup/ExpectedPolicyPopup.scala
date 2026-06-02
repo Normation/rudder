@@ -78,7 +78,7 @@ class ExpectedPolicyPopup(
 
   def display(using qc: QueryContext): NodeSeq = {
     // find the list of dyn groups on which that server would be and from that, the Rules
-    val rulesGrid: NodeSeq = getDependantRulesForNode match {
+    val rulesGrid: NodeSeq = getDependantRulesForNode() match {
       case Full(seq) =>
         val noDisplay = DisplayColumn.Force(display = false)
 
@@ -108,7 +108,7 @@ class ExpectedPolicyPopup(
     )(expectedTechnique)
   }
 
-  private val getDependantRulesForNode: Box[Seq[Rule]] = {
+  private def getDependantRulesForNode()(using qc: QueryContext): Box[Seq[Rule]] = {
     for {
       allDynGroups <- dynGroupService.getAllDynGroups()
       dynGroups    <- checkDynGroup

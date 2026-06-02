@@ -41,7 +41,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -50,6 +49,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.reports.ChangesByRule
 import com.normation.rudder.services.reports.NodeChanges
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.services.ComputePolicyMode
@@ -96,7 +96,7 @@ class RuleGrid(
   import RuleGrid.*
 
   private val getFullNodeGroupLib      = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
-  private val getFullDirectiveLib      = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
+  private val getFullDirectiveLib      = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()(using snippetQC)
   private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied
   private val getRootRuleCategory      = () => RudderConfig.roRuleCategoryRepository.getRootCategory()
 
@@ -547,12 +547,11 @@ class RuleGrid(
             // with the disable.
             // it's only a try, so it may fails, we won't try again
             (for {
-              r <- roRuleRepository.get(rule.id)
-              _ <- woRuleRepository.update(
-                     r.copy(isEnabledStatus = false),
-                     ModificationId(uuidGen.newUuid),
-                     RudderEventActor,
-                     Some("Rule automatically disabled because it contains error (bad target or bad directives)")
+              r <- roRuleRepository.get(rule.id)(using QueryContext.systemQC) // systemQC because it's a consistency repair
+              _ <- woRuleRepository.update(r.copy(isEnabledStatus = false))(using
+                     ChangeContext
+                       .newForRudder(Some("Rule automatically disabled because it contains error (bad target or bad directives)"))
+                       .withModId(ModificationId(uuidGen.newUuid))
                    )
             } yield {
               logger.warn(

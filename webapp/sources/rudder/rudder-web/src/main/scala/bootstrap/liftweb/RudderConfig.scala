@@ -2948,8 +2948,17 @@ object RudderConfigInit {
     lazy val ruleReadWriteMutex      = new ZioTReentrantLock("rule-lock")
     lazy val ruleCatReadWriteMutex   = new ZioTReentrantLock("rule-cat-lock")
 
-    lazy val roLdapDirectiveRepository =
-      new RoLDAPDirectiveRepository(rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
+    lazy val roLdapDirectiveRepository = {
+      new RoLDAPDirectiveRepository(
+        rudderDitImpl,
+        roLdap,
+        ldapEntityMapper,
+        techniqueRepositoryImpl,
+        tenantCheckLogic,
+        tenantService,
+        uptLibReadWriteMutex
+      )
+    }
     lazy val roDirectiveRepository: RoDirectiveRepository = roLdapDirectiveRepository
     lazy val woLdapDirectiveRepository = {
       val repo = new WoLDAPDirectiveRepository(
@@ -2961,6 +2970,8 @@ object RudderConfigInit {
         gitActiveTechniqueArchiver,
         gitActiveTechniqueCategoryArchiver,
         personIdentServiceImpl,
+        tenantCheckLogic,
+        tenantService,
         RUDDER_AUTOARCHIVEITEMS
       )
 
@@ -2985,7 +2996,7 @@ object RudderConfigInit {
     lazy val woDirectiveRepository: WoDirectiveRepository = woLdapDirectiveRepository
 
     lazy val roLdapRuleRepository =
-      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
+      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, tenantCheckLogic, tenantService, ruleReadWriteMutex)
     lazy val roRuleRepository: RoRuleRepository = roLdapRuleRepository
 
     lazy val woLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
@@ -2996,6 +3007,8 @@ object RudderConfigInit {
       logRepository,
       gitRuleArchiver,
       personIdentServiceImpl,
+      tenantCheckLogic,
+      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woRuleRepository = woLdapRuleRepository
@@ -3046,6 +3059,8 @@ object RudderConfigInit {
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
+      tenantCheckLogic,
+      tenantService,
       parameterReadWriteMutex
     )
 
@@ -3056,6 +3071,8 @@ object RudderConfigInit {
       logRepository,
       gitParameterArchiver,
       personIdentServiceImpl,
+      tenantCheckLogic,
+      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
 
@@ -3863,7 +3880,7 @@ object RudderConfigInit {
         val subGroup = new SubGroupComparatorRepository {
           override def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]] = Chunk.empty.succeed
 
-          override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.empty.succeed
+          override def getGroups(using qc: QueryContext): IOResult[Chunk[SubGroupChoice]] = Chunk.empty.succeed
         }
         new InternalLDAPQueryProcessor(
           roLdap,

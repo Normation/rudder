@@ -655,7 +655,7 @@ class ModificationValidationPopup(
       why:               Option[String]
   )(using qc: QueryContext): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
-    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, qc.actor, why).either.runNow match {
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive)(using qc.newCC(why).withModId(modId)).either.runNow match {
       case Right(optChanges) =>
         optChanges match {
           case Some(diff) if diff.needDeployment =>
