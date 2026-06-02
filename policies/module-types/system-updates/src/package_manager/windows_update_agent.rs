@@ -494,14 +494,7 @@ impl UpdateManager for WindowsUpdateAgent {
 
     fn reboot(&self, options: &RebootBehavior) -> ResultOutput<()> {
         let mut c = Command::new("shutdown");
-        c.args([
-            "/r",
-            "/t",
-            "0",
-            "/e",
-            "/c",
-            "\"Rudder system update campaign reboot\"",
-        ]);
+        c.args(["/r", "/t", "0"]);
         if options == &RebootBehavior::Force {
             c.arg("/f");
         }
