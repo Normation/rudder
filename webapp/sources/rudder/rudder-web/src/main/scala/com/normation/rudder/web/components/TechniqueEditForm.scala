@@ -118,7 +118,8 @@ class TechniqueEditForm(
   private var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
     for {
       tech          <- Box(technique)
-      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name).toBox
+      // TODO : review: what is the correct way to get `CurrentUser.queryContext` not in the dispatch part ?
+      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name)(using QueryContext.todoQC).toBox
       activeTech    <- optActiveTech
     } yield {
       activeTech
@@ -373,7 +374,8 @@ class TechniqueEditForm(
         JsRaw("hideBsModal('deleteActionDialog');") & { // JsRaw ok, const
           val modId = ModificationId(uuidGen.newUuid)
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, qc.actor, crReasonsRemovePopup.map(_.get))
+            deleted <-
+              dependencyService.cascadeDeleteTechnique(id)(using qc.newCC(crReasonsRemovePopup.map(_.get)).withModId(modId))
             deploy  <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
               Full("Policy update request sent")
@@ -541,8 +543,9 @@ class TechniqueEditForm(
   private def findUserBreadCrump(target: Technique): Option[List[ActiveTechniqueCategory]] = {
     // find the potential WBUsreTechnique for given WBTechnique
     (for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).toBox.flatMap(Box(_))
-      crump           <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id).toBox
+      activeTechnique <-
+        roActiveTechniqueRepository.getActiveTechnique(target.id.name)(using QueryContext.systemQC).toBox.flatMap(Box(_))
+      crump           <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)(using QueryContext.systemQC).toBox
     } yield {
       crump.reverse
     }) match {

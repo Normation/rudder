@@ -206,7 +206,7 @@ object QSDirectiveBackend extends Loggable {
   /**
    * Lookup directives
    */
-  def search(query: Query)(implicit repo: RoDirectiveRepository): IOResult[Seq[QuickSearchResult]] = {
+  def search(query: Query)(using repo: RoDirectiveRepository, qc: QueryContext): IOResult[Seq[QuickSearchResult]] = {
 
     // only search if query is on Directives and attributes contains
     // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion

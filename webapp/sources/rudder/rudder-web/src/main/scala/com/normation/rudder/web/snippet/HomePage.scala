@@ -430,7 +430,7 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
     // for techniques, we can't easily rely on LDAP attribute, because we can have a mix of isSystem/policyType.
     // So just use the repo.
     directiveRepo
-      .getFullDirectiveLibrary()
+      .getFullDirectiveLibrary()(using QueryContext.systemQC)
       .map(_.allActiveTechniques.collect {
         // here, we only want to count one technique whatever the number of versions, but only the ones enabled and of type "base"
         case (_, at) if at.policyTypes.isBase && at.isEnabled => Math.min(1, at.techniques.count(_._2.policyTypes.isBase))

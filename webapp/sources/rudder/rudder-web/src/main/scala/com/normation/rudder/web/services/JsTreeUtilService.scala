@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.*
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.*
 
 /**
@@ -59,7 +60,9 @@ class JsTreeUtilService(
 ) {
 
   // get the Active Technique category, log on error
-  def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId, logger: Logger): Option[ActiveTechniqueCategory] = {
+  def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId, logger: Logger)(using
+      qc: QueryContext
+  ): Option[ActiveTechniqueCategory] = {
     directiveRepository.getActiveTechniqueCategory(id).toBox match {
       // remove sytem category
       case Full(Some(cat)) => if (cat.isSystem) None else Some(cat)
@@ -71,7 +74,9 @@ class JsTreeUtilService(
   }
 
   // get the Active Technique, log on error
-  def getActiveTechnique(id: ActiveTechniqueId, logger: Logger): Box[(ActiveTechnique, Option[Technique])] = {
+  def getActiveTechnique(id: ActiveTechniqueId, logger: Logger)(using
+      qc: QueryContext
+  ): Box[(ActiveTechnique, Option[Technique])] = {
     (for {
       activeTechnique <- directiveRepository.getActiveTechniqueByActiveTechnique(id).toBox.flatMap {
                            Box(_)
@@ -88,11 +93,13 @@ class JsTreeUtilService(
   }
 
   // get the Directive, log on error
-  def getPi(id: DirectiveUid, logger: Logger): Option[Directive] = directiveRepository.getDirective(id).toBox match {
-    case Full(directive) => directive
-    case e: EmptyBox =>
-      logger.error("Error while fetching node %s".format(id), e ?~! "Error message was:")
-      None
+  def getPi(id: DirectiveUid, logger: Logger)(using qc: QueryContext): Option[Directive] = {
+    directiveRepository.getDirective(id).toBox match {
+      case Full(directive) => directive
+      case e: EmptyBox =>
+        logger.error("Error while fetching node %s".format(id), e ?~! "Error message was:")
+        None
+    }
   }
 
   def getPtCategory(id: TechniqueCategoryId, logger: Logger): Option[TechniqueCategory] = {

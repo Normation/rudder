@@ -111,6 +111,7 @@ cn: User Techniques
 techniqueCategoryId: ncf_techniques
 description:: CiAgICBUZWNobmlxdWVzIGNyZWF0ZWQgdXNpbmcgdGhlIFRlY2huaXF1ZSBlZGl0b3IuCiAg
 isSystem: FALSE
+securityTag: {"tenants": ["zoneA"]}
 
 dn: activeTechniqueId=user_defined_tech1,techniqueCategoryId=ncf_techniques,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique

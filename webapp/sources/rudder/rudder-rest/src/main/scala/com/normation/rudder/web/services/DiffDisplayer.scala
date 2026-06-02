@@ -170,13 +170,13 @@ object DiffDisplayer {
 
 class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
 
-  implicit private def displayDirective(directiveId: DirectiveId): Elem = {
+  implicit private def displayDirective(directiveId: DirectiveId)(using qc: QueryContext): Elem = {
     <span> Directive {linkUtil.createDirectiveLink(directiveId.uid)}</span>
   }
   def displayDirectiveChangeList(
       oldDirectives: Seq[DirectiveId],
       newDirectives: Seq[DirectiveId]
-  ): NodeSeq = {
+  )(using qc: QueryContext): NodeSeq = {
 
     // First, find unchanged and deleted (have find no clean way to make a 3 way partition)
     val (unchanged, deleted) = oldDirectives.partition(newDirectives.contains)

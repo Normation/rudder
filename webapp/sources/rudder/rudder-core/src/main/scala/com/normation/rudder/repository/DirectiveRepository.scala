@@ -45,11 +45,10 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.HasSecurityTag
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
@@ -355,7 +354,7 @@ trait RoDirectiveRepository {
    * Get the full directive library with all information,
    * from techniques to directives
    */
-  def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory]
+  def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory]
 
   /**
    * Try to find the directive with the given ID.
@@ -363,13 +362,15 @@ trait RoDirectiveRepository {
    * Full((parent,directive)) : found the directive (directive.id == directiveId) in given parent
    * Failure => an error happened.
    */
-  def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]]
+  def getDirective(directiveId: DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]]
 
   /**
    * retrieve a Directive with its parent Technique and the
    * binding Active Technique
    */
-  def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]]
+  def getDirectiveWithContext(
+      directiveId: DirectiveUid
+  )(using qc: QueryContext): IOResult[Option[(Technique, ActiveTechnique, Directive)]]
 
   /**
    * Find the active technique for which the given directive is an instance.
@@ -377,13 +378,15 @@ trait RoDirectiveRepository {
    * Return empty if no such directive is known,
    * fails if no active technique match the directive.
    */
-  def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]]
+  def getActiveTechniqueAndDirective(id: DirectiveId)(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]]
 
   /**
    * Get directives for given technique.
    * A not known technique id is a failure.
    */
-  def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean = false): IOResult[Seq[Directive]]
+  def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean = false)(using
+      qc: QueryContext
+  ): IOResult[Seq[Directive]]
 
   /**
    * Get all pairs of (category details, Set(active technique))
@@ -398,14 +401,14 @@ trait RoDirectiveRepository {
    */
   def getActiveTechniqueByCategory(
       includeSystem: Boolean = false
-  ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]]
+  )(using qc: QueryContext): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]]
 
   /**
    * Find back an active technique thanks to its id.
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]]
+  def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[Option[ActiveTechnique]]
 
   /**
    * Find back an active technique thanks to the id of its referenced
@@ -413,7 +416,7 @@ trait RoDirectiveRepository {
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechnique(techniqueName: TechniqueName): IOResult[Option[ActiveTechnique]]
+  def getActiveTechnique(techniqueName: TechniqueName)(using qc: QueryContext): IOResult[Option[ActiveTechnique]]
 
   /**
    * Retrieve the list of parents for the given active technique,
@@ -421,30 +424,36 @@ trait RoDirectiveRepository {
    * Return empty if the path can not be build
    * (missing technique, missing category, etc)
    */
-  def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]]
+  def activeTechniqueBreadCrump(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]]
 
   /**
    * Root user categories
    */
-  def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory]
+  def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory]
 
   /**
    * Return all categories non system (lightweight version, with no children)
    * @return
    */
-  def getAllActiveTechniqueCategories(includeSystem: Boolean = false): IOResult[Seq[ActiveTechniqueCategory]]
+  def getAllActiveTechniqueCategories(includeSystem: Boolean = false)(using
+      qc: QueryContext
+  ): IOResult[Seq[ActiveTechniqueCategory]]
 
   /**
    * Get an active technique by its ID
    */
-  def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]]
+  def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
+      qc: QueryContext
+  ): IOResult[Option[ActiveTechniqueCategory]]
 
   /**
    * Get the direct parent of the given category.
    * Return empty for root of the hierarchy, fails if the category
    * is not in the repository
    */
-  def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory]
+  def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
+      qc: QueryContext
+  ): IOResult[ActiveTechniqueCategory]
 
   /**
    * Return the list of parents for that category, the nearest parent
@@ -452,9 +461,11 @@ trait RoDirectiveRepository {
    * The the last parent is not the root of the library, return a Failure.
    * Also return a failure if the path to top is broken in any way.
    */
-  def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]]
+  def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
+      qc: QueryContext
+  ): IOResult[List[ActiveTechniqueCategory]]
 
-  def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory]
+  def getParentsForActiveTechnique(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[ActiveTechniqueCategory]
 
   /**
    * TODO: Never use, remove in rudder 7.0
@@ -478,11 +489,8 @@ trait WoDirectiveRepository {
    */
   def saveDirective(
       inActiveTechniqueId: ActiveTechniqueId,
-      directive:           Directive,
-      modId:               ModificationId,
-      actor:               EventActor,
-      reason:              Option[String]
-  ): IOResult[Option[DirectiveSaveDiff]]
+      directive:           Directive
+  )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]]
 
   /**
    * Save the given system directive into given user technique
@@ -498,11 +506,8 @@ trait WoDirectiveRepository {
    */
   def saveSystemDirective(
       inActiveTechniqueId: ActiveTechniqueId,
-      directive:           Directive,
-      modId:               ModificationId,
-      actor:               EventActor,
-      reason:              Option[String]
-  ): IOResult[Option[DirectiveSaveDiff]]
+      directive:           Directive
+  )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]]
 
   /**
    * Delete a directive.
@@ -516,11 +521,8 @@ trait WoDirectiveRepository {
    * System directive can't be deleted.
    */
   def delete(
-      id:     DirectiveUid,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[Option[DeleteDirectiveDiff]]
+      id: DirectiveUid
+  )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]]
 
   /**
    * Delete a directive's system.
@@ -531,11 +533,8 @@ trait WoDirectiveRepository {
    * If no directive has such id, return a success.
    */
   def deleteSystemDirective(
-      id:     DirectiveUid,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[Option[DeleteDirectiveDiff]]
+      id: DirectiveUid
+  )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]]
 
   /**
    * Create an active technique from the parameter WBTechnique
@@ -593,11 +592,8 @@ trait WoDirectiveRepository {
    * If no such element exists, it is a success.
    */
   def deleteActiveTechnique(
-      id:     ActiveTechniqueId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[ActiveTechniqueId]
+      id: ActiveTechniqueId
+  )(using cc: ChangeContext): IOResult[ActiveTechniqueId]
 
   /**
    * Add the given category into the given parent category in the
@@ -733,8 +729,8 @@ class InitDirectivesTree(
       }
     }
 
-    // apply with root cat children ids
-    roDirectiveRepository.getActiveTechniqueLibrary.toBox.flatMap { root =>
+    // apply with root cat children ids. This as system tenant view.
+    roDirectiveRepository.getActiveTechniqueLibrary(using QueryContext.systemQC).toBox.flatMap { root =>
       bestEffort(techniqueRepository.getTechniqueLibrary.subCategoryIds.toSeq)(id => recCopyRef(id, root))
     }
   }

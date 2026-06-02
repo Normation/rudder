@@ -42,17 +42,17 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.Version
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
-import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.ncf.*
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import org.junit.runner.*
@@ -129,12 +129,14 @@ class TestMigrateDirectiveWithSelectInputBroken extends Specification with Conte
     security = None
   )
 
+  given cc: ChangeContext = ChangeContext.newForRudder()
+  given qc: QueryContext  = QueryContext.systemQC
   val atId = mockDirectives.directiveRepo
     .getActiveTechnique(TechniqueName("test-migrate-select"))
     .notOptional("should not empty")
     .runNow
     .id
-  mockDirectives.directiveRepo.saveDirective(atId, directive, ModificationId("..."), eventlog.RudderEventActor, None).runNow
+  mockDirectives.directiveRepo.saveDirective(atId, directive).runNow
 
   val migration = new MigrateDirectiveWithSelectInputBroken(
     techniqueReader,

@@ -42,6 +42,9 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
@@ -198,5 +201,73 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     res.either.runNow.left.map(_.msg) must beLeft(
       beEqualTo("Object 'test-group-node1' security tag's tenant can not be updated to 'zoneC' because it does not exist")
     )
+  }
+
+  // in the test technique library, the active technique `user_defined_tech1` and its directive
+  // `ce8aec6f-...` (and the parent category `ncf_techniques`) are tagged with tenant `zoneA`.
+  val directiveWithTenantA = DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae")
+  val atRootCat            = ActiveTechniqueCategoryId("Active Techniques")
+
+  "[Directives] Reading the full directive library" should {
+    "let an admin (tenant=*) see the zoneA active technique and directive" in {
+      given qc: QueryContext = QueryContext.systemQC
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beTrue) and
+      (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beTrue)
+    }
+    "let a zoneA user see the zoneA active technique and directive" in {
+      given qc: QueryContext = zoneA
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beTrue) and
+      (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beTrue)
+    }
+    "hide the zoneA active technique and directive from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beFalse) and
+      (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beFalse)
+    }
+  }
+
+  "[Directives] Reading a single directive" should {
+    "be visible to a zoneA user" in {
+      given qc: QueryContext = zoneA
+      roDirectiveRepo.getDirective(directiveWithTenantA).runNow.map(_.id.uid.value) must beSome(directiveWithTenantA.value)
+    }
+    "be hidden from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roDirectiveRepo.getDirective(directiveWithTenantA).runNow must beNone
+    }
+  }
+
+  "[Directives] Deleting a directive" should {
+    "be refused for a user who can not see it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woDirectiveRepo.delete(directiveWithTenantA).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(s"Object '${directiveWithTenantA.value}' can't be deleted by zoneB user")
+      )
+    }
+  }
+
+  def newActiveTechniqueCategory(id: String, tenant: Option[SecurityTag]): ActiveTechniqueCategory =
+    ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), id, id, Nil, Nil, isSystem = false, security = tenant)
+
+  "[ActiveTechniqueCategories] Creating a category" should {
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val cat = newActiveTechniqueCategory("cat-zoneA-feature-disabled", None)
+      (tenantRepo.setTenantEnabled(false) *> woDirectiveRepo.addActiveTechniqueCategory(cat, atRootCat)).either.runNow.left
+        .map(_.msg) must beLeft(
+        beEqualTo("Object 'cat-zoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val cat = newActiveTechniqueCategory("cat-zoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *>
+      woDirectiveRepo.addActiveTechniqueCategory(cat, atRootCat) *>
+      roDirectiveRepo.getActiveTechniqueCategory(cat.id)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
   }
 }

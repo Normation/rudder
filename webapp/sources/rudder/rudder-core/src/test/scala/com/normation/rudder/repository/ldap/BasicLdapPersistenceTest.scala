@@ -112,7 +112,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
   "reading an active technique with a tenant should correctly deserialize it" >> {
 
     val tech     = TechniqueName("user_defined_tech1")
-    val res      = roDirectiveRepo.getActiveTechnique(tech).runNow
+    val res      = roDirectiveRepo.getActiveTechnique(tech)(using QueryContext.systemQC).runNow
     val expected = ActiveTechnique(
       ActiveTechniqueId(tech.value),
       tech,
@@ -129,7 +129,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
 
     val did = DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae")
 
-    val res      = roDirectiveRepo.getDirective(did).runNow
+    val res      = roDirectiveRepo.getDirective(did)(using QueryContext.systemQC).runNow
     val expected = Directive(
       DirectiveId(did),
       TechniqueVersion.V1_0,

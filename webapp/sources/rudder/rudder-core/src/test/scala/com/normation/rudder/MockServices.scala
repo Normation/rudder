@@ -958,31 +958,38 @@ class MockDirectives(mockTechniques: MockTechniques) {
       }
     }
 
-    override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = rootActiveTechniqueCategory.get
+    override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] =
+      rootActiveTechniqueCategory.get
 
-    override def getDirective(uid: DirectiveUid): IOResult[Option[Directive]] = {
+    override def getDirective(uid: DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]] = {
       getDirectiveRevision(uid, GitVersion.DEFAULT_REV).map(_.map(_._2))
     }
 
-    override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+    override def getDirectiveWithContext(
+        directiveId: DirectiveUid
+    )(using qc: QueryContext): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
       rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveId(directiveId)).map {
         case (fat, d) =>
           (fat.techniques(d.techniqueVersion), fat.toActiveTechnique(), d)
       })
     }
 
-    override def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = {
+    override def getActiveTechniqueAndDirective(
+        id: DirectiveId
+    )(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]] = {
       getDirectiveWithContext(id.uid).map(_.map { case (t, at, d) => (at, d) })
     }
 
-    override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = {
+    override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[Directive]] = {
       val predicate = (d: Directive) => if (includeSystem) true else !d.isSystem
       rootActiveTechniqueCategory.get.map(_.allDirectives.collect { case (_, (_, d)) if (predicate(d)) => d }.toSeq)
     }
 
     override def getActiveTechniqueByCategory(
         includeSystem: Boolean
-    ): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
+    )(using qc: QueryContext): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
       implicit val ordering = ActiveTechniqueCategoryOrdering
       rootActiveTechniqueCategory.get.map(c => {
         ISortedMap.empty[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques] ++ c.fullIndex.map {
@@ -995,17 +1002,23 @@ class MockDirectives(mockTechniques: MockTechniques) {
       })
     }
 
-    override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = {
+    override def getActiveTechniqueByActiveTechnique(
+        id: ActiveTechniqueId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = {
       rootActiveTechniqueCategory.get.map(_.allActiveTechniques.get(id).map(_.toActiveTechnique()))
     }
 
-    override def getActiveTechnique(techniqueName: TechniqueName): IOResult[Option[ActiveTechnique]] = {
+    override def getActiveTechnique(
+        techniqueName: TechniqueName
+    )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = {
       rootActiveTechniqueCategory.get.map(
         _.allActiveTechniques.valuesIterator.find(_.techniqueName == techniqueName).map(_.toActiveTechnique())
       )
     }
 
-    override def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = {
+    override def activeTechniqueBreadCrump(
+        id: ActiveTechniqueId
+    )(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = {
       import cats.implicits.*
 
       rootActiveTechniqueCategory.get.map(root => {
@@ -1023,11 +1036,13 @@ class MockDirectives(mockTechniques: MockTechniques) {
       })
     }
 
-    override def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = {
+    override def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.get.map(_.toActiveTechniqueCategory())
     }
 
-    override def getAllActiveTechniqueCategories(includeSystem: Boolean): IOResult[Seq[ActiveTechniqueCategory]] = {
+    override def getAllActiveTechniqueCategories(includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[ActiveTechniqueCategory]] = {
       val predicate = (fat: FullActiveTechniqueCategory) => if (includeSystem) true else !fat.isSystem
       rootActiveTechniqueCategory.get.map {
         _.allCategories.values.collect {
@@ -1037,11 +1052,15 @@ class MockDirectives(mockTechniques: MockTechniques) {
       }
     }
 
-    override def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = {
+    override def getActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechniqueCategory]] = {
       rootActiveTechniqueCategory.get.map(_.allCategories.get(id).map(_.toActiveTechniqueCategory()))
     }
 
-    override def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory] = {
+    override def getParentActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.get.flatMap(root => {
         root.fullIndex.find(_._1.lastOption == Some(id)) match {
           case None            =>
@@ -1058,10 +1077,12 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     // scalafmt makes scalameta ScalametaParser to fail for now
     // format: off
-    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] = ???
+    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = ???
     // format: on
 
-    override def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory] = ???
+    override def getParentsForActiveTechnique(id: ActiveTechniqueId)(using
+        qc: QueryContext
+    ): IOResult[ActiveTechniqueCategory] = ???
 
     override def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
 
@@ -1115,22 +1136,16 @@ class MockDirectives(mockTechniques: MockTechniques) {
     }
     override def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = {
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = {
       if (directive.isSystem) Inconsistency(s"Can not modify system directive '${directive.id}' here").fail
       else saveGen(inActiveTechniqueId, directive)
     }
 
     override def saveSystemDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = {
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = {
       if (!directive.isSystem) Inconsistency(s"Can not modify non system directive '${directive.id}' here").fail
       else saveGen(inActiveTechniqueId, directive)
     }
@@ -1142,20 +1157,14 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .map(_.map(p => DeleteDirectiveDiff(p._1.techniqueName, p._2)))
     }
     override def delete(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = {
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
     override def deleteSystemDirective(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = {
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
@@ -1198,11 +1207,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def deleteActiveTechnique(
-        id:     ActiveTechniqueId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        id: ActiveTechniqueId
+    )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def addActiveTechniqueCategory(
         that: ActiveTechniqueCategory,
@@ -1245,16 +1251,16 @@ class MockDirectives(mockTechniques: MockTechniques) {
   initDirectivesTree.copyReferenceLib(includeSystem = true)
 
   {
-    val modId = ModificationId(s"init directives in lib")
+    given cc: ChangeContext = ChangeContext.newForRudder(Some("init directives in lib"))
     ZIO
       .foreachDiscard(directives.all) {
         case (t, list) =>
           val at = ActiveTechniqueId(t.id.name.value)
           ZIO.foreachDiscard(list) { d =>
             if (d.isSystem) {
-              directiveRepo.saveSystemDirective(at, d, modId, TestActor.get, None)
+              directiveRepo.saveSystemDirective(at, d)
             } else {
-              directiveRepo.saveDirective(at, d, modId, TestActor.get, None)
+              directiveRepo.saveDirective(at, d)
             }
           }
       }

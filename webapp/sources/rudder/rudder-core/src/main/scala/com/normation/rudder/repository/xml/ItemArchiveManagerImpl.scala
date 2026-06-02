@@ -201,10 +201,9 @@ class ItemArchiveManagerImpl(
       actor:    EventActor,
       reason:   Option[String]
   ): IOResult[(GitArchiveId, NotArchivedElements)] = {
-    // case class SavedDirective( saved:Seq[String, ])
-
+    // export is a system-level operation, it sees all tenants
     for {
-      catWithUPT  <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)
+      catWithUPT  <- uptRepository.getActiveTechniqueByCategory(includeSystem = true)(using QueryContext.systemQC)
       // remove systems categories, we don't want to export them anymore
       okCatWithUPT = catWithUPT.toMap.collect {
                        // always include root category, even if it's a system one

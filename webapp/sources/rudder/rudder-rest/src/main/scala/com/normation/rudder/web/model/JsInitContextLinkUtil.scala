@@ -162,7 +162,7 @@ class LinkUtil(
     }
   }
 
-  def createDirectiveLink(id: DirectiveUid): Elem = {
+  def createDirectiveLink(id: DirectiveUid)(using qc: QueryContext): Elem = {
     roDirectiveRepository.getDirective(id).either.runNow match {
       case Right(Some(directive)) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
       case Right(None)            =>

@@ -46,6 +46,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import com.normation.utils.DateFormaterService
@@ -175,7 +176,7 @@ class LogDisplayer(
   def refreshData(nodeId: NodeId, reports: => Seq[Reports], tableId: String): JsCmd = {
     def getDirectiveName(directiveId: DirectiveId): Box[String] = {
       configRepository
-        .getDirective(directiveId)
+        .getDirective(directiveId)(using QueryContext.systemQC)
         .map(_.map(_.directive.name).getOrElse(directiveId.serialize))
         .toBox
     }

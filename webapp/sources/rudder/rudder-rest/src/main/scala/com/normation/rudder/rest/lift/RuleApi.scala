@@ -622,7 +622,7 @@ class RuleApiService14(
       modId   = ModificationId(uuidGen.newUuid)
       _      <- writeRule.create(change.newRule, modId, actor, params.reason)
 
-      directiveLib <- readDirectives.getFullDirectiveLibrary()
+      directiveLib <- readDirectives.getFullDirectiveLibrary()(using cc.toQC)
       groupLib     <- readGroup.getFullGroupLibrary()(using cc.toQC)
       nodesLib     <- nodeFactRepos.getAll()(using cc.toQC)
       globalMode   <- getGlobalPolicyMode()

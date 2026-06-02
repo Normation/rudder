@@ -311,12 +311,14 @@ class CommitAndDeployChangeRequestServiceImpl(
    */
   private def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
     import cc.modId
+    given qc: QueryContext = cc.toQC
 
     def doDirectiveChange(directiveChanges: DirectiveChanges): Box[TriggerDeploymentDiff] = {
       def save(tn: TechniqueName, d: Directive, change: DirectiveChangeItem): Box[Option[DirectiveSaveDiff]] = {
         for {
           activeTechnique <- roDirectiveRepo.getActiveTechnique(tn).notOptional(s"Missing active technique with name ${tn}")
-          saved           <- woDirectiveRepo.saveDirective(activeTechnique.id, d, modId, change.actor, change.reason)
+          saved           <-
+            woDirectiveRepo.saveDirective(activeTechnique.id, d)(using cc.copy(actor = change.actor, message = change.reason))
         } yield {
           saved
         }
@@ -327,7 +329,7 @@ class CommitAndDeployChangeRequestServiceImpl(
         diff   <- change.diff match {
                     case DeleteDirectiveDiff(tn, d)       =>
                       dependencyService
-                        .cascadeDeleteDirective(d.id.uid, modId, change.actor, change.reason)
+                        .cascadeDeleteDirective(d.id.uid)(using cc.copy(actor = change.actor, message = change.reason))
                         .map(_ => DeleteDirectiveDiff(tn, d))
                     case ModifyToDirectiveDiff(tn, d, rs) =>
                       // if the save returns None, then we return the original modification object

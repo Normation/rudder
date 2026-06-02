@@ -40,8 +40,6 @@ package com.normation.cfclerk.services
 import better.files.File
 import com.normation.cfclerk.domain.*
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.AcceptationDateTime
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
@@ -60,6 +58,7 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.services.policies.TechniqueAcceptationUpdater
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -145,7 +144,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
       ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty, security = None).succeed
     }
     // ALL the following methods are useless for our test
-    override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = {
+    override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] = {
       FullActiveTechniqueCategory(
         ActiveTechniqueCategoryId("Active Techniques"),
         name = "",
@@ -156,54 +155,62 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         None
       ).succeed
     }
-    override def getDirective(directiveId: DirectiveUid): IOResult[Option[Directive]] = ???
-    override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] =
-      ???
-    override def getActiveTechniqueAndDirective(id:      DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = ???
-    override def getDirectives(activeTechniqueId:        ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = ???
+    override def getDirective(directiveId:           DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]] = ???
+    override def getDirectiveWithContext(
+        directiveId: DirectiveUid
+    )(using qc: QueryContext): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = ???
+    override def getActiveTechniqueAndDirective(
+        id: DirectiveId
+    )(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]] = ???
+    override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[Directive]] = ???
     override def getActiveTechniqueByCategory(
         includeSystem: Boolean
-    ): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
-    override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = ???
-    override def getActiveTechnique(techniqueName:       TechniqueName): IOResult[Option[ActiveTechnique]] = ???
-    override def activeTechniqueBreadCrump(id:           ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = ???
-    override def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = ???
-    override def getAllActiveTechniqueCategories(includeSystem: Boolean):                   IOResult[Seq[ActiveTechniqueCategory]]    = ???
-    override def getActiveTechniqueCategory(id:                 ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = ???
-    override def getParentActiveTechniqueCategory(id:           ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory]         = ???
-    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] =
+    )(using qc: QueryContext): IOResult[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+    override def getActiveTechniqueByActiveTechnique(
+        id: ActiveTechniqueId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = ???
+    override def getActiveTechnique(techniqueName: TechniqueName)(using qc: QueryContext): IOResult[Option[ActiveTechnique]] =
       ???
-    override def getParentsForActiveTechnique(id: ActiveTechniqueId):         IOResult[ActiveTechniqueCategory] = ???
-    override def containsDirective(id:            ActiveTechniqueCategoryId): UIO[Boolean]                      = ???
+    override def activeTechniqueBreadCrump(
+        id: ActiveTechniqueId
+    )(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = ???
+    override def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = ???
+    override def getAllActiveTechniqueCategories(includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[ActiveTechniqueCategory]] = ???
+    override def getActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechniqueCategory]] = ???
+    override def getParentActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = ???
+    override def getParentsForActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = ???
+    override def getParentsForActiveTechnique(id: ActiveTechniqueId)(using
+        qc: QueryContext
+    ): IOResult[ActiveTechniqueCategory] =
+      ???
+    override def containsDirective(id:               ActiveTechniqueCategoryId): UIO[Boolean] = ???
     override def saveActiveTechniqueCategory(
         category: ActiveTechniqueCategory
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
     override def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = ???
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = ???
     override def saveSystemDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = ???
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = ???
     override def delete(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = ???
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = ???
     override def deleteSystemDirective(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = ???
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = ???
     override def move(
         id:            ActiveTechniqueId,
         newCategoryId: ActiveTechniqueCategoryId
@@ -217,11 +224,8 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         datetimes: Map[TechniqueVersion, Instant]
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
     override def deleteActiveTechnique(
-        id:     ActiveTechniqueId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        id: ActiveTechniqueId
+    )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
   }
 
   val ldapCallBack = new TechniqueAcceptationUpdater("update", 0, ldapRepo, ldapRepo, fsRepos)

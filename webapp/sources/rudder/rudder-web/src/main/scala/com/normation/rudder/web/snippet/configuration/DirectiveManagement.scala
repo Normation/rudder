@@ -46,7 +46,6 @@ import com.normation.cfclerk.domain.TechniqueGenerationMode.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -103,7 +102,7 @@ class DirectiveManagement extends SecureDispatchSnippet with Loggable {
   import DirectiveManagement.*
 
   private val techniqueRepository = RudderConfig.techniqueRepository
-  private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
+  private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()(using QueryContext.systemQC)
   private val getRules            = () => RudderConfig.roRuleRepository.getAll()
   private val getGroups           = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val uuidGen             = RudderConfig.stringUuidGenerator
@@ -659,13 +658,12 @@ class DirectiveManagement extends SecureDispatchSnippet with Loggable {
                 "Delete",
                 () => {
                   RudderConfig.woDirectiveRepository
-                    .delete(
-                      directive.id.uid,
-                      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-                      qc.actor,
-                      Some(
-                        s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
-                      ).toBox
+                    .delete(directive.id.uid)(using
+                      qc.newCC(
+                        Some(
+                          s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
+                        )
+                      )
                     )
                     .toBox match {
                     case Full(diff) =>

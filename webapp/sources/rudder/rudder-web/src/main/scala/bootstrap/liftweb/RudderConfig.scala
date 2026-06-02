@@ -2948,8 +2948,17 @@ object RudderConfigInit {
     lazy val ruleReadWriteMutex      = new ZioTReentrantLock("rule-lock")
     lazy val ruleCatReadWriteMutex   = new ZioTReentrantLock("rule-cat-lock")
 
-    lazy val roLdapDirectiveRepository =
-      new RoLDAPDirectiveRepository(rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
+    lazy val roLdapDirectiveRepository = {
+      new RoLDAPDirectiveRepository(
+        rudderDitImpl,
+        roLdap,
+        ldapEntityMapper,
+        techniqueRepositoryImpl,
+        tenantCheckLogic,
+        tenantService,
+        uptLibReadWriteMutex
+      )
+    }
     lazy val roDirectiveRepository: RoDirectiveRepository = roLdapDirectiveRepository
     lazy val woLdapDirectiveRepository = {
       val repo = new WoLDAPDirectiveRepository(
@@ -2961,6 +2970,8 @@ object RudderConfigInit {
         gitActiveTechniqueArchiver,
         gitActiveTechniqueCategoryArchiver,
         personIdentServiceImpl,
+        tenantCheckLogic,
+        tenantService,
         RUDDER_AUTOARCHIVEITEMS
       )
 

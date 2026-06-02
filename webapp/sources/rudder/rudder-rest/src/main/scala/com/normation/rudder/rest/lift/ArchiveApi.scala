@@ -108,6 +108,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
@@ -1617,14 +1618,17 @@ class SaveArchiveServicebyRepo(
   }
 
   def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
+    // archive import is a system-level operation, see all tenants
+    given cc: ChangeContext =
+      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
     for {
       at <-
         roDirectiveRepos
-          .getActiveTechnique(d.technique)
+          .getActiveTechnique(d.technique)(using cc.toQC)
           .notOptional(s"Technique '${d.technique.value}' is used in imported directive ${d.directive.name} but is not in Rudder")
       _  <-
         ApplicationLoggerPure.Archive.debug(s"Adding directive from archive: '${d.directive.name}' (${d.directive.id.serialize})")
-      _  <- woDirectiveRepos.saveDirective(at.id, d.directive, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+      _  <- woDirectiveRepos.saveDirective(at.id, d.directive)
     } yield ()
   }
   def saveGroupCat(

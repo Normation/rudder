@@ -72,7 +72,8 @@ class CreateActiveTechniqueCategoryPopup(
   private val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
   private val uuidGen                             = RudderConfig.stringUuidGenerator
 
-  private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
+  // TODO : review - how should we correctly get `CurrentUser.queryContext` for a field, and not in the dispatch function ?
+  private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()(using QueryContext.todoQC).toBox
 
   def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
 

@@ -233,6 +233,8 @@ trait SetupLdapRepositories {
     roLdap,
     ldapMapper,
     mockTechniques.techniqueRepo,
+    tenantService,
+    tenantRepo,
     new ZioTReentrantLock("directive-lock")
   )
 
@@ -245,6 +247,8 @@ trait SetupLdapRepositories {
     gitArchiver,
     gitArchiver,
     personIdent,
+    tenantService,
+    tenantRepo,
     false
   )
 

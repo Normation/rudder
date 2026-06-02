@@ -59,6 +59,7 @@ import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import zio.*
 import zio.syntax.*
 
@@ -116,6 +117,9 @@ class DeleteEditorTechniqueImpl(
     }
 
     def removeTechnique(techniqueId: TechniqueId, technique: domain.Technique): IOResult[Unit] = {
+      // here, we can only see directives in user tenant. So it may happen that we ask for directive deletion,
+      // but can't see them all, and fail when trying to delete the technique because of other directives. It seems that it is what we want.
+      given qc: QueryContext = changeContext.toQC
       for {
         directives       <- readDirectives
                               .getFullDirectiveLibrary()
@@ -152,11 +156,8 @@ class DeleteEditorTechniqueImpl(
                                 ().succeed
                               case Some(activeTechnique) =>
                                 writeDirectives.deleteActiveTechnique(
-                                  activeTechnique.id,
-                                  changeContext.modId,
-                                  changeContext.actor,
-                                  Some(s"Deleting active technique '${techniqueId.name.value}'")
-                                )
+                                  activeTechnique.id
+                                )(using changeContext.withMsg(s"Deleting active technique '${techniqueId.name.value}'"))
                             }
         editorTechniques <- techniqueReader
                               .getTechnique(BundleName(techniqueId.name.value), techniqueId.version.version.toVersionString)

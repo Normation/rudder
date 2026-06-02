@@ -43,6 +43,7 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
@@ -65,7 +66,7 @@ class RestCompletion(
 
       OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
         val fetchTags = if (kind == "directive") {
-          completion.findDirectiveTagNames(token)
+          completion.findDirectiveTagNames(token)(using userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC))
         } else {
           // rule
           completion.findRuleTagNames(token)
@@ -89,7 +90,9 @@ class RestCompletion(
       OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
 
         val fetchTags = if (kind == "directive") {
-          completion.findDirectiveTagValues(token, None)
+          completion.findDirectiveTagValues(token, None)(using
+            userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
+          )
         } else {
           // rule
           completion.findRuleTagValues(token, None)
@@ -114,7 +117,9 @@ class RestCompletion(
       val schema = ResponseSchema("completeTags", None)
 
       val fetchTags = if (kind == "directive") {
-        completion.findDirectiveTagValues(token, Some(key))
+        completion.findDirectiveTagValues(token, Some(key))(using
+          userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
+        )
       } else {
         // rule
         completion.findRuleTagValues(token, Some(key))
@@ -139,7 +144,7 @@ class RestCompletionService(
     readDirective: RoDirectiveRepository,
     readRule:      RoRuleRepository
 ) {
-  def findDirectiveTagNames(matching: String): Box[List[String]] = {
+  def findDirectiveTagNames(matching: String)(using qc: QueryContext): Box[List[String]] = {
     for {
       lib <- readDirective.getFullDirectiveLibrary().toBox
     } yield {
@@ -153,7 +158,7 @@ class RestCompletionService(
     }
   }
 
-  def findDirectiveTagValues(matching: String, tagName: Option[String]): Box[List[String]] = {
+  def findDirectiveTagValues(matching: String, tagName: Option[String])(using qc: QueryContext): Box[List[String]] = {
     for {
       lib <- readDirective.getFullDirectiveLibrary().toBox
     } yield {
