@@ -39,7 +39,7 @@ pipeline {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('architecture-doc') {
-                                sh script: 'java -jar /usr/bin/structurizr.war export -format static -output target -workspace rudder-containers.dsl ', label: 'build architecture documentation'
+                                sh script: 'java -jar /usr/bin/structurizr.war export -format static -output target -workspace rudder-containers.dsl', label: 'build architecture documentation'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                     sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/architecture-doc/', label: "publish architecture documentation"
                                 }
@@ -534,77 +534,6 @@ pipeline {
         stage('Publish') {
             when { not { changeRequest() } }
             parallel {
-                stage('adr-doc') {
-                    agent {
-                        dockerfile {
-                            label 'generic-docker'
-                            filename 'ci/common.Dockerfile'
-                            // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
-                        }
-                    }
-                    when { expression { latestVersion == true } }
-                    steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir("adr") {
-                                sh script: 'make', label: 'build adr doc'
-                                withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" book/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/adr/', label: 'publish techniques docs'
-                                }
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Publish - Rust ADR docs")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing ADR docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                cleanWs(deleteDirs: true, notFailBuild: true)
-                            }
-                        }
-                    }
-                }
-                stage('rust-dev-doc') {
-                    agent {
-                        dockerfile {
-                            label 'generic-docker'
-                            filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${RUDDER_VERSION}-nightly"
-                            // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache -v /srv/cache/sccache:/root/.cache/sccache'
-                        }
-                    }
-                    when { not { branch 'master' } }
-                    steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            sh script: 'make dev-doc', label: 'rust dev doc'
-                            withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/doc/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/rust/', label: 'publish techniques docs'
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Publish - Rust dev docs")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing rust dev docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                cleanWs(deleteDirs: true, notFailBuild: true)
-                            }
-                        }
-                    }
-                }
                 stage('graphic-charter') {
                     agent {
                         dockerfile {
