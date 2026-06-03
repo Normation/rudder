@@ -164,7 +164,7 @@ class TechniqueTree(
   }
 
   private def ruleNode(id: RuleId): JsTreeNode = {
-    ruleRepository.get(id).toBox match {
+    ruleRepository.get(id)(using QueryContext.systemQC).toBox match {
       case Full(rule) =>
         new JsTreeNode {
           override val attrs = {

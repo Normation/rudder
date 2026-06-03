@@ -417,7 +417,7 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
   }.toBox
 
   private def countAllRules(): Box[Int] = {
-    roRuleRepo.getIds().map(_.size).toBox
+    roRuleRepo.getIds()(using QueryContext.systemQC).map(_.size).toBox
   }
 
   private def countAllDirectives(): Box[Int] = {

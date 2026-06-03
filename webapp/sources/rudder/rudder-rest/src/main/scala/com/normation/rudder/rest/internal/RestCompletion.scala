@@ -69,7 +69,7 @@ class RestCompletion(
           completion.findDirectiveTagNames(token)(using userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC))
         } else {
           // rule
-          completion.findRuleTagNames(token)
+          completion.findRuleTagNames(token)(using userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.systemQC))
         }
 
         fetchTags match {
@@ -95,7 +95,7 @@ class RestCompletion(
           )
         } else {
           // rule
-          completion.findRuleTagValues(token, None)
+          completion.findRuleTagValues(token, None)(using userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.systemQC))
         }
 
         fetchTags match {
@@ -122,7 +122,9 @@ class RestCompletion(
         )
       } else {
         // rule
-        completion.findRuleTagValues(token, Some(key))
+        completion.findRuleTagValues(token, Some(key))(using
+          userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.systemQC)
+        )
       }
 
       fetchTags match {
@@ -173,7 +175,7 @@ class RestCompletionService(
     }
   }
 
-  def findRuleTagNames(matching: String): Box[List[String]] = {
+  def findRuleTagNames(matching: String)(using qc: QueryContext): Box[List[String]] = {
     for {
       rules <- readRule.getAll(false).toBox
     } yield {
@@ -186,7 +188,7 @@ class RestCompletionService(
     }
   }
 
-  def findRuleTagValues(matching: String, tagName: Option[String]): Box[List[String]] = {
+  def findRuleTagValues(matching: String, tagName: Option[String])(using qc: QueryContext): Box[List[String]] = {
     for {
       rules <- readRule.getAll(false).toBox
     } yield {

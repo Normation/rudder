@@ -185,7 +185,7 @@ class ItemArchiveManagerImpl(
     for {
       // Treat categories before treating Rules
       categories  <- exportRuleCategories(commiter, modId, actor, reason)
-      rules       <- roRuleRepository.getAll(false)
+      rules       <- roRuleRepository.getAll(false)(using QueryContext.systemQC)
       cleanedRoot <- IOResult.attempt(FileUtils.cleanDirectory(gitRuleArchiver.getItemDirectory))
       saved       <- ZIO.foreach(rules.filterNot(_.isSystem))(rule => gitRuleArchiver.archiveRule(rule, None))
       commitId    <- gitRuleArchiver.commitRules(modId, commiter, reason)
@@ -322,7 +322,7 @@ class ItemArchiveManagerImpl(
       reason:   Option[String]
   ): IOResult[GitArchiveId] = {
     for {
-      parameters <- roParameterRepository.getAllGlobalParameters()
+      parameters <- roParameterRepository.getAllGlobalParameters()(using QueryContext.systemQC)
       _          <- IOResult.attempt(FileUtils.cleanDirectory(gitParameterArchiver.getItemDirectory))
       _          <- ZIO.foreach(parameters)(param => gitParameterArchiver.archiveParameter(param, None))
       commitId   <- gitParameterArchiver.commitParameters(modId, commiter, reason)

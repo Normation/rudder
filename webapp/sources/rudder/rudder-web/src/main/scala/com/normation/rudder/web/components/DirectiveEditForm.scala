@@ -103,7 +103,7 @@ class DirectiveEditForm(
     displayTechniqueDetails: ActiveTechniqueId => JsCmd = { _ => Noop }
 ) extends SecureDispatchSnippet with Loggable {
 
-  import DirectiveEditForm.*
+  import com.normation.rudder.web.components.DirectiveEditForm.*
 
   val currentDirectiveSettingForm = new LocalSnippet[DirectiveEditForm]
 
@@ -133,7 +133,7 @@ class DirectiveEditForm(
 
   private val checkRights = CurrentUser.checkRights
 
-  val rules:        List[Rule]   = roRuleRepo.getAll(false).toBox.getOrElse(Seq()).toList
+  val rules:        List[Rule]   = roRuleRepo.getAll(false)(using QueryContext.todoQC).toBox.getOrElse(Seq()).toList
   val rootCategory: RuleCategory = roRuleCategoryRepo
     .getRootCategory()
     .toBox

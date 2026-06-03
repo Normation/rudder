@@ -91,7 +91,7 @@ object JsonDirectiveRId {
 /**
  * Snippet for managing the System and Active Technique libraries.
  *
- * It allow to see what Techniques are available in the
+ * It allows to see what Techniques are available in the
  * system library, choose and configure which one to use in
  * the user private library.
  *
@@ -99,10 +99,13 @@ object JsonDirectiveRId {
  *
  */
 class DirectiveManagement extends SecureDispatchSnippet with Loggable {
-  import DirectiveManagement.*
+  import com.normation.rudder.web.snippet.configuration.DirectiveManagement.*
+
+  //TODO : how can we get user context
+  given qc: QueryContext = RudderConfig.userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
 
   private val techniqueRepository = RudderConfig.techniqueRepository
-  private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()(using QueryContext.systemQC)
+  private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private val getRules            = () => RudderConfig.roRuleRepository.getAll()
   private val getGroups           = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val uuidGen             = RudderConfig.stringUuidGenerator

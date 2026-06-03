@@ -1748,9 +1748,12 @@ class SaveArchiveServicebyRepo(
     }
   }
   def saveRule(eventMetadata: EventMetadata, mergePolicy: MergePolicy, r: Rule): IOResult[Unit] = {
+    // archive import is a system-level operation, see all tenants
+    given cc: ChangeContext =
+      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding rule from archive: '${r.name}' (${r.id.serialize})")
-      x <- roRuleRepos.getOpt(r.id)
+      x <- roRuleRepos.getOpt(r.id)(using cc.toQC)
       _ <- x match {
              case Some(value) =>
                // if merge policy asks for that, update rule from archive with existing groups before saving so
@@ -1760,12 +1763,12 @@ class SaveArchiveServicebyRepo(
                    r.copy(targets = value.targets)
                  } else r
                }
-               woRuleRepos.update(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+               woRuleRepos.update(ruleToSave)
              case None        =>
                val ruleToSave = if (mergePolicy == MergePolicy.IgnoreSourceTargets) {
                  r.copy(targets = Set())
                } else r
-               woRuleRepos.create(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+               woRuleRepos.create(ruleToSave)
            }
     } yield ()
   }

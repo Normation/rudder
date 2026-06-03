@@ -182,7 +182,7 @@ class LogDisplayer(
     }
 
     def getRuleName(ruleId: RuleId): Box[String] = {
-      ruleRepository.get(ruleId).map(x => x.name).toBox
+      ruleRepository.get(ruleId)(using QueryContext.systemQC).map(x => x.name).toBox
     }
 
     val data = LogDisplayer.getReportsLineForNode(reports, getDirectiveName, getRuleName)

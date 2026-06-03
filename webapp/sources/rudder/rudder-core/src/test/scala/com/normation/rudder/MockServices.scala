@@ -1573,18 +1573,18 @@ class MockRules() {
     val predicate: Boolean => (Rule => Boolean) = (includeSystem: Boolean) =>
       (r: Rule) => if (includeSystem) true else r.isSystem == false
 
-    override def getOpt(ruleId: RuleId): IOResult[Option[Rule]] =
+    override def getOpt(ruleId: RuleId)(using qc: QueryContext): IOResult[Option[Rule]] =
       rulesMap.get.map(_.get(ruleId))
 
-    override def getAll(includeSystem: Boolean): IOResult[Seq[Rule]] = {
+    override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]] = {
       rulesMap.get.map(_.valuesIterator.filter(predicate(includeSystem)).toSeq)
     }
 
-    override def getIds(includeSystem: Boolean): IOResult[Set[RuleId]] = {
+    override def getIds(includeSystem: Boolean)(using qc: QueryContext): IOResult[Set[RuleId]] = {
       rulesMap.get.map(_.valuesIterator.collect { case r if (predicate(includeSystem)(r)) => r.id }.toSet)
     }
 
-    override def create(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = {
+    override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
       rulesMap
         .updateZIO(rules => {
           rules.get(rule.id) match {
@@ -1622,12 +1622,7 @@ class MockRules() {
       }
     }
 
-    override def update(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = {
+    override def update(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(rule.id) match {
@@ -1642,12 +1637,7 @@ class MockRules() {
         .map(buildRuleDiff(_, rule))
     }
 
-    override def updateSystem(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = {
+    override def updateSystem(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(rule.id) match {
@@ -1662,12 +1652,7 @@ class MockRules() {
         .map(buildRuleDiff(_, rule))
     }
 
-    override def delete(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = {
+    override def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(id) match {
@@ -1683,12 +1668,7 @@ class MockRules() {
         .map(DeleteRuleDiff(_))
     }
 
-    override def deleteSystemRule(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = {
+    override def deleteSystemRule(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(id) match {
@@ -1715,9 +1695,9 @@ class MockRules() {
 
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ZIO.unit
 
-    override def load(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
+    override def load(rule: Rule)(using cc: ChangeContext): IOResult[Unit] = ???
 
-    override def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
+    override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = ???
   }
 }
 
@@ -1847,20 +1827,17 @@ class MockGlobalParam() {
     val paramsMap: Ref.Synchronized[Map[String, GlobalParameter]] =
       Ref.Synchronized.make[Map[String, GlobalParameter]](all).runNow
 
-    override def getGlobalParameter(parameterName: String): IOResult[Option[GlobalParameter]] = {
+    override def getGlobalParameter(parameterName: String)(using qc: QueryContext): IOResult[Option[GlobalParameter]] = {
       paramsMap.get.map(_.get(parameterName))
     }
 
-    override def getAllGlobalParameters(): IOResult[Seq[GlobalParameter]] = {
+    override def getAllGlobalParameters()(using qc: QueryContext): IOResult[Seq[GlobalParameter]] = {
       paramsMap.get.map(_.valuesIterator.toSeq)
     }
 
     override def saveParameter(
-        parameter: GlobalParameter,
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[AddGlobalParameterDiff] = {
+        parameter: GlobalParameter
+    )(using cc: ChangeContext): IOResult[AddGlobalParameterDiff] = {
       paramsMap
         .updateZIO(params => {
           params.get(parameter.name) match {
@@ -1875,11 +1852,8 @@ class MockGlobalParam() {
     }
 
     override def updateParameter(
-        parameter: GlobalParameter,
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[Option[ModifyGlobalParameterDiff]] = {
+        parameter: GlobalParameter
+    )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = {
       paramsMap
         .modifyZIO(params => {
           params.get(parameter.name) match {
@@ -1900,11 +1874,8 @@ class MockGlobalParam() {
 
     override def delete(
         parameterName: String,
-        provider:      Option[PropertyProvider],
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[Option[DeleteGlobalParameterDiff]] = {
+        provider:      Option[PropertyProvider]
+    )(using cc: ChangeContext): IOResult[Option[DeleteGlobalParameterDiff]] = {
       paramsMap
         .modifyZIO(params => {
           params.get(parameterName) match {

@@ -41,8 +41,6 @@ import better.files.File
 import com.normation.cfclerk.domain.TechniqueVersionHelper
 import com.normation.errors
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
@@ -232,37 +230,21 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
 
   // We want to ignore rules that are defined in `MockRules` because they may target all nodes and pollute our compliance tests
   private def rulesRepo(rules: List[Rule]) = new RoRuleRepository with WoRuleRepository {
-    override def getOpt(ruleId: RuleId):         IOResult[Option[Rule]] = {
+    override def getOpt(ruleId: RuleId)(using qc: QueryContext):         IOResult[Option[Rule]] = {
       rules.find(_.id == ruleId).succeed
     }
-    override def getAll(includeSystem: Boolean): IOResult[Seq[Rule]]    = {
+    override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]]    = {
       rules.succeed
     }
 
-    override def getIds(includeSystem:            Boolean): IOResult[Set[RuleId]] = ???
-    override def create(rule:                     Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = ???
-    override def update(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = ???
-    override def load(rule:                       Rule, modId:   ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]        = ???
-    override def unload(ruleId:                   RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit]        = ???
-    override def updateSystem(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = ???
-    override def delete(id: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[DeleteRuleDiff] =
-      ???
-    override def deleteSystemRule(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = ???
+    override def getIds(includeSystem:            Boolean)(using qc: QueryContext):  IOResult[Set[RuleId]]            = ???
+    override def create(rule:                     Rule)(using cc:    ChangeContext): IOResult[AddRuleDiff]            = ???
+    override def update(rule:                     Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???
+    override def load(rule:                       Rule)(using cc:    ChangeContext): IOResult[Unit]                   = ???
+    override def unload(ruleId:                   RuleId)(using cc:  ChangeContext): IOResult[Unit]                   = ???
+    override def updateSystem(rule:               Rule)(using cc:    ChangeContext): IOResult[Option[ModifyRuleDiff]] = ???
+    override def delete(id:                       RuleId)(using cc:  ChangeContext): IOResult[DeleteRuleDiff]         = ???
+    override def deleteSystemRule(id:             RuleId)(using cc:  ChangeContext): IOResult[DeleteRuleDiff]         = ???
     override def swapRules(newRules:              Seq[Rule]): IOResult[RuleArchiveId] = ???
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ???
   }

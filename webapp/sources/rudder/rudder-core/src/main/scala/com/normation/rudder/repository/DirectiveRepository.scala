@@ -729,7 +729,7 @@ class InitDirectivesTree(
       }
     }
 
-    // apply with root cat children ids. This as system tenant view.
+    // init ref lib by appling with root cat children ids. This as system action, agnostic of tenants
     roDirectiveRepository.getActiveTechniqueLibrary(using QueryContext.systemQC).toBox.flatMap { root =>
       bestEffort(techniqueRepository.getTechniqueLibrary.subCategoryIds.toSeq)(id => recCopyRef(id, root))
     }

@@ -68,7 +68,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
   val env = RestTestSetUp.newEnv
   import com.softwaremill.quicklens.*
   val rule: Rule = env.mockRules.ruleRepo
-    .get(RuleId(RuleUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")))
+    .get(RuleId(RuleUid("ff44fb97-b65e-43c4-b8c2-0df8d5e8549f")))(using QueryContext.systemQC)
     .runNow
     .modify(_.id.rev)
     .setTo(Revision("gitrevision"))

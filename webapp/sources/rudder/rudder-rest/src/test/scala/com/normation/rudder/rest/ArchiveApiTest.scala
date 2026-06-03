@@ -43,8 +43,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.IOResult
 import com.normation.errors.effectUioUnit
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
@@ -239,11 +237,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       _ <- restTestSetUp.archiveAPIModule.rootDirName.set(archiveName)
       r <- restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid("rule1"))).notOptional(s"test")
       _ <- restTestSetUp.mockRules.ruleRepo.update(
-             r.copy(categoryId = RuleCategoryId("category1")),
-             ModificationId("rule"),
-             EventActor("test"),
-             None
-           )
+             r.copy(categoryId = RuleCategoryId("category1"))
+           )(using qc.newCC(None))
     } yield {}).runNow
 
     restTest.testGETResponse("/api/latest/archives/export?rules=rule1&include=groups,techniques") {
@@ -1096,7 +1091,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       r <- restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid(ruleId))).notOptional(s"missing ${ruleId} in test")
       _ <-
         restTestSetUp.mockRules.ruleRepo
-          .update(r.copy(shortDescription = newDesc), ModificationId("rule"), EventActor("test"), None)
+          .update(r.copy(shortDescription = newDesc))(using qc.newCC(None))
     } yield ()).runNow
     // update technique
     val techniqueId = "Create_file/1.0"

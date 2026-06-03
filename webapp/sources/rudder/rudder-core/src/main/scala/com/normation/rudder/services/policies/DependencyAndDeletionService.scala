@@ -292,9 +292,6 @@ class DependencyAndDeletionServiceImpl(
   override def cascadeDeleteDirective(
       id: DirectiveUid
   )(using cc: ChangeContext): Box[DirectiveDependencies] = {
-    val modId  = cc.modId
-    val actor  = cc.actor
-    val reason = cc.message
     for {
       configRules  <- findDependencies.findRulesForDirective(id)
       diff         <- woDirectiveRepository
@@ -305,9 +302,9 @@ class DependencyAndDeletionServiceImpl(
                         if (rule.directiveIds.exists(i => id == i.uid)) {
                           val newRule        = rule.copy(directiveIds = rule.directiveIds.filterNot(_.uid == id))
                           val updatedRuleRes = if (rule.isSystem) {
-                            woRuleRepository.updateSystem(newRule, modId, actor, reason)
+                            woRuleRepository.updateSystem(newRule)
                           } else {
-                            woRuleRepository.update(newRule, modId, actor, reason)
+                            woRuleRepository.update(newRule)
                           }
                           updatedRuleRes.chainError(
                             s"Can not remove directive '${id.value}' from rule with ID '${rule.id.serialize}'. %s".format {
@@ -488,9 +485,9 @@ class DependencyAndDeletionServiceImpl(
       // Update the Rule and save it
       val updatedRule    = rule.copy(targets = updatedTargets)
       val updatedRuleRes = if (rule.isSystem) {
-        woRuleRepository.updateSystem(updatedRule, cc.modId, cc.actor, cc.message)
+        woRuleRepository.updateSystem(updatedRule)
       } else {
-        woRuleRepository.update(updatedRule, cc.modId, cc.actor, cc.message)
+        woRuleRepository.update(updatedRule)
       }
       updatedRuleRes.chainError(s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.serialize}'.")
     }

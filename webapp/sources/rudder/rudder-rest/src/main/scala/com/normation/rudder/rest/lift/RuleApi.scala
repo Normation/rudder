@@ -217,7 +217,9 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      service.getCategoryDetails(RuleCategoryId(id)).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
+      service
+        .getCategoryDetails(RuleCategoryId(id))(using authzToken.qc)
+        .toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
@@ -246,7 +248,7 @@ class RuleApi(
     ): LiftResponse = {
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
-        res <- service.updateCategory(RuleCategoryId(id), cat, params, authzToken.qc.actor)
+        res <- service.updateCategory(RuleCategoryId(id), cat, params, authzToken.qc.actor)(using authzToken.qc)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
@@ -264,7 +266,7 @@ class RuleApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       service
-        .deleteCategory(RuleCategoryId(id), params, authzToken.qc.actor)
+        .deleteCategory(RuleCategoryId(id), params, authzToken.qc.actor)(using authzToken.qc)
         .toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
@@ -579,7 +581,7 @@ class RuleApiService14(
           for {
             rule <-
               readRule
-                .get(sourceId)
+                .get(sourceId)(using cc.toQC)
                 .chainError(s"Could not create rule '${name}' (id:${ruleId.serialize}) by cloning rule '${sourceId.serialize}')")
           } yield {
             RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule).copy(id = ruleId), Some(rule))
@@ -620,7 +622,7 @@ class RuleApiService14(
       name   <- restRule.displayName.notOptional("Missing manadatory parameter 'displayName'")
       change <- createOrClone(name, restRule, ruleId, clone, params, actor)
       modId   = ModificationId(uuidGen.newUuid)
-      _      <- writeRule.create(change.newRule, modId, actor, params.reason)
+      _      <- writeRule.create(change.newRule)(using cc.copy(actor = actor, message = params.reason).withModId(modId))
 
       directiveLib <- readDirectives.getFullDirectiveLibrary()(using cc.toQC)
       groupLib     <- readGroup.getFullGroupLibrary()(using cc.toQC)
@@ -668,7 +670,7 @@ class RuleApiService14(
              )
          // perhaps that will need to go throught change requests
          modId         = ModificationId(uuidGen.newUuid)
-         ldap         <- writeRule.load(rule, modId, actor, params.reason)
+         ldap         <- writeRule.load(rule)(using qc.newCC(params.reason).withModId(modId))
          _            <-
            ConfigurationLoggerPure.info(
              s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' loaded. It will be used in comming policy generations."
@@ -692,7 +694,7 @@ class RuleApiService14(
        val modId = ModificationId(uuidGen.newUuid)
        for {
          // perhaps that will need to go throught change requests
-         ldap <- writeRule.unload(id, modId, actor, params.reason)
+         ldap <- writeRule.unload(id)(using ChangeContext.newFor(actor, TenantAccessGrant.All, params.reason).withModId(modId))
          _    <-
            ConfigurationLoggerPure.info(
              s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' unloaded. It will not be used anymore in comming policy generations."
@@ -792,7 +794,7 @@ class RuleApiService14(
     }
   }
 
-  def getCategoryDetails(id: RuleCategoryId): IOResult[JRCategoriesRootEntrySimple] = {
+  def getCategoryDetails(id: RuleCategoryId)(using qc: QueryContext): IOResult[JRCategoriesRootEntrySimple] = {
     // returns (parent, child)
     def recFind(root: RuleCategory, id: RuleCategoryId): Option[(RuleCategory, RuleCategory)] = {
       root.childs.foldLeft(Option.empty[(RuleCategory, RuleCategory)]) {
@@ -843,7 +845,9 @@ class RuleApiService14(
     }
   }
 
-  def deleteCategory(id: RuleCategoryId, params: DefaultParams, actor: EventActor): IOResult[JRCategoriesRootEntrySimple] = {
+  def deleteCategory(id: RuleCategoryId, params: DefaultParams, actor: EventActor)(using
+      qc: QueryContext
+  ): IOResult[JRCategoriesRootEntrySimple] = {
     for {
       root              <- readRuleCategory.getRootCategory()
       found             <- root.find(id).toIO
@@ -864,7 +868,7 @@ class RuleApiService14(
       restData: JQRuleCategory,
       params:   DefaultParams,
       actor:    EventActor
-  ): IOResult[JRCategoriesRootEntrySimple] = {
+  )(using qc: QueryContext): IOResult[JRCategoriesRootEntrySimple] = {
     for {
       root                <- readRuleCategory.getRootCategory()
       found               <- root.find(id).toIO
@@ -902,7 +906,7 @@ class RuleApiService14(
       parent    = restData.parent.getOrElse("rootRuleCategory")
       modId     = ModificationId(uuidGen.newUuid)
       _        <- writeRuleCategory.create(update, RuleCategoryId(parent), modId, actor, params.reason)
-      category <- getCategoryDetails(update.id)
+      category <- getCategoryDetails(update.id)(using cc.toQC)
     } yield {
       category
     }

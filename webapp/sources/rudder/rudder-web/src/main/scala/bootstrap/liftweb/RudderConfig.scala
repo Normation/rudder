@@ -2996,7 +2996,7 @@ object RudderConfigInit {
     lazy val woDirectiveRepository: WoDirectiveRepository = woLdapDirectiveRepository
 
     lazy val roLdapRuleRepository =
-      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
+      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, tenantCheckLogic, tenantService, ruleReadWriteMutex)
     lazy val roRuleRepository: RoRuleRepository = roLdapRuleRepository
 
     lazy val woLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
@@ -3007,6 +3007,8 @@ object RudderConfigInit {
       logRepository,
       gitRuleArchiver,
       personIdentServiceImpl,
+      tenantCheckLogic,
+      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woRuleRepository = woLdapRuleRepository
@@ -3059,6 +3061,8 @@ object RudderConfigInit {
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
+      tenantCheckLogic,
+      tenantService,
       parameterReadWriteMutex
     )
 
@@ -3069,6 +3073,8 @@ object RudderConfigInit {
       logRepository,
       gitParameterArchiver,
       personIdentServiceImpl,
+      tenantCheckLogic,
+      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
 

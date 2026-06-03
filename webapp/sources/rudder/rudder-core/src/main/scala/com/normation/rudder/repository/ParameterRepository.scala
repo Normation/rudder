@@ -37,47 +37,38 @@
 
 package com.normation.rudder.repository
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 
 /**
  * The Parameter Repository (Read Only) to read parameters from LDAP
  */
 trait RoParameterRepository {
 
-  def getGlobalParameter(parameterName: String): IOResult[Option[GlobalParameter]]
+  def getGlobalParameter(parameterName: String)(using qc: QueryContext): IOResult[Option[GlobalParameter]]
 
-  def getAllGlobalParameters(): IOResult[Seq[GlobalParameter]]
+  def getAllGlobalParameters()(using qc: QueryContext): IOResult[Seq[GlobalParameter]]
 }
 
 trait WoParameterRepository {
   def saveParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[AddGlobalParameterDiff]
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): IOResult[AddGlobalParameterDiff]
 
   def updateParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): IOResult[Option[ModifyGlobalParameterDiff]]
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]]
 
   def delete(
       parameterName: String,
-      provider:      Option[PropertyProvider],
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): IOResult[Option[DeleteGlobalParameterDiff]]
+      provider:      Option[PropertyProvider]
+  )(using cc: ChangeContext): IOResult[Option[DeleteGlobalParameterDiff]]
 
   /**
    * A (dangerous) method that replace all existing parameters

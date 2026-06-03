@@ -310,7 +310,6 @@ class CommitAndDeployChangeRequestServiceImpl(
    * Returns the modificationId, plus a boolean indicating if we need to trigger a deployment
    */
   private def saveConfigurationChangeRequest(cr: ConfigurationChangeRequest)(implicit cc: ChangeContext): Box[Boolean] = {
-    import cc.modId
     given qc: QueryContext = cc.toQC
 
     def doDirectiveChange(directiveChanges: DirectiveChanges): Box[TriggerDeploymentDiff] = {
@@ -376,12 +375,14 @@ class CommitAndDeployChangeRequestServiceImpl(
         change <- change.changes.change.toBox
         diff   <- (change.diff match {
                     case DeleteRuleDiff(r)   =>
-                      woRuleRepository.delete(r.id, modId, change.actor, change.reason)
+                      woRuleRepository.delete(r.id)(using cc.copy(actor = change.actor, message = change.reason))
                     case AddRuleDiff(r)      =>
-                      woRuleRepository.create(r, modId, change.actor, change.reason)
+                      woRuleRepository.create(r)(using cc.copy(actor = change.actor, message = change.reason))
                     case ModifyToRuleDiff(r) =>
                       // if the update returns None, then we return the original modification object
-                      woRuleRepository.update(r, modId, change.actor, change.reason).map(_.getOrElse(ModifyToRuleDiff(r)))
+                      woRuleRepository
+                        .update(r)(using cc.copy(actor = change.actor, message = change.reason))
+                        .map(_.getOrElse(ModifyToRuleDiff(r)))
                   }).toBox
       } yield {
         diff
@@ -394,17 +395,19 @@ class CommitAndDeployChangeRequestServiceImpl(
         diff   <- (change.diff match {
                     case DeleteGlobalParameterDiff(param)   =>
                       woParameterRepository
-                        .delete(param.name, Some(PropertyProvider.defaultPropertyProvider), modId, change.actor, change.reason)
+                        .delete(param.name, Some(PropertyProvider.defaultPropertyProvider))(using
+                          cc.copy(actor = change.actor, message = change.reason)
+                        )
                         .map {
                           case None       => new TriggerDeploymentDiff { override def needDeployment: Boolean = false }
                           case Some(diff) => diff
                         }
                     case AddGlobalParameterDiff(param)      =>
-                      woParameterRepository.saveParameter(param, modId, change.actor, change.reason)
+                      woParameterRepository.saveParameter(param)(using cc.copy(actor = change.actor, message = change.reason))
                     case ModifyToGlobalParameterDiff(param) =>
                       // if the update returns None, then we return the original modification object
                       woParameterRepository
-                        .updateParameter(param, modId, change.actor, change.reason)
+                        .updateParameter(param)(using cc.copy(actor = change.actor, message = change.reason))
                         .map(_.getOrElse(ModifyToGlobalParameterDiff(param)))
                   }).toBox
       } yield {

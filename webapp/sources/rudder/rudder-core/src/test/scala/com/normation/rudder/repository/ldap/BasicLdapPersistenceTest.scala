@@ -152,7 +152,7 @@ class BasicLdapPersistenceTest extends Specification with SetupLdapRepositories 
     val did    = DirectiveId(DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae"))
     val ruleId = RuleId((RuleUid("34323555-6b6b-4d07-b3bd-043df1239797")))
 
-    val res      = roRuleRepo.get(ruleId).runNow
+    val res      = roRuleRepo.get(ruleId)(using QueryContext.systemQC).runNow
     val expected = Rule(
       ruleId,
       "User rule",

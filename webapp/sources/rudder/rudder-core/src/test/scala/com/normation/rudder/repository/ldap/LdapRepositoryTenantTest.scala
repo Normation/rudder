@@ -37,6 +37,7 @@
 
 package com.normation.rudder.repository.ldap
 
+import com.normation.GitVersion
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -45,6 +46,12 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.Visibility
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
@@ -267,6 +274,126 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       (tenantRepo.setTenantEnabled(true) *>
       woDirectiveRepo.addActiveTechniqueCategory(cat, atRootCat) *>
       roDirectiveRepo.getActiveTechniqueCategory(cat.id)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+  }
+
+  // in the test data, the rule `34323555-...` is tagged with tenant `zoneA`.
+  val ruleWithTenantA = RuleId(RuleUid("34323555-6b6b-4d07-b3bd-043df1239797"))
+
+  "[Rules] Reading all rules" should {
+    "let an admin (tenant=*) see the zoneA rule" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roRuleRepo.getAll().runNow.map(_.id.serialize).contains(ruleWithTenantA.serialize) must beTrue
+    }
+    "let a zoneA user see the zoneA rule" in {
+      given qc: QueryContext = zoneA
+      roRuleRepo.getAll().runNow.map(_.id.serialize).contains(ruleWithTenantA.serialize) must beTrue
+    }
+    "hide the zoneA rule from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roRuleRepo.getAll().runNow.map(_.id.serialize).contains(ruleWithTenantA.serialize) must beFalse
+    }
+  }
+
+  "[Rules] Reading a single rule" should {
+    "be visible to a zoneA user" in {
+      given qc: QueryContext = zoneA
+      roRuleRepo.getOpt(ruleWithTenantA).runNow.map(_.id.serialize) must beSome(ruleWithTenantA.serialize)
+    }
+    "be hidden from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roRuleRepo.getOpt(ruleWithTenantA).runNow must beNone
+    }
+  }
+
+  "[Rules] Deleting a rule" should {
+    "be refused for a user who can not see it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woRuleRepo.delete(ruleWithTenantA).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(s"Object '${ruleWithTenantA.serialize}' can't be deleted by zoneB user")
+      )
+    }
+  }
+
+  def newRule(id: String, tenant: Option[SecurityTag]): Rule =
+    Rule(RuleId(RuleUid(id)), id, RuleCategoryId("rootRuleCategory"), security = tenant)
+
+  "[Rules] Creating a rule" should {
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val rule = newRule("rule-zoneA-feature-disabled", None)
+      (tenantRepo.setTenantEnabled(false) *> woRuleRepo.create(rule)).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo("Object 'rule-zoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val rule = newRule("rule-zoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *> woRuleRepo.create(rule) *>
+      roRuleRepo.getOpt(rule.id)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+  }
+
+  // in the test data, the global parameter `param-zoneA` is tagged with tenant `zoneA`.
+  val parameterWithTenantA = "param-zoneA"
+
+  "[Parameters] Reading all parameters" should {
+    "let an admin (tenant=*) see the zoneA parameter" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roGlobalPropertyRepo.getAllGlobalParameters().runNow.map(_.name).contains(parameterWithTenantA) must beTrue
+    }
+    "let a zoneA user see the zoneA parameter" in {
+      given qc: QueryContext = zoneA
+      roGlobalPropertyRepo.getAllGlobalParameters().runNow.map(_.name).contains(parameterWithTenantA) must beTrue
+    }
+    "hide the zoneA parameter from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roGlobalPropertyRepo.getAllGlobalParameters().runNow.map(_.name).contains(parameterWithTenantA) must beFalse
+    }
+  }
+
+  "[Parameters] Reading a single parameter" should {
+    "be visible to a zoneA user" in {
+      given qc: QueryContext = zoneA
+      roGlobalPropertyRepo.getGlobalParameter(parameterWithTenantA).runNow.map(_.name) must beSome(parameterWithTenantA)
+    }
+    "be hidden from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roGlobalPropertyRepo.getGlobalParameter(parameterWithTenantA).runNow must beNone
+    }
+  }
+
+  "[Parameters] Deleting a parameter" should {
+    "be refused for a user who can not see it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woGlobalPropertyRepo.delete(parameterWithTenantA, None).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(s"Object '$parameterWithTenantA' can't be deleted by zoneB user")
+      )
+    }
+  }
+
+  def newParameter(name: String, tenant: Option[SecurityTag]): GlobalParameter = {
+    GlobalParameter
+      .parse(name, GitVersion.DEFAULT_REV, "\"" + name + "\"", None, "", None, Visibility.default, tenant)
+      .getOrElse(throw new RuntimeException(s"Error in test: can not build parameter '$name'"))
+  }
+
+  "[Parameters] Creating a parameter" should {
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val param = newParameter("param-zoneA-feature-disabled", None)
+      (tenantRepo.setTenantEnabled(false) *> woGlobalPropertyRepo.saveParameter(param)).either.runNow.left
+        .map(_.msg) must beLeft(
+        beEqualTo("Object 'param-zoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val param = newParameter("param-zoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *> woGlobalPropertyRepo.saveParameter(param) *>
+      roGlobalPropertyRepo.getGlobalParameter(param.name)(using QueryContext.systemQC)).runNow
         .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
     }
   }

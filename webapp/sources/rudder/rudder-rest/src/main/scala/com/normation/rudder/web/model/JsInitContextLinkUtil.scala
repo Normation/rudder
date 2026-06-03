@@ -144,7 +144,7 @@ class LinkUtil(
     override def toJsCmd: String = s"window.location = ${encJs(where)} ;"
   }
 
-  def createRuleLink(id: RuleId): Elem = {
+  def createRuleLink(id: RuleId)(using qc: QueryContext): Elem = {
     roRuleRepository.get(id).either.runNow match {
       case Right(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.serialize})</span>
       case Left(err)   =>
