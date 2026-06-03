@@ -17,14 +17,15 @@ body file control {
     "common/1.0/rudder-parameters.cf",
     "common/1.0/rudder-groups.cf",
     "common/1.0/hooks.cf",
+    "common/1.0/rpm-key.cf",
     "common/1.0/cron-setup.cf",
     "common/1.0/site.cf",
     "common/1.0/monitoring.cf",
-    "common/1.0/restart-services.cf",
     "common/1.0/internal-security.cf",
     "common/1.0/environment-variables.cf",
     "common/1.0/properties.cf",
     "common/1.0/reporting-http.cf",
+    "common/1.0/scheduler.cf",
     "inventory/1.0/fusionAgent.cf",
   };
 

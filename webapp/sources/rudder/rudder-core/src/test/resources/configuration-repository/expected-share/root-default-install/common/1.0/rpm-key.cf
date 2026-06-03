@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2024 Normation SAS
+
+bundle agent import_rpm_key
+{
+  methods:
+    redhat|suse::
+      "disable_reporting_rpm_key" usebundle => disable_reporting;
+      "check trusted key" usebundle => audit_from_command("rpm -q gpg-pubkey-474a19e8-4eea5279", 0);
+      "import key" usebundle => command_execution("rpm --import ${sys.workdir}/inputs/common/1.0/rudder_release_key.pub"),
+                          if => "audit_from_command_rpm__q_gpg_pubkey_474a19e8_4eea5279_error";
+      "enable_reporting_rpm_key" usebundle => enable_reporting;
+
+      "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "GPG key", "None", "GPG key for RPM is trusted"),
+                  if  => "audit_from_command_rpm__q_gpg_pubkey_474a19e8_4eea5279_kept";
+      "any" usebundle => rudder_common_report("Common", "result_repaired", "${system_common.directiveId}", "GPG key", "None", "GPG key for RPM has been imported"),
+                  if  => canonify("command_execution_rpm___import_${sys.workdir}_inputs_common_1_0_rudder_release_key_pub_repaired");
+      "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "GPG key", "None", "GPG key for RPM could not be imported"),
+                  if  => canonify("command_execution_rpm___import_${sys.workdir}_inputs_common_1_0_rudder_release_key_pub_error");
+
+    !(redhat|suse)::
+      "report NA" usebundle => rudder_common_report("Common", "result_na", "${system_common.directiveId}", "GPG key", "None", "No GPG key trust needed");
+}

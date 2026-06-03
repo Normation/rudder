@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2026 Normation SAS
+
+promise agent scheduler {
+  path => "/opt/rudder/bin/rudder-module-scheduler";
+}
+
+bundle agent rudder_event_scheduler {
+  classes:
+    "has_module" expression => fileexists("/opt/rudder/bin/rudder-module-scheduler");
+
+  methods:
+    has_module::
+      "any" usebundle => rudder_event_scheduler_real;
+    !has_module::
+      "any" usebundle => _classes_noop("rudder_internal_scheduler");
+    any::
+      "any"  usebundle => rudder_common_reports_generic("Common", "rudder_internal_scheduler", "${system_common.directiveId}", "Events scheduler", "None", "Scheduling internal events");
+}
+
+bundle agent rudder_event_scheduler_real {
+
+  vars:
+      "data" string => "${system_common.schedule_events}";
+    pass2::
+      "res"   slist => classesmatching("schedule_.+");
+
+  classes:
+      "pass3"         expression => "pass2";
+      "pass2"         expression => "pass1";
+      "pass1"         expression => "any";
+
+    pass3::
+      "${res}_run" expression => "true", scope => "namespace";
+
+  scheduler:
+    pass2.!pass3::
+      "module_call"
+        rudder_module_protocol  => "0",
+        # no action body, there is no audit mode here.
+        state_dir               => "/var/rudder/tmp/",
+        backup_dir              => "/var/rudder/modified-files/",
+        node_id                 => "${g.uuid}",
+        agent_frequency_minutes => "${g.agent_run_interval}",
+        classes                 => classes_generic("rudder_internal_scheduler"),
+        data                    => "${data}";
+}

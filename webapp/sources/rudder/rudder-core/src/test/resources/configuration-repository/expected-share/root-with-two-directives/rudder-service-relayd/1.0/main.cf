@@ -29,7 +29,7 @@ bundle agent system_rudder_relay_configuration {
     root_server::
       "any" usebundle => rudder_relay_root_na("${trackingkey}", "${technique_name}");
     policy_server.!root_server::
-      "any" usebundle => propagate_promises("${trackingkey}", "${technique_name}", "${relay_sync_method}", "${relayd_sync_promises}", "${relay_sync_sharedfiles}");
+      "any" usebundle => propagate_promises("${trackingkey}", "${technique_name}", "${relay_sync_method}", "${relay_sync_promises}", "${relay_sync_sharedfiles}");
     !initial_promises::
       "any" usebundle => system_rudder_relayd_configuration;
 }

@@ -81,17 +81,9 @@ if(!defined $os->{FULL_NAME} || !defined $os->{KERNEL_NAME} || !defined $os->{NA
 }
 
 # Test OPERATINGSYSTEM/KERNEL_VERSION or if OPERATINGSYSTEM/KERNEL_NAME.toLowerCase == aix: HARDWARE/OSVERSION
-if(defined $os->{KERNEL_NAME} \&\& lc($os->{KERNEL_NAME}) eq "aix") {
-  if(!defined $tree->{REQUEST}->{CONTENT}->{HARDWARE}->{OSVERSION}) {
-    print "Inventory ERROR: No HARDWARE/OSVERSION\n";
-    exit 1;
-  }
-} else {
-  if(!defined $os->{KERNEL_VERSION}) {
-    print "Inventory ERROR: No OPERATINGSYSTEM/KERNEL_VERSION\n";
-    exit 1
-  }
+if(!defined $os->{KERNEL_VERSION}) {
+  print "Inventory ERROR: No OPERATINGSYSTEM/KERNEL_VERSION\n";
+  exit 1
 }
 
 exit 0;
-

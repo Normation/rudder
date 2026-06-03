@@ -24,9 +24,6 @@
     <FILE name="common/logrotate.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
-    <FILE name="common/relay-logrotate.mustache">
-      <INCLUDED>false</INCLUDED>
-    </FILE>
     <FILE name="relay/propagatePromises.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
@@ -59,7 +56,6 @@
         <VALUE>Configuration</VALUE>
         <VALUE>Enabled</VALUE>
         <VALUE>Started</VALUE>
-        <VALUE>Log rotation</VALUE>
         <VALUE>Policy-server certificate</VALUE>
         <VALUE>Root server certificate</VALUE>
         <VALUE>Root certificate permissions</VALUE>

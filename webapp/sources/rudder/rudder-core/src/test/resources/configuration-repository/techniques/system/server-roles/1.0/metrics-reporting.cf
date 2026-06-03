@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2014 Normation SAS
+
+bundle agent metrics_reporting
+{
+  classes:
+    "accept_metrics" expression => strcmp("${server_roles_common.send_metrics}", "yes");
+    "run_metrics" expression => "accept_metrics.role_rudder_server_root";
+
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
+  methods:
+    run_metrics.pass2.metrics_ok::
+      "any" usebundle => rudder_common_report("server-roles", "result_success", "${server_roles_common.directiveId}", "Send metrics to rudder-project", "None", "Sending metrics to rudder-project.org succeeded");
+    run_metrics.pass2.metrics_error::
+      "any" usebundle => rudder_common_report("server-roles", "result_error", "${server_roles_common.directiveId}", "Send metrics to rudder-project", "None", "Sending metrics to rudder-project.org failed");
+    !run_metrics::
+      "any" usebundle => rudder_common_report("server-roles", "result_na", "${server_roles_common.directiveId}", "Send metrics to rudder-project", "None", "Sending metrics to rudder-project.org is not enabled. Skipping.");
+
+  commands:
+    run_metrics.!(metrics_ok|metrics_error)::
+      "/opt/rudder/bin/rudder-metrics-reporting -s"
+        # 10080 mn is 7 days
+        classes => rudder_common_classes_persist("metrics" ,"10080");
+}

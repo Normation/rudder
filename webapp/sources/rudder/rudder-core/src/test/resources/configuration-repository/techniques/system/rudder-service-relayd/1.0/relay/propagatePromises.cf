@@ -33,27 +33,27 @@ bundle agent propagate_promises(trackingkey, technique_name, relay_sync_method, 
     pass3::
      # If any update of the relay personal policies fails
      "update_error"                     expression => or(
-                                                        "no_update",
-                                                        "rudder_ncf_hash_update_error",
-                                                        "rudder_ncf_common_update_error",
-                                                        "rudder_ncf_local_update_error",
-                                                        "rudder_promises_generated_tmp_file_error"
+                                                        "p_no_update",
+                                                        "p_rudder_ncf_hash_update_error",
+                                                        "p_rudder_ncf_common_update_error",
+                                                        "p_rudder_ncf_local_update_error",
+                                                        "p_rudder_promises_generated_tmp_file_error"
                                                       );
      # Verify that ncf is up to date
      "ncf_update_ok"                   expression => or(
-                                                       "rudder_ncf_hash_update_ok",
+                                                       "p_rudder_ncf_hash_update_ok",
                                                        and(
-                                                         "rudder_ncf_hash_update_repaired",
-                                                         "rudder_ncf_common_updated_ok",
-                                                         "rudder_ncf_local_updated_ok"
+                                                         "p_rudder_ncf_hash_update_repaired",
+                                                         "p_rudder_ncf_common_updated_ok",
+                                                         "p_rudder_ncf_local_updated_ok"
                                                        )
                                                      );
      # Verify that the relay promises are up to date
      "promises_update_ok"              expression => or(
-                                                       "rudder_promises_generated_tmp_file_kept",
+                                                       "p_rudder_promises_generated_tmp_file_kept",
                                                        and(
-                                                           "config_ok",
-                                                           "rudder_promises_generated_tmp_file_repaired"
+                                                           "p_config_ok",
+                                                           "p_rudder_promises_generated_tmp_file_repaired"
                                                        )
                                                      );
      "update_successful"                expression => and(
@@ -115,12 +115,13 @@ bundle agent propagate_promises(trackingkey, technique_name, relay_sync_method, 
       "${g.shared_files}"
         copy_from    => remote("${server_info.policy_server}","${g.shared_files}"),
         depth_search => recurse_visible("inf"),
+        perms => mog("640", "root", "rudder"),
         comment => "Fetching the files shared for the promises execution",
         classes => if_else("files_propagated", "could_not_propagate_files");
     
     any::
       "${g.rudder_var}/shared-files/"
-        copy_from    => remote("${server_info.policy_server}","${g.rudder_var}/shared-files/${g.uuid}/shared-files"),
+        copy_from    => try_remote("${server_info.policy_server}","${g.rudder_var}/shared-files/${g.uuid}/shared-files"),
         depth_search => recurse_visible("inf"),
         comment => "Fetching files shared between agents",
         classes => if_else("shared_files_propagated", "could_not_propagate_shared_files");

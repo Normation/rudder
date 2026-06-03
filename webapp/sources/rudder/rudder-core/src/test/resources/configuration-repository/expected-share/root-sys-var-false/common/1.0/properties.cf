@@ -58,11 +58,47 @@ bundle common properties
     # Initialize all namespace variables (mergedata refuses to merge undefined variables)
     "node.${namespace[${sorted_files}]}" data => parsejson('{}');
 
-    # First level merge within each namespace, in file name order 
+    # First level merge within each namespace, in file name order
     "node.${namespace[${sorted_files}]}" data => mergedata("node.${namespace[${sorted_files}]}",
                                                            "property_${file_id[${sorted_files}]}[${namespace[${sorted_files}]}]");
 
     # That's all, now we have a node.namespace data that contains the overridden values
+
+    # List properties that must be automatically converted to conditions
+    "autocond_properties" slist => getvalues("node.properties[rudder_auto_conditions]");
+    # canonified property name to use in class names
+    "var[${autocond_properties}]" string => canonify("${autocond_properties}");
+    # Each property must be a json, we get each top level key from json
+    "items[${autocond_properties}]" slist => getindices("node.properties[${autocond_properties}]");
+    # canonfied items from our property
+    "var_items[${autocond_properties}][${items[${autocond_properties}]}]" string => canonify("${items[${autocond_properties}]}");
+    # the we get type of the value of our items
+    "typeof[${autocond_properties}][${items[${autocond_properties}]}]" string => type("node.properties[${autocond_properties}][${items[${autocond_properties}]}]", "true");
+
+  classes:
+    # Check whether the item value is a boolean or ...
+    "is_boolean_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}" expression => strcmp("data boolean", "${typeof[${autocond_properties}][${items[${autocond_properties}]}]}");
+    # ... a string
+    "is_string_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}"  expression => strcmp("data string", "${typeof[${autocond_properties}][${items[${autocond_properties}]}]}");
+
+    # eg: myproperty = { "mykey": true } will generate a myproperty_mykey class
+    # false will not generate a class, this allows overriding true with false
+    # to sum up, Boolean property case
+    "${autocond_properties}_${items[${autocond_properties}]}" expression => "${node.properties[${autocond_properties}][${items[${autocond_properties}]}]}",
+                                                                     if => "is_boolean_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}";
+
+    # eg: myproperty = { "mykey": "audit" } will generate a myproperty_mykey_audit class
+    # to sum up, String property case
+    "${autocond_properties}_${items[${autocond_properties}]}_${node.properties[${autocond_properties}][${items[${autocond_properties}]}]}" expression => "true",
+                                                                                                                                                 if => "is_string_${var[${autocond_properties}]}_${var_items[${autocond_properties}][${items[${autocond_properties}]}]}";
+
+# auto conditions cases:
+# - if the sub-property value is a boolean: define the condition if true (else do nothing)
+# - if the sub-property is a string: define the condition with the value as suffix
+# - if the property is not a Json type or its sub-properties are neither string nor boolean: do nothing
+# - if the property doesn't exist it doesn't fail
+# - if 'rudder_auto_conditions' is not a list it is first converted to a list (a string becomes a list of 1 object and a json becomes the list of its values)
+# - if 'rudder_auto_conditions' doesn't exist, there is no error
 }
 
 # Read the inventories variables from Rudder

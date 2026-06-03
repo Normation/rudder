@@ -21,13 +21,13 @@
       <FILE name="integrity-check.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
-      <FILE name="metrics-reporting.cf">
-        <INCLUDED>true</INCLUDED>
-      </FILE>
       <FILE name="password-check.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
       <FILE name="updateNcfHash.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+      <FILE name="updateArchives.cf">
         <INCLUDED>true</INCLUDED>
       </FILE>
       <FILE name="bootstrapRudderServer.cf">
@@ -42,6 +42,11 @@
         <VALUE>Enabled</VALUE>
         <VALUE>Started</VALUE>
         <VALUE>API status</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Generate library archives" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>Archive generation</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="Check configuration-repository" component="true" multivalued="true">
@@ -60,6 +65,5 @@
         <VALUE>rudder-users.xml permissions</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION name="Send metrics to rudder-project" component="true"/>
   </SECTIONS>
 </TECHNIQUE>

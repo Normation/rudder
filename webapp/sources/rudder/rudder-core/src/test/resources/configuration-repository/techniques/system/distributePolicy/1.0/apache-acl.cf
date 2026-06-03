@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2021 Normation SAS
+
+bundle agent apache_acl
+{
+
+  vars:
+      "destination"        string => "${g.rudder_var}/lib/ssl/";
+      "ssl_ca_file"        string => "nodescerts.pem";
+      "ssl_ca_size"        string => filestat("${this.promise_dirname}/${ssl_ca_file}", "size");
+
+    pass1::
+      "src_ca_file" string => "${this.promise_dirname}/${ssl_ca_file}",
+                ifvarclass => "!empty_ssl_ca";
+      "src_ca_file" string => "/opt/rudder/etc/ssl/rudder.crt",
+                ifvarclass => "empty_ssl_ca";
+
+  classes:
+      "empty_ssl_ca" expression => strcmp("${ssl_ca_size}", "0");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass2::
+      "don_t_check_permission" expression => islink("${src_ca_file}");
+
+  files:
+    pass2::
+      # For compatibility with apache config
+      "/opt/rudder/etc/ssl/ca.cert"
+        perms         => mog("600", "root", "0"),
+        copy_from     => ncf_local_cp_method("${src_ca_file}", "digest"),
+        classes       => classes_generic("rudder_apache_acl"),
+        comment       => "Writing rudder apache ACL",
+        ifvarclass    => "!don_t_check_permission";
+
+      # For relayd, should move into relayd config after merging distributPolicy into serverRoles
+      "${destination}/${ssl_ca_file}"
+        perms             => mog("600", "root", "0"),
+        copy_from         => ncf_local_cp_method("${src_ca_file}", "digest"),
+        move_obstructions => "true",
+        classes           => classes_generic("rudder_apache_acl"),
+        comment           => "Writing rudder apache ACL",
+        ifvarclass        => "!don_t_check_permission";
+
+      "/opt/rudder/etc/ssl/ca.cert"
+        copy_from     => ncf_local_cp_method("${src_ca_file}", "digest"),
+        classes       => classes_generic("rudder_apache_acl"),
+        comment       => "Writing rudder apache ACL",
+        ifvarclass    => "don_t_check_permission";
+
+      # For relayd, should move into relayd config after merging distributPolicy into serverRoles
+      "${destination}/${ssl_ca_file}"
+        copy_from         => ncf_local_cp_method("${src_ca_file}", "digest"),
+        move_obstructions => "true",
+        classes           => classes_generic("rudder_apache_acl"),
+        comment           => "Writing rudder apache ACL - don't check permissions as it's a symbolic link",
+        ifvarclass        => "don_t_check_permission";
+ # Reporting and apache restart is in network-check.cf, see https://issues.rudder.io/issues/16553
+
+
+  methods:
+    rudder_apache_acl_ok.!rudder_apache_acl_repaired.!rudder_apache_acl_error::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_success", "${distribute_policy_common.directiveId}", "Configure apache ACL", "None", "Apache ACLs are correct");
+
+    rudder_apache_acl_repaired.!rudder_apache_acl_error::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_repaired", "${distribute_policy_common.directiveId}", "Configure apache ACL", "None", "Apache ACLs have been repaired");
+
+    rudder_apache_acl_error::
+      "any" usebundle => rudder_common_report("DistributePolicy", "result_error", "${distribute_policy_common.directiveId}", "Configure apache ACL", "None", "Apache ACLs could not be edited");
+}

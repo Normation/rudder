@@ -8,13 +8,6 @@ bundle common rudder_syslog {
       "group_name"       string => "root";
       "file_mode" string => "640";
 
-      "service_name"     string => "rsyslog";
-      "rotation_method"  string => "reload";
-    ubuntu::
-      "user_name"        string => "syslog";
     debian::
       "group_name"       string => "adm";
-      "rotation_method"  string => "rotate";
-    suse::
-      "service_name"     string => "syslog";
 }

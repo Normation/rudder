@@ -7,14 +7,14 @@
 
 body common control
 {
-        bundlesequence     => { "check_uuid", "update_action" };
+        bundlesequence     => { "check_uuid", "update_action", "rudder_persist_update_classes" };
 
         inputs             => { "common/1.0/common.cf", "common/1.0/update.cf" };
         output_prefix      => "rudder";
 
         protocol_version   => "2";
 
-        tls_min_version => "1.2";
+        tls_min_version => "1.3";
 }
 
 &if(INITIAL)&
@@ -24,6 +24,7 @@ body agent control
 {
   known_policy_server::
     copyfrom_restrict_keys => { "${rudder_update_conf.policy_server_hash}" };
+    default_timeout => "10";
 }
 @endif
 
@@ -35,6 +36,7 @@ body agent control
 body agent control
 {
     copyfrom_restrict_keys => { "&POLICY_SERVER_KEY&" };
+    default_timeout => "10";
 }
 @endif
 
@@ -71,6 +73,13 @@ bundle common g
       "SuSE" expression => "sles|sled|opensuse";
       "suse" expression => "sles|sled|opensuse";
       "redhat" expression => "amzn|amazon_linux";
+      # sles 12 and after already have this
+      "sles_11" expression => "SLES_11";
+      "sles_11_1" expression => "SLES_11_1";
+      "sles_11_2" expression => "SLES_11_2";
+      "sles_11_3" expression => "SLES_11_3";
+      "sles_11_4" expression => "SLES_11_4";
+
 
       # Root Server is the top policy server machine
       "root_server"         expression => strcmp("root","${g.uuid}");
@@ -90,6 +99,7 @@ body depth_search recurse(d)
 body perms u_p(p)
 {
         mode  => "${p}";
+        rxdirs => "true";
 }
 
 #server may be a list

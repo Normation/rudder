@@ -15,32 +15,30 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
-bundle agent system_rudder_apache_webdav_configuration {
+bundle agent system_rudder_apache_webdav_configuration(directive_id, technique_name) {
   vars:
-    suse::
+    sles_15::
       "htpasswd_bin"     string => "/usr/bin/htpasswd2";
-
-    !suse::
+    !sles_15::
       "htpasswd_bin"     string => "/usr/bin/htpasswd";
 
     root_server::
       "pwd"                 int => getfields("RUDDER_WEBDAV_PASSWORD:.*","${g.rudder_base}/etc/rudder-passwords.conf",":","dav_password");
       "webdav_password"  string => "${dav_password[2]}";
-      
     policy_server.!root_server::
       "webdav_password"  string => "${system_common.davpw}";
-      
     any::
-      "report_string"    string => "Apache WebDAV user and password";
-
       "webdav_pwd_cmd"   string => "${htpasswd_bin} -b ${g.rudder_base}/etc/htpasswd-webdav ${system_common.davuser} ${webdav_password}";
-      "args"             slist  => { "${webdav_pwd_cmd}" };
       "pwd_class_prefix" string => canonify("command_execution_${webdav_pwd_cmd}");
-      "component"        string => "Apache configuration";
 
   classes:
-      "dav_cant_connect" not => returnszero("${g.rudder_curl} --tlsv1.2 --proxy '' ${g.rudder_verify_certs_option} --silent --fail --output /dev/null --user ${system_common.davuser}:${webdav_password} --upload-file ${g.rudder_base}/etc/uuid.hive https://localhost:${system_rudder_apache_configuration.https_port}/inventory-updates/uuid.hive","noshell");
+      "pass3"                                  expression => "pass2";
+      "pass2"                                  expression => "pass1";
+      "pass1"                                  expression => "any";
+    !rudder_cert_validation::
+      "dav_cant_connect"                              not => returnszero("${g.rudder_curl} --tlsv1.3 --proxy '' --insecure --silent --fail --output /dev/null --user ${system_common.davuser}:${webdav_password} --upload-file ${g.rudder_base}/etc/uuid.hive https://localhost:${system_rudder_apache_configuration.https_port}/inventory-updates/uuid.hive","noshell");
 
+    pass3::
       "rudder_server_system_reload_apache"     expression => "${pwd_class_prefix}_repaired",
                                                     scope => "namespace";
       # we need to reload cf_serverd if the networks are changed
@@ -48,18 +46,18 @@ bundle agent system_rudder_apache_webdav_configuration {
                                                     scope => "namespace";
 
   methods:
-      "any" usebundle => _method_reporting_context("${component}", "Webdav permissions");
+   pass2.!pass3::
+      "any" usebundle => _method_reporting_context_v4("Apache configuration", "Webdav permissions", "ht_passwd_permissions");
       "any" usebundle => permissions("${g.rudder_base}/etc/htpasswd-webdav", "640", "root", "${rudder_apache.group_name}");
 
-      "any" usebundle => _method_reporting_context("${component}", "Webdav configuration");
-
-    dav_cant_connect::
-      "any" usebundle => disable_reporting;
+      "any" usebundle => _method_reporting_context_v4("Apache configuration", "Webdav configuration", "ht_passwd_configuration");
+   pass2.!pass3.dav_cant_connect::
+      "any" usebundle => call_method("command_execution");
       "any" usebundle => command_execution("${webdav_pwd_cmd}");
-      "any" usebundle => enable_reporting;
-
-    !dav_cant_connect::
-      "any" usebundle => _classes_success("${pwd_class_prefix}");
-    any::
-      "any" usebundle => _log_v3("Setting Apache webdav password", "${webdav_pwd_cmd}", "${pwd_class_prefix}", "${pwd_class_prefix}", @{args});
+      "any" usebundle => call_method_classes_caller;
+      "any" usebundle => call_method_end("command_execution");
+   pass2.!pass3.!dav_cant_connect::
+      "any" usebundle => _classes_success("${report_data.method_id}");
+   pass2.!pass3::
+      "any" usebundle => log_rudder_v4("Webdav configuration", "Webdav configuration", "");
 }

@@ -15,10 +15,6 @@ bundle agent apache_cert(trackingkey, technique_name)
 
       "nodes_certs_src_size" string => filestat("${nodes_certs_src}", "size");
 
-      "copy_prefix"          string => canonify("file_from_local_source_${src_ca_file}_${nodes_certs}_0");
-      "perms_prefix"         string => canonify("permissions_${nodes_certs}_640_root_rudder");
-
-
     pass1::
       "src_ca_file" string => "${nodes_certs_src}",
                         if => "!empty_ssl_ca";
@@ -32,16 +28,16 @@ bundle agent apache_cert(trackingkey, technique_name)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-      "rudder_server_system_reload_apache" expression => or("${copy_prefix}_repaired", "${perms_prefix}_repaired"),
+      "rudder_server_system_reload_apache" expression => or("apache_certificate_repaired", "apache_certificate_permissions_repaired"),
                                                 scope => "namespace";
 
   methods:
     pass2::
       # Copy the right file in the expected path
-      "any" usebundle => _method_reporting_context("${component}", "Apache certificate");
+      "any" usebundle => _method_reporting_context_v4("${component}", "Apache certificate", "apache_certificate");
       "any" usebundle => file_from_local_source_recursion("${src_ca_file}", "${nodes_certs}", "0");
 
-      "any" usebundle => _method_reporting_context("${component}", "Permissions");
+      "any" usebundle => _method_reporting_context_v4("${component}", "Permissions", "apache_certificate_permissions");
       "any" usebundle => permissions("${nodes_certs}", "640", "root", "rudder");
 
 }

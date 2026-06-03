@@ -6,9 +6,6 @@ bundle agent send_rudder_report(path) {
       "c_path"   string => canonify("${path}");
       "endpoint" string => "https://${server_info.policy_server}/reports/";
 
-  classes:
-      "have_client" expression => fileexists("/opt/rudder/bin/rudder-client");
-
   files:
       "${path}"
         delete  => tidy,
@@ -23,12 +20,6 @@ bundle agent send_rudder_report(path) {
                    if => "tidy_report_${c_path}_error";
 
   commands:
-    !have_client::
-      # remove this when 6.2 agent are not supported anymore
-      "${g.rudder_curl} --tlsv1.2 --location ${g.rudder_verify_certs_option} --fail --silent --proxy '' --user ${g.davuser}:${g.davpw} --upload-file ${path} ${endpoint}"
-        classes => classes_generic_two("send_report_${c_path}", "send_rudder_reports");
-
-    have_client::
       "/opt/rudder/bin/rudder-client -e /reports/ -- --upload-file ${path}"
         classes => classes_generic_two("send_report_${c_path}", "send_rudder_reports");
 }
@@ -36,7 +27,6 @@ bundle agent send_rudder_report(path) {
 bundle agent send_rudder_reports
 {
   vars:
-    agent_capability_http_reporting::
       "raw_reports" slist => lsdir("${g.rudder_reports}/ready/", ".+\.log\.gz", "false");
       # Max 50 reports by run to avoid blocking the agent too long after a long
       # disconnection

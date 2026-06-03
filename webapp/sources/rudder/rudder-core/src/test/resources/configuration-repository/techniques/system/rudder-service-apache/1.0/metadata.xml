@@ -36,6 +36,9 @@
   <SYSTEMVARS>
     <NAME>MANAGED_NODES_CERT_PEM</NAME>
     <NAME>HTTPS_POLICY_DISTRIBUTION_PORT</NAME>
+    <NAME>POLICY_SERVER_HTTPS_ONLY</NAME>
+    <NAME>POLICY_SERVER_CERT_VALIDATION</NAME>
+    <NAME>POLICY_SERVER_CERT_CA</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>
@@ -43,6 +46,7 @@
       <REPORTKEYS>
         <VALUE>Enabled</VALUE>
         <VALUE>Started</VALUE>
+        <VALUE>Configured</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="Apache configuration" component="true" multivalued="true">

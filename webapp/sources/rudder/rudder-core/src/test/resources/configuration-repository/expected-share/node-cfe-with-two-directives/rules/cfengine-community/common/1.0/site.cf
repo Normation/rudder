@@ -38,12 +38,6 @@ bundle common g
       "crontab"                    string => "/etc/crontab";
       "gzip"                       string => "/bin/gzip";
 
-    aix::
-
-      "gzip"                       string => "/usr/bin/gzip";
-
-    any::
-      "gzip"                       string => "/bin/gzip";
       "uuid_file"                   string => "${rudder_roles.uuid_file}";
       "uuid"                        string => "${rudder_roles.uuid}";
       "server_shares_folder"        string => "${var_rudder}/share/${uuid}/promises/shares";
@@ -56,7 +50,8 @@ bundle common g
       "rudder_configuration_repository"
                                     string => "${system_common.rudder_configuration_repository}";
 
-      "rudder_ncf_origin_common"    string => "/usr/share/ncf/tree";
+      "rudder_ncf_share"            string => "/usr/share/ncf";
+      "rudder_ncf_origin_common"    string => "${rudder_ncf_share}/tree";
       "rudder_ncf_origin_local"     string => "${rudder_configuration_repository}/ncf";
 
       "rudder_ncf_hash_file"          string => "ncf_hash_file";
@@ -75,10 +70,6 @@ bundle common g
       "agent_run_interval" string => "${system_common.agent_run_interval}";
 
       "rudder_node_config_id" string => "${system_common.rudder_node_config_id}";
-
-      "rudder_verify_certs_option" string => "--insecure";
-    rudder_verify_certs::
-      "rudder_verify_certs_option" string => "";
 
   classes:
 

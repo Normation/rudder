@@ -22,7 +22,6 @@ bundle common rudder_update_conf
       "trust_new_server"             scope => "namespace";
 }
 
-# Use for sensitive files
 body copy_from remote(server, path)
 {
         servers    => {
@@ -35,6 +34,28 @@ body copy_from remote(server, path)
         purge      => "true";
         copy_backup => "false";
         portnumber => "${system_common.community_port}";
+
+&if(INITIAL)&
+      trust_new_server.!root_server::
+        trustkey    => "true";
+&endif&
+
+}
+
+# Same as remote above, but don't fail on missing target
+body copy_from try_remote(server, path)
+{
+        servers    => {
+          "${server}"
+        };
+        source     => "${path}";
+        compare    => "digest";
+        preserve   => "false"; #do not preserve permissions
+        verify     => "true";
+        purge      => "true";
+        copy_backup => "false";
+        portnumber => "${system_common.community_port}";
+        missing_ok => "true";
 
 &if(INITIAL)&
       trust_new_server.!root_server::
@@ -96,7 +117,7 @@ bundle common server_info
 
 # The update is now split in two parts
 # - the action part, only launched during failsafe
-#   it copies files, restarts deamons, defines persistent classes
+#   it copies files, restarts daemons, defines persistent classes
 # - the report part, not done during failsafe but during regular run
 #   see update_reports in promises.st
 #
@@ -117,13 +138,20 @@ bundle agent update_action
      current_promise_timestamp_defined::
        "current_promises_timestamp" string => readfile("${client_inputs}/${rudder_promises_timestamp}", 2048);
 
-     # File ought to be there only in second pass, but since classes are persistent, we need to 
+     # File ought to be there only in second pass, but since classes are persistent, we need to
      # enforce the check on pass_2
      pass2.(rudder_promises_generated_tmp_file_kept|rudder_promises_generated_tmp_file_repaired).!rudder_promises_generated_tmp_file_error::
        "target_promises_timestamp" string => readfile("${client_inputs}/${rudder_promises_timestamp_tmp}", 2048);
 
      any::
        "server_inputs"        string => "${server_info.policy_files}/rules/cfengine-community"; #actual directory with promises
+
+      "classes_to_persist"   slist  => { "rudder_ncf_local_updated", "rudder_ncf_local_update_error", "rudder_ncf_local_updated_ok",
+                                         "rudder_ncf_common_updated", "rudder_ncf_common_update_error", "rudder_ncf_common_updated_ok",
+                                         "rudder_ncf_hash_update_repaired", "rudder_ncf_hash_update_error", "rudder_ncf_hash_update_ok",
+                                         "config", "no_update", "config_ok",
+                                         "rudder_promises_generated_tmp_file_repaired", "rudder_promises_generated_tmp_file_error", "rudder_promises_generated_tmp_file_kept",
+                                       };
 
   classes:
     current_promise_timestamp_defined::
@@ -278,6 +306,15 @@ bundle agent update_action
       action => immediate;
 
      !rudder_ncf_hash_update_error.(rudder_promises_generated_error|no_update|rudder_promises_generated_tmp_file_error).!ncf_only::
+&if(INITIAL)&
+        "*********************************************************************************
+  *  You must accept this node on the server before updating this node            *
+  *  This node uses initial policies, some error message are expected until       *
+  *  the node is accepted.                                                        *
+  *********************************************************************************"
+&endif&
+
+&if(!INITIAL)&
        "******************************************************************************
 * rudder-agent could not get an updated configuration from the policy server.   *
 * This can be caused by:                                                        *
@@ -286,7 +323,25 @@ bundle agent update_action
 *   * if this node has changed policy server without sending a new inventory    *
 * Any existing configuration policy will continue to be applied without change. *
 *********************************************************************************"
+&endif&
+
       action => immediate;
+}
+
+# Only persist classes once as it is a very expensive operation now.
+# Done outside of update_action as some actions are done in files promises during last pass.
+bundle agent rudder_persist_update_classes {
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass3::
+      "p_${update_action.classes_to_persist}" expression => "${update_action.classes_to_persist}",
+                                           # persist for 4 minutes so that it wont overlap with the next
+                                           # execution in 5 minutes
+                                           persistence => "4",
+                                                 scope => "namespace";
 }
 
 #######################################################
@@ -320,10 +375,6 @@ body classes success(if, else, kept)
 
         cancel_kept      => { "${else}" };
         cancel_repaired  => { "${else}" };
-
-        # persist for 4 minutes so that it wont overlap with the next
-        # execution in 5 minutes
-        persist_time     => "4"; 
 }
 
 body perms u_mog(mode,user,group)
@@ -331,6 +382,7 @@ body perms u_mog(mode,user,group)
   mode   => "${mode}";
   owners => { "${user}" };
   groups => { "${group}" };
+  rxdirs => "true";
 }
 
 

@@ -1114,7 +1114,8 @@ class TestNodeConfiguration(
   val webappVariables: List[String] = List(
     "expectedReportKey Rudder-jetty service",
     "expectedReportKey Check configuration-repository",
-    "expectedReportKey Check webapp configuration"
+    "expectedReportKey Check webapp configuration",
+    "expectedReportKey Generate library archives"
   )
   val (serverWebappTechnique, serverWebapp) = simpleServerPolicy("rudder-service-webapp", webappVariables)
 
