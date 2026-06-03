@@ -30,6 +30,7 @@ pipeline {
                 stage('architecture-doc') {
                     agent {
                         dockerfile {
+                            additionalBuildArgs "--build-arg JDK_VERSION=21" // to be compatible with structurizr war version.
                             label 'generic-docker'
                             filename 'webapp/sources/Dockerfile'
                             args '-u 0:0'
