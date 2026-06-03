@@ -60,10 +60,10 @@ object PolicyTypes {
   }
 
   def fromTypes(t: PolicyTypeName, other: PolicyTypeName*): PolicyTypes = PolicyTypes(NonEmptyChunk(t, other*))
-
   def fromStrings(s: String, other: String*): PolicyTypes = PolicyTypes(
     NonEmptyChunk(PolicyTypeName(s.trim), other.map(s => PolicyTypeName(s.trim))*)
   )
+  def fromIterable(it: Iterable[PolicyTypeName]): Option[PolicyTypes] = NonEmptyChunk.fromIterableOption(it).map(apply)
 
   def fromCons(list: ::[PolicyTypeName]): PolicyTypes = {
     // not sure why, but sortBy loose the type and loosen it to list.
@@ -84,6 +84,10 @@ object PolicyTypes {
   // for simpler compat with Rudder < 8.2 where we only had isSystem
   val rudderSystem: PolicyTypes = PolicyTypes(NonEmptyChunk(PolicyTypeName.rudderSystem))
   val rudderBase:   PolicyTypes = PolicyTypes(NonEmptyChunk(PolicyTypeName.rudderBase))
+
+  extension (opt: Option[PolicyTypes]) {
+    def orRudderBase: PolicyTypes = opt.getOrElse(rudderBase)
+  }
 }
 
 /*

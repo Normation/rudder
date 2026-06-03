@@ -460,12 +460,7 @@ object ExpectedReportsSerialisation {
         cs:  List[JsonComponentExpectedReport7_1]
     ) {
       def transform: DirectiveExpectedReports = {
-        val ct = {
-          t match {
-            case Some(value) => value
-            case None        => PolicyTypes.rudderBase
-          }
-        }
+        val ct = t.orRudderBase
         DirectiveExpectedReports(did, pm, ct, sid, cs.map(_.transform))
       }
     }

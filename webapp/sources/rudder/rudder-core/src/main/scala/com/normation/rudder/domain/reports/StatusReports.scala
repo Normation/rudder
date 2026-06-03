@@ -591,12 +591,7 @@ object DirectiveStatusReport {
   def merge(directives: Iterable[DirectiveStatusReport]): Map[DirectiveId, DirectiveStatusReport] = {
     directives.groupBy(_.directiveId).map {
       case (directiveId, reports) =>
-        val tags          = {
-          reports.flatMap(_.policyTypes.types) match {
-            case Nil          => PolicyTypes.rudderBase
-            case c @ ::(_, _) => PolicyTypes.fromCons(c)
-          }
-        }
+        val tags          = PolicyTypes.fromIterable(reports.flatMap(_.policyTypes.types)).orRudderBase
         // in a merge, we keep the overridden only if all directive have an override
         val overridden    = if (reports.forall(_.overridden.isDefined)) reports.headOption.flatMap(_.overridden) else None
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
