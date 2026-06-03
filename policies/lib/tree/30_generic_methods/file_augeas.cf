@@ -16,8 +16,8 @@
 #
 #####################################################################################
 
-# @name File augeas (beta)
-# @description Manage files using Augeas - in beta
+# @name File augeas
+# @description Manage files using Augeas
 # @documentation
 # Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
 #
