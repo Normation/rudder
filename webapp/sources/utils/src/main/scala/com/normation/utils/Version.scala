@@ -37,6 +37,7 @@
 
 package com.normation.utils
 
+import cats.syntax.traverse.*
 import java.nio.charset.Charset
 import java.nio.charset.CharsetEncoder
 import zio.Chunk
@@ -217,16 +218,16 @@ object ParseVersion {
   }
 
   def epoch[A: P]: P[Long] = P(num ~ ":")
-  def toSeparator(c: Char): Separator = {
-    c match {
-      case '~' => Separator.Tilde
-      case '-' => Separator.Minus
-      case '+' => Separator.Plus
-      case ',' => Separator.Comma
-      case '.' => Separator.Dot
-    }
+  val toSeparator:      PartialFunction[Char, Separator] = {
+    case '~' => Separator.Tilde
+    case '-' => Separator.Minus
+    case '+' => Separator.Plus
+    case ',' => Separator.Comma
+    case '.' => Separator.Dot
   }
-  def separators[A: P]: P[IndexedSeq[Separator]] = P(CharsWhile(separatorChar).!).map((s: String) => s.toSeq.map(toSeparator))
+  def separators[A: P]: P[List[Separator]]               = P(CharsWhile(separatorChar).!).flatMap((s: String) =>
+    s.toList.traverse(toSeparator.lift(_)).fold(Fail(s"Invalid char in ${s}"))(Pass(_))
+  )
 
   def listOfSepToPart(list: List[Separator]): List[VersionPart]    = {
     list.map {
@@ -238,17 +239,17 @@ object ParseVersion {
     case (seq, n) => // seq is at least 1
       seq.last match {
         case Separator.Tilde =>
-          listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, PartType.Numeric(n)) :: Nil
-        case sep             => listOfSepToPart(seq.init.toList) ::: VersionPart.After(sep, PartType.Numeric(n)) :: Nil
+          listOfSepToPart(seq.init) ::: VersionPart.Before(Separator.Tilde, PartType.Numeric(n)) :: Nil
+        case sep             => listOfSepToPart(seq.init) ::: VersionPart.After(sep, PartType.Numeric(n)) :: Nil
       }
   }
 
   def charPart[A: P]: P[List[VersionPart]] = P(separators ~ chars).map {
     case (seq, n) => // seq is at least 1
       (seq.last, n) match {
-        case (Separator.Tilde, s)     => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(Separator.Tilde, s) :: Nil
-        case (sep, c: PartType.Chars) => listOfSepToPart(seq.init.toList) ::: VersionPart.After(sep, c) :: Nil
-        case (sep, prerelease)        => listOfSepToPart(seq.init.toList) ::: VersionPart.Before(sep, prerelease) :: Nil
+        case (Separator.Tilde, s)     => listOfSepToPart(seq.init) ::: VersionPart.Before(Separator.Tilde, s) :: Nil
+        case (sep, c: PartType.Chars) => listOfSepToPart(seq.init) ::: VersionPart.After(sep, c) :: Nil
+        case (sep, prerelease)        => listOfSepToPart(seq.init) ::: VersionPart.Before(sep, prerelease) :: Nil
       }
   }
 

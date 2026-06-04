@@ -365,6 +365,8 @@ class ReportDisplayer(
                       } policy mode. The run was aborted to further changes</b></li>
                     case "unsupported_agent"      =>
                       <li><b>That node runs an agent too old to run policies from this server, please upgrade the agent. The run was aborted to avoid any unexpected behavior</b></li>
+                    case _                        =>
+                      <li><b>The agent aborted run : {msg}</b></li>
                   }
               }
             }

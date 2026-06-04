@@ -60,7 +60,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
 
   private var from:   String            = ""
   val deleteAction:   DeleteAction      = DeleteAction(databaseManager, dbCleaner)
-  private var action: CleanReportAction = deleteAction
+  private val action: CleanReportAction = deleteAction
 
   val DATETIME_FORMAT = "yyyy-MM-dd"
   val DATETIME_PARSER: DateTimeFormatter = DateTimeFormat.forPattern(DATETIME_FORMAT)
@@ -72,13 +72,9 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     ("#modeSelector" #> <ul>{
       SHtml
         .radio(
-          Seq("Archive", "Delete"),
-          Full("Archive"),
-          { (value: String) =>
-            action = value match {
-              case "Delete" => deleteAction
-            }
-          },
+          Seq("Delete"),
+          Full("Delete"),
+          _ => (),
           ("class", "radio")
         )
         .flatMap(e => <li>

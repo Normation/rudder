@@ -180,6 +180,8 @@ class CreateCategoryOrGroupPopup(
       </span>
       case "dynamic" =>
         <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
+      case _         =>
+        NodeSeq.Empty
     },
     Some(5)
   ) {
@@ -201,6 +203,8 @@ class CreateCategoryOrGroupPopup(
           <span id="textGroupRadio">Group</span>
         case "Category" =>
           <span id="textCategoryRadio">Category</span>
+        case _          =>
+          NodeSeq.Empty
       },
       Some(1)
     ) {
@@ -244,71 +248,70 @@ class CreateCategoryOrGroupPopup(
   }
 
   private def onSubmit(): JsCmd = {
-    if (formTracker.hasErrors) {
-      onFailure & onFailureCallback()
-    } else {
-      val createCategory = piItemType.get match {
-        case "Group"    => false
-        case "Category" => true
+    def onCategory: JsCmd = {
+      woNodeGroupRepository
+        .addGroupCategorytoCategory(
+          new NodeGroupCategory(
+            NodeGroupCategoryId(uuidGen.newUuid),
+            piName.get,
+            piDescription.get,
+            Nil,
+            Nil
+          ),
+          NodeGroupCategoryId(piContainer.get),
+          ModificationId(uuidGen.newUuid),
+          CurrentUser.actor,
+          piReasons.map(_.get)
+        )
+        .toBox match {
+        case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
+        case Empty            =>
+          logger.error("An error occurred while saving the category")
+          formTracker.addFormError(error("An error occurred while saving the category"))
+          onFailure & onFailureCallback()
+        case Failure(m, _, _) =>
+          logger.error("An error occurred while saving the category:" + m)
+          formTracker.addFormError(error(m))
+          onFailure & onFailureCallback()
       }
-      if (createCategory) {
-        woNodeGroupRepository
-          .addGroupCategorytoCategory(
-            new NodeGroupCategory(
-              NodeGroupCategoryId(uuidGen.newUuid),
-              piName.get,
-              piDescription.get,
-              Nil,
-              Nil
-            ),
-            NodeGroupCategoryId(piContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            piReasons.map(_.get)
-          )
-          .toBox match {
-          case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
-          case Empty            =>
-            logger.error("An error occurred while saving the category")
-            formTracker.addFormError(error("An error occurred while saving the category"))
-            onFailure & onFailureCallback()
-          case Failure(m, _, _) =>
-            logger.error("An error occurred while saving the category:" + m)
-            formTracker.addFormError(error(m))
-            onFailure & onFailureCallback()
-        }
-      } else {
-        val query     = None
-        val isDynamic = piStatic.get match { case "dynamic" => true; case _ => false }
-        val srvList   = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
-        val nodeId    = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
-        val nodeGroup = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, _isEnabled = true)
-        woNodeGroupRepository
-          .create(
-            nodeGroup,
-            NodeGroupCategoryId(piContainer.get),
-            ModificationId(uuidGen.newUuid),
-            CurrentUser.actor,
-            piReasons.map(_.get)
-          )
-          .tap(_ => propertiesService.updateAll())
-          .toBox match {
-          case Full(x)          =>
-            closePopup() &
-            onSuccessCallback(x.group.id.serialize) & onSuccessGroup(
-              Right(x.group),
-              NodeGroupCategoryId(piContainer.get)
-            ) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();""")) // JsRaw ok, const
-          case Empty            =>
-            logger.error("An error occurred while saving the group")
-            formTracker.addFormError(error("An error occurred while saving the group"))
-            onFailure & onFailureCallback()
-          case Failure(m, _, _) =>
-            logger.error("An error occurred while saving the group: " + m)
-            formTracker.addFormError(error(m))
-            onFailure & onFailureCallback()
-        }
+    }
+    def onGroup:    JsCmd = {
+      val query     = None
+      val isDynamic = piStatic.get match { case "dynamic" => true; case _ => false }
+      val srvList   = groupGenerator.map(_.serverList).getOrElse(Set[NodeId]())
+      val nodeId    = NodeGroupId(NodeGroupUid(uuidGen.newUuid))
+      val nodeGroup = NodeGroup(nodeId, piName.get, piDescription.get, Nil, query, isDynamic, srvList, _isEnabled = true)
+      woNodeGroupRepository
+        .create(
+          nodeGroup,
+          NodeGroupCategoryId(piContainer.get),
+          ModificationId(uuidGen.newUuid),
+          CurrentUser.actor,
+          piReasons.map(_.get)
+        )
+        .tap(_ => propertiesService.updateAll())
+        .toBox match {
+        case Full(x)          =>
+          closePopup() &
+          onSuccessCallback(x.group.id.serialize) & onSuccessGroup(
+            Right(x.group),
+            NodeGroupCategoryId(piContainer.get)
+          ) & OnLoad(JsRaw("""$("[href='#groupCriteriaTab']").click();""")) // JsRaw ok, const
+        case Empty            =>
+          logger.error("An error occurred while saving the group")
+          formTracker.addFormError(error("An error occurred while saving the group"))
+          onFailure & onFailureCallback()
+        case Failure(m, _, _) =>
+          logger.error("An error occurred while saving the group: " + m)
+          formTracker.addFormError(error(m))
+          onFailure & onFailureCallback()
       }
+    }
+    (piItemType.get, formTracker.hasErrors) match {
+      case (_, true)           => onFailure & onFailureCallback()
+      case ("Group", false)    => onGroup
+      case ("Category", false) => onCategory
+      case (_, false)          => onFailure & onFailureCallback()
     }
   }
 
