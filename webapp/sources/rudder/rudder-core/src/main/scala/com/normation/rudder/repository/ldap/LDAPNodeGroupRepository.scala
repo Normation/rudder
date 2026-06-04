@@ -67,7 +67,6 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_RULE_TARGET
 import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
-import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -81,7 +80,6 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.TenantCheckLogic
 import com.normation.rudder.tenants.TenantService
@@ -98,8 +96,6 @@ class RoLDAPNodeGroupRepository(
     val ldap:          LDAPConnectionProvider[RoLDAPConnection],
     val mapper:        LDAPEntityMapper,
     val nodeFactRepo:  NodeFactRepository,
-    val tenantService: TenantCheckLogic,
-    val tenantRepo:    TenantService,
     val groupLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoNodeGroupRepository with NamedZioLogger {
   repo =>
@@ -604,7 +600,7 @@ class RoLDAPNodeGroupRepository(
 
   // map an LDAPTree to the corresponding `allMaps` datastructure used in
   // `getFullGroupLibrary`
-  private[ldap] def mapLdapTreeToFullCategory(entries: LDAPTree)(implicit qc: QueryContext): IOResult[AllMaps] = {
+  private[ldap] def mapLdapTreeToFullCategory(entries: LDAPTree): IOResult[AllMaps] = {
     val emptyAll = AllMaps(Map(), Map(), Map())
     import rudderDit.GROUP.*
 
@@ -616,54 +612,39 @@ class RoLDAPNodeGroupRepository(
       logPure.warn(error.fullMsg).as(current)
     }
 
-    // tenant filtering is silent by default but can be traced with the appropriate DEBUG log
-    def debugTenantFiltering[A: HasSecurityTag](a: A)(implicit qc: QueryContext): UIO[Unit] = {
-      ApplicationLoggerPure.Tenant.debug(s"In NodeGroup tree: filtering '${a.debugId}' for '${qc.actor.name}'")
-    }
-
     ZIO.foldLeft(entries.toSeq)(emptyAll) {
       case (current, e) =>
         if (isACategory(e)) {
           mapper.entry2NodeGroupCategory(e) match {
-            case Right(item) =>
-              // check visibility for current QC
-              tenantService.filter(item) match {
-                case None           => debugTenantFiltering(item).as(current)
-                case Some(category) =>
-                  // for categories other than root, add it in the list
-                  // of its parent subcategories
-                  val updatedSubCats = if (e.dn == rudderDit.GROUP.dn) {
-                    current.categoriesByCategory
-                  } else {
-                    val catId   = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
-                    val subCats = category.id :: current.categoriesByCategory.getOrElse(catId, Nil)
-                    current.categoriesByCategory + (catId -> subCats)
-                  }
-                  current
-                    .copy(
-                      categories = current.categories + (category.id -> category),
-                      categoriesByCategory = updatedSubCats
-                    )
-                    .succeed
+            case Right(category) =>
+              // for categories other than root, add it in the list
+              // of its parent subcategories
+              val updatedSubCats = if (e.dn == rudderDit.GROUP.dn) {
+                current.categoriesByCategory
+              } else {
+                val catId   = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
+                val subCats = category.id :: current.categoriesByCategory.getOrElse(catId, Nil)
+                current.categoriesByCategory + (catId -> subCats)
               }
-            case Left(err)   => mappingError(current, e, err)
+              current
+                .copy(
+                  categories = current.categories + (category.id -> category),
+                  categoriesByCategory = updatedSubCats
+                )
+                .succeed
+            case Left(err)       => mappingError(current, e, err)
           }
         } else if (isAGroup(e) || isASpecialTarget(e)) {
           mapper.entry2RuleTargetInfo(e) match {
-            case Right(item) =>
-              // check visibility for current QC
-              tenantService.filter(item) match {
-                case None           => debugTenantFiltering(item).as(current)
-                case Some(fullInfo) =>
-                  val catId         = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
-                  val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
-                  current
-                    .copy(
-                      targetByCategory = current.targetByCategory + (catId -> infosForCatId)
-                    )
-                    .succeed
-              }
-            case Left(err)   => mappingError(current, e, err)
+            case Right(fullInfo) =>
+              val catId         = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
+              val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
+              current
+                .copy(
+                  targetByCategory = current.targetByCategory + (catId -> infosForCatId)
+                )
+                .succeed
+            case Left(err)       => mappingError(current, e, err)
           }
         } else {
           // log error, continue
