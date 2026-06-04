@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
   summary: Get server information
-  description: Get information about the server version
+  description: Get information about the server and Rudder
   operationId: getSystemInfo
   responses:
     "200":
@@ -26,31 +26,29 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getSystemInfo
+                  - info
               data:
                 type: object
                 description: Information about the service
                 required:
                   - rudder
+                  - system
+                  - nodes
+                  - plugins
                 properties:
                   rudder:
-                    required:
-                      - major-version
-                      - full-version
-                      - build-time
-                    properties:
-                      major-version:
-                        type: string
-                        example: "6.0"
-                        format: X.Y
-                      full-version:
-                        type: string
-                        example: 6.0.4
-                        format: X.Y.Z
-                      build-time:
-                        type: string
-                        format: date
-                        example: 2019-03-25T10:11:23Z
+                    type: object
+                    $ref: ../../components/schemas/system-info-general.yml
+                  system:
+                    type: object
+                    $ref: ../../components/schemas/system.yml
+                  nodes:
+                    type: object
+                    $ref: ../../components/schemas/system-nodes.yml
+                  plugins:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/system-plugins.yml
   tags:
     - System
   x-codeSamples:

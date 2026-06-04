@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+required:
+  - os
+  - jvm
+properties:
+  os:
+    type: object
+    description: Name and version of the operating system where Rudder root server is installed
+    properties:
+      name:
+        type: string
+        description: Name of the operating system
+        example: Debian GNU/Linux 13 (trixie)
+      version:
+        type: string
+        description: Version of the operating system
+        example: 13
+  jvm:
+    type: object
+    description: Version and command use to run Rudder trough the Java virtual machine
+    properties:
+      version:
+        type: string
+        description: Version of Java virtual machine
+        example: 21.0.10+7-Debian-1deb13u1
+      cmd:
+        type: string
+        description: Command and option to run Rudder
+        example: "/usr/lib/jvm/java-21-openjdk-amd64/bin/java -Djava.io.tmpdir=/tmp -Djetty.home=/opt/rudder/jetty -Djetty.base=/opt/rudder/etc/rudder-jetty-base -server -Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch -Xlog:gc=info,gc+cpu=info,gc+stringdedup=info:file=/var/log/rudder/webapp/jvm/jvm-gc.log:utctime,pid,level,tags:filecount=5,filesize=50M -XX:+CrashOnOutOfMemoryError -Dfile.encoding=UTF-8 -Drun.mode=production -Drudder.configFile=/opt/rudder/etc/rudder-web.properties -Drudder.authFile=/opt/rudder/etc/rudder-users.xml -Dlogback.configurationFile=/opt/rudder/etc/logback.xml --class-path /opt/rudder/etc/rudder-jetty-base/resources:/opt/rudder/jetty/lib/logging/slf4j-api-2.0.17.jar:/opt/rudder/jetty/lib/logging/jetty-slf4j-impl-12.1.4.jar:/opt/rudder/jetty/lib/jetty-http-12.1.4.jar:/opt/rudder/jetty/lib/jetty-util-12.1.4.jar:/opt/rudder/jetty/lib/jetty-server-12.1.4.jar:/opt/rudder/jetty/lib/jetty-xml-12.1.4.jar:/opt/rudder/jetty/lib/jetty-io-12.1.4.jar:/opt/rudder/jetty/lib/jetty-deploy-12.1.4.jar:/opt/rudder/jetty/lib/jetty-session-12.1.4.jar:/opt/rudder/jetty/lib/jetty-security-12.1.4.jar:/opt/rudder/jetty/lib/jetty-ee-webapp-12.1.4.jar org.eclipse.jetty.xml.XmlConfiguration file.encoding=UTF-8 java.version=21.0.10 jetty.base=/opt/rudder/etc/rudder-jetty-base jetty.base.uri=file:///opt/rudder/etc/rudder-jetty-base jetty.deploy.scanInterval=0 jetty.deploy.webappsDir=/opt/rudder/share/webapps jetty.home=/opt/rudder/jetty jetty.home.uri=file:///opt/rudder/jetty jetty.http.host=127.0.0.1 jetty.http.port=8080 jetty.httpConfig.requestHeaderSize=8192 jetty.httpConfig.sendDateHeader=false jetty.httpConfig.sendServerVersion=false jetty.pid=/var/rudder/run/rudder-jetty.pid jetty.state=/opt/rudder/etc/rudder-jetty-base/rudder-jetty.state jetty.webapp.addHiddenClasses=org.eclipse.jetty.logging.,file:///opt/rudder/jetty/lib/logging/,org.slf4j. logback.configurationFile=/opt/rudder/etc/logback.xml OPTIONS=Server rudder.authFile=/opt/rudder/etc/rudder-users.xml rudder.configFile=/opt/rudder/etc/rudder-web.properties run.mode=production runtime.feature.alpn=true slf4j.version=2.0.17 /opt/rudder/jetty/etc/jetty-bytebufferpool.xml /opt/rudder/etc/rudder-jetty-base/etc/console-capture.xml /opt/rudder/jetty/etc/jetty-http-config.xml /opt/rudder/jetty/etc/jetty-pid.xml /opt/rudder/jetty/etc/jetty-scheduler.xml /opt/rudder/jetty/etc/jetty-threadpool.xml /opt/rudder/jetty/etc/jetty.xml /opt/rudder/jetty/etc/jetty-deployer-standard.xml /opt/rudder/jetty/etc/jetty-state.xml /opt/rudder/jetty/etc/jetty-deployment-scanner.xml /opt/rudder/jetty/etc/sessions/id-manager.xml /opt/rudder/jetty/etc/jetty-ee-webapp.xml /opt/rudder/jetty/etc/jetty-http.xml --env ee11 -cp /opt/rudder/jetty/lib/jakarta.servlet-api-6.1.0.jar -cp /opt/rudder/jetty/lib/jetty-ee11-servlet-12.1.4.jar -cp /opt/rudder/jetty/lib/jetty-ee11-webapp-12.1.4.jar /opt/rudder/jetty/etc/jetty-ee11-webapp.xml /opt/rudder/jetty/etc/jetty-ee11-deploy.xml"

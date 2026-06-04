@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+type: object
+required:
+  - id
+  - name
+  - version
+  - abiVersion
+  - licence
+properties:
+  id:
+    type: string
+    description: Plugin's technical ID
+    example: com.normation.plugins.apiauthorizations.ApiAuthorizationsPluginDef
+  name:
+    type: string
+    description: Plugin's name
+    example: api-authorizations
+  version:
+    type: string
+    description: Plugin's version
+    example: 2.2.0
+  abiVersion:
+    type: string
+    description: Plugin's application binary interface version, should match the Rudder's version
+    example: 9.1.2
+  license:
+    type: object
+    description: Information relative to Rudder' subscription
+    properties:
+      licensee:
+        type: string
+        description: License ID
+        example: Acmee Corporation
+      startDate:
+        type: string
+        description: License' start date
+        format: date
+        example: 2025-01-01T00:00:00Z[UTC]
+      endDate:
+        type: string
+        description: License' expiry date
+        format: date
+        example: 2030-01-01T00:00:00Z[UTC]
+      supportedVersions:
+        type: string
+        description: Range of the Rudder's version supported by the license
+        example: [0.0.0-0.0.0,99.99.0-99.99.0]

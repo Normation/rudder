@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+properties:
+  version:
+    type: string
+    description: Installed version of Rudder
+    example: 9.1.2
+  buildTime:
+    type: string
+    description: Campaign result for all Nodes
+    format: date
+    example: 2019-03-25T10:11:23Z
+  instanceId:
+    type: string
+    description: UUID identifying the Rudder's instance
+    format: uuid
+    example: f535c837-ee79-45fb-a7b8-30acc2d849c7
+  relays:
+    type: array
+    description: List of relay
+    items:
+      type: object
+      required:
+        - uuid
+        - hostname
+        - managedNodes
+      properties:
+        uuid:
+          type: string
+          description: Relay's UUID
+          format: uuid
+          example: 267f8a8f-9592-4609-957b-cb1d011004d6
+        hostname:
+          type: string
+          description: Relay's hostname
+          example: relay.local.rudder
+        managedNodes:
+          type: integer
+          description: Number of nodes behind this relay
+          example: 2
