@@ -101,18 +101,6 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
         targetWithNoTenants.toList ++ targetWithTenantsA
       )
     }
-
-    "have an user with only tenant ZoneA see only one group and no system groups" in {
-      implicit val qc = zoneA
-      roGroupRepo.getFullGroupLibrary().runNow.allTargets.values.map(_.debugId) must containTheSameElementsAs(
-        targetWithTenantsA.toSeq
-      )
-    }
-
-    "have an user with only tenant ZoneB see nothing" in {
-      implicit val qc = zoneB
-      roGroupRepo.getFullGroupLibrary().runNow.allTargets.values.map(_.debugId) must containTheSameElementsAs(Nil)
-    }
   }
 
   def newGroup(id: String, tenant: Option[SecurityTag]): NodeGroup =

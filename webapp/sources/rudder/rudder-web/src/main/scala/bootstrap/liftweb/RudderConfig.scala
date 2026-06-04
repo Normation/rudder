@@ -3005,8 +3005,6 @@ object RudderConfigInit {
       roLdap,
       ldapEntityMapper,
       nodeFactRepository,
-      tenantCheckLogic,
-      tenantService,
       groupLibReadWriteMutex
     )
     lazy val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
