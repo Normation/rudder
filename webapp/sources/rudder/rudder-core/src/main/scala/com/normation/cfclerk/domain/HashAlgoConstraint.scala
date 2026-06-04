@@ -85,26 +85,22 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
    * Simple standard hash: MD5, SHA-1,256,512
    */
   object MD5 extends HashAlgoConstraint("md5") {
-    private val md = MessageDigest.getInstance("MD5")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
+    override def hash(input: Array[Byte]): String = Hex.encodeHexString(MessageDigest.getInstance("MD5").digest(input))
 
   }
 
   object SHA1 extends HashAlgoConstraint("sha1") {
-    private val md = MessageDigest.getInstance("SHA-1")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
+    override def hash(input: Array[Byte]): String = Hex.encodeHexString(MessageDigest.getInstance("SHA-1").digest(input))
 
   }
 
   object SHA256 extends HashAlgoConstraint("sha256") {
-    private val md = MessageDigest.getInstance("SHA-256")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
+    override def hash(input: Array[Byte]): String = Hex.encodeHexString(MessageDigest.getInstance("SHA-256").digest(input))
 
   }
 
   object SHA512 extends HashAlgoConstraint("sha512") {
-    private val md = MessageDigest.getInstance("SHA-512")
-    override def hash(input: Array[Byte]): String = Hex.encodeHexString(md.digest(input))
+    override def hash(input: Array[Byte]): String = Hex.encodeHexString(MessageDigest.getInstance("SHA-512").digest(input))
 
   }
 
