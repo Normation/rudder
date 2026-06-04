@@ -443,20 +443,35 @@ update msg model =
       in
         ( errorModel, Cmd.batch [errorMsg, unknownTargetsMsg] )
 
-    SaveDisableAction (Ok ruleDetails) ->
-      case model.mode of
-        RuleForm details ->
+    SaveStatusAction (Ok ({ changeRequestId, name, id } as ruleDetails)) ->
+      let
+        ui = model.ui
+        action = if ruleDetails.enabled then "enabled" else "disabled"
+        defaultNotification = successNotification ("Rule '" ++ name ++ "' successfully " ++ action)
+      in
+      case ( model.mode, model.ui.crSettings ) of
+        ( RuleForm r, Just s ) ->
           let
-            txtDisable = if ruleDetails.enabled then "enabled" else "disabled"
-            ui = model.ui
-            crSettings = case ui.crSettings of
-              Just s  -> Just { s | message = ""}
-              Nothing -> Nothing
-          in
-            ({model | mode = RuleForm {details | originRule = Just ruleDetails, rule = ruleDetails}, ui = { ui | crSettings = crSettings}}, (Cmd.batch [successNotification ("Rule '"++ ruleDetails.name ++"' successfully "++ txtDisable), (getRulesTree model)]))
-        _   -> (model, Cmd.none)
+            crSettings =
+              Just { s | message = ""}
 
-    SaveDisableAction (Err err) ->
+            ( m, cmd ) =
+              case ( s.enableChangeRequest, changeRequestId ) of
+                ( True, Just crId ) ->
+                  ( model, crNotification model.contextPath crId )
+
+                _ ->
+                  ( { model | mode = RuleForm { r | originRule = Just ruleDetails, rule = ruleDetails }, ui = { ui | crSettings = crSettings } }, Cmd.batch [defaultNotification, getRulesTree model] )
+          in
+          ( { m | ui = { ui | crSettings = crSettings} }, cmd )
+
+        ( RuleForm r, Nothing ) ->
+          ( { model | mode = RuleForm { r | originRule = Just ruleDetails, rule = ruleDetails } }, Cmd.batch [defaultNotification, getRulesTree model ] )
+
+        _ ->
+          (model, Cmd.none)
+
+    SaveStatusAction (Err err) ->
       processApiError "Changing rule state" err model
 
     SaveCategoryResult (Ok category) ->
