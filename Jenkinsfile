@@ -56,10 +56,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - policies-methods")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies-methods test - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - policies-methods", "Error during policies-methods test")
                             }
                         }
                         cleanup {
@@ -86,10 +83,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - python-lib")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during python-lib test - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - python-lib", "Error during python-lib test")
                             }
                         }
                         cleanup {
@@ -116,10 +110,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - relayd-man")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during relayd man build - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - relayd-man", "Error during relayd man build")
                             }
                         }
                         cleanup {
@@ -152,10 +143,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - shell")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during shell tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - shell", "Error during shell tests")
                             }
                         }
                         cleanup {
@@ -182,10 +170,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - python")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during python tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - python", "Error during python tests")
                             }
                         }
                         cleanup {
@@ -220,10 +205,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - typo")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while checking typos - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - typo", "Error while checking typos")
                             }
                         }
                         cleanup {
@@ -252,10 +234,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - api-doc")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while buiding api doc - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - api-doc", "Error while building api doc")
                             }
                         }
                         cleanup {
@@ -291,10 +270,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - webapp")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during webapp tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - webapp", "Error during webapp tests")
                             }
                         }
                         cleanup {
@@ -335,10 +311,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - relayd")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during relayd tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - relayd", "Error during relayd tests")
                             }
                         }
                         cleanup {
@@ -376,10 +349,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - rudder-package")
-                                //notifier.notifyResult("rust-team")
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - rudder-package", "Error during rudder-package tests")
                             }
                         }
                         cleanup {
@@ -432,10 +402,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - policies")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - policies", "Error during policies tests")
                             }
                         }
                         cleanup {
@@ -491,10 +458,7 @@ pipeline {
                             }
                             failure {
                                 script {
-                                    failedBuild = true
-                                    errors.add("Tests - compatibility JDK ${JDK_VERSION}")
-                                    slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                    slackSend(channel: slackResponse.threadId, message: "Error during compatibility JDK ${JDK_VERSION} tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                    slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - compatibility JDK ${JDK_VERSION}", "Error during compatibility JDK ${JDK_VERSION} tests")
                                 }
                             }
                             cleanup {
@@ -530,10 +494,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - relayd-man")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing relayd man pages - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - relayd-man", "Error while publishing relayd man pages")
                             }
                         }
                         cleanup {
@@ -569,10 +530,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - api-doc")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing api docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - api-doc", "Error while publishing api docs")
                             }
                         }
                         cleanup {
@@ -602,10 +560,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - api-doc-redirect")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while building api doc redirect - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - api-doc-redirect", "Error while building api doc redirect")
                             }
                         }
                         cleanup {
@@ -645,10 +600,7 @@ pipeline {
                         }
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - webapp")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing webapp - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - webapp", "Error while publishing webapp")
                             }
                         }
                         cleanup {
@@ -700,10 +652,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - policies")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing policies - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - policies", "Error while publishing policies")
                             }
                         }
                         cleanup {
@@ -771,6 +720,14 @@ def redirectApi() {
 
 
 
+
+def notifyError(errors, slackResponse, version, changeUrl, stageName, slackMessage) {
+    failedBuild = true
+    errors.add(stageName)
+    def updatedResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+    slackSend(channel: updatedResponse.threadId, message: "${slackMessage} - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+    return updatedResponse
+}
 
 def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {
   def msg ="*${version} - rudder repo* - <"+currentBuild.absoluteUrl+"|Link>"
