@@ -359,7 +359,7 @@ saveStatusAction ruleDetails model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model ["rules", ruleDetails.id.value ] (changeRequestParameters model.ui.crSettings)
         , body    = encodeRuleDetails ruleDetails |> jsonBody
-        , expect  = expectJson SaveDisableAction decodeGetRuleDetails
+        , expect  = expectJson SaveStatusAction decodeGetRuleDetails
         , timeout = Nothing
         , tracker = Nothing
         }
