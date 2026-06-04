@@ -53,7 +53,7 @@ class LDAPSchema {
     ocs.getOrElse(className.toLowerCase, throw new NoSuchElementException(s"Missing LDAP Object in the Schema: $className"))
 
   /**
-   * Optionaly get the ObjectClass whose name is className
+   * Optionally get the ObjectClass whose name is className
    */
   def get(className: String): Option[LDAPObjectClass] = ocs.get(className.toLowerCase)
 
@@ -117,10 +117,16 @@ class LDAPSchema {
    */
   def parents(objectClass: String): List[String] = parentsReg(objectClass.toLowerCase)
 
-  def objectClassNames(objectClass: String): List[String] = apply(objectClass).name :: parents(objectClass)
+  def objectClassNames(objectClass: String): List[String] = {
+    // object classes are case-insensitive, which can cause problems as https://issues.rudder.io/issues/28965
+    // if we don't use .name and distinct
+    (objectClass :: parents(objectClass)).map(apply(_).name).distinct
+  }
 
-  def objectClasses(objectClass: String): LDAPObjectClasses =
-    LDAPObjectClasses(this.objectClassNames(objectClass).map(apply(_))*)
+  def objectClasses(objectClass: String): LDAPObjectClasses = {
+    // we did demux in objectClassNames
+    LDAPObjectClasses(this.objectClassNames(objectClass).map(apply)*)
+  }
 
   /**
    * Given a set of object classes which are ALL registered,

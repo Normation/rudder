@@ -71,4 +71,9 @@ class SchemaTest extends Specification {
   "several branches, several shared levels" >>
   (OC.demux("top", "L1_0", "L1_1", "L1_2", "L1_0_0", "L1_0_1", "L1_0_2", "L1_2_0", "L1_0_0_0") must
   containTheSameElementsAs(Seq(OC("L1_0_0_0"), OC("L1_0_1"), OC("L1_0_2"), OC("L1_1"), OC("L1_2_0"))))
+
+  "case independent name" >>
+  (OC.objectClassNames("l1_0_1") must
+  containTheSameElementsAs(Seq("L1_0_1", "L1_0", "top")))
+
 }
