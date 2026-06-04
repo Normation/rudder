@@ -535,6 +535,42 @@ pipeline {
                         }
                     }
                 }
+                stage('architecture-doc') {
+                    agent {
+                        dockerfile {
+                            additionalBuildArgs "--build-arg JDK_VERSION=21" // to be compatible with structurizr war version.
+                            label 'generic-docker'
+                            filename 'webapp/sources/Dockerfile'
+                            args '-u 0:0'
+                        }
+                    }
+                    when { not { branch 'master' } }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('architecture-doc') {
+                                sh script: 'java -jar /usr/bin/structurizr.war export -format static -output target -workspace rudder-containers.dsl', label: 'build architecture documentation'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/architecture-doc/', label: "publish architecture documentation"
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Publish - architecture documentation")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error when publishing architecture documentation - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('rust-dev-doc') {
                     agent {
                         dockerfile {
