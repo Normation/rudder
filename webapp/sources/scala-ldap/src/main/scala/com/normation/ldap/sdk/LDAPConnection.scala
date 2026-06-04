@@ -394,18 +394,12 @@ sealed class RoLDAPConnection(
 }
 
 object RwLDAPConnection {
-  import ResultCode.*
 
   /**
    * Default error on which we don't want to throw an exception
    * but only log a message for Add operation
    */
-  def onlyReportOnAdd(errorCode: ResultCode): Boolean = {
-    errorCode match {
-      case ATTRIBUTE_OR_VALUE_EXISTS | ENTRY_ALREADY_EXISTS => true
-      case _                                                => false
-    }
-  }
+  def onlyReportOnAdd(errorCode: ResultCode): Boolean = false
 
   /**
    * Default error on which we don't want to throw an exception
@@ -417,12 +411,7 @@ object RwLDAPConnection {
    * Default error on which we don't want to throw an exception
    * but only log a message for Modify operation
    */
-  def onlyReportOnModify(errorCode: ResultCode): Boolean = {
-    errorCode match {
-      case ATTRIBUTE_OR_VALUE_EXISTS | ENTRY_ALREADY_EXISTS => true
-      case _                                                => false
-    }
-  }
+  def onlyReportOnModify(errorCode: ResultCode): Boolean = false
 
   /**
    * Default error on which we don't want to throw an exception
@@ -559,9 +548,10 @@ class RwLDAPConnection(
       (x: @unchecked) match {
         case ex: LDAPException =>
           if (onlyReportThat(ex.getResultCode)) {
-            logIgnoredException(record.getDN, modName, ex)
+            logIgnoredException(record.getDN, modName, ex) *>
             LDIFNoopChangeRecord(record.getParsedDN).succeed
           } else {
+            LDAPConnectionLogger.debug(s"Error on modify action for request: ${toLDIFChangeRecord(req).toString}") *>
             LDAPRudderError
               .BackendException(
                 s"Error when doing action '${modName}' with and LDIF change request: ${ex.getDiagnosticMessage}",
@@ -575,7 +565,7 @@ class RwLDAPConnection(
     }
   }
 
-  private def logIgnoredException(dn: => String, action: String, e: Throwable): Unit = {
+  private def logIgnoredException(dn: => String, action: String, e: Throwable): UIO[Unit] = {
     val diagnostic = e match {
       case ex: LDAPException => ex.getResultString
       case ex => ex.getMessage
