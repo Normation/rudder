@@ -53,6 +53,7 @@ body common control
         inputs => {
           @{va.inputs_list},
           "rudder-system-directives.cf",
+          "rudder-system-directives-end.cf",
         };
 
         tls_min_version => "1.3";
@@ -63,6 +64,7 @@ body common control
           rudder_common_system_directive,
           rudder_system_directives,
           rudder_directives,
+          rudder_system_directives_end,
           rudder_common_system_end,
           rudder_end
         };

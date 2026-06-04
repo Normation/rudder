@@ -98,7 +98,7 @@ class TechniqueParser(
             useMethodReporting =
               nonEmpty((xml \ TECHNIQUE_USE_METHOD_REPORTING).text).map(_.equalsIgnoreCase("true")).getOrElse(false)
 
-            deprecationInfo <- parseDeprecrationInfo(xml)
+            deprecationInfo <- parseDeprecationInfo(xml)
 
             // for compatibility reason, we cheat and make the template/file/bundlesequence under root
             // and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,...">
@@ -257,7 +257,7 @@ class TechniqueParser(
     }
   }
 
-  private def parseDeprecrationInfo(xml: Node): Either[LoadTechniqueError, Option[TechniqueDeprecationInfo]] = {
+  private def parseDeprecationInfo(xml: Node): Either[LoadTechniqueError, Option[TechniqueDeprecationInfo]] = {
     (xml \ TECHNIQUE_DEPRECATION_INFO).headOption match {
       case Some(deprecationInfo) if (deprecationInfo.text.isEmpty) =>
         Left(

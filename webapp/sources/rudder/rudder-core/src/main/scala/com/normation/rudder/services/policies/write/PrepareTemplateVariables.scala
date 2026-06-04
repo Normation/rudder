@@ -146,8 +146,8 @@ class PrepareTemplateVariablesImpl(
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
       systemVariableSpecService
         .get("COMMUNITY")
-        .toVariable(if (agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
-      systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString)),
+        .toVariable(if (agentNodeConfig.agentInfo.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
+      systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentInfo.agentType.toString)),
       systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value)),
       systemVariableSpecService.get("RUDDER_COMPLIANCE_MODE").toVariable(Seq(agentPolicyMode.name)),
       createScheduledEventsVariable(scheduledEvents)
@@ -155,7 +155,7 @@ class PrepareTemplateVariablesImpl(
 
     val agentNodeProps = AgentNodeProperties(
       nodeId,
-      agentNodeConfig.agentType,
+      agentNodeConfig.agentInfo,
       agentNodeConfig.config.nodeInfo.os,
       agentNodeConfig.config.nodeInfo.rudderSettings.isPolicyServer
     )
@@ -204,8 +204,10 @@ class PrepareTemplateVariablesImpl(
                                       _            <- timer.buildBundleSeq.update(_ + t1 - t0)
                                       parameters   <- ZIO.foreach(agentNodeConfig.config.parameters) { x =>
                                                         agentRegister
-                                                          .findMap(agentNodeProps) { agent =>
-                                                            Right(ParameterEntry(x.name, agent.escape(x.value), agentNodeConfig.agentType))
+                                                          .findMap(agentNodeProps) { (agent, g) =>
+                                                            Right(
+                                                              ParameterEntry(x.name, g.escape(x.value), agentNodeConfig.agentInfo.agentType)
+                                                            )
                                                           }
                                                           .toIO
                                                       }
@@ -281,7 +283,9 @@ class PrepareTemplateVariablesImpl(
                                 // to have one directory by directive.
                                 val techniqueTemplates    = {
                                   val templates = allTemplates.view
-                                    .filterKeys(k => techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentType)
+                                    .filterKeys(k =>
+                                      techniqueTemplatesIds.contains(k._1) && k._2 == agentNodeProps.agentInfo.agentType
+                                    )
                                     .values
                                     .toSet
                                   p.technique.generationMode match {

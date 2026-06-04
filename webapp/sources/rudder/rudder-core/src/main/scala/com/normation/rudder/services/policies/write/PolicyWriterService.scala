@@ -321,7 +321,7 @@ class PolicyWriterServiceImpl(
 
     val file             = File(agentNodeConfig.paths.newFolder, Constants.GENERATED_PARAMETER_FILE)
     val jsonParameters   = generateParametersJson(
-      agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentType))
+      agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name, x.value, agentNodeConfig.agentInfo.agentType))
     )
     val parameterContent = jsonParameters.toJsonPretty
 
@@ -648,7 +648,7 @@ class PolicyWriterServiceImpl(
                                               ("RUDDER_NODE_ID", nodeId),
                                               ("RUDDER_NODE_HOSTNAME", hostname),
                                               ("RUDDER_NODE_POLICY_SERVER_ID", policyServer),
-                                              ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id),
+                                              ("RUDDER_AGENT_TYPE", agentNodeConfig.agentInfo.agentType.id),
                                               (
                                                 "RUDDER_POLICIES_DIRECTORY_NEW",
                                                 agentNodeConfig.paths.newFolder
@@ -694,7 +694,7 @@ class PolicyWriterServiceImpl(
                                                 ("RUDDER_NODE_ID", nodeId),
                                                 ("RUDDER_NODE_HOSTNAME", hostname),
                                                 ("RUDDER_NODE_POLICY_SERVER_ID", policyServer),
-                                                ("RUDDER_AGENT_TYPE", agentNodeConfig.agentType.id),
+                                                ("RUDDER_AGENT_TYPE", agentNodeConfig.agentInfo.agentType.id),
                                                 (
                                                   "RUDDER_POLICIES_DIRECTORY_CURRENT",
                                                   agentNodeConfig.paths.baseFolder
@@ -840,7 +840,7 @@ class PolicyWriterServiceImpl(
             r  <- copyResourceFile(
                     file,
                     isRootServer,
-                    prepared.agentNodeProps.agentType,
+                    prepared.agentNodeProps.agentInfo.agentType,
                     prepared.paths.newFolder,
                     preparedTechnique.reportIdToReplace,
                     resources
@@ -927,7 +927,7 @@ class PolicyWriterServiceImpl(
                        .toIO
                    }
         } yield {
-          AgentNodeConfiguration(config, agentType, paths)
+          AgentNodeConfiguration(config, agentInfo, paths)
         }
     }
   }
@@ -1419,9 +1419,7 @@ object RudderJsonPolicyFile {
       "MANAGED_NODES_KEY",
       "MANAGED_NODES_NAME",
       "COMMUNITY",
-      "RUDDER_INVENTORY_VARS",
-      "BUNDLELIST",
-      "INPUTLIST"
+      "RUDDER_INVENTORY_VARS"
     )
 
     // we have dedicated json encoder here, since we need to be compatible with historical data

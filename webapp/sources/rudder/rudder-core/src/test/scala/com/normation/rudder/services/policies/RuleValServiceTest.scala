@@ -131,7 +131,7 @@ class RuleValServiceTest extends Specification {
       agentConfigs = AgentConfig(AgentType.CfeCommunity, Nil, Nil, Nil, Nil) :: Nil,
       trackerVariableSpec = TrackerVariableSpec(None, None),
       rootSection = makeRootSectionSpec(),
-      deprecrationInfo = None,
+      deprecationInfo = None,
       systemVariableSpecs = Set(),
       isMultiInstance = false,
       longDescription = "",

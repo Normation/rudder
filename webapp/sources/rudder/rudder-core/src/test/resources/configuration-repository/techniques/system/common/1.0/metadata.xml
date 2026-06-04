@@ -21,6 +21,9 @@
     <TML name="rudder-system-directives">
       <OUTPATH>rudder-system-directives.cf</OUTPATH>
     </TML>
+    <TML name="rudder-system-directives-end">
+      <OUTPATH>rudder-system-directives-end.cf</OUTPATH>
+    </TML>
     <TML name="rudder-promises-generated">
       <OUTPATH>rudder-promises-generated</OUTPATH>
       <INCLUDED>false</INCLUDED>
@@ -83,8 +86,6 @@
 
   <SYSTEMVARS>
     <NAME>ALLOWED_NETWORKS</NAME>
-    <NAME>INPUTLIST</NAME>
-    <NAME>BUNDLELIST</NAME>
     <NAME>RUDDER_DIRECTIVES_SEQUENCE</NAME>
     <NAME>RUDDER_DIRECTIVES_INPUTS</NAME>
     <NAME>RUDDER_SYSTEM_DIRECTIVES_SEQUENCE</NAME>

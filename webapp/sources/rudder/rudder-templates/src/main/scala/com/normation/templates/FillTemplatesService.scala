@@ -100,7 +100,7 @@ object StringTemplateLogger extends NamedZioLogger {
 
 /**
  * A class to synchronize the usage of template
- * Race conditions can occurs (see https://issues.rudder.io/issues/14322 ), causing two
+ * Race conditions can occur (see https://issues.rudder.io/issues/14322 ), causing two
  * different thread trying to insert vars in the same template
  * Encapsuling the template in a class allow to synchronize on the class itself, so
  * ensuring that two different thread can touch the same template (but can touch different
@@ -112,7 +112,7 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
   private val semaphore = ZioRuntime.unsafeRun(Semaphore.make(1))
 
   /**
-    * Replace all occurences of parameters in the 'content' string with
+    * Replace all occurrences of parameters in the 'content' string with
     * their value(s) defined in the given set of values.
     *
     * If there is no error, returns the resulting content
@@ -166,7 +166,7 @@ class SynchronizedFileTemplate(templateName: String, localTemplate: Either[Rudde
                                      case (name, value, errorMsg) => IOResult.attempt(errorMsg)(template.setAttribute(name, value))
                                    }
                        // return the actual template with replaced variable in case of success
-                       result   <- IOResult.attempt("An error occured when converting template to string")(template.toString())
+                       result   <- IOResult.attempt("An error occurred when converting template to string")(template.toString())
                        t1_in    <- currentTimeNanos
                      } yield (result, t1_in - t0_in)
                    )

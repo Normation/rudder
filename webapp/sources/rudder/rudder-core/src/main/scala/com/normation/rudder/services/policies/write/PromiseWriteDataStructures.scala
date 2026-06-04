@@ -41,9 +41,9 @@ import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.IOResult
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.OsDetails
+import com.normation.rudder.facts.nodes.RudderAgent
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
@@ -65,7 +65,7 @@ import com.normation.templates.STVariable
  */
 final case class AgentNodeConfiguration(
     config:    NodeConfiguration,
-    agentType: AgentType,
+    agentInfo: RudderAgent,
     paths:     NodePoliciesPaths
 )
 
@@ -75,7 +75,7 @@ final case class AgentNodeConfiguration(
  */
 final case class AgentNodeProperties(
     nodeId:         NodeId,
-    agentType:      AgentType,
+    agentInfo:      RudderAgent,
     osDetails:      OsDetails,
     isPolicyServer: Boolean
 )

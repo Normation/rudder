@@ -183,7 +183,7 @@ object DisplayDirectiveTree extends Loggable {
             // and that have at least one version not deprecated (deprecationInfo empty)
             .filter(at => {
               keepTechnique(at) && at.policyTypes.isBase && (at.directives.length > 0 || at.techniques.values.exists {
-                _.deprecrationInfo.isEmpty
+                _.deprecationInfo.isEmpty
               }) && at.techniques.exists(_._2.policyTypes.isBase)
             })
             // We want our technique sorty by human name, default to bundle name in case we don't have any version but that should not happen
@@ -205,7 +205,7 @@ object DisplayDirectiveTree extends Loggable {
       private val localOnClickDirective = onClickDirective.map(f => f(activeTechnique))
 
       def isDeprecated = {
-        activeTechnique.techniques.values.forall(t => t.deprecrationInfo.isDefined)
+        activeTechnique.techniques.values.forall(t => t.deprecationInfo.isDefined)
       }
 
       val agentTypes  = activeTechnique.techniques.values.flatMap(_.agentConfigs).map(_.agentType).toSet
@@ -387,14 +387,14 @@ object DisplayDirectiveTree extends Loggable {
         }
 
         val (_, deprecationInfo, deprecatedIcon) = {
-          if (activeTechnique.techniques.values.forall(t => t.deprecrationInfo.isDefined)) {
+          if (activeTechnique.techniques.values.forall(t => t.deprecationInfo.isDefined)) {
             val message = <p><b>↳ Deprecated: </b>{
-              technique.flatMap(_.deprecrationInfo).map(_.message).getOrElse("this technique is deprecated.")
+              technique.flatMap(_.deprecationInfo).map(_.message).getOrElse("this technique is deprecated.")
             }</p>
             (true, message, { <i class="fa fa-times deprecation-icon"></i> })
 
           } else {
-            technique.flatMap(_.deprecrationInfo) match {
+            technique.flatMap(_.deprecationInfo) match {
               case Some(info) =>
                 val message = <p><b>↳ Deprecated: </b>{info.message}</p>
                 (true, message, { <i class="ion ion-arrow-up-a deprecation-icon"></i> })

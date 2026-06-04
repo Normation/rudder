@@ -14,6 +14,7 @@ body file control {
     "common/1.0/update.cf",
     "rudder-directives.cf",
     "rudder-system-directives.cf",
+    "rudder-system-directives-end.cf",
     "common/1.0/rudder-parameters.cf",
     "common/1.0/rudder-groups.cf",
     "common/1.0/hooks.cf",
@@ -26,26 +27,15 @@ body file control {
     "common/1.0/properties.cf",
     "common/1.0/reporting-http.cf",
     "common/1.0/scheduler.cf",
-    "inventory/1.0/fusionAgent.cf",
   };
 
 }
 
 
 bundle agent rudder_system_directives {
-  # fully generated in bundle common va for iinitial promises
+  # fully generated in bundle common for initial promises
   # The directive sequence will be correctly indented by the generated variable so we can support multiline variable
   methods:
-      "Rudder system policy: daily inventory/Inventory" usebundle => set_dry_run_mode("false");
-      "Rudder system policy: daily inventory/Inventory" usebundle => run_inventory_all;
-}
-bundle agent run_inventory_all
-{
-  methods:
-      "Rudder system policy: daily inventory/Inventory" usebundle => rudder_reporting_context_v4("inventory-all","inventory-all","inventory","","","inventory-allinventory-all");
-      "Rudder system policy: daily inventory/Inventory" usebundle => disable_reporting;
-      "Rudder system policy: daily inventory/Inventory" usebundle => doInventory;
-      "Rudder system policy: daily inventory/Inventory" usebundle => clean_reporting_context;
 
 }
 

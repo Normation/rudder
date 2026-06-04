@@ -110,8 +110,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "Password of the Rudder database user (rudder.jdbc.password property)",
       multivalued = false
     ),
-    SystemVariableSpec("INPUTLIST", "Input list", multivalued = false),
-    SystemVariableSpec("BUNDLELIST", "Bundle list", multivalued = false),
     SystemVariableSpec(
       "COMMUNITY",
       "The Cfengine Community agent",
@@ -352,6 +350,18 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "RUDDER_SYSTEM_DIRECTIVES_INPUTS",
       "The list of inputs specific to bundles RUDDER_SYSTEM_DIRECTIVES_SEQUENCE, in a formatted string",
       multivalued = false
+    ),
+    SystemVariableSpec(
+      "RUDDER_SYSTEM_DIRECTIVES_SEQUENCE_END",
+      "The sequence of bundle to use as method call in bundle rudder_system_directives_end, in a formatted string",
+      multivalued = false,
+      constraint = Constraint(RawVType, mayBeEmpty = true) // this is because for windows 9.1 agent, everything is in start
+    ),
+    SystemVariableSpec(
+      "RUDDER_SYSTEM_DIRECTIVES_INPUTS_END",
+      "The list of inputs specific to bundles RUDDER_SYSTEM_DIRECTIVES_SEQUENCE_END, in a formatted string",
+      multivalued = false,
+      constraint = Constraint(RawVType, mayBeEmpty = true) // this is because for windows 9.1 agent, everything is in start
     ),
     SystemVariableSpec(
       "RUDDER_DIRECTIVES_SEQUENCE",
