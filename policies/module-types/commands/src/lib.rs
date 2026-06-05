@@ -137,6 +137,14 @@ pub struct CommandsParameters {
     show_content: bool,
 }
 
+struct UmaskGuard(Mode);
+
+impl Drop for UmaskGuard {
+    fn drop(&mut self) {
+        umask(self.0);
+    }
+}
+
 struct Commands {}
 
 impl Commands {
@@ -313,10 +321,12 @@ impl Commands {
             command.gid(gid);
         }
 
+        let mut _guard = None;
         if let Some(mask_str) = &p.umask {
             let mask = u32::from_str_radix(mask_str, 8)
                 .with_context(|| format!("Invalid umask '{mask_str}'"))?;
-            umask(Mode::from(mask));
+            let old_mask = umask(Mode::from(mask));
+            _guard = Some(UmaskGuard(old_mask));
         }
 
         if !p.env_vars.is_empty() {
@@ -1197,5 +1207,74 @@ mod tests {
         assert!(stdout.contains("SUPER_ENV_TEST=MY_VAR"));
         assert!(stdout.contains("MY_SECOND_VAR=MY_SECOND_VALUE"));
         assert!(stdout.contains("BOUM3=PAF3"));
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_umask_guard() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "touch /tmp/test".to_string(),
+            args: Vec::new(),
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: Some("777".to_string()),
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let old = umask(Mode::from(0o000));
+        assert_ne!(old, Mode::from(0o777));
+
+        let cmd = CommandsParameters {
+            command: "touch /tmp/test2".to_string(),
+            args: Vec::new(),
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            user: None,
+            group: None,
+            umask: None,
+            env_vars: IndexMap::default(),
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let metadata = fs::metadata("/tmp/test2").unwrap();
+        let permissions = metadata.permissions();
+        let mode = permissions.mode();
+        assert_ne!(mode & 0o777, 0);
+
+        let _ = fs::remove_file("/tmp/test");
+        let _ = fs::remove_file("/tmp/test2");
     }
 }
