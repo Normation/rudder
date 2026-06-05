@@ -9,7 +9,6 @@ use serde_json::Value;
 use std::fs;
 use std::fs::read_to_string;
 use std::path::PathBuf;
-use tempfile::tempdir;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -49,9 +48,7 @@ impl Cli {
         }
 
         let value: Value = serde_json::from_str(&data)?;
-        let tmp = tempdir()?;
-        let temporary_dir = tmp.path();
-        let renderer = cli.engine.renderer(temporary_dir, None)?;
+        let renderer = cli.engine.renderer(None)?;
         let output = renderer.render(Some(cli.template.as_path()), None, &value)?;
 
         let already_present = cli.out.exists();
