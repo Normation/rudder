@@ -48,6 +48,7 @@ ignore = [
     "RUSTSEC-2026-0137",
     # We don't use diesel with sqlite backend
     "RUSTSEC-2026-0135",
+    "RUSTSEC-2026-0172",
     # We don't use diesel with MySQL backend
     "RUSTSEC-2026-0134",
     # We don't use diesel CopyToQuery with the PostgreSQL backend
