@@ -9,26 +9,19 @@ use crate::engine::TemplateEngine;
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 pub(crate) struct Jinja2Engine {
     python_interpreter: String,
-    temporary_dir: PathBuf,
 }
 
 impl Jinja2Engine {
-    pub fn new(temporary_dir: PathBuf, python_version: Option<String>) -> Result<Self> {
+    pub fn new(python_version: Option<String>) -> Result<Self> {
         let python_interpreter = match python_version {
             Some(v) => v,
             None => detect_python_version().context("Could not get python version")?,
         };
-        Ok(Jinja2Engine {
-            python_interpreter,
-            temporary_dir,
-        })
+        Ok(Jinja2Engine { python_interpreter })
     }
 }
 
@@ -53,37 +46,33 @@ impl TemplateEngine for Jinja2Engine {
             _ => unreachable!(),
         };
 
+        let tmp_script = NamedTempFile::new().expect("Failed to create temp script");
+        let template_script_path = tmp_script.into_temp_path();
         let templating_script_content = include_str!("jinja2/render.py");
-        let script_name = "render-jinja2.py";
 
-        let mut path = PathBuf::from(&self.temporary_dir);
-        path.push(script_name);
-        let templating_script_path = path.to_str().unwrap();
-
-        if !fs::exists(templating_script_path)? {
-            fs::write(templating_script_path, templating_script_content)?;
-            #[cfg(target_family = "unix")]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let perms = fs::Permissions::from_mode(0o755);
-                fs::set_permissions(templating_script_path, perms)?;
-            }
-            #[cfg(target_family = "windows")]
-            {
-                let mut perms = fs::metadata(templating_script_path)?.permissions();
-                perms.set_readonly(false);
-                fs::set_permissions(templating_script_path, perms)?;
-            }
+        fs::write(&template_script_path, templating_script_content)?;
+        #[cfg(target_family = "unix")]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let perms = fs::Permissions::from_mode(0o755);
+            fs::set_permissions(&template_script_path, perms)?;
+        }
+        #[cfg(target_family = "windows")]
+        {
+            let mut perms = fs::metadata(&template_script_path)?.permissions();
+            perms.set_readonly(false);
+            fs::set_permissions(&template_script_path, perms)?;
         }
 
         let output = if cfg!(target_os = "linux") {
             let mut child = Command::new(&self.python_interpreter)
-                .args([templating_script_path, template_path])
+                .arg(&template_script_path)
+                .arg(template_path)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .unwrap_or_else(|_| panic!("Failed to execute {}", templating_script_path));
+                .unwrap_or_else(|_| panic!("Failed to execute {}", template_script_path.display()));
 
             let stdin = child.stdin.as_mut().unwrap();
             stdin
@@ -93,7 +82,11 @@ impl TemplateEngine for Jinja2Engine {
             let output_info = child.wait_with_output()?;
             if !output_info.status.success() {
                 let output = String::from_utf8_lossy(&output_info.stderr).to_string();
-                bail!("Error {} failed with : {}", script_name, output);
+                bail!(
+                    "Error {} failed with : {}",
+                    template_script_path.display(),
+                    output
+                );
             }
             String::from_utf8_lossy(&output_info.stdout).to_string()
         } else {
