@@ -3,6 +3,7 @@
 
 #![allow(clippy::borrowed_box)]
 
+use crate::output::ResultOutput;
 use crate::package_manager::{PackageId, PackageList};
 use crate::{
     CampaignType, PackageParameters, RebootBehavior, RebootType, Schedule,
@@ -11,7 +12,7 @@ use crate::{
     output::{Report, ScheduleReport, Status},
     package_manager::{PackageSpec, UpdateManager},
 };
-use anyhow::Result;
+use anyhow::{Result, bail};
 use chrono::{DateTime, Duration, Utc};
 use rudder_module_type::Outcome;
 use std::collections::HashMap;
@@ -167,11 +168,37 @@ pub fn do_update(
     p: &RunnerParameters,
     db: &mut PackageDatabase,
     package_manager: &mut Box<dyn UpdateManager>,
-) -> Result<bool> {
+) -> Result<RebootResult> {
     db.start_event(&p.event_id, Utc::now())?;
-    let (report, reboot) = update(package_manager, p.reboot_type, &p.campaign_type)?;
-    db.schedule_post_event(&p.event_id, &report)?;
-    Ok(reboot)
+    let (mut report, reboot_needed) = update(package_manager, p.reboot_type, &p.campaign_type)?;
+    do_reboot(p, db, package_manager, reboot_needed, &mut report)
+}
+
+pub fn do_reboot(
+    p: &RunnerParameters,
+    db: &mut PackageDatabase,
+    pm: &mut Box<dyn UpdateManager>,
+    reboot_needed: bool,
+    report: &mut Report,
+) -> Result<RebootResult> {
+    db.reboot(&p.event_id, report)?;
+    db.schedule_post_event(&p.event_id, report)?;
+    if p.reboot_type == RebootType::Always
+        || (p.reboot_type == RebootType::AsNeeded && reboot_needed)
+    {
+        let rr: ResultOutput<()> = pm.reboot(&p.reboot_behavior);
+        // We have to early fail if the reboot command encounter any failure.
+        // The technique code is expecting the log file to be written in case of error
+        if rr.inner.is_err() {
+            report.step(rr);
+            let now_finished = Utc::now();
+            db.completed(&p.event_id, now_finished, report)?;
+            bail!("Reboot failure")
+        }
+        Ok(RebootResult::Success)
+    } else {
+        Ok(RebootResult::Skipped)
+    }
 }
 
 pub fn do_post_update(p: &RunnerParameters, db: &mut PackageDatabase) -> Result<Outcome> {
@@ -192,8 +219,13 @@ pub fn do_post_update(p: &RunnerParameters, db: &mut PackageDatabase) -> Result<
 }
 
 /// Shortcut method to send an error report directly
-pub fn fail_campaign(reason: &str, report_file: Option<&PathBuf>) -> Result<Outcome> {
-    let mut report = Report::new();
+pub fn fail_campaign(
+    reason: &str,
+    event_id: &str,
+    db: &PackageDatabase,
+    report_file: Option<&PathBuf>,
+) -> Result<Outcome> {
+    let mut report = db.get_report(event_id).unwrap_or_default();
     report.stderr(reason);
     report.status = Status::Error;
     if let Some(ref f) = report_file {
@@ -290,6 +322,12 @@ fn update(
     }
 
     Ok((report, false))
+}
+
+#[derive(Debug, PartialEq)]
+pub enum RebootResult {
+    Success,
+    Skipped,
 }
 
 /// Can run just after upgrade, or at next run in case of reboot.
