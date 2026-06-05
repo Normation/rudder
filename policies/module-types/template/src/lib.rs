@@ -163,7 +163,6 @@ impl Template {
     fn check_apply_inner(
         mode: PolicyMode,
         p: &TemplateParameters,
-        temporary_dir: &Path,
         backup_dir: &Path,
     ) -> Result<TemplateReport> {
         let output_file = &p.path;
@@ -183,7 +182,7 @@ impl Template {
             bail!("Could not get datastate file")
         };
 
-        let renderer = p.engine.renderer(temporary_dir, None)?;
+        let renderer = p.engine.renderer(None)?;
         let output = renderer.render(
             p.template_path.as_deref(),
             p.template_string.as_deref(),
@@ -295,8 +294,7 @@ impl ModuleType0 for Template {
         assert!(self.validate(parameters).is_ok());
         let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
-        let res =
-            Self::check_apply_inner(mode, &p, &parameters.temporary_dir, &parameters.backup_dir);
+        let res = Self::check_apply_inner(mode, &p, &parameters.backup_dir);
         if let Some(r) = p.report_file {
             fs::write(
                 r,

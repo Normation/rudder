@@ -34,16 +34,12 @@ impl std::fmt::Display for Engine {
 }
 
 impl Engine {
-    pub fn renderer(
-        &self,
-        temporary_dir: &Path,
-        python_version: Option<String>,
-    ) -> Result<Box<dyn TemplateEngine>> {
+    pub fn renderer(&self, python_version: Option<String>) -> Result<Box<dyn TemplateEngine>> {
         Ok(match self {
             Engine::Mustache => Box::new(mustache::MustacheEngine),
             Engine::Minijinja => Box::new(minijinja::MiniJinjaEngine),
             Engine::Jinja2 => Box::new(
-                jinja2::Jinja2Engine::new(temporary_dir.to_path_buf(), python_version)
+                jinja2::Jinja2Engine::new(python_version)
                     .context("Failed to create Jinja2 engine")?,
             ),
         })
