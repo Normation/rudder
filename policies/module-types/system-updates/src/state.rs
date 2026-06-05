@@ -13,9 +13,11 @@ use std::{
 pub enum UpdateStatus {
     /// Wait until schedule
     ScheduledUpdate,
-    /// Schedule is reached, start update and reboot if necessary
+    /// Schedule is reached, start update
     RunningUpdate,
-    /// Update is over, waiting for next agent run for post-actions in case of a reboot
+    /// Update is done, reboot the server if needed
+    RunningReboot,
+    /// Update and reboot are over, waiting for next agent run for post-actions in case of a reboot
     PendingPostActions,
     /// Running post-actions and report
     RunningPostActions,
@@ -28,9 +30,10 @@ impl Display for UpdateStatus {
         f.write_str(match self {
             Self::ScheduledUpdate => "scheduled",
             Self::RunningUpdate => "running",
-            Self::Completed => "completed",
+            Self::RunningReboot => "running-reboot",
             Self::PendingPostActions => "pending-post-actions",
             Self::RunningPostActions => "running-post-actions",
+            Self::Completed => "completed",
         })
     }
 }
@@ -40,11 +43,12 @@ impl FromStr for UpdateStatus {
 
     fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
         match s {
-            "running" => Ok(Self::RunningUpdate),
             "scheduled" => Ok(Self::ScheduledUpdate),
-            "completed" => Ok(Self::Completed),
+            "running" => Ok(Self::RunningUpdate),
+            "running-reboot" => Ok(Self::RunningReboot),
             "pending-post-actions" => Ok(Self::PendingPostActions),
             "running-post-actions" => Ok(Self::RunningPostActions),
+            "completed" => Ok(Self::Completed),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Invalid input",
