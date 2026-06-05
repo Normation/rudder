@@ -277,7 +277,18 @@ The following methods on basic types are provided:
 
 ## Jinja2 
 
-The Jinja2 engine is provided for backward compatibility and is only available on Linux systems.
+<div class="warning">
+<b>⚠️ Important: The Jinja2 engine is not sandboxed in this module.</b>
+
+It executes within the full Python runtime context of the process, without
+Jinja2’s sandboxed environment enabled. This means templates are not restricted
+from accessing Python objects exposed to the rendering context and may,
+depending on the environment, interact with underlying Python internals or
+imported modules.
+
+Jinja2 is provided on Linux systems, strictly for backward compatibility and
+<b>trusted-template use cases only</b>.
+</div>
 
 Jinja2 behaves for the most part the same way as MiniJinja. For a complete
 reference of features, see the official [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/).
