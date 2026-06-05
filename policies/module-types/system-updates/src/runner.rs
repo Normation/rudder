@@ -1,5 +1,5 @@
+use crate::campaign::RebootResult;
 use crate::{
-    RebootType,
     campaign::{
         FullSchedule, RunnerParameters, do_post_update, do_schedule, do_update, fail_campaign,
     },
@@ -7,7 +7,7 @@ use crate::{
     package_manager::UpdateManager,
     state::UpdateStatus,
 };
-use anyhow::{Result, bail};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use rudder_module_type::{Outcome, splay::splayed_start};
 
@@ -76,22 +76,10 @@ impl Runner {
                     Ok(Continuation::Stop(outcome))
                 }
             }
-            Action::Update => {
-                let reboot_needed = do_update(&self.parameters, &mut self.db, &mut self.pm)?;
-
-                if self.parameters.reboot_type == RebootType::Always
-                    || (self.parameters.reboot_type == RebootType::AsNeeded && reboot_needed)
-                {
-                    // Async reboot
-                    let result = self.pm.reboot(&self.parameters.reboot_behavior);
-                    match result.inner {
-                        Ok(_) => Ok(Continuation::Stop(Outcome::Success(None))),
-                        Err(e) => bail!("Reboot failed: {:?}", e),
-                    }
-                } else {
-                    Ok(Continuation::Continue)
-                }
-            }
+            Action::Update => match do_update(&self.parameters, &mut self.db, &mut self.pm)? {
+                RebootResult::Success => Ok(Continuation::Stop(Outcome::Success(None))),
+                RebootResult::Skipped => Ok(Continuation::Continue),
+            },
             Action::PostUpdate => {
                 self.db.post_event(&self.parameters.event_id)?;
                 let outcome = do_post_update(&self.parameters, &mut self.db)?;
@@ -138,7 +126,12 @@ impl Runner {
                 }
                 Err(e) => {
                     // Send the report to server
-                    fail_campaign(&format!("{e:?}"), self.parameters.report_file.as_ref())?;
+                    fail_campaign(
+                        &format!("{e:?}"),
+                        &self.parameters.event_id,
+                        &self.db,
+                        self.parameters.report_file.as_ref(),
+                    )?;
                     return Err(e);
                 }
             }
