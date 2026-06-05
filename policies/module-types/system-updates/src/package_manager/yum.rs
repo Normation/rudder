@@ -99,6 +99,7 @@ impl YumPackageManager {
         c.arg("--assumeyes")
             .args(Self::package_specs_as_exclude_argument(excludes))
             .arg("update")
+            .arg("--")
             .args(packages.iter().map(Self::package_spec_as_argument));
         ResultOutput::command(
             c,
