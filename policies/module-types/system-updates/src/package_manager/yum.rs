@@ -75,6 +75,7 @@ impl YumPackageManager {
         let mut c = Command::new("yum");
         c.arg("--assumeyes")
             .arg("update")
+            .arg("--")
             .args(packages.iter().map(Self::package_spec_as_argument));
         ResultOutput::command(
             c,

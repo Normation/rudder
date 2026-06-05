@@ -72,7 +72,7 @@ impl ZypperPackageManager {
 
     fn software_upgrade(&mut self, packages: &[PackageSpec]) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
-        c.arg("--non-interactive").arg("update");
+        c.arg("--non-interactive").arg("update").arg("--");
         c.args(packages.iter().map(Self::package_spec_as_argument));
         let res_update = ResultOutput::command(
             c,
