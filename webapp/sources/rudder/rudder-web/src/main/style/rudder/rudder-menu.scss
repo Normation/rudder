@@ -1179,6 +1179,23 @@ header.main-header .logo-lg img{
   content: "\f021";
   animation: fa-spin 2s infinite linear;
 }
+// additional "previous generation status" icon
+.navbar .navbar-nav li.notifications-menu #generation-status > span:before{
+  display: inline-block;
+  font-family: "Font Awesome 5 Free";
+  font-size: inherit;
+  text-rendering: auto;
+  font-weight: 900;
+  margin-right: 2px;
+}
+.navbar .navbar-nav li.notifications-menu.bg-refresh.bg-refresh-ok #generation-status > span:before{
+  content: "\f00c";
+  color: $rudder-success;
+}
+.navbar .navbar-nav li.notifications-menu.bg-refresh.bg-refresh-error #generation-status > span:before{
+  content: "\f00d";
+  color: #da291c;
+}
 /* ---- */
 #generation-status.label-success{
   background-color: rudder.$success !important;
