@@ -643,7 +643,7 @@ class ZipArchiveBuilderService(
       usedNames:   Ref[Map[String, Set[String]]],
       rootDirName: String,
       groupLib:    FullNodeGroupCategory
-  ): IOResult[Seq[Zippable]] = {
+  )(using qc: QueryContext): IOResult[Seq[Zippable]] = {
 
     import com.softwaremill.quicklens.*
 
@@ -696,7 +696,7 @@ class ZipArchiveBuilderService(
         cat:         FullNodeGroupCategory,
         catFileName: String,
         usedNames:   Ref[Map[String, Set[String]]]
-    ): IOResult[Chunk[Zippable]] = {
+    )(using qc: QueryContext): IOResult[Chunk[Zippable]] = {
       for {
         ref   <- Ref.make(Chunk.empty[Zippable])
         _     <- ZIO.foreach(cat.subCategories) { sub =>
@@ -717,7 +717,7 @@ class ZipArchiveBuilderService(
         // we only archive non-system NodeGroups, other kind of special targets are ignored
         groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false, _) => g }
         _     <- ZIO.foreach(groups) { g =>
-                   val json = JRGroup.fromGroup(g, cat.id, None)(using QueryContext.systemQC).toJsonPretty
+                   val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
                    for {
                      name <- findName(g.name, ".json", usedNames, basePath)
                      path  = basePath + "/" + name
@@ -800,7 +800,7 @@ class ZipArchiveBuilderService(
                                for {
                                  _    <- depDirectiveIds.update(x => x ++ rule.directiveIds)
                                  _    <- depGroupIds.update(x => x ++ RuleTarget.getNodeGroupIds(rule.targets))
-                                 json  = JRRule.fromRule(rule, None, None, None)(using qc).toJsonPretty
+                                 json  = JRRule.fromRule(rule, None, None, None).toJsonPretty
                                  name <- findName(rule.name, ".json", usedNames, RULES_DIR)
                                  path  = rulesDir + "/" + name
                                  _    <- ApplicationLoggerPure.Archive
@@ -853,7 +853,7 @@ class ZipArchiveBuilderService(
                                            TechniqueId(ad.activeTechnique.techniqueName, ad.directive.techniqueVersion),
                                            techniques
                                          )
-                                 json  = JRDirective.fromDirective(tech._2, ad.directive, None)(using qc).toJsonPretty
+                                 json  = JRDirective.fromDirective(tech._2, ad.directive, None).toJsonPretty
                                  name <- findName(ad.directive.name, ".json", usedNames, DIRECTIVES_DIR)
                                  path  = directivesDir + "/" + name
                                  _    <- ApplicationLoggerPure.Archive

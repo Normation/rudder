@@ -92,7 +92,7 @@ class SearchNodeComponent(
 
     groupPage: Boolean
 ) extends SecureDispatchSnippet with Loggable {
-  import SearchNodeComponent.*
+  import com.normation.rudder.web.components.SearchNodeComponent.*
 
   // our local copy of things we work on
   private var query   = _query.map(x => x.copy())
@@ -555,7 +555,7 @@ object SearchNodeComponent {
       c_oldVal: String,
       v_eltid:  String,
       v_old:    String
-  ): JsCmd = {
+  )(using qc: QueryContext): JsCmd = {
     // change input display
     val comp           = ditQueryData.criteriaMap.get(ot) match {
       case None    => StringComparator
@@ -606,7 +606,7 @@ object SearchNodeComponent {
     update
   }
 
-  def replaceAttributes(func: String => Any)(ajaxParam: String): JsCmd = {
+  def replaceAttributes(func: String => Any)(ajaxParam: String)(using qc: QueryContext): JsCmd = {
     parseAttrParam(ajaxParam) match {
       case None                                                             => Alert("Can't parse for attribute: " + ajaxParam)
       case Some((ot, a_eltid, a_oldVal, c_eltid, c_oldVal, v_eltid, v_old)) =>
@@ -627,7 +627,7 @@ object SearchNodeComponent {
     }
   }
 
-  def replaceComp(func: String => Any)(ajaxParam: String): JsCmd = {
+  def replaceComp(func: String => Any)(ajaxParam: String)(using qc: QueryContext): JsCmd = {
     parseCompParam(ajaxParam) match {
       case None                                             => Alert("Can't parse for comparator: " + ajaxParam)
       case Some((ot, a, c_eltid, c_oldVal, v_eltid, v_old)) =>
@@ -643,7 +643,7 @@ object SearchNodeComponent {
   }
 
   // expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
-  def ajaxAttr(lines: Buffer[CriterionLine], i: Int): GUIDJsExp = {
+  def ajaxAttr(lines: Buffer[CriterionLine], i: Int)(using qc: QueryContext): GUIDJsExp = {
     SHtml.ajaxCall( // we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw(
         "this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s"
@@ -653,7 +653,7 @@ object SearchNodeComponent {
     )
   }
   // expect "objectTypeValue,newAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId
-  def ajaxComp(lines: Buffer[CriterionLine], i: Int): GUIDJsExp = {
+  def ajaxComp(lines: Buffer[CriterionLine], i: Int)(using qc: QueryContext): GUIDJsExp = {
     SHtml.ajaxCall( // we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw(
         "%s+','+this.value+',ct_%s,'+ %s +',v_%s,'+%s"
@@ -663,7 +663,7 @@ object SearchNodeComponent {
     )
   }
   // expect "newCompValue,valueSelectEltId"
-  def ajaxVal(lines: Buffer[CriterionLine], i: Int):  GUIDJsExp = {
+  def ajaxVal(lines: Buffer[CriterionLine], i: Int):                          GUIDJsExp = {
     SHtml.ajaxCall(
       JE.JsRaw("this.value+',v_%s'".format(i)),
       s => After(TimeSpan(200), replaceValue(s))
@@ -719,7 +719,7 @@ object SearchNodeComponent {
     }
   }
 
-  def objectTypeSelect(ot: ObjectCriterion, lines: Buffer[CriterionLine], i: Int): NodeSeq = {
+  def objectTypeSelect(ot: ObjectCriterion, lines: Buffer[CriterionLine], i: Int)(using qc: QueryContext): NodeSeq = {
     SHtml.untrustedSelect(
       otOptions,
       Full(ot.objectType),
@@ -732,7 +732,9 @@ object SearchNodeComponent {
     )
   }
 
-  def attributeNameSelect(ot: ObjectCriterion, a: Criterion, lines: Buffer[CriterionLine], i: Int): NodeSeq = {
+  def attributeNameSelect(ot: ObjectCriterion, a: Criterion, lines: Buffer[CriterionLine], i: Int)(using
+      qc: QueryContext
+  ): NodeSeq = {
     SHtml.untrustedSelect(
       optionAttributesFor(ot.objectType),
       Full(a.name),
@@ -866,7 +868,7 @@ object SearchNodeComponent {
     }
   }
 
-  private def asForm(criterionType: CriterionType): AsForm = {
+  private def asForm(criterionType: CriterionType)(using qc: QueryContext): AsForm = {
     criterionType match {
       case NodeStateComparator  =>
         val nodeStates: List[(String, String)] = NodeState.labeledPairs.map { case (x, label) => (x.name, S.?(label)) }
@@ -919,7 +921,7 @@ object SearchNodeComponent {
             // we need to query for the list of groups here
             val subGroups: Seq[SelectableOption[String]] = {
               (for {
-                res <- subGroupComparatorRepo().getGroups(using QueryContext.todoQC)
+                res <- subGroupComparatorRepo().getGroups
               } yield {
                 val g = res.map { case SubGroupChoice(id, name) => SelectableOption(id.serialize, name) }
                 // if current value is defined but not in the list, add it with a "missing group" label

@@ -68,6 +68,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_SECURITY_TAG
 import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -81,6 +82,7 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantCheckLogic
@@ -95,11 +97,13 @@ import zio.json.*
 import zio.syntax.*
 
 class RoLDAPNodeGroupRepository(
-    val rudderDit:     RudderDit,
-    val ldap:          LDAPConnectionProvider[RoLDAPConnection],
-    val mapper:        LDAPEntityMapper,
-    val nodeFactRepo:  NodeFactRepository,
-    val groupLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
+    val rudderDit:        RudderDit,
+    val ldap:             LDAPConnectionProvider[RoLDAPConnection],
+    val mapper:           LDAPEntityMapper,
+    val nodeFactRepo:     NodeFactRepository,
+    val tenantCheckLogic: TenantCheckLogic,
+    val tenantService:    TenantService,
+    val groupLibMutex:    ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoNodeGroupRepository with NamedZioLogger {
   repo =>
 
@@ -235,7 +239,7 @@ class RoLDAPNodeGroupRepository(
                                 .toIO
                                 .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
                        // filter out the group if it can't be seen in the current security context
-                       res <- tenantService.filter(g) match {
+                       res <- tenantCheckLogic.filter(g) match {
                                 case None    => debugTenantFiltering(g).as(None)
                                 case Some(_) =>
                                   for {
@@ -261,7 +265,7 @@ class RoLDAPNodeGroupRepository(
         result          <- ZIO.foreach(ids)(id => getGroupCategory(id))
         // only keep categories that can be seen in the current security context
         filtered        <- ZIO.foreach(result)(c => {
-                             tenantService.filter(c) match {
+                             tenantCheckLogic.filter(c) match {
                                case Some(x) => Some(x).succeed
                                case None    => debugTenantFiltering(c).as(None)
                              }
@@ -401,7 +405,7 @@ class RoLDAPNodeGroupRepository(
         entries           <- allEntries.toVector.traverse(x => mapper.entry2NodeGroupCategory(x)).toIO
         // only keep categories that can be seen in the current security context
         filtered          <- ZIO.foreach(entries)(c => {
-                               tenantService.filter(c) match {
+                               tenantCheckLogic.filter(c) match {
                                  case Some(x) => Some(x).succeed
                                  case None    => debugTenantFiltering(c).as(None)
                                }
@@ -478,7 +482,7 @@ class RoLDAPNodeGroupRepository(
                   })
       // only keep groups that can be seen in the current security context
       filtered <- ZIO.foreach(groups)(g => {
-                    tenantService.filter(g) match {
+                    tenantCheckLogic.filter(g) match {
                       case Some(x) => Some(x).succeed
                       case None    => debugTenantFiltering(g).as(None)
                     }
@@ -502,7 +506,7 @@ class RoLDAPNodeGroupRepository(
                   })
       // only keep groups that can be seen in the current security context
       filtered <- ZIO.foreach(groups)(g => {
-                    tenantService.filter(g) match {
+                    tenantCheckLogic.filter(g) match {
                       case Some(x) => Some(x).succeed
                       case None    => debugTenantFiltering(g).as(None)
                     }

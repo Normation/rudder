@@ -68,7 +68,7 @@ import scala.util.matching.Regex
 import scala.xml.*
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
-  import AsyncDeployment.*
+  import com.normation.rudder.web.comet.AsyncDeployment.*
 
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val nodeFactRepo         = RudderConfig.nodeFactRepository
@@ -409,6 +409,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     val groupsErrors: Map[NodeGroup, String] = failures.toList match {
       case Nil      => Map.empty
       case statuses =>
+        // I'm not sure whose group it is. Maybe rudder?
         val groups = nodeGroupRepo.getAllByIds(statuses.map { case (id, _) => id })(using QueryContext.todoQC).runNow
         groups.flatMap(g => failures.get(g.id).map(f => g -> f.getMessage)).toMap
     }

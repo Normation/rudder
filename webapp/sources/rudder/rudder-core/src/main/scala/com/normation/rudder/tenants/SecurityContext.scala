@@ -93,8 +93,9 @@ object TenantAccessGrant {
   // Be careful, it's really just non-empty interesting (so that adding more tag here leads to more
   // nodes, not less).
   final case class ByTenants(tenants: Chunk[TenantAccess]) extends TenantAccessGrant {
-    override val value: String = s"tags:[${tenants.map(_.serialize).mkString(", ")}]"
-    override def serialize = tenants.map(_.serialize).mkString(",")
+    override val value:     String = s"tags:[${tenants.map(_.serialize).mkString(", ")}]"
+    override def serialize: String = tenants.map(_.serialize).mkString(",")
+
     // the security tag of an object is just its set of tenant ids, whatever the user's permission on them
     override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.ByTenants(tenants.map(_.id)))
   }
@@ -242,7 +243,7 @@ object TenantAccessGrant {
           val merged = (c1 ++ c2).foldLeft(Chunk.empty[TenantAccess]) { (acc, ta) =>
             acc.indexWhere(_.id == ta.id) match {
               case -1 => acc :+ ta
-              case i  => acc.updated(i, TenantAccess(ta.id, TenantPermission.lub(acc(i).grant, ta.grant)))
+              case i  => acc.updated(i, TenantAccess(ta.id, TenantPermission.union(acc(i).grant, ta.grant)))
             }
           }
           ByTenants(merged)

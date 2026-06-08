@@ -271,29 +271,23 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
               (if (writeGrant.canSee(e)) {
                  if (writeGrant.canSee(updated)) {
 
-                   val securityChanged = e.security != updated.security
-                   if (securityChanged && writeGrant != TenantAccessGrant.All) {
-                     // Only admin can change the security tag of an object
-                     error(updated)
-                   } else {
-                     (e.security, updated.security) match {
-                       // no tenants in updated: existing security info is cleared (admin only, already checked)
-                       case (_, None)                            => updated.succeed
-                       // if b is open, it's ok
-                       case (_, Some(SecurityTag.Open))          => updated.succeed
-                       // if both have identical tags, it's ok
-                       case (Some(a), Some(b)) if (a == b)       => updated.succeed
-                       // case where the tags are different: update only if the tenant exists.
-                       // Only admin can reach here (checked above).
-                       case (_, Some(SecurityTag.ByTenants(ts))) =>
-                         if (ts.forall(t => tenants.contains(t))) {
-                           updated.succeed
-                         } else {
-                           Inconsistency(
-                             s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
-                           ).fail
-                         }
-                     }
+                   (e.security, updated.security) match {
+                     // no tenants in updated: existing security info is cleared (admin only, already checked)
+                     case (_, None)                            => updated.succeed
+                     // if b is open, it's ok
+                     case (_, Some(SecurityTag.Open))          => updated.succeed
+                     // if both have identical tags, it's ok
+                     case (Some(a), Some(b)) if (a == b)       => updated.succeed
+                     // case where the tags are different: update only if the tenant exists.
+                     // Only admin can reach here (checked above).
+                     case (_, Some(SecurityTag.ByTenants(ts))) =>
+                       if (ts.forall(t => tenants.contains(t))) {
+                         updated.succeed
+                       } else {
+                         Inconsistency(
+                           s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
+                         ).fail
+                       }
                    }
                  } else {
                    error(updated)

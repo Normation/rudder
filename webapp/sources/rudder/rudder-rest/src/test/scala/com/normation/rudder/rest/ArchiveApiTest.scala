@@ -238,7 +238,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       r <- restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid("rule1"))).notOptional(s"test")
       _ <- restTestSetUp.mockRules.ruleRepo.update(
              r.copy(categoryId = RuleCategoryId("category1"))
-           )(using qc.newCC(None))
+           )(using qc.newCC())
     } yield {}).runNow
 
     restTest.testGETResponse("/api/latest/archives/export?rules=rule1&include=groups,techniques") {
@@ -1091,7 +1091,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       r <- restTestSetUp.mockRules.ruleRepo.getOpt(RuleId(RuleUid(ruleId))).notOptional(s"missing ${ruleId} in test")
       _ <-
         restTestSetUp.mockRules.ruleRepo
-          .update(r.copy(shortDescription = newDesc))(using qc.newCC(None))
+          .update(r.copy(shortDescription = newDesc))(using qc.newCC())
     } yield ()).runNow
     // update technique
     val techniqueId = "Create_file/1.0"

@@ -47,7 +47,7 @@ import zio.json.*
  * Tenants should be \ascii\num_-
  */
 final case class TenantId(value: String) extends AnyVal {
-  def debugString = value
+  def debugString: String = value
 }
 
 object TenantId {
@@ -57,7 +57,7 @@ object TenantId {
     JsonDecoder.string.map(TenantId(_))
   )
 
-  // Tenant d can only be non empty alpha-num and hyphen. Check externally to avoid perf cost
+  // Tenant d can only be non-empty alpha-num and hyphen. Check externally to avoid perf cost
   // at instantiation;
   val checkTenantId: Regex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
 
@@ -77,47 +77,35 @@ object TenantId {
  * Serialized form (in the `tenantId:permission` access string): `r` for Read, `rw` for ReadWrite.
  * For backward compatibility, an absent permission means `ReadWrite`.
  */
-sealed trait TenantPermission extends EnumEntry {
-  // the optional serialized permission token (after the ':'). `ReadWrite` has none for backward compat.
-  def token:    Option[String]
+sealed trait TenantPermission(override val entryName: String) extends EnumEntry {
   def canRead:  Boolean
   def canWrite: Boolean
-  // rank in the read < write lattice, used to merge two permissions on the same tenant
-  def rank:     Int
 }
 
 object TenantPermission extends Enum[TenantPermission] {
-  case object Read      extends TenantPermission {
-    override val token    = Some("r")
-    override val canRead  = true
-    override val canWrite = false
-    override val rank     = 1
-  }
-  case object ReadWrite extends TenantPermission {
-    override val token    = scala.None // bare tenant id, for backward compatibility with previous serialization
-    override val canRead  = true
-    override val canWrite = true
-    override val rank     = 2
-  }
-  case object None      extends TenantPermission {
-    override val token    = Some("n")
+  // order is important, from least powerful to most powerful
+  case object None      extends TenantPermission("none") {
     override val canRead  = false
     override val canWrite = false
-    override val rank     = 0
+  }
+  case object Read      extends TenantPermission("r")    {
+    override val canRead  = true
+    override val canWrite = false
+  }
+  case object ReadWrite extends TenantPermission("rw")   {
+    override val canRead  = true
+    override val canWrite = true
   }
 
   override val values: IndexedSeq[TenantPermission] = findValues
 
   // keep the highest permission of the two (used to merge accesses on the same tenant)
-  def lub(a: TenantPermission, b: TenantPermission): TenantPermission = if (a.rank >= b.rank) a else b
+  def union(a: TenantPermission, b: TenantPermission): TenantPermission = if (indexOf(a) < indexOf(b)) b else a
 
   // parse the permission token (the part after the ':'); absence (None) means ReadWrite for backward compat
   def parseToken(token: Option[String]): Option[TenantPermission] = token match {
     case scala.None => Some(ReadWrite)
-    case Some("r")  => Some(Read)
-    case Some("rw") => Some(ReadWrite)
-    case Some("n")  => Some(None)
-    case Some(_)    => scala.None
+    case Some(t)    => TenantPermission.withNameInsensitiveOption(t)
   }
 }
 
@@ -131,15 +119,10 @@ object TenantPermission extends Enum[TenantPermission] {
  * - `zoneA:r`  -> Read on `zoneA`
  * - `zoneA:rw` -> ReadWrite on `zoneA`
  */
-final case class TenantAccess(id: TenantId, grant: TenantPermission) {
-  def serialize: String = grant.token match {
-    case scala.None => id.value
-    case Some(t)    => s"${id.value}:${t}"
-  }
-}
+final case class TenantAccess(id: TenantId, grant: TenantPermission)
 
 object TenantAccess {
-  // convenience: a tenant access defaults to ReadWrite (backward compatible)
+  // convenience: a tenant access defaults to ReadWrite (backward compatibility with 9.1)
   def apply(id: TenantId): TenantAccess = TenantAccess(id, TenantPermission.ReadWrite)
 
   /*
@@ -157,6 +140,16 @@ object TenantAccess {
       grant <- TenantPermission.parseToken(optToken)
     } yield TenantAccess(id, grant)
   }
+
+  extension (t: TenantAccess) {
+    // do not output "rw" for that case, since it's the default if not provided
+    def serialize: String = if (t.grant == TenantPermission.ReadWrite) t.id.value else s"${t.id.value}:${t.grant.entryName}"
+  }
+
+  given codecTenantAccess: JsonCodec[TenantAccess] = JsonCodec.string.transformOrFail(
+    s => parse(s).toRight(s"Can not parse '${s}' as a valid tenant access permission"),
+    t => t.serialize
+  )
 }
 
 /*

@@ -41,7 +41,6 @@ import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.ncf.*
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -67,9 +66,8 @@ class MigrateDirectiveWithSelectInputBroken(
   override val description = "Migrate directives with invalid parameters"
 
   def updateDirectivesWithSelectInputBroken: ZIO[Any, RudderError, Unit] = {
-    val modificationId = ModificationId(uuidGenerator.newUuid)
     // this is a system migration, it operates on all tenants
-    given cc: ChangeContext = ChangeContext.newForRudder().withModId(modificationId)
+    given cc: ChangeContext = ChangeContext.newForRudder()
     given qc: QueryContext  = QueryContext.systemQC
     for {
       res        <- techniqueReader.readTechniquesMetadataFile

@@ -166,8 +166,7 @@ class DirectiveApi(
         result        <- service.createOrCloneDirective(
                            restDirective,
                            restDirective.id.map(_.uid).getOrElse(DirectiveUid(uuidGen.newUuid)),
-                           restDirective.source,
-                           params
+                           restDirective.source
                          )
       } yield {
         val action = if (restDirective.source.nonEmpty) "cloneDirective" else schema.name
@@ -328,15 +327,13 @@ class DirectiveApiService14(
   def createOrCloneDirective(
       restDirective: JQDirective,
       directiveId:   DirectiveUid,
-      source:        Option[DirectiveId],
-      params:        DefaultParams
+      source:        Option[DirectiveId]
   )(implicit cc: ChangeContext): IOResult[JRDirective] = {
     def actualDirectiveCreation(
         restDirective:   JQDirective,
         baseDirective:   Directive,
         activeTechnique: ActiveTechnique,
-        technique:       Technique,
-        params:          DefaultParams
+        technique:       Technique
     )(implicit cc: ChangeContext): IOResult[JRDirective] = {
       val newDirective = restDirective.updateDirective(baseDirective)
       val modId        = ModificationId(uuidGen.newUuid)
@@ -354,7 +351,7 @@ class DirectiveApiService14(
                    checkedParameters <- traverse(paramEditor.mapValueSeq.toSeq)(checkParameters(paramEditor))
                  } yield { checkedParameters.toMap }).toIO.chainError(s"Error with directive Parameters")
         saved <- writeDirective
-                   .saveDirective(activeTechnique.id, newDirective)(using cc.copy(message = params.reason))
+                   .saveDirective(activeTechnique.id, newDirective)
                    .chainError(s"Could not save Directive ${newDirective.id.uid.value}")
         // We need to deploy only if there is a saveDiff, that says that a deployment is needed
         _     <- ZIO.when(saved.map(_.needDeployment).getOrElse(false)) {
@@ -381,7 +378,7 @@ class DirectiveApiService14(
           (_, technique) = tuple
           newDirective   = restDirective.copy(enabled = Some(false), techniqueVersion = Some(techId.version))
           baseDirective  = ad.directive.modify(_.id.uid).setTo(directiveId)
-          result        <- actualDirectiveCreation(newDirective, baseDirective, ad.activeTechnique, technique, params)
+          result        <- actualDirectiveCreation(newDirective, baseDirective, ad.activeTechnique, technique)
         } yield {
           result
         }
@@ -408,7 +405,7 @@ class DirectiveApiService14(
                                _isEnabled = true,
                                security = cc.accessGrant.toSecurityTag
                              )
-          result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique, params)
+          result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique)
         } yield {
           result
         }

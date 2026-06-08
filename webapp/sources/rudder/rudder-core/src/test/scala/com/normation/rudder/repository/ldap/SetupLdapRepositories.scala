@@ -206,6 +206,8 @@ trait SetupLdapRepositories {
       roLdap,
       ldapMapper,
       nodeFactRepo,
+      tenantService,
+      tenantRepo,
       new ZioTReentrantLock("group-lock")
     )
   }

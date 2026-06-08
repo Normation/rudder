@@ -37,9 +37,12 @@
 
 package com.normation.rudder.users
 
+import com.normation.rudder.tenants.QueryContext
+
 /**
  * A minimalistic definition of a service that give access to currently logged user, if any.
  */
 trait UserService {
   def getCurrentUser: Option[AuthenticatedUser]
+  def getCurrentQC:   QueryContext = getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
 }

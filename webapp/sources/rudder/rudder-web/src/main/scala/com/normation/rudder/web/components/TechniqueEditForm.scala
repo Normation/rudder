@@ -41,7 +41,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
@@ -108,7 +107,6 @@ class TechniqueEditForm(
   private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
   private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
   private val checkSyncService            = RudderConfig.techniqueCheckSyncService
-  private val uuidGen                     = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
   private val directiveEditorService      = RudderConfig.directiveEditorService
   private val dependencyService           = RudderConfig.dependencyAndDeletionService
@@ -371,12 +369,13 @@ class TechniqueEditForm(
         onFailureRemovePopup()
       } else {
         JsRaw("hideBsModal('deleteActionDialog');") & { // JsRaw ok, const
-          val modId = ModificationId(uuidGen.newUuid)
+          given cc: ChangeContext = qc.newCC(crReasonsRemovePopup.map(_.get))
+
           (for {
             deleted <-
-              dependencyService.cascadeDeleteTechnique(id)(using qc.newCC(crReasonsRemovePopup.map(_.get)).withModId(modId))
+              dependencyService.cascadeDeleteTechnique(id)
             deploy  <- {
-              asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+              asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
               Full("Policy update request sent")
             }
           } yield {

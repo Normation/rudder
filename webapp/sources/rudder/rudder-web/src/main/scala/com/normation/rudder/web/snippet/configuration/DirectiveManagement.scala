@@ -101,8 +101,7 @@ object JsonDirectiveRId {
 class DirectiveManagement extends SecureDispatchSnippet with Loggable {
   import com.normation.rudder.web.snippet.configuration.DirectiveManagement.*
 
-  // TODO : how can we get user context
-  given qc: QueryContext = RudderConfig.userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
+  given qc: QueryContext = RudderConfig.userService.getCurrentQC
 
   private val techniqueRepository = RudderConfig.techniqueRepository
   private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()

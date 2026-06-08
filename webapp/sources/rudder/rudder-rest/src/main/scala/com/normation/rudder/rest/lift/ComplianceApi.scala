@@ -1370,16 +1370,16 @@ class ComplianceAPIService(
   /**
    * Get the compliance for everything
    */
-  private def getSystemRules()  = {
+  private def getSystemRules()(using qc: QueryContext)  = {
     for {
-      allRules  <- rulesRepo.getAll(true)(using QueryContext.systemQC)
-      userRules <- rulesRepo.getAll()(using QueryContext.systemQC)
+      allRules  <- rulesRepo.getAll(true)
+      userRules <- rulesRepo.getAll()
     } yield {
       allRules.diff(userRules)
     }
   }
-  private def getAllUserRules() = {
-    rulesRepo.getAll()(using QueryContext.systemQC)
+  private def getAllUserRules()(using qc: QueryContext) = {
+    rulesRepo.getAll()
   }
   private def getByNodesCompliance(
       onlyNode:   Option[NodeId],

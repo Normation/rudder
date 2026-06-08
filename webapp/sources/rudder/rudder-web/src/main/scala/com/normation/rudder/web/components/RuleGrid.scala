@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.*
@@ -109,7 +108,6 @@ class RuleGrid(
   // used to error tempering
   private val roRuleRepository = RudderConfig.roRuleRepository
   private val woRuleRepository = RudderConfig.woRuleRepository
-  private val uuidGen          = RudderConfig.stringUuidGenerator
   private val nodeFactRepo     = RudderConfig.nodeFactRepository
 
   /////  local variables /////
@@ -551,7 +549,6 @@ class RuleGrid(
               _ <- woRuleRepository.update(r.copy(isEnabledStatus = false))(using
                      ChangeContext
                        .newForRudder(Some("Rule automatically disabled because it contains error (bad target or bad directives)"))
-                       .withModId(ModificationId(uuidGen.newUuid))
                    )
             } yield {
               logger.warn(

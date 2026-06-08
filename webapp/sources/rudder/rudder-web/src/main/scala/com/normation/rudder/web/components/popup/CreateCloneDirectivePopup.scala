@@ -204,7 +204,7 @@ class CreateCloneDirectivePopup(
         )
       }
       roDirectiveRepository
-        .getActiveTechniqueAndDirective(directive.id)(using qc)
+        .getActiveTechniqueAndDirective(directive.id)
         .notOptional(s"Error: active technique for directive '${directive.id.debugString}' was not found")
         .toBox match {
         case Full((activeTechnique, _)) =>

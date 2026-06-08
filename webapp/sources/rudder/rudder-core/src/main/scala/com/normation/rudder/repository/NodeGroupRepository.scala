@@ -290,7 +290,7 @@ trait RoNodeGroupRepository {
 
   /**
    * Retrieve all groups that have at least one of the given
-   * node ID in there member list.
+   * node ID in their member list.
    * @param nodeIds
    * @return
    */
@@ -313,7 +313,7 @@ trait RoNodeGroupRepository {
 
   /**
    * Get all pairs of (categoryid, category)
-   * in a map in which keys are the parent category of the
+   * in a map in which keys are the parent category of
    * the template. The map is sorted by categories:
    * SortedMap {
    *   "/"           -> [root]

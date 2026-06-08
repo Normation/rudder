@@ -66,10 +66,10 @@ class RestCompletion(
 
       OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
         val fetchTags = if (kind == "directive") {
-          completion.findDirectiveTagNames(token)(using userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC))
+          completion.findDirectiveTagNames(token)(using userService.getCurrentQC)
         } else {
           // rule
-          completion.findRuleTagNames(token)(using userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.systemQC))
+          completion.findRuleTagNames(token)(using userService.getCurrentQC)
         }
 
         fetchTags match {
@@ -91,7 +91,7 @@ class RestCompletion(
 
         val fetchTags = if (kind == "directive") {
           completion.findDirectiveTagValues(token, None)(using
-            userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
+            userService.getCurrentQC
           )
         } else {
           // rule
@@ -118,7 +118,7 @@ class RestCompletion(
 
       val fetchTags = if (kind == "directive") {
         completion.findDirectiveTagValues(token, Some(key))(using
-          userService.getCurrentUser.map(_.qc).getOrElse(QueryContext.noneQC)
+          userService.getCurrentQC
         )
       } else {
         // rule

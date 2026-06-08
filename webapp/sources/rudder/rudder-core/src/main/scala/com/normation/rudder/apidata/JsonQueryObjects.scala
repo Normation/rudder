@@ -380,7 +380,8 @@ object JsonQueryObjects {
       properties:  Option[List[GroupProperty]],
       query:       Option[Option[Query]],
       isDynamic:   Option[Boolean],
-      _isEnabled:  Option[Boolean]
+      _isEnabled:  Option[Boolean],
+      security:    Option[SecurityTag]
   )
 
   final case class JQGroupCategory private[apidata] (
@@ -481,10 +482,10 @@ object JsonQueryObjects {
               Some(p),
               q.map(Some(_)),
               dynamic,
-              enabled
+              enabled,
+              security
             )
           )
-          .copy(security = security.orElse(group.security))
       }
     }
   }

@@ -89,11 +89,11 @@ class SaveDirectivesOnTechniqueCallback(
                            newDirective = directive.copy(parameters = paramEditor.mapValueSeq)
                            saved       <- if (directive.isSystem) {
                                             woDirectiveRepo
-                                              .saveSystemDirective(inActiveTechnique.id, newDirective)(using cc)
+                                              .saveSystemDirective(inActiveTechnique.id, newDirective)
                                               .toBox
                                           } else {
                                             woDirectiveRepo
-                                              .saveDirective(inActiveTechnique.id, newDirective)(using cc)
+                                              .saveDirective(inActiveTechnique.id, newDirective)
                                               .toBox
                                           }
                          } yield {

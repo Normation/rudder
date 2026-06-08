@@ -147,9 +147,7 @@ class RuleApi(
         result   <- service.createRule(
                       restRule,
                       restRule.id.getOrElse(RuleId(RuleUid(uuidGen.newUuid))),
-                      restRule.source,
-                      params,
-                      authzToken.qc.actor
+                      restRule.source
                     )
       } yield {
         val action = if (restRule.source.nonEmpty) "cloneRule" else schema.name
@@ -300,9 +298,11 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      given cc: ChangeContext = authzToken.qc.newCC(params.reason)
+
       (for {
         rid <- RuleId.parse(id).toIO
-        res <- service.unloadRule(rid, params, authzToken.qc.actor)
+        res <- service.unloadRule(rid)
       } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
     }
   }
@@ -561,9 +561,7 @@ class RuleApiService14(
   def createRule(
       restRule: JQRule,
       ruleId:   RuleId,
-      clone:    Option[RuleId],
-      params:   DefaultParams,
-      actor:    EventActor
+      clone:    Option[RuleId]
   )(implicit cc: ChangeContext): IOResult[JRRule] = {
     // decide if we should create a new rule or clone an existing one
     // Return the source rule to use in each case.
@@ -571,9 +569,7 @@ class RuleApiService14(
         name:     String,
         restRule: JQRule,
         ruleId:   RuleId,
-        clone:    Option[RuleId],
-        params:   DefaultParams,
-        actor:    EventActor
+        clone:    Option[RuleId]
     )(implicit cc: ChangeContext): IOResult[RuleChangeRequest] = {
       clone match {
         case Some(sourceId) =>
@@ -606,7 +602,7 @@ class RuleApiService14(
            */
           for {
             workflow <- workflowLevelService
-                          .getForRule(actor, change)
+                          .getForRule(cc.actor, change)
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the rule if a workflow should be
@@ -620,9 +616,8 @@ class RuleApiService14(
 
     (for {
       name   <- restRule.displayName.notOptional("Missing manadatory parameter 'displayName'")
-      change <- createOrClone(name, restRule, ruleId, clone, params, actor)
-      modId   = ModificationId(uuidGen.newUuid)
-      _      <- writeRule.create(change.newRule)(using cc.copy(actor = actor, message = params.reason).withModId(modId))
+      change <- createOrClone(name, restRule, ruleId, clone)
+      _      <- writeRule.create(change.newRule)
 
       directiveLib <- readDirectives.getFullDirectiveLibrary()(using cc.toQC)
       groupLib     <- readGroup.getFullGroupLibrary()(using cc.toQC)
@@ -630,7 +625,7 @@ class RuleApiService14(
       globalMode   <- getGlobalPolicyMode()
     } yield {
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
       JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))(using cc.toQC)
     }).chainError(s"Error when creating new rule")
   }
@@ -687,20 +682,19 @@ class RuleApiService14(
      })
   }
 
-  def unloadRule(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[RuleId] = {
+  def unloadRule(id: RuleId)(using cc: ChangeContext): IOResult[RuleId] = {
     (if (id.rev == GitVersion.DEFAULT_REV) {
        Inconsistency(s"The default revision can not be specifically loaded for generation (it is always loaded)").fail
      } else {
-       val modId = ModificationId(uuidGen.newUuid)
        for {
          // perhaps that will need to go throught change requests
-         ldap <- writeRule.unload(id)(using ChangeContext.newFor(actor, TenantAccessGrant.All, params.reason).withModId(modId))
+         ldap <- writeRule.unload(id)
          _    <-
            ConfigurationLoggerPure.info(
              s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' unloaded. It will not be used anymore in comming policy generations."
            )
        } yield {
-         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+         asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
          id
        }
      })
