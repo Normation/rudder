@@ -842,7 +842,7 @@ class WoLDAPNodeGroupRepository(
         getCategoryEntry(con, into).notOptional(s"The parent category '${into}' was not found, can not add")
       parent              <- mapper.entry2NodeGroupCategory(parentCategoryEntry).toIO
       // you can add to a category only if you can see its parent
-      newCategory         <- cc.accessGrant.canSeeOrFail(parent) {
+      newCategory         <- cc.accessGrant.canModifyOrFail(parent) {
                                for {
                                  exists       <- categoryExists(con, that.name, parentCategoryEntry.dn)
                                  // this will need to be updated in a full multi-tenants environment because it leaks info about existing categories
@@ -905,7 +905,7 @@ class WoLDAPNodeGroupRepository(
         oldCategoryEntry <-
           getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
         oldCategory      <- mapper.entry2NodeGroupCategory(oldCategoryEntry).toIO
-        updated          <- cc.accessGrant.canSeeOrFail(oldCategory) {
+        updated          <- cc.accessGrant.canModifyOrFail(oldCategory) {
                               for {
                                 exists       <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
                                 canAddByName <-
@@ -1069,7 +1069,7 @@ class WoLDAPNodeGroupRepository(
                        }
       categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
       category      <- mapper.entry2NodeGroupCategory(categoryEntry).toIO
-      diff          <- cc.accessGrant.canSeeOrFail(category) {
+      diff          <- cc.accessGrant.canModifyOrFail(category) {
                          for {
                            status <- tenantRepo.getStatus
                            diff   <- tenantService.manageCreate(nodeGroup, cc, status) { ng =>
@@ -1303,9 +1303,9 @@ class WoLDAPNodeGroupRepository(
                         .chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
       // a group can be moved only if the current security context can see both the group and the
       // destination category
-      _            <- cc.accessGrant.canSeeOrFail(oldGroup)(ZIO.unit)
+      _            <- cc.accessGrant.canModifyOrFail(oldGroup)(ZIO.unit)
       destCategory <- getGroupCategory(containerId)
-      _            <- cc.accessGrant.canSeeOrFail(destCategory)(ZIO.unit)
+      _            <- cc.accessGrant.canModifyOrFail(destCategory)(ZIO.unit)
       systemCheck  <- if (oldGroup.isSystem) "You can not move system group".fail else ZIO.unit
 
       groupRDN      <- existing.rdn.notOptional("Error when retrieving RDN for an existing group - seems like a bug")

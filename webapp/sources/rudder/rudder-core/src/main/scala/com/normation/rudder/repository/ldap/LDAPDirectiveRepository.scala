@@ -840,7 +840,7 @@ class WoLDAPDirectiveRepository(
       // load the existing directive (unfiltered) for the tenant check and the old root section
       oldAtAndDir           <- getActiveTechniqueAndDirective(DirectiveId(directive.id.uid))
       status                <- tenantRepo.getStatus
-      optDiff               <- cc.accessGrant.canSeeOrFail(parentActiveTechnique) {
+      optDiff               <- cc.accessGrant.canModifyOrFail(parentActiveTechnique) {
                                  tenantService.manageUpdate(oldAtAndDir.map(_._2), directive, cc, status) { dir =>
                                    for {
                                      canAdd           <-
@@ -1081,7 +1081,7 @@ class WoLDAPDirectiveRepository(
       parentCategory      <-
         getActiveTechniqueCategory(into).notOptional(s"The parent category '${into.value}' was not found, can not add")
       status              <- tenantRepo.getStatus
-      updatedParent       <- cc.accessGrant.canSeeOrFail(parentCategory) {
+      updatedParent       <- cc.accessGrant.canModifyOrFail(parentCategory) {
                                tenantService.manageCreate(that, cc, status) { cat =>
                                  val categoryEntry = mapper.activeTechniqueCategory2ldap(cat, parentCategoryEntry.dn)
                                  for {
@@ -1237,9 +1237,9 @@ class WoLDAPDirectiveRepository(
         getCategoryEntry(con, intoParent).notOptional(s"New destination category '${intoParent.value}' was not found")
       // a category can be moved only if the current security context can see both it and the destination
       oldCategory    <- mapper.entry2ActiveTechniqueCategory(categoryEntry).toIO
-      _              <- cc.accessGrant.canSeeOrFail(oldCategory)(ZIO.unit)
+      _              <- cc.accessGrant.canModifyOrFail(oldCategory)(ZIO.unit)
       destCategory   <- mapper.entry2ActiveTechniqueCategory(newParentEntry).toIO
-      _              <- cc.accessGrant.canSeeOrFail(destCategory)(ZIO.unit)
+      _              <- cc.accessGrant.canModifyOrFail(destCategory)(ZIO.unit)
       moveAuthorised <- if (newParentEntry.dn.isDescendantOf(categoryEntry.dn, true)) {
                           "Can not move a category to itself or one of its children".fail
                         } else "Succes".succeed
@@ -1314,7 +1314,7 @@ class WoLDAPDirectiveRepository(
                              security = None
                            )
       status            <- tenantRepo.getStatus
-      saved             <- cc.accessGrant.canSeeOrFail(parentCategory) {
+      saved             <- cc.accessGrant.canModifyOrFail(parentCategory) {
                              tenantService.manageCreate(newActiveTechnique, cc, status) { at =>
                                val uptEntry = mapper.activeTechnique2Entry(at, categoryEntry.dn)
                                for {
@@ -1364,9 +1364,9 @@ class WoLDAPDirectiveRepository(
         )
       // an active technique can be moved only if the current security context can see both it and the destination
       oldActiveTechnique   <- mapper.entry2ActiveTechnique(activeTechnique).toIO
-      _                    <- cc.accessGrant.canSeeOrFail(oldActiveTechnique)(ZIO.unit)
+      _                    <- cc.accessGrant.canModifyOrFail(oldActiveTechnique)(ZIO.unit)
       destCategory         <- mapper.entry2ActiveTechniqueCategory(newCategory).toIO
-      _                    <- cc.accessGrant.canSeeOrFail(destCategory)(ZIO.unit)
+      _                    <- cc.accessGrant.canModifyOrFail(destCategory)(ZIO.unit)
       moved                <- con
                                 .move(activeTechnique.dn, newCategory.dn)
                                 .chainError(s"Error when moving technique '${uactiveTechniqueId.value}' to category ${newCategoryId.value}")
@@ -1410,7 +1410,7 @@ class WoLDAPDirectiveRepository(
       activeTechnique     = LDAPEntry(oldTechnique.backed)
       // you can change the status only if you can see the active technique
       oldActiveTechnique <- mapper.entry2ActiveTechnique(activeTechnique).toIO
-      _                  <- cc.accessGrant.canSeeOrFail(oldActiveTechnique)(ZIO.unit)
+      _                  <- cc.accessGrant.canModifyOrFail(oldActiveTechnique)(ZIO.unit)
       saved              <- {
         activeTechnique.resetValuesTo(A_IS_ENABLED, status.toLDAPString)
         con.save(activeTechnique)
@@ -1457,7 +1457,7 @@ class WoLDAPDirectiveRepository(
                             )
       // you can update acceptation datetimes only if you can see the active technique
       oldActiveTechnique <- mapper.entry2ActiveTechnique(activeTechnique).toIO
-      _                  <- cc.accessGrant.canSeeOrFail(oldActiveTechnique)(ZIO.unit)
+      _                  <- cc.accessGrant.canModifyOrFail(oldActiveTechnique)(ZIO.unit)
       oldAcceptations    <-
         activeTechnique(A_ACCEPTATION_DATETIME).getOrElse("").fromJson[AcceptationDateTime].toIO
       saved              <- {

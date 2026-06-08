@@ -426,14 +426,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     val ccA = ChangeContext
       .newForRudder()
       .modify(_.accessGrant)
-      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
 
     val qcNone = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.None)
-    val qcA    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
-    val qcB    = QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
+    val qcA    =
+      QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+    val qcB    =
+      QueryContext.testQC.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB")))))
     val qcAB   = QueryContext.testQC
       .modify(_.accessGrant)
-      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+      .setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")))))
     val nodeId = NodeId("node0")
 
     "allow to filter all nodes with no access" in {
@@ -538,7 +540,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         initTs  <- tenantRepository.tenantIds.getAndSet(Set())
         qc       = QueryContext.testQC
                      .modify(_.accessGrant)
-                     .setTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+                     .setTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")))))
         refined <- tenantRepository.refineTenantAccessGrant(qc.accessGrant)
         nodes   <- factRepo.getAll()(using qc.copy(accessGrant = refined), SelectNodeStatus.Accepted)
         // restore tenants

@@ -55,8 +55,10 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccess
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.TenantPermission
 import com.normation.zio.*
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -74,12 +76,19 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.DEBUG)
 
-  val zoneA   = QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
-  val zoneB   = QueryContext(EventActor("zoneB user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
-  val zoneC   = QueryContext(EventActor("zoneC user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneC"))))
+  val zoneA   = QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+  val zoneB   = QueryContext(EventActor("zoneB user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB")))))
+  val zoneC   = QueryContext(EventActor("zoneC user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneC")))))
+  // a user with read-only access on zoneA: it can read zoneA objects but not write them
+  val zoneAro = QueryContext(
+    EventActor("zoneA read-only user"),
+    TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.Read)))
+  )
   val zoneABC = QueryContext(
     EventActor("zoneA+B+C user"),
-    TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"), TenantId("zoneC")))
+    TenantAccessGrant.ByTenants(
+      Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")), TenantAccess(TenantId("zoneC")))
+    )
   )
 
   val groupWithTenantId = NodeGroupId(NodeGroupUid("test-group-node1"))
@@ -170,6 +179,35 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     "still be visible to admin afterwards (it was not modified)" in {
       implicit val qc = QueryContext.systemQC
       roGroupRepo.getNodeGroupOpt(groupWithTenantId).runNow.map(_._1.id) must beSome(groupWithTenantId)
+    }
+  }
+
+  // a `r` (read-only) tenant access grants read but not write on that tenant's objects
+  "[Groups] A read-only (r) tenant access" should {
+    "allow to read the tenant's group (getNodeGroupOpt)" in {
+      implicit val qc = zoneAro
+      roGroupRepo.getNodeGroupOpt(groupWithTenantId).runNow.map(_._1.id) must beSome(groupWithTenantId)
+    }
+    "allow to read the tenant's group (getAll)" in {
+      implicit val qc = zoneAro
+      roGroupRepo.getAll().runNow.map(_.id).contains(groupWithTenantId) must beTrue
+    }
+    "refuse to delete the tenant's group" in {
+      implicit val cc = zoneAro.newCC()
+      woGroupRepo.delete(groupWithTenantId).either.runNow must beLeft
+    }
+    "refuse to move the tenant's group" in {
+      implicit val cc = zoneAro.newCC()
+      woGroupRepo.move(groupWithTenantId, rootCat).either.runNow must beLeft
+    }
+    "refuse to update the tenant's group node list" in {
+      implicit val cc = zoneAro.newCC()
+      woGroupRepo.updateDiffNodes(groupWithTenantId, Nil, Nil).either.runNow must beLeft
+    }
+    "refuse to create a group (no writable tenant)" in {
+      implicit val cc = zoneAro.newCC()
+      val group       = newGroup("group-created-by-readonly", None)
+      woGroupRepo.create(group, rootCat).either.runNow must beLeft
     }
   }
 

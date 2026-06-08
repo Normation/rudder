@@ -37,6 +37,7 @@
 
 package com.normation.rudder.tenants
 
+import enumeratum.*
 import scala.util.matching.Regex
 import zio.json.*
 
@@ -60,6 +61,102 @@ object TenantId {
   // at instantiation;
   val checkTenantId: Regex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
 
+  // parse a tenant id, returning None if it is not a valid identifier
+  def parse(s: String): Option[TenantId] = s match {
+    case checkTenantId(v) => Some(TenantId(v))
+    case _                => None
+  }
+}
+
+/*
+ * The kind of access a user/API token has on a given tenant:
+ * - `Read`     : can only access the tenant objects through read (`QueryContext`) operations
+ * - `ReadWrite`: can access the tenant objects through both read and write (`ChangeContext`) operations
+ * - `None`     : has no access at all (mostly used as the neutral/absorbing element of the lattice)
+ *
+ * Serialized form (in the `tenantId:permission` access string): `r` for Read, `rw` for ReadWrite.
+ * For backward compatibility, an absent permission means `ReadWrite`.
+ */
+sealed trait TenantPermission extends EnumEntry {
+  // the optional serialized permission token (after the ':'). `ReadWrite` has none for backward compat.
+  def token:    Option[String]
+  def canRead:  Boolean
+  def canWrite: Boolean
+  // rank in the read < write lattice, used to merge two permissions on the same tenant
+  def rank:     Int
+}
+
+object TenantPermission extends Enum[TenantPermission] {
+  case object Read      extends TenantPermission {
+    override val token    = Some("r")
+    override val canRead  = true
+    override val canWrite = false
+    override val rank     = 1
+  }
+  case object ReadWrite extends TenantPermission {
+    override val token    = scala.None // bare tenant id, for backward compatibility with previous serialization
+    override val canRead  = true
+    override val canWrite = true
+    override val rank     = 2
+  }
+  case object None      extends TenantPermission {
+    override val token    = Some("n")
+    override val canRead  = false
+    override val canWrite = false
+    override val rank     = 0
+  }
+
+  override val values: IndexedSeq[TenantPermission] = findValues
+
+  // keep the highest permission of the two (used to merge accesses on the same tenant)
+  def lub(a: TenantPermission, b: TenantPermission): TenantPermission = if (a.rank >= b.rank) a else b
+
+  // parse the permission token (the part after the ':'); absence (None) means ReadWrite for backward compat
+  def parseToken(token: Option[String]): Option[TenantPermission] = token match {
+    case scala.None => Some(ReadWrite)
+    case Some("r")  => Some(Read)
+    case Some("rw") => Some(ReadWrite)
+    case Some("n")  => Some(None)
+    case Some(_)    => scala.None
+  }
+}
+
+/*
+ * A `TenantAccess` is the access a user/API token has on a single tenant: a tenant id plus the
+ * permission (read or read-write) on it.
+ *
+ * It is NOT json-serialized as a structure, but as a simple string with the pattern `tenantId:permission`
+ * where the permission part is optional:
+ * - `zoneA`    -> ReadWrite on `zoneA` (backward compatible with the previous `TenantId`-only serialization)
+ * - `zoneA:r`  -> Read on `zoneA`
+ * - `zoneA:rw` -> ReadWrite on `zoneA`
+ */
+final case class TenantAccess(id: TenantId, grant: TenantPermission) {
+  def serialize: String = grant.token match {
+    case scala.None => id.value
+    case Some(t)    => s"${id.value}:${t}"
+  }
+}
+
+object TenantAccess {
+  // convenience: a tenant access defaults to ReadWrite (backward compatible)
+  def apply(id: TenantId): TenantAccess = TenantAccess(id, TenantPermission.ReadWrite)
+
+  /*
+   * Parse a `tenantId:permission` string. The permission suffix is optional (absent means ReadWrite).
+   * Returns None if the tenant id or the permission token is not valid.
+   */
+  def parse(s: String): Option[TenantAccess] = {
+    val (rawId, optToken) = s.split(":", 2) match {
+      case Array(id)       => (id, scala.None)
+      case Array(id, perm) => (id, Some(perm))
+      case _               => (s, scala.None)
+    }
+    for {
+      id    <- TenantId.parse(rawId)
+      grant <- TenantPermission.parseToken(optToken)
+    } yield TenantAccess(id, grant)
+  }
 }
 
 /*

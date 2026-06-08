@@ -1046,7 +1046,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         isEnabled = true,
         creationDate = accountCreationDate,
         lastAuthentication = AccountLastAuthentication.AtDate(accountCreationDate.plus(1.minute)),
-        TenantAccessGrant.ByTenants(Chunk(TenantId("zone1")))
+        TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zone1"))))
       )
     ).map(a => (a.id, a)).toMap
   }

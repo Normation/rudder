@@ -73,7 +73,7 @@ trait TenantService {
       case TenantAccessGrant.ByTenants(tenants) =>
         getStatus.map {
           case TenantStatus.Enabled(existingTenants) =>
-            TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t)))
+            TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t.id)))
           case TenantStatus.Disabled                 =>
             TenantAccessGrant.None
         }
@@ -232,9 +232,16 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
     }
 
-    // whatever the status of "existing", if the plugin is disabled and there is a grant
+    // a write operation only considers the tenants on which the user has write ('rw') permission:
+    // a read-only ('r') tenant access is dropped, as if the user didn't have the grant for that tenant.
+    val writeGrant = cc.accessGrant.restrictToWrite
+
+    // whatever the status of "existing", if the plugin is disabled and there is a write grant
     // different from '*' for user, then return an error
-    if (tenantStatus == TenantStatus.Disabled && cc.accessGrant != TenantAccessGrant.All) {
+    if (tenantStatus == TenantStatus.Disabled && writeGrant != TenantAccessGrant.All) {
+      error(updated)
+    } else if (writeGrant.isNone) {
+      // the user has no tenant it can write on (e.g. read-only tenant access or no grant): it can't modify anything
       error(updated)
     } else {
       existing match {
@@ -244,16 +251,16 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
             // creation when feature disabled: set securityTag to "none".
             case TenantStatus.Disabled         =>
               action(updated.updateSecurityContext(None))
-            // in the case of creation, we force the user tenant to its tenant
+            // in the case of creation, we force the user tenant to its (writable) tenant
             case TenantStatus.Enabled(tenants) =>
-              if (cc.accessGrant.canSee(updated)) {
+              if (writeGrant.canSee(updated)) {
                 action(updated)
               } else {
                 action(updated.updateFromChangeContext(using cc))
               }
           }
 
-        // when we update an existing item, we must also check that the user can see the previous item
+        // when we update an existing item, we must also check that the user can write the previous item
         case Some(e) =>
           tenantStatus match {
             // update when feature is disabled: keep existing security tag if any
@@ -261,8 +268,8 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
               action(updated.updateSecurityContext(e.security))
             // update when feature enabled: check consistency
             case TenantStatus.Enabled(tenants) =>
-              (if (cc.accessGrant.canSee(e)) {
-                 if (cc.accessGrant.canSee(updated)) {
+              (if (writeGrant.canSee(e)) {
+                 if (writeGrant.canSee(updated)) {
 
                    (e.security, updated.security) match {
                      // no tenants in updated: existing security info is cleared
@@ -304,7 +311,8 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       existing: A,
       cc:       ChangeContext
   ): Either[RudderError, A] = {
-    if (cc.accessGrant.canSee(existing)) {
+    // delete is a write operation: only tenants with write permission are considered
+    if (cc.accessGrant.canModify(existing)) {
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case

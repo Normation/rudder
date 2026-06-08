@@ -54,8 +54,10 @@ trait HasSecurityTag[A] {
     // update the security context of the object, returning is updated
     def updateSecurityContext(security: Option[SecurityTag]): A
 
-    // simplify common usage with cc
-    def updateFromChangeContext(implicit cc: ChangeContext): A = updateSecurityContext(cc.accessGrant.toSecurityTag)
+    // simplify common usage with cc: tag the object with the tenants the user can write on
+    def updateFromChangeContext(implicit cc: ChangeContext): A = updateSecurityContext(
+      cc.accessGrant.restrictToWrite.toSecurityTag
+    )
 
     // this is needed for giving useful log/debug message to users
     def debugId: String
