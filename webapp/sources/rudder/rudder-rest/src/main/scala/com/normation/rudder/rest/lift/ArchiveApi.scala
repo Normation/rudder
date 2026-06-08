@@ -717,7 +717,7 @@ class ZipArchiveBuilderService(
         // we only archive non-system NodeGroups, other kind of special targets are ignored
         groups = cat.targetInfos.collect { case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, false, _) => g }
         _     <- ZIO.foreach(groups) { g =>
-                   val json = JRGroup.fromGroup(g, cat.id, None).toJsonPretty
+                   val json = JRGroup.fromGroup(g, cat.id, None)(using QueryContext.systemQC).toJsonPretty
                    for {
                      name <- findName(g.name, ".json", usedNames, basePath)
                      path  = basePath + "/" + name
@@ -800,7 +800,7 @@ class ZipArchiveBuilderService(
                                for {
                                  _    <- depDirectiveIds.update(x => x ++ rule.directiveIds)
                                  _    <- depGroupIds.update(x => x ++ RuleTarget.getNodeGroupIds(rule.targets))
-                                 json  = JRRule.fromRule(rule, None, None, None).toJsonPretty
+                                 json  = JRRule.fromRule(rule, None, None, None)(using qc).toJsonPretty
                                  name <- findName(rule.name, ".json", usedNames, RULES_DIR)
                                  path  = rulesDir + "/" + name
                                  _    <- ApplicationLoggerPure.Archive
@@ -853,7 +853,7 @@ class ZipArchiveBuilderService(
                                            TechniqueId(ad.activeTechnique.techniqueName, ad.directive.techniqueVersion),
                                            techniques
                                          )
-                                 json  = JRDirective.fromDirective(tech._2, ad.directive, None).toJsonPretty
+                                 json  = JRDirective.fromDirective(tech._2, ad.directive, None)(using qc).toJsonPretty
                                  name <- findName(ad.directive.name, ".json", usedNames, DIRECTIVES_DIR)
                                  path  = directivesDir + "/" + name
                                  _    <- ApplicationLoggerPure.Archive

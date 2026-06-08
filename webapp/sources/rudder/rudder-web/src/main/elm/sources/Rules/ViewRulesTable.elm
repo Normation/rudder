@@ -109,6 +109,7 @@ buildRulesTable model rules =
               [ badgePolicyMode model.policyMode r.policyMode
               , text r.name
               , buildTagsTree r.tags
+              , badgeSecurityTags r.security
               ]
             , td[][ categoryName  ]
             , td[][ displayStatus ]

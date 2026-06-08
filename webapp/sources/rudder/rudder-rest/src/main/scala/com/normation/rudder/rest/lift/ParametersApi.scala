@@ -175,23 +175,21 @@ class ParameterApiService14(
       id       <- workflow.startWorkflow(cr)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRGlobalParameter.fromGlobalParameter(parameter, optCrId)
+      JRGlobalParameter.fromGlobalParameter(parameter, optCrId)(using cc.toQC)
     }
   }
 
   def listParameters()(using qc: QueryContext): IOResult[Seq[JRGlobalParameter]] = {
     readParameter
       .getAllGlobalParameters()
-      .map(_.filter(_.visibility == Visibility.Displayed).sortBy(_.name).map(JRGlobalParameter.fromGlobalParameter(_, None)))
+      .map(_.filter(_.visibility == Visibility.Displayed).sortBy(_.name).map(p => JRGlobalParameter.fromGlobalParameter(p, None)))
   }
 
   def parameterDetails(id: String)(using qc: QueryContext): IOResult[JRGlobalParameter] = {
     readParameter
       .getGlobalParameter(id)
       .notOptional(s"Could not find Parameter ${id}")
-      .map(
-        JRGlobalParameter.fromGlobalParameter(_, None)
-      )
+      .map(p => JRGlobalParameter.fromGlobalParameter(p, None))
   }
 
   def createParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor)(implicit

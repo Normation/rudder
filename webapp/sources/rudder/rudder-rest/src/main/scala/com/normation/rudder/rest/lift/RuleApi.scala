@@ -631,7 +631,7 @@ class RuleApiService14(
     } yield {
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
+      JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))(using cc.toQC)
     }).chainError(s"Error when creating new rule")
   }
 

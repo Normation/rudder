@@ -361,7 +361,7 @@ class DirectiveApiService14(
                    IOResult.attempt(asyncDeploymentAgent ! AutomaticStartDeployment(modId, cc.actor))
                  }
       } yield {
-        JRDirective.fromDirective(technique, newDirective, None)
+        JRDirective.fromDirective(technique, newDirective, None)(using cc.toQC)
       }
     }
     source match {
@@ -441,7 +441,7 @@ class DirectiveApiService14(
                     .chainError(s"Could not start workflow for change request creation on Directive '${change.newDirective.name}'")
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRDirective.fromDirective(technique, change.newDirective, optCrId)
+      JRDirective.fromDirective(technique, change.newDirective, optCrId)(using cc.toQC)
     }
   }
 

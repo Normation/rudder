@@ -73,6 +73,13 @@ decodeGetCategoryDetails : Decoder (Category Rule)
 decodeGetCategoryDetails =
   at [ "data" , "ruleCategories" ] decodeCategoryDetails
 
+decodeSecurityTag : Decoder SecurityTag
+decodeSecurityTag =
+  oneOf
+    [ string |> andThen (\s -> if s == "open" then succeed Open else fail ("Unknown security tag value: " ++ s))
+    , map ByTenants (field "tenants" (list string))
+    ]
+
 decodeRule : Decoder Rule
 decodeRule =
   succeed Rule
@@ -89,6 +96,7 @@ decodeRule =
     |> required "status"           decodeStatus
     |> required "tags"            (list (keyValuePairs string) |> andThen toTags)
     |> optional "changeRequestId" (map Just string) Nothing
+    |> optional "security"        (map Just decodeSecurityTag) Nothing
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)
 toTags lst =

@@ -217,6 +217,18 @@ object TenantAccessGrant {
       else Inconsistency(s"Object '${n.debugId}' can't be modified in current security context").fail
     }
 
+    // Filter a security tag for display: admin sees everything; a ByTenants user sees only the
+    // tenants of the object that are also in their own grant (intersection).
+    def visibleSecurityTag(tag: Option[SecurityTag]): Option[SecurityTag] = (nsc, tag) match {
+      case (All, t)                                         => t
+      case (None, _)                                        => scala.None
+      case (ByTenants(_), scala.None)                       => scala.None
+      case (ByTenants(_), Some(SecurityTag.Open))           => Some(SecurityTag.Open)
+      case (ByTenants(us), Some(SecurityTag.ByTenants(os))) =>
+        val userIds = us.map(_.id).toSet
+        Some(SecurityTag.ByTenants(os.filter(t => userIds.contains(t))))
+    }
+
     // NodeSecurityContext is a lattice
     def plus(nsc2: TenantAccessGrant): TenantAccessGrant = {
       (nsc, nsc2) match {

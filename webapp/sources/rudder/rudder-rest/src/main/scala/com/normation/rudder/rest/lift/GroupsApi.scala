@@ -460,7 +460,9 @@ class GroupApiService14(
       id       <- workflow.startWorkflow(cr)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory()(using cc.toQC).id), optCrId)
+      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory()(using cc.toQC).id), optCrId)(using
+        cc.toQC
+      )
     }
   }
 
@@ -490,7 +492,7 @@ class GroupApiService14(
           // Trigger a deployment only if it is needed
           asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         }
-        JRGroup.fromGroup(saveDiff.group, cat, None)
+        JRGroup.fromGroup(saveDiff.group, cat, None)(using cc.toQC)
       }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
     }
 
@@ -600,7 +602,7 @@ class GroupApiService14(
               .chainError(s"Could not reload Group ${sid} details")
 
           case None =>
-            JRGroup.fromGroup(group, cat, None).succeed
+            JRGroup.fromGroup(group, cat, None)(using qc).succeed
         }
     }
   }
@@ -654,7 +656,7 @@ class GroupApiService14(
     }
     readGroup
       .getFullGroupLibrary()
-      .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None))
+      .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None)(using qc))
   }
 
   def getCategoryDetails(id: NodeGroupCategoryId)(implicit qc: QueryContext): IOResult[JRMinimalGroupCategory] = {

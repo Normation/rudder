@@ -40,6 +40,10 @@ type alias ComplianceSummaryValue =
   , complianceDetails : ComplianceDetails
   }
 
+type SecurityTag
+  = Open
+  | ByTenants (List String)
+
 type alias Group =
   { id          : GroupId
   , name        : String
@@ -48,6 +52,7 @@ type alias Group =
   , dynamic     : Bool
   , enabled     : Bool
   , target      : String
+  , security    : Maybe SecurityTag
   }
 
 type alias GroupWithCompliance =
