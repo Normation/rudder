@@ -208,7 +208,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             "bg-ok"
         }
       case _            =>
-        "bg-refresh"
+        deploymentStatus.current match {
+          case _: SuccessStatus => "bg-refresh bg-refresh-ok"
+          case _: ErrorStatus   => "bg-refresh bg-refresh-error"
+          case NoStatus => "bg-refresh"
+        }
     }
   }
 
@@ -264,6 +268,18 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       <li class="list-group-item">Policies building...</li>
       <li class="list-group-item" >{displayDate("Started at ", start)}</li>
     }
+    def lastResultStatement:                NodeSeq = {
+      deploymentStatus.current match {
+        case NoStatus                            => NodeSeq.Empty
+        case SuccessStatus(_, start, end, _)     =>
+          <li class="list-group-item dropdown-header">Last generation:</li> ++
+          commonStatement(start, end, Some("Update took"), "Policies updated", "text-success fa fa-check", "text-success")
+        case ErrorStatus(_, start, end, failure) =>
+          <li class="list-group-item dropdown-header">Last generation:</li> ++
+          commonStatement(start, end, None, "Error during policy update", "text-danger fa fa-times", "text-danger") ++
+          showDetailsPopup(detailsPopup(failure))
+      }
+    }
     val (titleIconClass: String, items: NodeSeq) = deploymentStatus.processing match {
       case IdleDeployer                                        =>
         deploymentStatus.current match {
@@ -287,11 +303,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               "text-danger"
             ) ++ showDetailsPopup(detailsPopup(failure)))
         }
-      case Processing(id, start)                               => "fa-arrows-rotate" -> loadingStatement(start)
-      case ProcessingAndPendingAuto(asked, current, a, e)      => "fa-arrows-rotate" -> loadingStatement(current.started)
-      case ProcessingAndPendingManual(asked, current, a, e, r) => "fa-arrows-rotate" -> loadingStatement(current.started)
+      case Processing(id, start)                               => "fa-arrows-rotate" -> (loadingStatement(start) ++ lastResultStatement)
+      case ProcessingAndPendingAuto(asked, current, a, e)      =>
+        "fa-arrows-rotate" -> (loadingStatement(current.started) ++ lastResultStatement)
+      case ProcessingAndPendingManual(asked, current, a, e, r) =>
+        "fa-arrows-rotate" -> (loadingStatement(current.started) ++ lastResultStatement)
     }
-    val titleIconColorClass                      = deploymentStatus.processing match {
+    val titleIconColorClass = deploymentStatus.processing match {
       case IdleDeployer =>
         deploymentStatus.current match {
           case _: ErrorStatus   => "text-danger"
