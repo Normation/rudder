@@ -58,6 +58,7 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.zio.*
 import java.io.File
 import java.time.Instant
@@ -121,6 +122,24 @@ class ItemArchiveManagerImpl(
   override val gitModificationRepository = gitModificationRepo
   ///// implementation /////
   override def loggerName: String = this.getClass.getName
+
+  /*
+   * Archive import/rollback restore a whole library (rules, groups, technique library, parameters) by
+   * swapping it wholesale. There is no sound per-tenant semantic for such a "replace everything" operation,
+   * so it must be restricted to administrators (tenant access grant '*'). For a tenant-restricted user, it
+   * would otherwise allow replacing/removing configuration objects belonging to other tenants.
+   * Note: when the multi-tenant feature is disabled, every user has an 'All' grant, so this is a no-op.
+   */
+  private def checkArchiveRestoreAllowed(implicit cc: ChangeContext): IOResult[Unit] = {
+    ZIO
+      .unless(cc.accessGrant == TenantAccessGrant.All) {
+        Inconsistency(
+          s"User '${cc.actor.name}' is not allowed to import or rollback an archive: this operation replaces the " +
+          s"whole configuration and is restricted to administrators with access to all tenants (grant '*')."
+        ).fail
+      }
+      .unit
+  }
 
   // Clean a directory only if it exists, all exception are caught by the tryo
   private def cleanExistingDirectory(directory: File): IOResult[Unit] = {
@@ -340,6 +359,7 @@ class ItemArchiveManagerImpl(
     import cc.*
     useSemaphoreOrFail(
       for {
+        _ <- checkArchiveRestoreAllowed
         _ <- GitArchiveLoggerPure.info("Importing full archive with id '%s'".format(archiveId.value))
         _ <- importRulesAndDeploy(archiveId, deploy = false)
         _ <- importTechniqueLibraryAndDeploy(archiveId, deploy = false)
@@ -368,6 +388,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
+        _ <- checkArchiveRestoreAllowed
         _ <- importRulesAndDeploy(archiveId)
         _ <- eventLogger.saveEventLog(modId, new ImportRulesArchive(actor, archiveId, message))
         _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.ruleArchive, modId)
@@ -416,6 +437,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested directive archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
+        _ <- checkArchiveRestoreAllowed
         _ <- importTechniqueLibraryAndDeploy(archiveId)
         _ <- eventLogger.saveEventLog(modId, new ImportTechniqueLibraryArchive(actor, archiveId, message))
         _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, TechniqueLibraryArchive, modId)
@@ -447,6 +469,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested group archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
+        _ <- checkArchiveRestoreAllowed
         _ <- importGroupLibraryAndDeploy(archiveId)
         _ <- eventLogger.saveEventLog(modId, new ImportGroupsArchive(actor, archiveId, message))
         _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.groupArchive, modId)
@@ -479,6 +502,7 @@ class ItemArchiveManagerImpl(
     val commitMsg = "User %s requested Parameters archive restoration to commit %s".format(actor.name, archiveId.value)
     useSemaphoreOrFail(
       for {
+        _ <- checkArchiveRestoreAllowed
         _ <- importParametersAndDeploy(archiveId)
         _ <- eventLogger.saveEventLog(modId, new ImportParametersArchive(actor, archiveId, message))
         _ <- restoreCommitAtHead(commiter, commitMsg, archiveId, PartialArchive.parameterArchive, modId)
@@ -524,6 +548,7 @@ class ItemArchiveManagerImpl(
     import cc.*
     useSemaphoreOrFail(
       for {
+        _ <- checkArchiveRestoreAllowed
         _ <- GitArchiveLoggerPure.info(s"Importing full archive with id '${archiveId.value}'")
         _ <- importRulesAndDeploy(archiveId, deploy = false)
         _ <- importTechniqueLibraryAndDeploy(archiveId, deploy = false)
