@@ -46,13 +46,7 @@ impl HttpClientBuilder {
         let builder = Client::builder()
             // enforce HTTPS to prevent misconfigurations
             .https_only(true)
-            // Not possible to enforce 1.3 for now with native-tls:
-            // https://docs.rs/reqwest/0.11.18/reqwest/struct.ClientBuilder.html#errors-1
-            // https://github.com/sfackler/rust-native-tls/pull/235
-            //
-            // And we can't switch to rustls due to missing:
-            // https://docs.rs/reqwest/0.11.18/reqwest/struct.ClientBuilder.html#method.danger_accept_invalid_hostnames
-            .min_tls_version(Version::TLS_1_2)
+            .min_tls_version(Version::TLS_1_3)
             .user_agent(USER_AGENT.clone())
             .pool_idle_timeout(idle_timeout);
         Self { builder }
