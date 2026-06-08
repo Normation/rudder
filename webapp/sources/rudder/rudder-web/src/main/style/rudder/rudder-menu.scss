@@ -1190,7 +1190,7 @@ header.main-header .logo-lg img{
 }
 .navbar .navbar-nav li.notifications-menu.bg-refresh.bg-refresh-ok #generation-status > span:before{
   content: "\f00c";
-  color: $rudder-success;
+  color: rudder.$success;
 }
 .navbar .navbar-nav li.notifications-menu.bg-refresh.bg-refresh-error #generation-status > span:before{
   content: "\f00d";
