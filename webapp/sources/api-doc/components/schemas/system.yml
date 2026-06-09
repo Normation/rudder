@@ -18,7 +18,7 @@ properties:
         example: 13
   jvm:
     type: object
-    description: Version and command use to run Rudder trough the Java virtual machine
+    description: Version and command used to run Rudder through the Java virtual machine
     properties:
       version:
         type: string

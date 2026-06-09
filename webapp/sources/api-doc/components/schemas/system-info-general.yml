@@ -7,17 +7,17 @@ properties:
     example: 9.1.2
   buildTime:
     type: string
-    description: Campaign result for all Nodes
+    description: Build timestamp of the webapp
     format: date
     example: 2019-03-25T10:11:23Z
   instanceId:
     type: string
-    description: UUID identifying the Rudder's instance
+    description: UUID identifying the Rudder instance
     format: uuid
     example: f535c837-ee79-45fb-a7b8-30acc2d849c7
   relays:
     type: array
-    description: List of relay
+    description: List of relays
     items:
       type: object
       required:
