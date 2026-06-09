@@ -90,7 +90,9 @@ final case class TestRequest(
     params:          List[(String, String)],
     responseType:    ResponseType,
     responseCode:    Int,
-    responseContent: String
+    responseContent: String,
+    // optional user name to select which LiftRules context to use in multi-user tests
+    user:            String = "admin"
 )
 
 object TraitTestApiFromYamlFiles {
@@ -261,7 +263,8 @@ object TraitTestApiFromYamlFiles {
             case x      => throw new IllegalArgumentException(s"Unrecognized response type: '${x}'. Use 'json' or 'text'")
           },
           response.safe("code", None, _.asInstanceOf[Int]),
-          response.safe("content", None, _.asInstanceOf[String])
+          response.safe("content", None, _.asInstanceOf[String]),
+          data.safe("user", Some("admin"), _.asInstanceOf[String])
         )
       }
     }
@@ -371,6 +374,96 @@ object TraitTestApiFromYamlFiles {
                       (parts(0), List(parts.tail.mkString(":").trim))
                     }.toMap
                     // query string may have already set some params
+                    mockReq.parameters = mockReq.parameters ++ test.params
+                    mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
+
+                    restTest.execRequestResponseZioTest(mockReq) { response =>
+                      (for {
+                        clean           <- response.map(cleanResponse).toPureResult.left.map(_.fullMsg)
+                        (code, response) = clean
+                        expectedContent <- cleanContent(test.responseContent, test.responseType)
+                        responseContent <- cleanContent(response, test.responseType)
+                      } yield (code, expectedContent, responseContent)) match {
+                        case Left(s)                         =>
+                          assert(s)(Assertion(TestArrow.make[String, Boolean](s => TestTrace.fail(s))))
+                        case Right((code, expJson, resJons)) =>
+                          assertTrue(
+                            code == test.responseCode,
+                            resJons == expJson
+                          )
+                      }
+                    }
+                  }
+
+              }).succeed
+            })
+          }
+          tests
+        } @@ TestAspect.sequential).succeed
+    }
+  }
+
+  /*
+   * Like doTest but routes each YAML test to a different LiftRules based on the `user:` field.
+   * This allows testing the same endpoints with different tenant grants in a single YAML directory.
+   * The `user:` field in YAML defaults to "admin" if absent; if the value is not in `users`, the
+   * test fails with a clear error.
+   */
+  def doTestMultiUser[E, I](
+      yamlSourceDirectory:  String,
+      yamlDestTmpDirectory: File,
+      users:                Map[String, LiftRules],
+      limitToFiles:         List[String] = Nil,
+      transformations:      Map[String, String => String]
+  ): UIO[List[Spec[Any, Throwable]]] = {
+
+    val restTests = users.map { case (name, lr) => (name, new RestTest(lr)) }
+
+    val files = (if (limitToFiles.isEmpty) {
+                   readYamlFiles(yamlSourceDirectory, yamlDestTmpDirectory, _.endsWith(".yml"), transformations).runNow
+                 } else {
+                   readYamlFiles(
+                     yamlSourceDirectory,
+                     yamlDestTmpDirectory,
+                     f => limitToFiles.exists(n => f.endsWith(n)),
+                     transformations
+                   ).runNow
+                 }).sortBy(_._1)
+
+    ZIO.foreach(files) {
+      case (name, yamls) =>
+        (suite(s"Tests defined in '${name.split("\\.").head}' yaml") {
+
+          val tests: ZIO[Any, Throwable, List[Spec[Any, Nothing]]] = {
+            (ZIO.foreach(yamls.map(readSpecification).zipWithIndex) { x =>
+              (x match {
+                case (eb: EmptyBox, i) =>
+                  val f = eb ?~! s"I wasn't able to run the ${i}th tests in file ${name}"
+                  ApplicationLogger.error(f.messageChain)
+                  zio.test.test(
+                    s"[${i}] failing test ${i}: can not read description. The yaml description ${i} in ${name} cannot be read: ${f.messageChain}"
+                  )(
+                    assert(true)(Assertion.isFalse)
+                  )
+
+                case (Full(test), i) =>
+                  zio.test.test(s"[${i}] (${test.user}) ${test.description}") {
+                    val restTest = restTests.getOrElse(
+                      test.user,
+                      throw new IllegalArgumentException(
+                        s"Unknown user '${test.user}' in test '${test.description}' — available: ${restTests.keys.mkString(", ")}"
+                      )
+                    )
+                    val mockReq  = new MockHttpServletRequest("http://localhost:8080")
+                    mockReq.method = test.method
+                    val p        = test.url.split('?')
+                    mockReq.path = p.head
+                    mockReq.queryString = if (p.size > 1) p(1) else ""
+                    mockReq.body = test.queryBody.getBytes(StandardCharsets.UTF_8)
+                    mockReq.headers = test.headers.map { h =>
+                      val parts = h.split(":")
+                      (parts(0), List(parts.tail.mkString(":").trim))
+                    }.toMap
                     mockReq.parameters = mockReq.parameters ++ test.params
                     mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
 
