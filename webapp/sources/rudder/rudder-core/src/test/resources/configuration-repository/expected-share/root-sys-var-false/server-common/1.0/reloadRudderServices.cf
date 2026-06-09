@@ -47,7 +47,7 @@ bundle agent system_reload_rudder_services {
 
   methods:
       "any" usebundle => disable_reporting;
-      "any" usebundle => _method_reporting_context("${component_name}", "None");
+      "any" usebundle => _method_reporting_context_v4("${component_name}", "None", "restart_rudder_services");
     rudder_server_system_restart_slapd::
       "any" usebundle => service_restart("${slapd_service_name}");
     rudder_server_system_restart_jetty::
@@ -60,7 +60,7 @@ bundle agent system_reload_rudder_services {
       "any" usebundle => service_reload("${relayd_service_name}");
     rudder_server_system_restart_relayd::
       "any" usebundle => service_restart("${relayd_service_name}");
-    rudder_server_system_reload_cf_serverd::
+    rudder_server_system_reload_cf_serverd.!rudder_https_only::
       "any" usebundle => service_action("${cf_serverd_service_name}", "reload-or-restart");
     pass3::
       "any" usebundle => enable_reporting;

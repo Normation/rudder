@@ -28,6 +28,7 @@ bundle agent system_root_integrity_check(trackingkey, technique_name)
         comment      => "Delete the git locking file in the configuration-repository if older than 5 minutes";
 
   methods:
+      "any"          usebundle => _method_reporting_context_v4("${component}", "None", "server_key_symklink");
       "link the key" usebundle => disable_reporting;
       "link the key" usebundle => file_create_symlink("${sys.workdir}/ppkeys/localhost.pub", "${key_destination}"),
                        comment => "Creating a link of the server key to itself to allow auto-copy";

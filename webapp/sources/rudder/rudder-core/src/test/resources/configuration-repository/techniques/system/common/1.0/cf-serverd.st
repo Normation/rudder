@@ -119,7 +119,7 @@ body server control
         trustkeysfrom     => {
           @{def.acl} ,
         };
-      # our policy server should already be trusted after bootstraping
+      # our policy server should already be trusted after bootstrapping
       !policy_server::
         trustkeysfrom     => {};
 
@@ -132,8 +132,8 @@ body server control
           @{def.acl} ,
         };
 
-        # force connections via tls1.2 or higher
-        allowtlsversion => "1.2";
+        # force connections via tls1.3 or higher
+        allowtlsversion => "1.3";
 
         maxconnections    => "10000";
         logallconnections => "true";
@@ -151,6 +151,8 @@ body server control
         };
 
         denybadclocks => "&DENYBADCLOCKS&";
+
+        serverfacility => "${rudder_syslog_facility.syslog}";
 
     !debug_port::
         port => "&COMMUNITYPORT&";
@@ -206,4 +208,10 @@ body report_data_select rudder_data_select_policy_hub
     metatags_exclude       => { "noreport" };
     monitoring_include     => { ".*" };
     promise_handle_exclude => { "noreport_.*" };
+}
+
+bundle agent disable_cf_serverd {
+  methods:
+      "any" usebundle => service_stopped("rudder-cf-serverd");
+      "any" usebundle => service_disabled("rudder-cf-serverd");
 }

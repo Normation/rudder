@@ -80,7 +80,7 @@ bundle agent runhook_package(json) {
          usebundle => enable_reporting;
 
       # here we need to report correctly based on each mode for each directive
-      "reporting" 
+      "reporting"
         usebundle  => _rudder_common_reports_generic_hooks("${reporting[${reportkeys}][technique]}", "package_present_${parameters[name]}", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Installing package ${parameters[name]}", "${reporting[${reportkeys}][mode]}"),
         ifvarclass => "${class_condition}";
 
@@ -233,7 +233,7 @@ bundle agent runhook_sudo_post_hook(json) {
 
       "any" usebundle => _rudder_common_report_hooks("sudoParameters", "result_repaired", "${reporting[${reportkeys}][id]}", "sudoersFile", "None", "The sudoers file was fixed and successfully updated", "${reporting[${reportkeys}][mode]}");
 
-    pass3.(sudoconfiguration_sudoers_tmp_edit_error|sudoconfiguration_sudoers_copy_error|sudoconfiguration_sudoers_tmp_copy_error)::
+    pass3.(sudoconfiguration_sudoers_tmp_edit_error|sudoconfiguration_sudoers_copy_error|sudoconfiguration_sudoers_tmp_copy_error).!((sudoconfiguration_sudoers_copy_kept.!sudoconfiguration_sudoers_copy_repaired)|(dry_run.sudoparameters_sudoers_tmp_file_ok))::
 
       "any" usebundle => _rudder_common_report_hooks("sudoParameters", "result_error", "${reporting[${reportkeys}][id]}", "sudoersFile", "None", "The sudoers file could NOT be edited!", "${reporting[${reportkeys}][mode]}");
 
@@ -257,7 +257,7 @@ bundle agent runhook_sudo_post_hook(json) {
 ########################################################
 
 # This is a pre hook for Package repository keys (RPM/APT)
-# If any of report mode is enforce, then it will effectively get all the keys in repos, 
+# If any of report mode is enforce, then it will effectively get all the keys in repos,
 # create {repo_gpg_homedir}/. folder
 # If all are in audit mode, then it won't do anything
 # This method does not report at all
@@ -467,7 +467,7 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
       "data_userlist[${bundles}_${array[${bundles}]}]" string => "${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}";
       "c_data_userlist[${bundles}_${array[${bundles}]}]" string => "${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}";
 
-      
+
       # get size of generated tmp files
       # this one is quite tricky to avoid the `Too many levels of [] reserved for array use`
       "tmp_ssh_file_size_${c_data_userlist[${bundles}_${array[${bundles}]}]}" int => filesize("${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${data_userlist[${bundles}_${array[${bundles}]}]}.authorized_keys.tmp"),
@@ -512,7 +512,7 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
       "no_change_on_ssh_file_for_${runhook_sshKeyDistribution_pre_hook.c_userlist}" expression => "same_size_for_${runhook_sshKeyDistribution_pre_hook.c_userlist}.!(check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.c_userlist}_repaired|check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.c_userlist}_error)",
           ifvarclass => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.c_userlist}_exists";
 
-      # file differents and  No error/repair for a user -> maybe need to flush
+      # files are different and  No error/repair for a user -> maybe need to flush
       "same_keys_different_size_ssh_file_for_${runhook_sshKeyDistribution_pre_hook.c_userlist}" expression => "!same_size_for_${runhook_sshKeyDistribution_pre_hook.c_userlist}.!(check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.c_userlist}_repaired|check_ssh_key_distribution_user_key_${runhook_sshKeyDistribution_pre_hook.c_userlist}_error)",
           ifvarclass => "ssh_key_distribution_user_${runhook_sshKeyDistribution_pre_hook.c_userlist}_exists";
 
@@ -541,9 +541,12 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
 
       # audit is for all user that are to flush, but not the class enforce_ssh_key_distribution_<username>_to_flush set
       "audit_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.c_userlist}_to_flush" expression => "any",
-         ifvarclass => "!enforce_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.c_userlist}_to_flush.ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.c_userlist}_to_flush";
+         ifvarclass => and( "!enforce_ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.c_userlist}_to_flush",
+                            "ssh_key_distribution_${runhook_sshKeyDistribution_pre_hook.c_userlist}_to_flush"
+                          );
 
     any::
+      "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
@@ -558,7 +561,14 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
          copy_from  => copy_digest("${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}.authorized_keys.tmp"),
          classes    => classes_generic("post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}"),
          comment    => "IN ENFORCE",
-         ifvarclass => "home_directory_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_defined.enforce_ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush.(same_keys_different_size_ssh_file_for_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}|ssh_keys_repaired_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}|same_size_but_repaired_keys_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}).!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_prevent_flush";
+         if         => and( "home_directory_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_defined",
+                            "enforce_ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush",
+                            or( "same_keys_different_size_ssh_file_for_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}",
+                                "ssh_keys_repaired_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}",
+                                "same_size_but_repaired_keys_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]})"
+                            ),
+                            "!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_prevent_flush"
+                          );
 
 
       # auditing file replacement
@@ -566,7 +576,14 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
          copy_from  => copy_digest("${runhook_sshKeyDistribution_pre_hook.temp_ssh_key_path}/${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}.authorized_keys.tmp"),
          action     => WarnOnly,
          classes    => classes_generic("post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}"),
-         ifvarclass => "home_directory_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_defined.audit_ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush.(same_keys_different_size_ssh_file_for_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}|ssh_keys_repaired_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}|same_size_but_repaired_keys_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}).!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_prevent_flush";
+         ifvarclass => and( "home_directory_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_defined",
+                            "audit_ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush",
+                            or( "same_keys_different_size_ssh_file_for_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}",
+                                "ssh_keys_repaired_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}",
+                                "same_size_but_repaired_keys_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}"
+                              ),
+                            "!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_prevent_flush"
+                          );
 
 
     pass2::
@@ -575,7 +592,7 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
             delete => tidy;
 
   methods:
-    pass2::
+    pass3::
       # Do the reporting for the post hook
       # User not present
       "No user" usebundle     => rudder_common_report(
@@ -583,7 +600,10 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The user ${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]} does not exists on this system, impossible to flush keys"
         ),
-        ifvarclass => "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.enforce_mode_${bundles}.ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush";
+        if => and( "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "enforce_mode_${bundles}",
+                   "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush"
+                 );
 
       # User not present
       "No user" usebundle     => rudder_common_report(
@@ -591,14 +611,19 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not exists on this system"
         ),
-        ifvarclass => "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.enforce_mode_${bundles}.!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush";
+        if => and( "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "enforce_mode_${bundles}",
+                   "!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush"
+                 );
 
       "No user" usebundle     => rudder_common_report(
           "${technique_name}", "audit_noncompliant",
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not exists on this system"
         ),
-        ifvarclass => "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.!enforce_mode_${bundles}";
+        if => and( "!ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "!enforce_mode_${bundles}"
+                 );
 
       # User present, but no home dir
       "No user" usebundle     => rudder_common_report(
@@ -606,14 +631,22 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not have a defined home dir"
         ),
-        ifvarclass => "!home_directory_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_defined.ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.enforce_mode_${bundles}.ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush";
+        if => and( not(canonify("home_directory_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_defined")),
+                   "ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "enforce_mode_${bundles}",
+                   "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush"
+                 );
 
       "No user" usebundle     => rudder_common_report(
           "${technique_name}", "audit_noncompliant",
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} does not have a defined home dir"
         ),
-        ifvarclass => "!home_directory_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_defined.ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.!enforce_mode_${bundles}.ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush";
+        if => and( not(canonify("home_directory_${${bundles}.sshkey_distribution_name[${array[${bundles}]}]}_defined")),
+                   "ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "!enforce_mode_${bundles}",
+                   "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush"
+                 );
 
       # No flush requested -> NA
       "No flush" usebundle     => rudder_common_report(
@@ -621,7 +654,9 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were not requested to be flush"
         ),
-        ifvarclass => "ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush";
+        if => and( "ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "!ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush"
+                 );
 
        # File didn't change + no change -> success
       "No change on user" usebundle     => rudder_common_report(
@@ -629,11 +664,12 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were all correctly set"
         ),
-        ifvarclass => "ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists.ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush.no_change_on_ssh_file_for_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}";
+        if => and( "ssh_key_distribution_user_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_exists",
+                   "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush",
+                   "no_change_on_ssh_file_for_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}"
+                 );
 
       # We managed all the cases were we didn't actually try to copy the file. Now we handle reporting based on copy of temp file to final file
-
-
 
        # File didn't change -> success
       "No change on file" usebundle     => rudder_common_report(
@@ -641,7 +677,9 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The list of keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were correctly set"
         ),
-        ifvarclass => "post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_kept.!post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_repaired";
+        if => and( "post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_kept",
+                   "!post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_repaired"
+                 );
 
        # File changed - repaired (or non compliant) - but if repaired, it means it's been fixed
       "changes on file" usebundle     => rudder_common_report(
@@ -649,7 +687,9 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} were flushed"
         ),
-        ifvarclass => "post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_repaired.!post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_error";
+        if => and( "post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_repaired",
+                   "!post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_error"
+                 );
 
        # File could not be changed - repaired (or non compliant) - but if repaired, it means it's been fixed
       "error on file" usebundle     => rudder_common_report(
@@ -657,7 +697,9 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} could not be flushed"
         ),
-        ifvarclass => "post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_error.!post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_repaired";
+        if => and( "post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_error",
+                   "!post_hook_flush_ssh_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_repaired"
+                 );
 
 
       # Finally, a key in audit mode was not compliant. We won't try to flush, as the result is unexpected
@@ -666,13 +708,15 @@ bundle agent runhook_sshKeyDistribution_post_hook(json) {
           "${${bundles}.sshkey_distribution_uuid[${array[${bundles}]}]}", "${component_name}", "${${bundles}.sshkey_distribution_tag[${array[${bundles}]}]}",
           "The keys for user ${${bundles}.sshkey_distribution_name[${array[${bundles}]}]} cannot be flushed - a key is not compliant for a directive in audit mode"
         ),
-        ifvarclass => "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_prevent_flush.ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush";
+        if => and( "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_prevent_flush",
+                   "ssh_key_distribution_${${bundles}.sshkey_distribution_c_name[${array[${bundles}]}]}_to_flush"
+                 );
 }
 
 ########################################################
 ## Cron management specific hooks
 ########################################################
-# 
+#
 # Ensure that a process cron(d) is up and running
 #
 bundle agent runhook_cron_process_post_hook(json) {
@@ -728,39 +772,27 @@ bundle agent runhook_cron_process_post_hook(json) {
       "disable_reporting_cron_post_hook"
          usebundle => disable_reporting;
 
-    pass2.cron_restart::
-
-      "restart_cron" usebundle => service_restart("${cron_service}");
-
     pass2::
+      "restart_cron" usebundle => service_started("${cron_service}");
+
       "reenable_reporting_cron_post_hook"
          usebundle => enable_reporting;
 
       # here we need to report correctly based on each mode for each directive
-      "reporting" 
-        usebundle  => _rudder_common_reports_generic_hooks("${reporting[${reportkeys}][technique]}", "service_restart_${cron_service}", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Restarting service ${cron_service}", "${reporting[${reportkeys}][mode]}"),
-        ifvarclass => "cron_restart";
-
-      "na_report"
-        usebundle  => _rudder_common_report_hooks("${reporting[${reportkeys}][technique]}", "result_na", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "No need to restart service ${cron_service}", "${reporting[${reportkeys}][mode]}"),
-        ifvarclass => "!cron_restart";
+      "reporting"
+        usebundle  => _rudder_common_reports_generic_hooks("${reporting[${reportkeys}][technique]}", "service_started_${cron_service}", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Service started ${cron_service}", "${reporting[${reportkeys}][mode]}");
 
       "clean_reporting_context_${reporting[0][id]}"
         usebundle  => clean_reporting_context;
 
-
-  processes:
-      "cron"
-        process_select => cron_bin,
-        restart_class => "cron_restart";
 }
 
 
 ########################################################
 ## User Cron management specific hooks
 ########################################################
-# 
-# Ensure that a process cron(d) is up and running, reload it 
+#
+# Ensure that a process cron(d) is up and running, reload it
 # if any change in crontab
 #
 bundle agent runhook_user_cron_process_post_hook(json) {
@@ -825,7 +857,7 @@ bundle agent runhook_user_cron_process_post_hook(json) {
          usebundle => enable_reporting;
 
       # here we need to report correctly based on each mode for each directive
-      "reporting" 
+      "reporting"
         usebundle  => _rudder_common_reports_generic_hooks("${reporting[${reportkeys}][technique]}", "service_restart_${cron_service}", "${reporting[${reportkeys}][id]}", "${reporting[${reportkeys}][name]}", "${reporting[${reportkeys}][value]}", "Restarting service ${cron_service}", "${reporting[${reportkeys}][mode]}"),
         ifvarclass => "user_cron_configuration_need_reload_posthook|service_check_running_${cron_service}_error";
 

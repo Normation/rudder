@@ -23,6 +23,6 @@ bundle agent system_rudder_jetty_alive_check {
                                           persistence => "${g.agent_run_interval}";
 
   methods:
-      "any" usebundle => _method_reporting_context("Rudder-jetty service", "API status");
+      "any" usebundle => _method_reporting_context_v4("Rudder-jetty service", "API status", "api_status");
       "any" usebundle => condition_from_command("${condition_prefix}", "${api_check_cmd}", "0", "1,255");
 }

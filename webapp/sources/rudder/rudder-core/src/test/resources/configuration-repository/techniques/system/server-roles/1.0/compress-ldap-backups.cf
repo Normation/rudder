@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: 2014 Normation SAS
+# SPDX-FileCopyrightText: 2016 Janos Mattyasovszky
+
+bundle agent compress_ldap_backups
+{
+  vars:
+    # compres openldap-data-*.ldif files
+    "backups_pattern" slist => { "openldap-data-.*\.ldif" };
+
+  files:
+    "/var/rudder/ldap/backup"
+      file_select => by_name("@{backups_pattern}"),
+      depth_search => recurse("0"),
+      transformer => "${g.gzip} -fq \"${this.promiser}\"";
+
+}

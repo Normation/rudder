@@ -12,7 +12,7 @@ bundle common system_common {
     "davuser"               string => "rudder";
     "davpw"                 string => "rudder";
     "rudder_configuration_repository"
-                            string => "/tmp/test-rudder-config-repo-2022-07-25T22:43:30.790+02:00/configuration-repository";
+                            string => "/tmp/test-rudder-config-repo-2026-06-03T16:19:34.366+02:00/configuration-repository";
     "rudder_node_config_id" string => "root-cfg-id";
     "agent_run_interval"    string => "5";
     "schedule_events"       string => '{
@@ -28,7 +28,18 @@ bundle common system_common {
     }
   ]
 }';
+
     "cf_serverd_service_name" string => "rudder-cf-serverd";
 
+    system_common_pass3.executor::
+      "inventory_splay_hex" string => string_head(hash("${sys.host}", "md5"), "7");
+      # first line is the data used to create splay hash
+      # +0 is the uid of the user we use to run (root)
+      # Other lines are used to compute real splay time
+      "executor_data"       string => execresult("printf '${sys.fqhost}+${sys.ipv4}+0\n${sys.systime}\n0\n${agent_run_interval}\n${inventory_splay_hex}\n' > /var/rudder/tmp/cf-execd.data ", "useshell");
+
   classes:
+    "system_common_pass3" expression => "system_common_pass2";
+    "system_common_pass2" expression => "any";
+
 }

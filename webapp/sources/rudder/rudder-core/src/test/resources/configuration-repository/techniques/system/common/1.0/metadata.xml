@@ -45,6 +45,12 @@
     <FILE name="hooks.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
+    <FILE name="rudder_release_key.pub">
+      <INCLUDED>false</INCLUDED>
+    </FILE>
+    <FILE name="rpm-key.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
     <FILE name="cron-setup.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
@@ -52,9 +58,6 @@
       <INCLUDED>true</INCLUDED>
     </FILE>
     <FILE name="monitoring.cf">
-      <INCLUDED>true</INCLUDED>
-    </FILE>
-    <FILE name="restart-services.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
     <FILE name="internal-security.cf">
@@ -67,6 +70,9 @@
       <INCLUDED>true</INCLUDED>
     </FILE>
     <FILE name="reporting-http.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
+    <FILE name="scheduler.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
     <FILE name="rudder-agent-community-cron">
@@ -107,6 +113,10 @@
     <NAME>RUDDER_INVENTORY_VARS</NAME>
     <NAME>RUDDER_COMPLIANCE_MODE</NAME>
     <NAME>POLICY_SERVER_KEY</NAME>
+    <NAME>POLICY_SERVER_CERT_CA</NAME>
+    <NAME>POLICY_SERVER_CERT_VALIDATION</NAME>
+    <NAME>POLICY_SERVER_HTTPS_ONLY</NAME>
+    <NAME>MODULE_PARAM_SCHEDULE</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>
@@ -115,9 +125,10 @@
     <SECTION name="Update" component="true" />
     <SECTION name="ncf Initialization" component="true" />
     <SECTION name="Security parameters" component="true" />
-    <SECTION name="Log system for reports" component="true" />
     <SECTION name="CRON Daemon" component="true" />
+    <SECTION name="GPG key" component="true" />
     <SECTION name="Monitoring" component="true" />
+    <SECTION name="Events scheduler" component="true" />
 
     <SECTION name="common">
       <INPUT>

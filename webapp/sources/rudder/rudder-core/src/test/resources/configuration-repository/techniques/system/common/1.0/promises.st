@@ -37,6 +37,10 @@ bundle common rudder_roles
 
       "rudder_global_audit_mode"      not => strcmp("&RUDDER_COMPLIANCE_MODE&", "enforce");
 
+      "rudder_https_only"      expression => strcmp("&POLICY_SERVER_HTTPS_ONLY&", "true");
+      "rudder_cert_validation" expression => strcmp("&POLICY_SERVER_CERT_VALIDATION&", "true");
+      "rudder_custom_ca"              not => strcmp("&POLICY_SERVER_CERT_CA&", "");
+
       # full compliance is the default mode
       "full_compliance" not => "changes_only|reports_disabled";
 }
@@ -51,7 +55,7 @@ body common control
           "rudder-system-directives.cf",
         };
 
-        tls_min_version => "1.2";
+        tls_min_version => "1.3";
 
       any::
         bundlesequence => {
@@ -91,15 +95,26 @@ bundle agent rudder_common_system_directive {
       "rudder_webapp"                     string => "system_rudder_webapp";
 
   methods:
+      # We need context for method reporting
+      "Reporting context"                 usebundle => rudder_reporting_context_v4("common-hasPolicyServer-root","hasPolicyServer-root","Common","","","reportid");
       "Send agent update report"          usebundle => update_reports;
       "Update cfengine files permissions" usebundle => internal_security;
+      "Disable cf-serverd"                usebundle => disable_cf_serverd,
+                                                 if => "rudder_https_only";
       "Cleanup log files"                 usebundle => garbage_collection;
       "Setup agent check cron"            usebundle => setup_cronjob;
       "Make sure cron daemon is running"  usebundle => check_cron_daemon;
+      "Make sure rpm key is up to date"   usebundle => import_rpm_key;
+      # this one must be before any rudder-client call
+&if(!INITIAL)&
+      # The value is always empty in initial policies but we need to let it configurable locally.
+      "Setup certificate authority"       usebundle => setup_ca;
+&endif&
+
 &if(INITIAL)&
       "Run initial inventory"             usebundle => doInventory;
 &else&
-      "Configure logs for reporting"      usebundle => configure_rudder_reporting_system;
+      "Configure logs for reporting"      usebundle => send_rudder_reports;
       "Fetch Rudder Inventory variables"  usebundle => rudder_node_inventory;
       "Pre hook for monitoring methods"   usebundle => monitoring_hook_pre;
 &endif&
@@ -114,6 +129,7 @@ bundle agent rudder_common_system_directive {
       "rudder_webapp"                     usebundle => "${rudder_webapp}";
 &endif&
 
+      "schedule events"                   usebundle => rudder_event_scheduler;
 }
 
 bundle agent rudder_common_system_end {
@@ -123,8 +139,6 @@ bundle agent rudder_common_system_end {
 &endif&
 
       "End report log"                    usebundle => endExecution;
-      # keep this at real end to avoid breaking reporting if syslog still works
-      "Restart syslog if needed"          usebundle => restart_services;
 }
 
 bundle agent rudder_end {
@@ -219,6 +233,12 @@ bundle common va
     # for OS family compatibility
       "suse" expression => "sles|sled|opensuse";
       "redhat" expression => "amzn|amazon_linux";
+    # sles 12 and after already have this
+      "sles_11" expression => "SLES_11";
+      "sles_11_1" expression => "SLES_11_1";
+      "sles_11_2" expression => "SLES_11_2";
+      "sles_11_3" expression => "SLES_11_3";
+      "sles_11_4" expression => "SLES_11_4";
 
     # We are inside Rudder policies
       "rudder_policies" expression => "any";
@@ -244,9 +264,10 @@ bundle agent startup
                               scope => "namespace";
 
   methods:
-    # Should we send a message stating this agent is starting up?
-    # Always do it in "full_compliance" mode
-    full_compliance::
+    # Always send start/end messages, this will ensure all sent runlogs are valid.
+    # We can as disabled reporting is handled in the wrapper layer, and should as changes-only always produces some logs
+    # (since HTTP reporting and agent output capture).
+    # NOTE: This means heartbeat configuration is actually ignored and a report is sent for every agent run.
       "Send start message"
         usebundle => startExecution,
         action    => immediate;
@@ -318,81 +339,6 @@ bundle agent initialize_ncf()
       "report about ncf init" usebundle => rudder_common_reports_generic("Common", "ncf_init", "${system_common.directiveId}", "ncf Initialization", "None", "Configuration library initialization");
 }
 
-&if(!INITIAL)&
-bundle agent configure_rudder_reporting_system {
-  methods:
-      "remove_reporting"    usebundle => remove_rudder_syslog_configuration;
-      "make http reports"   usebundle => send_rudder_reports;
-
-  reports:
-    !agent_capability_http_reporting.!reports_disabled::
-      "******************************************************************
-       * This version of rudder-agent does not support https reporting. *
-       * Please upgrade rudder-agent to version 6.0 or more.            *
-       ******************************************************************";
-}
-
-#############################################################
-# Remove syslog configurations that Rudder may have applied #
-#############################################################
-# Note: if any configurations are changed here, corresponding services must be
-# restarted in the restart_services bundle
-
-bundle agent remove_rudder_syslog_configuration {
-  vars:
-      "syslogng_delete_lines_patterns" slist => {
-        "\s*# Autogenerated by rudder, do not edit.*",
-        ".*destination\(rudder_loghost\);.*",
-      };
-
-      "syslog_delete_lines_patterns" slist => {
-        "\s*# Rudder specific logging parameters.*",
-        "local6.notice\s+@${server_info.policy_server}",
-      };
-
-      "syslogng_conffile"     string => "/etc/syslog-ng/syslog-ng.conf";
-      "syslog_conffile"       string => "/etc/syslog.conf";
-
-  classes:
-      "syslogng" expression => fileexists("${syslogng_conffile}");
-      "syslogd"  expression => fileexists("${syslog_conffile}");
-
-  files:
-      "/etc/rsyslog.d/rudder.conf"
-        delete         => tidy,
-        classes        => classes_generic("remove_rudder_syslog_configuration_rsyslog");
-
-      "/etc/rsyslog.d/rudder-agent.conf"
-        delete         => tidy,
-        classes        => classes_generic("remove_rudder_syslog_configuration_rsyslog");
-
-      "/etc/rsyslog.d/remove_limit.conf"
-        delete         => tidy;
-
-    syslogng::
-      "${syslogng_conffile}"
-        edit_line      => delete_lines_matching("${syslogng_delete_lines_patterns}"),
-        edit_defaults  => noempty_backup,
-        classes        => classes_generic("remove_rudder_syslog_configuration_syslogng");
-
-    syslogd::
-      "${syslog_conffile}"
-        edit_line      => delete_lines_matching("${syslog_delete_lines_patterns}"),
-        edit_defaults  => noempty_backup,
-        classes        => classes_generic("remove_rudder_syslog_configuration_syslog");
-
-  methods:
-      "merge result classes" usebundle  => _classes_combine_three("remove_rudder_syslog_configuration_rsyslog", "remove_rudder_syslog_configuration_syslogng", "remove_rudder_syslog_configuration_syslog", "remove_rudder_syslog_configuration_result");
-      "reports"              usebundle  => rudder_common_reports_generic("Common", "log_repaired", "${system_common.directiveId}", "Log system for reports", "None", "Rudder syslog configuration was correctly removed"),
-                             ifvarclass => "remove_rudder_syslog_configuration_result_repaired";
-      "reports"              usebundle  => rudder_common_reports_generic("Common", "log_info", "${system_common.directiveId}", "Log system for reports", "None", "Rudder syslog configuration is not present"),
-                             ifvarclass => "remove_rudder_syslog_configuration_result_kept";
-      "reports"              usebundle  => rudder_common_reports_generic("Common", "result_error", "${system_common.directiveId}", "Log system for reports", "None", "Rudder syslog configuration could not be removed"),
-                             ifvarclass => "remove_rudder_syslog_configuration_result_error";
-
-}
-&endif&
-
 ###################################################################
 # Trash every output report and modified files older than the TTL #
 ###################################################################
@@ -411,14 +357,18 @@ bundle agent garbage_collection
   files:
 
       "${sys.workdir}/outputs"
+        delete => tidy,
+        file_select => days_old("&CFENGINE_OUTPUTS_TTL&"),
+        depth_search => recurse("inf"),
+        action => if_elapsed_day;
 
+      "${g.rudder_var}/system-updates"
         delete => tidy,
         file_select => days_old("&CFENGINE_OUTPUTS_TTL&"),
         depth_search => recurse("inf"),
         action => if_elapsed_day;
 
       "${g.rudder_var}/modified-files"
-
         delete => tidy,
         file_select => days_old("&MODIFIED_FILES_TTL&"),
         depth_search => recurse("inf");
@@ -433,25 +383,43 @@ bundle agent garbage_collection
 }
 
 #######################################################
+# This bundle is responsible for setting up the certificate authority required by the server
+bundle agent setup_ca
+{
+  files:
+      "${g.rudder_var}//lib/ssl/policy_server_ca.pem"
+&if(POLICY_SERVER_CERT_CA)&
+        content => "&POLICY_SERVER_CERT_CA&",
+        create => "true",
+        perms => mog("644","root","root");
+&else&
+        delete => tidy;
+&endif&
+}
+
+#######################################################
 # This bundle is responsible for the reporting of what happened in the update
 # It can work because the classes defined during the update are persistent, so
 # the classes are available for the next 4 minutes
 bundle agent update_reports
 {
   methods:
-    no_update::
+    rudder_https_only.!root_server::
+      "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "Update", "None", "Update is done over HTTPS");
+
+    p_no_update::
       "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Update", "None", "Cannot update configuration policy");
 
-    rudder_ncf_hash_update_error::
+    p_rudder_ncf_hash_update_error::
       "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Update", "None", "Cannot update common configuration library (update flag file)");
 
-    rudder_ncf_common_update_error::
+    p_rudder_ncf_common_update_error::
       "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Update", "None", "Cannot update common configuration library");
 
-    rudder_ncf_local_update_error::
+    p_rudder_ncf_local_update_error::
       "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Update", "None", "Cannot update local configuration library");
 
-    rudder_promises_generated_tmp_file_error::
+    p_rudder_promises_generated_tmp_file_error::
       "any" usebundle => rudder_common_report("Common", "result_error", "${system_common.directiveId}", "Update", "None", "Cannot update configuration policy");
 
     # Success report relies on several matching conditions (nodes except root_server)
@@ -460,8 +428,8 @@ bundle agent update_reports
     #   - Staggered update: rudder_promises_generated_tmp_file_kept OR (rudder_promises_generated_tmp_file_repaired AND config_ok)
     # Note: its possible to have only rudder_ncf_hash_update_repaired and not rudder_ncf_common_updated, rudder_ncf_common_update_error but rudder_ncf_common_updated_ok if a technique is created, but not applied - in this case this is a success
     # There must be NO components in repair or error
-    # Note: we can't use classe new_promises_available here because they are local to the update_action bundle
-    !root_server.(rudder_ncf_hash_update_ok|(rudder_ncf_hash_update_repaired.rudder_ncf_common_updated_ok.rudder_ncf_local_updated_ok)).(rudder_promises_generated_tmp_file_kept|(rudder_promises_generated_tmp_file_repaired.config_ok)).!(rudder_promises_generated_tmp_file_error|rudder_ncf_common_updated|rudder_ncf_common_update_error|rudder_ncf_local_updated|rudder_ncf_local_update_error|config|no_update|rudder_ncf_hash_update_error|(rudder_ncf_hash_update_repaired.!rudder_ncf_common_updated_ok))::
+    # Note: we can't use class new_promises_available here because they are local to the update_action bundle
+    !root_server.(p_rudder_ncf_hash_update_ok|(p_rudder_ncf_hash_update_repaired.p_rudder_ncf_common_updated_ok.p_rudder_ncf_local_updated_ok)).(p_rudder_promises_generated_tmp_file_kept|(p_rudder_promises_generated_tmp_file_repaired.p_config_ok)).!(p_rudder_promises_generated_tmp_file_error|p_rudder_ncf_common_updated|p_rudder_ncf_common_update_error|p_rudder_ncf_local_updated|p_rudder_ncf_local_update_error|p_config|p_no_update|p_rudder_ncf_hash_update_error|(p_rudder_ncf_hash_update_repaired.!p_rudder_ncf_common_updated_ok))::
       "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "Update", "None", "Policy and configuration library are already up to date. No action required.");
 
     # Success report relies on several matching conditions (root_server only)
@@ -469,19 +437,19 @@ bundle agent update_reports
     #   - Simple test: rudder_ncf_common_updated_ok
     #   - Simple test: rudder_ncf_local_updated_ok
     # There must be NO components in repair or error
-    root_server.rudder_ncf_common_updated_ok.rudder_ncf_local_updated_ok.!(rudder_ncf_common_updated|rudder_ncf_common_update_error|rudder_ncf_local_updated|rudder_ncf_local_update_error)::
+    root_server.p_rudder_ncf_common_updated_ok.p_rudder_ncf_local_updated_ok.!(p_rudder_ncf_common_updated|p_rudder_ncf_common_update_error|p_rudder_ncf_local_updated|p_rudder_ncf_local_update_error)::
       "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "Update", "None", "Configuration library already up to date on this root server. No action required.");
 
-    rudder_ncf_common_updated::
+    p_rudder_ncf_common_updated::
       "any" usebundle => rudder_common_report("Common", "log_repaired", "${system_common.directiveId}", "Update", "None", "Common configuration library updated");
 
-    rudder_ncf_local_updated::
+    p_rudder_ncf_local_updated::
       "any" usebundle => rudder_common_report("Common", "log_repaired", "${system_common.directiveId}", "Update", "None", "Local configuration library updated");
 
-    config::
+    p_config::
       "any" usebundle => rudder_common_report("Common", "log_repaired", "${system_common.directiveId}", "Update", "None", "Configuration policy updated");
 
-    (config|rudder_ncf_common_updated|rudder_ncf_local_updated).!(rudder_promises_generated_tmp_file_error|rudder_ncf_common_update_error|rudder_ncf_local_update_error|no_update|rudder_ncf_hash_update_error)::
+    (p_config|p_rudder_ncf_common_updated|p_rudder_ncf_local_updated).!(p_rudder_promises_generated_tmp_file_error|p_rudder_ncf_common_update_error|p_rudder_ncf_local_update_error|p_no_update|p_rudder_ncf_hash_update_error)::
       "any" usebundle => rudder_common_report("Common", "result_repaired", "${system_common.directiveId}", "Update", "None", "Policy or configuration library were updated");
 
     server_ok::
@@ -491,13 +459,24 @@ bundle agent update_reports
 
     reports:
       # We want to have always reports if something goes bad
-      rudder_promises_generated_error|no_update|rudder_promises_generated_tmp_file_error::
+      p_rudder_promises_generated_error|p_no_update|p_rudder_promises_generated_tmp_file_error::
+&if(INITIAL)&
+        "*********************************************************************************
+  *  You must accept this node on the server before updating this node            *
+  *  This node uses initial policies, some error message are expected until       *
+  *  the node is accepted.                                                        *
+  *********************************************************************************"
+&endif&
+
+&if(!INITIAL)&
         "*********************************************************************************
   * rudder-agent could not get an updated configuration from the policy server.   *
   * This can be caused by a network issue, an unavailable server, or if this      *
   * node was deleted from the Rudder root server.                                 *
   * Any existing configuration policy will continue to be applied without change. *
   *********************************************************************************"
+&endif&
+
         action => immediate;
 }
 
@@ -507,9 +486,28 @@ bundle agent update_reports
 bundle agent rudder_check_agent_version
 {
   methods:
-    cfengine_3_1|cfengine_3_2|cfengine_3_3|cfengine_3_4|cfengine_3_5|cfengine_3_6|cfengine_3_7|cfengine_3_8|cfengine_3_9|cfengine_3_10|cfengine_3_11|cfengine_3_12|cfengine_3_13|cfengine_3_14::
+    cfengine_3_1|cfengine_3_2|cfengine_3_3|cfengine_3_4|cfengine_3_5|cfengine_3_6|cfengine_3_7|cfengine_3_8|cfengine_3_9|cfengine_3_10|cfengine_3_11|cfengine_3_12|cfengine_3_13|cfengine_3_14|cfengine_3_15::
       "any" usebundle => _abort("unsupported_agent", "This agent is not compatible with its Rudder server, please upgrade");
 }
+
+#######################################################
+# Select the syslog facility to use based on node property syslog_facility
+bundle common rudder_syslog_facility {
+  vars:
+@if feature(syslog_disableable)
+      "valid_values" slist => {"NONE", "LOG_USER", "LOG_DAEMON", "LOG_LOCAL0", "LOG_LOCAL1", "LOG_LOCAL2", "LOG_LOCAL3", "LOG_LOCAL4", "LOG_LOCAL5", "LOG_LOCAL6", "LOG_LOCAL7"};
+      "syslog"      string => "NONE";
+@else
+      "valid_values" slist => {"LOG_USER", "LOG_DAEMON", "LOG_LOCAL0", "LOG_LOCAL1", "LOG_LOCAL2", "LOG_LOCAL3", "LOG_LOCAL4", "LOG_LOCAL5", "LOG_LOCAL6", "LOG_LOCAL7"};
+      "syslog"      string => "LOG_LOCAL3";
+@endif
+
+    rudder_is_syslog_out_valid::
+      "syslog" string => "${node.properties[rudder][log][syslog_facility]}";
+  classes:
+    "rudder_is_syslog_out_valid" expression => strcmp("${valid_values}", "${node.properties[rudder][log][syslog_facility]}");
+}
+
 
 #######################################################
 
@@ -523,10 +521,12 @@ body agent control
 
         abortclasses => { "should_not_continue", "abort_agent_run" };
 
-        agentfacility => "LOG_LOCAL6";
+        agentfacility => "${rudder_syslog_facility.syslog}";
 
   # Repository where to put the copy of modified files
         default_repository => "${g.rudder_var}/modified-files";
+
+        default_timeout => "10";
 
 &if(!INITIAL)&
 # to protect copy methods and techniques

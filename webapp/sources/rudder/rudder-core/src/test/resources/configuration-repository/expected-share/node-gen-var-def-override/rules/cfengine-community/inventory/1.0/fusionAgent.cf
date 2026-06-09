@@ -1,13 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SPDX-FileCopyrightText: 2021 Normation SAS
 
-#
-# This file launch a fusion-inventory agent
-# inventory in local.
-# If fusion agent is not installed,
-# the installation is done
-#
-# Then the inventory file is improved with external information (UUID, cf-key, VMs)
+# This file launch a fusion-inventory agent inventory
+# Then the inventory file is signed, then sent
 
 # Compute the inventory time
 bundle agent computeInventoryTime
@@ -21,6 +16,7 @@ bundle agent computeInventoryTime
 
   methods:
       # Inventory will be during the 6 hours after midnight, every day
+      "splay_inventory" usebundle => rudder_reporting_context_id("inventory-all@@inventory-all@@00", "Inventory");
       "splay_inventory" usebundle => _method_reporting_context("Compute inventory splay", "None");
       "splay_inventory" usebundle => schedule_simple("rudder_run_inventory", "${run_interval}", "0", "6", "0", "0", "0", "0", "0", "1", "catchup");
 }
@@ -44,12 +40,16 @@ bundle agent doInventory
       "any" usebundle => doInventory_always;
     !(ignore_disable_inventory|!disable_inventory)::
       "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "Inventory", "None", "The file ${g.rudder_disable_inventory_file} is present, so Rudder will not send an inventory. Use 'rudder agent inventory -f' to override this temporarily");
+
+    # Clean all remaining inventories files
+    any::
+      "any" usebundle => cleanInventoryFiles;
 }
+
 bundle agent doInventory_always
 {
 
   vars:
-
     uuid_successfully_downloaded::
       "policy_server_uuid" string => readfile("${sys.workdir}/rudder-server-uuid.txt", 50);
 
@@ -60,19 +60,11 @@ bundle agent doInventory_always
 
     uuid_successfully_downloaded::
       "uuid_valid" expression => regcmp("[a-z0-9-]+","${policy_server_uuid}");
-      "uuid_validity_checked"
-        expression => "any",
-        comment    => "This dummy class is just used for ordering the report using !uuid_valid below";
 
     any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-
-  files:
-    # Clean policy server uuid file defined in 2.11 or earlier version, as location in 3.0+ is ${sys.workdir}/rudder-server-uuid.txt
-    "${g.rudder_var_tmp}/uuid.txt"
-      delete => tidy;
 
   methods:
       # Compute the inventory time
@@ -86,7 +78,6 @@ bundle agent doInventory_always
       "any" usebundle => checkInventoryFile;
 
     uuid_valid.(force_inventory|((inventory_time|initial_promises).!inventory_sent)).inventory_valid::
-      "any" usebundle => moveInventoryToFinalDestination;
       "any" usebundle => signInventories;
       "any" usebundle => compressInventories;
 
@@ -94,7 +85,7 @@ bundle agent doInventory_always
       "any" usebundle => sendInventory;
       "any" usebundle => cleanForceInventoryFlagFile;
 
-    pass3.uuid_successfully_downloaded.uuid_validity_checked.!uuid_valid::
+    pass3.uuid_successfully_downloaded.!uuid_valid::
       "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "Inventory", "None", "Could not retrieve a valid UUID from the policy server");
 
     # Send reports to confirm this technique success even if we don't need to send an inventory
@@ -106,25 +97,21 @@ bundle agent doInventory_always
 
 }
 
+body contain download_uuid_timeout
+{
+  exec_timeout => "10";
+}
+
 bundle agent download_server_uuid
 {
-  classes:
-      "have_client" expression => fileexists("/opt/rudder/bin/rudder-client");
-
   methods:
     could_not_download_uuid::
       "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "Inventory", "None", "Could not retrieve the UUID of the policy server. Please check that the defined Policy Server exists, and that this Node IP address is in the Allowed Networks of its policy server.");
 
   commands:
-    !have_client::
-      # remove this when 6.2 agent are not supported anymore
-      "${g.rudder_curl} --tlsv1.2 --location ${g.rudder_verify_certs_option} --silent --fail --proxy '' --output \"${sys.workdir}/rudder-server-uuid.txt\" https://${server_info.policy_server}/uuid"
-        comment => "Getting the uuid from the server",
-        classes => if_else("uuid_successfully_downloaded","could_not_download_uuid");
-
-    have_client::
       "/opt/rudder/bin/rudder-client -e /uuid -- --output \"${sys.workdir}/rudder-server-uuid.txt\""
         comment => "Getting the uuid from the server",
+        contain => download_uuid_timeout,
         classes => if_else("uuid_successfully_downloaded","could_not_download_uuid");
 
 }
@@ -132,9 +119,16 @@ bundle agent download_server_uuid
 bundle agent fusionAgent
 {
   vars:
-    any::
-      "inventory_name"           string => "${sys.uqhost}-${g.uuid}.ocs";
-      "inventory_path"           string => "${g.rudder_var_tmp}/inventory/${inventory_name}";
+    !pass1::
+      # Add a unique value to allow matching inventory and signature files
+      "date"                     string => execresult("LANG=C /bin/date --utc --iso-8601=seconds", "useshell");
+      "inventory_name"           string => "${g.uuid}_${date}.ocs";
+      # Required when used in a regex
+      "inventory_name_esc"       string => escape("${inventory_name}");
+    verbose_inventory|verbose_mode|inform_mode::
+      "inventory_opts"           string => "--debug --debug ";
+    !(verbose_inventory|verbose_mode|inform_mode)::
+      "inventory_opts"           string => "";
 
   classes:
       "pass3" expression => "pass2";
@@ -166,7 +160,7 @@ bundle agent fusionAgent
 
   commands:
     inventoryfoldercreated.rudder_inventory_not_running::
-      "${g.rudder_base}/bin/run-inventory --local=${inventory_path}"
+      "${g.rudder_base}/bin/run-inventory --local=${g.rudder_inventories}/${fusionAgent.inventory_name} ${inventory_opts}"
         classes => cf2_if_else("run_inventory", "inventory_failed"),
         comment => "Generating inventory, in the temporary folder";
 }
@@ -182,10 +176,10 @@ bundle agent checkInventoryFile
 
   classes:
     rudder_inventory_not_running::
-      "inventory_file_exist" expression => fileexists("${fusionAgent.inventory_path}");
+      "inventory_file_exist" expression => fileexists("${g.rudder_inventories}/${fusionAgent.inventory_name}");
       "has_rudder_perl" expression => fileexists("/opt/rudder/bin/perl");
     pass1.inventory_file_exist::
-      "inventory_valid" expression => returnszero("${perl_command} ${this.promise_dirname}/test-inventory.pl ${fusionAgent.inventory_path}", "noshell"),
+      "inventory_valid" expression => returnszero("${perl_command} ${this.promise_dirname}/test-inventory.pl ${g.rudder_inventories}/${fusionAgent.inventory_name}", "noshell"),
                         scope => "namespace";
 
     any::
@@ -202,17 +196,8 @@ bundle agent checkInventoryFile
       "********************************************************************************
 * WARNING Generated inventory is not valid, as it is missing mandatory fields. *
 * Not sending it to the Rudder Server                                          *
-* You can get a full error message by running: ${perl_command} ${this.promise_dirname}/test-inventory.pl ${fusionAgent.inventory_path} 
+* You can get a full error message by running: ${perl_command} ${this.promise_dirname}/test-inventory.pl ${g.rudder_inventories}/${fusionAgent.inventory_name}
 ********************************************************************************";
-}
-
-# Move the inventory file in the shared directory
-bundle agent moveInventoryToFinalDestination
-{
-  files:
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}"
-        copy_from    => copy("${fusionAgent.inventory_path}"),
-        comment      => "Moving inventory files to the final location";
 }
 
 # sign inventories
@@ -261,48 +246,26 @@ bundle agent sendInventory
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-      "have_client" expression => fileexists("/opt/rudder/bin/rudder-client");
 
   files:
-    !root_server.!have_client::
-      # remove this when 6.2 agent are not supported anymore
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}.*"
-        transformer => "${g.rudder_curl} --tlsv1.2 --location ${g.rudder_verify_certs_option} --fail --silent --proxy '' --user ${g.davuser}:${g.davpw} --upload-file ${this.promiser} ${download_endpoint}",
-        classes      => persistent_class("inventory_sent", "cant_send_inventory", "${min_resend_delay}"),
-        comment      => "Sending the inventory to the server";
-
-    !root_server.have_client::
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}.*"
+    !root_server::
+      "${g.rudder_inventories}/${fusionAgent.inventory_name_esc}.*"
         transformer => "/opt/rudder/bin/rudder-client -e ${endpoint} -- --upload-file ${this.promiser}",
         classes      => persistent_class("inventory_sent", "cant_send_inventory", "${min_resend_delay}"),
         comment      => "Sending the inventory to the server";
 
     root_server::
       # minimal change to copy inventories to accepted node updates on root server
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}\..*"
+      "${g.rudder_inventories}/${fusionAgent.inventory_name_esc}\..*"
         transformer => "${g.rudder_cp} ${this.promiser} ${g.rudder_inventories}/accepted-nodes-updates",
         classes      => persistent_class("inventory_sent", "cant_send_inventory", "${min_resend_delay}"),
         comment      => "Copying the inventory on root server";
 
-
-  # Once we've successfully sent all inventories, remove them
     inventory_sent.!cant_send_inventory::
-      "${g.rudder_inventories}/${fusionAgent.inventory_name}.*"
-        transformer  => "${g.rudder_rm} -f ${this.promiser}",
-        classes      => if_else("inventory_file_deleted", "cant_delete_inventory_file"),
-        comment      => "Cleaning up inventory files already sent to the server";
-
       "${g.rudder_var_tmp}/inventory_sent"
         create       => "true",
         touch        => "true",
         comment      => "Create local info about successful upload";
-
-      "${g.rudder_var_tmp}/inventory"
-        transformer  => "${g.rudder_rm} -f ${this.promiser}",
-        depth_search => recurse_visible(1),
-        file_select  => fusion_by_name_old("@{g.signed_inventory_file_types}", 2),
-        classes      => if_else("inventory_file_deleted", "cant_delete_inventory_file"),
-        comment      => "Cleaning up inventory files already sent to the server";
 
   methods:
     pass3.inventory_sent::
@@ -310,16 +273,21 @@ bundle agent sendInventory
 
     pass3.cant_send_inventory::
       "any" usebundle => rudder_common_report("Inventory", "result_error", "inventory-all@@inventory-all@@0", "Inventory", "None", "Could not send the inventory");
-
-    pass3.cant_delete_inventory_file::
-      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "Inventory", "None", "Could not delete inventory file after sending to server");
-
 }
-body file_select fusion_by_name_old(names,days)
+
+bundle agent cleanInventoryFiles
 {
-      leaf_name   => { @(names) };
-      mtime       => irange(0,ago(0,0,"${days}",0,0,0));
-      file_result => "mtime.leaf_name";
+  files:
+      "${g.rudder_inventories}"
+        transformer  => "${g.rudder_rm} -f ${this.promiser}",
+        depth_search => recurse_visible(1),
+        file_select  => name_age("@{g.signed_inventory_file_types}", 0),
+        classes      => if_else("inventory_file_deleted", "cant_delete_inventory_file"),
+        comment      => "Cleaning up inventory files already sent to the server";
+
+  methods:
+    cant_delete_inventory_file::
+      "any" usebundle => rudder_common_report("Inventory", "log_warn", "inventory-all@@inventory-all@@0", "Inventory", "None", "Could not delete inventory file after sending to server");
 }
 
 bundle agent cleanForceInventoryFlagFile

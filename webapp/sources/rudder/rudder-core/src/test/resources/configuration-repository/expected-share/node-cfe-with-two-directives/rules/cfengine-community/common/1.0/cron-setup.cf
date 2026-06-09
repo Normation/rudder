@@ -4,19 +4,15 @@
 bundle agent setup_cronjob
 {
   vars:
-    solaris::
-      "crontab_group" string => "root";
-    aix::
-      "crontab_group" string => "cron";
-
     pass2.in_hours::
+      # seq is not posix. We are using awk for improved portability
       "interval_str" string => eval("${system_common.agent_run_interval} / 60", "math", "infix");
       "interval" string => format("%d", "${interval_str}");
-      "steps" string => execresult("seq -s, 0 ${interval} 23", "useshell");
+      "steps" string => execresult("echo '0 23' | ${paths.awk} '{ for (i=$1;i<=$2;i=i+${interval}) { printf \"%s%s\", sep, i; sep=\",\"}} END{print \"\"}'", "useshell");
       "cron_prefix" string => "0 ${steps} * * *";
 
     pass2.!in_hours::
-      "steps" string => execresult("seq -s, 0 ${system_common.agent_run_interval} 59", "useshell");
+      "steps" string => execresult("echo '0 59' | ${paths.awk} '{ for (i=$1;i<=$2;i=i+${system_common.agent_run_interval}) { printf \"%s%s\", sep, i; sep=\",\"}} END{print \"\"}'", "useshell");
       "cron_prefix" string => "${steps} * * * *";
 
   classes:
@@ -25,28 +21,14 @@ bundle agent setup_cronjob
 
   files:
 
-    pass2.!aix.!solaris::
+    pass2::
       "/etc/cron.d/rudder-agent"
         create          => "true",
         perms           => mog("644", "root", "0"),
         edit_defaults   => empty_backup,
         template_method => "mustache",
         edit_template   => "${sys.workdir}/inputs/common/cron/rudder-agent-community-cron";
-
-    pass2.(aix|solaris)::
-      "/var/spool/cron/crontabs/root"
-        create        => "true",
-        perms         => mog("600", "root", "cron"),
-        edit_line     => insert_lines("${cron_prefix} /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1 # RUDDER CRON"),
-        classes       => classes_generic("rudder_system_user_crontab_insertion"),
-        comment       => "Insert an AIX-compatible user crontab to run /opt/rudder/bin/rudder agent check";
-
-      # Cleanup old crontab, without the tag
-      "/var/spool/cron/crontabs/root"
-        edit_defaults => noempty_backup,
-        edit_line => delete_lines_matching("0,5,10,15,20,25,30,35,40,45,50,55 \* \* \* \* /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1");
-
- }
+}
 
 #######################################################
 # Check if the cron daemon is running
@@ -72,23 +54,17 @@ bundle agent check_cron_daemon
       "restart_cron" usebundle => disable_reporting;
       "restart_cron" usebundle => _method_reporting_context("CRON Daemon", "None");
       "check_cron_service"
-                     usebundle => service_check_running("${service_name}"),
-                            if => "!aix";
+                     usebundle => service_check_running("${service_name}");
 
       "restart_cron" usebundle => service_restart("${service_name}"),
-                            if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error).!aix";
+                            if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error)";
       "restart_cron" usebundle => enable_reporting;
 
 
     pass3::
       "any" usebundle => rudder_common_reports_generic("Common", "service_restart_${service_name}", "${system_common.directiveId}", "CRON Daemon", "None", "Cron daemon status"),
-                   if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error).!aix";
+                   if => "(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error)";
 
       "any" usebundle => rudder_common_report("Common", "result_success", "${system_common.directiveId}", "CRON Daemon", "None", "CRON is correctly running"),
-                   if => "!(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error).!aix";
-    aix::
-      "any" usebundle => rudder_common_report("Common", "result_na", "${system_common.directiveId}", "CRON Daemon", "None", "CRON is not a service on AIX: CRON verifications skipped");
-
-
-
+                   if => "!(rudder_system_user_crontab_insertion_repaired|service_check_running_${service_name}_error)";
 }

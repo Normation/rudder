@@ -56,17 +56,23 @@ bundle agent system_rudder_apache_networks_configuration {
       # Restart apache at the end of the technique if needed
       "rudder_server_system_reload_apache" expression => "${allowed_network_prefix}_repaired|${remote_run_prefix}_repaired",
                                                 scope => "namespace";
+      # Restart cf-serverd at the end of the technique if needed
+      # As allowed networks configuration for cf-serverd are done using string template in the cf file, it is
+      # quite hard to detect when a change of configuration occurred.
+      # Whenever apache allowed networks change, the cf-serverd configuration is assumed to have also changed
+      "rudder_server_system_reload_cf_serverd" expression => "${allowed_network_prefix}_repaired|${remote_run_prefix}_repaired",
+                                                scope => "namespace";
 
   methods:
       # Allowed networks
-      "any" usebundle => _method_reporting_context("${component}", "Allowed networks permissions");
+      "any" usebundle => _method_reporting_context_v4("${component}", "Allowed networks permissions", "allowed_network_permissions");
       "any" usebundle => permissions("${allowed_network_file}", "600", "root", "0");
-      "any" usebundle => _method_reporting_context("${component}", "Allowed networks configuration");
+      "any" usebundle => _method_reporting_context_v4("${component}", "Allowed networks configuration", "allowed_network_configuration");
       "any" usebundle => file_content("${allowed_network_file}", "${allowed_network_acl}", "true");
 
       # Remote run
-      "any" usebundle => _method_reporting_context("${component}", "Remote run configuration");
+      "any" usebundle => _method_reporting_context_v4("${component}", "Remote run configuration", "remote_run_configuration");
       "any" usebundle => file_content("${remote_run_file}", "${remote_run_acl}", "true");
-      "any" usebundle => _method_reporting_context("${component}", "Remote run permissions");
+      "any" usebundle => _method_reporting_context_v4("${component}", "Remote run permissions", "remote_run_permissions");
       "any" usebundle => permissions("${remote_run_file}", "600", "root", "0");
 }

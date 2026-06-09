@@ -8,7 +8,7 @@
 
 bundle common rudder_parameters {
   vars:
-&RUDDER_PARAMETERS:{parameter |    "&parameter.parameterName&" string => "&parameter.escapedValue&";
+&RUDDER_PARAMETERS:{parameter |    "&parameter.escapedParameterName&" string => "&parameter.escapedValue&";
 }&
 }
 

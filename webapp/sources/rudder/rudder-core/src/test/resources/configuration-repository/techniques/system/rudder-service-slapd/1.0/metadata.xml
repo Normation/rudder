@@ -13,9 +13,6 @@
   </TMLS>
 
   <FILES>
-    <FILE name="slapd-logrotate.mustache">
-      <INCLUDED>false</INCLUDED>
-    </FILE>
     <FILE name="logrotate.cf">
       <INCLUDED>true</INCLUDED>
     </FILE>
@@ -32,7 +29,6 @@
       <REPORTKEYS>
         <VALUE>Check Rudder ldap password</VALUE>
         <VALUE>Check Rudder ldap permissions</VALUE>
-        <VALUE>Log rotation</VALUE>
       </REPORTKEYS>
     </SECTION>
   </SECTIONS>
