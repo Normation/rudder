@@ -65,8 +65,9 @@ trait SecureDispatchSnippet extends DispatchSnippet {
     PartialFunction.empty
   }
 
-  // a method for having a query context available even during class instantiation
-  lazy val snippetQC: QueryContext = {
+  // A method for having a query context available even during class instantiation
+  // This need to be a val to avoid evaluation on ZIO runtime: https://github.com/Normation/rudder/pull/7188
+  val snippetQC: QueryContext = {
     CurrentUser.queryContext.getOrElse {
       logInvaliAccess
       QueryContext.noneQC
