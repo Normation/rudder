@@ -45,8 +45,8 @@ response:
       }
     }
 ---
-description: zoneB user sees only zoneB in security tag
-user: zoneB
+description: zoneBC user sees nothing 
+user: zoneC
 method: GET
 url: /api/latest/parameters/tenantParam
 response:

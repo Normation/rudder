@@ -906,11 +906,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val providerRoleExtension: Map[String, ProviderRoleExtension] = Map("file" -> ProviderRoleExtension.WithOverride)
   val authBackendProviders:  Set[String]                        = Set("file")
 
-  object tenantRepo extends TenantService {
-    override def tenantsEnabled: Boolean           = false
-    override def getStatus:      UIO[TenantStatus] = TenantStatus.Disabled.succeed
-    override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = ???
-  }
+  val tenantRepo = InMemoryTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
 }
 
 object MockUserManagement {

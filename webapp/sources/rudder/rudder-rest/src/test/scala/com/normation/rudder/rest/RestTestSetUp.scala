@@ -154,9 +154,7 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
-import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.model.LinkUtil
@@ -222,20 +220,47 @@ import zio.test.*
  */
 
 /**
- * A stub user service with full rights to API
+ * A stub user service with full rights to API.
+ * This is a special user service where we can choose which is current user by name.
+ * This only work because all API tests are sequential.
  */
 class TestUserService extends UserService {
-  val user:                    AuthenticatedUser         = new AuthenticatedUser {
-    override val account:     RudderAccount     = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
+  def makeUser(n: String, grant: TenantAccessGrant) = new AuthenticatedUser {
+    override val account:     RudderAccount     = RudderAccount.User(n, UserPassword.unsafeHashed("pass"))
     override val authz:       Rights            = Rights.AnyRights
     override val apiAuthz:    ApiAuthz          = ApiAuthz.allAuthz
-    override val accessGrant: TenantAccessGrant = TenantAccessGrant.All
-
-    override def actorIp: Option[String] = None
-
+    override val accessGrant: TenantAccessGrant = grant
+    override def actorIp:     Option[String]    = None
     override def checkRights(auth: AuthorizationType): Boolean = true
   }
-  override val getCurrentUser: Option[AuthenticatedUser] = Some(user)
+
+  private val users = Map(
+    "admin" -> makeUser("test-user", TenantAccessGrant.All),
+    "zoneA" -> makeUser(
+      "zoneA",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.ReadWrite)))
+    ),
+    "zoneB" -> makeUser(
+      "zoneB",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB"), TenantPermission.ReadWrite)))
+    ),
+    "zoneC" -> makeUser(
+      "zoneC",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneC"), TenantPermission.ReadWrite)))
+    ),
+    "none"  -> makeUser("none", TenantAccessGrant.None)
+  )
+
+  private var currentUser = users("admin")
+
+  def setCurrentUser(name: String): Unit = {
+    users.get(name) match {
+      case Some(u) => currentUser = u
+      case None    => throw new IllegalArgumentException(s"Unknown user '${name}'; known users: '${users.keys.mkString("','")}'")
+    }
+  }
+
+  override val getCurrentUser: Option[AuthenticatedUser] = Some(currentUser)
 }
 
 /*

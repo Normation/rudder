@@ -40,9 +40,6 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.GitVersion
 import com.normation.errors.*
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.Rights
-import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -55,36 +52,11 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantAccess
-import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
-import com.normation.rudder.tenants.TenantPermission
-import com.normation.rudder.users.AuthenticatedUser
-import com.normation.rudder.users.RudderAccount
-import com.normation.rudder.users.UserPassword
-import com.normation.rudder.users.UserService
-import com.normation.zio.*
-import net.liftweb.http.LiftRules
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
 import zio.test.junit.ZTestJUnitRunner
-
-/*
- * A UserService whose tenant grant is configurable at construction time.
- * Used to simulate users with different tenant access in API tests.
- */
-class TestUserServiceWithGrant(grant: TenantAccessGrant) extends UserService {
-  val user:                    AuthenticatedUser         = new AuthenticatedUser {
-    override val account:     RudderAccount     = RudderAccount.User("test-tenant-user", UserPassword.unsafeHashed("pass"))
-    override val authz:       Rights            = Rights.AnyRights
-    override val apiAuthz:    ApiAuthz          = ApiAuthz.allAuthz
-    override val accessGrant: TenantAccessGrant = grant
-    override def actorIp:     Option[String]    = None
-    override def checkRights(auth: AuthorizationType): Boolean = true
-  }
-  override val getCurrentUser: Option[AuthenticatedUser] = Some(user)
-}
 
 @RunWith(classOf[ZTestJUnitRunner])
 class TestRestTenantFromFileDef extends ZIOSpecDefault {
@@ -115,7 +87,6 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
     Tags(Set()),
     security = Some(SecurityTag.ByTenants(zio.Chunk(TenantId("zoneA"), TenantId("zoneB"))))
   )
-  restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ + (tenantRule.id -> tenantRule)).runNow
 
   // Global parameter restricted to zoneA + zoneB
   val tenantParam: GlobalParameter = GlobalParameter(
@@ -128,27 +99,6 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
     Visibility.default,
     security = Some(SecurityTag.ByTenants(zio.Chunk(TenantId("zoneA"), TenantId("zoneB"))))
   )
-  restTestSetUp.mockParameters.paramsRepo.paramsMap.update(_ + (tenantParam.name -> tenantParam)).runNow
-
-  // ─── build one LiftRules per user type ────────────────────────────────────
-
-  private def makeRules(grant: TenantAccessGrant): LiftRules = {
-    val us = new TestUserServiceWithGrant(grant)
-    TraitTestApiFromYamlFiles.buildLiftRules(restTestSetUp.apiModules, restTestSetUp.apiVersions, Some(us))._2
-  }
-
-  val users: Map[String, LiftRules] = Map(
-    "admin" -> makeRules(TenantAccessGrant.All),
-    "zoneA" -> makeRules(
-      TenantAccessGrant.ByTenants(zio.Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.ReadWrite)))
-    ),
-    "zoneB" -> makeRules(
-      TenantAccessGrant.ByTenants(zio.Chunk(TenantAccess(TenantId("zoneB"), TenantPermission.ReadWrite)))
-    ),
-    "none"  -> makeRules(TenantAccessGrant.None)
-  )
-
-  // ─── test spec ────────────────────────────────────────────────────────────
 
   val tmpTenantTemplate: File = restTestSetUp.baseTempDirectory / "tenantApiTemplates"
   tmpTenantTemplate.createDirectories()
@@ -156,10 +106,14 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("Tenant-aware REST API tests (multi-user)") {
       for {
-        s <- TraitTestApiFromYamlFiles.doTestMultiUser(
+        _ <- restTestSetUp.mockParameters.paramsRepo.paramsMap.update(_ + (tenantParam.name -> tenantParam))
+        _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ + (tenantRule.id -> tenantRule))
+        _ <- restTestSetUp.mockUserManagement.tenantRepo.setTenantEnabled(true)
+        s <- TraitTestApiFromYamlFiles.doTest(
                "api-tenant",
                tmpTenantTemplate,
-               users,
+               restTestSetUp.liftRules,
+               Some(restTestSetUp.userService),
                Nil,
                Map.empty
              )
