@@ -486,7 +486,7 @@ impl ModuleType0 for Commands {
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        assert!(self.validate(parameters).is_ok());
+        self.validate(parameters)?;
         let p: CommandsParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
         let output = match mode {

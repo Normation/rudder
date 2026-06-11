@@ -144,7 +144,7 @@ impl ModuleType0 for SystemUpdateModule {
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        assert!(self.validate(parameters).is_ok());
+        self.validate(parameters)?;
         let package_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))
                 .context("Parsing module parameters")?;
