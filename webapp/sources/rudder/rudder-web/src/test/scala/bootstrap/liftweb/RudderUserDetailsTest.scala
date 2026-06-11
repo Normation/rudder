@@ -272,7 +272,9 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
       }
 
       suite("We have reserved word for named custom role: authorization-like named are forbidden") {
-        val crs = List("any", "foo_all", "foo_read", "foo_write", "foo_edit").map(n => UncheckedCustomRole(n, Nil))
+        val crs = List("any", "foo_all", "foo_read", "foo_write", "foo_edit", "a_b_read", "a_b", "my_custom_role").map(n =>
+          UncheckedCustomRole(n, Nil)
+        )
         for {
           knownRoles <- RudderRoles.getAllRoles
           tests      <- ZIO.foreach(crs) { cr =>
@@ -282,7 +284,7 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
                               val expected = List(
                                 (
                                   cr,
-                                  "'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role"
+                                  "'any' and names with an '_' are reserved and can't be used for a custom role"
                                 )
                               )
                               test(s"'${cr.name}' can not be part of a named custom role")(
@@ -291,6 +293,26 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
                             }
                         }
         } yield tests
+      }
+
+      suite("We correctly parse permissions") {
+        val crs = Chunk(
+          ("any", Some(Left(AuthorizationType.AnyRights))),
+          ("foo_all", Some(Right("foo", "all"))),
+          ("foo_read", Some(Right("foo", "read"))),
+          ("foo_write", Some(Right("foo", "write"))),
+          ("foo_edit", Some(Right("foo", "edit"))),
+          ("a_b_read", Some(Right("a_b", "read"))),
+          ("a_b", Some(Right("a", "b"))),                       // that will fail on "AuthorizationType.parseRight but here it's OK
+          ("my_custom_role", Some(Right("my_custom", "role"))), // same
+          ("my_custom_", Some(Right("my_custom", "")))          // same
+        )
+
+        crs.map { (right, res) =>
+          test(s"Parsing '${right}'")(
+            assert(AuthorizationType.checkSyntax(right))(equalTo(res))
+          )
+        }
       }
 
       suiteAll("In definition of tenants, we") {
