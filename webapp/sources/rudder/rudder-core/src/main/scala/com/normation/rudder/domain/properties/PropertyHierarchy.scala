@@ -174,8 +174,7 @@ object PropertyHierarchyError {
     override def message: String = {
       conflicts.toList.map {
         case (k, hierarchies) =>
-          val error = conflictMessage(k, hierarchies)
-          s"In hierarchy with ${hierarchies.map(_.id).mkString(", ").mkString("{", "|", "}")} :\n${error}"
+          s"${conflictMessage(k, hierarchies)}"
       }.mkString("\n")
     }
 
@@ -218,17 +217,19 @@ object PropertyHierarchyError {
               case None         => n.name
               case Some(parent) => s"${n.name} <- ${inheritanceName(parent)} "
             }
-          case _ => ""
+          case _ => s"${p.id} (${p.name})"
         }
       }
 
       val faulty = conflicts.map(inheritanceName)
-
-      s"Error when trying to find overrides for group property '${prop.name}'. " +
-      s"Several groups which are not in an inheritance relation define it. You will need to define " +
-      s"a new group with all these groups as parent and choose the order on which you want to do " +
-      s"the override by hand. Faulty groups:\n ${faulty.mkString("\n ")}"
-
+      val error  = s"When trying to find overrides for group property '${prop.name}'"
+      val cause  = s"Several faulty groups are not in a proper inheritance relation, faulty groups are : ${faulty.mkString(",")}"
+      val fix    =
+        "Define a new parent group for all these faulty groups and then manually define the order in which the overrides should be applied"
+      s"""ERROR: ${error}
+          CAUSE: ${cause}
+          FIX: ${fix}
+          """.stripMargin
     }
   }
 
