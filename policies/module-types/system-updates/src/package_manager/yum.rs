@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 use crate::output::{CommandBehavior, CommandCapture};
 use crate::package_manager::PackageManager;
@@ -110,8 +110,18 @@ impl LinuxPackageManager for YumPackageManager {
 
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
-            // report whether a reboot is required (exit code 1) or not (exit code 0)
-            Ok(o) => Ok(!o.status.success()),
+            // Exits 0 when no reboot is needed and 1 when a reboot is required.
+            // Any other code should be considered a failure.
+            Ok(o) => match o.status.code() {
+                Some(0) => Ok(false),
+                Some(1) => Ok(true),
+                Some(c) => Err(anyhow!(
+                    "`needs-restarting --reboothint` failed with exit code {c}"
+                )),
+                None => Err(anyhow!(
+                    "`needs-restarting --reboothint` was terminated by a signal"
+                )),
+            },
             Err(e) => Err(e),
         };
         ResultOutput::new_output(res, o, e)
