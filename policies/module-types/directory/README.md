@@ -1,3 +1,0 @@
-# Directory
-
-Directory module type.
