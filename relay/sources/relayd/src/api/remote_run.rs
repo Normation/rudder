@@ -11,9 +11,6 @@ use crate::{
 use anyhow::Error;
 use bytes::Bytes;
 use futures::{stream::select, Stream, StreamExt, TryStreamExt};
-use http_body_util::combinators::BoxBody;
-use http_body_util::StreamBody;
-use hyper::body::Frame;
 use regex::Regex;
 use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
 use sync_wrapper::SyncStream;
@@ -21,7 +18,7 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::{Child, Command},
 };
-use tokio_stream::wrappers::LinesStream;
+use tokio_stream::{self, wrappers::LinesStream};
 use tracing::{debug, error, instrument, trace, warn};
 use warp::{
     body,
@@ -162,13 +159,6 @@ impl RemoteRun {
             self.run_parameters.asynchronous, self.run_parameters.keep_output
         );
 
-        // warp expects a (`Sync`) body, so we need to wrap and convert the stream.
-        fn body_from_stream(
-            stream: Box<dyn Stream<Item = Result<Bytes, Error>> + Unpin + Send>,
-        ) -> BoxBody<Bytes, Error> {
-            BoxBody::new(StreamBody::new(SyncStream::new(stream).map_ok(Frame::data)))
-        }
-
         match (
             self.run_parameters.asynchronous,
             self.run_parameters.keep_output,
@@ -183,17 +173,15 @@ impl RemoteRun {
                     streams.push(stream);
                 }
 
-                Ok(Box::new(warp::reply::html(body_from_stream(Box::new(
-                    select(
-                        self.run_parameters
-                            .remote_run(
-                                &job_config.cfg.remote_run,
-                                self.target.neighbors(job_config.clone()).await,
-                                self.run_parameters.asynchronous,
-                            )
-                            .await,
-                        streams,
-                    ),
+                Ok(Box::new(warp::reply::stream(SyncStream::new(select(
+                    self.run_parameters
+                        .remote_run(
+                            &job_config.cfg.remote_run,
+                            self.target.neighbors(job_config.clone()).await,
+                            self.run_parameters.asynchronous,
+                        )
+                        .await,
+                    streams,
                 )))))
             }
             // Async and no output -> spawn in background and return early
@@ -213,9 +201,9 @@ impl RemoteRun {
                         )
                         .await,
                 ));
-                Ok(Box::new(warp::reply::html(BoxBody::new(
-                    http_body_util::Empty::<Bytes>::new(),
-                ))))
+                Ok(Box::new(warp::reply::stream(tokio_stream::empty::<
+                    Result<Bytes, Error>,
+                >())))
             }
             // Sync and no output -> wait until the send and return empty output
             (false, false) => {
@@ -227,18 +215,16 @@ impl RemoteRun {
                     streams.push(stream);
                 }
 
-                Ok(Box::new(warp::reply::html(body_from_stream(Box::new(
-                    select(
-                        self.run_parameters
-                            .remote_run(
-                                &job_config.cfg.remote_run,
-                                self.target.neighbors(job_config.clone()).await,
-                                self.run_parameters.asynchronous,
-                            )
-                            .await
-                            .map(|_| Ok(Bytes::from(""))),
-                        streams,
-                    ),
+                Ok(Box::new(warp::reply::stream(SyncStream::new(select(
+                    self.run_parameters
+                        .remote_run(
+                            &job_config.cfg.remote_run,
+                            self.target.neighbors(job_config.clone()).await,
+                            self.run_parameters.asynchronous,
+                        )
+                        .await
+                        .map(|_| Ok(Bytes::from(""))),
+                    streams,
                 )))))
             }
             // Sync and output -> wait until the end and return output
@@ -251,17 +237,15 @@ impl RemoteRun {
                     streams.push(stream);
                 }
 
-                Ok(Box::new(warp::reply::html(body_from_stream(Box::new(
-                    select(
-                        self.run_parameters
-                            .remote_run(
-                                &job_config.cfg.remote_run,
-                                self.target.neighbors(job_config.clone()).await,
-                                self.run_parameters.asynchronous,
-                            )
-                            .await,
-                        streams,
-                    ),
+                Ok(Box::new(warp::reply::stream(SyncStream::new(select(
+                    self.run_parameters
+                        .remote_run(
+                            &job_config.cfg.remote_run,
+                            self.target.neighbors(job_config.clone()).await,
+                            self.run_parameters.asynchronous,
+                        )
+                        .await,
+                    streams,
                 )))))
             }
         }
