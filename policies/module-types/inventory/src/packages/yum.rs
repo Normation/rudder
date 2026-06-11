@@ -3,6 +3,7 @@ use anyhow::Result;
 use regex::Regex;
 use std::process::{Command, Output};
 use std::str;
+use std::sync::LazyLock;
 
 pub struct Yum;
 
@@ -33,15 +34,18 @@ impl Yum {
     }
 
     fn parse_updates_info(updates: &str, _info: &str) -> Result<Vec<Update>> {
+        static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^(\S+)\.([^.\s]+)\s+(\S+)\s+(\S+)\s*$").unwrap());
+        #[allow(dead_code)]
+        static INFO_RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"^[\S\s]*?=+\n  (\S+: )?$name [a-z ]+\n=+\n([\S\s]*?)\n=+\n").unwrap()
+        });
+
         let mut res = vec![];
         for line in updates.lines() {
-            let re = Regex::new(r"^(\S+)\.([^.\s]+)\s+(\S+)\s+(\S+)\s*$").unwrap();
-            let Some(caps) = re.captures(line) else {
+            let Some(caps) = RE.captures(line) else {
                 continue;
             };
-
-            let _info_re =
-                Regex::new(r"^[\S\s]*?=+\n  (\S+: )?$name [a-z ]+\n=+\n([\S\s]*?)\n=+\n").unwrap();
 
             let u = Update {
                 name: caps[1].to_string(),
