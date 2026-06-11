@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024-2026 Normation SAS
 
 use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
+use log::debug;
 use std::process::Command;
 
 pub fn systemd_reboot() -> ResultOutput<()> {
@@ -66,6 +67,8 @@ fn systemd_get_restartable_services(services: &[String]) -> Vec<&str> {
 
         if value.contains("no") {
             res.push(service.as_str());
+        } else {
+            debug!("Skipping restart for service: '{service}' (RefuseManualStop=yes)");
         }
     }
     res
