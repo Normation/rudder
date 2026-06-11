@@ -38,41 +38,32 @@
 package com.normation.rudder.rule.category
 
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 
 trait RoRuleCategoryRepository {
 
-  def get(id: RuleCategoryId): IOResult[RuleCategory]
+  def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory]
 
-  def getRootCategory(): IOResult[RuleCategory]
+  def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory]
 
 }
 
 trait WoRuleCategoryRepository {
 
   def create(
-      that:   RuleCategory,
-      into:   RuleCategoryId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[RuleCategory]
+      that: RuleCategory,
+      into: RuleCategoryId
+  )(implicit cc: ChangeContext): IOResult[RuleCategory]
 
   def updateAndMove(
-      that:   RuleCategory,
-      into:   RuleCategoryId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[RuleCategory]
+      that: RuleCategory,
+      into: RuleCategoryId
+  )(implicit cc: ChangeContext): IOResult[RuleCategory]
 
   def delete(
       category:   RuleCategoryId,
-      modId:      ModificationId,
-      actor:      EventActor,
-      reason:     Option[String],
       checkEmpty: Boolean = true
-  ): IOResult[RuleCategoryId]
+  )(implicit cc: ChangeContext): IOResult[RuleCategoryId]
 
 }

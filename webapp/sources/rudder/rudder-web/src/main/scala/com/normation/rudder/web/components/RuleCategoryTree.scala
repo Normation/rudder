@@ -39,7 +39,6 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.JsTreeNode
@@ -76,7 +75,6 @@ class RuleCategoryTree(
   private val roRuleCategoryRepository = RudderConfig.roRuleCategoryRepository
   private val woRuleCategoryRepository = RudderConfig.woRuleCategoryRepository
   private val ruleCategoryService      = RudderConfig.ruleCategoryService
-  private val uuidGen                  = RudderConfig.stringUuidGenerator
   private var root                     = rootCategory
 
   private var selectedCategoryId = rootCategory.id
@@ -116,7 +114,7 @@ class RuleCategoryTree(
   }
 
   // Update selected category and select it in the tree (trigger its function)
-  def updateSelectedCategory(newSelection: RuleCategoryId): JsCmd = {
+  def updateSelectedCategory(newSelection: RuleCategoryId)(using qc: QueryContext): JsCmd = {
     selectedCategoryId = newSelection
     // Select the new node, boolean flag to true to respect select limitation
     JsRaw(s"""
@@ -128,7 +126,7 @@ class RuleCategoryTree(
   }
 
   // Perform category selection, filter in the dataTable and display the name of the category
-  def selectCategory(): JsCmd = {
+  def selectCategory()(using qc: QueryContext): JsCmd = {
     (for {
       rootCategory <- roRuleCategoryRepository.getRootCategory().toBox
       fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, rootInCaps = true)
@@ -163,13 +161,7 @@ class RuleCategoryTree(
             category <- roRuleCategoryRepository.get(sourceCatId)
             result   <-
               woRuleCategoryRepository
-                .updateAndMove(
-                  category,
-                  destCatId,
-                  ModificationId(uuidGen.newUuid),
-                  qc.actor,
-                  reason = None
-                )
+                .updateAndMove(category, destCatId)(using qc.newCC())
                 .chainError(
                   s"Error while trying to move category with requested id '${sourceCatId.value}' to category id '${destCatId.value}'"
                 )
@@ -233,7 +225,7 @@ class RuleCategoryTree(
     StringEscapeUtils.escapeEcmaScript(id.value) + "Checkbox"
   }
 
-  private def categoryNode(category: RuleCategory): JsTreeNode = new JsTreeNode {
+  private def categoryNode(category: RuleCategory)(using qc: QueryContext): JsTreeNode = new JsTreeNode {
 
     override val attrs = ("data-jstree" -> """{ "type" : "category" }""") :: ("id", category.id.value) :: Nil
 

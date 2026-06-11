@@ -1433,8 +1433,8 @@ object RudderConfig extends Loggable {
   val roApiAccountRepository:              RoApiAccountRepository                   = rci.roApiAccountRepository
   val roDirectiveRepository:               RoDirectiveRepository                    = rci.roDirectiveRepository
   val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection] = rci.roLDAPConnectionProvider
-  val roLDAPParameterRepository:           RoLDAPParameterRepository                = rci.roLDAPParameterRepository
-  val woLDAPParameterRepository:           WoLDAPParameterRepository                = rci.woLDAPParameterRepository
+  val roLDAPParameterRepository:           RoParameterRepository                    = rci.roLDAPParameterRepository
+  val woLDAPParameterRepository:           WoParameterRepository                    = rci.woLDAPParameterRepository
   val roNodeGroupRepository:               RoNodeGroupRepository                    = rci.roNodeGroupRepository
   val roParameterService:                  RoParameterService                       = rci.roParameterService
   val roRuleCategoryRepository:            RoRuleCategoryRepository                 = rci.roRuleCategoryRepository
@@ -1620,8 +1620,8 @@ case class RudderServiceApi(
     rwLdap:                              LDAPConnectionProvider[RwLDAPConnection],
     apiAuthorizationLevelService:        DefaultApiAuthorizationLevel,
     tokenGenerator:                      TokenGeneratorImpl,
-    roLDAPParameterRepository:           RoLDAPParameterRepository,
-    woLDAPParameterRepository:           WoLDAPParameterRepository,
+    roLDAPParameterRepository:           RoParameterRepository,
+    woLDAPParameterRepository:           WoParameterRepository,
     interpolationCompiler:               InterpolatedValueCompilerImpl,
     policyGenerationHookService:         PolicyGenerationHookService,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
@@ -1757,9 +1757,17 @@ object RudderConfigInit {
       }
     }
 
-    lazy val roRuleCategoryRepository: RoRuleCategoryRepository = roLDAPRuleCategoryRepository
+    lazy val roRuleCategoryRepository: RoRuleCategoryRepository =
+      new RoRuleCategoryRepositoryWithTenantFiltering(tenantCheckLogic, roLDAPRuleCategoryRepository)
     lazy val ruleCategoryService:      RuleCategoryService      = new RuleCategoryService()
-    lazy val woRuleCategoryRepository: WoRuleCategoryRepository = woLDAPRuleCategoryRepository
+    lazy val woRuleCategoryRepository: WoRuleCategoryRepository = {
+      new WoRuleCategoryRepositoryWithTenantFiltering(
+        tenantCheckLogic,
+        tenantService,
+        woLDAPRuleCategoryRepository,
+        roLDAPRuleCategoryRepository
+      )
+    }
 
     lazy val changeRequestEventLogService: ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
     lazy val secretEventLogService:        SecretEventLogService        = new SecretEventLogServiceImpl(eventLogRepository)
@@ -2954,12 +2962,11 @@ object RudderConfigInit {
         roLdap,
         ldapEntityMapper,
         techniqueRepositoryImpl,
-        tenantCheckLogic,
-        tenantService,
         uptLibReadWriteMutex
       )
     }
-    lazy val roDirectiveRepository: RoDirectiveRepository = roLdapDirectiveRepository
+    lazy val roDirectiveRepository: RoDirectiveRepository =
+      new RoDirectiveRepositoryWithTenantFiltering(tenantCheckLogic, roLdapDirectiveRepository)
     lazy val woLdapDirectiveRepository = {
       val repo = new WoLDAPDirectiveRepository(
         roLdapDirectiveRepository,
@@ -2970,8 +2977,6 @@ object RudderConfigInit {
         gitActiveTechniqueArchiver,
         gitActiveTechniqueCategoryArchiver,
         personIdentServiceImpl,
-        tenantCheckLogic,
-        tenantService,
         RUDDER_AUTOARCHIVEITEMS
       )
 
@@ -2993,13 +2998,21 @@ object RudderConfigInit {
 
       repo
     }
-    lazy val woDirectiveRepository: WoDirectiveRepository = woLdapDirectiveRepository
+    lazy val woDirectiveRepository: WoDirectiveRepository = {
+      new WoDirectiveRepositoryWithTenantFiltering(
+        tenantCheckLogic,
+        tenantService,
+        woLdapDirectiveRepository,
+        roLdapDirectiveRepository
+      )
+    }
 
     lazy val roLdapRuleRepository =
-      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, tenantCheckLogic, tenantService, ruleReadWriteMutex)
-    lazy val roRuleRepository: RoRuleRepository = roLdapRuleRepository
+      new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
+    lazy val roRuleRepository: RoRuleRepository =
+      new RoRuleRepositoryWithTenantFiltering(tenantCheckLogic, roLdapRuleRepository)
 
-    lazy val woLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
+    lazy val woLdapRuleRepository = new WoLDAPRuleRepository(
       roLdapRuleRepository,
       rwLdap,
       ldapDiffMapper,
@@ -3007,22 +3020,20 @@ object RudderConfigInit {
       logRepository,
       gitRuleArchiver,
       personIdentServiceImpl,
-      tenantCheckLogic,
-      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
-    lazy val woRuleRepository = woLdapRuleRepository
+    lazy val woRuleRepository: WoRuleRepository =
+      new WoRuleRepositoryWithTenantFiltering(tenantCheckLogic, tenantService, woLdapRuleRepository, roLdapRuleRepository)
 
     lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
       nodeFactRepository,
-      tenantCheckLogic,
-      tenantService,
       groupLibReadWriteMutex
     )
-    lazy val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
+    lazy val roNodeGroupRepository: RoNodeGroupRepository =
+      new RoNodeGroupRepositoryWithTenantFiltering(tenantCheckLogic, roLdapNodeGroupRepository)
 
     lazy val woLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
       roLdapNodeGroupRepository,
@@ -3031,11 +3042,16 @@ object RudderConfigInit {
       logRepository,
       gitNodeGroupArchiver,
       personIdentServiceImpl,
-      tenantCheckLogic,
-      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
-    lazy val woNodeGroupRepository: WoNodeGroupRepository = woLdapNodeGroupRepository
+    lazy val woNodeGroupRepository: WoNodeGroupRepository = {
+      new WoNodeGroupRepositoryWithTenantFiltering(
+        tenantCheckLogic,
+        tenantService,
+        woLdapNodeGroupRepository,
+        roLdapNodeGroupRepository
+      )
+    }
 
     lazy val roLDAPRuleCategoryRepository = {
       new RoLDAPRuleCategoryRepository(
@@ -3057,26 +3073,32 @@ object RudderConfigInit {
       )
     }
 
-    lazy val roLDAPParameterRepository = new RoLDAPParameterRepository(
+    lazy val roLdapParameterRepository = new RoLDAPParameterRepository(
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
-      tenantCheckLogic,
-      tenantService,
       parameterReadWriteMutex
     )
+    lazy val roLDAPParameterRepository: RoParameterRepository =
+      new RoParameterRepositoryWithTenantFiltering(tenantCheckLogic, roLdapParameterRepository)
 
-    lazy val woLDAPParameterRepository = new WoLDAPParameterRepository(
-      roLDAPParameterRepository,
+    lazy val woLdapParameterRepository = new WoLDAPParameterRepository(
+      roLdapParameterRepository,
       rwLdap,
       ldapDiffMapper,
       logRepository,
       gitParameterArchiver,
       personIdentServiceImpl,
-      tenantCheckLogic,
-      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
+    lazy val woLDAPParameterRepository: WoParameterRepository = {
+      new WoParameterRepositoryWithTenantFiltering(
+        tenantCheckLogic,
+        tenantService,
+        woLdapParameterRepository,
+        roLdapParameterRepository
+      )
+    }
 
     lazy val itemArchiveManagerImpl = new ItemArchiveManagerImpl(
       roLdapRuleRepository,
@@ -3084,8 +3106,8 @@ object RudderConfigInit {
       roLDAPRuleCategoryRepository,
       roLdapDirectiveRepository,
       roLdapNodeGroupRepository,
-      roLDAPParameterRepository,
-      woLDAPParameterRepository,
+      roLdapParameterRepository,
+      woLdapParameterRepository,
       gitConfigRepo,
       gitRuleArchiver,
       gitRuleCategoryArchiver,

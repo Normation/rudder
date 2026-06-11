@@ -135,7 +135,7 @@ class DirectiveEditForm(
 
   val rules:        List[Rule]   = roRuleRepo.getAll(false)(using snippetQC).toBox.getOrElse(Seq()).toList
   val rootCategory: RuleCategory = roRuleCategoryRepo
-    .getRootCategory()
+    .getRootCategory()(using snippetQC)
     .toBox
     .getOrElse(
       throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")

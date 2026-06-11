@@ -181,7 +181,7 @@ class ItemArchiveManagerImpl(
   ) = {
     for {
       // Get Map of all categories grouped by parent categories
-      categories  <- roRuleCategoryeRepository.getRootCategory().map(_.childrenMap)
+      categories  <- roRuleCategoryeRepository.getRootCategory()(using QueryContext.systemQC).map(_.childrenMap)
       cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getItemDirectory)
       _           <- ZIO.foreachDiscard(categories) {
                        case (parentCategories, cats) =>

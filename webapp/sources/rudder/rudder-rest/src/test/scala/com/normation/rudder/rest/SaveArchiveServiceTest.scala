@@ -155,7 +155,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
     )
     for {
       _    <- save(archiveSaver)
-      root <- ruleCategoryRepo.getRootCategory()
+      root <- ruleCategoryRepo.getRootCategory()(using QueryContext.systemQC)
     } yield {
       assert(transform(root))(assertion)
     }

@@ -97,7 +97,7 @@ class RuleGrid(
   private val getFullNodeGroupLib      = () => (qc: QueryContext) ?=> RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val getFullDirectiveLib      = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()(using snippetQC)
   private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied
-  private val getRootRuleCategory      = () => RudderConfig.roRuleCategoryRepository.getRootCategory()
+  private val getRootRuleCategory      = () => RudderConfig.roRuleCategoryRepository.getRootCategory()(using snippetQC)
 
   private val recentChanges          = RudderConfig.recentChangesService
   private val techniqueRepository    = RudderConfig.techniqueRepository

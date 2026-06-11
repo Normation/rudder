@@ -49,14 +49,10 @@ import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.archives.RuleArchiveId
-import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantCheckLogic
-import com.normation.rudder.tenants.TenantService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -65,21 +61,14 @@ import zio.*
 import zio.syntax.*
 
 class RoLDAPRuleRepository(
-    val rudderDit:     RudderDit,
-    val ldap:          LDAPConnectionProvider[RoLDAPConnection],
-    val mapper:        LDAPEntityMapper,
-    val tenantService: TenantCheckLogic,
-    val tenantRepo:    TenantService,
-    val ruleMutex:     ScalaReadWriteLock
+    val rudderDit: RudderDit,
+    val ldap:      LDAPConnectionProvider[RoLDAPConnection],
+    val mapper:    LDAPEntityMapper,
+    val ruleMutex: ScalaReadWriteLock
 ) extends RoRuleRepository with NamedZioLogger {
   repo =>
 
   override def loggerName: String = this.getClass.getName
-
-  // tenant filtering is silent by default but can be traced with the appropriate DEBUG log
-  private def debugTenantFiltering[A: HasSecurityTag](a: A)(using qc: QueryContext): UIO[Unit] = {
-    ApplicationLoggerPure.Tenant.debug(s"In rules: filtering '${a.debugId}' for '${qc.actor.name}'")
-  }
 
   /**
    * Try to find the rule with the given ID.
@@ -95,13 +84,7 @@ class RoLDAPRuleRepository(
                        .entry2Rule(r)
                        .toIO
                        .chainError(s"Error when transforming LDAP entry into a rule for id '${id.serialize}'. Entry: ${r}")
-                       .flatMap { rule =>
-                         // filter out the rule if it can't be seen in the current security context
-                         tenantService.filter(rule) match {
-                           case Some(r) => Some(r).succeed
-                           case None    => debugTenantFiltering(rule).as(None)
-                         }
-                       }
+                       .map(Some(_))
                  }
     } yield {
       rule
@@ -111,26 +94,18 @@ class RoLDAPRuleRepository(
   def getAll(includeSystem: Boolean = false)(using qc: QueryContext): IOResult[Seq[Rule]] = {
     val filter = if (includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM, false.toLDAPString))
     ruleMutex.readLock(for {
-      con      <- ldap
-      entries  <- con.searchOne(rudderDit.RULES.dn, filter)
-      rules    <-
+      con     <- ldap
+      entries <- con.searchOne(rudderDit.RULES.dn, filter)
+      rules   <-
         ZIO.foreach(entries) { crEntry =>
           mapper.entry2Rule(crEntry).toIO.chainError("Error when transforming LDAP entry into a rule. Entry: %s".format(crEntry))
         }
-      // only keep rules that can be seen in the current security context
-      filtered <- ZIO.foreach(rules) { rule =>
-                    tenantService.filter(rule) match {
-                      case Some(r) => Some(r).succeed
-                      case None    => debugTenantFiltering(rule).as(None)
-                    }
-                  }
     } yield {
-      filtered.flatten
+      rules
     })
   }
 
   def getIds(includeSystem: Boolean = false)(using qc: QueryContext): IOResult[Set[RuleId]] = {
-    // we get the full rules so that we can filter them out based on tenants
     getAll(includeSystem).map(_.map(_.id).toSet)
   }
 
@@ -144,8 +119,6 @@ class WoLDAPRuleRepository(
     actionLogger:         EventLogRepository,
     gitCrArchiver:        GitRuleArchiver,
     personIdentService:   PersonIdentService,
-    tenantService:        TenantCheckLogic,
-    tenantRepo:           TenantService,
     autoExportOnModify:   Boolean
 ) extends WoRuleRepository with NamedZioLogger {
   repo =>
@@ -184,8 +157,6 @@ class WoLDAPRuleRepository(
                         .entry2Rule(entry)
                         .toIO
                         .chainError("Error when transforming LDAP entry into a rule for id %s. Entry: %s".format(id, entry))
-      // can only delete a rule that is visible in the current security context
-      _            <- tenantService.checkDelete(oldCr, cc).toIO
       checkSystem  <- (oldCr.isSystem, callSystem) match {
                         case (true, false) => Unexpected(s"System Rule '${id.serialize}' can't be deleted").fail
                         case (false, true) =>
@@ -233,12 +204,8 @@ class WoLDAPRuleRepository(
         idDoesntExist <- ZIO.when(existingRule.isDefined) {
                            logPure.info(s"Rule with ID '${rule.id.serialize}' is already loaded: updating it.")
                          }
-        // the security context must be allowed to see the loaded rule (and the existing one if overwriting)
-        status        <- tenantRepo.getStatus
-        _             <- tenantService.manageUpdate(existingRule, rule, cc, status) { r =>
-                           val crEntry = mapper.rule2Entry(r)
-                           con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}").unit
-                         }
+        crEntry        = mapper.rule2Entry(rule)
+        _             <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}").unit
         // we don't persist a diff in git here because it wouldn't make any sens, but perhaps we
         // at least need to store an new event log for that. Since it's a WIP API, not doing it right now.
         // That's also why there is a modId/actor/reason not used.
@@ -249,19 +216,13 @@ class WoLDAPRuleRepository(
   override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = {
     ruleMutex.writeLock(
       for {
-        _             <- ZIO.when(ruleId.rev == GitVersion.DEFAULT_REV) {
-                           Inconsistency(
-                             s"Error: you can't unload a rule with default revision like here for rule with id '${ruleId.uid.serialize}'. Use delete for that."
-                           ).fail
-                         }
-        con           <- ldap
-        // the security context must be allowed to see the rule being unloaded
-        existingEntry <- con.get(rudderDit.RULES.configRuleDN(ruleId))
-        _             <- existingEntry match {
-                           case None    => ZIO.unit
-                           case Some(e) => mapper.entry2Rule(e).toIO.flatMap(r => tenantService.checkDelete(r, cc).toIO.unit)
-                         }
-        _             <-
+        _   <- ZIO.when(ruleId.rev == GitVersion.DEFAULT_REV) {
+                 Inconsistency(
+                   s"Error: you can't unload a rule with default revision like here for rule with id '${ruleId.uid.serialize}'. Use delete for that."
+                 ).fail
+               }
+        con <- ldap
+        _   <-
           con
             .delete(rudderDit.RULES.configRuleDN(ruleId))
             .chainError(s"Error when unloading rule with ID '${ruleId.uid.serialize}' for revision '${ruleId.rev.value}'")
@@ -288,23 +249,16 @@ class WoLDAPRuleRepository(
       _          <- ZIO.when(nameExists) {
                       "Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name).fail
                     }
-      status     <- tenantRepo.getStatus
-      diff       <- tenantService.manageCreate(rule, cc, status) { r =>
-                      val crEntry = mapper.rule2Entry(r)
+      crEntry     = mapper.rule2Entry(rule)
+      result     <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
+      diff       <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn, result).toIO
+      _          <- actionLogger.saveAddRule(cc.modId, principal = cc.actor, addDiff = diff, reason = cc.message)
+      _          <- ZIO.when(autoExportOnModify && !rule.isSystem) {
                       for {
-                        result <- con.save(crEntry).chainError(s"Error when saving rule entry in repository: ${crEntry}")
-                        diff   <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn, result).toIO
-                        _      <- actionLogger.saveAddRule(cc.modId, principal = cc.actor, addDiff = diff, reason = cc.message)
-                        _      <- ZIO.when(autoExportOnModify && !r.isSystem) {
-                                    for {
-                                      commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                      archive  <- gitCrArchiver.archiveRule(r, Some((cc.modId, commiter, cc.message)))
-                                    } yield {
-                                      archive
-                                    }
-                                  }
+                        commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                        archive  <- gitCrArchiver.archiveRule(rule, Some((cc.modId, commiter, cc.message)))
                       } yield {
-                        diff
+                        archive
                       }
                     }
     } yield {
@@ -332,47 +286,39 @@ class WoLDAPRuleRepository(
             .entry2Rule(existingEntry)
             .toIO
             .chainError(s"Error when transforming LDAP entry into a Rule for id ${rule.id.serialize}. Entry: ${existingEntry}")
-        status        <- tenantRepo.getStatus
-        optDiff       <-
-          tenantService.manageUpdate(Some(oldRule), rule, cc, status) { r =>
-            for {
-              systemCheck     <- (oldRule.isSystem, systemCall) match {
-                                   case (true, false) =>
-                                     s"System rule '${oldRule.name}' (${oldRule.id.serialize}) can not be modified".fail
-                                   case (false, true) =>
-                                     "You can't modify a non-system rule with updateSystem method".fail
-                                   case _             => ZIO.unit
-                                 }
-              exists          <- nodeRuleNameExists(con, r.name, r.id)
-              nameIsAvailable <- ZIO.when(exists) {
-                                   s"Cannot update rule with name ${r.name}: this name is already in use.".fail
-                                 }
-              crEntry          = mapper.rule2Entry(r)
-              result          <- con
-                                   .save(crEntry, removeMissingAttributes = true)
-                                   .chainError(s"Error when saving rule entry in repository: ${crEntry}")
-              optDiff         <- diffMapper
-                                   .modChangeRecords2RuleDiff(existingEntry, result)
-                                   .toIO
-                                   .chainError(s"Error when mapping rule '${r.id.serialize}' update to an diff: ${result}")
-              loggedAction    <- optDiff match {
-                                   case None       => ZIO.unit
-                                   case Some(diff) =>
-                                     actionLogger
-                                       .saveModifyRule(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
-                                 }
-              autoArchive     <- ZIO.when(autoExportOnModify && optDiff.isDefined && !r.isSystem) {
-                                   for {
-                                     commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                     archive  <- gitCrArchiver.archiveRule(r, Some((cc.modId, commiter, cc.message)))
-                                   } yield {
-                                     archive
-                                   }
-                                 }
-            } yield {
-              optDiff
-            }
-          }
+        systemCheck   <- (oldRule.isSystem, systemCall) match {
+                           case (true, false) =>
+                             s"System rule '${oldRule.name}' (${oldRule.id.serialize}) can not be modified".fail
+                           case (false, true) =>
+                             "You can't modify a non-system rule with updateSystem method".fail
+                           case _             => ZIO.unit
+                         }
+        exists        <- nodeRuleNameExists(con, rule.name, rule.id)
+        _             <- ZIO.when(exists) {
+                           s"Cannot update rule with name ${rule.name}: this name is already in use.".fail
+                         }
+        crEntry        = mapper.rule2Entry(rule)
+        result        <- con
+                           .save(crEntry, removeMissingAttributes = true)
+                           .chainError(s"Error when saving rule entry in repository: ${crEntry}")
+        optDiff       <- diffMapper
+                           .modChangeRecords2RuleDiff(existingEntry, result)
+                           .toIO
+                           .chainError(s"Error when mapping rule '${rule.id.serialize}' update to an diff: ${result}")
+        loggedAction  <- optDiff match {
+                           case None       => ZIO.unit
+                           case Some(diff) =>
+                             actionLogger
+                               .saveModifyRule(cc.modId, principal = cc.actor, modifyDiff = diff, reason = cc.message)
+                         }
+        autoArchive   <- ZIO.when(autoExportOnModify && optDiff.isDefined && !rule.isSystem) {
+                           for {
+                             commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                             archive  <- gitCrArchiver.archiveRule(rule, Some((cc.modId, commiter, cc.message)))
+                           } yield {
+                             archive
+                           }
+                         }
       } yield {
         optDiff
       }
@@ -470,3 +416,4 @@ class WoLDAPRuleRepository(
     })
   }
 }
+

@@ -227,7 +227,7 @@ class RuleApi(
       implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
-        res <- service.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
+        res <- service.createCategory(cat, () => uuidGen.newUuid, params)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
@@ -842,6 +842,7 @@ class RuleApiService14(
   def deleteCategory(id: RuleCategoryId, params: DefaultParams, actor: EventActor)(using
       qc: QueryContext
   ): IOResult[JRCategoriesRootEntrySimple] = {
+    given cc: ChangeContext = ChangeContext.newFor(actor, qc.accessGrant, params.reason)
     for {
       root              <- readRuleCategory.getRootCategory()
       found             <- root.find(id).toIO
@@ -851,7 +852,7 @@ class RuleApiService14(
                              Inconsistency(s"Cannot delete category '${category.name}' since that category is not empty").fail
                            }
       category          <- getCategoryDetails(id)
-      _                 <- writeRuleCategory.delete(id, ModificationId(uuidGen.newUuid), actor, params.reason)
+      _                 <- writeRuleCategory.delete(id)
     } yield {
       category
     }
@@ -863,18 +864,18 @@ class RuleApiService14(
       params:   DefaultParams,
       actor:    EventActor
   )(using qc: QueryContext): IOResult[JRCategoriesRootEntrySimple] = {
+    given cc: ChangeContext = ChangeContext.newFor(actor, qc.accessGrant, params.reason)
     for {
       root                <- readRuleCategory.getRootCategory()
       found               <- root.find(id).toIO
       (category, parentId) = found
       rules               <- readRule.getAll()
       update               = restData.update(category)
-      modId                = ModificationId(uuidGen.newUuid)
       _                   <- restData.parent match {
                                case Some(parent) =>
-                                 writeRuleCategory.updateAndMove(update, RuleCategoryId(parent), modId, actor, params.reason)
+                                 writeRuleCategory.updateAndMove(update, RuleCategoryId(parent))
                                case None         =>
-                                 writeRuleCategory.updateAndMove(update, parentId, modId, actor, params.reason)
+                                 writeRuleCategory.updateAndMove(update, parentId)
                              }
       category            <- getCategoryDetails(id)
     } yield {
@@ -885,8 +886,7 @@ class RuleApiService14(
   def createCategory(
       restData:  JQRuleCategory,
       defaultId: () => String,
-      params:    DefaultParams,
-      actor:     EventActor
+      params:    DefaultParams
   )(implicit cc: ChangeContext): IOResult[JRCategoriesRootEntrySimple] = {
     for {
       name     <- restData.name.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
@@ -898,8 +898,7 @@ class RuleApiService14(
                     security = cc.accessGrant.toSecurityTag
                   )
       parent    = restData.parent.getOrElse("rootRuleCategory")
-      modId     = ModificationId(uuidGen.newUuid)
-      _        <- writeRuleCategory.create(update, RuleCategoryId(parent), modId, actor, params.reason)
+      _        <- writeRuleCategory.create(update, RuleCategoryId(parent))
       category <- getCategoryDetails(update.id)(using cc.toQC)
     } yield {
       category

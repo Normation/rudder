@@ -1320,18 +1320,15 @@ class MockRules() {
 
     val categories: Ref.Synchronized[RuleCategory] = Ref.Synchronized.make(rootRuleCategory).runNow
 
-    override def get(id: RuleCategoryId): IOResult[RuleCategory] = {
+    override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] = {
       categories.get.flatMap(c => recGet(c, id).map(_._2).notOptional(s"category with id '${id.value}' not found"))
     }
-    override def getRootCategory():       IOResult[RuleCategory] = categories.get
+    override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] = categories.get
 
     override def create(
-        that:   RuleCategory,
-        into:   RuleCategoryId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[RuleCategory] = {
+        that: RuleCategory,
+        into: RuleCategoryId
+    )(implicit cc: ChangeContext): IOResult[RuleCategory] = {
       categories
         .updateZIO(cats => {
           recGet(cats, into) match {
@@ -1348,12 +1345,9 @@ class MockRules() {
     }
 
     override def updateAndMove(
-        that:   RuleCategory,
-        into:   RuleCategoryId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[RuleCategory] = {
+        that: RuleCategory,
+        into: RuleCategoryId
+    )(implicit cc: ChangeContext): IOResult[RuleCategory] = {
       categories
         .updateZIO(cats => {
           recGet(cats, that.id) match {
@@ -1376,11 +1370,8 @@ class MockRules() {
 
     override def delete(
         category:   RuleCategoryId,
-        modId:      ModificationId,
-        actor:      EventActor,
-        reason:     Option[String],
         checkEmpty: Boolean
-    ): IOResult[RuleCategoryId] = {
+    )(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
       categories.updateZIO(cats => inDelete(cats, category).succeed).map(_ => category)
     }
   }

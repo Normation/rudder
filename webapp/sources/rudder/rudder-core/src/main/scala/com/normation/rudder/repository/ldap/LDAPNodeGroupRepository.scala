@@ -64,11 +64,9 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_IS_ENABLED
 import com.normation.rudder.domain.RudderLDAPConstants.A_IS_SYSTEM
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.RudderLDAPConstants.A_RULE_TARGET
-import com.normation.rudder.domain.RudderLDAPConstants.A_SECURITY_TAG
 import com.normation.rudder.domain.RudderLDAPConstants.OC_GROUP_CATEGORY
 import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
-import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -82,18 +80,14 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.SecurityTag
-import com.normation.rudder.tenants.TenantCheckLogic
-import com.normation.rudder.tenants.TenantService
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.common.*
 import scala.collection.immutable.SortedMap
 import zio.*
-import zio.json.*
 import zio.syntax.*
 
 class RoLDAPNodeGroupRepository(
@@ -101,24 +95,11 @@ class RoLDAPNodeGroupRepository(
     val ldap:             LDAPConnectionProvider[RoLDAPConnection],
     val mapper:           LDAPEntityMapper,
     val nodeFactRepo:     NodeFactRepository,
-    val tenantCheckLogic: TenantCheckLogic,
-    val tenantService:    TenantService,
     val groupLibMutex:    ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoNodeGroupRepository with NamedZioLogger {
   repo =>
 
   override def loggerName: String = this.getClass.getName
-
-  // tenant filtering is silent by default but can be traced with the appropriate DEBUG log
-  private def debugTenantFiltering[A: HasSecurityTag](a: A)(using qc: QueryContext): UIO[Unit] = {
-    ApplicationLoggerPure.Tenant.debug(s"Filtering out group library item '${a.debugId}' for '${qc.actor.name}'")
-  }
-
-  // read the security tag of a node group LDAP entry. Groups are never the root category,
-  // so there is no `Open` special case to handle here (contrary to categories mapping).
-  private def groupEntrySecurity(e: LDAPEntry): Option[SecurityTag] = {
-    e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
-  }
 
   /**
    * Find sub entries (children group categories and server groups for
@@ -207,7 +188,6 @@ class RoLDAPNodeGroupRepository(
                                             .foreach(category.items) { targetInfo =>
                                               targetInfo.target match {
                                                 case group: GroupTarget =>
-                                                  // getNodeGroupOpt already filters by tenant: invisible groups are dropped
                                                   this.getNodeGroupOpt(group.groupId).map(_.map(_._1))
                                                 // just ignore other target type
                                                 case _ => None.succeed
@@ -234,21 +214,14 @@ class RoLDAPNodeGroupRepository(
                    case None    => None.succeed
                    case Some(x) =>
                      for {
-                       g   <- mapper
-                                .entry2NodeGroup(x)
-                                .toIO
-                                .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
-                       // filter out the group if it can't be seen in the current security context
-                       res <- tenantCheckLogic.filter(g) match {
-                                case None    => debugTenantFiltering(g).as(None)
-                                case Some(_) =>
-                                  for {
-                                    allNodes <- nodeFactRepo.getAll()
-                                    nodeIds   = g.serverList.intersect(allNodes.keySet.toSet)
-                                    y         = g.copy(serverList = nodeIds)
-                                  } yield Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent)))
-                              }
-                     } yield res
+                       g        <- mapper
+                                     .entry2NodeGroup(x)
+                                     .toIO
+                                     .chainError(s"Error when mapping server group entry to its entity. Entry: ${sgEntry}")
+                       allNodes <- nodeFactRepo.getAll()
+                       nodeIds   = g.serverList.intersect(allNodes.keySet.toSet)
+                       y         = g.modify(_.serverList).setTo(nodeIds)
+                     } yield Some((y, mapper.dn2NodeGroupCategoryId(x.dn.getParent)))
                  }
     } yield {
       sg
@@ -263,15 +236,8 @@ class RoLDAPNodeGroupRepository(
         categoryEntries <- con.searchSub(rudderDit.GROUP.dn, filter)
         ids              = categoryEntries.map(e => mapper.dn2NodeGroupCategoryId(e.dn))
         result          <- ZIO.foreach(ids)(id => getGroupCategory(id))
-        // only keep categories that can be seen in the current security context
-        filtered        <- ZIO.foreach(result)(c => {
-                             tenantCheckLogic.filter(c) match {
-                               case Some(x) => Some(x).succeed
-                               case None    => debugTenantFiltering(c).as(None)
-                             }
-                           })
       } yield {
-        filtered.flatten
+        result
       }
     }
   }
@@ -403,15 +369,8 @@ class RoLDAPNodeGroupRepository(
         categoryEntries   <- con.searchSub(rudderDit.GROUP.dn, AND(NOT(EQ(A_IS_SYSTEM, true.toLDAPString)), IS(OC_GROUP_CATEGORY)))
         allEntries         = categoryEntries :+ rootCategoryEntry
         entries           <- allEntries.toVector.traverse(x => mapper.entry2NodeGroupCategory(x)).toIO
-        // only keep categories that can be seen in the current security context
-        filtered          <- ZIO.foreach(entries)(c => {
-                               tenantCheckLogic.filter(c) match {
-                                 case Some(x) => Some(x).succeed
-                                 case None    => debugTenantFiltering(c).as(None)
-                               }
-                             })
       } yield {
-        filtered.flatten
+        entries
       }
     }
   }
@@ -471,48 +430,34 @@ class RoLDAPNodeGroupRepository(
 
   def getAll()(using qc: QueryContext): IOResult[Seq[NodeGroup]] = {
     for {
-      con      <- ldap
+      con     <- ldap
       // for each directive entry, map it. if one fails, all fails
-      entries  <- groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, EQ(A_OC, OC_RUDDER_NODE_GROUP)))
-      groups   <- ZIO.foreach(entries)(groupEntry => {
-                    mapper
-                      .entry2NodeGroup(groupEntry)
-                      .toIO
-                      .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
-                  })
-      // only keep groups that can be seen in the current security context
-      filtered <- ZIO.foreach(groups)(g => {
-                    tenantCheckLogic.filter(g) match {
-                      case Some(x) => Some(x).succeed
-                      case None    => debugTenantFiltering(g).as(None)
-                    }
-                  })
+      entries <- groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, EQ(A_OC, OC_RUDDER_NODE_GROUP)))
+      groups  <- ZIO.foreach(entries)(groupEntry => {
+                   mapper
+                     .entry2NodeGroup(groupEntry)
+                     .toIO
+                     .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+                 })
     } yield {
-      filtered.flatten
+      groups
     }
   }
 
   def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext): IOResult[Seq[NodeGroup]] = {
     for {
-      con      <- ldap
+      con     <- ldap
       // for each directive entry, map it. if one fails, all fails
-      entries  <-
+      entries <-
         groupLibMutex.readLock(con.searchSub(rudderDit.GROUP.dn, OR(ids.map(id => EQ(A_NODE_GROUP_UUID, id.serialize))*)))
-      groups   <- ZIO.foreach(entries)(groupEntry => {
-                    mapper
-                      .entry2NodeGroup(groupEntry)
-                      .toIO
-                      .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
-                  })
-      // only keep groups that can be seen in the current security context
-      filtered <- ZIO.foreach(groups)(g => {
-                    tenantCheckLogic.filter(g) match {
-                      case Some(x) => Some(x).succeed
-                      case None    => debugTenantFiltering(g).as(None)
-                    }
-                  })
+      groups  <- ZIO.foreach(entries)(groupEntry => {
+                   mapper
+                     .entry2NodeGroup(groupEntry)
+                     .toIO
+                     .chainError(s"Error when transforming LDAP entry into a Group instance. Entry: ${groupEntry}")
+                 })
     } yield {
-      filtered.flatten
+      groups
     }
   }
 
@@ -526,11 +471,9 @@ class RoLDAPNodeGroupRepository(
                      .entryToGroupNodeIds(groupEntry)
                      .toIO
                      .chainError(s"Error when transforming LDAP entry into a list of noes. Entry: ${groupEntry}")
-                     .map(idNodes => (idNodes, groupEntrySecurity(groupEntry)))
                  })
     } yield {
-      // only keep groups that can be seen in the current security context
-      groups.collect { case (idNodes, sec) if qc.accessGrant.canSee(sec) => idNodes }.toMap
+      groups.toMap
     }
   }
 
@@ -544,22 +487,18 @@ class RoLDAPNodeGroupRepository(
                      .entryToGroupNodeIdsChunk(groupEntry)
                      .toIO
                      .chainError(s"Error when transforming LDAP entry into a list of nodes. Entry: ${groupEntry}")
-                     .map(idNodes => (idNodes, groupEntrySecurity(groupEntry)))
                  })
     } yield {
-      // only keep groups that can be seen in the current security context
-      groups.collect { case (idNodes, sec) if qc.accessGrant.canSee(sec) => idNodes }.toMap
+      groups.toMap
     }
   }
 
-  private def findGroupWithFilter(filter: Filter)(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
+  private def findGroupWithFilter(filter: Filter): IOResult[Seq[NodeGroupId]] = {
     groupLibMutex.readLock {
       for {
         con      <- ldap
-        // we need the security tag to filter out groups that can't be seen in the current security context
-        entries  <- con.searchSub(rudderDit.GROUP.dn, filter, A_SECURITY_TAG)
-        visible   = entries.filter(e => qc.accessGrant.canSee(groupEntrySecurity(e)))
-        groupIds <- ZIO.foreach(visible) { entry =>
+        entries  <- con.searchSub(rudderDit.GROUP.dn, filter)
+        groupIds <- ZIO.foreach(entries) { entry =>
                       rudderDit.GROUP
                         .getGroupId(entry.dn)
                         .toIO
@@ -608,10 +547,9 @@ class RoLDAPNodeGroupRepository(
   def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
 
     /*
-     * Map from LDAP results to `FullNodeGroupCategory`/`FullRuleTargetInfo`, filtering
-     * out items based on tenants along the way.
+     * Map from LDAP results to `FullNodeGroupCategory`/`FullRuleTargetInfo`.
      */
-    def fromCategory(catId: NodeGroupCategoryId, maps: AllMaps)(implicit qc: QueryContext): FullNodeGroupCategory = {
+    def fromCategory(catId: NodeGroupCategoryId, maps: AllMaps): FullNodeGroupCategory = {
       def getCat(id: NodeGroupCategoryId) = maps.categories.getOrElse(
         id,
         throw new IllegalArgumentException(s"Missing categories with id ${catId} in the list of available categories")
@@ -634,10 +572,6 @@ class RoLDAPNodeGroupRepository(
      * strategy: load the full subtree from the root category id,
      * then process entrie mapping them to their light version,
      * then call fromCategory on the root (we know its id).
-     *
-     * Tenants are not filtered in the LDAP `getTree` request (we don't have the tooling
-     * to do it at that level in a consistent way), but on the translation to
-     * `FullNodeGroupCategory`.
      */
 
     groupLibMutex
@@ -670,7 +604,6 @@ class RoLDAPNodeGroupRepository(
     def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError): UIO[AllMaps] = {
       val error =
         Chained(s"Error when mapping entry with DN '${e.dn.toString}' from node groups library, that entry will be ignored", err)
-
       logPure.warn(error.fullMsg).as(current)
     }
 
@@ -679,8 +612,6 @@ class RoLDAPNodeGroupRepository(
         if (isACategory(e)) {
           mapper.entry2NodeGroupCategory(e) match {
             case Right(category) =>
-              // for categories other than root, add it in the list
-              // of its parent subcategories
               val updatedSubCats = if (e.dn == rudderDit.GROUP.dn) {
                 current.categoriesByCategory
               } else {
@@ -689,10 +620,10 @@ class RoLDAPNodeGroupRepository(
                 current.categoriesByCategory + (catId -> subCats)
               }
               current
-                .copy(
-                  categories = current.categories + (category.id -> category),
-                  categoriesByCategory = updatedSubCats
-                )
+                .modify(_.categories)
+                .setTo(current.categories + (category.id -> category))
+                .modify(_.categoriesByCategory)
+                .setTo(updatedSubCats)
                 .succeed
             case Left(err)       => mappingError(current, e, err)
           }
@@ -702,9 +633,8 @@ class RoLDAPNodeGroupRepository(
               val catId         = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
               val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
               current
-                .copy(
-                  targetByCategory = current.targetByCategory + (catId -> infosForCatId)
-                )
+                .modify(_.targetByCategory)
+                .setTo(current.targetByCategory + (catId -> infosForCatId))
                 .succeed
             case Left(err)       => mappingError(current, e, err)
           }
@@ -728,8 +658,6 @@ class WoLDAPNodeGroupRepository(
     actionLogEffect:    EventLogRepository,
     gitArchiver:        GitNodeGroupArchiver,
     personIdentService: PersonIdentService,
-    tenantService:      TenantCheckLogic,
-    tenantRepo:         TenantService,
     autoExportOnModify: Boolean
 ) extends WoNodeGroupRepository with Loggable {
   repo =>
@@ -844,55 +772,31 @@ class WoLDAPNodeGroupRepository(
       con                 <- ldap
       parentCategoryEntry <-
         getCategoryEntry(con, into).notOptional(s"The parent category '${into}' was not found, can not add")
-      parent              <- mapper.entry2NodeGroupCategory(parentCategoryEntry).toIO
-      // you can add to a category only if you can see its parent
-      newCategory         <- cc.accessGrant.canModifyOrFail(parent) {
-                               for {
-                                 exists       <- categoryExists(con, that.name, parentCategoryEntry.dn)
-                                 // this will need to be updated in a full multi-tenants environment because it leaks info about existing categories
-                                 canAddByName <-
-                                   if (exists)
-                                     s"Cannot create the Node Group Category with name '${that.name}': a category with the same name exists at the same level".fail
-                                   else "OK, can add".succeed
-                                 tenantStatus <- tenantRepo.getStatus
-                                 newCategory  <-
-                                   tenantService.manageUpdate[NodeGroupCategory, NodeGroupCategory, NodeGroupCategory](
-                                     None,
-                                     that,
-                                     cc,
-                                     tenantStatus
-                                   ) { newCat =>
-                                     val categoryEntry = mapper.nodeGroupCategory2ldap(
-                                       that.updateFromChangeContext,
-                                       parentCategoryEntry.dn
-                                     )
-                                     for {
-                                       result      <- con.save(categoryEntry, removeMissingAttributes = true)
-                                       autoArchive <-
-                                         (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
-                                            for {
-                                              parents  <- getParents_NodeGroupCategory(that.id)
-                                              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                              archive  <-
-                                                gitArchiver.archiveNodeGroupCategory(
-                                                  that,
-                                                  parents.map(_.id),
-                                                  Some((cc.modId, commiter, cc.message))
-                                                )
-                                            } yield archive
-                                          } else ZIO.unit)
-                                       newCategory <-
-                                         getGroupCategory(that.id).chainError(
-                                           s"The newly created category '${that.id.value}' was not found"
-                                         )
-                                     } yield {
-                                       newCategory
-                                     }
-                                   }
-                               } yield {
-                                 newCategory
-                               }
-                             }
+      exists              <- categoryExists(con, that.name, parentCategoryEntry.dn)
+      // this will need to be updated in a full multi-tenants environment because it leaks info about existing categories
+      _                   <-
+        ZIO.when(exists) {
+          s"Cannot create the Node Group Category with name '${that.name}': a category with the same name exists at the same level".fail
+        }
+      categoryEntry        = mapper.nodeGroupCategory2ldap(that, parentCategoryEntry.dn)
+      result              <- con.save(categoryEntry, removeMissingAttributes = true)
+      autoArchive         <-
+        (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
+           for {
+             parents  <- getParents_NodeGroupCategory(that.id)
+             commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+             archive  <-
+               gitArchiver.archiveNodeGroupCategory(
+                 that,
+                 parents.map(_.id),
+                 Some((cc.modId, commiter, cc.message))
+               )
+           } yield archive
+         } else ZIO.unit)
+      newCategory         <-
+        getGroupCategory(that.id).chainError(
+          s"The newly created category '${that.id.value}' was not found"
+        )
     } yield {
       newCategory
     })
@@ -908,45 +812,28 @@ class WoLDAPNodeGroupRepository(
         con              <- ldap
         oldCategoryEntry <-
           getCategoryEntry(con, category.id, "1.1").notOptional(s"Entry with ID '${category.id.value}' was not found")
-        oldCategory      <- mapper.entry2NodeGroupCategory(oldCategoryEntry).toIO
-        updated          <- cc.accessGrant.canModifyOrFail(oldCategory) {
-                              for {
-                                exists       <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
-                                canAddByName <-
-                                  if (exists)
-                                    s"Cannot update the Node Group Category with name '${category.name}': a category with the same name exists at the same level".fail
-                                  else ZIO.unit
-                                // check & update security content
-                                tenantStatus <- tenantRepo.getStatus
-                                updated      <-
-                                  tenantService.manageUpdate(Some(oldCategory), category, cc, tenantStatus) { newCat =>
-                                    val categoryEntry = mapper.nodeGroupCategory2ldap(category, oldCategoryEntry.dn.getParent)
-                                    for {
-                                      result      <- con.save(categoryEntry, removeMissingAttributes = true)
-                                      updated     <- getGroupCategory(category.id)
-                                      // Maybe we have to check if the parents are system or not too
-                                      autoArchive <-
-                                        (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
-                                           for {
-                                             parents  <- getParents_NodeGroupCategory(category.id)
-                                             commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                             archive  <-
-                                               gitArchiver
-                                                 .archiveNodeGroupCategory(
-                                                   updated,
-                                                   parents.map(_.id),
-                                                   Some((cc.modId, commiter, cc.message))
-                                                 )
-                                           } yield archive
-                                         } else ZIO.unit)
-                                    } yield {
-                                      updated
-                                    }
-                                  }
-                              } yield {
-                                updated
-                              }
-                            }
+        exists           <- categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)
+        _                <-
+          ZIO.when(exists) {
+            s"Cannot update the Node Group Category with name '${category.name}': a category with the same name exists at the same level".fail
+          }
+        categoryEntry     = mapper.nodeGroupCategory2ldap(category, oldCategoryEntry.dn.getParent)
+        result           <- con.save(categoryEntry, removeMissingAttributes = true)
+        updated          <- getGroupCategory(category.id)
+        autoArchive      <-
+          (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
+             for {
+               parents  <- getParents_NodeGroupCategory(category.id)
+               commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+               archive  <-
+                 gitArchiver
+                   .archiveNodeGroupCategory(
+                     updated,
+                     parents.map(_.id),
+                     Some((cc.modId, commiter, cc.message))
+                   )
+             } yield archive
+           } else ZIO.unit)
       } yield {
         updated
       }
@@ -1023,8 +910,6 @@ class WoLDAPNodeGroupRepository(
                    case Some(entry) =>
                      mapper.entry2NodeGroupCategory(entry).toIO.flatMap { category =>
                        for {
-                         // a category can be deleted only if the current security context can see it
-                         _           <- tenantService.checkDelete(category, cc).toIO
                          parents     <- if (autoExportOnModify) {
                                           getParents_NodeGroupCategory(id)
                                         } else Nil.succeed
@@ -1072,34 +957,23 @@ class WoLDAPNodeGroupRepository(
                          ).fail
                        }
       categoryEntry <- getCategoryEntry(con, into).notOptional(s"Entry with ID '${into.value}' was not found")
-      category      <- mapper.entry2NodeGroupCategory(categoryEntry).toIO
-      diff          <- cc.accessGrant.canModifyOrFail(category) {
-                         for {
-                           status <- tenantRepo.getStatus
-                           diff   <- tenantService.manageCreate(nodeGroup, cc, status) { ng =>
-                                       val entry = mapper.nodeGroupToLdap(ng, categoryEntry.dn)
-                                       for {
-                                         result       <- con.save(entry, removeMissingAttributes = true)
-                                         diff         <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
-                                         loggedAction <- actionLogEffect.saveAddNodeGroup(diff)
-                                         // We don't want to check if this is a system group or not, because new groups are not systems (see constructor)
-                                         autoArchive  <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
-                                                            for {
-                                                              parents  <- getParents_NodeGroupCategory(into)
-                                                              commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                                              archived <-
-                                                                gitArchiver
-                                                                  .archiveNodeGroup(
-                                                                    nodeGroup,
-                                                                    into :: (parents.map(_.id)),
-                                                                    Some((cc.modId, commiter, cc.message))
-                                                                  )
-                                                            } yield archived
-                                                          } else ZIO.unit)
-                                       } yield diff
-                                     }
-                         } yield diff
-                       }
+      entry          = mapper.nodeGroupToLdap(nodeGroup, categoryEntry.dn)
+      result        <- con.save(entry, removeMissingAttributes = true)
+      diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
+      loggedAction  <- actionLogEffect.saveAddNodeGroup(diff)
+      autoArchive   <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
+                          for {
+                            parents  <- getParents_NodeGroupCategory(into)
+                            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                            archived <-
+                              gitArchiver
+                                .archiveNodeGroup(
+                                  nodeGroup,
+                                  into :: (parents.map(_.id)),
+                                  Some((cc.modId, commiter, cc.message))
+                                )
+                          } yield archived
+                        } else ZIO.unit)
     } yield {
       diff
     })
@@ -1164,41 +1038,37 @@ class WoLDAPNodeGroupRepository(
         result   <- if (oldGroup.equals(nodeGroup)) {
                       None.succeed
                     } else {
-                      tenantRepo.getStatus.flatMap { status =>
-                        tenantService.manageUpdate(Some(oldGroup), nodeGroup, cc, status) { ng =>
-                          for {
-                            systemCheck <- if (onlyUpdateNodes) {
-                                             oldGroup.succeed
-                                           } else {
-                                             (oldGroup.isSystem, systemCall) match {
-                                               case (true, false) =>
-                                                 s"System group '${oldGroup.name}' (${oldGroup.id.serialize}) can not be modified".fail
-                                               case (false, true) =>
-                                                 s"You can not modify a non system group (${oldGroup.name}) with that method".fail
-                                               case _             => oldGroup.succeed
-                                             }
-                                           }
-                            name        <- checkNameAlreadyInUse(con, ng.name, ng.id)
-                            exists      <- ZIO.when(name && !onlyUpdateNodes) {
-                                             s"Cannot change the group name to ${ng.name} : there is already a group with the same name".fail
-                                           }
-                            onlyNodes   <- if (!onlyUpdateNodes) {
-                                             ZIO.unit
-                                           } else { // check that nothing but the node list changed
-                                             if (ng.copy(serverList = oldGroup.serverList) == oldGroup) {
-                                               ZIO.unit
-                                             } else {
-                                               logPure.debug(
-                                                 s"Inconsistency when modifying node lists for ng ${ng.name}: previous content was ${oldGroup}, new is ${ng} - only the node list should change"
-                                               ) *>
-                                               "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
-                                             }
-                                           }
-                            change      <- saveModifyNodeGroupDiff(existing, con, ng)
-                          } yield {
-                            change
-                          }
-                        }
+                      for {
+                        systemCheck <- if (onlyUpdateNodes) {
+                                         oldGroup.succeed
+                                       } else {
+                                         (oldGroup.isSystem, systemCall) match {
+                                           case (true, false) =>
+                                             s"System group '${oldGroup.name}' (${oldGroup.id.serialize}) can not be modified".fail
+                                           case (false, true) =>
+                                             s"You can not modify a non system group (${oldGroup.name}) with that method".fail
+                                           case _             => oldGroup.succeed
+                                         }
+                                       }
+                        name        <- checkNameAlreadyInUse(con, nodeGroup.name, nodeGroup.id)
+                        exists      <- ZIO.when(name && !onlyUpdateNodes) {
+                                         s"Cannot change the group name to ${nodeGroup.name} : there is already a group with the same name".fail
+                                       }
+                        onlyNodes   <- if (!onlyUpdateNodes) {
+                                         ZIO.unit
+                                       } else { // check that nothing but the node list changed
+                                         if (nodeGroup.modify(_.serverList).setTo(oldGroup.serverList) == oldGroup) {
+                                           ZIO.unit
+                                         } else {
+                                           logPure.debug(
+                                             s"Inconsistency when modifying node lists for ng ${nodeGroup.name}: previous content was ${oldGroup}, new is ${nodeGroup} - only the node list should change"
+                                           ) *>
+                                           "The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency".fail
+                                         }
+                                       }
+                        change      <- saveModifyNodeGroupDiff(existing, con, nodeGroup)
+                      } yield {
+                        change
                       }
                     }
       } yield {
@@ -1272,12 +1142,8 @@ class WoLDAPNodeGroupRepository(
                     )
         oldGroup <-
           mapper.entry2NodeGroup(existing).toIO.chainError(s"Error when trying to check for the group '${nodeGroupId.serialize}'")
-        newGroup  = oldGroup.copy(serverList = (oldGroup.serverList -- delete) ++ add)
-        // check that the current security context is allowed to modify that group (tag is unchanged here)
-        status   <- tenantRepo.getStatus
-        result   <- tenantService.manageUpdate(Some(oldGroup), newGroup, cc, status) { ng =>
-                      saveModifyNodeGroupDiff(existing, con, ng)
-                    }
+        newGroup  = oldGroup.modify(_.serverList).setTo((oldGroup.serverList -- delete) ++ add)
+        result   <- saveModifyNodeGroupDiff(existing, con, newGroup)
       } yield {
         result
       }
@@ -1291,26 +1157,21 @@ class WoLDAPNodeGroupRepository(
     import cc.*
     given QueryContext = cc.toQC
     groupLibMutex.writeLock(for {
-      con          <- ldap
-      oldParents   <- if (autoExportOnModify) {
-                        (for {
-                          parent  <- getNodeGroupCategory(nodeGroupId)
-                          parents <- getParents_NodeGroupCategory(parent.id)
-                        } yield (parent :: parents).map(_.id))
-                      } else Nil.succeed
-      existing     <- getSGEntry(con, nodeGroupId).notOptional(
-                        "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.serialize)
-                      )
-      oldGroup     <- mapper
-                        .entry2NodeGroup(existing)
-                        .toIO
-                        .chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
-      // a group can be moved only if the current security context can see both the group and the
-      // destination category
-      _            <- cc.accessGrant.canModifyOrFail(oldGroup)(ZIO.unit)
-      destCategory <- getGroupCategory(containerId)
-      _            <- cc.accessGrant.canModifyOrFail(destCategory)(ZIO.unit)
-      systemCheck  <- if (oldGroup.isSystem) "You can not move system group".fail else ZIO.unit
+      con         <- ldap
+      oldParents  <- if (autoExportOnModify) {
+                       (for {
+                         parent  <- getNodeGroupCategory(nodeGroupId)
+                         parents <- getParents_NodeGroupCategory(parent.id)
+                       } yield (parent :: parents).map(_.id))
+                     } else Nil.succeed
+      existing    <- getSGEntry(con, nodeGroupId).notOptional(
+                       "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroupId.serialize)
+                     )
+      oldGroup    <- mapper
+                       .entry2NodeGroup(existing)
+                       .toIO
+                       .chainError("Error when trying to get the existing group with id %s".format(nodeGroupId.serialize))
+      systemCheck <- if (oldGroup.isSystem) "You can not move system group".fail else ZIO.unit
 
       groupRDN      <- existing.rdn.notOptional("Error when retrieving RDN for an existing group - seems like a bug")
       name          <- checkNameAlreadyInUse(con, oldGroup.name, nodeGroupId)
@@ -1368,8 +1229,6 @@ class WoLDAPNodeGroupRepository(
       existing     <-
         getSGEntry(con, id).notOptional("Error when trying to check for existence of group with id %s. Can not update".format(id))
       oldGroup     <- mapper.entry2NodeGroup(existing).toIO
-      // a group can be deleted only if the current security context can see it
-      _            <- tenantService.checkDelete(oldGroup, cc).toIO
       deleted      <- {
         getSGEntry(con, id, "1.1") flatMap {
           case Some(entry) => {

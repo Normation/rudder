@@ -53,10 +53,7 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantCheckLogic
-import com.normation.rudder.tenants.TenantService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -65,19 +62,12 @@ import zio.*
 import zio.syntax.*
 
 class RoLDAPParameterRepository(
-    val rudderDit:     RudderDit,
-    val ldap:          LDAPConnectionProvider[RoLDAPConnection],
-    val mapper:        LDAPEntityMapper,
-    val tenantService: TenantCheckLogic,
-    val tenantRepo:    TenantService,
-    val paramMutex:    ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
+    val rudderDit:  RudderDit,
+    val ldap:       LDAPConnectionProvider[RoLDAPConnection],
+    val mapper:     LDAPEntityMapper,
+    val paramMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoParameterRepository {
   repo =>
-
-  // tenant filtering is silent by default but can be traced with the appropriate DEBUG log
-  private def debugTenantFiltering[A: HasSecurityTag](a: A)(using qc: QueryContext): UIO[Unit] = {
-    ApplicationLoggerPure.Tenant.debug(s"In global parameters: filtering '${a.debugId}' for '${qc.actor.name}'")
-  }
 
   def getGlobalParameter(parameterName: String)(using qc: QueryContext): IOResult[Option[GlobalParameter]] = {
     paramMutex.readLock(for {
@@ -92,13 +82,7 @@ class RoLDAPParameterRepository(
                      .chainError(
                        s"Error when transforming LDAP entry into global parameter for name '${parameterName}'. Entry: ${entry}"
                      )
-                     .flatMap { param =>
-                       // filter out the parameter if it can't be seen in the current security context
-                       tenantService.filter(param) match {
-                         case Some(p) => Some(p).succeed
-                         case None    => debugTenantFiltering(param).as(None)
-                       }
-                     }
+                     .map(Some(_))
                }
     } yield {
       param
@@ -107,25 +91,18 @@ class RoLDAPParameterRepository(
 
   private def getGP(
       search: RoLDAPConnection => LDAPIOResult[Seq[LDAPEntry]]
-  )(using qc: QueryContext): IOResult[Seq[GlobalParameter]] = {
+  ): IOResult[Seq[GlobalParameter]] = {
     paramMutex.readLock(for {
-      con      <- ldap
-      entries  <- search(con)
-      params   <- ZIO.foreach(entries) { entry =>
-                    mapper
-                      .entry2Parameter(entry)
-                      .toIO
-                      .chainError("Error when transforming LDAP entry into global parameter. Entry: %s".format(entry))
-                  }
-      // only keep parameters that can be seen in the current security context
-      filtered <- ZIO.foreach(params) { param =>
-                    tenantService.filter(param) match {
-                      case Some(p) => Some(p).succeed
-                      case None    => debugTenantFiltering(param).as(None)
-                    }
-                  }
+      con     <- ldap
+      entries <- search(con)
+      params  <- ZIO.foreach(entries) { entry =>
+                   mapper
+                     .entry2Parameter(entry)
+                     .toIO
+                     .chainError("Error when transforming LDAP entry into global parameter. Entry: %s".format(entry))
+                 }
     } yield {
-      filtered.flatten
+      params
     })
   }
 
@@ -141,16 +118,11 @@ class WoLDAPParameterRepository(
     actionLogger:              EventLogRepository,
     gitParameterArchiver:      GitParameterArchiver,
     personIdentService:        PersonIdentService,
-    tenantService:             TenantCheckLogic,
-    tenantRepo:                TenantService,
     autoExportOnModify:        Boolean
 ) extends WoParameterRepository {
   repo =>
 
   import roLDAPParameterRepository.*
-
-  // internal navigation reads (look-up existing parameters) must not be tenant-filtered: the tenant
-  // enforcement is done explicitly via `tenantService`. So internal read calls use a system context.
 
   def saveParameter(
       parameter: GlobalParameter
@@ -165,27 +137,20 @@ class WoLDAPParameterRepository(
                             ).fail
                           case None        => ZIO.unit
                         }
-        status       <- tenantRepo.getStatus
-        diff         <- tenantService.manageCreate(parameter, cc, status) { param =>
-                          val paramEntry = mapper.parameter2Entry(param)
+        paramEntry    = mapper.parameter2Entry(parameter)
+        result       <-
+          con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
+        diff         <- diffMapper.addChangeRecords2GlobalParameterDiff(paramEntry.dn, result).toIO
+        loggedAction <- actionLogger
+                          .saveAddGlobalParameter(cc.modId, principal = cc.actor, addDiff = diff, reason = cc.message)
+                          .chainError("Error when logging modification as an event")
+        autoArchive  <- ZIO.when(autoExportOnModify) {
                           for {
-                            result       <-
-                              con.save(paramEntry).chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
-                            diff         <- diffMapper.addChangeRecords2GlobalParameterDiff(paramEntry.dn, result).toIO
-                            loggedAction <- actionLogger
-                                              .saveAddGlobalParameter(cc.modId, principal = cc.actor, addDiff = diff, reason = cc.message)
-                                              .chainError("Error when logging modification as an event")
-                            autoArchive  <- ZIO.when(autoExportOnModify) {
-                                              for {
-                                                commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                                archive  <- gitParameterArchiver
-                                                              .archiveParameter(param, Some((cc.modId, commiter, cc.message)))
-                                              } yield {
-                                                archive
-                                              }
-                                            }
+                            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                            archive  <- gitParameterArchiver
+                                          .archiveParameter(parameter, Some((cc.modId, commiter, cc.message)))
                           } yield {
-                            diff
+                            archive
                           }
                         }
       } yield {
@@ -204,59 +169,51 @@ class WoLDAPParameterRepository(
           roLDAPParameterRepository
             .getGlobalParameter(parameter.name)(using QueryContext.systemQC)
             .notOptional(s"Cannot update Global Parameter '${parameter.name}': there is no parameter with that name")
-        status       <- tenantRepo.getStatus
-        optDiff      <-
-          tenantService.manageUpdate(Some(oldParameter), parameter, cc, status) { param =>
-            for {
-              _            <- if (GenericProperty.canBeUpdated(oldParameter.provider, param.provider)) ZIO.unit
-                              else {
-                                val newProvider = param.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
-                                val oldProvider =
-                                  oldParameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
-                                Inconsistency(
-                                  s"Parameter with name '${param.name}' can not be updated by provider '${newProvider}' since its current provider is '${oldProvider}'"
-                                ).fail
-                              }
-              paramEntry    = mapper.parameter2Entry(param)
-              result       <- {
-                // remove missing to clean up `overridable` (RudderAttributes:303) so that it can be removed in 7.0
-                con
-                  .save(paramEntry, removeMissingAttributes = true)
-                  .chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
-              }
-              optDiff      <- diffMapper
-                                .modChangeRecords2GlobalParameterDiff(
-                                  param.name,
-                                  paramEntry.dn,
-                                  oldParameter,
-                                  result
-                                )
-                                .toIO
-              loggedAction <- optDiff match {
-                                case None       => ZIO.unit
-                                case Some(diff) =>
-                                  actionLogger
-                                    .saveModifyGlobalParameter(
-                                      cc.modId,
-                                      principal = cc.actor,
-                                      modifyDiff = diff,
-                                      reason = cc.message
-                                    )
-                                    .chainError("Error when logging modification as an event")
-                              }
-              autoArchive  <- ZIO.when(autoExportOnModify && optDiff.isDefined) { // only persists if modification are present
-                                for {
-                                  commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
-                                  archive  <- gitParameterArchiver
-                                                .archiveParameter(param, Some((cc.modId, commiter, cc.message)))
-                                } yield {
-                                  archive
-                                }
-                              }
-            } yield {
-              optDiff
-            }
-          }
+        _            <- if (GenericProperty.canBeUpdated(oldParameter.provider, parameter.provider)) ZIO.unit
+                        else {
+                          val newProvider = parameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
+                          val oldProvider =
+                            oldParameter.provider.getOrElse(PropertyProvider.defaultPropertyProvider).value
+                          Inconsistency(
+                            s"Parameter with name '${parameter.name}' can not be updated by provider '${newProvider}' since its current provider is '${oldProvider}'"
+                          ).fail
+                        }
+        paramEntry    = mapper.parameter2Entry(parameter)
+        result       <- {
+          // remove missing to clean up `overridable` (RudderAttributes:303) so that it can be removed in 7.0
+          con
+            .save(paramEntry, removeMissingAttributes = true)
+            .chainError(s"Error when saving parameter entry in repository: ${paramEntry}")
+        }
+        optDiff      <- diffMapper
+                          .modChangeRecords2GlobalParameterDiff(
+                            parameter.name,
+                            paramEntry.dn,
+                            oldParameter,
+                            result
+                          )
+                          .toIO
+        loggedAction <- optDiff match {
+                          case None       => ZIO.unit
+                          case Some(diff) =>
+                            actionLogger
+                              .saveModifyGlobalParameter(
+                                cc.modId,
+                                principal = cc.actor,
+                                modifyDiff = diff,
+                                reason = cc.message
+                              )
+                              .chainError("Error when logging modification as an event")
+                        }
+        autoArchive  <- ZIO.when(autoExportOnModify && optDiff.isDefined) { // only persists if modification are present
+                          for {
+                            commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                            archive  <- gitParameterArchiver
+                                          .archiveParameter(parameter, Some((cc.modId, commiter, cc.message)))
+                          } yield {
+                            archive
+                          }
+                        }
       } yield {
         optDiff
       }
@@ -279,8 +236,6 @@ class WoLDAPParameterRepository(
                        case None                => None.succeed
                        case Some(oldParamEntry) =>
                          for {
-                           // can only delete a parameter that is visible in the current security context
-                           _            <- tenantService.checkDelete(oldParamEntry, cc).toIO
                            _            <- if (GenericProperty.canBeUpdated(oldParamEntry.provider, provider)) ZIO.unit
                                            else {
                                              Inconsistency(
@@ -388,3 +343,4 @@ class WoLDAPParameterRepository(
     })
   }
 }
+

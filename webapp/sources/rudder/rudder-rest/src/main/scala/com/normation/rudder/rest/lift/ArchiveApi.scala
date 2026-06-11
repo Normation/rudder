@@ -627,7 +627,7 @@ class ZipArchiveBuilderService(
       Seq().succeed
     } else {
       ruleCategoryRepo
-        .getRootCategory()
+        .getRootCategory()(using QueryContext.systemQC)
         .map(_.transformInto[JRuleCategories].keepInHierarchy(ids).toJsonPretty)
         .map(json => List(Zippable(path, Some(getJsonZippableContent(json)))))
     }
@@ -1702,7 +1702,10 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
   def saveRuleCategory(eventMetadata: EventMetadata, r: RuleCategoryArchive):    IOResult[Unit] = {
-    roRuleCategoryRepos.getRootCategory().flatMap { root =>
+    // archive import is a system-level operation, see all tenants
+    given cc: ChangeContext =
+      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
+    roRuleCategoryRepos.getRootCategory()(using cc.toQC).flatMap { root =>
       val newRoot  = r.toRuleCategory
       val parents  = r.parentCategories
       val children = r.childCategories
@@ -1719,10 +1722,7 @@ class SaveArchiveServicebyRepo(
              ZIO.unlessZIODiscard(alreadyExists(c.id))(
                woRuleCategoryRepos.create(
                  c.toRuleCategory,
-                 parents.get(c).fold(newRoot.id)(_.id),
-                 eventMetadata.modId,
-                 eventMetadata.actor,
-                 eventMetadata.msg
+                 parents.get(c).fold(newRoot.id)(_.id)
                ) *> created.update(_ + c.id) *>
                ApplicationLoggerPure.Archive.trace(
                  s"Created rule category parent from archive: '${c.name}' (${c.id.value})"
@@ -1731,10 +1731,7 @@ class SaveArchiveServicebyRepo(
            } else {
              woRuleCategoryRepos.updateAndMove(
                c.toRuleCategory,
-               parents.get(c).fold(newRoot.id)(_.id),
-               eventMetadata.modId,
-               eventMetadata.actor,
-               eventMetadata.msg
+               parents.get(c).fold(newRoot.id)(_.id)
              ) *> ApplicationLoggerPure.Archive.trace(
                s"Moved rule category parent from archive: '${c.name}' (${c.id.value}) to ${parents(c).id}"
              )
