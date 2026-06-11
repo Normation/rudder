@@ -10,7 +10,6 @@ members = [
            "policies/rudder-report",
            "policies/module-types/augeas",
            "policies/module-types/commands",
-           "policies/module-types/directory",
            "policies/module-types/inventory",
            "policies/module-types/system-updates",
            "policies/module-types/template",

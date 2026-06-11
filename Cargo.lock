@@ -1438,15 +1438,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
-name = "file-owner"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36f03ecafcffaf8add486d5424ffd60a25690f9da6a026692bc6c657379fc60c"
-dependencies = [
- "nix",
-]
-
-[[package]]
 name = "filedescriptor"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3835,19 +3826,6 @@ dependencies = [
  "serde_json",
  "uzers",
  "wait-timeout",
-]
-
-[[package]]
-name = "rudder-module-directory"
-version = "0.0.0-dev"
-dependencies = [
- "anyhow",
- "file-owner",
- "rudder_commons_test",
- "rudder_module_type",
- "serde",
- "serde_json",
- "tempfile",
 ]
 
 [[package]]
