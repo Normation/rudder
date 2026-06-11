@@ -283,6 +283,20 @@ def package_arguments_builder(is_zypper_install):
         elif line.startswith("Architecture="):
             arch = line.split("=", 1)[1].rstrip()
 
+        elif line.startswith("options="):
+            global zypper_options
+            option = line.split("=", 1)[1].rstrip()
+            if option:
+              if option.startswith("env:"):
+                  env_option = option.split(":", 1)[1]
+                  env_var = env_option.split("=", 1)
+                  if len(env_var) == 2:
+                      env_name = env_var[0]
+                      env_value = env_var[1]
+                      os.environ[env_name] = env_value
+              else:
+                  zypper_options.append(option)
+
     if name:
         single_list, multi_list = one_package_argument(name, arch, version, is_zypper_install)
         single_cmd_args += single_list
