@@ -17,6 +17,8 @@ pub fn systemd_reboot() -> ResultOutput<()> {
 }
 
 pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
+    let services = systemd_get_restartable_services(services);
+
     if services.is_empty() {
         return ResultOutput::new_output(
             Ok(()),
@@ -24,8 +26,6 @@ pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
             Vec::new(),
         );
     }
-
-    let services = systemd_get_restartable_services(services);
 
     // Make sure the units are up-to-date
     let mut c = Command::new("systemctl");
