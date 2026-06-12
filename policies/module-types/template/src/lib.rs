@@ -277,12 +277,10 @@ impl ModuleType0 for Template {
             parameters.template_string.is_some(),
         ) {
             (true, true) => bail!(
-                "Only one of 'template_path' and 'template_src' can be provided '{}' and '{}'",
-                parameters.template_string.unwrap(),
-                parameters.template_path.unwrap().display()
+                "Only one of 'template_path' and 'template_string' can be provided, but both were given",
             ),
             (false, false) => {
-                bail!("Need one of 'template_path' and 'template_src'")
+                bail!("Need one of 'template_path' and 'template_string'")
             }
             _ => (),
         }
@@ -291,7 +289,7 @@ impl ModuleType0 for Template {
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        assert!(self.validate(parameters).is_ok());
+        self.validate(parameters)?;
         let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
         let res = Self::check_apply_inner(mode, &p, &parameters.backup_dir);

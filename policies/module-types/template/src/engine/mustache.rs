@@ -13,10 +13,10 @@ impl TemplateEngine for MustacheEngine {
     fn render(
         &self,
         template_path: Option<&Path>,
-        template_src: Option<&str>,
+        template_string: Option<&str>,
         data: &Value,
     ) -> Result<String> {
-        let template = match (template_path, template_src) {
+        let template = match (template_path, template_string) {
             // The lib has a `compile_path` method, but it requires a mustache file extension.
             (Some(p), _) => &fs::read_to_string(p)
                 .with_context(|| format!("Failed to read template {}", p.display()))?,
