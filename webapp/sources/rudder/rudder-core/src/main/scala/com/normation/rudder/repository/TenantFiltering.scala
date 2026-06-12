@@ -54,46 +54,69 @@ import zio.*
 
 /*
  * This file contains the tenant filtering logic for technique, directive, rule, group, parameter repositories.
+ * The main idea:
+ *   - for all read operation, we post-filter all objects with the tenant scoping
+ *   - for all write operation:
+ *       - we check for an existing with object to see what tenants it could get,
+ *       - then we check for see, and for write
  */
 
 // ----- Directives -----------------------------------
 
 class RoDirectiveRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    underlying:    RoDirectiveRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  RoDirectiveRepository
 ) extends RoDirectiveRepository {
 
-  private def filterFATC(cat: FullActiveTechniqueCategory)(using qc: QueryContext): FullActiveTechniqueCategory = {
-    cat
-      .modify(_.subCategories)
-      .setTo(cat.subCategories.flatMap(c => Option.when(qc.accessGrant.canSee(c.security))(filterFATC(c))))
-      .modify(_.activeTechniques)
-      .setTo(cat.activeTechniques.collect {
-        case at if qc.accessGrant.canSee(at.security) =>
-          at.modify(_.directives).setTo(at.directives.filter(d => qc.accessGrant.canSee(d.security)))
-      })
+  private def filterFATC(c: FullActiveTechniqueCategory)(using qc: QueryContext): Option[FullActiveTechniqueCategory] = {
+    checkTenant
+      .check(c)
+      .map { cat =>
+        cat
+          .modify(_.subCategories)
+          .setTo(cat.subCategories.flatMap(filterFATC))
+          .modify(_.activeTechniques)
+          .setTo(checkTenant.collect(cat.activeTechniques) { at =>
+            at.modify(_.directives).setTo(checkTenant.filter(at.directives))
+          })
+      }
   }
 
-  override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] =
-    underlying.getFullDirectiveLibrary().map(filterFATC)
+  override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] = {
+    underlying
+      .getFullDirectiveLibrary()
+      .map(filterFATC)
+      .notOptional(s"Root directive library category is not visible by '${qc.actor.name}'")
+  }
 
-  override def getDirective(directiveId: DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]] =
-    underlying.getDirective(directiveId).map(_.filter(d => qc.accessGrant.canSee(d.security)))
+  override def getDirective(directiveId: DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]] = {
+    underlying.getDirective(directiveId).map(checkTenant.flatMap(_))
+  }
 
   override def getDirectiveWithContext(
       directiveId: DirectiveUid
-  )(using qc: QueryContext): IOResult[Option[(Technique, ActiveTechnique, Directive)]] =
-    underlying.getDirectiveWithContext(directiveId).map(_.filter { case (_, _, d) => qc.accessGrant.canSee(d.security) })
+  )(using qc: QueryContext): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+    underlying.getDirectiveWithContext(directiveId).map {
+      case None          => None
+      // we don't check technique, only active technique. The technique at that level doesn't hold
+      // tenants. It should likely. Like in the yaml, else it's not easy to migrate that part
+      // with archive
+      case Some(a, b, c) => checkTenant.check(b).zip(checkTenant.check(c)).map(_ => (a, b, c))
+    }
+  }
 
   override def getActiveTechniqueAndDirective(
       id: DirectiveId
-  )(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]] =
-    underlying.getActiveTechniqueAndDirective(id).map(_.filter { case (_, d) => qc.accessGrant.canSee(d.security) })
+  )(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]] = {
+    // only check directive
+    underlying.getActiveTechniqueAndDirective(id).map(checkTenant.flatMap(_))
+  }
 
   override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean)(using
       qc: QueryContext
-  ): IOResult[Seq[Directive]] =
-    underlying.getDirectives(activeTechniqueId, includeSystem).map(_.filter(d => qc.accessGrant.canSee(d.security)))
+  ): IOResult[Seq[Directive]] = {
+    underlying.getDirectives(activeTechniqueId, includeSystem).map(checkTenant.filter(_))
+  }
 
   override def getActiveTechniqueByCategory(
       includeSystem: Boolean
@@ -101,59 +124,83 @@ class RoDirectiveRepositoryWithTenantFiltering(
     underlying.getActiveTechniqueByCategory(includeSystem).map { map =>
       implicit val o: Ordering[List[ActiveTechniqueCategoryId]] = ActiveTechniqueCategoryOrdering
       SortedMap(map.collect {
-        case (path, cwat) if qc.accessGrant.canSee(cwat.category.security) =>
-          path -> cwat.modify(_.templates).setTo(cwat.templates.filter(at => qc.accessGrant.canSee(at.security)))
+        case (path, cwat) if checkTenant.check(cwat.category).isDefined =>
+          path -> cwat.modify(_.templates).setTo(checkTenant.filter(cwat.templates))
       }.toSeq*)
     }
   }
 
   override def getActiveTechniqueByActiveTechnique(
       id: ActiveTechniqueId
-  )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] =
-    underlying.getActiveTechniqueByActiveTechnique(id).map(_.filter(at => qc.accessGrant.canSee(at.security)))
+  )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = {
+    underlying.getActiveTechniqueByActiveTechnique(id).map(checkTenant.flatMap(_))
+  }
 
-  override def getActiveTechnique(techniqueName: TechniqueName)(using qc: QueryContext): IOResult[Option[ActiveTechnique]] =
-    underlying.getActiveTechnique(techniqueName).map(_.filter(at => qc.accessGrant.canSee(at.security)))
+  override def getActiveTechnique(techniqueName: TechniqueName)(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = {
+    underlying.getActiveTechnique(techniqueName).map(checkTenant.flatMap(_))
+  }
 
   override def getAllActiveTechniqueCategories(includeSystem: Boolean)(using
       qc: QueryContext
-  ): IOResult[Seq[ActiveTechniqueCategory]] =
-    underlying.getAllActiveTechniqueCategories(includeSystem).map(_.filter(c => qc.accessGrant.canSee(c.security)))
+  ): IOResult[Seq[ActiveTechniqueCategory]] = {
+    underlying.getAllActiveTechniqueCategories(includeSystem).map(checkTenant.filter(_))
+  }
 
   override def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
       qc: QueryContext
-  ): IOResult[Option[ActiveTechniqueCategory]] =
-    underlying.getActiveTechniqueCategory(id).map(_.filter(c => qc.accessGrant.canSee(c.security)))
+  ): IOResult[Option[ActiveTechniqueCategory]] = {
+    underlying.getActiveTechniqueCategory(id).map(checkTenant.flatMap(_))
+  }
 
-  // Navigation methods (delegate, no tenant filtering needed)
+  // Navigation methods (delegate, tenant filtering would break semantic)
   override def activeTechniqueBreadCrump(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] =
     underlying.activeTechniqueBreadCrump(id)
 
-  override def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] =
+  // active category only has ID for children, we can't filter yet
+  override def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
     underlying.getActiveTechniqueLibrary
+      .map(checkTenant.check(_))
+      .notOptional(
+        s"'${qc.actor}' doesn't have access to root directive category"
+      )
+  }
 
-  override def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
-      qc: QueryContext
-  ): IOResult[ActiveTechniqueCategory] =
-    underlying.getParentActiveTechniqueCategory(id)
+  override def getParentActiveTechniqueCategory(
+      id: ActiveTechniqueCategoryId
+  )(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
+    underlying
+      .getParentActiveTechniqueCategory(id)
+      .map(checkTenant.check(_))
+      .notOptional(
+        s"'${qc.actor}' doesn't have access to directive category '${id.value}''"
+      )
+  }
 
   override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using
       qc: QueryContext
-  ): IOResult[List[ActiveTechniqueCategory]] =
-    underlying.getParentsForActiveTechniqueCategory(id)
+  ): IOResult[List[ActiveTechniqueCategory]] = {
+    underlying.getParentsForActiveTechniqueCategory(id).map(checkTenant.filter(_))
+  }
 
-  override def getParentsForActiveTechnique(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[ActiveTechniqueCategory] =
-    underlying.getParentsForActiveTechnique(id)
+  override def getParentsForActiveTechnique(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
+    underlying
+      .getParentsForActiveTechnique(id)
+      .map(checkTenant.check(_))
+      .notOptional(
+        s"'${qc.actor}' doesn't have access to parent of category '${id.value}''"
+      )
+  }
 
-  override def containsDirective(id: ActiveTechniqueCategoryId): zio.UIO[Boolean] =
+  override def containsDirective(id: ActiveTechniqueCategoryId): zio.UIO[Boolean] = {
     underlying.containsDirective(id)
+  }
 }
 
 class WoDirectiveRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    tenantRepo:    TenantService,
-    underlying:    WoDirectiveRepository,
-    roRepo:        RoDirectiveRepository
+    checkTenant: TenantCheckLogic,
+    tenantRepo:  TenantService,
+    underlying:  WoDirectiveRepository,
+    roRepo:      RoDirectiveRepository
 ) extends WoDirectiveRepository {
 
   private def saveInternal(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, system: Boolean)(using
@@ -167,7 +214,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
       _        <- cc.accessGrant.canModifyOrFail(parentAt)(ZIO.unit)
       oldDir   <- roRepo.getActiveTechniqueAndDirective(DirectiveId(directive.id.uid))
       status   <- tenantRepo.getStatus
-      result   <- tenantService.manageUpdate(oldDir.map(_._2), directive, cc, status) { dir =>
+      result   <- checkTenant.manageUpdate(oldDir.map(_._2), directive, cc, status) { dir =>
                     if (system) underlying.saveSystemDirective(inActiveTechniqueId, dir)
                     else underlying.saveDirective(inActiveTechniqueId, dir)
                   }
@@ -188,7 +235,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
     given QueryContext = cc.toQC
     for {
       existing <- roRepo.getActiveTechniqueAndDirective(DirectiveId(id))
-      _        <- ZIO.foreach(existing)(p => tenantService.checkDelete(p._2, cc).toIO)
+      _        <- ZIO.foreach(existing)(p => checkTenant.checkDelete(p._2, cc).toIO)
       result   <- underlying.delete(id)
     } yield result
   }
@@ -197,7 +244,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
     given QueryContext = cc.toQC
     for {
       existing <- roRepo.getActiveTechniqueAndDirective(DirectiveId(id))
-      _        <- ZIO.foreach(existing)(p => tenantService.checkDelete(p._2, cc).toIO)
+      _        <- ZIO.foreach(existing)(p => checkTenant.checkDelete(p._2, cc).toIO)
       result   <- underlying.deleteSystemDirective(id)
     } yield result
   }
@@ -220,7 +267,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
       parentCat <- roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
       _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
       status    <- tenantRepo.getStatus
-      result    <- tenantService.manageCreate(probe, cc, status) { _ =>
+      result    <- checkTenant.manageCreate(probe, cc, status) { _ =>
                      underlying.addTechniqueInUserLibrary(categoryId, techniqueName, versions, policyTypes)
                    }
     } yield result
@@ -263,7 +310,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
     given QueryContext = cc.toQC
     for {
       existing <- roRepo.getActiveTechniqueByActiveTechnique(id)
-      _        <- ZIO.foreach(existing)(at => tenantService.checkDelete(at, cc).toIO)
+      _        <- ZIO.foreach(existing)(at => checkTenant.checkDelete(at, cc).toIO)
       result   <- underlying.deleteActiveTechnique(id)
     } yield result
   }
@@ -276,7 +323,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
       parentCat <- roRepo.getActiveTechniqueCategory(into).notOptional(s"Category '${into.value}' was not found")
       _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
       status    <- tenantRepo.getStatus
-      result    <- tenantService.manageCreate(that, cc, status)(cat => underlying.addActiveTechniqueCategory(cat, into))
+      result    <- checkTenant.manageCreate(that, cc, status)(cat => underlying.addActiveTechniqueCategory(cat, into))
     } yield result
   }
 
@@ -287,7 +334,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
     for {
       old    <- roRepo.getActiveTechniqueCategory(category.id).notOptional(s"Category '${category.id.value}' was not found")
       status <- tenantRepo.getStatus
-      result <- tenantService.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveActiveTechniqueCategory(cat))
+      result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveActiveTechniqueCategory(cat))
     } yield result
   }
 
@@ -297,7 +344,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
     given QueryContext = cc.toQC
     for {
       existing <- roRepo.getActiveTechniqueCategory(id)
-      _        <- ZIO.foreach(existing)(cat => tenantService.checkDelete(cat, cc).toIO)
+      _        <- ZIO.foreach(existing)(cat => checkTenant.checkDelete(cat, cc).toIO)
       result   <- underlying.deleteCategory(id, checkEmpty)
     } yield result
   }
@@ -321,8 +368,8 @@ class WoDirectiveRepositoryWithTenantFiltering(
 // ----- Groups -----------------------------------
 
 class RoNodeGroupRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    underlying:    RoNodeGroupRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  RoNodeGroupRepository
 ) extends RoNodeGroupRepository {
 
   private def filterFNGC(cat: FullNodeGroupCategory)(using qc: QueryContext): FullNodeGroupCategory = {
@@ -337,13 +384,13 @@ class RoNodeGroupRepositoryWithTenantFiltering(
     underlying.getFullGroupLibrary().map(filterFNGC)
 
   override def getNodeGroupOpt(id: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] =
-    underlying.getNodeGroupOpt(id).map(_.filter(g => qc.accessGrant.canSee(g._1.security)))
+    underlying.getNodeGroupOpt(id).map(checkTenant.flatMap(_))
 
   override def getAll()(using qc: QueryContext): IOResult[Seq[NodeGroup]] =
-    underlying.getAll().map(_.filter(g => qc.accessGrant.canSee(g.security)))
+    underlying.getAll().map(checkTenant.flatMap(_))
 
   override def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext): IOResult[Seq[NodeGroup]] =
-    underlying.getAllByIds(ids).map(_.filter(g => qc.accessGrant.canSee(g.security)))
+    underlying.getAllByIds(ids).map(checkTenant.flatMap(_))
 
   override def getAllNodeIds()(using qc: QueryContext): IOResult[Map[NodeGroupId, Set[NodeId]]] =
     underlying.getAll().map(_.collect { case g if qc.accessGrant.canSee(g.security) => g.id -> g.serverList }.toMap)
@@ -355,10 +402,10 @@ class RoNodeGroupRepositoryWithTenantFiltering(
   }
 
   override def getAllGroupCategories(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] =
-    underlying.getAllGroupCategories(includeSystem).map(_.filter(qc.accessGrant.canSee(_)))
+    underlying.getAllGroupCategories(includeSystem).map(checkTenant.flatMap(_))
 
   override def getAllNonSystemCategories()(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] =
-    underlying.getAllNonSystemCategories().map(_.filter(qc.accessGrant.canSee(_)))
+    underlying.getAllNonSystemCategories().map(checkTenant.flatMap(_))
 
   override def getGroupsByCategory(
       includeSystem: Boolean
@@ -414,10 +461,10 @@ class RoNodeGroupRepositoryWithTenantFiltering(
 }
 
 class WoNodeGroupRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    tenantRepo:    TenantService,
-    underlying:    WoNodeGroupRepository,
-    roRepo:        RoNodeGroupRepository
+    checkTenant: TenantCheckLogic,
+    tenantRepo:  TenantService,
+    underlying:  WoNodeGroupRepository,
+    roRepo:      RoNodeGroupRepository
 ) extends WoNodeGroupRepository {
 
   override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff] = {
@@ -426,7 +473,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
       parentCat <- roRepo.getGroupCategory(into)
       _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
       status    <- tenantRepo.getStatus
-      result    <- tenantService.manageCreate(nodeGroup, cc, status)(ng => underlying.create(ng, into))
+      result    <- checkTenant.manageCreate(nodeGroup, cc, status)(ng => underlying.create(ng, into))
     } yield result
   }
 
@@ -434,7 +481,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
     for {
       existingOpt <- roRepo.getNodeGroupOpt(nodeGroup.id)(using cc.toQC)
       status      <- tenantRepo.getStatus
-      result      <- tenantService.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.update(ng))
+      result      <- checkTenant.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.update(ng))
     } yield result
   }
 
@@ -442,9 +489,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
     for {
       existingOpt <- roRepo.getNodeGroupOpt(nodeGroup.id)(using cc.toQC)
       status      <- tenantRepo.getStatus
-      result      <- tenantService.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status) { ng =>
-                       underlying.updateSystemGroup(ng)
-                     }
+      result      <- checkTenant.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.updateSystemGroup(ng))
     } yield result
   }
 
@@ -452,7 +497,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
     for {
       existingOpt <- roRepo.getNodeGroupOpt(group.id)(using cc.toQC)
       status      <- tenantRepo.getStatus
-      result      <- tenantService.manageUpdate(existingOpt.map(_._1), group, cc, status)(ng => underlying.updateDynGroupNodes(ng))
+      result      <- checkTenant.manageUpdate(existingOpt.map(_._1), group, cc, status)(ng => underlying.updateDynGroupNodes(ng))
     } yield result
   }
 
@@ -469,7 +514,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
                          val newGroup = old.modify(_.serverList).setTo((old.serverList -- delete) ++ add)
                          for {
                            status <- tenantRepo.getStatus
-                           r      <- tenantService.manageUpdate(Some(old), newGroup, cc, status) { _ =>
+                           r      <- checkTenant.manageUpdate(Some(old), newGroup, cc, status) { _ =>
                                        underlying.updateDiffNodes(nodeGroupId, add, delete)
                                      }
                          } yield r
@@ -496,7 +541,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
     for {
       existingOpt <- roRepo.getNodeGroupOpt(id)
       existing    <- existingOpt.map(_._1).notOptional(s"Group ${id.serialize} not found")
-      _           <- tenantService.checkDelete(existing, cc).toIO
+      _           <- checkTenant.checkDelete(existing, cc).toIO
       result      <- underlying.delete(id)
     } yield result
   }
@@ -509,8 +554,8 @@ class WoNodeGroupRepositoryWithTenantFiltering(
       parent <- roRepo.getGroupCategory(into)
       _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
       status <- tenantRepo.getStatus
-      result <- tenantService.manageUpdate[NodeGroupCategory, NodeGroupCategory, NodeGroupCategory](None, that, cc, status) {
-                  cat => underlying.addGroupCategoryToCategory(cat, into)
+      result <- checkTenant.manageUpdate[NodeGroupCategory, NodeGroupCategory, NodeGroupCategory](None, that, cc, status) { cat =>
+                  underlying.addGroupCategoryToCategory(cat, into)
                 }
     } yield result
   }
@@ -521,7 +566,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
       old    <- roRepo.getGroupCategory(category.id)
       _      <- cc.accessGrant.canModifyOrFail(old)(ZIO.unit)
       status <- tenantRepo.getStatus
-      result <- tenantService.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveGroupCategory(cat))
+      result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveGroupCategory(cat))
     } yield result
   }
 
@@ -536,7 +581,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
     given QueryContext = cc.toQC
     for {
       catOpt <- roRepo.getGroupCategory(id).option
-      _      <- ZIO.foreach(catOpt)(cat => tenantService.checkDelete(cat, cc).toIO)
+      _      <- ZIO.foreach(catOpt)(cat => checkTenant.checkDelete(cat, cc).toIO)
       result <- underlying.delete(id, checkEmpty)
     } yield result
   }
@@ -553,31 +598,31 @@ class WoNodeGroupRepositoryWithTenantFiltering(
 // ----- Rules -----------------------------------
 
 class RoRuleRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    underlying:    RoRuleRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  RoRuleRepository
 ) extends RoRuleRepository {
 
   override def getOpt(ruleId: RuleId)(using qc: QueryContext): IOResult[Option[Rule]] =
-    underlying.getOpt(ruleId).map(_.filter(r => qc.accessGrant.canSee(r.security)))
+    underlying.getOpt(ruleId).map(checkTenant.flatMap(_))
 
   override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]] =
-    underlying.getAll(includeSystem).map(_.filter(r => qc.accessGrant.canSee(r.security)))
+    underlying.getAll(includeSystem).map(checkTenant.flatMap(_))
 
   override def getIds(includeSystem: Boolean)(using qc: QueryContext): IOResult[Set[RuleId]] =
     getAll(includeSystem).map(_.map(_.id).toSet)
 }
 
 class WoRuleRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    tenantRepo:    TenantService,
-    underlying:    WoRuleRepository,
-    roRepo:        RoRuleRepository
+    checkTenant: TenantCheckLogic,
+    tenantRepo:  TenantService,
+    underlying:  WoRuleRepository,
+    roRepo:      RoRuleRepository
 ) extends WoRuleRepository {
 
   override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
     for {
       status <- tenantRepo.getStatus
-      result <- tenantService.manageCreate(rule, cc, status)(r => underlying.create(r))
+      result <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
     } yield result
   }
 
@@ -585,7 +630,7 @@ class WoRuleRepositoryWithTenantFiltering(
     for {
       existing <- roRepo.getOpt(rule.id)(using cc.toQC)
       status   <- tenantRepo.getStatus
-      result   <- tenantService.manageUpdate(existing, rule, cc, status)(r => underlying.update(r))
+      result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.update(r))
     } yield result
   }
 
@@ -593,7 +638,7 @@ class WoRuleRepositoryWithTenantFiltering(
     for {
       existing <- roRepo.getOpt(rule.id)(using cc.toQC)
       status   <- tenantRepo.getStatus
-      result   <- tenantService.manageUpdate(existing, rule, cc, status)(r => underlying.updateSystem(r))
+      result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.updateSystem(r))
     } yield result
   }
 
@@ -601,14 +646,14 @@ class WoRuleRepositoryWithTenantFiltering(
     for {
       existing <- roRepo.getOpt(rule.id)(using cc.toQC)
       status   <- tenantRepo.getStatus
-      result   <- tenantService.manageUpdate(existing, rule, cc, status)(r => underlying.load(r))
+      result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.load(r))
     } yield result
   }
 
   override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = {
     for {
       existing <- roRepo.getOpt(ruleId)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(r => tenantService.checkDelete(r, cc).toIO)
+      _        <- ZIO.foreach(existing)(r => checkTenant.checkDelete(r, cc).toIO)
       result   <- underlying.unload(ruleId)
     } yield result
   }
@@ -616,7 +661,7 @@ class WoRuleRepositoryWithTenantFiltering(
   override def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
     for {
       existing <- roRepo.getOpt(id)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(r => tenantService.checkDelete(r, cc).toIO)
+      _        <- ZIO.foreach(existing)(r => checkTenant.checkDelete(r, cc).toIO)
       result   <- underlying.delete(id)
     } yield result
   }
@@ -624,7 +669,7 @@ class WoRuleRepositoryWithTenantFiltering(
   override def deleteSystemRule(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
     for {
       existing <- roRepo.getOpt(id)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(r => tenantService.checkDelete(r, cc).toIO)
+      _        <- ZIO.foreach(existing)(r => checkTenant.checkDelete(r, cc).toIO)
       result   <- underlying.deleteSystemRule(id)
     } yield result
   }
@@ -639,28 +684,28 @@ class WoRuleRepositoryWithTenantFiltering(
 // ----- Properties -----------------------------------
 
 class RoParameterRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    underlying:    RoParameterRepository
+    checkTenant: TenantCheckLogic,
+    underlying:  RoParameterRepository
 ) extends RoParameterRepository {
 
   override def getGlobalParameter(parameterName: String)(using qc: QueryContext): IOResult[Option[GlobalParameter]] =
-    underlying.getGlobalParameter(parameterName).map(_.filter(p => qc.accessGrant.canSee(p.security)))
+    underlying.getGlobalParameter(parameterName).map(checkTenant.flatMap(_))
 
   override def getAllGlobalParameters()(using qc: QueryContext): IOResult[Seq[GlobalParameter]] =
-    underlying.getAllGlobalParameters().map(_.filter(p => qc.accessGrant.canSee(p.security)))
+    underlying.getAllGlobalParameters().map(checkTenant.flatMap(_))
 }
 
 class WoParameterRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    tenantRepo:    TenantService,
-    underlying:    WoParameterRepository,
-    roRepo:        RoParameterRepository
+    checkTenant: TenantCheckLogic,
+    tenantRepo:  TenantService,
+    underlying:  WoParameterRepository,
+    roRepo:      RoParameterRepository
 ) extends WoParameterRepository {
 
   override def saveParameter(parameter: GlobalParameter)(using cc: ChangeContext): IOResult[AddGlobalParameterDiff] = {
     for {
       status <- tenantRepo.getStatus
-      result <- tenantService.manageCreate(parameter, cc, status)(p => underlying.saveParameter(p))
+      result <- checkTenant.manageCreate(parameter, cc, status)(p => underlying.saveParameter(p))
     } yield result
   }
 
@@ -670,7 +715,7 @@ class WoParameterRepositoryWithTenantFiltering(
     for {
       existing <- roRepo.getGlobalParameter(parameter.name)(using cc.toQC)
       status   <- tenantRepo.getStatus
-      result   <- tenantService.manageUpdate(existing, parameter, cc, status)(p => underlying.updateParameter(p))
+      result   <- checkTenant.manageUpdate(existing, parameter, cc, status)(p => underlying.updateParameter(p))
     } yield result
   }
 
@@ -680,7 +725,7 @@ class WoParameterRepositoryWithTenantFiltering(
   )(using cc: ChangeContext): IOResult[Option[DeleteGlobalParameterDiff]] = {
     for {
       existing <- roRepo.getGlobalParameter(parameterName)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(p => tenantService.checkDelete(p, cc).toIO)
+      _        <- ZIO.foreach(existing)(p => checkTenant.checkDelete(p, cc).toIO)
       result   <- underlying.delete(parameterName, provider)
     } yield result
   }

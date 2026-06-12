@@ -92,22 +92,54 @@ trait TenantCheckLogic {
    */
   def flatMap[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): Option[A]
 
+  def flatMap[A: HasSecurityTag, B: HasSecurityTag](opt: Option[(A, B)])(using qc: QueryContext): Option[(A, B)] = {
+    for {
+      (a, b) <- opt
+      _      <- check(a)
+      _      <- check(b)
+    } yield (a, b)
+  }
+
+  def flatMap[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag](
+      opt: Option[(A, B, C)]
+  )(using qc: QueryContext): Option[(A, B, C)] = {
+    for {
+      (a, b, c) <- opt
+      _         <- check(a)
+      _         <- check(b)
+      _         <- check(c)
+    } yield (a, b, c)
+  }
+
   /*
    * Check if the node can be seen in the given query context. Return none if it can't.
    */
-  def filter[A: HasSecurityTag](a: A)(using qc: QueryContext): Option[A] = flatMap(Some(a))
+  def check[A: HasSecurityTag](a: A)(using qc: QueryContext): Option[A] = flatMap(Some(a))
+
+  /*
+   * Collect elements that can be seen
+   */
+  def collect[A: HasSecurityTag, B, CC[A] <: Iterable[A]](it: CC[A])(
+      f: A => B
+  )(using qc: QueryContext, bf: BuildFrom[CC[A], B, CC[B]]): CC[B]
+
+  def filter[A: HasSecurityTag, CC[A] <: Iterable[A]](
+      it: CC[A]
+  )(using qc: QueryContext, bf: BuildFrom[CC[A], A, CC[A]]): CC[A] = {
+    collect(it)(identity)
+  }
 
   def filterStream[A: HasSecurityTag](s: IOStream[A])(using qc: QueryContext): IOStream[A]
 
   /*
    * Filter a map of objects `A` based on tenants
    */
-  def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(using qc: QueryContext): UIO[MapView[ID, A]]
+  def filterMapView[ID, A: HasSecurityTag](objs: Ref[Map[ID, A]])(using qc: QueryContext): UIO[MapView[ID, A]]
 
   /*
    * Get the node with ID if it exists on ref map and qc/tenants allows to get it
    */
-  def getMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]], id: ID)(using
+  def getMapView[ID, A: HasSecurityTag](objs: Ref[Map[ID, A]], id: ID)(using
       qc: QueryContext
   ): IOResult[Option[A]]
 
@@ -199,6 +231,17 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       for {
         ns <- nodes.get
       } yield ns.view.filter { case (_, n) => qc.accessGrant.canSee(n) }
+    }
+  }
+
+  override def collect[A: HasSecurityTag, B, CC[A] <: Iterable[A]](
+      it: CC[A]
+  )(f: A => B)(using qc: QueryContext, bf: BuildFrom[CC[A], B, CC[B]]): CC[B] = {
+    if (qc.accessGrant.isNone) bf.fromSpecific(it)(Nil)
+    else {
+      bf.fromSpecific(it)(it.collect {
+        case x if qc.accessGrant.canSee(x.security) => f(x)
+      })
     }
   }
 
