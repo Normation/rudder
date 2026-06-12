@@ -142,6 +142,7 @@ gnome-software 42.2-4.fc36 x86_64";
                 version: "2:41.2-2.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             },
         );
         expected.insert(
@@ -150,6 +151,7 @@ gnome-software 42.2-4.fc36 x86_64";
                 version: "42.2-4.fc36".to_string(),
                 from: "".to_string(),
                 source: PackageManager::Rpm,
+                details: None,
             },
         );
 
