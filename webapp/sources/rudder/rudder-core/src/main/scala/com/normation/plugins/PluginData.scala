@@ -227,10 +227,10 @@ object GlobalPluginsLicense {
     * Typeclass for proving that a type can be constructed from a Java ZonedDateTime.
     * This should be a functor to allow building wrapping datastructures but is limited to supported ones for now.
     */
-  sealed private[plugins] trait ToEndDate[T] {
+  sealed trait ToEndDate[T] {
     def fromZonedDateTime(date: ZonedDateTime): T
   }
-  private[plugins] object ToEndDate          {
+  object ToEndDate          {
     def apply[T](implicit ev: ToEndDate[T]) = ev
 
     implicit val id: ToEndDate[ZonedDateTime] = new ToEndDate[ZonedDateTime] {
