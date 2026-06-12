@@ -29,11 +29,11 @@ impl TemplateEngine for Jinja2Engine {
     fn render(
         &self,
         template_path: Option<&Path>,
-        template_src: Option<&str>,
+        template_string: Option<&str>,
         data: &Value,
     ) -> Result<String> {
         let named: TempPath;
-        let template_path = match (&template_path, template_src) {
+        let template_path = match (&template_path, template_string) {
             (Some(p), _) => p.to_str().unwrap(),
             (_, Some(s)) => {
                 let mut tmp_file = NamedTempFile::new().expect("Failed to create tempfile");

@@ -35,7 +35,7 @@ impl TemplateEngine for MiniJinjaEngine {
     fn render(
         &self,
         template_path: Option<&Path>,
-        template_src: Option<&str>,
+        template_string: Option<&str>,
         data: &Value,
     ) -> Result<String> {
         // We need to create the Environment even for one template
@@ -49,7 +49,7 @@ impl TemplateEngine for MiniJinjaEngine {
         // To get detailed error messages on template compilation
         env.set_debug(true);
 
-        let (template_name, template) = match (template_path, template_src) {
+        let (template_name, template) = match (template_path, template_string) {
             (Some(p), _) => {
                 let template = read_to_string(p)
                     .with_context(|| format!("Failed to read template {}", p.display()))?;
