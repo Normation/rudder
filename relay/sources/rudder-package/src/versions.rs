@@ -2,12 +2,30 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use core::fmt;
-use std::{cmp::Ordering, fmt::Display, fs, str::FromStr};
+use std::{cmp::Ordering, fmt::Display, fs, str::FromStr, sync::LazyLock};
 
 use anyhow::{Context, Error, Result, bail};
 use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use tracing::debug;
+
+static ALPHA_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[~\.]alpha(?<version>\d+).*").unwrap());
+static BETA_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[~\.]beta(?<version>\d+).*").unwrap());
+static RC_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[~\.]rc(?<version>\d+).*").unwrap());
+static RUDDER_VERSION_FILE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"rudder_version=(?<raw_rudder_version>.*)").unwrap());
+static RUDDER_VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<spec>.*)$").unwrap()
+});
+static RUDDER_VERSION_OLD_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)(?<spec>.*)$").unwrap());
+static PLUGIN_NIGHTLY_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r".*-nightly$").unwrap());
+static PLUGIN_VERSION_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)(-nightly)?$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ArchiveVersion {
@@ -74,14 +92,11 @@ impl FromStr for RudderVersionMode {
     type Err = Error;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         // If the mode is empty, it is a "plain" release
-        let alpha_regex = Regex::new(r"^[~\.]alpha(?<version>\d+).*")?;
-        let beta_regex = Regex::new(r"^[~\.]beta(?<version>\d+).*")?;
-        let rc_regex = Regex::new(r"^[~\.]rc(?<version>\d+).*")?;
         if s.is_empty() {
             return Ok(RudderVersionMode::Final);
         }
         // Test if alpha
-        match alpha_regex.captures(s) {
+        match ALPHA_REGEX.captures(s) {
             None => (),
             Some(c) => {
                 let version = c["version"].to_string().parse().unwrap();
@@ -89,7 +104,7 @@ impl FromStr for RudderVersionMode {
             }
         };
         // Test if beta
-        match beta_regex.captures(s) {
+        match BETA_REGEX.captures(s) {
             None => (),
             Some(c) => {
                 let version = c["version"].to_string().parse().unwrap();
@@ -97,7 +112,7 @@ impl FromStr for RudderVersionMode {
             }
         };
         // Test if rc
-        match rc_regex.captures(s) {
+        match RC_REGEX.captures(s) {
             None => (),
             Some(c) => {
                 let version = c["version"].to_string().parse().unwrap();
@@ -132,8 +147,7 @@ impl RudderVersion {
     pub fn from_path(path: &str) -> Result<Self, Error> {
         let content = fs::read_to_string(path)
             .with_context(|| format!("Failed to read the Rudder version file '{path}'"))?;
-        let re = Regex::new(r"rudder_version=(?<raw_rudder_version>.*)")?;
-        let caps = match re.captures(&content) {
+        let caps = match RUDDER_VERSION_FILE_REGEX.captures(&content) {
             None => bail!(
                 "'{}' does not look like a well formed Rudder version file.",
                 path
@@ -152,28 +166,25 @@ impl FromStr for RudderVersion {
     type Err = Error;
 
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<spec>.*)$")?;
         // For old Rudder versions, we don't have the patch version. Assume it is 0.
-        let re_old = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)(?<spec>.*)$")?;
-
-        let (major, minor, patch, spec): (u32, u32, u32, String) = if let Some(c) = re.captures(raw)
-        {
-            (
-                c["major"].parse()?,
-                c["minor"].parse()?,
-                c["patch"].parse()?,
-                c["spec"].to_string(),
-            )
-        } else if let Some(c) = re_old.captures(raw) {
-            (
-                c["major"].parse()?,
-                c["minor"].parse()?,
-                0,
-                c["spec"].to_string(),
-            )
-        } else {
-            bail!("Unparsable Rudder version '{}'", raw)
-        };
+        let (major, minor, patch, spec): (u32, u32, u32, String) =
+            if let Some(c) = RUDDER_VERSION_REGEX.captures(raw) {
+                (
+                    c["major"].parse()?,
+                    c["minor"].parse()?,
+                    c["patch"].parse()?,
+                    c["spec"].to_string(),
+                )
+            } else if let Some(c) = RUDDER_VERSION_OLD_REGEX.captures(raw) {
+                (
+                    c["major"].parse()?,
+                    c["minor"].parse()?,
+                    0,
+                    c["spec"].to_string(),
+                )
+            } else {
+                bail!("Unparsable Rudder version '{}'", raw)
+            };
 
         // spec contains the version type, plus the nightly tag if relevant.
         let (raw_mode, nightly) = if spec.contains("~git") {
@@ -220,9 +231,8 @@ impl FromStr for PluginVersion {
     type Err = Error;
 
     fn from_str(raw: &str) -> Result<Self, Self::Err> {
-        let nightly = Regex::new(r".*-nightly$")?.is_match(raw);
-        let re = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)(-nightly)?$")?;
-        let caps = match re.captures(raw) {
+        let nightly = PLUGIN_NIGHTLY_REGEX.is_match(raw);
+        let caps = match PLUGIN_VERSION_REGEX.captures(raw) {
             None => bail!("Unparsable plugin version '{}'", raw),
             Some(c) => c,
         };

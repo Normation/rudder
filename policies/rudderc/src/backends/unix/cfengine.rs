@@ -32,18 +32,22 @@ pub(crate) mod bundle;
 pub(crate) mod promise;
 
 use anyhow::{Context, Result, bail};
-use rudder_commons::{
-    regex_comp,
-    report::{Report, RunLog},
-};
+use regex::Regex;
+use rudder_commons::report::{Report, RunLog};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use std::{fs, path::Path, process::Command};
 use tempfile::tempdir;
 use tracing::debug;
 
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;
+
+static ONE_VARIABLE_REF_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\$\{[^\}]*}$").unwrap());
+static VARIABLE_REF_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(\$\{[^\}]*})").unwrap());
 
 // FIXME only quote when necessary + only concat when necessary
 // no need to call explicitly
@@ -131,18 +135,16 @@ pub fn cfengine_canonify(input: &str) -> String {
 /// To do so, we split the condition to only canonify literal text
 /// outside variables.
 pub fn cfengine_canonify_condition(c: &str) -> String {
-    let one_variable_ref = regex_comp!(r"^\$\{[^\}]*}$");
     // not a big deal if as specific as possible
     if !c.contains("${") {
         format!("\"{c}\"")
-    } else if one_variable_ref.is_match(c) {
+    } else if ONE_VARIABLE_REF_REGEX.is_match(c) {
         format!("canonify(\"{c}\")")
     } else {
         // TODO: does not handle nested vars, we need a parser for this.
-        let var = regex_comp!(r"(\$\{[^\}]*})");
         format!(
             "concat(\"{}\")",
-            var.replace_all(c, r#"",canonify("$1"),""#)
+            VARIABLE_REF_REGEX.replace_all(c, r#"",canonify("$1"),""#)
         )
     }
 }

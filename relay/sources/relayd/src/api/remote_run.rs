@@ -12,7 +12,12 @@ use anyhow::Error;
 use bytes::Bytes;
 use futures::{stream::select, Stream, StreamExt, TryStreamExt};
 use regex::Regex;
-use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
+use std::{
+    collections::HashMap,
+    process::Stdio,
+    str::FromStr,
+    sync::{Arc, LazyLock},
+};
 use sync_wrapper::SyncStream;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
@@ -366,8 +371,9 @@ impl FromStr for Condition {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let condition_regex = r"^[a-zA-Z0-9][a-zA-Z0-9_]*$";
-        let re = Regex::new(condition_regex).unwrap();
+        const CONDITION_REGEX: &str = r"^[a-zA-Z0-9][a-zA-Z0-9_]*$";
+        let condition_regex = CONDITION_REGEX;
+        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(CONDITION_REGEX).unwrap());
         let max_length = 1024;
         if s.len() > max_length {
             return Err(RudderError::MaxLengthCondition {
@@ -376,7 +382,7 @@ impl FromStr for Condition {
             }
             .into());
         }
-        if !re.is_match(s) {
+        if !RE.is_match(s) {
             Err(RudderError::InvalidCondition {
                 condition: s.to_string(),
                 condition_regex,

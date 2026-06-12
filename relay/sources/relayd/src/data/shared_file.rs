@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr};
+use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr, sync::LazyLock};
 
 use anyhow::Error;
 use openssl::{
@@ -59,18 +59,19 @@ impl SharedFile {
         // Only ascii alphanumeric, - and .
         // This is the documented constraint for file_id
         // More than enough for node ids too but we don't have a precise spec
-        let check = Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap();
-        if !check.is_match(&source_id) {
+        static CHECK: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap());
+        if !CHECK.is_match(&source_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid source_id: {source_id}",)).into(),
             );
         }
-        if !check.is_match(&target_id) {
+        if !CHECK.is_match(&target_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid target_id: {target_id}",)).into(),
             );
         }
-        if !check.is_match(&file_id) {
+        if !CHECK.is_match(&file_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid file_id: {file_id}")).into(),
             );
