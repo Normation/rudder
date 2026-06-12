@@ -442,7 +442,10 @@ class ReportDisplayer(
                           <div id={"triggerAgent" + defaultOrInventory} class="mb-3">
             <button id={
                             "triggerBtn" + defaultOrInventory
-                          } class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
+                          } class="btn btn-primary btn-trigger pe-auto" 
+                            data-bs-toggle="tooltip" 
+                            title="This action is not supported for Windows nodes" 
+                            disabled="disabled">
                               <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
                               &nbsp;
                               <i class="fa fa-play"></i>
