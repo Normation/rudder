@@ -50,7 +50,7 @@ pub trait TemplateEngine {
     fn render(
         &self,
         template_path: Option<&Path>,
-        template_src: Option<&str>,
+        template_string: Option<&str>,
         data: &Value,
     ) -> Result<String>;
 }
