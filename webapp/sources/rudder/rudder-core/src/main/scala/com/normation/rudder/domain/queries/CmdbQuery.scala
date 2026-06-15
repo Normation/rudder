@@ -154,6 +154,7 @@ object OrderedComparators extends ComparatorList {
 sealed trait CriterionType extends ComparatorList {
 
   // Base validation, subclass only have to define validateSubCase
+  // Since validated value is often already parsed, it could be changed from String to a dedicated type representation of the value
   def validate(value: String, compName: String): PureResult[String] = comparatorForString(compName) match {
     case Some(c) =>
       c match {
@@ -643,9 +644,10 @@ case object MachineComparator extends LDAPCriterionType {
 
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = {
     val v = value match {
-      // the machine can't belong to another type
+      // the machine is already validated, so it can't belong to another type, fallback will not be used
       case "Virtual"  => OC_VM
       case "Physical" => OC_PM
+      case _          => OC_MACHINE
     }
     comparator match {
       case Equals => IS(v)

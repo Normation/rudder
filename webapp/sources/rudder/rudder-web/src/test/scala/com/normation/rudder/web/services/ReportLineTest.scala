@@ -91,10 +91,12 @@ class ReportLineTest extends Specification {
 
     def dirName(id: DirectiveId): Full[String] = id.serialize match {
       case "policy" => Full("Directive name")
+      case x        => Full(x)
     }
 
     def ruleName(id: RuleId): Full[String] = id.serialize match {
       case "cr" => Full("Rule name")
+      case x    => Full(x)
     }
 
     LogDisplayer.getReportsLineForNode(reports, dirName, ruleName).toJson.strip() must beEqualTo(

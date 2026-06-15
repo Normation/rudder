@@ -157,13 +157,19 @@ class VersionTest extends Specification {
 
     val msg1 =
       "Error when parsing 'a:18' as a version. Only ascii (non-control, non-space) chars are allowed in a version string."
-    "return left".format(msg1) in {
+    "return left for a:18" in {
       ParseVersion.parse("a:18") must beLeft[String].like { case e => e must contain(msg1) }
     }
 
     val msg2 = "Error when parsing 'a15' as a version. Only ascii (non-control, non-space) chars are allowed in a version string."
-    "return left".format(msg2) in {
+    "return left for a15" in {
       ParseVersion.parse("a15") must beLeft[String].like { case e => e must contain(msg2) }
+    }
+
+    val msg3 =
+      "Error when parsing '1:~:a' as a version. Only ascii (non-control, non-space) chars are allowed in a version string."
+    "return left for 1:~:a" in {
+      ParseVersion.parse("1:~:a") must beLeft[String].like { case e => e must contain(msg3) }
     }
   }
 
