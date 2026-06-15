@@ -123,6 +123,13 @@ def list_updates(online):
                 yum_options.append(option)
             elif option.startswith("enablerepo=") or option.startswith("disablerepo="):
                 yum_options.append("--" + option)
+            elif option.startswith("env:"):
+                env_option = option.split(":", 1)[1]
+                env_var = env_option.split("=", 1)
+                if len(env_var) == 2:
+                    env_name = env_var[0]
+                    env_value = env_var[1]
+                    os.environ[env_name] = env_value
 
     online_flag = []
     if not online:
@@ -237,6 +244,13 @@ def package_arguments_builder(is_yum_install):
                 yum_options.append(option)
             elif option.startswith("enablerepo=") or option.startswith("disablerepo="):
                 yum_options.append("--" + option)
+            elif option.startswith("env:"):
+                env_option = option.split(":", 1)[1]
+                env_var = env_option.split("=", 1)
+                if len(env_var) == 2:
+                    env_name = env_var[0]
+                    env_value = env_var[1]
+                    os.environ[env_name] = env_value
         if line.startswith("Name="):
             if name:
                 # Each new "Name=" triggers a new entry.
