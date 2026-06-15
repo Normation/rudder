@@ -88,14 +88,16 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
   override def doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain): Unit = {
     val session = request.getSession(false)
     if (session != null) { // else do nothing : not logged in
-      val auth = SecurityContextHolder.getContext.getAuthentication
+      val context = SecurityContextHolder.getContext
+      val auth    = context.getAuthentication
       if (auth != null) { // else not logged in
         val userDetails = auth.getPrincipal
         userDetails match { // we should only do session invalidation in specific cases : status is disabled/deleted, user is unknown
           case user: RudderUserDetail =>
             val username = user.getUsername
             implicit val userDetail: RudderUserDetail = user
-            (userCache.get
+            // we need to NOT put doFilter into ZIO effect, so we exec immediately, see https://issues.rudder.io/issues/29034
+            userCache.get
               .map(_.get(username))
               .flatMap {
                 case checkUser(reason) =>
@@ -128,12 +130,13 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                       }
                     )
                 case _                 =>
-                  // here, we absolutely need nonBlocking, else the with a blocking IO, we yield a new thread and
-                  // at least in ZIO 2.1.12, the thread local context is lost.
-                  IOResult.nonBlocking(filterChain.doFilter(request, response))
-
-              })
-              .runNow
+                  ZIO.unit
+              }
+              .either
+              .runNow match {
+              case Left(err) => throw new RuntimeException(err.fullMsg)
+              case Right(()) => filterChain.doFilter(request, response)
+            }
           case _ => ()
         }
       } else {
