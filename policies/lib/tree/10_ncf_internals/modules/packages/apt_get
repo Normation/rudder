@@ -308,9 +308,17 @@ def package_arguments_builder(is_apt_install):
 
         elif line.startswith("options="):
             global apt_get_options
-            option =  line.split("=", 1)[1].rstrip()
+            option = line.split("=", 1)[1].rstrip()
             if option:
-              apt_get_options.append(option)
+              if option.startswith("env:"):
+                  env_option = option.split(":", 1)[1]
+                  env_var = env_option.split("=", 1)
+                  if len(env_var) == 2:
+                      env_name = env_var[0]
+                      env_value = env_var[1]
+                      os.environ[env_name] = env_value
+              else:
+                apt_get_options.append(option)
 
     if name:
         args.extend(one_package_argument(name, arch, version, is_apt_install))

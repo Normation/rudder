@@ -243,9 +243,11 @@ bundle agent file_from_template_jinja2(source_template, path)
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
 
       # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
-      # and can be used to check for errors.
-      "errors" string => execresult("${jinja2_script} --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
-                   if => "state_dumped_${report_data.method_id}_ok._have_python";
+      # and can be used to check for errors. We need the class prefix in the command to ensure it is evaluated multiple
+      # times when we are using the same source template
+      "errors" string => execresult("${jinja2_script} --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\" #${class_prefix}", "useshell"),
+                   if => "state_dumped_${report_data.method_id}_ok._have_python",
+              comment => "Writing the temp destination for ${class_prefix}";
 
       # If no python is available, it is an error
       "errors" string => "There are no Python available on this system",
@@ -268,6 +270,7 @@ bundle agent file_from_template_jinja2(source_template, path)
         create          => "true",
         edit_template   => "${datastate_tpl}",
         edit_defaults   => no_backup,
+        comment         => "Datastate for ${class_prefix}", # necessary to evaluate
         classes         => classes_generic("state_dumped_${report_data.method_id}");
 
   methods:
