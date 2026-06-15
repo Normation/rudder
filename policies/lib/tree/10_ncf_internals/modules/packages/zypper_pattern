@@ -264,8 +264,20 @@ def construct_complete_package_names():
           version = "=" + line.split("=", 1)[1].rstrip()
         if (flag == 'Architecture'):
           architecture = "." + line.split("=", 1)[1].rstrip()
-        if (flag == 'Options'):
-          pass
+        if (flag == 'options'):
+          global zypper_options
+          option = line.split("=", 1)[1].rstrip()
+          if option:
+            if option.startswith("env:"):
+              env_option = option.split(":", 1)[1]
+              env_var = env_option.split("=", 1)
+              if len(env_var) == 2:
+                name = env_var[0]
+                value = env_var[1]
+                os.environ[name] = value
+            else:
+                zypper_options.append(option)
+
     complete_names.append(pattern + architecture + version)
     return complete_names
 
