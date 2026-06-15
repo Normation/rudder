@@ -210,6 +210,7 @@ class InputSizeField(
       case "mb" => oneBD * 1024 * 1024
       case "gb" => oneBD * 1024 * 1024 * 1024
       case "tb" => oneBD * 1024 * 1024 * 1024 * 1024
+      case _    => 0
     }
   }
 

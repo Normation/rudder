@@ -1967,8 +1967,8 @@ object ExecutionBatch extends Loggable {
             }
             MessageStatusReport(noAnswerType, msg)
           }.toList
-        // check if cardinality is ok
-        case x if (x > cardinality)    =>
+        // if (x > cardinality), unexpected cardinality of result
+        case x                         =>
           filteredReports.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
       }
     }

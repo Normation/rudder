@@ -715,23 +715,14 @@ class DirectiveEditForm(
   }
 
   private def onSubmitSave()(implicit qc: QueryContext): JsCmd = {
-    val hasVariableErrors = checkVariables()
-
-    if (formTracker.hasErrors) {
-      onFailure(hasVariableErrors)
-    } else {
+    val hasVariableErrors                               = checkVariables()
+    def onPolicyMode(newPolicyMode: Option[PolicyMode]) = {
       val (addRules, removeRules) = directiveApp.checkRulesToUpdate
       val baseRules               = (addRules ++ removeRules).sortBy(_.id.serialize)
 
       val finalAdd     = addRules.map(r => r.copy(directiveIds = r.directiveIds + directive.id))
       val finalRem     = removeRules.map(r => r.copy(directiveIds = r.directiveIds - directive.id))
       val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.serialize)
-
-      val newPolicyMode = policyModes.get match {
-        case "global"  => None
-        case "enforce" => Some(Enforce)
-        case "audit"   => Some(Audit)
-      }
 
       if (isADirectiveCreation) {
 
@@ -785,9 +776,13 @@ class DirectiveEditForm(
           )
         }
       }
-
-      // display confirmation pop-up that also manage workflows
-
+    }
+    (policyModes.get, formTracker.hasErrors) match {
+      case (_, true)          => onFailure(hasVariableErrors)
+      case ("global", false)  => onPolicyMode(None)
+      case ("enforce", false) => onPolicyMode(Some(Enforce))
+      case ("audit", false)   => onPolicyMode(Some(Audit))
+      case (_, false)         => onFailure(hasVariableErrors = true) // should not happen
     }
   }
 
