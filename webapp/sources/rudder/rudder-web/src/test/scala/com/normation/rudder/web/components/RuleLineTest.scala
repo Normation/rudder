@@ -67,6 +67,7 @@ class RuleLineTest extends Specification {
 
   def catName(id: RuleCategoryId): String = id.value match {
     case "rootRuleCategory" => "root rule category"
+    case _                  => id.value
   }
 
   "OKLine serialisation" >> {
