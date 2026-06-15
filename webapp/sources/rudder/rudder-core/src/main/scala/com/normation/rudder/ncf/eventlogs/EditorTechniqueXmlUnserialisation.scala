@@ -3,11 +3,7 @@ package com.normation.rudder.ncf.eventlogs
 import cats.implicits.*
 import com.normation.box.PureResultToBox
 import com.normation.cfclerk.domain.ReportingLogic
-import com.normation.errors
-import com.normation.errors.AccumulateErrors
-import com.normation.errors.BoxToEither
-import com.normation.errors.Chained
-import com.normation.errors.PureResult
+import com.normation.errors.*
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.Constants.XML_TAG_EDITOR_TECHNIQUE
@@ -477,6 +473,12 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
             )
 
         }
+      case l      =>
+        Left(
+          Unexpected(
+            s"Unknown label for technique, should be 'call' or 'block', but was '${l}'"
+          )
+        )
     }
 
   }
