@@ -322,7 +322,7 @@ object TechniqueElemDiff {
   }
 }
 
-trait TechniqueParameterDiff
+sealed trait TechniqueParameterDiff
 final case class ModifyTechniqueParameterDiff(
     id:               ParameterId,
     name:             String,
