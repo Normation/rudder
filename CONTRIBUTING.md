@@ -1,54 +1,62 @@
-= How to contribute to Rudder
+# How to contribute to Rudder
 
 Rudder is open to all kinds of contribution:
 
-* Bug reports and fixes
-* Documentation
-* Features ideas
-* New features
+- Bug reports and fixes
+- Documentation
+- Features ideas
+- New features
 
 If you want to contribute, the best way to start is to come and chat with us
-on https://chat.rudder.io[chat.rudder.io].
+on [chat.rudder.io](https://chat.rudder.io).
 
-NOTE: Large contributions on Rudder may require a https://www.rudder.io/en/expand/contribute/#panel-2422-8-0-1[CLA/CCLA].
+> [!NOTE]
+> Large contributions on Rudder may require a [CLA/CCLA](https://www.rudder.io/en/expand/contribute/#panel-2422-8-0-1).
 
-== Documentation contribution
+> [!IMPORTANT]
+> Using AI coding agents/LLMs to produce contributions is subject to our policy:
+> see [Responsible use of AI agents](AI_POLICY.md). In short: agents are OK as
+> assistants, no "vibe coding", any AI use must be disclosed in the PR, all code is
+> human-reviewed, and you own (and the CLA covers) everything you propose.
+
+## Documentation contribution
 
 Just click on the "Edit page" button, and open a pull request directly from Github's interface!
 
-== Development workflow
+## Development workflow
 
 We maintain several Rudder major/minor versions in separate branches.
 
-* `branches/rudder/6.2` is Rudder 6.2, from which 6.2 patch releases will be tagged
-* `branches/rudder/7.1` is Rudder 7.0, major 7, minor 0, from which 7.0 patch releases will be tagged
-* `branches/rudder/7.1` is Rudder 7.1, major 7, minor 1, from which 7.1 patch releases will be tagged
-* `branches/rudder/7.2` is Rudder 7.2, major 7, minor 2, from which 7.2 releases will be tagged
-* `master` is the next Rudder version, not branched yet
+- `branches/rudder/6.2` is Rudder 6.2, from which 6.2 patch releases will be tagged
+- `branches/rudder/7.0` is Rudder 7.0, major 7, minor 0, from which 7.0 patch releases will be tagged
+- `branches/rudder/7.1` is Rudder 7.1, major 7, minor 1, from which 7.1 patch releases will be tagged
+- `branches/rudder/7.2` is Rudder 7.2, major 7, minor 2, from which 7.2 releases will be tagged
+- `master` is the next Rudder version, not branched yet
 
-NOTE: Some tooling repositories only have a `master` branch.
+> [!NOTE]
+> Some tooling repositories only have a `master` branch.
 
 All bug fixes should be done in the oldest relevant branch (i.e.
 affected and still maintained).
-Version status is visible on https://docs.rudder.io/version.
-Don't hesitate to ask us on the https://chat.rudder.io[chat room] if you are unsure about which
+Version status is visible on <https://docs.rudder.io/version>.
+Don't hesitate to ask us on the [chat room](https://chat.rudder.io) if you are unsure about which
 branch you should work on.
 
 We have an internal CI platform running Jenkins, integrated to Github pull requests.
 CI configuration is mostly done trough `Jenkinsfile` files in the repositories.
 
-=== Issue tracker
+### Issue tracker
 
 We do not use Github's issue tracking but an external issue tracker hosted on
-https://issues.rudder.io.
+<https://issues.rudder.io>.
 
 Every change in one of the Rudder repositories must be linked to an issue in this
 tool, except for documentation fixes that can be contributed directly on
 Github.
 
-=== Development tooling (rudder-dev)
+### Development tooling (rudder-dev)
 
-==== Installation
+#### Installation
 
 To ease the use of a separate issue tracker and maintenance of several
 branches of Rudder, we have developed a dedicated tooling.
@@ -67,7 +75,7 @@ rudder-dev update
 
 (it will remind you to do so regularly).
 
-=== Setup
+### Setup
 
 At its first start, `rudder-dev` will create its configuration script in `~/.rudder-dev`.
 You need to edit it to provide your Github and bug tracker token:
@@ -81,7 +89,7 @@ github_token =
 redmine_token =
 ```
 
-=== Usage
+### Usage
 
 ```
 rudder-dev --help
@@ -89,45 +97,45 @@ rudder-dev --help
 
 For more information.
 
-== Development environments
+## Development environments
 
-=== Rudder test framework (rtf)
+### Rudder test framework (rtf)
 
 The `rtf` tool allows automated setup of multi-node environment using vagrant.
-Follow the docs in https://github.com/Normation/rudder-tests/[the rudder-tests repo]
+Follow the docs in [the rudder-tests repo](https://github.com/Normation/rudder-tests/)
 to install and configure it.
 
 It is also used for continuous integration and release testing.
 
-=== Scala
+### Scala
 
-Follow these link:contributing/webapp.md[instructions] to setup a development's environment with IntelliJ
+Follow these [instructions](contributing/webapp.md) to setup a development's environment with IntelliJ
 allowing you to test your changes.
 
-=== Rust
+### Rust
 
-Follow the link:contributing/rust.md[dedicated doc].
+Follow the [dedicated doc](contributing/rust.md).
 
-=== F#
+### F#
 
-Follow the link:contributing/fsharp.adoc[dedicated doc].
+Follow the [dedicated doc](contributing/fsharp.md).
 
-=== Shell
+### Shell
 
 Install and use `shellcheck`, it is used in our test script to lint shell scripts,
 and gives good advice during development.
 
-== Generate fake data
+## Generate fake data
 
 You may want to generate plenty of inventories to test Rudder, without the need
 of having a lot of VMs. The script `inventory-generation` in
-https://github.com/Normation/rudder-tools/tree/master/contrib/inventory-generation[rudder-tools]
+[rudder-tools](https://github.com/Normation/rudder-tools/tree/master/contrib/inventory-generation)
 creates the data for inventories creation and reports sending, and the way
 to create said inventories based on templates.
 Data are sufficiently differents to tests different cases (hostnames autoincrementing `RUDDERTEST<X>`,
 public/private keys autogenerated, software versions randomized, OS randomized, IP randomized).
 
-=== Usage
+### Usage
 
 To create data to generate 500 inventories
 
@@ -158,4 +166,3 @@ Purge the generated *data* (the generated inventories are not purged)
 ```
 inventory-generation -w
 ```
-

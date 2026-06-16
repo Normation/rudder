@@ -88,9 +88,10 @@ echo $PATH
 <span style="font-weight: bold;">Congrats!</span> Now you can exit IDEA and start it from the system menu. If a new menu entry is not shown, restart your login session.
 </div>
 
-### Install a jre
+### Install a jdk
 
-Install a recent jre, the latest LTS version should be fine.
+Install a recent JDK, the latest LTS version should be fine. Ensure that it's really a JDK, not only the 
+Java runtime (JRE). 
 
 > Note: avoid using `apt` to install an open jdk, the jdk packaged by ubuntu do not work (strange behaviors compiling rudder webapp). 
 
@@ -553,11 +554,7 @@ Running this script requires npm, as well as some node dependencies.
 
 Follow the official instructions to [install nodejs](https://nodejs.org/en/download) on your system.
 
-Then, install the required node dependencies; inside of `rudder/webapp/sources/rudder/rudder-web/src/main/`, run :
-
-```bash
-npm install
-```
+Then, run the ``src/main/build.sh` script, the first time it will initialize dependencies in the rudder-web module itself.
 
 ### Setup File Watchers (Highly recommended)
 The purpose of the File Watcher is to automatically apply actions on defined file types
@@ -698,7 +695,7 @@ curl -k https://localhost:<port>/rudder/api/latest/systemUpdate/targets \
 If you want to learn how to use Rudder and its web interface, consult the documentation here : https://docs.rudder.io/reference/5.0/usage/web_interface.html :shipit:
 
 #### Contributions
-If you want to submit your code, please feel to contribute by following the [code submit process](https://github.com/Normation/rudder/blob/master/CONTRIBUTING.adoc), we would be happy to review your code and see new contributors join the boat! :heart:
+If you want to submit your code, please feel to contribute by following the [code submit process](https://github.com/Normation/rudder/blob/master/CONTRIBUTING.md), we would be happy to review your code and see new contributors join the boat! :heart:
 
 #### Bug reports
 If you detect any bugs in the application please feel free to report it by signing up here if you don't have already an account: https://issues.rudder.io/ :bug:
