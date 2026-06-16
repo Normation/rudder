@@ -42,11 +42,15 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
             handlers::head(target_id, source_id, file_id, params, j)
         });
 
+    // Bound the in-memory buffered body to mitigate denial-of-service from
+    // oversized uploads (the whole body is read into memory below).
+    let max_body_size = job_config.cfg.shared_files.max_body_size;
     let job_config_put = job_config;
     let put = method::put()
         .map(move || job_config_put.clone())
         .and(base)
         .and(query::<SharedFilesPutParams>())
+        .and(body::content_length_limit(max_body_size))
         .and(body::bytes())
         .and_then(move |j, target_id, source_id, file_id, params, buf| {
             handlers::put(target_id, source_id, file_id, params, buf, j)

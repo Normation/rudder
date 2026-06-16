@@ -44,6 +44,11 @@ put:
     separated by an empty line. The receiving relay will either directly share it
     if the target node is a sub node, or forward the request to the appropriate
     relay (sub relay or upstream depending if it is under the current relay or not).
+
+
+    The request body is buffered in memory, so its size is limited. The limit is
+    configurable through the `max_body_size` setting (in bytes) of the
+    `[shared_files]` section of the relay configuration, and defaults to 50 MiB.
   operationId: putSharedFiles
   parameters:
     - $ref: "../components/parameters/source-node-id.yml"
@@ -115,5 +120,11 @@ put:
       description: The file exists and the content matches the provided hash
     "404":
       description: The file does not exist
+    "411":
+      description: The `Content-Length` header is missing
+    "413":
+      description: >-
+        The request body is larger than the configured `max_body_size`
+        (50 MiB by default)
   tags:
     - Shared files

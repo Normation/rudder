@@ -62,3 +62,4 @@ proptest = "1"
 tempfile = "3"
 pretty_assertions = "1"
 rand = "0.10"
+warp = { version = "0.4", default-features = false, features = ["server", "test"] }
