@@ -32,7 +32,7 @@
 -->
 
 <!--
-  The username is case-sensitive by default, if you want to change this behaviour, you can
+  The username is case-sensitive by default, if you want to change this behavior, you can
   change the parameter 'case-sensitivity' to 'false'
 
   The "authentication" tag should have a "hash" attribute, with these allowed values:
@@ -53,7 +53,7 @@
   If you configured the use of LDAP or Active Directory in rudder-web.properties file,
   you still need to specify here one user entry by user, with both the "password"
   field (which will be ignored - it can be left empty) and the "role" field
-  (where you define the actual authorisations of the user). The "hash" field of
+  (where you define the actual authorizations of the user). The "hash" field of
   "authentication" can be omitted.
 
   The "roles" tag must contain one or more of these values (comma separated), depending
@@ -70,15 +70,17 @@
 
   Example: "node_read" (can read nodes), "validator_all" (same as validator).
 
-  If the extended authorisations feature is enable, you can define custom roles. They are introduced by the `custom-roles`
-  tag, and they allow to define new role name for set of roles or authorisations.
+  BE CAREFUL: since "_" is used for combining built-in permission, it is forbidden in custom role names. 
+
+  If the extended authorizations feature is enable, you can define custom roles. They are introduced by the `custom-roles`
+  tag, and they allow to define new role name for set of roles or authorizations.
   A custom role is defined with the `<role>` tag with the attribute "name" (case-insensitive name of the role) and
   "roles" (same as for an user).
   Ex:
   <authentication>
     <custom-roles>
-      <role name="role_a0" permissions="node_read,node_write,configuration"/>
-      <role name="role_a1" permissions="ROLE_A0,inventory"/>
+      <role name="role-a0" permissions="node_read,node_write,configuration"/>
+      <role name="role-a1" permissions="ROLE_A0,inventory"/>
     </custom-roles>
   <authentication>
 

@@ -234,7 +234,7 @@ object AuthorizationType {
    */
   // check if it's a valid right syntaxt, and if it's a special one word case or a (object, operation) one
   def checkSyntax(right: String): Option[Either[AuthorizationType.AnyRights.type, (String, String)]] = {
-    val regex = """(.*)_(.*)""".r
+    val regex = """(.*)_([^_]*)""".r
     right.toLowerCase() match {
       case "any"                 => Some(Left(AuthorizationType.AnyRights))
       case regex(obj, operation) => Some(Right((obj, operation)))
@@ -643,7 +643,7 @@ object RudderRoles {
     def checkExistingName(role: UncheckedCustomRole): Either[String, Unit] = {
       AuthorizationType.checkSyntax(role.name) match {
         case Some(_) =>
-          Left("'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role")
+          Left("'any' and names with an '_' are reserved and can't be used for a custom role")
         case None    =>
           Right(())
       }
