@@ -53,7 +53,7 @@ fn systemd_get_restartable_services(services: &[String]) -> Vec<&str> {
         let output = Command::new("systemctl")
             .arg("show")
             .arg(service)
-            .arg("-p")
+            .arg("--property")
             .arg("RefuseManualStop")
             .arg("--value")
             .output();
