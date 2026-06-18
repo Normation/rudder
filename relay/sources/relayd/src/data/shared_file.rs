@@ -58,20 +58,23 @@ impl SharedFile {
         // Validate data
         // Only ascii alphanumeric, - and .
         // This is the documented constraint for file_id
-        // More than enough for node ids too but we don't have a precise spec
+        // More than enough for node ids too but we don't have a precise spec.
         static CHECK: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap());
-        if !CHECK.is_match(&source_id) {
+        // Also reject the special `.` and `..` values which could lead to a path traversal
+        // as IDs as used as paths.
+        let is_valid = |id: &str| CHECK.is_match(id) && id != "." && id != "..";
+        if !is_valid(&source_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid source_id: {source_id}",)).into(),
             );
         }
-        if !CHECK.is_match(&target_id) {
+        if !is_valid(&target_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid target_id: {target_id}",)).into(),
             );
         }
-        if !CHECK.is_match(&file_id) {
+        if !is_valid(&file_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid file_id: {file_id}")).into(),
             );
@@ -254,6 +257,44 @@ mod tests {
             "file/../passwd".to_string(),
         )
         .is_err());
+        // The ".." and "." path-traversal segments must be rejected in every
+        // position, even though they match the allowed charset.
+        for traversal in ["..", "."] {
+            assert!(
+                SharedFile::new(
+                    traversal.to_string(),
+                    "target".to_string(),
+                    "file".to_string(),
+                )
+                .is_err(),
+                "source_id={traversal:?} should be rejected"
+            );
+            assert!(
+                SharedFile::new(
+                    "source".to_string(),
+                    traversal.to_string(),
+                    "file".to_string(),
+                )
+                .is_err(),
+                "target_id={traversal:?} should be rejected"
+            );
+            assert!(
+                SharedFile::new(
+                    "source".to_string(),
+                    "target".to_string(),
+                    traversal.to_string(),
+                )
+                .is_err(),
+                "file_id={traversal:?} should be rejected"
+            );
+        }
+        // A dot inside an id is still allowed (e.g. a file name with an extension).
+        assert!(SharedFile::new(
+            "source".to_string(),
+            "target".to_string(),
+            "my.file.txt".to_string(),
+        )
+        .is_ok());
     }
 
     #[test]
