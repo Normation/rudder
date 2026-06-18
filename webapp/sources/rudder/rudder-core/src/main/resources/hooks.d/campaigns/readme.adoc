@@ -7,12 +7,31 @@ This hooks are specific for each campaign, so contrary to other hook layout, for
 you have:
 - /opt/rudder/etc/hooks.d/campaigns/
     - 781b2837-25d0-4c72-8384-04a22e59d83b // uuid of the campaign
-       - pre-hooks
-           [scripts for pre hooks]
-       - post-hooks
-           [scripts for post hooks]
+        - pre-hooks
+            [scripts for pre hooks]
+        - post-hooks
+            [scripts for post hooks]
 
 Hooks return code that stop processing will lead to a "failure" campaign event.
+
+If you want to use the same pre- or post-hooks for several campaign, you can use symlinks:
+- /opt/rudder/etc/hooks.d/campaigns/
+    - commons
+        my-common-hook
+    - 57fe548c-bf93-4df3-8223-c683e977d416
+       - pre-hooks
+           my-common-hook -> ../../common/ my-common-hook
+    - 781b2837-25d0-4c72-8384-04a22e59d83b
+       - pre-hooks
+           my-common-hook -> ../../common/ my-common-hook
+
+== Logs
+
+You can enable webapp logs for just one campaign or campaign/hook type by adding a new
+logging directive in /opt/rudder/etc/logback.xml. For example, in the case of the campaign
+above, to have `trace` log for pre-hooks only:
+
+<logger name="hooks.campaigns.781b2837-25d0-4c72-8384-04a22e59d83b.pre-hooks" level="trace"/>
 
 == Parameters
 
