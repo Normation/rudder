@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 #[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
-use crate::systemd::{systemd_reboot, systemd_restart_services};
+use crate::systemd::{systemd_get_restartable_services, systemd_reboot, systemd_restart_services};
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -247,8 +247,11 @@ pub trait LinuxPackageManager {
     fn restart_services(&self) -> ResultOutput<()> {
         let res = self.services_to_restart();
         match res.inner {
-            Ok(ref s) => ResultOutput::new_output(Ok(()), res.stdout, res.stderr)
-                .step(systemd_restart_services(s)),
+            Ok(ref s) => {
+                let filtered = systemd_get_restartable_services(s);
+                ResultOutput::new_output(Ok(()), res.stdout, res.stderr)
+                    .step(systemd_restart_services(&filtered))
+            }
             Err(e) => ResultOutput::new_output(Err(e), res.stdout, res.stderr),
         }
     }

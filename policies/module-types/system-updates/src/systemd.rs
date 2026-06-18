@@ -17,8 +17,6 @@ pub fn systemd_reboot() -> ResultOutput<()> {
 }
 
 pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
-    let services = systemd_get_restartable_services(services);
-
     if services.is_empty() {
         return ResultOutput::new_output(
             Ok(()),
@@ -46,7 +44,7 @@ pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
     res.clear_ok()
 }
 
-fn systemd_get_restartable_services(services: &[String]) -> Vec<&str> {
+pub fn systemd_get_restartable_services(services: &[String]) -> Vec<String> {
     let mut res = Vec::new();
 
     for service in services {
@@ -66,7 +64,7 @@ fn systemd_get_restartable_services(services: &[String]) -> Vec<&str> {
         let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
         if value.contains("no") {
-            res.push(service.as_str());
+            res.push(service.to_string());
         } else {
             debug!("Skipping restart for service: '{service}' (RefuseManualStop=yes)");
         }
