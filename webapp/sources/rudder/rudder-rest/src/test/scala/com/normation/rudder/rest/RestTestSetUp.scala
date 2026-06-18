@@ -171,8 +171,6 @@ import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
-import com.normation.rudder.services.system.DebugInfoScriptResult
-import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestService
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
@@ -672,9 +670,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val fakePersonIndentService: PersonIdentService = new PersonIdentService {
     override def getPersonIdentOrDefault(username: String): ZIO[Any, Nothing, PersonIdent] = ZIO.succeed(fakePersonIdent)
   }
-  val fakeScriptLauncher:      DebugInfoService   = new DebugInfoService {
-    override def launch(): ZIO[Any, Nothing, DebugInfoScriptResult] = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
-  }
 
   val fakeUpdateDynamicGroups: UpdateDynamicGroups = {
     new UpdateDynamicGroups(
@@ -696,7 +691,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   val apiService11           = new SystemApiService11(
     fakeUpdatePTLibService,
-    fakeScriptLauncher,
     fakeClearCacheService,
     asyncDeploymentAgent,
     uuidGen,
