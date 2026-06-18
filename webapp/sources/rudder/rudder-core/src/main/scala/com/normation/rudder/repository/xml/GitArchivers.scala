@@ -457,26 +457,39 @@ class TechniqueArchiverImpl(
     val techniqueGitPath = s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
     val techniquePath    = gitRepo.rootDirectory / techniqueGitPath
 
+    val yamlDescriptor = techniquePath / TechniqueFiles.yaml
+    val xmlDescriptor  = techniquePath / TechniqueFiles.Generated.metadata
+
     (for {
-      res       <- techniqueCompiler.compileAtPath(techniquePath)
-      _         <- ZIO.when(res.isError) {
-                     Unexpected(
-                       s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
-                       s"available in `compilation-output.yml` file in the same directory. Error message: '${res.msg}'"
-                     ).fail
-                   }
+      // check if we have a std lib old technique without yaml file, or a new one. If both missing, it's an error.
+      (yml, xml) <- IOResult.attempt(yamlDescriptor.exists, xmlDescriptor.exists)
+      updated    <- (yml, xml) match {
+                      case (false, true) => // old technique lib with metadata.xml only, ok
+                        Map().succeed
+                      case _             => // other cases
+                        // try to compile first to be up to date, if no yaml it's an error
+                        for {
+                          res <- techniqueCompiler.compileAtPath(techniquePath)
+                          _   <- ZIO.when(res.isError) {
+                                   Unexpected(
+                                     s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +
+                                     s"available in `compilation-output.yml` file in the same directory. Error message: '${res.msg}'"
+                                   ).fail
+                                 }
+                        } yield res.fileStatus.map(f => (f.path, f)).toMap
+                    }
+
       // update file status file what the compiler did
-      known      = resourcesStatus.map(f => (f.path, f)).toMap
-      updated    = res.fileStatus.map(f => (f.path, f)).toMap
-      fileStates = Chunk.fromIterable((known ++ updated).values)
-      metadata  <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
-      tech      <- techniqueParser.parseXml(metadata, techniqueId).toIO
-      files      = getFilesToCommit(tech, techniqueGitPath, fileStates)
-      ident     <- personIdentservice.getPersonIdentOrDefault(committer.name)
-      _         <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
-      _         <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
-      _         <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
-      _         <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      known       = resourcesStatus.map(f => (f.path, f)).toMap
+      fileStates  = Chunk.fromIterable((known ++ updated).values)
+      metadata   <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      tech       <- techniqueParser.parseXml(metadata, techniqueId).toIO
+      files       = getFilesToCommit(tech, techniqueGitPath, fileStates)
+      ident      <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      _          <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
+      _          <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
+      _          <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
+      _          <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
