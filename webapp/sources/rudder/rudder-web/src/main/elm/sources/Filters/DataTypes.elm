@@ -31,3 +31,4 @@ type Msg
   | UpdateTags Action (List Tag)
   | GetCompletionTags Completion (Result Http.Error (List CompletionValue))
   | ToggleHideUnusedTechniques Bool
+  | ResetFilters

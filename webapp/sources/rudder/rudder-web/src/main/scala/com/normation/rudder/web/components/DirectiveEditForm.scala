@@ -914,5 +914,6 @@ class DirectiveEditForm(
 
   private def successNotification(msg: String): JsCmd = {
     JsRaw(s"""createSuccessNotification("${msg}")""")
+    & JsRaw("""filterApp.ports.resetFilters.send(null)""")
   }
 }

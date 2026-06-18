@@ -10,11 +10,14 @@ import Tags.JsonDecoder exposing (decodeTag)
 port toggleTree  : String -> Cmd msg
 port searchTree  : Value  -> Cmd msg
 port addToFilter : (Value -> msg) -> Sub msg
+port resetFilters : (() -> msg) -> Sub msg
 port sendFilterTags  : Value  -> Cmd msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  addToFilter (AddToFilter << decodeValue decodeTag)
+  Sub.batch
+    [ addToFilter (AddToFilter << decodeValue decodeTag)
+    , resetFilters (\_ -> ResetFilters)]
 
 init : { contextPath : String, objectType : String } -> ( Model, Cmd Msg )
 init flags =
