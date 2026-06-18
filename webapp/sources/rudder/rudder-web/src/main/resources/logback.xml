@@ -487,6 +487,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     /opt/rudder/etc/hooks.d/. For example, to debug only hooks from "policy-generation-node-finished" phase, use:
   -->
   <!--  <logger name="hooks.policy-generation-node-finished" level="debug"/>-->
+  <!--
+    For campaigns, you have even more scoping available by optionaly adding the campaign ID you want to observe,
+    or even the specific kind of hook. For example, if you want to see only pre-hooks for one campaign, use:
+  -->
+  <!--  <logger name="hooks.campaigns.<campaign-uuid>.pre-hooks" level="debug"/>-->
 
 
   <!--
