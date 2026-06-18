@@ -78,7 +78,7 @@ const homePage = (
   scoreDetails.forEach(function(score) {
     $("#scoreBreakdown .node-charts").append(
               `<div class="node-chart px-1 px-xl-3 mb-4">
-                <h4 class="px-2">${score.name}</h4>
+                <h4 class="px-2 text-center">${score.name}</h4>
                 <div class="d-flex align-items-center justify-content-between">
                   <canvas id="score-${score.scoreId}" > </canvas>
                   <div  id="score-${score.scoreId}-legend"></div>
