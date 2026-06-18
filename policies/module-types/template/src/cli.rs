@@ -90,10 +90,13 @@ impl Cli {
                 let action = if ap { "Replaced" } else { "Written new" };
 
                 println!(
-                    "{action} '{}' content from template '{}'\ndiff:\n{reported_diff}",
+                    "{action} '{}' content from template '{}'",
                     cli.out.display(),
                     cli.template.display()
-                )
+                );
+                if cli.show_content {
+                    println!("\ndiff:\n{reported_diff}")
+                }
             }
         }
         Ok(())
