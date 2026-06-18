@@ -1002,41 +1002,45 @@ class EventLogDetailsServiceImpl(
     import cats.implicits.*
 
     for {
-      entry             <- getEntryContent(xml)
-      apiAccount        <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
-                           (s"Entry type is not a Api Account: ${entry}")
-      id                <-
+      entry                 <- getEntryContent(xml)
+      apiAccount            <- (entry \ XML_TAG_API_ACCOUNT).headOption ?~!
+                               (s"Entry type is not a Api Account: ${entry}")
+      id                    <-
         (apiAccount \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type API Account : " + entry.toString())
-      modName           <- getFromToString((apiAccount \ "name").headOption)
-      modToken          <- getFromToString((apiAccount \ "token").headOption)
-      modDescription    <- getFromToString((apiAccount \ "description").headOption)
-      modIsEnabled      <- getFromTo[Boolean]((apiAccount \ "enabled").headOption, s => tryo(s.text.toBoolean))
-      modTokenGenDate   <- getFromTo[Instant](
-                             (apiAccount \ "tokenGenerationDate").headOption,
-                             s => tryo(Instant.parse(s.text))
-                           )
-      modExpirationDate <- getFromTo[Option[Instant]](
-                             (apiAccount \ "expirationDate").headOption,
-                             s => Full(tryo(Instant.parse(s.text)).toOption)
-                           )
-      modAccountKind    <- getFromToString((apiAccount \ "accountKind").headOption)
-      modAcls           <- getFromTo[List[ApiAclElement]](
-                             (apiAccount \ "acls").headOption,
-                             { s =>
-                               ((s \ "acl").toList.traverse { x =>
-                                 for {
-                                   path    <- AclPath.parse((x \ "@path").head.text)
-                                   actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse)
-                                 } yield {
-                                   ApiAclElement(path, actions.toSet)
+      modName               <- getFromToString((apiAccount \ "name").headOption)
+      modToken              <- getFromToString((apiAccount \ "token").headOption)
+      modDescription        <- getFromToString((apiAccount \ "description").headOption)
+      modIsEnabled          <- getFromTo[Boolean]((apiAccount \ "enabled").headOption, s => tryo(s.text.toBoolean))
+      modTokenGenDate       <- getFromTo[Instant](
+                                 (apiAccount \ "tokenGenerationDate").headOption,
+                                 s => tryo(Instant.parse(s.text))
+                               )
+      modExpirationDate     <- getFromTo[Option[Instant]](
+                                 (apiAccount \ "expirationDate").headOption,
+                                 s => Full(tryo(Instant.parse(s.text)).toOption)
+                               )
+      modAccountKind        <- getFromToString((apiAccount \ "accountKind").headOption)
+      modLastAuthentication <- getFromTo[Option[Instant]](
+                                 (apiAccount \ "lastAuthentication").headOption,
+                                 s => Full(tryo(Instant.parse(s.text)).toOption)
+                               )
+      modAcls               <- getFromTo[List[ApiAclElement]](
+                                 (apiAccount \ "acls").headOption,
+                                 { s =>
+                                   ((s \ "acl").toList.traverse { x =>
+                                     for {
+                                       path    <- AclPath.parse((x \ "@path").head.text)
+                                       actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse)
+                                     } yield {
+                                       ApiAclElement(path, actions.toSet)
+                                     }
+                                   }) match {
+                                     case Left(e)  => Failure(e)
+                                     case Right(x) => Full(x)
+                                   }
                                  }
-                               }) match {
-                                 case Left(e)  => Failure(e)
-                                 case Right(x) => Full(x)
-                               }
-                             }
-                           )
-      fileFormatOk      <- TestFileFormat(apiAccount)
+                               )
+      fileFormatOk          <- TestFileFormat(apiAccount)
     } yield {
       ModifyApiAccountDiff(
         id = ApiAccountId(id),
@@ -1045,6 +1049,7 @@ class EventLogDetailsServiceImpl(
         modDescription = modDescription,
         modIsEnabled = modIsEnabled,
         modTokenGenerationDate = modTokenGenDate,
+        modLastAuthentication = modLastAuthentication,
         modExpirationDate = modExpirationDate,
         modAccountKind = modAccountKind,
         modAccountAcl = modAcls

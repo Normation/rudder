@@ -1067,17 +1067,21 @@ class EventLogFactoryImpl(
         diff.modIsEnabled.map(x => SimpleDiff.booleanToXml(<enabled/>, x)) ++
         diff.modTokenGenerationDate.map(x => SimpleDiff.toXml[Instant](<tokenGenerationDate/>, x)(x => Text(x.toString))) ++
         diff.modExpirationDate.map(x => {
-          SimpleDiff.toXml[Option[Instant]](<expirationDate/>, x) { x =>
-            x match {
-              case None    => NodeSeq.Empty
-              case Some(d) => Text(d.toString)
-            }
+          SimpleDiff.toXml[Option[Instant]](<expirationDate/>, x) {
+            case None    => NodeSeq.Empty
+            case Some(d) => Text(d.toString)
           }
         }) ++
         diff.modAccountKind.map(x => SimpleDiff.stringToXml(<accountKind/>, x)) ++
         diff.modAccountAcl.map(x => {
           SimpleDiff.toXml[List[ApiAclElement]](<acls/>, x) { x =>
             x.map(acl => <acl path={acl.path.value} actions={acl.actions.map(_.name).mkString(",")} />)
+          }
+        }) ++
+        diff.modLastAuthentication.map(x => {
+          SimpleDiff.toXml[Option[Instant]](<lastAuthentication/>, x) {
+            case None    => NodeSeq.Empty
+            case Some(d) => Text(d.toString)
           }
         })
       }
