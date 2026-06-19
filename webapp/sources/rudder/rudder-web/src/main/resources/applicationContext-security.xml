@@ -93,13 +93,21 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           <concurrency-control max-sessions="2" error-if-maximum-exceeded="true" />
           -->
         </session-management>
+
+        <!-- OTP login for already logged-in user with ROLE_PRE_AUTH authority to access the OTP submit page -->
+	<intercept-url pattern="/secure/otp.html" access="hasRole('ROLE_PRE_AUTH')" />
+
+        <!-- FIXME: For API access of frontend OTP page -->
+	<intercept-url pattern="/secure/api/otp" access="hasRole('ROLE_PRE_AUTH')" />
+
         <!--
            Comment to allows "no auth required", but the login form is still valid
            May be used for development or demo.
         -->
         <!-- Start comment -->
 
-        <intercept-url pattern="/secure/**" access="isAuthenticated()" />
+        <!-- Need user to have the right authority and not the one for OTP verification (it implies being authenticated) -->
+	<intercept-url pattern="/secure/**" access="hasRole('ROLE_USER')" />
 
         <!-- End comment -->
 
@@ -109,9 +117,8 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <form-login
             login-page="/index.html"
             login-processing-url="/j_spring_security_check"
-            default-target-url="/secure/index.html"
+	    authentication-success-handler-ref="rudderWebAuthenticationSuccessHandler"
             authentication-failure-handler-ref="rudderWebAuthenticationFailureHandler"
-            always-use-default-target="false"
         />
 <!--        <remember-me />-->
 

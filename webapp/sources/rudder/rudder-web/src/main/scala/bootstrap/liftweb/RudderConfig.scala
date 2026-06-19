@@ -1176,6 +1176,20 @@ object RudderParsedProperties {
     }
   }
 
+  // Enforce TOTP login during auth (default: false). OTP is optional for compatibility (when "enabled" is added, be careful with defaults)
+  val ENFORCE_OTP_AUTH: Boolean = {
+    val default = false
+    try {
+      config.getBoolean("rudder.auth.otp.enforce")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'rudder.auth.otp.enforce' is absent in rudder.configFile, defaulting to false (OTP optional)."
+        )
+        default
+    }
+  }
+
   val RUDDERC_CMD: String = {
     try {
       config.getString("rudder.technique.compiler.rudderc.cmd")
@@ -2204,6 +2218,17 @@ object RudderConfigInit {
         linkUtil
       )
 
+      // OTP (Two-Factor Authentication) service
+      lazy val totpRepository       = new JdbcTotpRepository(doobie)
+      lazy val userTotpValidator    = new UserTotpValidator(userRepository, totpRepository)
+      lazy val totpGeneratorService = OtpJavaTotpService
+        .make(
+          validator = userTotpValidator,
+          totpRepository = totpRepository
+        )
+        .runNow
+      lazy val otpApiProvider       = new OtpApi(totpGeneratorService)
+
       lazy val ruleApiService13 = {
         new RuleApiService14(
           roRuleRepository,
@@ -2417,7 +2442,8 @@ object RudderConfigInit {
           archiveApi,
           new ScoreApiImpl(scoreService),
           eventLogApi,
-          quicksearchApi
+          quicksearchApi,
+          otpApiProvider
           // info api must be resolved latter, because else it misses plugin apis !
         )
       }
@@ -3369,6 +3395,7 @@ object RudderConfigInit {
         BootstrapLogger.Early.DB,
         new CheckPostgreConnection(dataSourceProvider),
         new CreateTableNodeFacts(doobie),
+        new CreateTableUsersTotp(doobie),
         new CheckTableScore(doobie),
         new CheckTableUsers(doobie),
         new CheckTableNodeLastCompliance(doobie),

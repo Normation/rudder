@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:lift="http://liftweb.net/">
+  <head>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery.min.js"></script>
+    <link type="image/x-icon" rel="icon" data-lift="with-cached-resource" href="/images/rudder-favicon.ico" />
+
+    <script data-lift="baseUrl.display" ></script>
+
+    <!-- ELM -->
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-notifications.css" />
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-otp.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/rudder-elm.js"></script>
+  </head>
+
+  <body>
+    <img alt="" id="ajax-loader" class="ajaxloader svg-loader" data-lift="with-cached-resource" src="/images/ajax-loader.svg"/>
+
+    <div class="content-wrapper">
+      <div class="rudder_col">
+        <lift:Authz.whenhasrights>
+          <rudder-notifications></rudder-notifications>
+          <div id="content">
+            <div id="otp-app"></div>
+          </div>
+        </lift:Authz.whenhasrights>
+
+        <lift:Authz.whennorights>
+          <div class="rudder-template one-col">
+            <div class="template-main">
+              <div class="jumbotron text-center">
+                <h2 style="color: #041922;margin-bottom: 30px;">
+                  You don't have sufficient authorization rights to access this content.
+                </h2>
+                <h4>
+                  Please contact your administrator to have more information.
+                </h4>
+              </div>
+            </div>
+          </div>
+        </lift:Authz.whennorights>
+      </div>
+    </div>
+
+    <script data-lift="with-nonce">
+      $(document).ready(function () {
+        const main = document.getElementById("otp-app")
+        const initValues = {
+            contextPath: contextPath
+        };
+
+        const app = Elm.Otp.init({node: main, flags: initValues});
+
+        app.ports.errorNotification.subscribe(function (str) {
+          createErrorNotification(str)
+        });
+
+        app.ports.pushUrl.subscribe(function (url) {
+          window.location.href = url;
+        });
+
+        app.ports.readUrl.send(window.location.href);
+      });
+    </script>
+
+  </body>
+</html>

@@ -220,7 +220,6 @@ object Boot {
   def needPermsWith(isEnabled: => Boolean, requiredAuthz: AuthorizationType*): TestAccess = {
     TestAccess(() => userIsAllowedWith("/secure/index", isEnabled, requiredAuthz*))
   }
-
 }
 
 /*
@@ -740,7 +739,7 @@ class Boot extends Loggable {
       }
     }
 
-    // All the following is related to the sitemap
+    // All the following gives access to Rudder pages and snippets, and is related to the sitemap
     // format: off
     def nodeManagerMenu = {
       (Menu(MenuUtils.nodeManagementMenu, <i class="fa fa-sitemap"></i> ++ <span>Node management</span>: NodeSeq) /
@@ -814,7 +813,8 @@ class Boot extends Loggable {
     def rootMenu = List(
       Menu("000-dashboard", <i class="fa fa-dashboard"></i> ++ <span>Dashboard</span>: NodeSeq) / "secure" / "index",
       Menu("010-login") / "index" >> Hidden,
-      Menu("020-templates") / "templates" / ** >> Hidden, // allows access to html files used by js
+      Menu("020-login-otp") / "secure" / "otp" >> Hidden,
+      Menu("030-templates") / "templates" / ** >> Hidden, // allows access to html files used by js
       nodeManagerMenu,
       policyMenu,
       administrationMenu,
