@@ -63,7 +63,7 @@ pub fn systemd_get_restartable_services(services: &[String]) -> Vec<String> {
 
         let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
-        if value.contains("no") {
+        if value.eq("no") {
             res.push(service.to_string());
         } else {
             debug!("Skipping restart for service: '{service}' (RefuseManualStop=yes)");
