@@ -128,6 +128,7 @@ final case class JsonAuthConfig(
     providerProperties:     Map[String, JsonProviderProperty],
     users:                  List[JsonUser],
     tenantsEnabled:         Boolean,
+    otpEnabled:             Boolean,
     digest:                 PasswordEncoderType = PasswordEncoderType.DEFAULT // default value
 )
 
@@ -217,7 +218,8 @@ final case class JsonUser(
     providersInfo:                   Map[String, JsonProviderInfo],
     tenants:                         String,
     lastLogin:                       Option[DateTime],
-    previousLogin:                   Option[DateTime]
+    previousLogin:                   Option[DateTime],
+    otpEnabled:                      Boolean
 ) {
   def merge(providerInfo: JsonProviderInfo): JsonUser = {
     JsonUser(
@@ -229,7 +231,8 @@ final case class JsonUser(
       providersInfo + (providerInfo.provider -> providerInfo),
       tenants,
       lastLogin,
-      previousLogin
+      previousLogin,
+      otpEnabled
     )
   }
 
@@ -275,7 +278,8 @@ object JsonUser {
       providersInfo: Map[String, JsonProviderInfo],
       tenants:       String,
       lastLogin:     Option[DateTime],
-      previousLogin: Option[DateTime]
+      previousLogin: Option[DateTime],
+      otpEnabled:    Boolean
   ): JsonUser = {
     JsonUser(
       username,
@@ -291,7 +295,8 @@ object JsonUser {
       providersInfo,
       tenants,
       lastLogin,
-      previousLogin
+      previousLogin,
+      otpEnabled
     )
   }
   def anyRights(
@@ -303,7 +308,8 @@ object JsonUser {
       providersInfo: Map[String, JsonProviderInfo],
       tenants:       String,
       lastLogin:     Option[DateTime],
-      previousLogin: Option[DateTime]
+      previousLogin: Option[DateTime],
+      otpEnabled:    Boolean
   ): JsonUser = {
     JsonUser(
       username,
@@ -319,7 +325,8 @@ object JsonUser {
       providersInfo,
       tenants,
       lastLogin,
-      previousLogin
+      previousLogin,
+      otpEnabled
     )
   }
 
@@ -333,7 +340,8 @@ object JsonUser {
       providersInfo: Map[String, JsonProviderInfo],
       tenants:       String,
       lastLogin:     Option[DateTime],
-      previousLogin: Option[DateTime]
+      previousLogin: Option[DateTime],
+      otpEnabled:    Boolean
   ): JsonUser = {
     val authz        = providersInfo.values.map(_.authz).foldLeft(JsonRights.empty)(_ ++ _)
     val roles        = providersInfo.values.map(_.roles).foldLeft(JsonRoles.empty)(_ ++ _)
@@ -353,7 +361,8 @@ object JsonUser {
       providersInfo,
       tenants,
       lastLogin,
-      previousLogin
+      previousLogin,
+      otpEnabled
     )
   }
 }

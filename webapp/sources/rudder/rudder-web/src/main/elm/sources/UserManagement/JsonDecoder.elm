@@ -34,6 +34,7 @@ decodeCurrentUsersConf =
         |> required "providerProperties" (D.dict decodeProviderProperties)
         |> required "users" (D.list <| decodeUser)
         |> required "tenantsEnabled" D.bool
+        |> required "otpEnabled" D.bool
 
 
 decodeProviderProperties : Decoder ProviderProperties
@@ -94,6 +95,7 @@ decodeUser =
         |> required "tenants" D.string
         |> optional "lastLogin" (D.maybe D.string) Nothing
         |> optional "previousLogin" (D.maybe D.string) Nothing
+        |> required "otpEnabled" D.bool
 
 
 decodeUserStatus : Decoder UserStatus

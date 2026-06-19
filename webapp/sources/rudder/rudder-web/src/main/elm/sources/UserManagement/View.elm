@@ -12,7 +12,7 @@ import Maybe.Extra exposing (isJust)
 import NaturalOrdering as N
 import Set
 import String exposing (isEmpty)
-import UserManagement.ApiCalls exposing (deleteUser)
+import UserManagement.ApiCalls exposing (deleteUser, resetUserOtp)
 import UserManagement.DataTypes exposing (..)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
@@ -90,6 +90,47 @@ hashPasswordMenu isHashedPasswd =
     div [ class "btn-group", attribute "role" "group" ]
         [ a [ class ("btn btn-default " ++ clearPasswdIsActivate), onClick (PreHashedPasswd False) ] [ text "Password to hash" ]
         , a [ class ("btn btn-default " ++ hashPasswdIsActivate), onClick (PreHashedPasswd True) ] [ text "Enter pre-hashed value" ]
+        ]
+
+
+displayOtpBlock : Model -> User -> Html Msg
+displayOtpBlock ({ otpEnabled } as model) user =
+    let
+        title =
+            h3 [] [ text "TOTP" ]
+
+        content =
+            if user.otpEnabled then
+                div []
+                    [ p []
+                        [ if otpEnabled then
+                            em [] [ text "Reset user TOTP to enable them register on next login:" ]
+
+                          else
+                            em [] [ text "Login with TOTP is globally disabled, reset of user OTP will have no effect until it is enabled:" ]
+                        ]
+                    , button
+                        [ class "btn btn-danger"
+                        , type_ "button"
+                        , onClick (CallApi (\_ -> resetUserOtp model user.login))
+                        ]
+                        [ text "Reset", i [ class "ms-2 fa fa-repeat fa-flip-horizontal" ] [] ]
+                    ]
+
+            else
+                div [ class "alert alert-warning" ]
+                    [ i [ class "fa fa-exclamation-triangle" ] []
+                    , text "User has no TOTP registered."
+                    , if otpEnabled then
+                        p [] [ text "User will be asked to register TOTP on their next login." ]
+
+                      else
+                        text ""
+                    ]
+    in
+    div []
+        [ title
+        , content
         ]
 
 
@@ -498,6 +539,8 @@ displayRightPanel model user =
                             [ em [] [ text ("Previous login: " ++ String.replace "T" " " l) ] ]
                     )
                 ]
+             , displayOtpBlock model user
+             , hr [] []
              , displayPasswordBlock model (Just user)
              ]
                 ++ displayedProviders
@@ -892,6 +935,15 @@ displayUsersTable model users =
                     [ displayUserPreviousLogin user
                     ]
                 , td []
+                    [ text
+                        (if user.otpEnabled then
+                            "✓"
+
+                         else
+                            "-"
+                        )
+                    ]
+                , td []
                     [ button
                         [ class "btn btn-default"
                         , onClick (ActivePanelSettings user)
@@ -933,18 +985,19 @@ displayUsersTable model users =
                   else
                     text ""
                 , th [ class (thClass model.ui.tableFilters PreviousLogin), onClick (UpdateTableFilters (sortTable filters PreviousLogin)) ] [ text "Previous login" ]
+                , th [ class (thClass model.ui.tableFilters OtpEnabled), onClick (UpdateTableFilters (sortTable filters OtpEnabled)) ] [ text "TOTP" ]
                 , th [ style "width" "220px" ] [ text "Actions" ]
                 ]
             ]
         , tbody []
             (if Dict.isEmpty model.users then
                 [ tr []
-                    [ td [ class "empty", colspan 7 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "There are no users defined" ] ]
+                    [ td [ class "empty", colspan 8 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "There are no users defined" ] ]
                 ]
 
              else if List.isEmpty users then
                 [ tr []
-                    [ td [ class "empty", colspan 7 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No users match your filters" ] ]
+                    [ td [ class "empty", colspan 8 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No users match your filters" ] ]
                 ]
 
              else
@@ -1011,6 +1064,18 @@ searchField user =
 getSortFunction : Model -> User -> User -> Order
 getSortFunction model u1 u2 =
     let
+        compareBool : Bool -> Bool -> Order
+        compareBool l1 l2 =
+            case ( l1, l2 ) of
+                ( True, False ) ->
+                    LT
+
+                ( False, True ) ->
+                    GT
+
+                _ ->
+                    EQ
+
         compareStringList : List String -> List String -> Order
         compareStringList l1 l2 =
             let
@@ -1085,6 +1150,9 @@ getSortFunction model u1 u2 =
 
         Tenants ->
             checkOrder (N.compare u1.name u2.name)
+
+        OtpEnabled ->
+            checkOrder (compareBool u1.otpEnabled u2.otpEnabled)
 
         PreviousLogin ->
             case ( u1.previousLogin, u2.previousLogin ) of

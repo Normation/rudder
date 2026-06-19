@@ -1793,6 +1793,34 @@ object QuickSearchApi       extends Enum[QuickSearchApi] with ApiModuleProvider[
 }
 
 /*
+ * OTP (Two-Factor Authentication) internal API
+ * Used by the Elm OTP frontend application
+ */
+sealed trait OtpApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex {
+  override def dataContainer: Option[String] = None
+}
+object OtpApi       extends Enum[OtpApi] with ApiModuleProvider[OtpApi]                   {
+
+  case object OtpStatus extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get OTP status for current user"
+    val (action, path) = GET / "otp" / "status"
+    val authz: List[AuthorizationType] = Nil
+  }
+
+  case object OtpGenerate extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Generate a new OTP secret for current user"
+    val (action, path) = POST / "otp" / "generate"
+    val authz: List[AuthorizationType] = Nil
+  }
+
+  def endpoints: List[OtpApi] = values.toList.sortBy(_.z)
+
+  def values = findValues
+}
+
+/*
  * All API.
  */
 object AllApi {
@@ -1812,6 +1840,7 @@ object AllApi {
     HookApi.endpoints :::
     ApiAccounts.endpoints :::
     QuickSearchApi.endpoints :::
+    OtpApi.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
   }

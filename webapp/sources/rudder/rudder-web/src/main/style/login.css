@@ -2,7 +2,7 @@ html,body{
   padding: 0;
   margin : 0;
   height : 100%;
-  background-color : #F8F9FC;
+  background-color : #F8F9FC !important;
   color: #041922;
   font-size   : 18px;
   font-family : system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
@@ -26,8 +26,8 @@ html,body{
   display: block;
   width: 100%;
 }
-/* === FORM === */
-.flex-container form{
+/* === FORM, OTP === */
+.flex-container form, .flex-container .otp-container{
   background-color : #fff;
   border-radius    : 20px;
   padding    : 46px 60px 16px 60px;
@@ -37,8 +37,8 @@ html,body{
   color : #6d7c83;
   font-weight : normal;
 }
-.flex-container form .btn.btn-primary,
-.flex-container form .form-control {
+.flex-container form#login-form .btn.btn-primary,
+.flex-container form#login-form .form-control {
   font-size : 18px;
   padding   : 12px 6px;
   height    : auto;
@@ -48,17 +48,17 @@ html,body{
   box-shadow : none !important;
   transition-duration: .2s;
 }
-.flex-container form .btn.btn-primary.signing{
+.flex-container form#login-form .btn.btn-primary.signing{
   cursor: not-allowed;
   opacity : .4;
 }
-.flex-container form .form-control:focus {
+.flex-container form#login-form .form-control:focus {
   border-color: #13beb7;
 }
-.flex-container form .btn.btn-primary:hover{
+.flex-container form#login-form .btn.btn-primary:hover{
   background-color: #10aca6;
 }
-.flex-container form .btn.btn-primary {
+.flex-container form#login-form .btn.btn-primary {
   background-color : #13beb7;
   color  : #fff;
   border : none;

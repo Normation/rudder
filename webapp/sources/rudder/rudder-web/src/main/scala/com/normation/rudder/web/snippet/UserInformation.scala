@@ -42,7 +42,7 @@ import bootstrap.liftweb.UserLogout
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.Role
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.users.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.toJodaDateTime
 import com.normation.zio.*
