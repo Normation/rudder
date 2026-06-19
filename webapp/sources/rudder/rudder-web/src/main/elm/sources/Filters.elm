@@ -91,4 +91,12 @@ update msg model =
         encodedFilters = encodeFilters newModel
       in
       (newModel, searchTree encodedFilters)
-      
+
+    ResetFilters ->
+      let
+        (prevModel, updateTags) =
+          update (UpdateTags Tags.DataTypes.Remove []) model
+        (newModel, updateFilter) =
+          update (UpdateFilter "") prevModel
+      in
+        (newModel, Cmd.batch [updateTags, updateFilter])
