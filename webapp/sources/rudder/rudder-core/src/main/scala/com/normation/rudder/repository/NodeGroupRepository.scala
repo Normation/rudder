@@ -43,6 +43,7 @@ import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.utils.Utils
@@ -211,6 +212,16 @@ final case class FullNodeGroupCategory(
     }
   }
 
+}
+
+object FullNodeGroupCategory {
+  given HasSecurityTag[FullNodeGroupCategory] with {
+    extension (a: FullNodeGroupCategory) {
+      override def security: Option[SecurityTag] = a.security
+      override def debugId:  String              = a.id.value
+      override def updateSecurityContext(security: Option[SecurityTag]): FullNodeGroupCategory = a.copy(security = security)
+    }
+  }
 }
 
 trait RoNodeGroupRepository {

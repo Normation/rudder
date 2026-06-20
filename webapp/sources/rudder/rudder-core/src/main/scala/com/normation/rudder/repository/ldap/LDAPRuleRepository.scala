@@ -416,4 +416,3 @@ class WoLDAPRuleRepository(
     })
   }
 }
-

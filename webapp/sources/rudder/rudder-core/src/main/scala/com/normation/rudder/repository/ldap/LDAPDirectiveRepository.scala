@@ -1397,5 +1397,3 @@ class WoLDAPDirectiveRepository(
   }
 
 }
-
-

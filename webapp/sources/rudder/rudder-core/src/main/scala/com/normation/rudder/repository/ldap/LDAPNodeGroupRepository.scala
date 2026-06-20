@@ -91,11 +91,11 @@ import zio.*
 import zio.syntax.*
 
 class RoLDAPNodeGroupRepository(
-    val rudderDit:        RudderDit,
-    val ldap:             LDAPConnectionProvider[RoLDAPConnection],
-    val mapper:           LDAPEntityMapper,
-    val nodeFactRepo:     NodeFactRepository,
-    val groupLibMutex:    ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
+    val rudderDit:     RudderDit,
+    val ldap:          LDAPConnectionProvider[RoLDAPConnection],
+    val mapper:        LDAPEntityMapper,
+    val nodeFactRepo:  NodeFactRepository,
+    val groupLibMutex: ScalaReadWriteLock // that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoNodeGroupRepository with NamedZioLogger {
   repo =>
 
@@ -188,6 +188,7 @@ class RoLDAPNodeGroupRepository(
                                             .foreach(category.items) { targetInfo =>
                                               targetInfo.target match {
                                                 case group: GroupTarget =>
+                                                  // getNodeGroupOpt already filters by tenant: invisible groups are dropped
                                                   this.getNodeGroupOpt(group.groupId).map(_.map(_._1))
                                                 // just ignore other target type
                                                 case _ => None.succeed
@@ -604,6 +605,7 @@ class RoLDAPNodeGroupRepository(
     def mappingError(current: AllMaps, e: LDAPEntry, err: RudderError): UIO[AllMaps] = {
       val error =
         Chained(s"Error when mapping entry with DN '${e.dn.toString}' from node groups library, that entry will be ignored", err)
+
       logPure.warn(error.fullMsg).as(current)
     }
 
@@ -612,6 +614,8 @@ class RoLDAPNodeGroupRepository(
         if (isACategory(e)) {
           mapper.entry2NodeGroupCategory(e) match {
             case Right(category) =>
+              // for categories other than root, add it in the list
+              // of its parent subcategories
               val updatedSubCats = if (e.dn == rudderDit.GROUP.dn) {
                 current.categoriesByCategory
               } else {
@@ -620,10 +624,10 @@ class RoLDAPNodeGroupRepository(
                 current.categoriesByCategory + (catId -> subCats)
               }
               current
-                .modify(_.categories)
-                .setTo(current.categories + (category.id -> category))
-                .modify(_.categoriesByCategory)
-                .setTo(updatedSubCats)
+                .copy(
+                  categories = current.categories + (category.id -> category),
+                  categoriesByCategory = updatedSubCats
+                )
                 .succeed
             case Left(err)       => mappingError(current, e, err)
           }
@@ -633,8 +637,9 @@ class RoLDAPNodeGroupRepository(
               val catId         = mapper.dn2NodeGroupCategoryId(e.dn.getParent)
               val infosForCatId = fullInfo :: current.targetByCategory.getOrElse(catId, Nil)
               current
-                .modify(_.targetByCategory)
-                .setTo(current.targetByCategory + (catId -> infosForCatId))
+                .copy(
+                  targetByCategory = current.targetByCategory + (catId -> infosForCatId)
+                )
                 .succeed
             case Left(err)       => mappingError(current, e, err)
           }
@@ -820,6 +825,7 @@ class WoLDAPNodeGroupRepository(
         categoryEntry     = mapper.nodeGroupCategory2ldap(category, oldCategoryEntry.dn.getParent)
         result           <- con.save(categoryEntry, removeMissingAttributes = true)
         updated          <- getGroupCategory(category.id)
+        // Maybe we have to check if the parents are system or not too
         autoArchive      <-
           (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
              for {
@@ -961,6 +967,7 @@ class WoLDAPNodeGroupRepository(
       result        <- con.save(entry, removeMissingAttributes = true)
       diff          <- diffMapper.addChangeRecords2NodeGroupDiff(entry.dn, result).toIO
       loggedAction  <- actionLogEffect.saveAddNodeGroup(diff)
+      // We don't want to check if this is a system group or not, because new groups are not systems (see constructor)
       autoArchive   <- (if (autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord]) {
                           for {
                             parents  <- getParents_NodeGroupCategory(into)

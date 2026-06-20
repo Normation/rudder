@@ -51,11 +51,8 @@ import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantCheckLogic
-import com.normation.rudder.tenants.TenantService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
-import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import zio.*
 import zio.syntax.*
@@ -381,60 +378,4 @@ class WoLDAPRuleCategoryRepository(
     })
   }
 
-}
-
-class RoRuleCategoryRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    underlying:    RoRuleCategoryRepository
-) extends RoRuleCategoryRepository {
-
-  // recursively prune the children the current security context can not see; the root category
-  // itself is always kept (it is the library root, like the other configuration object libraries).
-  private def filterTree(cat: RuleCategory)(using qc: QueryContext): RuleCategory = {
-    cat.modify(_.childs).setTo(cat.childs.collect { case c if qc.accessGrant.canSee(c.security) => filterTree(c) })
-  }
-
-  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] =
-    underlying.get(id)
-
-  override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] =
-    underlying.getRootCategory().map(filterTree)
-}
-
-class WoRuleCategoryRepositoryWithTenantFiltering(
-    tenantService: TenantCheckLogic,
-    tenantRepo:    TenantService,
-    underlying:    WoRuleCategoryRepository,
-    roRepo:        RoRuleCategoryRepository
-) extends WoRuleCategoryRepository {
-
-  override def create(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      parent <- roRepo.get(into)
-      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
-      status <- tenantRepo.getStatus
-      result <- tenantService.manageCreate(that, cc, status)(cat => underlying.create(cat, into))
-    } yield result
-  }
-
-  override def updateAndMove(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
-    given QueryContext = cc.toQC
-    for {
-      old    <- roRepo.get(that.id)
-      parent <- roRepo.get(into)
-      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
-      status <- tenantRepo.getStatus
-      result <- tenantService.manageUpdate(Some(old), that, cc, status)(cat => underlying.updateAndMove(cat, into))
-    } yield result
-  }
-
-  override def delete(category: RuleCategoryId, checkEmpty: Boolean)(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
-    given QueryContext = cc.toQC
-    for {
-      old    <- roRepo.get(category).option
-      _      <- ZIO.foreach(old)(cat => tenantService.checkDelete(cat, cc).toIO)
-      result <- underlying.delete(category, checkEmpty)
-    } yield result
-  }
 }

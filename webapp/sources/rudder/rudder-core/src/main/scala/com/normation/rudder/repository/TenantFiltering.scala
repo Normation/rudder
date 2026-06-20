@@ -45,6 +45,7 @@ import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
+import com.normation.rudder.rule.category.*
 import com.normation.rudder.tenants.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldif.LDIFChangeRecord
@@ -201,7 +202,10 @@ class WoDirectiveRepositoryWithTenantFiltering(
     tenantRepo:  TenantService,
     underlying:  WoDirectiveRepository,
     roRepo:      RoDirectiveRepository
-) extends WoDirectiveRepository {
+) extends RoDirectiveRepository with WoDirectiveRepository {
+
+  // the read part is just delegated to the (tenant-filtering) `roRepo`
+  export roRepo.*
 
   private def saveInternal(inActiveTechniqueId: ActiveTechniqueId, directive: Directive, system: Boolean)(using
       cc: ChangeContext
@@ -372,40 +376,47 @@ class RoNodeGroupRepositoryWithTenantFiltering(
     underlying:  RoNodeGroupRepository
 ) extends RoNodeGroupRepository {
 
-  private def filterFNGC(cat: FullNodeGroupCategory)(using qc: QueryContext): FullNodeGroupCategory = {
-    cat
-      .modify(_.subCategories)
-      .setTo(cat.subCategories.flatMap(c => Option.when(qc.accessGrant.canSee(c.security))(filterFNGC(c))))
-      .modify(_.targetInfos)
-      .setTo(cat.targetInfos.filter(qc.accessGrant.canSee(_)))
+  private def filterFNGC(c: FullNodeGroupCategory)(using qc: QueryContext): Option[FullNodeGroupCategory] = {
+    checkTenant
+      .check(c)
+      .map { cat =>
+        cat
+          .modify(_.subCategories)
+          .setTo(cat.subCategories.flatMap(filterFNGC))
+          .modify(_.targetInfos)
+          .setTo(checkTenant.filter(cat.targetInfos))
+      }
   }
 
-  override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] =
-    underlying.getFullGroupLibrary().map(filterFNGC)
+  override def getFullGroupLibrary()(implicit qc: QueryContext): IOResult[FullNodeGroupCategory] = {
+    underlying
+      .getFullGroupLibrary()
+      .map(filterFNGC)
+      .notOptional(s"Root group library category is not visible by '${qc.actor.name}'")
+  }
 
-  override def getNodeGroupOpt(id: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] =
-    underlying.getNodeGroupOpt(id).map(checkTenant.flatMap(_))
+  override def getNodeGroupOpt(id: NodeGroupId)(implicit qc: QueryContext): IOResult[Option[(NodeGroup, NodeGroupCategoryId)]] = {
+    // only the group holds a security tag, the category id does not
+    underlying.getNodeGroupOpt(id).map(_.flatMap { case (g, c) => checkTenant.check(g).map(_ => (g, c)) })
+  }
 
   override def getAll()(using qc: QueryContext): IOResult[Seq[NodeGroup]] =
-    underlying.getAll().map(checkTenant.flatMap(_))
+    underlying.getAll().map(checkTenant.filter(_))
 
   override def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext): IOResult[Seq[NodeGroup]] =
-    underlying.getAllByIds(ids).map(checkTenant.flatMap(_))
+    underlying.getAllByIds(ids).map(checkTenant.filter(_))
 
   override def getAllNodeIds()(using qc: QueryContext): IOResult[Map[NodeGroupId, Set[NodeId]]] =
-    underlying.getAll().map(_.collect { case g if qc.accessGrant.canSee(g.security) => g.id -> g.serverList }.toMap)
+    underlying.getAll().map(gs => checkTenant.collect(gs)(g => g.id -> g.serverList).toMap)
 
-  override def getAllNodeIdsChunk()(using qc: QueryContext): IOResult[Map[NodeGroupId, Chunk[NodeId]]] = {
-    underlying
-      .getAll()
-      .map(_.collect { case g if qc.accessGrant.canSee(g.security) => g.id -> Chunk.fromIterable(g.serverList) }.toMap)
-  }
+  override def getAllNodeIdsChunk()(using qc: QueryContext): IOResult[Map[NodeGroupId, Chunk[NodeId]]] =
+    underlying.getAll().map(gs => checkTenant.collect(gs)(g => g.id -> Chunk.fromIterable(g.serverList)).toMap)
 
   override def getAllGroupCategories(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] =
-    underlying.getAllGroupCategories(includeSystem).map(checkTenant.flatMap(_))
+    underlying.getAllGroupCategories(includeSystem).map(checkTenant.filter(_))
 
   override def getAllNonSystemCategories()(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] =
-    underlying.getAllNonSystemCategories().map(checkTenant.flatMap(_))
+    underlying.getAllNonSystemCategories().map(checkTenant.filter(_))
 
   override def getGroupsByCategory(
       includeSystem: Boolean
@@ -413,51 +424,68 @@ class RoNodeGroupRepositoryWithTenantFiltering(
     underlying.getGroupsByCategory(includeSystem).map { map =>
       implicit val o: Ordering[List[NodeGroupCategoryId]] = NodeGroupCategoryOrdering
       SortedMap(map.collect {
-        case (path, cag) if qc.accessGrant.canSee(cag.category) =>
-          path -> cag.modify(_.groups).setTo(cag.groups.filter(g => qc.accessGrant.canSee(g.security)))
+        case (path, cag) if checkTenant.check(cag.category).isDefined =>
+          path -> cag.modify(_.groups).setTo(checkTenant.filter(cag.groups))
       }.toSeq*)
     }
   }
 
   override def findGroupWithAnyMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
     underlying.findGroupWithAnyMember(nodeIds).flatMap { ids =>
-      ZIO.filter(ids)(id => underlying.getNodeGroupOpt(id).map(_.exists(g => qc.accessGrant.canSee(g._1.security))))
+      ZIO.filter(ids)(id => underlying.getNodeGroupOpt(id).map(_.exists(g => checkTenant.check(g._1).isDefined)))
     }
   }
 
   override def findGroupWithAllMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
     underlying.findGroupWithAllMember(nodeIds).flatMap { ids =>
-      ZIO.filter(ids)(id => underlying.getNodeGroupOpt(id).map(_.exists(g => qc.accessGrant.canSee(g._1.security))))
+      ZIO.filter(ids)(id => underlying.getNodeGroupOpt(id).map(_.exists(g => checkTenant.check(g._1).isDefined)))
     }
   }
 
   override def getCategoryHierarchy(using qc: QueryContext): IOResult[SortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
     underlying.getCategoryHierarchy.map { map =>
       implicit val o: Ordering[List[NodeGroupCategoryId]] = GroupCategoryRepositoryOrdering
-      SortedMap(map.filter { case (_, cat) => qc.accessGrant.canSee(cat) }.toSeq*)
+      SortedMap(map.filter { case (_, cat) => checkTenant.check(cat).isDefined }.toSeq*)
     }
   }
 
   override def categoryExists(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean] =
     underlying.categoryExists(id)
 
-  override def getNodeGroupCategory(id: NodeGroupId)(using qc: QueryContext): IOResult[NodeGroupCategory] =
-    underlying.getNodeGroupCategory(id)
+  override def getNodeGroupCategory(id: NodeGroupId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
+    underlying
+      .getNodeGroupCategory(id)
+      .map(checkTenant.check(_))
+      .notOptional(s"'${qc.actor.name}' doesn't have access to the parent category of group '${id.serialize}'")
+  }
 
-  override def getGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] =
-    underlying.getGroupCategory(id)
+  override def getGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
+    underlying
+      .getGroupCategory(id)
+      .map(checkTenant.check(_))
+      .notOptional(s"'${qc.actor.name}' doesn't have access to group category '${id.value}'")
+  }
 
-  override def getParentGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] =
-    underlying.getParentGroupCategory(id)
+  override def getParentGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
+    underlying
+      .getParentGroupCategory(id)
+      .map(checkTenant.check(_))
+      .notOptional(s"'${qc.actor.name}' doesn't have access to the parent of group category '${id.value}'")
+  }
 
   override def getParents_NodeGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[List[NodeGroupCategory]] =
-    underlying.getParents_NodeGroupCategory(id)
+    underlying.getParents_NodeGroupCategory(id).map(checkTenant.filter(_))
 
+  // deprecated method returning a plain value: the root category is always visible (`Open`), so delegate
   override def getRootCategory()(using qc: QueryContext): NodeGroupCategory =
     underlying.getRootCategory()
 
-  override def getRootCategoryPure()(using qc: QueryContext): IOResult[NodeGroupCategory] =
-    underlying.getRootCategoryPure()
+  override def getRootCategoryPure()(using qc: QueryContext): IOResult[NodeGroupCategory] = {
+    underlying
+      .getRootCategoryPure()
+      .map(checkTenant.check(_))
+      .notOptional(s"'${qc.actor.name}' doesn't have access to the root group category")
+  }
 }
 
 class WoNodeGroupRepositoryWithTenantFiltering(
@@ -465,7 +493,10 @@ class WoNodeGroupRepositoryWithTenantFiltering(
     tenantRepo:  TenantService,
     underlying:  WoNodeGroupRepository,
     roRepo:      RoNodeGroupRepository
-) extends WoNodeGroupRepository {
+) extends RoNodeGroupRepository with WoNodeGroupRepository {
+
+  // the read part is just delegated to the (tenant-filtering) `roRepo`
+  export roRepo.*
 
   override def create(nodeGroup: NodeGroup, into: NodeGroupCategoryId)(implicit cc: ChangeContext): IOResult[AddNodeGroupDiff] = {
     given QueryContext = cc.toQC
@@ -606,7 +637,7 @@ class RoRuleRepositoryWithTenantFiltering(
     underlying.getOpt(ruleId).map(checkTenant.flatMap(_))
 
   override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]] =
-    underlying.getAll(includeSystem).map(checkTenant.flatMap(_))
+    underlying.getAll(includeSystem).map(checkTenant.filter(_))
 
   override def getIds(includeSystem: Boolean)(using qc: QueryContext): IOResult[Set[RuleId]] =
     getAll(includeSystem).map(_.map(_.id).toSet)
@@ -617,7 +648,10 @@ class WoRuleRepositoryWithTenantFiltering(
     tenantRepo:  TenantService,
     underlying:  WoRuleRepository,
     roRepo:      RoRuleRepository
-) extends WoRuleRepository {
+) extends RoRuleRepository with WoRuleRepository {
+
+  // the read part is just delegated to the (tenant-filtering) `roRepo`
+  export roRepo.*
 
   override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
     for {
@@ -692,7 +726,7 @@ class RoParameterRepositoryWithTenantFiltering(
     underlying.getGlobalParameter(parameterName).map(checkTenant.flatMap(_))
 
   override def getAllGlobalParameters()(using qc: QueryContext): IOResult[Seq[GlobalParameter]] =
-    underlying.getAllGlobalParameters().map(checkTenant.flatMap(_))
+    underlying.getAllGlobalParameters().map(checkTenant.filter(_))
 }
 
 class WoParameterRepositoryWithTenantFiltering(
@@ -700,7 +734,10 @@ class WoParameterRepositoryWithTenantFiltering(
     tenantRepo:  TenantService,
     underlying:  WoParameterRepository,
     roRepo:      RoParameterRepository
-) extends WoParameterRepository {
+) extends RoParameterRepository with WoParameterRepository {
+
+  // the read part is just delegated to the (tenant-filtering) `roRepo`
+  export roRepo.*
 
   override def saveParameter(parameter: GlobalParameter)(using cc: ChangeContext): IOResult[AddGlobalParameterDiff] = {
     for {
@@ -735,4 +772,65 @@ class WoParameterRepositoryWithTenantFiltering(
 
   override def deleteSavedParametersArchiveId(saveId: ParameterArchiveId): IOResult[Unit] =
     underlying.deleteSavedParametersArchiveId(saveId)
+}
+
+// ----- Rule categories -----------------------------------
+
+class RoRuleCategoryRepositoryWithTenantFiltering(
+    checkTenant: TenantCheckLogic,
+    underlying:  RoRuleCategoryRepository
+) extends RoRuleCategoryRepository {
+
+  // recursively prune the children the current security context can not see; the root category
+  // itself is always kept (it is the library root, like the other configuration object libraries).
+  private def filterTree(cat: RuleCategory)(using qc: QueryContext): RuleCategory = {
+    cat.modify(_.childs).setTo(cat.childs.collect { case c if qc.accessGrant.canSee(c.security) => filterTree(c) })
+  }
+
+  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] =
+    underlying.get(id)
+
+  override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] =
+    underlying.getRootCategory().map(filterTree)
+}
+
+class WoRuleCategoryRepositoryWithTenantFiltering(
+    checkTenant: TenantCheckLogic,
+    tenantRepo:  TenantService,
+    underlying:  WoRuleCategoryRepository,
+    roRepo:      RoRuleCategoryRepository
+) extends RoRuleCategoryRepository with WoRuleCategoryRepository {
+
+  // the read part is just delegated to the (tenant-filtering) `roRepo`
+  export roRepo.*
+
+  override def create(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
+    given QueryContext = cc.toQC
+    for {
+      parent <- roRepo.get(into)
+      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
+      status <- tenantRepo.getStatus
+      result <- checkTenant.manageCreate(that, cc, status)(cat => underlying.create(cat, into))
+    } yield result
+  }
+
+  override def updateAndMove(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
+    given QueryContext = cc.toQC
+    for {
+      old    <- roRepo.get(that.id)
+      parent <- roRepo.get(into)
+      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
+      status <- tenantRepo.getStatus
+      result <- checkTenant.manageUpdate(Some(old), that, cc, status)(cat => underlying.updateAndMove(cat, into))
+    } yield result
+  }
+
+  override def delete(category: RuleCategoryId, checkEmpty: Boolean)(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
+    given QueryContext = cc.toQC
+    for {
+      old    <- roRepo.get(category).option
+      _      <- ZIO.foreach(old)(cat => checkTenant.checkDelete(cat, cc).toIO)
+      result <- underlying.delete(category, checkEmpty)
+    } yield result
+  }
 }
