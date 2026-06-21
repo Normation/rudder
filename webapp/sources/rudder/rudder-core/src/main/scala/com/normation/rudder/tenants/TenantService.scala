@@ -193,6 +193,7 @@ object InMemoryTenantService {
  * We still put its modification behind an eval.
  */
 class InMemoryTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+  private def showTenantIds(ids: Set[TenantId]) = ids.toList.map(_.value).sorted.mkString(s",", "','", "'")
 
   def setTenantEnabled(isEnabled: Boolean): UIO[Unit] = {
     ApplicationLoggerPure.Plugin.info(s"Multi-tenants feature enabled: ${isEnabled}") *>
@@ -204,20 +205,41 @@ class InMemoryTenantService(private var _tenantsEnabled: Boolean, val tenantIds:
   }
 
   override def getStatus: UIO[TenantStatus] = {
-    if (tenantsEnabled) tenantIds.get.map(TenantStatus.Enabled(_))
-    else TenantStatus.Disabled.succeed
+    if (tenantsEnabled) {
+      tenantIds.get.flatMap(ids => {
+        TenantsLogger.debug(
+          s"Multi-tenant feature is enabled on tenants: '${showTenantIds(ids)}'"
+        ) *>
+        TenantStatus.Enabled(ids).succeed
+      })
+    } else {
+      TenantsLogger.debug("Multi-tenant feature is disabled") *>
+      TenantStatus.Disabled.succeed
+    }
   }
 
   override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = {
-    if (tenantsEnabled) tenantIds.set(ids)
-    else Inconsistency(s"Error: tenants are not enabled").fail
+    if (tenantsEnabled) {
+      tenantIds
+        .getAndSet(ids)
+        .flatMap(oldIds =>
+          TenantsLogger.info(s"Available tenant list updated from: ${showTenantIds(oldIds)} to: ${showTenantIds(ids)}")
+        )
+    } else Inconsistency(s"Error: tenants are not enabled").fail
   }
 }
 
 class DefaultTenantCheckLogic extends TenantCheckLogic {
   override def flatMap[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): Option[A] = {
     opt match {
-      case Some(n) => if (qc.accessGrant.canSee(n)) Some(n) else None
+      case Some(n) =>
+        if (qc.accessGrant.canSee(n)) {
+          TenantsLogger.logEffect.trace(s"User '${qc.actor.name}' can see ${n.debugId}")
+          Some(n)
+        } else {
+          TenantsLogger.logEffect.trace(s"User '${qc.actor.name}' can not see ${n.debugId}")
+          None
+        }
       case None    => None
     }
   }

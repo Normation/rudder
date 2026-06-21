@@ -37,9 +37,18 @@
 
 package com.normation.rudder.tenants
 
+import com.normation.NamedZioLogger
 import enumeratum.*
 import scala.util.matching.Regex
 import zio.json.*
+
+object TenantsLogger extends NamedZioLogger {
+  override def loggerName: String = "tenants"
+
+  object Engine extends NamedZioLogger {
+    override def loggerName: String = "tenants.engine"
+  }
+}
 
 /*
  * A node can belong to one (or technically more, but we will limit that for now) `tenant`.

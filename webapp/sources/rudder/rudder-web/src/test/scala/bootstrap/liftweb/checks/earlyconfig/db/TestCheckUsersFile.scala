@@ -102,7 +102,7 @@ class TestCheckUsersFile extends Specification {
   )(block: (() => Elem, CheckUsersFile) => A): A = {
 
     val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement(resourceFile = resourceFile)
-    val migration                                      = mockUserManagement.userService
+    val migration                                      = mockUserManagement.fileUserDetailListProvider
     val checkUsersFile                                 = new CheckUsersFile(migration)
 
     val elem = () => XmlSafe.load(migration.userFile.inputStream())

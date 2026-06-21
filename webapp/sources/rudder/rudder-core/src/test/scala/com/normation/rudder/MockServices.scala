@@ -214,6 +214,11 @@ object revisionRepo {
   }
 }
 
+class MockTenants() {
+  val tenantRepo = InMemoryTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
+  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
+}
+
 class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: String = "configuration-repository") {
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -546,7 +551,7 @@ object TV {
     TechniqueVersion.parse(s).getOrElse(throw new IllegalArgumentException(s"Cannot parse '${s}' as a technique version'"))
 }
 
-class MockDirectives(mockTechniques: MockTechniques) {
+class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
 
   object directives {
 
@@ -914,7 +919,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         subCategories = Nil,
         activeTechniques = Nil,
         isSystem = true,
-        security = None
+        security = Some(SecurityTag.Open)
       )
     )
     .runNow
@@ -933,9 +938,6 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .map(displayFullActiveTechniqueCategory(_, indent2))
         .mkString("", "\n", "")}""".stripMargin
   }
-
-  val tenantRepo:  TenantService    = InMemoryTenantService.make(Nil).runNow
-  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
 
   object directiveRepoImpl extends RoDirectiveRepository with WoDirectiveRepository with DirectiveRevisionRepository {
 
@@ -1251,10 +1253,10 @@ class MockDirectives(mockTechniques: MockTechniques) {
   // the tenant-filtering repository used by services/tests, backed by the in-memory `directiveRepoImpl`
   object directiveRepo
       extends WoTenantDirectiveRepo(
-        checkTenant,
-        tenantRepo,
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
         directiveRepoImpl,
-        new RoTenantDirectiveRepo(checkTenant, directiveRepoImpl)
+        new RoTenantDirectiveRepo(mockTenants.checkTenant, directiveRepoImpl)
       ) with DirectiveRevisionRepository {
     export directiveRepoImpl.getDirectiveRevision
     export directiveRepoImpl.getRevisions
@@ -1284,11 +1286,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
   }
 }
 
-class MockRules() {
+class MockRules(mockTenants: MockTenants) {
   val t1: Long = System.currentTimeMillis()
-
-  val tenantRepo:  TenantService    = InMemoryTenantService.make(Nil).runNow
-  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
 
   val rootRuleCategory: RuleCategory = RuleCategory(
     RuleCategoryId("rootRuleCategory"),
@@ -1296,7 +1295,7 @@ class MockRules() {
     "This is the main category of Rules",
     RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil, security = None) :: Nil,
     isSystem = true,
-    security = None
+    security = Some(SecurityTag.Open) // root cat must be open
   )
 
   object ruleCategoryRepoImpl extends RoRuleCategoryRepository with WoRuleCategoryRepository {
@@ -1398,10 +1397,10 @@ class MockRules() {
   // the tenant-filtering repository used by services/tests, backed by the in-memory `ruleCategoryRepoImpl`
   object ruleCategoryRepo
       extends WoTenantRuleCategoryRepo(
-        checkTenant,
-        tenantRepo,
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
         ruleCategoryRepoImpl,
-        new RoTenantRuleCategoryRepo(checkTenant, ruleCategoryRepoImpl)
+        new RoTenantRuleCategoryRepo(mockTenants.checkTenant, ruleCategoryRepoImpl)
       )
 
   object rules {
@@ -1722,10 +1721,10 @@ class MockRules() {
   // the tenant-filtering repository used by services/tests, backed by the in-memory `ruleRepoImpl`
   object ruleRepo
       extends WoTenantRuleRepo(
-        checkTenant,
-        tenantRepo,
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
         ruleRepoImpl,
-        new RoTenantRuleRepo(checkTenant, ruleRepoImpl)
+        new RoTenantRuleRepo(mockTenants.checkTenant, ruleRepoImpl)
       ) {
     export ruleRepoImpl.rulesMap
   }
@@ -1750,10 +1749,7 @@ class MockConfigRepo(
   )
 }
 
-class MockGlobalParam() {
-
-  val tenantRepo:  TenantService    = InMemoryTenantService.make(Nil).runNow
-  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
+class MockGlobalParam(mockTenants: MockTenants) {
 
   val mode: InheritMode = {
     import com.normation.rudder.domain.properties.InheritMode.*
@@ -1936,10 +1932,10 @@ class MockGlobalParam() {
   // the tenant-filtering repository used by services/tests, backed by the in-memory `paramsRepoImplInstance`
   object paramsRepo
       extends WoTenantParameterRepo(
-        checkTenant,
-        tenantRepo,
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
         paramsRepoImplInstance,
-        new RoTenantParameterRepo(checkTenant, paramsRepoImplInstance)
+        new RoTenantParameterRepo(mockTenants.checkTenant, paramsRepoImplInstance)
       ) {
     export paramsRepoImplInstance.callbacks
     export paramsRepoImplInstance.paramsMap
@@ -2444,7 +2440,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
   }
 }
 
-class MockNodes() {
+class MockNodes(mockTenant: MockTenants) {
   val t2: Long = System.currentTimeMillis()
 
   object nodeFactStorage extends NodeFactStorage {
@@ -2567,11 +2563,10 @@ class MockNodes() {
 
   val getNodesBySoftwareName = new SoftDaoGetNodesBySoftwareName(softwareDao)
 
-  val tenantRepo: TenantService = InMemoryTenantService.make(Nil).runNow
-  val tenantService = new DefaultTenantCheckLogic()
-
   val nodeFactRepo: CoreNodeFactRepository = {
-    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantRepo, tenantService, Chunk(), Chunk()).runNow
+    CoreNodeFactRepository
+      .make(nodeFactStorage, getNodesBySoftwareName, mockTenant.tenantRepo, mockTenant.checkTenant, Chunk(), Chunk())
+      .runNow
   }
 
   val propRepo: PropertiesRepository = {
@@ -2721,7 +2716,7 @@ class MockNodes() {
   val scoreManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 }
 
-class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
+class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, mockTenants: MockTenants) {
 
   object groupsRepoImpl extends RoNodeGroupRepository with WoNodeGroupRepository {
     implicit val qc:       QueryContext                   = QueryContext.testQC
@@ -2736,7 +2731,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
           subCategories = Nil,
           targetInfos = Nil,
           isSystem = true,
-          security = None
+          security = Some(SecurityTag.Open) // root must be open
         )
       )
       .runNow
@@ -3102,10 +3097,10 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
   // the tenant-filtering repository used by services/tests, backed by the in-memory `groupsRepoImpl`
   object groupsRepo
       extends WoTenantNodeGroupRepo(
-        mockNodes.tenantService,
-        mockNodes.tenantRepo,
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
         groupsRepoImpl,
-        new RoTenantNodeGroupRepo(mockNodes.tenantService, groupsRepoImpl)
+        new RoTenantNodeGroupRepo(mockTenants.checkTenant, groupsRepoImpl)
       ) {
     export groupsRepoImpl.categories
   }
@@ -3222,7 +3217,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       description = "",
       isEnabled = true,
       isSystem = false,
-      security = None
+      security = gt._2.security
     )
   }
 
@@ -3238,7 +3233,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         subCategories = Nil,
         targetInfos = List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
         isSystem = false,
-        security = None
+        security = Some(SecurityTag.Open)           // root must be open
       ),
       FullNodeGroupCategory(
         NodeGroupCategoryId("system-category1"),
@@ -3330,7 +3325,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       )
     ) ++ groupsTargetInfos.drop(1),
     isSystem = true,
-    security = None
+    security = Some(SecurityTag.Open)
   )
 
   // init with full lib

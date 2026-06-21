@@ -103,7 +103,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
   val mockGitRepo   = new MockGitConfigRepo("")
 
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
-  val mockDirectives = new MockDirectives(mockTechniques)
+  val mockDirectives = new MockDirectives(mockTechniques, restTestSetUp.mockTenants)
 
   val testDir: File = File(
     s"/tmp/test-rudder-response-content-${DateFormaterService.serializeOffsetDateTime(OffsetDateTime.now(ZoneOffset.UTC))}"

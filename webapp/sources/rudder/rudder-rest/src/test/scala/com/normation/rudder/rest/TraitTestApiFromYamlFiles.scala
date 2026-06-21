@@ -99,12 +99,8 @@ object TraitTestApiFromYamlFiles {
   def buildLiftRules[A <: GenericLiftApiModuleProvider[? <: EndpointSchema]](
       modules:     List[A],
       versions:    List[ApiVersion],
-      userService: Option[UserService]
+      userService: UserService
   ): (LiftHandler, LiftRules) = {
-    implicit val userServiceImp = userService match {
-      case None    => new TestUserService
-      case Some(u) => u
-    }
 
     val apiDispatcher                = new RudderEndpointDispatcher(LiftApiProcessingLogger)
     val apiAuthorizationLevelService = new DefaultApiAuthorizationLevel(LiftApiProcessingLogger)
@@ -113,7 +109,7 @@ object TraitTestApiFromYamlFiles {
     val rudderApi = new LiftHandler(
       apiDispatcher,
       versions,
-      new AclApiAuthorization(LiftApiProcessingLogger, userServiceImp, () => apiAuthorizationLevelService.aclEnabled),
+      new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled),
       None
     )
     modules.foreach(module => rudderApi.addModules(module.getLiftEndpoints()))
@@ -318,7 +314,7 @@ object TraitTestApiFromYamlFiles {
       yamlDestTmpDirectory: File,
       // the liftRules to use for API
       liftRules:            LiftRules,
-      userService:          Option[UserService],
+      userService:          UserService,
 
       // we have two kinds of files:
       // - yml files directly under /api are considered "use as it" (no post processing)
@@ -378,8 +374,8 @@ object TraitTestApiFromYamlFiles {
                     mockReq.contentType = mockReq.headers.get("Content-Type").flatMap(_.headOption).getOrElse("text/plain")
 
                     userService match {
-                      case Some(tus: TestUserService) => tus.setCurrentUser(test.user)
-                      case _                          => // do nothing
+                      case tus: TestUserService => tus.setCurrentUser(test.user)
+                      case _ => // do nothing
                     }
 
                     restTest.execRequestResponseZioTest(mockReq) { response =>

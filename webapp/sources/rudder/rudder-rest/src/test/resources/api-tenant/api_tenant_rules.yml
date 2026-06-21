@@ -56,7 +56,7 @@ response:
             "system": false,
             "tags": [],
             "policyMode": "enforce",
-            "status": {"value": "Not applied", "details": "Empty groups"},
+            "status": {"value": "Not applied", "details": "No policy defined, Empty groups"},
             "security": {"tenants": ["zoneA"]}
           }
         ]
@@ -88,7 +88,7 @@ response:
             "system": false,
             "tags": [],
             "policyMode": "enforce",
-            "status": {"value": "Not applied", "details": "Empty groups"},
+            "status": {"value": "Not applied", "details": "No policy defined, Empty groups"},
             "security": {"tenants": ["zoneB"]}
           }
         ]
@@ -96,32 +96,14 @@ response:
     }
 ---
 description: User with no tenant grant sees no security tag
-user: none
+user: noTenant
 method: GET
 url: /api/latest/rules/tenant-rule-1
 response:
-  code: 200
+  code: 500
   content: >-
     {
       "action": "ruleDetails",
-      "id": "tenant-rule-1",
-      "result": "success",
-      "data": {
-        "rules": [
-          {
-            "id": "tenant-rule-1",
-            "displayName": "Tenant test rule",
-            "categoryId": "rootRuleCategory",
-            "shortDescription": "A rule for tenant testing",
-            "longDescription": "",
-            "directives": ["directive1"],
-            "targets": ["special:all"],
-            "enabled": true,
-            "system": false,
-            "tags": [],
-            "policyMode": "enforce",
-            "status": {"value": "Not applied", "details": "Empty groups"}
-          }
-        ]
-      }
+      "result" : "error",
+      "errorDetails" : "Rule with id 'tenant-rule-1' was not found"
     }

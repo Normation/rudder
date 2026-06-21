@@ -122,7 +122,7 @@ class TestInheritedProperties extends ZIOSpecDefault {
                yamlSourceDirectory,
                yamlDestTmpDirectory,
                restTestSetUp.liftRules,
-               Some(restTestSetUp.userService),
+               restTestSetUp.userService,
                Nil,
                transformations
              )

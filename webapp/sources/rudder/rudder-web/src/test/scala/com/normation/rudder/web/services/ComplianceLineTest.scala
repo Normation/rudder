@@ -43,6 +43,7 @@ import com.normation.rudder.MockCompliance
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
+import com.normation.rudder.MockTenants
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -61,7 +62,8 @@ import zio.json.*
 @RunWith(classOf[JUnitRunner])
 class ComplianceLineTest extends Specification with JsonSpecMatcher {
 
-  val mockDirectives = new MockDirectives(MockTechniques(new MockGitConfigRepo("")))
+  val mockTenants    = new MockTenants()
+  val mockDirectives = new MockDirectives(MockTechniques(new MockGitConfigRepo("")), mockTenants)
   val mockCompliance = new MockCompliance(mockDirectives)
   implicit val qc: QueryContext                  = QueryContext.testQC
   val nodes:       MapView[NodeId, CoreNodeFact] = mockCompliance.nodeFactRepo.getAll().runNow

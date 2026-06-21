@@ -46,6 +46,7 @@ import com.normation.inventory.domain.Version
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
+import com.normation.rudder.MockTenants
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -66,7 +67,7 @@ class TestMigrateDirectiveWithSelectInputBroken extends Specification with Conte
   sequential
 
   // uses configuration repository from rudder-core tests resources
-  val mockDirectives = new MockDirectives(MockTechniques(new MockGitConfigRepo("")))
+  val mockDirectives = new MockDirectives(MockTechniques(new MockGitConfigRepo("")), new MockTenants())
 
   val editorTech      = EditorTechnique(
     BundleName("test-migrate-select"),

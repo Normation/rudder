@@ -66,6 +66,10 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
+  org.slf4j.LoggerFactory
+    .getLogger("tenants")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   // A single shared test setup — all user variants read from the same mock repos
   val restTestSetUp: RestTestSetUp = RestTestSetUp.newEnv
@@ -108,12 +112,12 @@ class TestRestTenantFromFileDef extends ZIOSpecDefault {
       for {
         _ <- restTestSetUp.mockParameters.paramsRepo.paramsMap.update(_ + (tenantParam.name -> tenantParam))
         _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ + (tenantRule.id -> tenantRule))
-        _ <- restTestSetUp.mockUserManagement.tenantRepo.setTenantEnabled(true)
+        _ <- restTestSetUp.mockTenants.tenantRepo.setTenantEnabled(true)
         s <- TraitTestApiFromYamlFiles.doTest(
                "api-tenant",
                tmpTenantTemplate,
                restTestSetUp.liftRules,
-               Some(restTestSetUp.userService),
+               restTestSetUp.userService,
                Nil,
                Map.empty
              )

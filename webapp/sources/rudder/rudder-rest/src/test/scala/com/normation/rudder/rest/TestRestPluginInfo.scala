@@ -181,7 +181,8 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
   val pluginApi = new PluginApi(pluginSettingsService, pluginService, pluginInfo.succeed)
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(pluginApi)
 
-  val (handlers, rules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, List(ApiVersion(42, deprecated = false)), None)
+  val (handlers, rules) =
+    TraitTestApiFromYamlFiles.buildLiftRules(apiModules, List(ApiVersion(42, deprecated = false)), new TestUserService)
   val test              = new RestTest(rules)
 
   sequential

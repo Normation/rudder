@@ -141,7 +141,12 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         policyTypes:   PolicyTypes
     )(implicit cc: ChangeContext): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
-      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty, security = None).succeed
+      ActiveTechnique(
+        ActiveTechniqueId("empty"),
+        techniqueName,
+        AcceptationDateTime.empty,
+        security = cc.accessGrant.toSecurityTag
+      ).succeed
     }
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] = {

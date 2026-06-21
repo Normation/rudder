@@ -45,47 +45,28 @@ response:
       }
     }
 ---
-description: zoneBC user sees nothing 
+description: zoneBC user sees nothing
 user: zoneC
 method: GET
 url: /api/latest/parameters/tenantParam
 response:
-  code: 200
+  code: 500
   content: >-
     {
       "action": "parameterDetails",
-      "id": "tenantParam",
-      "result": "success",
-      "data": {
-        "parameters": [
-          {
-            "id": "tenantParam",
-            "value": "tenant-value",
-            "description": "a tenant-restricted param",
-            "security": {"tenants": ["zoneB"]}
-          }
-        ]
-      }
+      "result": "error",
+      "errorDetails" : "Could not find Parameter tenantParam"
     }
 ---
 description: User with no tenant grant sees no security tag
-user: none
+user: noTenant
 method: GET
 url: /api/latest/parameters/tenantParam
 response:
-  code: 200
+  code: 500
   content: >-
     {
       "action": "parameterDetails",
-      "id": "tenantParam",
-      "result": "success",
-      "data": {
-        "parameters": [
-          {
-            "id": "tenantParam",
-            "value": "tenant-value",
-            "description": "a tenant-restricted param"
-          }
-        ]
-      }
+      "result": "error",
+      "errorDetails" : "Could not find Parameter tenantParam"
     }

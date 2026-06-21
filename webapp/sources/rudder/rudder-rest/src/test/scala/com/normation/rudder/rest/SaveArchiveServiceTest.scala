@@ -45,6 +45,7 @@ import com.normation.cfclerk.services.TechniquesInfo
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.errors.IOResult
 import com.normation.rudder.MockRules
+import com.normation.rudder.MockTenants
 import com.normation.rudder.rest.lift.JRuleCategories
 import com.normation.rudder.rest.lift.MergePolicy
 import com.normation.rudder.rest.lift.PolicyArchive
@@ -71,7 +72,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
 
   implicit val qc: QueryContext = QueryContext.testQC
 
-  val mockRules = new MockRules()
+  val mockRules = new MockRules(new MockTenants)
 
   val rootRuleCategory            = mockRules.rootRuleCategory
   val ruleCategory2               = RuleCategory(RuleCategoryId("category2"), "Category 2", "", Nil, security = None)

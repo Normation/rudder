@@ -204,7 +204,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
           FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
         isSystem = true,
-        security = None
+        security = Some(SecurityTag.Open) // root must be opn
       ).succeed
     }
 
@@ -883,7 +883,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val argon2Params              = Argon2EncoderParams(Argon2Memory(0), Argon2Iterations(0), Argon2Parallelism(0))
   val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, argon2Params)
 
-  val userService: FileUserDetailListProvider = {
+  val fileUserDetailListProvider: FileUserDetailListProvider = {
     val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)
 
     val roleApiMapping = new RoleApiMapping(new ExtensibleAuthorizationApiMapping(Nil))
@@ -897,7 +897,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val userManagementService: UserManagementService = {
     new UserManagementService(
       userRepo,
-      userService,
+      fileUserDetailListProvider,
       passwordEncoderDispatcher,
       UserFile(usersConfigFile.pathAsString, usersInputStream).succeed
     )
@@ -906,7 +906,6 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val providerRoleExtension: Map[String, ProviderRoleExtension] = Map("file" -> ProviderRoleExtension.WithOverride)
   val authBackendProviders:  Set[String]                        = Set("file")
 
-  val tenantRepo = InMemoryTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
 }
 
 object MockUserManagement {

@@ -235,22 +235,23 @@ class TestUserService extends UserService {
   }
 
   private val users = Map(
-    "admin" -> makeUser("test-user", TenantAccessGrant.All),
-    "zoneA" -> makeUser(
+    "admin"    -> makeUser("test-user", TenantAccessGrant.All),
+    "zoneA"    -> makeUser(
       "zoneA",
       TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.ReadWrite)))
     ),
-    "zoneB" -> makeUser(
+    "zoneB"    -> makeUser(
       "zoneB",
       TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB"), TenantPermission.ReadWrite)))
     ),
-    "zoneC" -> makeUser(
+    "zoneC"    -> makeUser(
       "zoneC",
       TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneC"), TenantPermission.ReadWrite)))
     ),
-    "none"  -> makeUser("none", TenantAccessGrant.None)
+    "noTenant" -> makeUser("noTenant", TenantAccessGrant.None)
   )
 
+  // it's a var, but it should be used only in sequential set-up for rest tests
   private var currentUser = users("admin")
 
   def setCurrentUser(name: String): Unit = {
@@ -260,7 +261,7 @@ class TestUserService extends UserService {
     }
   }
 
-  override val getCurrentUser: Option[AuthenticatedUser] = Some(currentUser)
+  override def getCurrentUser: Option[AuthenticatedUser] = Some(currentUser)
 }
 
 /*
@@ -270,7 +271,7 @@ class TestUserService extends UserService {
 class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiVersions) {
   import RestTestSetUp.*
 
-  implicit val userService: TestUserService = new TestUserService
+  given userService: UserService = new TestUserService
 
   // Instantiate Service needed to feed System API constructor
 
@@ -281,13 +282,14 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
   }
 
+  val mockTenants = new MockTenants()
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
-  val mockDirectives                                 = new MockDirectives(mockTechniques)
-  val mockRules                                      = new MockRules()
-  val mockParameters                                 = new MockGlobalParam()
-  val mockNodes                                      = new MockNodes()
-  val mockNodeGroups                                 = new MockNodeGroups(mockNodes, mockParameters)
+  val mockDirectives                                 = new MockDirectives(mockTechniques, mockTenants)
+  val mockRules                                      = new MockRules(mockTenants)
+  val mockParameters                                 = new MockGlobalParam(mockTenants)
+  val mockNodes                                      = new MockNodes(mockTenants)
+  val mockNodeGroups                                 = new MockNodeGroups(mockNodes, mockParameters, mockTenants)
   val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen                                        = new StringUuidGeneratorImpl()
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
@@ -1100,9 +1102,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     ),
     new UserManagementApiImpl(
       mockUserManagement.userRepo,
-      mockUserManagement.userService,
+      mockUserManagement.fileUserDetailListProvider,
       mockUserManagement.userManagementService,
-      mockUserManagement.tenantRepo,
+      mockTenants.tenantRepo,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),
@@ -1115,7 +1117,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     new RecentChangesAPI(fakeNodeChangesService)
   )
 
-  val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
+  val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, userService)
 
   // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)

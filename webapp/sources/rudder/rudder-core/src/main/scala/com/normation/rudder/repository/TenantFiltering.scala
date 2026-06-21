@@ -633,8 +633,13 @@ class RoTenantRuleRepo(
     underlying:  RoRuleRepository
 ) extends RoRuleRepository {
 
-  override def getOpt(ruleId: RuleId)(using qc: QueryContext): IOResult[Option[Rule]] =
-    underlying.getOpt(ruleId).map(checkTenant.flatMap(_))
+  override def getOpt(ruleId: RuleId)(using qc: QueryContext): IOResult[Option[Rule]] = {
+    for {
+      r <- underlying.getOpt(ruleId)
+
+      x = checkTenant.flatMap(r)
+    } yield x
+  }
 
   override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]] =
     underlying.getAll(includeSystem).map(checkTenant.filter(_))

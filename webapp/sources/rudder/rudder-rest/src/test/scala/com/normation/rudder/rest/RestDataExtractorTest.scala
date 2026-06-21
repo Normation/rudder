@@ -42,6 +42,7 @@ import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockRules
 import com.normation.rudder.MockTechniques
+import com.normation.rudder.MockTenants
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.JRRuleTarget.*
@@ -59,9 +60,10 @@ import zio.test.junit.ZTestJUnitRunner
 class RestDataExtractorTest extends ZIOSpecDefault {
 
   val mockGitRepo = new MockGitConfigRepo("")
+  val mockTenants = new MockTenants()
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
-  val mockDirectives = new MockDirectives(mockTechniques)
-  val mockRules      = new MockRules()
+  val mockDirectives = new MockDirectives(mockTechniques, mockTenants)
+  val mockRules      = new MockRules(mockTenants)
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("All tests")(

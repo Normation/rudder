@@ -48,6 +48,7 @@ import com.normation.inventory.domain.Software
 import com.normation.rudder.MockDirectives
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
+import com.normation.rudder.MockTenants
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -126,9 +127,10 @@ object RunTestCompliance {
 
 class SetUpCompliance(numNodes: Int, numRules: Int) {
 
-  private val mockGitRepo    = new MockGitConfigRepo("")
-  private val mockTechniques = MockTechniques(mockGitRepo)
-  private val mockDirectives = new MockDirectives(mockTechniques)
+  private val mockGitRepo = new MockGitConfigRepo("")
+  private val mockTenants = new MockTenants()
+  private val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
+  private val mockDirectives = new MockDirectives(mockTechniques, mockTenants)
   private val directives     = mockDirectives.directives
 
   private val kindNodes = 6
@@ -163,7 +165,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
           FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, g.description, g.isEnabled, g.isSystem, g.security)
         }),
         isSystem = true,
-        security = None
+        security = Some(SecurityTag.Open) // root must be open
       ).succeed
     }
 
