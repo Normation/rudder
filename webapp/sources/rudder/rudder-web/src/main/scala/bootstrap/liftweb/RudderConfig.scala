@@ -1758,10 +1758,10 @@ object RudderConfigInit {
     }
 
     lazy val roRuleCategoryRepository: RoRuleCategoryRepository =
-      new RoRuleCategoryRepositoryWithTenantFiltering(tenantCheckLogic, roLDAPRuleCategoryRepository)
+      new RoTenantRuleCategoryRepo(tenantCheckLogic, roLDAPRuleCategoryRepository)
     lazy val ruleCategoryService:      RuleCategoryService      = new RuleCategoryService()
     lazy val woRuleCategoryRepository: WoRuleCategoryRepository = {
-      new WoRuleCategoryRepositoryWithTenantFiltering(
+      new WoTenantRuleCategoryRepo(
         tenantCheckLogic,
         tenantService,
         woLDAPRuleCategoryRepository,
@@ -2966,7 +2966,7 @@ object RudderConfigInit {
       )
     }
     lazy val roDirectiveRepository: RoDirectiveRepository =
-      new RoDirectiveRepositoryWithTenantFiltering(tenantCheckLogic, roLdapDirectiveRepository)
+      new RoTenantDirectiveRepo(tenantCheckLogic, roLdapDirectiveRepository)
     lazy val woLdapDirectiveRepository = {
       val repo = new WoLDAPDirectiveRepository(
         roLdapDirectiveRepository,
@@ -2999,7 +2999,7 @@ object RudderConfigInit {
       repo
     }
     lazy val woDirectiveRepository: WoDirectiveRepository = {
-      new WoDirectiveRepositoryWithTenantFiltering(
+      new WoTenantDirectiveRepo(
         tenantCheckLogic,
         tenantService,
         woLdapDirectiveRepository,
@@ -3010,7 +3010,7 @@ object RudderConfigInit {
     lazy val roLdapRuleRepository =
       new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
     lazy val roRuleRepository: RoRuleRepository =
-      new RoRuleRepositoryWithTenantFiltering(tenantCheckLogic, roLdapRuleRepository)
+      new RoTenantRuleRepo(tenantCheckLogic, roLdapRuleRepository)
 
     lazy val woLdapRuleRepository = new WoLDAPRuleRepository(
       roLdapRuleRepository,
@@ -3023,7 +3023,7 @@ object RudderConfigInit {
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woRuleRepository: WoRuleRepository =
-      new WoRuleRepositoryWithTenantFiltering(tenantCheckLogic, tenantService, woLdapRuleRepository, roLdapRuleRepository)
+      new WoTenantRuleRepo(tenantCheckLogic, tenantService, woLdapRuleRepository, roLdapRuleRepository)
 
     lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl,
@@ -3033,7 +3033,7 @@ object RudderConfigInit {
       groupLibReadWriteMutex
     )
     lazy val roNodeGroupRepository: RoNodeGroupRepository =
-      new RoNodeGroupRepositoryWithTenantFiltering(tenantCheckLogic, roLdapNodeGroupRepository)
+      new RoTenantNodeGroupRepo(tenantCheckLogic, roLdapNodeGroupRepository)
 
     lazy val woLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
       roLdapNodeGroupRepository,
@@ -3045,7 +3045,7 @@ object RudderConfigInit {
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woNodeGroupRepository: WoNodeGroupRepository = {
-      new WoNodeGroupRepositoryWithTenantFiltering(
+      new WoTenantNodeGroupRepo(
         tenantCheckLogic,
         tenantService,
         woLdapNodeGroupRepository,
@@ -3080,7 +3080,7 @@ object RudderConfigInit {
       parameterReadWriteMutex
     )
     lazy val roLDAPParameterRepository: RoParameterRepository =
-      new RoParameterRepositoryWithTenantFiltering(tenantCheckLogic, roLdapParameterRepository)
+      new RoTenantParameterRepo(tenantCheckLogic, roLdapParameterRepository)
 
     lazy val woLdapParameterRepository = new WoLDAPParameterRepository(
       roLdapParameterRepository,
@@ -3092,7 +3092,7 @@ object RudderConfigInit {
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woLDAPParameterRepository: WoParameterRepository = {
-      new WoParameterRepositoryWithTenantFiltering(
+      new WoTenantParameterRepo(
         tenantCheckLogic,
         tenantService,
         woLdapParameterRepository,

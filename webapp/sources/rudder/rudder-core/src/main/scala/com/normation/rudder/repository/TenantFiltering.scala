@@ -64,7 +64,7 @@ import zio.*
 
 // ----- Directives -----------------------------------
 
-class RoDirectiveRepositoryWithTenantFiltering(
+class RoTenantDirectiveRepo(
     checkTenant: TenantCheckLogic,
     underlying:  RoDirectiveRepository
 ) extends RoDirectiveRepository {
@@ -197,7 +197,7 @@ class RoDirectiveRepositoryWithTenantFiltering(
   }
 }
 
-class WoDirectiveRepositoryWithTenantFiltering(
+class WoTenantDirectiveRepo(
     checkTenant: TenantCheckLogic,
     tenantRepo:  TenantService,
     underlying:  WoDirectiveRepository,
@@ -371,7 +371,7 @@ class WoDirectiveRepositoryWithTenantFiltering(
 
 // ----- Groups -----------------------------------
 
-class RoNodeGroupRepositoryWithTenantFiltering(
+class RoTenantNodeGroupRepo(
     checkTenant: TenantCheckLogic,
     underlying:  RoNodeGroupRepository
 ) extends RoNodeGroupRepository {
@@ -488,7 +488,7 @@ class RoNodeGroupRepositoryWithTenantFiltering(
   }
 }
 
-class WoNodeGroupRepositoryWithTenantFiltering(
+class WoTenantNodeGroupRepo(
     checkTenant: TenantCheckLogic,
     tenantRepo:  TenantService,
     underlying:  WoNodeGroupRepository,
@@ -628,7 +628,7 @@ class WoNodeGroupRepositoryWithTenantFiltering(
 
 // ----- Rules -----------------------------------
 
-class RoRuleRepositoryWithTenantFiltering(
+class RoTenantRuleRepo(
     checkTenant: TenantCheckLogic,
     underlying:  RoRuleRepository
 ) extends RoRuleRepository {
@@ -643,7 +643,7 @@ class RoRuleRepositoryWithTenantFiltering(
     getAll(includeSystem).map(_.map(_.id).toSet)
 }
 
-class WoRuleRepositoryWithTenantFiltering(
+class WoTenantRuleRepo(
     checkTenant: TenantCheckLogic,
     tenantRepo:  TenantService,
     underlying:  WoRuleRepository,
@@ -717,7 +717,7 @@ class WoRuleRepositoryWithTenantFiltering(
 
 // ----- Properties -----------------------------------
 
-class RoParameterRepositoryWithTenantFiltering(
+class RoTenantParameterRepo(
     checkTenant: TenantCheckLogic,
     underlying:  RoParameterRepository
 ) extends RoParameterRepository {
@@ -729,7 +729,7 @@ class RoParameterRepositoryWithTenantFiltering(
     underlying.getAllGlobalParameters().map(checkTenant.filter(_))
 }
 
-class WoParameterRepositoryWithTenantFiltering(
+class WoTenantParameterRepo(
     checkTenant: TenantCheckLogic,
     tenantRepo:  TenantService,
     underlying:  WoParameterRepository,
@@ -776,7 +776,7 @@ class WoParameterRepositoryWithTenantFiltering(
 
 // ----- Rule categories -----------------------------------
 
-class RoRuleCategoryRepositoryWithTenantFiltering(
+class RoTenantRuleCategoryRepo(
     checkTenant: TenantCheckLogic,
     underlying:  RoRuleCategoryRepository
 ) extends RoRuleCategoryRepository {
@@ -794,7 +794,7 @@ class RoRuleCategoryRepositoryWithTenantFiltering(
     underlying.getRootCategory().map(filterTree)
 }
 
-class WoRuleCategoryRepositoryWithTenantFiltering(
+class WoTenantRuleCategoryRepo(
     checkTenant: TenantCheckLogic,
     tenantRepo:  TenantService,
     underlying:  WoRuleCategoryRepository,

@@ -934,7 +934,10 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .mkString("", "\n", "")}""".stripMargin
   }
 
-  object directiveRepo extends RoDirectiveRepository with WoDirectiveRepository with DirectiveRevisionRepository {
+  val tenantRepo:  TenantService    = InMemoryTenantService.make(Nil).runNow
+  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
+
+  object directiveRepoImpl extends RoDirectiveRepository with WoDirectiveRepository with DirectiveRevisionRepository {
 
     override def getDirectiveRevision(
         uid: DirectiveUid,
@@ -1245,8 +1248,21 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   }
 
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `directiveRepoImpl`
+  object directiveRepo
+      extends WoTenantDirectiveRepo(
+        checkTenant,
+        tenantRepo,
+        directiveRepoImpl,
+        new RoTenantDirectiveRepo(checkTenant, directiveRepoImpl)
+      ) with DirectiveRevisionRepository {
+    export directiveRepoImpl.getDirectiveRevision
+    export directiveRepoImpl.getRevisions
+  }
+
+  // seeding is done directly on the underlying repo, as an admin, to avoid any tenant filtering
   val initDirectivesTree =
-    new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepo, directiveRepo, new StringUuidGeneratorImpl())
+    new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepoImpl, directiveRepoImpl, new StringUuidGeneratorImpl())
 
   initDirectivesTree.copyReferenceLib(includeSystem = true)
 
@@ -1258,9 +1274,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
           val at = ActiveTechniqueId(t.id.name.value)
           ZIO.foreachDiscard(list) { d =>
             if (d.isSystem) {
-              directiveRepo.saveSystemDirective(at, d)
+              directiveRepoImpl.saveSystemDirective(at, d)
             } else {
-              directiveRepo.saveDirective(at, d)
+              directiveRepoImpl.saveDirective(at, d)
             }
           }
       }
@@ -1271,6 +1287,9 @@ class MockDirectives(mockTechniques: MockTechniques) {
 class MockRules() {
   val t1: Long = System.currentTimeMillis()
 
+  val tenantRepo:  TenantService    = InMemoryTenantService.make(Nil).runNow
+  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
+
   val rootRuleCategory: RuleCategory = RuleCategory(
     RuleCategoryId("rootRuleCategory"),
     "Rules",
@@ -1280,7 +1299,7 @@ class MockRules() {
     security = None
   )
 
-  object ruleCategoryRepo extends RoRuleCategoryRepository with WoRuleCategoryRepository {
+  object ruleCategoryRepoImpl extends RoRuleCategoryRepository with WoRuleCategoryRepository {
 
     import com.softwaremill.quicklens.*
 
@@ -1375,6 +1394,15 @@ class MockRules() {
       categories.updateZIO(cats => inDelete(cats, category).succeed).map(_ => category)
     }
   }
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `ruleCategoryRepoImpl`
+  object ruleCategoryRepo
+      extends WoTenantRuleCategoryRepo(
+        checkTenant,
+        tenantRepo,
+        ruleCategoryRepoImpl,
+        new RoTenantRuleCategoryRepo(checkTenant, ruleCategoryRepoImpl)
+      )
 
   object rules {
 
@@ -1557,7 +1585,7 @@ class MockRules() {
     )
   }
 
-  object ruleRepo extends RoRuleRepository with WoRuleRepository {
+  object ruleRepoImpl extends RoRuleRepository with WoRuleRepository {
 
     val rulesMap: Ref.Synchronized[Map[RuleId, Rule]] = Ref.Synchronized.make(rules.all.map(r => (r.id, r)).toMap).runNow
 
@@ -1690,6 +1718,17 @@ class MockRules() {
 
     override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = ???
   }
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `ruleRepoImpl`
+  object ruleRepo
+      extends WoTenantRuleRepo(
+        checkTenant,
+        tenantRepo,
+        ruleRepoImpl,
+        new RoTenantRuleRepo(checkTenant, ruleRepoImpl)
+      ) {
+    export ruleRepoImpl.rulesMap
+  }
 }
 
 class MockConfigRepo(
@@ -1712,6 +1751,9 @@ class MockConfigRepo(
 }
 
 class MockGlobalParam() {
+
+  val tenantRepo:  TenantService    = InMemoryTenantService.make(Nil).runNow
+  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
 
   val mode: InheritMode = {
     import com.normation.rudder.domain.properties.InheritMode.*
@@ -1801,8 +1843,7 @@ class MockGlobalParam() {
   val all: Map[String, GlobalParameter] =
     List(stringParam, hiddenParam, jsonParam, modeParam, systemParam, rudderConfig).map(p => (p.name, p)).toMap
 
-  val paramsRepo: paramsRepo = new paramsRepo
-  class paramsRepo extends RoParameterRepository with WoParameterRepository {
+  class paramsRepoImpl extends RoParameterRepository with WoParameterRepository {
 
     // needed because we don't have real dyngroup update in mock, so propertiesService is
     // not called when it should.
@@ -1888,6 +1929,20 @@ class MockGlobalParam() {
       ZIO.unit
     }
 
+  }
+
+  private val paramsRepoImplInstance = new paramsRepoImpl
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `paramsRepoImplInstance`
+  object paramsRepo
+      extends WoTenantParameterRepo(
+        checkTenant,
+        tenantRepo,
+        paramsRepoImplInstance,
+        new RoTenantParameterRepo(checkTenant, paramsRepoImplInstance)
+      ) {
+    export paramsRepoImplInstance.callbacks
+    export paramsRepoImplInstance.paramsMap
   }
 }
 
@@ -2668,7 +2723,7 @@ class MockNodes() {
 
 class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
 
-  object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
+  object groupsRepoImpl extends RoNodeGroupRepository with WoNodeGroupRepository {
     implicit val qc:       QueryContext                   = QueryContext.testQC
     implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
@@ -3042,6 +3097,17 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         })
         .map(_ => category)
     }
+  }
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `groupsRepoImpl`
+  object groupsRepo
+      extends WoTenantNodeGroupRepo(
+        mockNodes.tenantService,
+        mockNodes.tenantRepo,
+        groupsRepoImpl,
+        new RoTenantNodeGroupRepo(mockNodes.tenantService, groupsRepoImpl)
+      ) {
+    export groupsRepoImpl.categories
   }
 
   // data

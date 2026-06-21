@@ -208,7 +208,7 @@ trait SetupLdapRepositories {
     new ZioTReentrantLock("group-lock")
   )
 
-  lazy val roGroupRepo: RoNodeGroupRepository = new RoNodeGroupRepositoryWithTenantFiltering(tenantService, ldapRoGroupRepo)
+  lazy val roGroupRepo: RoNodeGroupRepository = new RoTenantNodeGroupRepo(tenantService, ldapRoGroupRepo)
 
   lazy val woGroupRepo: WoNodeGroupRepository = {
     val ldapWo = new WoLDAPNodeGroupRepository(
@@ -220,7 +220,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoNodeGroupRepositoryWithTenantFiltering(tenantService, tenantRepo, ldapWo, ldapRoGroupRepo)
+    new WoTenantNodeGroupRepo(tenantService, tenantRepo, ldapWo, ldapRoGroupRepo)
   }
 
   val mockGitRepo = new MockGitConfigRepo("")
@@ -235,7 +235,7 @@ trait SetupLdapRepositories {
     new ZioTReentrantLock("directive-lock")
   )
   lazy val roDirectiveRepo: RoDirectiveRepository =
-    new RoDirectiveRepositoryWithTenantFiltering(tenantService, ldapRoDirectiveRepo)
+    new RoTenantDirectiveRepo(tenantService, ldapRoDirectiveRepo)
 
   lazy val woDirectiveRepo: WoDirectiveRepository = {
     val ldapWo = new WoLDAPDirectiveRepository(
@@ -249,12 +249,12 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoDirectiveRepositoryWithTenantFiltering(tenantService, tenantRepo, ldapWo, ldapRoDirectiveRepo)
+    new WoTenantDirectiveRepo(tenantService, tenantRepo, ldapWo, ldapRoDirectiveRepo)
   }
 
   lazy val lockRule       = new ZioTReentrantLock("rule-lock")
   lazy val ldapRoRuleRepo = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, lockRule)
-  lazy val roRuleRepo: RoRuleRepository = new RoRuleRepositoryWithTenantFiltering(tenantService, ldapRoRuleRepo)
+  lazy val roRuleRepo: RoRuleRepository = new RoTenantRuleRepo(tenantService, ldapRoRuleRepo)
   lazy val woRuleRepo: WoRuleRepository = {
     val ldapWo = new WoLDAPRuleRepository(
       ldapRoRuleRepo,
@@ -266,7 +266,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoRuleRepositoryWithTenantFiltering(tenantService, tenantRepo, ldapWo, ldapRoRuleRepo)
+    new WoTenantRuleRepo(tenantService, tenantRepo, ldapWo, ldapRoRuleRepo)
   }
 
   lazy val lockProperty       = new ZioTReentrantLock("property-lock")
@@ -277,7 +277,7 @@ trait SetupLdapRepositories {
     lockProperty
   )
   lazy val roGlobalPropertyRepo: RoParameterRepository =
-    new RoParameterRepositoryWithTenantFiltering(tenantService, ldapRoPropertyRepo)
+    new RoTenantParameterRepo(tenantService, ldapRoPropertyRepo)
 
   lazy val woGlobalPropertyRepo: WoParameterRepository = {
     val ldapWo = new WoLDAPParameterRepository(
@@ -289,7 +289,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoParameterRepositoryWithTenantFiltering(tenantService, tenantRepo, ldapWo, ldapRoPropertyRepo)
+    new WoTenantParameterRepo(tenantService, tenantRepo, ldapWo, ldapRoPropertyRepo)
   }
 
   // event log
