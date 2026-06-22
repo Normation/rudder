@@ -72,8 +72,6 @@ import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckService
-import com.normation.rudder.services.system.DebugInfoScriptResult
-import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
@@ -113,7 +111,6 @@ class SystemApi(
     API.endpoints.map {
       case API.Info                           => Info
       case API.Status                         => Status
-      case API.DebugInfo                      => DebugInfo
       case API.TechniquesReload               => TechniquesReload
       case API.DyngroupsReload                => DyngroupsReload
       case API.ReloadAll                      => ReloadAll
@@ -185,20 +182,6 @@ class SystemApi(
       given prettify: Boolean = false
 
       RudderJsonResponse.successOne(ResponseSchema("getStatus", None), Map("global" -> "OK"), None)
-    }
-  }
-
-  object DebugInfo extends LiftApiModule0 {
-    override val schema: API.DebugInfo.type = API.DebugInfo
-
-    override def process0(
-        version:    ApiVersion,
-        path:       ApiPath,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      apiv11service.debugInfo(schema, params)
     }
   }
 
@@ -818,7 +801,6 @@ final case class JReloadStatus(groups: Option[String], techniques: Option[String
 
 class SystemApiService11(
     updatePTLibService:   UpdateTechniqueLibrary,
-    debugScriptService:   DebugInfoService,
     clearCacheService:    ClearCacheService,
     asyncDeploymentAgent: AsyncDeploymentAgent,
     uuidGen:              StringUuidGenerator,
@@ -1025,24 +1007,6 @@ class SystemApiService11(
       case Left(err)                =>
         given prettify: Boolean = params.prettify
         RudderJsonResponse.internalError(None, ResponseSchema.fromSchema(schema), err)
-    }
-  }
-
-  def debugInfo(schema: EndpointSchema, params: DefaultParams): LiftResponse = {
-    given prettify: Boolean = params.prettify
-
-    debugScriptService.launch().either.runNow match {
-      case Right(DebugInfoScriptResult(fileName, bytes)) =>
-        InMemoryResponse(
-          bytes,
-          "content-Type"        -> "application/gzip" ::
-          "Content-Disposition" -> s"attachment;filename=${fileName}" :: Nil,
-          Nil,
-          200
-        )
-      case Left(error)                                   =>
-        val fail = Chained("Error has occurred while getting debug script result", error)
-        RudderJsonResponse.internalError(None, ResponseSchema.fromSchema(schema), fail.fullMsg)
     }
   }
 

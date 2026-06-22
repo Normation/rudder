@@ -1370,7 +1370,6 @@ object RudderConfig extends Loggable {
   val configService:                       ReadConfigService & UpdateConfigService  = rci.configService
   val configurationRepository:             ConfigurationRepository                  = rci.configurationRepository
   val databaseManager:                     DatabaseManager                          = rci.databaseManager
-  val debugScript:                         DebugInfoService                         = rci.debugScript
   val dependencyAndDeletionService:        DependencyAndDeletionService             = rci.dependencyAndDeletionService
   val policyGenerationHookService:         PolicyGenerationHookService              = rci.policyGenerationHookService
   val diffDisplayer:                       DiffDisplayer                            = rci.diffDisplayer
@@ -1532,7 +1531,6 @@ case class RudderServiceApi(
     reportingService:                    ReportingService,
     complianceService:                   ComplianceAPIService,
     asyncComplianceService:              AsyncComplianceService,
-    debugScript:                         DebugInfoService,
     cmdbQueryParser:                     CmdbQueryParser,
     inventoryHistoryJdbcRepository:      InventoryHistoryJdbcRepository,
     inventoryEventLogService:            InventoryEventLogService,
@@ -2161,7 +2159,6 @@ object RudderConfigInit {
     // need to be exposed for Snapshot page
     lazy val systemApiService11 = new SystemApiService11(
       updateTechniqueLibrary,
-      debugScript,
       clearCacheService,
       asyncDeploymentAgent,
       stringUuidGenerator,
@@ -3725,9 +3722,6 @@ object RudderConfigInit {
       RUDDER_BATCH_REPORTS_LOGINTERVAL
     )
 
-    lazy val scriptLauncher = new DebugInfoServiceImpl
-    lazy val debugScript    = scriptLauncher
-
     ////////////////////// Snippet plugins & extension register //////////////////////
     lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
     snippetExtensionRegister.register(new RudderCompanyAccount())
@@ -3914,7 +3908,6 @@ object RudderConfigInit {
       reportingService,
       complianceAPIService,
       asynComplianceService,
-      scriptLauncher,
       queryParser,
       inventoryHistoryJdbcRepository,
       inventoryLogEventServiceImpl,
