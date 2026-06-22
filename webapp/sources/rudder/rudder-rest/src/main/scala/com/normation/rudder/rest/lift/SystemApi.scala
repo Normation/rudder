@@ -74,8 +74,6 @@ import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.healthcheck.HealthcheckService
-import com.normation.rudder.services.system.DebugInfoScriptResult
-import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
@@ -117,7 +115,6 @@ class SystemApi(
     API.endpoints.map {
       case API.Info                           => Info
       case API.Status                         => Status
-      case API.DebugInfo                      => DebugInfo
       case API.TechniquesReload               => TechniquesReload
       case API.DyngroupsReload                => DyngroupsReload
       case API.ReloadAll                      => ReloadAll
@@ -178,14 +175,6 @@ class SystemApi(
       implicit val action   = "getStatus"
 
       toJsonResponse(None, ("global" -> "OK"))
-    }
-  }
-
-  object DebugInfo extends LiftApiModule0 {
-    val schema: API.DebugInfo.type = API.DebugInfo
-
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      apiv11service.debugInfo(params)
     }
   }
 
@@ -637,7 +626,6 @@ class SystemApiService13(
 
 class SystemApiService11(
     updatePTLibService:   UpdateTechniqueLibrary,
-    debugScriptService:   DebugInfoService,
     clearCacheService:    ClearCacheService,
     asyncDeploymentAgent: AsyncDeploymentAgent,
     uuidGen:              StringUuidGenerator,
@@ -837,25 +825,6 @@ class SystemApiService11(
         }
         InMemoryResponse(bytes, headers, Nil, 200)
       case Left(err)                => toJsonError(None, err)
-    }
-  }
-
-  def debugInfo(params: DefaultParams): LiftResponse = {
-    implicit val action   = "getDebugInfo"
-    implicit val prettify = params.prettify
-
-    debugScriptService.launch().either.runNow match {
-      case Right(DebugInfoScriptResult(fileName, bytes)) =>
-        InMemoryResponse(
-          bytes,
-          "content-Type"        -> "application/gzip" ::
-          "Content-Disposition" -> s"attachment;filename=${fileName}" :: Nil,
-          Nil,
-          200
-        )
-      case Left(error)                                   =>
-        val fail = Chained("Error has occurred while getting debug script result", error)
-        toJsonError(None, "debug script" -> s"An Error occurred: ${fail.fullMsg}")
     }
   }
 
