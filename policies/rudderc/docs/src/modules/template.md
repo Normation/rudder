@@ -245,6 +245,31 @@ prop2 -> value2
 | `regex_escape` | Escape regex chars. | None | None | `{{ re\|regex_escape }}` |
 | `regex_replace` | Replace a string via regex. | None | `count` | `{{ re\|regex_replace }}` |
 
+#### Reading files
+
+The `lookup('file', path)` function reads a file's raw UTF-8
+content **at render time, on the node**:
+
+```
+{{ lookup('file', "/etc/issue") }}
+```
+
+A missing file, or one that is not valid UTF-8, makes the rendering fail.
+`lookup` currently only supports the `file` kind.
+
+<div class="warning">
+<b>⚠️ Security: <code>lookup('file', …)</code> reads arbitrary files as the agent.</b>
+
+The agent runs as with high privileges, so this function reads any file it can access and inline the
+content into the rendered output. The output file's permissions are set by the
+technique — reading a sensitive file (private keys,
+<code>/etc/shadow</code>, …) can leak it into a world-readable output file.
+
+Use absolute paths, and only use trusted template contents.
+</div>
+
+#### Additional methods for Python compatibility
+
 The following methods on basic types are provided:
 
 - dict.get
