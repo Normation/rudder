@@ -17,7 +17,7 @@ import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner
 
 @RunWith(classOf[ZTestJUnitRunner])
-class GeneralizedTimeSpec extends ZIOSpecDefault {
+class GeneralizedTimeTest extends ZIOSpecDefault {
 
   def toGeneralizedTimeString(instant: Instant) = {
     val date = new DateTimeFormatterBuilder()

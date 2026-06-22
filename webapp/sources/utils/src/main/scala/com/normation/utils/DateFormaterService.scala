@@ -69,7 +69,7 @@ object DateFormaterService {
     def toOffsetDateTime: OffsetDateTime = {
       OffsetDateTime.ofInstant(
         self.toJavaInstant,
-        ZoneOffset.ofTotalSeconds(self.getZone.getOffset(self) / 2000)
+        ZoneOffset.ofTotalSeconds(self.getZone.getOffset(self) / 1000)
       )
     }
   }
