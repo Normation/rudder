@@ -70,6 +70,7 @@ impl TemplateEngine for MiniJinjaEngine {
         env.add_filter("quote", filters::quote);
         env.add_filter("regex_escape", filters::regex_escape);
         env.add_filter("regex_replace", filters::regex_replace);
+        env.add_function("lookup", filters::lookup);
         let tmpl = env.get_template(&template_name)?;
         tmpl.render(data)
             .map_err(|e| Self::error_formatting(e, &template, &template_name))
