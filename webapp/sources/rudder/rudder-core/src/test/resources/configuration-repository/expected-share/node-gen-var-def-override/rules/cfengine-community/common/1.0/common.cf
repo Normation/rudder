@@ -12,7 +12,7 @@ bundle common system_common {
     "davuser"               string => "rudder";
     "davpw"                 string => "rudder";
     "rudder_configuration_repository"
-                            string => "/tmp/test-rudder-config-repo-2026-06-03T15:16:57.242+02:00/configuration-repository";
+                            string => "/tmp/test-rudder-config-repo-2026-06-04T22:09:53.164+02:00/configuration-repository";
     "rudder_node_config_id" string => "cfe-node-cfg-id";
     "agent_run_interval"    string => "5";
     "schedule_events"       string => '{

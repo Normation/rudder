@@ -182,7 +182,7 @@ class DirectiveEditForm(
     </lift:authz>
   }
 
-  val displayDeprecationWarning: CssSel = technique.deprecrationInfo match {
+  val displayDeprecationWarning: CssSel = technique.deprecationInfo match {
     case Some(info) =>
       ("#deprecation-message *" #> info.message &
       "#migrate-button *" #> {
@@ -591,7 +591,7 @@ class DirectiveEditForm(
   def showDeprecatedVersion(version: TechniqueVersion): String = {
     // here, we use default revision to get deprecation info, but we should likely have a per revision
     // deprecation message possible
-    val deprecationInfo = techniques(version.withDefaultRev).deprecrationInfo match {
+    val deprecationInfo = techniques(version.withDefaultRev).deprecationInfo match {
       case Some(_) => "(deprecated)"
       case None    => ""
     }

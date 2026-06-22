@@ -193,7 +193,7 @@ final case class Technique(
     trackerVariableSpec: TrackerVariableSpec,
     rootSection:         SectionSpec, // be careful to not split it from the TechniqueId, else you will not have the good spec for the version
 
-    deprecrationInfo:    Option[TechniqueDeprecationInfo],
+    deprecationInfo:     Option[TechniqueDeprecationInfo],
     systemVariableSpecs: Set[SystemVariableSpec] = Set(),
     isMultiInstance:     Boolean = false, // true if we can have several instance of this policy
 

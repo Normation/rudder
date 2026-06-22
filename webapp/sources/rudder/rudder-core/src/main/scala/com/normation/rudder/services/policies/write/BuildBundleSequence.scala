@@ -47,18 +47,20 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.errors.*
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.PolicyTypes
+import com.normation.rudder.facts.nodes.RudderAgent
 import com.normation.rudder.services.policies.IfVarClass
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
+import com.normation.rudder.services.policies.write.BuildBundleSequence.*
 import scala.collection.immutable.ListMap
 import zio.*
 import zio.json.*
@@ -73,6 +75,9 @@ import zio.json.*
  * - add utility bundle when needed, like ncf logging bundle and dry-run mode
  */
 object BuildBundleSequence {
+
+  // the name of policy type aspect for system directives that must run at end
+  val postAction = PolicyTypeName("post-action")
 
   /*
    * A data structure that holds the different values, with the different format,
@@ -95,16 +100,19 @@ object BuildBundleSequence {
    *
    */
   final case class BundleSequenceVariables(
+      // system directives are before or after (end) user directives
       // the list of system inputs promise file
-      systemDirectivesInputFiles: List[String], // the list of formated "usebundle" methods
-      // for system techniques
-
-      systemDirectivesUsebundle:  List[String], // the list of user inputs promise file
-
-      directivesInputFiles: List[String], // the list of formated "usebundle" methods
-      // for user techniques
-
-      directivesUsebundle:  List[String]
+      systemDirectivesInputFiles:    List[String],
+      // the list of formated "usebundle" methods for system techniques
+      systemDirectivesUsebundle:     List[String],
+      // the list of system inputs promise file (post-action, end of run)
+      systemDirectivesEndInputFiles: List[String],
+      // the list of formated "usebundle" methods for system techniques at end of run
+      systemDirectivesEndUsebundle:  List[String],
+      // the list of user inputs promise file
+      directivesInputFiles:          List[String],
+      // the list of formated "usebundle" methods for user techniques
+      directivesUsebundle:           List[String]
   )
 
   /*
@@ -262,7 +270,6 @@ class BuildBundleSequence(
     systemVariableSpecService:  SystemVariableSpecService,
     writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles
 ) {
-  import BuildBundleSequence.*
 
   /*
    * The main entry point of the object: for each variable related to
@@ -310,7 +317,7 @@ class BuildBundleSequence(
       // - build techniques bundles from the sorted list of techniques
       techniquesBundles <-
         ZIO.foreach(sortedPolicies)(
-          buildTechniqueBundles(agentNodeProps.nodeId, agentNodeProps.agentType, globalPolicyMode, nodePolicyMode)(_).toIO
+          buildTechniqueBundles(agentNodeProps.nodeId, globalPolicyMode, nodePolicyMode)(_).toIO
         )
       // split system and user directive (technique)
       bundles            = techniquesBundles.toList.removeEmptyBundle
@@ -323,21 +330,6 @@ class BuildBundleSequence(
       // map to correct variables
       vars              <- ZIO.collectAll(
                              List(
-                               // this one is CFEngine specific and kept for historical reason
-                               systemVariableSpecService
-                                 .get("INPUTLIST")
-                                 .map(v => (v.name, SystemVariable(v, CfengineBundleVariables.formatBundleFileInputFiles(inputs.map(_.path)))))
-                                 .toIO, // this one is CFengine specific and kept for historical reason
-
-                               systemVariableSpecService
-                                 .get("BUNDLELIST")
-                                 .map(v => {
-                                   (
-                                     v.name,
-                                     SystemVariable(v, techniquesBundles.flatMap(_.bundleSequence.map(_.name)).mkString(", ", ", ", "") :: Nil)
-                                   )
-                                 })
-                                 .toIO,
                                systemVariableSpecService
                                  .get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")
                                  .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesInputFiles)))
@@ -345,6 +337,14 @@ class BuildBundleSequence(
                                systemVariableSpecService
                                  .get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE")
                                  .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesUsebundle)))
+                                 .toIO,
+                               systemVariableSpecService
+                                 .get("RUDDER_SYSTEM_DIRECTIVES_INPUTS_END")
+                                 .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesEndInputFiles)))
+                                 .toIO,
+                               systemVariableSpecService
+                                 .get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE_END")
+                                 .map(v => (v.name, SystemVariable(v, bundleVars.systemDirectivesEndUsebundle)))
                                  .toIO,
                                systemVariableSpecService
                                  .get("RUDDER_DIRECTIVES_INPUTS")
@@ -378,7 +378,6 @@ class BuildBundleSequence(
    */
   def buildTechniqueBundles(
       nodeId:           NodeId,
-      agentType:        AgentType,
       globalPolicyMode: GlobalPolicyMode,
       nodePolicyMode:   Option[PolicyMode]
   )(policy: Policy): PureResult[TechniqueBundles] = {
@@ -482,24 +481,34 @@ class BuildBundleSequence(
 //////////////////////////////////////////////////////////////////////
 
 object CfengineBundleVariables {
-  import BuildBundleSequence.*
 
   def getBundleVariables(
-      escape:   String => String,
-      inputs:   List[InputFile],
-      bundles:  List[TechniqueBundles],
-      runHooks: List[NodeRunHook]
+      agentInfo: RudderAgent,
+      escape:    String => String,
+      inputs:    List[InputFile],
+      bundles:   List[TechniqueBundles],
+      runHooks:  List[NodeRunHook]
   ): BundleSequenceVariables = {
+    val (systemFiles, userFiles)     = inputs.partition(_.policyTypes.isSystem)
+    val (endFiles, startFiles)       = systemFiles.partition(_.policyTypes.contains(postAction))
+    val (systemBundles, userBundles) = bundles.partition(_.policyTypes.isSystem)
+    val (endBundles, startBundles)   = systemBundles.partition(_.policyTypes.contains(postAction))
 
-    BundleSequenceVariables(
+    val x = BundleSequenceVariables(
+      // system directives at start of run:
       // we need system techniques first, and they can't be dry run.
-      formatBundleFileInputFiles(inputs.collect { case x if (x.policyTypes.isSystem) => x.path }),
-      formatMethodsUsebundle(escape, bundles.filter(_.policyTypes.isSystem), Nil, cleanDryRunEnd = false),
+      formatBundleFileInputFiles(startFiles.map(_.path)),
+      formatMethodsUsebundle(escape, startBundles, Nil, cleanDryRunEnd = false),
+
+      // system directives at end of run
+      formatBundleFileInputFiles(endFiles.map(_.path)),
+      formatMethodsUsebundle(escape, endBundles, Nil, cleanDryRunEnd = false),
 
       // then other, just filter out system techniques. These ones can be set on PolicyMode = Verify
-      formatBundleFileInputFiles(inputs.collect { case x if (!x.policyTypes.isSystem) => x.path }),
-      formatMethodsUsebundle(escape, bundles.filterNot(_.policyTypes.isSystem), runHooks, cleanDryRunEnd = true)
+      formatBundleFileInputFiles(userFiles.map(_.path)),
+      formatMethodsUsebundle(escape, userBundles, runHooks, cleanDryRunEnd = true)
     )
+    x
   }
 
   /*
@@ -621,11 +630,12 @@ object CfengineBundleVariables {
    */
   def formatBundleFileInputFiles(x: Seq[String]): List[String] = {
     val inputs = x.distinct
-    if (inputs.isEmpty) {
+    val res    = if (inputs.isEmpty) {
       List("") // we must have one empty parameter to have the awaited behavior with string template
     } else {
       List(inputs.mkString("\"", s"""",\n"""", s"""","""))
     }
+    res
   }
 }
 

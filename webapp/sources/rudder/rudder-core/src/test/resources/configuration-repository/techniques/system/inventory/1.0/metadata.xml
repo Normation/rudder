@@ -2,7 +2,7 @@
 <TECHNIQUE name="Make an inventory of the node">
   <DESCRIPTION>Inventory of the computer</DESCRIPTION>
 
-  <SYSTEM>true</SYSTEM>
+  <POLICY_TYPES>rudder.system,post-action</POLICY_TYPES>
 
   <MULTIINSTANCE>false</MULTIINSTANCE>
 

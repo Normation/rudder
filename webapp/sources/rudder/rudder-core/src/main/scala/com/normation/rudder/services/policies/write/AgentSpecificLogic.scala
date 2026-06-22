@@ -42,7 +42,9 @@ import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.Linux
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.facts.nodes.RudderAgent
 import com.normation.rudder.services.policies.NodeRunHook
+import com.normation.rudder.services.policies.write.BuildBundleSequence.*
 
 /*
  * This file contain agent-type specific logic used during the policy
@@ -63,11 +65,11 @@ trait AgentSpecificStringEscape {
 
 //how do we write bundle sequence / input files system variable for the agent?
 trait AgentFormatBundleVariables {
-  import BuildBundleSequence.*
   def getBundleVariables(
-      inputs:   List[InputFile],
-      bundles:  List[TechniqueBundles],
-      runHooks: List[NodeRunHook]
+      agentInfo: RudderAgent,
+      inputs:    List[InputFile],
+      bundles:   List[TechniqueBundles],
+      runHooks:  List[NodeRunHook]
   ): PureResult[BundleSequenceVariables]
 }
 
@@ -112,7 +114,9 @@ class AgentRegister {
    * Find the first agent matching the required agentType/osDetail and apply f on it.
    * If none is found, return an error message for the user.
    */
-  def findMap[T](agentNodeProps: AgentNodeProperties)(f: AgentSpecificGeneration => PureResult[T]): PureResult[T] = {
+  def findMap[T](
+      agentNodeProps: AgentNodeProperties
+  )(f: (RudderAgent, AgentSpecificGeneration) => PureResult[T]): PureResult[T] = {
     pipeline.find(handler => handler.handle(agentNodeProps)) match {
       case None =>
         val msg = if (agentNodeProps.isPolicyServer) {
@@ -120,12 +124,12 @@ class AgentRegister {
           s"""for nodes behind it unavailable. Maybe you are missing 'scale out' plugin?"""
         } else {
           s"""We could not generate policies for node '${agentNodeProps.nodeId.value}' based on """ +
-          s"""'${agentNodeProps.agentType
+          s"""'${agentNodeProps.agentInfo.agentType
               .toString()}' agent and '${agentNodeProps.osDetails.fullName}' system. Maybe you are missing a dedicated plugin?"""
         }
         Left(Unexpected(msg))
 
-      case Some(h) => f(h)
+      case Some(h) => f(agentNodeProps.agentInfo, h)
     }
   }
 
@@ -134,7 +138,7 @@ class AgentRegister {
    * If none is found, return an error message for the user.
    */
   def findHandler(agentNodeProps: AgentNodeProperties): PureResult[AgentSpecificGeneration] = {
-    findMap[AgentSpecificGeneration](agentNodeProps)(Right(_))
+    findMap[AgentSpecificGeneration](agentNodeProps)((_, g) => Right(g))
   }
 
   /**
@@ -163,9 +167,6 @@ class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgen
     agentRegister.traverseMap(cfg.agentNodeProps)(() => Right(Nil), _.write(cfg))
   }
 
-  import BuildBundleSequence.BundleSequenceVariables
-  import BuildBundleSequence.InputFile
-  import BuildBundleSequence.TechniqueBundles
   def getBundleVariables(
       agentNodeProps: AgentNodeProperties,
       inputs:         List[InputFile],
@@ -173,7 +174,7 @@ class WriteAllAgentSpecificFiles(agentRegister: AgentRegister) extends WriteAgen
       runHooks:       List[NodeRunHook]
   ): PureResult[BundleSequenceVariables] = {
     // we only choose the first matching agent for that
-    agentRegister.findMap(agentNodeProps)(a => a.getBundleVariables(inputs, bundles, runHooks))
+    agentRegister.findMap(agentNodeProps)((ai, g) => g.getBundleVariables(ai, inputs, bundles, runHooks))
   }
 }
 
@@ -193,7 +194,7 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
    */
   override def handle(agentNodeProps: AgentNodeProperties): Boolean = {
     (!agentNodeProps.isPolicyServer || agentNodeProps.nodeId == Constants.ROOT_POLICY_SERVER_ID) && (
-      (agentNodeProps.agentType, agentNodeProps.osDetails) match {
+      (agentNodeProps.agentInfo.agentType, agentNodeProps.osDetails) match {
         case (AgentType.CfeCommunity, _: Linux) => true
         // for now Windows and UnknownOS goes there.
         case _                                  => false
@@ -205,14 +206,12 @@ object CFEngineAgentSpecificGeneration extends AgentSpecificGeneration {
     Right(Nil)
   }
 
-  import BuildBundleSequence.BundleSequenceVariables
-  import BuildBundleSequence.InputFile
-  import BuildBundleSequence.TechniqueBundles
   override def getBundleVariables(
-      inputs:   List[InputFile],
-      bundles:  List[TechniqueBundles],
-      runHooks: List[NodeRunHook]
+      agentInfo: RudderAgent,
+      inputs:    List[InputFile],
+      bundles:   List[TechniqueBundles],
+      runHooks:  List[NodeRunHook]
   ): PureResult[BundleSequenceVariables] =
-    Right(CfengineBundleVariables.getBundleVariables(escape, inputs, bundles, runHooks))
+    Right(CfengineBundleVariables.getBundleVariables(agentInfo, escape, inputs, bundles, runHooks))
 
 }

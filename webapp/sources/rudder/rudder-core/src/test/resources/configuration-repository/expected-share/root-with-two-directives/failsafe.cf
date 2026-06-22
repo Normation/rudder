@@ -42,7 +42,7 @@ bundle common g
       "uuid"                     string => readfile("${g.uuid_file}", 60);
       "ncf_excludedreps"          slist => { "50_techniques" };
       "rudder_ncf_origin_common" string => "/usr/share/ncf/tree";
-      "rudder_ncf_origin_local"  string => "/tmp/test-rudder-config-repo-2026-06-03T15:11:34.618+02:00/configuration-repository/ncf";
+      "rudder_ncf_origin_local"  string => "/tmp/test-rudder-config-repo-2026-06-04T22:09:53.164+02:00/configuration-repository/ncf";
 
       "rudder_ncf_hash_file"          string => "ncf_hash_file";
       "rudder_ncf_origin_common_hash" string => "${rudder_ncf_origin_common}/${rudder_ncf_hash_file}";
