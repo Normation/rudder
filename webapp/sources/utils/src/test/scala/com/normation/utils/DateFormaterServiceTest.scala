@@ -18,7 +18,7 @@ import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner
 
 @RunWith(classOf[ZTestJUnitRunner])
-class DateFormaterServiceSpec extends ZIOSpecDefault {
+class DateFormaterServiceTest extends ZIOSpecDefault {
 
   val legacyGitTagFormat = new org.joda.time.format.DateTimeFormatterBuilder()
     .appendYear(4, 4)
