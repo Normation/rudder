@@ -48,14 +48,11 @@ type alias Model =
     }
 
 
-
-
 type Msg
     = SetCode String
     | GenerateOtp
     | VerifyOtp String
     | OtpStatusResponse (Result (Detailed.Error String) ( Http.Metadata, Bool ))
     | GenerateResponse (Result (Detailed.Error String) ( Http.Metadata, GenerateResponse ))
-    | VerifyResponse (Result (Detailed.Error String) ( Http.Metadata, String ))
+    | VerifyResponse (Result (Detailed.Error String) ())
     | UrlChanged String
-

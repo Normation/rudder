@@ -73,7 +73,7 @@ update msg model =
 
         VerifyResponse result ->
             case result of
-                Ok ( _, "ok" ) ->
+                Ok _ ->
                     case model.redirectUrl of
                         Just url ->
                             ( { model | isLoading = False }, pushUrl url )
@@ -81,11 +81,17 @@ update msg model =
                         Nothing ->
                             ( { model | isLoading = False }, pushUrl "/secure/index.html" )
 
-                Ok _ ->
-                    ( { model | isLoading = False }, errorNotification "Unexpected response" )
+                Err (Detailed.BadStatus metadata body) ->
+                    case metadata.statusCode of
+                        -- Handled verification error case on server
+                        403 ->
+                            ( { model | isLoading = False }, errorNotification body )
 
-                Err err ->
-                    processApiError "Failed to verify OTP code" err model
+                        code ->
+                            ( { model | isLoading = False }, errorNotification <| "Error when verifying OTP code: unexpected http code " ++ String.fromInt code )
+
+                Err _ ->
+                    ( { model | isLoading = False }, errorNotification "Error when verifying OTP code" )
 
         UrlChanged url ->
             case Url.fromString url of

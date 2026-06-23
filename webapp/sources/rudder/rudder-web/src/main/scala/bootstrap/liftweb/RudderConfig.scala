@@ -1475,6 +1475,7 @@ object RudderConfig extends Loggable {
   val userPropertyService:                 UserPropertyService                      = rci.userPropertyService
   val userRepository:                      UserRepository                           = rci.userRepository
   val userService:                         UserService                              = rci.userService
+  val otpService:                          TotpService                              = rci.otpService
   val woApiAccountRepository:              WoApiAccountRepository                   = rci.woApiAccountRepository
   val woDirectiveRepository:               WoDirectiveRepository                    = rci.woDirectiveRepository
   val woNodeGroupRepository:               WoNodeGroupRepository                    = rci.woNodeGroupRepository
@@ -1618,6 +1619,7 @@ case class RudderServiceApi(
     userService:                         UserService,
     apiVersions:                         List[ApiVersion],
     apiDispatcher:                       RudderEndpointDispatcher,
+    otpService:                          TotpService,
     configurationRepository:             ConfigurationRepository,
     roParameterService:                  RoParameterService,
     agentRegister:                       AgentRegister,
@@ -2186,6 +2188,16 @@ object RudderConfigInit {
 
     lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
 
+    // OTP (Two-Factor Authentication) service
+    lazy val totpRepository    = new JdbcTotpRepository(doobie)
+    lazy val userTotpValidator = new UserTotpValidator(userRepository, totpRepository)
+    lazy val totpService       = OtpJavaTotpService
+      .make(
+        validator = userTotpValidator,
+        totpRepository = totpRepository
+      )
+      .runNow
+
     // we need to init API internal services into the {} block to avoid bug https://issues.rudder.io/issues/26416
     // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
     lazy val rudderApi = ApiInit.api
@@ -2218,16 +2230,7 @@ object RudderConfigInit {
         linkUtil
       )
 
-      // OTP (Two-Factor Authentication) service
-      lazy val totpRepository       = new JdbcTotpRepository(doobie)
-      lazy val userTotpValidator    = new UserTotpValidator(userRepository, totpRepository)
-      lazy val totpGeneratorService = OtpJavaTotpService
-        .make(
-          validator = userTotpValidator,
-          totpRepository = totpRepository
-        )
-        .runNow
-      lazy val otpApiProvider       = new OtpApi(totpGeneratorService)
+      lazy val otpApi = new OtpApi(totpService)
 
       lazy val ruleApiService13 = {
         new RuleApiService14(
@@ -2443,7 +2446,7 @@ object RudderConfigInit {
           new ScoreApiImpl(scoreService),
           eventLogApi,
           quicksearchApi,
-          otpApiProvider
+          otpApi
           // info api must be resolved latter, because else it misses plugin apis !
         )
       }
@@ -4008,6 +4011,7 @@ object RudderConfigInit {
       userService,
       SupportedApiVersion.apiVersions,
       apiDispatcher,
+      totpService,
       configurationRepository,
       roParameterService,
       agentRegister,

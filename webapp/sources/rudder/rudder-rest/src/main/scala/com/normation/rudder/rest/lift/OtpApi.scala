@@ -39,11 +39,10 @@ package com.normation.rudder.rest.lift
 import com.normation.errors.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
-import com.normation.rudder.rest.{OtpApi => API, *}
+import com.normation.rudder.rest.{OtpApi as API, *}
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.RudderJsonResponse.syntax.*
 import com.normation.rudder.users.*
-import com.normation.rudder.users.TotpStatus
 import net.liftweb.common.*
 import net.liftweb.http.*
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken

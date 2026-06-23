@@ -1,10 +1,11 @@
 module Otp.ApiCalls exposing (..)
 
-import Http exposing (header)
+import Http exposing (expectStringResponse, header)
 import Http.Detailed as Detailed
 import Json.Encode as J
 import Otp.DataTypes exposing (..)
 import Otp.JsonDecoder exposing (..)
+import Url
 import Url.Builder
 
 
@@ -43,15 +44,21 @@ verifyOtp : Model -> String -> Cmd Msg
 verifyOtp model code =
     let
         body =
-            J.string code
+            Http.stringBody "application/x-www-form-urlencoded" ("code=" ++ Url.percentEncode code)
     in
     Http.request
         { method = "POST"
         , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
-        , url = Url.Builder.relative (model.contextPath :: "secure" :: "api" :: "otp" :: "verify" :: []) []
-        , body = Http.jsonBody body
-        , expect = Detailed.expectJson VerifyResponse decodeVerify
+        , url = Url.Builder.relative (model.contextPath :: "secure" :: "otp" :: "verify" :: []) []
+        , body = body
+        , expect = expectWhateverStringError VerifyResponse
         , timeout = Nothing
         , tracker = Nothing
         }
 
+
+{-| Expect for a result that is ignored, but a BadStatus that needs to be read as String (e.g. JSON response from API)
+-}
+expectWhateverStringError : (Result (Detailed.Error String) () -> msg) -> Http.Expect msg
+expectWhateverStringError toMsg =
+    expectStringResponse (Result.map (\_ -> ()) >> toMsg) Detailed.responseToString

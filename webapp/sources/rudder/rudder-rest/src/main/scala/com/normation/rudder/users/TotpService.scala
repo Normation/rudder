@@ -40,6 +40,9 @@ trait TotpGeneratorService {
 
 }
 
+//TODO: need to be split: the splitted services may not be the right separation
+type TotpService = TotpGeneratorService & TotpVerificationService
+
 trait TotpVerificationService {
   def verify(userId: String, code: String): IOResult[Unit]
 }

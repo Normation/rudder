@@ -49,6 +49,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 <!--        <protect-pointcut expression="execution(* bigbank.*Service.post*(..))" access="ROLE_TELLER"/>-->
 <!--        -->
 <!--    </global-method-security>-->
+    <beans:bean id="otpAuthFilter" class="bootstrap.liftweb.OtpAuthenticationFilter">
+      <beans:property name="authenticationManager" ref="org.springframework.security.authenticationManager"/>
+    </beans:bean>
+
+ 
     <beans:bean id="userSessionInvalidationFilter" class="bootstrap.liftweb.UserSessionInvalidationFilter" />
 
 
@@ -97,8 +102,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <!-- OTP login for already logged-in user with ROLE_PRE_AUTH authority to access the OTP submit page -->
 	<intercept-url pattern="/secure/otp.html" access="hasRole('ROLE_PRE_AUTH')" />
 
-        <!-- FIXME: For API access of frontend OTP page -->
+        <!-- For API access of frontend OTP page and OTP check filter -->
 	<intercept-url pattern="/secure/api/otp" access="hasRole('ROLE_PRE_AUTH')" />
+	<intercept-url pattern="/secure/otp/verify" access="permitAll" />
 
         <!--
            Comment to allows "no auth required", but the login form is still valid
@@ -121,6 +127,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
             authentication-failure-handler-ref="rudderWebAuthenticationFailureHandler"
         />
 <!--        <remember-me />-->
+
+        <!-- For OTP verification, auth upgrade -->
+        <custom-filter after="FORM_LOGIN_FILTER" ref="otpAuthFilter"/>
 
         <custom-filter after="BASIC_AUTH_FILTER" ref="userSessionInvalidationFilter" />
 
