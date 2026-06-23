@@ -246,7 +246,7 @@ object DateFormaterService {
       .optionalStart
       .appendValue(SECOND_OF_MINUTE, 2)
       .optionalStart
-      .appendFraction(NANO_OF_SECOND, 0, 3, true)
+      .appendFraction(NANO_OF_SECOND, 3, 3, true)
       .appendOffsetId()
       .toFormatter()
 
