@@ -230,14 +230,14 @@ pipeline {
                     agent {
                         dockerfile {
                             label 'generic-docker'
-                            filename 'api-doc/Dockerfile'
+                            filename 'docs/api/Dockerfile'
                             args '-u 0:0'
                         }
                     }
 
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('api-doc') {
+                            dir('docs/api') {
                                 sh script: 'make', label: 'build API docs'
                             }
                         }
@@ -245,7 +245,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - api-doc", "Error while building api doc")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - api doc", "Error while building api doc")
                             }
                         }
                         cleanup {
@@ -424,10 +424,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Tests - policies arm")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies arm tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Tests - policies arm", "Error during policies arm tests")
                             }
                         }
                         cleanup {
@@ -499,6 +496,40 @@ pipeline {
         stage('Publish') {
             when { not { changeRequest() } }
             parallel {
+                stage('cheatsheet') {
+                    agent {
+                        dockerfile {
+                            label 'generic-docker'
+                            filename 'docs/cheatsheet/Dockerfile'
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
+
+                        }
+                    }
+                    when { expression { latestVersion == true } }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir("docs/cheatsheet") {
+                                sh script: 'make', label: 'build cheatsheet'
+                                withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/*.pdf ${KEY_USER}@${HOST_DOCS}:/var/www-docs/documents/', label: 'publish cheatsheet'
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - Cheatsheet", "Error while publishing the cheatsheets")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('adr-doc') {
                     agent {
                         dockerfile {
@@ -522,10 +553,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - Rust ADR docs")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing ADR docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - Rust ADR docs", "Error while publishing ADR docs")
                             }
                         }
                         cleanup {
@@ -547,10 +575,10 @@ pipeline {
                     when { not { branch 'master' } }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('architecture-doc') {
+                            dir('docs/architecture') {
                                 sh script: 'java -jar /usr/bin/structurizr.war export -format static -output target -workspace rudder-containers.dsl', label: 'build architecture documentation'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/architecture-doc/', label: "publish architecture documentation"
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/docs/architecture/', label: "publish architecture documentation"
                                 }
                             }
                         }
@@ -558,10 +586,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - architecture documentation")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error when publishing architecture documentation - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - architecture documentation", "Error when publishing architecture documentation")
                             }
                         }
                         cleanup {
@@ -593,10 +618,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - Rust dev docs")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error while publishing rust dev docs - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - Rust dev docs", "Error while publishing rust dev docs")
                             }
                         }
                         cleanup {
@@ -628,10 +650,7 @@ pipeline {
                     post {
                         failure {
                             script {
-                                failedBuild = true
-                                errors.add("Publish - graphic charter")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error when publishing graphic charter - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                                slackResponse = notifyError(errors, slackResponse, version, changeUrl, "Publish - graphic charter", "Error when publishing graphic charter")
                             }
                         }
                         cleanup {
@@ -675,14 +694,14 @@ pipeline {
                     agent {
                         dockerfile {
                             label 'generic-docker'
-                            filename 'api-doc/Dockerfile'
+                            filename 'docs/api/Dockerfile'
                             args '-u 0:0'
                         }
                     }
 
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('api-doc') {
+                            dir('docs/api') {
                                 sh script: 'make', label: 'build API docs'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
                                     sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/webapp/* ${KEY_USER}@${HOST_DOCS}:/var/www-docs/api/v/', label: 'publish webapp API docs'
@@ -693,7 +712,7 @@ pipeline {
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: 'api-doc/target/*/*/*.html'
+                            archiveArtifacts artifacts: 'docs/api/target/*/*/*.html'
                         }
                         failure {
                             script {
@@ -711,7 +730,7 @@ pipeline {
                     agent {
                         dockerfile {
                             label 'generic-docker'
-                            filename 'api-doc/Dockerfile'
+                            filename 'docs/api/Dockerfile'
                             args '-u 0:0'
                         }
                     }
