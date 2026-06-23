@@ -632,6 +632,7 @@ class SystemVariableServiceImpl(
     import net.liftweb.json.{prettyRender, JObject, JString, JField}
     // Utility method to convert NodeInfo to JSON
     def nodeInfoToJson(nodeInfo: NodeInfo): List[JField] = {
+      JField("nodeId", JString(nodeInfo.id.value)) ::
       JField("hostname", JString(nodeInfo.hostname)) ::
       JField("policyServerId", JString(nodeInfo.policyServerId.value)) ::
       JField("localAdministratorAccountName", JString(nodeInfo.localAdministratorAccountName)) ::
