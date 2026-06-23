@@ -610,6 +610,7 @@ class SystemVariableServiceImpl(
     import zio.json.*
     // Utility method to convert NodeInfo to JSON
     def nodeInfoToJson(nodeInfo: NodeInfo): Obj = Obj(
+      ("nodeId", Str(nodeInfo.id.value)),
       ("hostname", Str(nodeInfo.hostname)),
       ("policyServerId", Str(nodeInfo.policyServerId.value)),
       ("localAdministratorAccountName", Str(nodeInfo.localAdministratorAccountName)),

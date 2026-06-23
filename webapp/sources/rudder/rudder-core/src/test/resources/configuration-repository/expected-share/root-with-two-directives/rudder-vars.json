@@ -1,4 +1,5 @@
 {
+  "nodeId" : "root",
   "hostname" : "server.rudder.local",
   "policyServerId" : "root",
   "localAdministratorAccountName" : "root",
