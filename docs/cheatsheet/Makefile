@@ -7,10 +7,13 @@ ASSETS := rudder-logo.svg
 SCREEN := $(OUT)/$(NAME).pdf
 PRINT  := $(OUT)/$(NAME)-print.pdf
 
-.PHONY: all screen print clean
+.PHONY: all screen print clean watch
 
 # Build both versions
 all: screen print
+
+watch: $(SRC) $(ASSETS) | $(OUT)
+	$(TYPST) watch $(SRC) $(SCREEN)
 
 # Screen version: with clickable "docs ↗" buttons
 screen: $(SCREEN)
