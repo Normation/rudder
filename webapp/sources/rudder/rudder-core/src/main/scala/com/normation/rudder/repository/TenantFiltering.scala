@@ -198,10 +198,10 @@ class RoTenantDirectiveRepo(
 }
 
 class WoTenantDirectiveRepo(
-    checkTenant: TenantCheckLogic,
-    tenantRepo:  TenantService,
-    underlying:  WoDirectiveRepository,
-    roRepo:      RoDirectiveRepository
+    checkTenant:   TenantCheckLogic,
+    tenantService: TenantService,
+    underlying:    WoDirectiveRepository,
+    roRepo:        RoDirectiveRepository
 ) extends RoDirectiveRepository with WoDirectiveRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -217,7 +217,7 @@ class WoTenantDirectiveRepo(
                     .notOptional(s"Can not find active technique with id '${inActiveTechniqueId.value}'")
       _        <- cc.accessGrant.canModifyOrFail(parentAt)(ZIO.unit)
       oldDir   <- roRepo.getActiveTechniqueAndDirective(DirectiveId(directive.id.uid))
-      status   <- tenantRepo.getStatus
+      status   <- tenantService.getStatus
       result   <- checkTenant.manageUpdate(oldDir.map(_._2), directive, cc, status) { dir =>
                     if (system) underlying.saveSystemDirective(inActiveTechniqueId, dir)
                     else underlying.saveDirective(inActiveTechniqueId, dir)
@@ -270,7 +270,7 @@ class WoTenantDirectiveRepo(
     for {
       parentCat <- roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
       _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
-      status    <- tenantRepo.getStatus
+      status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(probe, cc, status) { _ =>
                      underlying.addTechniqueInUserLibrary(categoryId, techniqueName, versions, policyTypes)
                    }
@@ -326,7 +326,7 @@ class WoTenantDirectiveRepo(
     for {
       parentCat <- roRepo.getActiveTechniqueCategory(into).notOptional(s"Category '${into.value}' was not found")
       _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
-      status    <- tenantRepo.getStatus
+      status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(that, cc, status)(cat => underlying.addActiveTechniqueCategory(cat, into))
     } yield result
   }
@@ -337,7 +337,7 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       old    <- roRepo.getActiveTechniqueCategory(category.id).notOptional(s"Category '${category.id.value}' was not found")
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveActiveTechniqueCategory(cat))
     } yield result
   }
@@ -489,10 +489,10 @@ class RoTenantNodeGroupRepo(
 }
 
 class WoTenantNodeGroupRepo(
-    checkTenant: TenantCheckLogic,
-    tenantRepo:  TenantService,
-    underlying:  WoNodeGroupRepository,
-    roRepo:      RoNodeGroupRepository
+    checkTenant:   TenantCheckLogic,
+    tenantService: TenantService,
+    underlying:    WoNodeGroupRepository,
+    roRepo:        RoNodeGroupRepository
 ) extends RoNodeGroupRepository with WoNodeGroupRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -503,7 +503,7 @@ class WoTenantNodeGroupRepo(
     for {
       parentCat <- roRepo.getGroupCategory(into)
       _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
-      status    <- tenantRepo.getStatus
+      status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(nodeGroup, cc, status)(ng => underlying.create(ng, into))
     } yield result
   }
@@ -511,7 +511,7 @@ class WoTenantNodeGroupRepo(
   override def update(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     for {
       existingOpt <- roRepo.getNodeGroupOpt(nodeGroup.id)(using cc.toQC)
-      status      <- tenantRepo.getStatus
+      status      <- tenantService.getStatus
       result      <- checkTenant.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.update(ng))
     } yield result
   }
@@ -519,7 +519,7 @@ class WoTenantNodeGroupRepo(
   override def updateSystemGroup(nodeGroup: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     for {
       existingOpt <- roRepo.getNodeGroupOpt(nodeGroup.id)(using cc.toQC)
-      status      <- tenantRepo.getStatus
+      status      <- tenantService.getStatus
       result      <- checkTenant.manageUpdate(existingOpt.map(_._1), nodeGroup, cc, status)(ng => underlying.updateSystemGroup(ng))
     } yield result
   }
@@ -527,7 +527,7 @@ class WoTenantNodeGroupRepo(
   override def updateDynGroupNodes(group: NodeGroup)(implicit cc: ChangeContext): IOResult[Option[ModifyNodeGroupDiff]] = {
     for {
       existingOpt <- roRepo.getNodeGroupOpt(group.id)(using cc.toQC)
-      status      <- tenantRepo.getStatus
+      status      <- tenantService.getStatus
       result      <- checkTenant.manageUpdate(existingOpt.map(_._1), group, cc, status)(ng => underlying.updateDynGroupNodes(ng))
     } yield result
   }
@@ -544,7 +544,7 @@ class WoTenantNodeGroupRepo(
                        case Some((old, _)) =>
                          val newGroup = old.modify(_.serverList).setTo((old.serverList -- delete) ++ add)
                          for {
-                           status <- tenantRepo.getStatus
+                           status <- tenantService.getStatus
                            r      <- checkTenant.manageUpdate(Some(old), newGroup, cc, status) { _ =>
                                        underlying.updateDiffNodes(nodeGroupId, add, delete)
                                      }
@@ -584,7 +584,7 @@ class WoTenantNodeGroupRepo(
     for {
       parent <- roRepo.getGroupCategory(into)
       _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageUpdate[NodeGroupCategory, NodeGroupCategory, NodeGroupCategory](None, that, cc, status) { cat =>
                   underlying.addGroupCategoryToCategory(cat, into)
                 }
@@ -596,7 +596,7 @@ class WoTenantNodeGroupRepo(
     for {
       old    <- roRepo.getGroupCategory(category.id)
       _      <- cc.accessGrant.canModifyOrFail(old)(ZIO.unit)
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveGroupCategory(cat))
     } yield result
   }
@@ -649,10 +649,10 @@ class RoTenantRuleRepo(
 }
 
 class WoTenantRuleRepo(
-    checkTenant: TenantCheckLogic,
-    tenantRepo:  TenantService,
-    underlying:  WoRuleRepository,
-    roRepo:      RoRuleRepository
+    checkTenant:   TenantCheckLogic,
+    tenantService: TenantService,
+    underlying:    WoRuleRepository,
+    roRepo:        RoRuleRepository
 ) extends RoRuleRepository with WoRuleRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -660,7 +660,7 @@ class WoTenantRuleRepo(
 
   override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
     for {
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
     } yield result
   }
@@ -668,7 +668,7 @@ class WoTenantRuleRepo(
   override def update(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
     for {
       existing <- roRepo.getOpt(rule.id)(using cc.toQC)
-      status   <- tenantRepo.getStatus
+      status   <- tenantService.getStatus
       result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.update(r))
     } yield result
   }
@@ -676,7 +676,7 @@ class WoTenantRuleRepo(
   override def updateSystem(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
     for {
       existing <- roRepo.getOpt(rule.id)(using cc.toQC)
-      status   <- tenantRepo.getStatus
+      status   <- tenantService.getStatus
       result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.updateSystem(r))
     } yield result
   }
@@ -684,7 +684,7 @@ class WoTenantRuleRepo(
   override def load(rule: Rule)(using cc: ChangeContext): IOResult[Unit] = {
     for {
       existing <- roRepo.getOpt(rule.id)(using cc.toQC)
-      status   <- tenantRepo.getStatus
+      status   <- tenantService.getStatus
       result   <- checkTenant.manageUpdate(existing, rule, cc, status)(r => underlying.load(r))
     } yield result
   }
@@ -735,10 +735,10 @@ class RoTenantParameterRepo(
 }
 
 class WoTenantParameterRepo(
-    checkTenant: TenantCheckLogic,
-    tenantRepo:  TenantService,
-    underlying:  WoParameterRepository,
-    roRepo:      RoParameterRepository
+    checkTenant:   TenantCheckLogic,
+    tenantService: TenantService,
+    underlying:    WoParameterRepository,
+    roRepo:        RoParameterRepository
 ) extends RoParameterRepository with WoParameterRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -746,7 +746,7 @@ class WoTenantParameterRepo(
 
   override def saveParameter(parameter: GlobalParameter)(using cc: ChangeContext): IOResult[AddGlobalParameterDiff] = {
     for {
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageCreate(parameter, cc, status)(p => underlying.saveParameter(p))
     } yield result
   }
@@ -756,7 +756,7 @@ class WoTenantParameterRepo(
   )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = {
     for {
       existing <- roRepo.getGlobalParameter(parameter.name)(using cc.toQC)
-      status   <- tenantRepo.getStatus
+      status   <- tenantService.getStatus
       result   <- checkTenant.manageUpdate(existing, parameter, cc, status)(p => underlying.updateParameter(p))
     } yield result
   }
@@ -800,10 +800,10 @@ class RoTenantRuleCategoryRepo(
 }
 
 class WoTenantRuleCategoryRepo(
-    checkTenant: TenantCheckLogic,
-    tenantRepo:  TenantService,
-    underlying:  WoRuleCategoryRepository,
-    roRepo:      RoRuleCategoryRepository
+    checkTenant:   TenantCheckLogic,
+    tenantService: TenantService,
+    underlying:    WoRuleCategoryRepository,
+    roRepo:        RoRuleCategoryRepository
 ) extends RoRuleCategoryRepository with WoRuleCategoryRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
@@ -814,7 +814,7 @@ class WoTenantRuleCategoryRepo(
     for {
       parent <- roRepo.get(into)
       _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageCreate(that, cc, status)(cat => underlying.create(cat, into))
     } yield result
   }
@@ -825,7 +825,7 @@ class WoTenantRuleCategoryRepo(
       old    <- roRepo.get(that.id)
       parent <- roRepo.get(into)
       _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
-      status <- tenantRepo.getStatus
+      status <- tenantService.getStatus
       result <- checkTenant.manageUpdate(Some(old), that, cc, status)(cat => underlying.updateAndMove(cat, into))
     } yield result
   }
