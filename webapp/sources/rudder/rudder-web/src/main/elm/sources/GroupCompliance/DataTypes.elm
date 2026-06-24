@@ -1,6 +1,7 @@
 module GroupCompliance.DataTypes exposing (..)
 
 import Compliance.DataTypes exposing (..)
+import Date
 import Http exposing (Error)
 import Rules.DataTypes exposing (RuleCompliance)
 import Ui.Datatable exposing (SortOrder, TableFilters)
@@ -121,7 +122,9 @@ type Msg
     | ToggleRowSort String String SortOrder
     | GetPolicyModeResult (Result Error String)
     | GetGroupComplianceResult (Result Error GroupCompliance)
-      --| Export (Result Error String) --TODO: later
     | RefreshCompliance ComplianceScope
     | CallApi (Model -> Cmd Msg)
     | LoadCompliance ComplianceScope
+    | ExportCsv (Cmd Msg)
+    | ExportGroupComplianceByRule GroupId ComplianceScope Date.Date
+    | RuleComplianceCsvExported String (Result Error String)

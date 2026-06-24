@@ -3,6 +3,7 @@ module GroupCompliance.ViewUtils exposing (..)
 import Compliance.DataTypes exposing (..)
 import Compliance.Html exposing (buildComplianceBar)
 import Compliance.Utils exposing (..)
+import Date
 import Dict exposing (Dict)
 import Either exposing (Either(..))
 import GroupCompliance.DataTypes exposing (..)
@@ -15,8 +16,10 @@ import List.Extra
 import Maybe.Extra
 import NaturalOrdering as N
 import String
+import Task
 import Tuple3
 import Ui.Datatable exposing (SortOrder(..))
+import Utils.CsvExportUtils exposing (exportToCsvButton)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
 
@@ -477,6 +480,14 @@ filtersView model =
 
         isGlobalMode =
             isGlobalCompliance model
+
+        exportCsv =
+            case model.ui.viewMode of
+                RulesView ->
+                    ExportGroupComplianceByRule model.groupId complianceScope
+
+                NodesView ->
+                    Debug.todo "global group compliance by node"
     in
     div [ class "table-header extra-filters" ]
         [ div [ class "d-inline-flex align-items-baseline pb-3 w-25" ]
@@ -551,8 +562,12 @@ filtersView model =
                     ]
                     []
                 ]
-            , button [ class "btn btn-default btn-sm btn-refresh", onClick (RefreshCompliance complianceScope) ]
-                [ i [ class "fa fa-refresh" ] [] ]
+            , div
+                [ class "ms-auto my-auto" ]
+                [ exportToCsvButton (ExportCsv (Task.perform exportCsv Date.today))
+                , button [ class "btn btn-default btn-sm btn-refresh", onClick (RefreshCompliance complianceScope) ]
+                    [ i [ class "fa fa-refresh" ] [] ]
+                ]
             ]
         , displayComplianceFilters complianceFilters UpdateComplianceFilters
         ]
