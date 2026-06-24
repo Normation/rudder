@@ -512,7 +512,7 @@ pipeline {
                             dir("docs/cheatsheet") {
                                 sh script: 'make', label: 'build cheatsheet'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/*.pdf ${KEY_USER}@${HOST_DOCS}:/var/www-docs/documents/', label: 'publish cheatsheet'
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/*.pdf ${KEY_USER}@${HOST_DOCS}:/var/www-docs/files/', label: 'publish cheatsheet'
                                 }
                             }
                         }
