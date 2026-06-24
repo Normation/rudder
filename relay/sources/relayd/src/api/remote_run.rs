@@ -31,6 +31,10 @@ use warp::{
     path, Filter, Reply,
 };
 
+/// Maximum size of a remote-run request body. These are small forms
+/// (a node list and condition names), 1MiB is enough.
+const MAX_BODY_SIZE: u64 = 1024 * 1024;
+
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
     let base = path!("remote-run" / ..);
 
@@ -39,6 +43,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
         .map(move || job_config_node.clone())
         .and(base)
         .and(path!("nodes" / String))
+        .and(body::content_length_limit(MAX_BODY_SIZE))
         .and(body::form())
         .and_then(move |j, node_id, params| handlers::node(node_id, params, j));
 
@@ -47,6 +52,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
         .and(base)
         .and(path!("nodes"))
         .map(move || job_config_nodes.clone())
+        .and(body::content_length_limit(MAX_BODY_SIZE))
         .and(body::form())
         .and_then(move |j, params| handlers::nodes(params, j));
 
@@ -55,6 +61,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
         .and(base)
         .and(path!("all"))
         .map(move || job_config_all.clone())
+        .and(body::content_length_limit(MAX_BODY_SIZE))
         .and(body::form())
         .and_then(move |j, params| handlers::all(params, j));
 

@@ -419,6 +419,9 @@ impl Default for SharedFilesCleanupConfig {
 pub struct SharedFiles {
     #[serde_inline_default(PathBuf::from("/var/rudder/shared-files/"))]
     pub path: PathBuf,
+    /// Max uploaded shared file size in bytes
+    #[serde_inline_default(50 * 1024 * 1024)]
+    pub max_body_size: u64,
     #[serde(default)]
     pub cleanup: SharedFilesCleanupConfig,
 }
@@ -602,6 +605,7 @@ mod tests {
             },
             shared_files: SharedFiles {
                 path: PathBuf::from("/var/rudder/shared-files/"),
+                max_body_size: 50 * 1024 * 1024,
                 cleanup: SharedFilesCleanupConfig {
                     frequency: Duration::from_secs(600),
                 },
@@ -705,6 +709,7 @@ mod tests {
             },
             shared_files: SharedFiles {
                 path: PathBuf::from("tests/api_shared_files"),
+                max_body_size: 8192,
                 cleanup: SharedFilesCleanupConfig {
                     frequency: Duration::from_secs(43),
                 },

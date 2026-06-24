@@ -9,6 +9,10 @@ post:
   responses:
     200:
       $ref: "../../components/responses/agent-output.yml"
+    411:
+      description: The `Content-Length` header is missing
+    413:
+      description: The request body is larger than the 1 MiB limit
   tags:
     - Remote run
   x-codeSamples:

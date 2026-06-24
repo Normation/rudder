@@ -140,6 +140,20 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
         ))
     } else if let Some(e) = reject.find::<RudderReject>() {
         Ok(reply::with_status(format!("{e}"), StatusCode::BAD_REQUEST))
+    } else if let Some(_e) = reject.find::<reject::PayloadTooLarge>() {
+        // Checked before `MethodNotAllowed`: a body-accepting route is built as
+        // `head.or(put)`, so an oversized PUT yields a combined rejection holding
+        // both `MethodNotAllowed` (from `head`) and `PayloadTooLarge` (from `put`).
+        // `MethodNotAllowed` must not shadow the more specific size/length errors.
+        Ok(reply::with_status(
+            "PAYLOAD TOO LARGE".to_string(),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        ))
+    } else if let Some(_e) = reject.find::<reject::LengthRequired>() {
+        Ok(reply::with_status(
+            "LENGTH REQUIRED".to_string(),
+            StatusCode::LENGTH_REQUIRED,
+        ))
     } else if let Some(_e) = reject.find::<reject::MethodNotAllowed>() {
         // TODO find why we only have MethodNotAllowed when file in found in fs::dir
         Ok(reply::with_status(
@@ -236,5 +250,47 @@ mod tests {
             .unwrap(),
             "{\"result\":\"error\",\"action\":\"actionName3\",\"errorDetails\":\"inconsistent run log\"}".to_string()
         );
+    }
+
+    // Mirrors how body-accepting endpoints are built: a body size limit followed by
+    // body extraction, recovered through `customize_error`. Checks that the rejections
+    // produced by `content_length_limit` are mapped to the expected HTTP status codes.
+    #[tokio::test]
+    async fn it_rejects_oversized_body_with_413() {
+        let filter = warp::body::content_length_limit(10)
+            .and(warp::body::bytes())
+            .map(|_body| warp::reply::reply())
+            .recover(customize_error);
+        let res = warp::test::request()
+            .method("PUT")
+            .body("this body is definitely longer than ten bytes")
+            .reply(&filter)
+            .await;
+        assert_eq!(res.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    #[tokio::test]
+    async fn it_rejects_missing_content_length_with_411() {
+        let filter = warp::body::content_length_limit(10)
+            .and(warp::body::bytes())
+            .map(|_body| warp::reply::reply())
+            .recover(customize_error);
+        // No `.body()` call, so the request carries no `Content-Length` header.
+        let res = warp::test::request().method("PUT").reply(&filter).await;
+        assert_eq!(res.status(), StatusCode::LENGTH_REQUIRED);
+    }
+
+    #[tokio::test]
+    async fn it_accepts_body_within_limit() {
+        let filter = warp::body::content_length_limit(10)
+            .and(warp::body::bytes())
+            .map(|_body| warp::reply::reply())
+            .recover(customize_error);
+        let res = warp::test::request()
+            .method("PUT")
+            .body("short")
+            .reply(&filter)
+            .await;
+        assert_eq!(res.status(), StatusCode::OK);
     }
 }
