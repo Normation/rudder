@@ -35,3 +35,5 @@ pub mod user_methods_test; // todo windows support
 pub mod variable_string_default_test;
 
 pub mod variable_string_from_command_test; //todo windows support
+
+pub mod variable_dict_from_file_type_test;
