@@ -251,6 +251,18 @@ object ScheduleTimeZone                 {
   def now():            ScheduleTimeZone                 = ScheduleTimeZone(DateTimeZone.getDefault().getID())
 }
 
+@jsonHint("everyNMonths")
+case class NMonthlySchedule(
+    @jsonField("position")
+    monthlySchedulePosition: MonthlySchedulePosition,
+    start:                   DayTime,
+    end:                     DayTime,
+    tz:                      Option[ScheduleTimeZone],
+    frequency:               Int
+) extends CampaignSchedule {
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
+}
+
 @jsonHint("monthly")
 case class MonthlySchedule(
     @jsonField("position")

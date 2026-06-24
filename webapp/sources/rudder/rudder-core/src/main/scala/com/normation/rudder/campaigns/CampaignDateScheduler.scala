@@ -93,6 +93,37 @@ object CampaignDateScheduler {
 
   }
 
+  def computeMonthly(
+      scheduleInitialDate: ZonedDateTime,
+      position:            MonthlySchedulePosition,
+      start:               DayTime,
+      end:                 DayTime,
+      tz:                  Option[ScheduleTimeZone],
+      frequency:           Int
+  ) = {
+
+    val ordinalForDayOfWeekInMonth = position match {
+      case First      => 1
+      case Second     => 2
+      case Third      => 3
+      case Last       => -1
+      case SecondLast => -2
+    }
+
+    def computeMonthStart(date: ZonedDateTime) = date
+      .`with`(dayOfWeekInMonth(ordinalForDayOfWeekInMonth, start.day.toJavaTime))
+      .withTime(start.asTime)
+
+    val currentMonthStart = computeMonthStart(scheduleInitialDate)
+    val startDate         = if (scheduleInitialDate.isAfter(currentMonthStart)) {
+      computeMonthStart(scheduleInitialDate.plusMonths(frequency))
+    } else {
+      currentMonthStart
+    }
+    val endDate           = nextDateFromDayTime(startDate, end)
+    Some((startDate.toJoda, endDate.toJoda)).asRight
+  }
+
   def nextCampaignDate(
       schedule: CampaignSchedule,
       date:     DateTime
@@ -144,27 +175,11 @@ object CampaignDateScheduler {
 
       case MonthlySchedule(position, start, end, tz) =>
         val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
+        computeMonthly(scheduleInitialDate, position, start, end, tz, 1)
 
-        val ordinalForDayOfWeekInMonth = position match {
-          case First      => 1
-          case Second     => 2
-          case Third      => 3
-          case Last       => -1
-          case SecondLast => -2
-        }
-
-        def computeMonthStart(date: ZonedDateTime) = date
-          .`with`(dayOfWeekInMonth(ordinalForDayOfWeekInMonth, start.day.toJavaTime))
-          .withTime(start.asTime)
-
-        val currentMonthStart = computeMonthStart(scheduleInitialDate)
-        val startDate         = if (scheduleInitialDate.isAfter(currentMonthStart)) {
-          computeMonthStart(scheduleInitialDate.plusMonths(1))
-        } else {
-          currentMonthStart
-        }
-        val endDate           = nextDateFromDayTime(startDate, end)
-        Some((startDate.toJoda, endDate.toJoda)).asRight
+      case NMonthlySchedule(position, start, end, tz, frequency) =>
+        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
+        computeMonthly(scheduleInitialDate, position, start, end, tz, frequency)
     }
   }
 }
