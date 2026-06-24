@@ -15,7 +15,7 @@ import Rules.ViewUtils exposing (..)
 import Task
 import Tuple3
 import Ui.Datatable exposing (Category, SortOrder(..), generateLoadingTable, getAllElems)
-import Utils.TooltipUtils exposing (buildTooltipContent)
+import Utils.CsvExportUtils exposing (exportToCsvButton)
 
 
 nodesTab : Model -> RuleDetails -> Html Msg
