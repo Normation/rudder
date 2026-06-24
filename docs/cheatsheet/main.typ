@@ -346,8 +346,7 @@
   ```
   debian_13
   ubuntu_24_04
-  rhel_10
-  rhel_10_1
+  rhel_10, rhel_10_1
   ```
   #lbl[Show all system conditions]
   ```
@@ -380,6 +379,27 @@
     [#lbl[And]],   [`condition`#op(".")`other`],
     [#lbl[Not]],   [#op("!")`condition`],
   )
+
+  #section("Technique YAML", doc: "https://docs.rudder.io/techniques/9.2/syntax.html")
+  ```yaml
+  id: my_technique
+  name: My technique
+  version: "1.0"
+  params:
+    - name: pkg
+      type: string
+  items:
+    - name: Install
+      method: package_present
+      params:
+        name: ${pkg}
+      condition: debian
+    - name: A block       # groups items
+      items:
+        - method: service_started
+  ```
+
+    
   #section("Techniques (rudderc)", doc: "https://docs.rudder.io/techniques/9.2/usage.html")
 
   #lbl[Scaffold a new technique project]
@@ -394,14 +414,6 @@
   #lbl[Package as .zip for API import]
   ```
   rudderc build --export
-  ```
-  #lbl[Build the methods documentation]
-  ```
-  rudderc lib --open
-  ```
-  #lbl[Remove generated files]
-  ```
-  rudderc clean
   ```
 
   #colbreak()
@@ -486,7 +498,7 @@
 
   #colbreak()
 
-  #section("MiniJinja templating", doc: "https://docs.rudder.io/techniques/9.1/modules/template.html")
+  #section("MiniJinja templating", doc: "https://docs.rudder.io/techniques/9.2/modules/template.html")
 
   #subsection("Variables")
   ```j2
@@ -590,23 +602,37 @@
   {# - trims newlines around the tag #}
   ```
 
-  #section("Technique YAML", doc: "https://docs.rudder.io/techniques/9.2/syntax.html")
-  ```yaml
-  id: my_technique
-  name: My technique
-  version: "1.0"
-  params:
-    - name: pkg
-      type: string
-  items:
-    - name: Install
-      method: package_present
-      params:
-        name: ${pkg}
-      condition: debian
-    - name: A block       # groups items
-      items:
-        - method: service_started
+  #section("Mustache templating", doc: "https://docs.rudder.io/techniques/9.2/modules/template.html")
+
+  #subsection("Variables")
+  ```
+  {{{vars.node.properties.variable_name}}}
+  {{{vars.variable_prefix.string_name}}}
+  {{{vars.variable_prefix.dict_name.key}}} 
+  ```
+
+  #subsection("Conditions")
+  ```
+  {{#classes.conditions}}
+  condition is defined
+  {{/classes.conditions}}
+
+  {{^classes.conditions}}
+  condition is defined
+  {{/classes.conditions}}
+  ```
+
+  #subsection("Iterations")
+  ```
+  {{#vars.variable_prefix.iterator_name}}
+  {{{.}}} is the current iterator_name value
+  {{/vars.variable_prefix.iterator_name}}
+
+  {{#vars.variable_prefix.dict_name}}
+  {{{@}}} is the current dict_name key
+  {{{.}}} is the current dict_name value
+  {{{.name}}} is the current dict_name[name]
+  {{/vars.variable_prefix.dict_name}}
   ```
 ]
 
