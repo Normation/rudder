@@ -498,7 +498,7 @@
 
   #colbreak()
 
-  #section("MiniJinja templating", doc: "https://docs.rudder.io/techniques/9.1/modules/template.html")
+  #section("MiniJinja templating", doc: "https://docs.rudder.io/techniques/9.2/modules/template.html")
 
   #subsection("Variables")
   ```j2
@@ -602,7 +602,7 @@
   {# - trims newlines around the tag #}
   ```
 
-  #section("Mustache templating", doc: "https://docs.rudder.io/techniques/9.1/modules/template.html")
+  #section("Mustache templating", doc: "https://docs.rudder.io/techniques/9.2/modules/template.html")
 
   #subsection("Variables")
   ```
