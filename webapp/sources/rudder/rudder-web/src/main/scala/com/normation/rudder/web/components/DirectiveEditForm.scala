@@ -273,6 +273,26 @@ class DirectiveEditForm(
       case (true, true)   =>
         ("", NodeSeq.Empty)
     }
+
+    val techniqueNameLink = if (isNcfTechnique(technique.id)) {
+      <a href={
+        "/secure/configurationManager/techniqueEditor/technique/" +
+        technique.id.name.value
+      }>
+              {technique.name}
+              version
+              {technique.id.version}
+            </a>
+    } else {
+      <a href={
+        "/secure/administration/maintenance#techniqueTree"
+      }>
+              {technique.name}
+              version
+              {technique.id.version}
+            </a>
+    }
+
     (
       "#editForm" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
@@ -292,6 +312,7 @@ class DirectiveEditForm(
       }</span> &
       "#shortDescription" #> (if (directive.shortDescription.isEmpty) NodeSeq.Empty
                               else <div class="header-description"><p>{directive.shortDescription}</p></div>) &
+      "#techniqueLink" #> techniqueNameLink &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
       } &
@@ -309,29 +330,15 @@ class DirectiveEditForm(
         ("type", "button")
       ) &
       // form and form fields
-      "#techniqueName *" #> {
-        if (isNcfTechnique(technique.id)) {
-          <a href={
-            "/secure/configurationManager/techniqueEditor/technique/" +
-            technique.id.name.value
-          }>
-              {technique.name}
-              version
-              {technique.id.version}
-            </a>
-        } else {
-          <a href={
-            "/secure/administration/maintenance#techniqueTree"
-          }>
-              {technique.name}
-              version
-              {technique.id.version}
-            </a>
-        }
-      } &
+      "#techniqueName *" #> techniqueNameLink &
       "#techniqueID *" #> technique.id.name.value &
-      "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">technique description</button> &
-      "#techniqueDescription *" #> technique.description &
+      (if (technique.description.isEmpty) {
+         "#showTechniqueDescription *" #> NodeSeq.Empty &
+         "#techniqueDescription" #> NodeSeq.Empty
+       } else {
+         "#showTechniqueDescription *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#techniqueDescriptionPanel').toggle(400);$(this).toggleClass('opened');">technique description</button> &
+         "#techniqueDescription" #> technique.description
+       }) &
       "#isDisabled" #> {
         if (!activeTechnique.isEnabled || !directive.isEnabled) {
           <div class="main-alert alert alert-warning">
