@@ -118,3 +118,37 @@ fn it_shares_files() {
     remove_file(file).unwrap();
     remove_file(format!("{file}.metadata")).unwrap();
 }
+
+#[test]
+fn it_rejects_too_large_shared_file_upload() {
+    let cli_cfg = CliConfiguration::new("tests/files/config/", false);
+    let (api_port, https_port) = random_ports();
+
+    thread::spawn(move || {
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
+    });
+    assert!(common::start_api(api_port).is_ok());
+
+    let client = reqwest::blocking::Client::new();
+    let url = format!(
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d"
+    );
+
+    // `tests/files/config/main.conf` sets `[shared_files] max_body_size = 8192`.
+    let too_large = vec![b'a'; 9000];
+    let upload = client.put(&url).body(too_large).send().unwrap();
+    assert_eq!(reqwest::StatusCode::PAYLOAD_TOO_LARGE, upload.status());
+
+    // A request within the bound is not rejected by the size limit (it fails
+    // later, on signature validation, with a 500 - not a 413).
+    let within_limit = client.put(&url).body(vec![b'a'; 100]).send().unwrap();
+    assert_ne!(
+        reqwest::StatusCode::PAYLOAD_TOO_LARGE,
+        within_limit.status()
+    );
+}
