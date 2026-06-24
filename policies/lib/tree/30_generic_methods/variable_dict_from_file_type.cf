@@ -17,17 +17,30 @@
 #####################################################################################
 
 # @name Variable dict from file type
-# @description Define a variable that contains key,value pairs (a dictionary) from a JSON, CSV or YAML file
+# @description Define a variable that contains key,value pairs (a dictionary) from a JSON, YAML, CSV or env file
 # @documentation To use the generated variable, you must use the form `${prefix.name[key]}` with each name replaced with the parameters of this method.
 # 
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 #
-# This method will load data from various file formats (yaml, json, csv). 
+# This method will load data from various file formats (yaml, json, csv, env). 
 #
 # #### CSV parsing
 #
 # The input file must use CRLF as line delimiter
 # to be readable (as stated in RFC 4180).
+# 
+# #### Env parsing
+#
+# Parses key-value pairs from the file in "environment" file format (`man os-release`).
+# Keys and values are interpreted as strings.
+#
+# ```
+# # A comment
+# KEY1="VALUE"
+# KEY2=VALUE2
+# ```
+# 
+# This format is not detected based on file name and must be specified.
 # 
 # #### Examples
 # 
@@ -51,9 +64,9 @@
 # @parameter prefix The prefix of the variable name
 # @parameter name   The variable to define, the full name will be prefix.name
 # @parameter file_name       The file name to load data from
-# @parameter file_type       The file type, can be "JSON", "CSV", "YAML" or "auto" for auto detection based on file extension, with a fallback to JSON (default is "auto")
+# @parameter file_type       The file type, can be "JSON", "CSV", "YAML", "ENV" or "auto" for auto detection based on file extension, with a fallback to JSON (default is "auto")
 # @parameter_constraint file_type "allow_empty_string" : true
-# @parameter_constraint file_type "select" : [ "", "auto", "JSON", "YAML", "CSV" ]
+# @parameter_constraint file_type "select" : [ "", "auto", "JSON", "YAML", "CSV", "ENV" ]
 # 
 # @parameter_rename variable_prefix prefix
 # @parameter_rename variable_name name
@@ -65,8 +78,11 @@ bundle agent variable_dict_from_file_type(prefix, name, file_name, file_type)
 {
   vars:
       "class_prefix"  string => canonify("variable_dict_from_file_type_${name}");
-      # define the variable within the prefix namespace
+
+    pass2.!is_env::
       "${prefix}.${name}"  data => readdata("${file_name}", "${file_type}");
+    pass2.is_env::
+      "${prefix}.${name}"  data => readenvfile("${file_name}");
 
   defaults:
       "file_type"         string => "auto", if_match_regex => "";
@@ -76,6 +92,7 @@ bundle agent variable_dict_from_file_type(prefix, name, file_name, file_type)
       "pass2"            expression => "pass1";
       "pass1"            expression => "any";
       "variable_defined" expression => isvariable("${prefix}.${name}");
+      "is_env"           expression => strcmp("${file_type}", "ENV");
 
   methods:
     pass3.!variable_defined::
