@@ -625,12 +625,15 @@ object JsonResponseObjects {
         )
         .withFieldConst(_.compliance, compliance)
         .withFieldConst(_.runAnalysisKind, runAnalysisKind)
-        .withFieldConst(
+        .withFieldComputed(
           _.systemError,
-          systemCompliance
-            .map(_.compliance.computePercent().compliance < 100)
-            .getOrElse(false)
-        ) // do not display error if no sys compliance
+          // do not display error if no sys compliance or node is in a disabled state
+          n => {
+            n.rudderSettings.state.isEnabled && systemCompliance
+              .map(_.compliance.computePercent().compliance < 100)
+              .getOrElse(false)
+          }
+        )
         .withFieldConst(
           _.software,
           softs.map(s => (s.name.getOrElse(""), s.version.map(_.value).getOrElse("N/A"))).toMap
