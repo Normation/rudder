@@ -251,12 +251,14 @@ mod tests {
                 file_id: "file".to_string(),
             }
         );
-        assert!(SharedFile::new(
-            "source".to_string(),
-            "target".to_string(),
-            "file/../passwd".to_string(),
-        )
-        .is_err());
+        assert!(
+            SharedFile::new(
+                "source".to_string(),
+                "target".to_string(),
+                "file/../passwd".to_string(),
+            )
+            .is_err()
+        );
         // The ".." and "." path-traversal segments must be rejected in every
         // position, even though they match the allowed charset.
         for traversal in ["..", "."] {
@@ -289,12 +291,14 @@ mod tests {
             );
         }
         // A dot inside an id is still allowed (e.g. a file name with an extension).
-        assert!(SharedFile::new(
-            "source".to_string(),
-            "target".to_string(),
-            "my.file.txt".to_string(),
-        )
-        .is_ok());
+        assert!(
+            SharedFile::new(
+                "source".to_string(),
+                "target".to_string(),
+                "my.file.txt".to_string(),
+            )
+            .is_ok()
+        );
     }
 
     #[test]

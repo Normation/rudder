@@ -5,7 +5,7 @@ mod common;
 
 use crate::common::random_ports;
 
-use diesel::{self, prelude::*, PgConnection};
+use diesel::{self, PgConnection, prelude::*};
 use rudder_relayd::{
     configuration::cli::CliConfiguration,
     data::report::QueryableReport,
@@ -176,7 +176,7 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(check_prometheus(&body, expected));
 }
 
-use filetime::{set_file_times, FileTime};
+use filetime::{FileTime, set_file_times};
 use rudder_relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
 
 #[test]

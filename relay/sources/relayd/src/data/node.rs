@@ -393,12 +393,16 @@ mod tests {
             )
             .unwrap()
         );
-        assert!(nodeslist.list.data["c745a140-40bc-4b86-b6dc-084488fc906b"]
-            .key_hash
-            .is_none());
-        assert!(nodeslist.list.data["b745a140-40bc-4b86-b6dc-084488fc906b"]
-            .key_hash
-            .is_none());
+        assert!(
+            nodeslist.list.data["c745a140-40bc-4b86-b6dc-084488fc906b"]
+                .key_hash
+                .is_none()
+        );
+        assert!(
+            nodeslist.list.data["b745a140-40bc-4b86-b6dc-084488fc906b"]
+                .key_hash
+                .is_none()
+        );
         assert_eq!(nodeslist.list.data.len(), 6);
     }
 
@@ -411,12 +415,14 @@ mod tests {
 
     #[test]
     fn it_parses_big_nodeslist() {
-        assert!(NodesList::new(
-            "root".to_string(),
-            "benches/files/nodeslist.json",
-            Some("benches/files/allnodescerts.pem")
+        assert!(
+            NodesList::new(
+                "root".to_string(),
+                "benches/files/nodeslist.json",
+                Some("benches/files/allnodescerts.pem")
+            )
+            .is_ok()
         )
-        .is_ok())
     }
 
     #[test]
