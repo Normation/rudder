@@ -25,7 +25,9 @@ pub mod schema {
     table! {
         use diesel::sql_types::*;
 
-        // Needs to be kept in sync with the database schema
+        // Needs to be kept in sync with the database schema.
+        // Any change to the inserted columns (here minus the auto-generated `id`)
+        // must also be reflected in `REPORT_COLUMNS`.
         ruddersysevents {
             id -> BigInt,
             executiondate -> Timestamptz,
@@ -56,6 +58,17 @@ pub mod schema {
 }
 
 pub type PgPool = Pool<ConnectionManager<PgConnection>>;
+
+/// Number of columns bound for each inserted report.
+/// Must be kept in sync with the `Report` `Insertable` struct.
+const REPORT_COLUMNS: usize = 11;
+
+/// PostgreSQL's wire protocol encodes the number of bind parameters of a statement
+/// as a `u16`, so a single query can bind at most 65535 of them. Each report binds
+/// `REPORT_COLUMNS` columns, so we split big runlogs into chunks to stay below that
+/// limit, otherwise insertion fails with:
+///  "number of parameters must be between 0 and 65535".
+const REPORTS_INSERT_CHUNK_SIZE: usize = u16::MAX as usize / REPORT_COLUMNS;
 
 pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
     let manager = ConnectionManager::<PgConnection>::new(format!(
@@ -139,12 +152,24 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
 
         if new_runlog {
             trace!("Inserting runlog {:#?}", runlog);
+
+            let mut chunks = runlog.reports.chunks(REPORTS_INSERT_CHUNK_SIZE);
+
+            // The id of the first inserted report is used as the runlog insertion id.
+            // It is the lowest of all inserted ids as the first chunk is inserted
+            // first within the transaction.
             let report_id = insert_into(ruddersysevents)
-                .values(&runlog.reports)
+                .values(chunks.next().expect("a runlog should never be empty"))
                 .get_results::<QueryableReport>(connection)?
                 .first()
                 .expect("inserted runlog cannot be empty")
                 .id;
+
+            for chunk in chunks {
+                insert_into(ruddersysevents)
+                    .values(chunk)
+                    .execute(connection)?;
+            }
 
             // Only insert full run logs into `reportsexecution`
             if runlog.log_type() == RunLogType::Complete {
@@ -249,5 +274,36 @@ mod tests {
             .first(db)
             .unwrap();
         assert_eq!(results, 1);
+    }
+
+    #[test]
+    fn it_inserts_runlog_bigger_than_postgresql_parameter_limit() {
+        let pool = db();
+        let db = &mut *pool.get().unwrap();
+
+        diesel::delete(ruddersysevents).execute(db).unwrap();
+        diesel::delete(reportsexecution).execute(db).unwrap();
+
+        let mut runlog = RunLog::new(
+            "tests/files/runlogs/2018-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+        )
+        .unwrap();
+
+        // Grow the runlog past the chunking threshold so that a single INSERT would
+        // bind more than 65535 parameters, forcing the insertion to be split.
+        let template = runlog.reports.clone();
+        while runlog.reports.len() <= REPORTS_INSERT_CHUNK_SIZE {
+            runlog.reports.extend(template.iter().cloned());
+        }
+        let expected = runlog.reports.len() as i64;
+        assert!(expected * REPORT_COLUMNS as i64 > u16::MAX as i64);
+
+        assert_eq!(
+            insert_runlog(&pool, &runlog).unwrap(),
+            RunlogInsertion::Inserted
+        );
+
+        let inserted: i64 = ruddersysevents.count().get_result(db).unwrap();
+        assert_eq!(inserted, expected);
     }
 }
