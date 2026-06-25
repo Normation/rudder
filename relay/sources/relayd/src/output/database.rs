@@ -287,8 +287,7 @@ mod tests {
         )
         .unwrap();
 
-        // Grow the runlog past the chunking threshold so that a single INSERT would
-        // bind more than 65535 parameters, forcing the insertion to be split.
+        // Force chunking
         let template = runlog.reports.clone();
         while runlog.reports.len() <= REPORTS_INSERT_CHUNK_SIZE {
             runlog.reports.extend(template.iter().cloned());
@@ -303,5 +302,12 @@ mod tests {
 
         let inserted: i64 = ruddersysevents.count().get_result(db).unwrap();
         assert_eq!(inserted, expected);
+
+        let runs: i64 = reportsexecution.count().get_result(db).unwrap();
+        assert_eq!(runs, 1);
+
+        let first_id: Option<i64> = ruddersysevents.select(min(id)).get_result(db).unwrap();
+        let insertion: Option<i64> = reportsexecution.select(insertionid).get_result(db).unwrap();
+        assert_eq!(insertion, first_id);
     }
 }
