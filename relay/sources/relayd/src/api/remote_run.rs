@@ -2,15 +2,15 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use crate::{
+    JobConfig,
     api::RudderReject,
     configuration::main::RemoteRun as RemoteRunCfg,
     data::node::{Host, NodeId},
     error::RudderError,
-    JobConfig,
 };
 use anyhow::Error;
 use bytes::Bytes;
-use futures::{stream::select, Stream, StreamExt, TryStreamExt};
+use futures::{Stream, StreamExt, TryStreamExt, stream::select};
 use regex::Regex;
 use std::{
     collections::HashMap,
@@ -26,9 +26,9 @@ use tokio::{
 use tokio_stream::{self, wrappers::LinesStream};
 use tracing::{debug, error, instrument, trace, warn};
 use warp::{
-    body,
-    filters::{method, BoxedFilter},
-    path, Filter, Reply,
+    Filter, Reply, body,
+    filters::{BoxedFilter, method},
+    path,
 };
 
 /// Maximum size of a remote-run request body. These are small forms
@@ -78,7 +78,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 
 pub mod handlers {
     use percent_encoding::percent_decode_str;
-    use warp::{reject, Rejection, Reply};
+    use warp::{Rejection, Reply, reject};
 
     use super::*;
     use crate::JobConfig;
@@ -512,7 +512,9 @@ impl RunParameters {
     }
 
     /// Stream command output as a stream of lines
-    async fn lines_stream(child: &mut Child) -> Box<impl Stream<Item = Result<Bytes, Error>>> {
+    async fn lines_stream(
+        child: &mut Child,
+    ) -> Box<impl Stream<Item = Result<Bytes, Error>> + use<>> {
         let stdout = child
             .stdout
             .take()

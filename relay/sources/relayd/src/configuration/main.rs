@@ -11,11 +11,11 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{Context, Error, anyhow, bail};
 use secrecy::SecretString;
 use serde::{
-    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,
+    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
 };
 use serde_inline_default::serde_inline_default;
 use tracing::{debug, warn};
