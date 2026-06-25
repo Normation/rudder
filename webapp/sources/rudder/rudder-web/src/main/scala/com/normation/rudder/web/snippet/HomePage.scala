@@ -48,6 +48,7 @@ import com.normation.inventory.domain.WindowsType
 import com.normation.inventory.ldap.core.TimingDebugLoggerPure
 import com.normation.ldap.sdk.BuildFilter.*
 import com.normation.ldap.sdk.FALSE
+import com.normation.plugins.SecureExtendableSnippet
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
@@ -119,7 +120,7 @@ object HomePageUtils {
   }
 }
 
-class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable {
+class HomePage extends SecureExtendableSnippet[HomePage] with StatefulSnippet with Loggable {
 
   private val nodeFactRepo     = RudderConfig.nodeFactRepository
   private val ldap             = RudderConfig.roLDAPConnectionProvider
@@ -129,7 +130,7 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
   private val scoreService     = RudderConfig.rci.scoreService
   private val directiveRepo    = RudderConfig.roDirectiveRepository
 
-  override val secureDispatch: QueryContext ?=> DispatchIt = {
+  def mainSecureDispatch: QueryContext ?=> Map[String, NodeSeq => NodeSeq] = {
 
     // get one coherent view of nodes for the whole page
 
@@ -142,19 +143,23 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
       .getOrElse(Map())
 
     // partial function syntax is a bit strange
-    {
-      case "pendingNodes"       => pendingNodes
-      case "acceptedNodes"      => acceptedNodes(nodes.size)
-      case "rules"              => rules
-      case "directives"         => directives
-      case "groups"             => groups
-      case "techniques"         => techniques
-      case "getAllCompliance"   => _ => getAllCompliance(nodes)
-      case "inventoryInfo"      => _ => inventoryInfo(nodes)
-      case "rudderAgentVersion" => _ => rudderAgentVersion(nodes)
-    }
+    Map(
+      "pendingNodes"       -> pendingNodes,
+      "acceptedNodes"      -> acceptedNodes(nodes.size),
+      "rules"              -> rules,
+      "directives"         -> directives,
+      "groups"             -> groups,
+      "techniques"         -> techniques,
+      "getAllCompliance"   -> (_ => getAllCompliance(nodes)),
+      "inventoryInfo"      -> (_ => inventoryInfo(nodes)),
+      "rudderAgentVersion" -> (_ => rudderAgentVersion(nodes)),
+      "details"            -> details
+    )
   }
 
+  def details(html: NodeSeq):                                 NodeSeq = {
+    html
+  }
   def pendingNodes(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
     displayCount(countPendingNodes, "pending nodes")
   }
