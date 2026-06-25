@@ -578,7 +578,7 @@ pipeline {
                             dir('docs/architecture') {
                                 sh script: 'java -jar /usr/bin/structurizr.war export -format static -output target -workspace rudder-containers.dsl', label: 'build architecture documentation'
                                 withCredentials([sshUserPrivateKey(credentialsId: 'docs-publish', keyFileVariable: 'KEY_FILE', passphraseVariable: '', usernameVariable: 'KEY_USER')]) {
-                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/docs/architecture/', label: "publish architecture documentation"
+                                    sh script: 'rsync -avz -e "ssh -o StrictHostKeyChecking=no -i${KEY_FILE} -p${SSH_PORT}" target/ ${KEY_USER}@${HOST_DOCS}:/var/www-docs/devel/${RUDDER_VERSION}/architecture-doc/', label: "publish architecture documentation"
                                 }
                             }
                         }
