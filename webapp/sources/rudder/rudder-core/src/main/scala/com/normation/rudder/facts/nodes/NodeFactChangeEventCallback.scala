@@ -157,12 +157,21 @@ class ScoreUpdateOnNodeFactChange(scoreServiceManager: ScoreServiceManager, scor
 
   def run(change: NodeFactChangeEventCC): IOResult[Unit] = {
     change.event match {
-      case NodeFactChangeEvent.Accepted(node, _)      =>
+      case NodeFactChangeEvent.Accepted(node, _) =>
         scoreServiceManager.handleEvent(SystemUpdateScoreEvent(node.id, node.softwareUpdate.toList))
-      case NodeFactChangeEvent.Updated(_, newNode, _) =>
-        scoreServiceManager.handleEvent(SystemUpdateScoreEvent(newNode.id, newNode.softwareUpdate.toList))
-      case NodeFactChangeEvent.Deleted(node, _)       => scoreService.deleteNodeScore(node.id)(using change.cc.toQuery)
-      case _                                          => ZIO.unit
+
+      case NodeFactChangeEvent.Updated(oldNode, newNode, _) =>
+        if (newNode.rudderSettings.state.isEnabled) { // if enabled and update, get the software
+          scoreServiceManager.handleEvent(SystemUpdateScoreEvent(newNode.id, newNode.softwareUpdate.toList))
+        } else {
+          if (oldNode.rudderSettings.state.isEnabled) { // we are disabling the node: delete its scores
+            scoreService.deleteNodeScore(newNode.id)(using change.cc.toQuery)
+          } else ZIO.unit // the node was already disabled
+        }
+
+      case NodeFactChangeEvent.Deleted(node, _) => scoreService.deleteNodeScore(node.id)(using change.cc.toQuery)
+
+      case _ => ZIO.unit
     }
   }
 

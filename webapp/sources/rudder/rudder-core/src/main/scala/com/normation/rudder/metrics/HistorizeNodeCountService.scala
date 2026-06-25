@@ -40,7 +40,6 @@ package com.normation.rudder.metrics
 import better.files.*
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
-import com.normation.rudder.domain.nodes.NodeState.Ignored
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
@@ -164,7 +163,7 @@ class FetchDataServiceImpl(nodeFactRepo: NodeFactRepository, reportingService: R
         modes.getOrElse(Mode.Audit, 0),
         modes.getOrElse(Mode.Enforce, 0),
         modes.getOrElse(Mode.Mixed, 0),
-        accepted.count { case (_, n) => n.rudderSettings.state == Ignored }
+        accepted.count { case (_, n) => !n.rudderSettings.state.isEnabled }
       )
     }
   }

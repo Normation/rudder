@@ -103,7 +103,7 @@ object NodeState extends Enum[NodeState] {
   case object Enabled       extends NodeState("enabled", true)
   case object EmptyPolicies extends NodeState("empty-policies", true)
   case object Ignored       extends NodeState("ignored", false)
-  case object PreparingEOL  extends NodeState("preparing-eol", false)
+  case object PreparingEOL  extends NodeState("preparing-eol", true)
 
   def values: IndexedSeq[NodeState] = findValues
 

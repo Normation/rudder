@@ -900,7 +900,7 @@ object GetConsistentNodesAndGroups {
     }
 
     // now, filter out all nodes in groups that are not in the accepted list of nodes
-    val (okNodes, others) = nodeFacts.toMap.partition { case (_, n) => n.rudderSettings.state != NodeState.Ignored }
+    val (okNodes, others) = nodeFacts.toMap.partition { case (_, n) => n.rudderSettings.state.isEnabled }
 
     for {
       _   <- ZIO.foreachDiscard(others.values) { n =>
