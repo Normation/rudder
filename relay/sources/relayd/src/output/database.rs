@@ -199,7 +199,7 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
 
 #[cfg(test)]
 mod tests {
-    use diesel::dsl::count;
+    use diesel::dsl::{count, min};
 
     use super::*;
     use crate::{
