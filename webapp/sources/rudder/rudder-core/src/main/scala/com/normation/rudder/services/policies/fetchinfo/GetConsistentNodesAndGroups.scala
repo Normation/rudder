@@ -39,7 +39,6 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -124,7 +123,7 @@ object GetConsistentNodesAndGroups {
     }
 
     // now, filter out all nodes in groups that are not in the accepted list of nodes
-    val (okNodes, others) = nodeFacts.toMap.partition { case (_, n) => n.rudderSettings.state != NodeState.Ignored }
+    val (okNodes, others) = nodeFacts.toMap.partition { case (_, n) => n.rudderSettings.state.isEnabled }
 
     for {
       _   <- ZIO.foreachDiscard(others.values) { n =>

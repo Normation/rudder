@@ -42,7 +42,6 @@ import com.normation.box.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.reports.{RunAnalysisKind as R, *}
@@ -393,9 +392,9 @@ class ReportDisplayer(
       onlySystem:         Boolean,
       defaultRunInterval: Int
   )(implicit qc: QueryContext): NodeSeq = {
-    val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
+    val boxXml = (if (!node.rudderSettings.state.isEnabled) {
                     Full(
-                      <div><div class="col-md-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
+                      <div><div class="col-md-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is in a disabled state.</p></div></div>
                     )
                   } else {
                     for {
@@ -444,9 +443,9 @@ class ReportDisplayer(
                           <div id={"triggerAgent" + defaultOrInventory} class="mb-3">
             <button id={
                             "triggerBtn" + defaultOrInventory
-                          } class="btn btn-primary btn-trigger pe-auto" 
-                            data-bs-toggle="tooltip" 
-                            title="This action is not supported for Windows nodes" 
+                          } class="btn btn-primary btn-trigger pe-auto"
+                            data-bs-toggle="tooltip"
+                            title="This action is not supported for Windows nodes"
                             disabled="disabled">
                               <span>Trigger agent {defaultOrInventory.toLowerCase()}</span>
                               &nbsp;
