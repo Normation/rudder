@@ -12,13 +12,13 @@ use secrecy::ExposeSecret;
 use tracing::{debug, error, instrument, trace};
 
 use crate::{
+    Error,
     configuration::main::DatabaseConfig,
     data::{
+        RunLog,
         report::QueryableReport,
         runlog::{InsertedRunlog, RunLogType},
-        RunLog,
     },
-    Error,
 };
 
 pub mod schema {

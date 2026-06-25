@@ -14,7 +14,7 @@ use flate2::read::GzDecoder;
 use openssl::{
     pkcs7::{Pkcs7, Pkcs7Flags},
     stack::Stack,
-    x509::{store::X509StoreBuilder, X509},
+    x509::{X509, store::X509StoreBuilder},
 };
 use tokio::fs::read;
 use tracing::debug;
@@ -174,11 +174,13 @@ mod tests {
         let mut certs = Stack::new().unwrap();
         certs.push(x509).unwrap();
 
-        assert!(signature(
-            &std::fs::read("tests/files/smime/normal-diff.signed").unwrap(),
-            &certs,
-        )
-        .is_err());
+        assert!(
+            signature(
+                &std::fs::read("tests/files/smime/normal-diff.signed").unwrap(),
+                &certs,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -191,10 +193,12 @@ mod tests {
         let mut certs = Stack::new().unwrap();
         certs.push(x509bis).unwrap();
 
-        assert!(signature(
-            &std::fs::read("tests/files/smime/normal.signed").unwrap(),
-            &certs,
-        )
-        .is_err());
+        assert!(
+            signature(
+                &std::fs::read("tests/files/smime/normal.signed").unwrap(),
+                &certs,
+            )
+            .is_err()
+        );
     }
 }

@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::Error;
-use futures::{future, StreamExt};
+use futures::{StreamExt, future};
 use inotify::{Inotify, WatchMask};
 use tokio::{
     fs::{read_dir, remove_file},
@@ -104,20 +104,19 @@ async fn list_files(
         let mut limit = cfg.limit;
         while limit > 0 {
             limit -= 1;
-            if let Some(entry) = files.next_entry().await? {
-                let metadata = entry.metadata().await?;
-                let since = sys_time
-                    .duration_since(metadata.modified().unwrap_or(sys_time))
-                    // An error indicates a file in the future, let's approximate it to now
-                    .unwrap_or_else(|_| Duration::new(0, 0));
-
-                if since > Duration::from_secs(30) {
-                    let path = entry.path();
-                    debug!("list: {:?}", path);
-                    tx.clone().send(path).await?;
-                }
-            } else {
+            let Some(entry) = files.next_entry().await? else {
                 break;
+            };
+            let metadata = entry.metadata().await?;
+            let since = sys_time
+                .duration_since(metadata.modified().unwrap_or(sys_time))
+                // An error indicates a file in the future, let's approximate it to now
+                .unwrap_or_else(|_| Duration::new(0, 0));
+
+            if since > Duration::from_secs(30) {
+                let path = entry.path();
+                debug!("list: {:?}", path);
+                tx.clone().send(path).await?;
             }
         }
     }
@@ -165,7 +164,7 @@ async fn watch_files<P: AsRef<Path>>(path: P, tx: mpsc::Sender<ReceivedFile>) ->
 #[cfg(test)]
 mod tests {
     use std::{
-        fs::{rename, File},
+        fs::{File, rename},
         path::PathBuf,
         str::FromStr,
     };
