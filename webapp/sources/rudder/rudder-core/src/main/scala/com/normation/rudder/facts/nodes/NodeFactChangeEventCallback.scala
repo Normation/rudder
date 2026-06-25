@@ -166,11 +166,11 @@ class ScoreUpdateOnNodeFactChange(scoreServiceManager: ScoreServiceManager, scor
           scoreServiceManager.handleEvent(SystemUpdateScoreEvent(newNode.id, newNode.softwareUpdate.toList))
         } else {
           if (oldNode.rudderSettings.state.isEnabled) { // we are disabling the node: delete its scores
-            scoreService.deleteNodeScore(newNode.id)(using change.cc.toQuery)
+            scoreService.deleteNodeScore(newNode.id)(using change.cc.toQC)
           } else ZIO.unit // the node was already disabled
         }
 
-      case NodeFactChangeEvent.Deleted(node, _) => scoreService.deleteNodeScore(node.id)(using change.cc.toQuery)
+      case NodeFactChangeEvent.Deleted(node, _) => scoreService.deleteNodeScore(node.id)(using change.cc.toQC)
 
       case _ => ZIO.unit
     }
