@@ -20,7 +20,6 @@
 
 package com.normation.eventlog
 
-import cats.data.NonEmptyList
 import com.normation.eventlog.EventLogRequest.IncludeExclude
 import com.normation.eventlog.EventLogRequest.PrincipalFilter
 import com.normation.eventlog.EventLogRequest.TypeFilter
@@ -33,6 +32,7 @@ import enumeratum.EnumEntry.Uppercase
 import io.scalaland.chimney.Transformer
 import java.time.Instant
 import scala.xml.*
+import zio.NonEmptyChunk
 
 final case class EventActor(name: String) extends AnyVal
 
@@ -224,19 +224,20 @@ case class EventLogRequest(
     typeFilter: Option[EventLogRequest.TypeFilter]
 ) {
   private def excludeRudderActor: EventLogRequest = {
-    val nel               = NonEmptyList.of(RudderEventActor, RudderSystemEventActor)
+    val nel               = NonEmptyChunk(RudderEventActor, RudderSystemEventActor)
     val includePrincipals = principal.flatMap(_.include)
     this.copy(principal = Some(PrincipalFilter(includePrincipals, Some(exclude(nel, principal)))))
   }
 
   private def excludeAutomaticallyGeneratedType: EventLogRequest = {
-    val nel          = NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment)
+    val nel: NonEmptyChunk[EventLogType] =
+      NonEmptyChunk(AutomaticStartDeployementEventType, SuccessfulDeploymentEventType, FailedDeploymentEventType)
     val includeTypes = typeFilter.flatMap(_.include)
     this.copy(typeFilter = Some(TypeFilter(includeTypes, Some(exclude(nel, typeFilter)))))
   }
 
-  private def exclude[P](nel: NonEmptyList[P], filter: Option[IncludeExclude[P]]) = {
-    filter.flatMap(_.exclude).map(_.concatNel(nel)).getOrElse(nel)
+  private def exclude[P](nel: NonEmptyChunk[P], filter: Option[IncludeExclude[P]]) = {
+    filter.flatMap(_.exclude).map(_ ++ nel).getOrElse(nel)
   }
 
   def addUserFilters: EventLogRequest = {
@@ -250,13 +251,14 @@ object EventLogRequest {
   final case class Order(column: Column, dir: Direction)
 
   sealed trait IncludeExclude[T] {
-    def include: Option[NonEmptyList[T]]
-    def exclude: Option[NonEmptyList[T]]
+    def include: Option[NonEmptyChunk[T]]
+    def exclude: Option[NonEmptyChunk[T]]
   }
-  final case class PrincipalFilter(include: Option[NonEmptyList[EventActor]], exclude: Option[NonEmptyList[EventActor]])
+
+  final case class PrincipalFilter(include: Option[NonEmptyChunk[EventActor]], exclude: Option[NonEmptyChunk[EventActor]])
       extends IncludeExclude[EventActor]
-  final case class TypeFilter(include: Option[NonEmptyList[EventLogFilter]], exclude: Option[NonEmptyList[EventLogFilter]])
-      extends IncludeExclude[EventLogFilter]
+  final case class TypeFilter(include: Option[NonEmptyChunk[EventLogType]], exclude: Option[NonEmptyChunk[EventLogType]])
+      extends IncludeExclude[EventLogType]
 
   sealed abstract class Column(val id: Int) extends Lowercase
   object Column                             extends Enum[Column] {

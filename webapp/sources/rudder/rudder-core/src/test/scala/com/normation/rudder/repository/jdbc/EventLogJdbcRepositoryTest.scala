@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.data.NonEmptyList
 import com.normation.eventlog.*
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.eventlog.*
@@ -47,7 +46,7 @@ import java.time.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
-import scala.xml.*
+import zio.NonEmptyChunk
 
 /**
  *
@@ -87,14 +86,14 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
   check(
     EventLogJdbcRepository.getEventLogCountSQL(
       Some(
-        defaultFilter.copy(principal = Some(EventLogRequest.PrincipalFilter(Some(NonEmptyList.of(EventActor("rudder"))), None)))
+        defaultFilter.copy(principal = Some(EventLogRequest.PrincipalFilter(Some(NonEmptyChunk(EventActor("rudder"))), None)))
       )
     )
   )
   check(
     EventLogJdbcRepository.getEventLogCountSQL(
       Some(
-        defaultFilter.copy(principal = Some(EventLogRequest.PrincipalFilter(None, Some(NonEmptyList.of(EventActor("rudder"))))))
+        defaultFilter.copy(principal = Some(EventLogRequest.PrincipalFilter(None, Some(NonEmptyChunk(EventActor("rudder"))))))
       )
     )
   )
@@ -109,7 +108,7 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
         defaultFilter.copy(typeFilter = {
           Some(
             EventLogRequest.TypeFilter(
-              Some(NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment)),
+              Some(NonEmptyChunk(AutomaticStartDeployementEventType, SuccessfulDeploymentEventType, FailedDeploymentEventType)),
               None
             )
           )
@@ -124,7 +123,7 @@ class EventLogJdbcRepositoryTest extends Specification with IOChecker with DBCom
           Some(
             EventLogRequest.TypeFilter(
               None,
-              Some(NonEmptyList.of(AutomaticStartDeployement, SuccessfulDeployment, FailedDeployment))
+              Some(NonEmptyChunk(AutomaticStartDeployementEventType, SuccessfulDeploymentEventType, FailedDeploymentEventType))
             )
           )
         })
