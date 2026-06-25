@@ -60,7 +60,6 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
-import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
 import com.normation.rudder.web.snippet.WithNonce
@@ -276,7 +275,7 @@ object DisplayNode extends Loggable {
           <button class="nav-link" data-bs-toggle="tab" data-bs-target={
         htmlId_#(jsId, "sd_fs_")
       } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_fs_")}>File systems</button>
-      </li> ::
+        </li> ::
       <li class="nav-item">
           <button class="nav-link" data-bs-toggle="tab" data-bs-target={
         htmlId_#(jsId, "sd_net_")
@@ -508,30 +507,30 @@ object DisplayNode extends Loggable {
     }
 
     <div class="header-title">
-    <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
-    <h1>
-      <div id="nodeHeaderInfo">
-        <span>{sm.node.main.hostname}</span>
-        <span class="machine-os-info">
-          <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
-          <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
-          <span class="fa fa-info-circle icon-info me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
+      <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
+      <h1>
+        <div id="nodeHeaderInfo">
+          <span>{sm.node.main.hostname}</span>
+          <span class="machine-os-info">
+            <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
+            <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
+            <span class="fa fa-info-circle icon-info me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
       machineTooltip
     }></span>
-        </span>
-        {nodeStateIcon}
+          </span>
+          {nodeStateIcon}
+        </div>
+        <div class="header-subtitle">
+          <a class="clipboard" title="Copy to clipboard" onclick={s"copy('${sm.node.main.id.value}')"}>
+            <span id="nodeHeaderId">{sm.node.main.id.value}</span>
+            <i class="ion ion-clipboard"></i>
+          </a>
+        </div>
+      </h1>
+      <div class="header-buttons">
+        {deleteBtn}
       </div>
-      <div class="header-subtitle">
-        <a class="clipboard" title="Copy to clipboard" onclick={s"copy('${sm.node.main.id.value}')"}>
-          <span id="nodeHeaderId">{sm.node.main.id.value}</span>
-          <i class="ion ion-clipboard"></i>
-        </a>
-      </div>
-    </h1>
-    <div class="header-buttons">
-      {deleteBtn}
     </div>
-  </div>
   }
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
@@ -662,49 +661,30 @@ object DisplayNode extends Loggable {
         .getOrElse("none available")
     }
           </div>
-          
-          <!-- todo fix here -->
+
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>
-            <div id="nodeDocumentationFieldMarkdownContainer">
-              <label class="fw-normal">Edit documentation
-                <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" onmouseenter="toggleOpacity(this)" title="Edit description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('nodeDocumentationField')"></i>
-              </label>
-              <div class="markdown">
-                <div id="nodeDocumentationFieldMarkdown"></div>
-              </div>
-            </div>
-            <div id="nodeDocumentationFieldContainer" class="d-flex d-none">
-              <div id="nodeDocumentationField">
-                
-                {
-      new WBTextAreaField("Documentation", nodeFact.documentation.getOrElse("")) {
-        override def setFilter             = notNull :: trim :: Nil
-        override def className             = "form-control"
-        override def labelClassName        = ""
-        override def subContainerClassName = ""
-        override def containerClassName    = "col-12 pe-2"
-        override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
-      }.toForm_!
-    }
-              </div>
-              <div>
-                {cancelDocumentationEdit()} 
-                {saveDocumentationEdit(nodeFact)}
-                {
+          {
+      <div id="nodedocumentation-app"></div> ++
       WithNonce.scriptWithNonce(
-        Script(
-          OnLoad(
-            JsRaw(
-              s"setupMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, 'nodeDocumentationField')"
-            )
-          )
-        )
+        Script(OnLoad(JsRaw((s"""
+                                |var nodeDocumentation = document.getElementById("nodedocumentation-app")
+                                |var initValues = {
+                                |  nodeId : "${nodeFact.id.value}",
+                                |  contextPath : contextPath,
+                                |  username : "${CurrentUser.actor.name}"
+                                |};
+                                |var app = Elm.NodeDescription.init({node: nodeDocumentation, flags: initValues});
+                                |app.ports.errorNotification.subscribe(function(str) {
+                                |  createErrorNotification(str)
+                                |});
+                                |app.ports.successNotification.subscribe(function(str) {
+                                |  createSuccessNotification(str)
+                                |});
+                                |""".stripMargin))))
       )
     }
-              </div>
-            </div>
         </div>
       </div>
       <div class="rudder-info">
@@ -733,107 +713,19 @@ object DisplayNode extends Loggable {
       }
       s"${nodeFact.rudderAgent.agentType.displayName} (${nodeFact.rudderAgent.version.value} with ${capabilities})"
     }
-            </div>
-            {displayPolicyServerInfos(nodeFact.toFullInventory)}
-            <div>
-              {
+        </div>
+        {displayPolicyServerInfos(nodeFact.toFullInventory)}
+        <div>
+          {
       creationDate.map { creation =>
         <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
       }.getOrElse(NodeSeq.Empty)
     }
-            </div>
-            {displaySecurityInfo(nodeFact)}
+        </div>
+        {displaySecurityInfo(nodeFact)}
       </div>
     </div>
   }
-
-  /*
-  private val documentationTextArea = {
-    new WBTextAreaField("Documentation") {
-      override def setFilter             = notNull :: trim :: Nil
-      override def className             = "form-control"
-      override def labelClassName        = ""
-      override def subContainerClassName = ""
-      override def containerClassName    = "col-12 pe-2"
-      override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
-    }
-  }
-
-   */
-
-  private def cancelDocumentationEdit(): NodeSeq = {
-    SHtml.ajaxButton(
-      "Cancel",
-      (() => JsRaw("toggleMarkdownEditor('nodeDocumentationField');").cmd),
-      ("class", "btn btn-danger")
-    )
-  }
-
-  private def saveDocumentationEdit(nodeFact: NodeFact): NodeSeq = {
-    SHtml.ajaxButton(
-      "Save",
-      (() => saveDocumentation(nodeFact) & JsRaw("toggleMarkdownEditor('nodeDocumentationField');").cmd),
-      ("class", "btn btn-success")
-    )
-  }
-
-  private def saveDocumentation(nodeFact: NodeFact): JsCmd = {
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-      CurrentUser.actor,
-      Instant.now(),
-      Some("Node documentation changed"),
-      None,
-      CurrentUser.nodePerms
-    )
-
-    // val docvalue = //todo
-
-    (for {
-      node   <- RudderConfig.nodeFactRepository
-                  .get(nodeFact.id)(using cc.toQuery)
-                  .notOptional(s"Cannot update node with id ${nodeFact.id.value}: there is no node with that id")
-      newNode = node.modify(_.documentation).setTo(Some("mydesc"))
-      _      <- RudderConfig.nodeFactRepository.save(newNode)
-    } yield {
-      Noop
-    }).catchAll { err =>
-      val js: JsCmd = JsRaw(
-        s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
-              .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
-          "Please contact your server admin to resolve the problem. " +
-          s"Error was: '${err.fullMsg}'"}")"""
-      ) // JsRaw ok, escaped
-      js.succeed
-    }.runNow
-  }
-
-  /*
-  private def editNodeDocumentation(nodeFact: NodeFact): NodeSeq = {
-
-    // fixme content :           {
-    //      WithNonce.scriptWithNonce(
-    //        Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))
-    //      )
-    //    }
-
-    SHtml.ajaxEditable(
-      SHtml.text(s"${Str(nodeFact.documentation.getOrElse("")).toJsCmd}", _ => ()),
-      SHtml.text(s"${Str(nodeFact.documentation.getOrElse("")).toJsCmd}", s => println("Edited with " + s)),
-      () => { println("submitted"); Noop }
-    )
-
-    /*
-    SHtml.ajaxButton(
-      (<text>Edit documentation</text><span class="fa fa-pencil ms-2"></span>),
-      () => editableDocumentation()
-    ) % ("class", "btn btn-default")
-   */
-
-    // <i class="fa fa-pencil text-primary cursorPointer half-opacity edit-description-icon" title="Edit documentation"></i>
-  }
-
-   */
 
   private def htmlId(jsId:   JsNodeId, prefix: String): String = prefix + jsId.toString
   private def htmlId_#(jsId: JsNodeId, prefix: String): String = "#" + prefix + jsId.toString
@@ -889,7 +781,7 @@ object DisplayNode extends Loggable {
               <div><label>Security token fingerprint (sha1): </label> <samp>{
                 SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
               }</samp></div>
-                    <div><label>Security token expiration date: </label> {
+                <div><label>Security token expiration date: </label> {
                 DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter, DateTimeZone.UTC))
               }</div>
             )
@@ -938,7 +830,6 @@ object DisplayNode extends Loggable {
         // confirmation button
         SHtml.ajaxButton(
           "Reset security token",
-          // todo here
           () => resetKeyStatus(nodeFact) & JsRaw(""" hideBsModal("basePopup") """)
         ) % ("class", "btn btn-danger")
       }
@@ -1084,20 +975,20 @@ object DisplayNode extends Loggable {
           </div>
         case Full(seq)                                       =>
           <table cellspacing="0" id={htmlId(jsId, eltName + "_")} class="tablewidth">
-          {
+            {
             title match {
               case None        => NodeSeq.Empty
               case Some(title) => <div style="text-align:center"><b>{title}</b></div>
             }
           }
-          <thead>
-          <tr class="head">
-          </tr>
-            <tr class="head">{
+            <thead>
+              <tr class="head">
+              </tr>
+              <tr class="head">{
             columns.map(h => <th>{h._1}</th>).toSeq
           }</tr>
-          </thead>
-          <tbody class="toggle-color">{
+            </thead>
+            <tbody class="toggle-color">{
             seq.flatMap(x =>
               <tr>{columns.flatMap { case (header, renderLine) => <td class="text-break">{renderLine(x)}</td> }}</tr>
             )
@@ -1296,12 +1187,12 @@ object DisplayNode extends Loggable {
           <td>
             <pre class="json-inventory-vars">{value}</pre>
           </td>
-          <td>
-            <span class="ion ion-clipboard copy-actions" onclick={s"copy('${value}')"}></span>
-          </td>
+            <td>
+              <span class="ion ion-clipboard copy-actions" onclick={s"copy('${value}')"}></span>
+            </td>
         }
       }
-     </tr>
+      </tr>
     }
 
     val os = sm.node.main.osDetails.transformInto[OsDetailsJson]
