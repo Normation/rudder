@@ -53,7 +53,6 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.SelectNodeStatus
@@ -181,7 +180,7 @@ class HomePage extends SecureDispatchSnippet with StatefulSnippet with Loggable 
 
   def getAllCompliance(allNodes: Map[NodeId, CoreNodeFact])(implicit qc: QueryContext): NodeSeq = {
     // this needs to be outside of the zio for-comprehension context to see the right node facts
-    val nodes = allNodes.filterNot(_._2.rudderSettings.state == NodeState.Ignored).keys.toSet
+    val nodes = allNodes.filter(_._2.rudderSettings.state.isEnabled).keys.toSet
     (for {
       n2                <- currentTimeMillis
       userRules         <- roRuleRepo.getIds()

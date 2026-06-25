@@ -759,6 +759,7 @@ class CoreNodeFactRepository(
           state match {
             // ignored by-pass consistency check so that we can remove a node form policy generation without deleting it,
             // even if the node is in some inconsistent state. It was already there so that ok.
+            // We only authorize that for `Ignored`, not for all `NodeState.isEnabled == false`
             case NodeState.Ignored => internalSave(Left(NodeFact.fromMinimal(updated)))(using cc, SelectFacts.none)
             case _                 => save(updated)
           }

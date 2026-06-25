@@ -124,12 +124,14 @@ class ScoreServiceImpl(
   def getGlobalScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[GlobalScore] = {
 
     for {
-      _           <- nodeFactRepo.get(nodeId).notOptional(s"Cannot access score for node '${nodeId.value}'")
+      n           <- nodeFactRepo.get(nodeId).notOptional(s"Cannot access score for node '${nodeId.value}'")
       c           <- cache.get
       res         <-
         c.get(nodeId) match {
           case Some(g) => g.succeed
-          case None    => Inconsistency(s"No global score for node ${nodeId.value}").fail
+          case None    =>
+            if (n.rudderSettings.state.isEnabled) Inconsistency(s"No global score for node ${nodeId.value}").fail
+            else GlobalScore(ScoreValue.NoScore, "Node is disabled", Nil).succeed
         }
       withNoScore <- fillWithNoScore(res)
     } yield {
@@ -139,12 +141,14 @@ class ScoreServiceImpl(
 
   def getScoreDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[List[Score]] = {
     for {
-      _   <- nodeFactRepo.get(nodeId).notOptional(s"Cannot access score details for node '${nodeId.value}'")
+      n   <- nodeFactRepo.get(nodeId).notOptional(s"Cannot access score details for node '${nodeId.value}'")
       c   <- scoreCache.get
       res <-
         c.get(nodeId) match {
           case Some(g) => g.succeed
-          case None    => Inconsistency(s"No score for node ${nodeId.value}").fail
+          case None    =>
+            if (n.rudderSettings.state.isEnabled) Inconsistency(s"No score for node ${nodeId.value}").fail
+            else Nil.succeed
         }
     } yield {
       res
