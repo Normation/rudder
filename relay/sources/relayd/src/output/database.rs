@@ -155,9 +155,7 @@ pub fn insert_runlog(pool: &PgPool, runlog: &RunLog) -> Result<RunlogInsertion, 
 
             let mut chunks = runlog.reports.chunks(REPORTS_INSERT_CHUNK_SIZE);
 
-            // The id of the first inserted report is used as the runlog insertion id.
-            // It is the lowest of all inserted ids as the first chunk is inserted
-            // first within the transaction.
+            // The id of the first inserted report
             let report_id = insert_into(ruddersysevents)
                 .values(chunks.next().expect("a runlog should never be empty"))
                 .get_results::<QueryableReport>(connection)?
