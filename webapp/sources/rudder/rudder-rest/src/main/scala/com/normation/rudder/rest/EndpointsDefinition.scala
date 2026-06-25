@@ -363,6 +363,46 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
     override def dataContainer: None.type               = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Group.Write :: Nil
   }
+  // API v24
+  case object GetNodeGroupCompliance extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z              = implicitly[Line].value
+    val description    = "Get compliance for all node groups"
+    val (action, path) = GET / "groups" / "compliance"
+    override def dataContainer: None.type               = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetGlobalNodeGroupComplianceId
+      extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get a node group's global compliance"
+    val (action, path) = GET / "groups" / "{id}" / "compliance" / "global"
+    override def dataContainer: None.type               = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetTargetedNodeGroupComplianceId
+      extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get a node group's targeted compliance"
+    val (action, path) = GET / "groups" / "{id}" / "compliance" / "targeted"
+    override def dataContainer: None.type               = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetGlobalNodeGroupComplianceByRuleId
+      extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get a node group's global compliance by rule"
+    val (action, path) = GET / "groups" / "{id}" / "compliance" / "global" / "byRule"
+    override def dataContainer: None.type               = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetTargetedNodeGroupComplianceByRuleId
+      extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get a node group's targeted compliance by rule"
+    val (action, path) = GET / "groups" / "{id}" / "compliance" / "targeted" / "byRule"
+    override def dataContainer: None.type               = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
 
   def endpoints: List[GroupApi] = values.toList.sortBy(_.z)
 

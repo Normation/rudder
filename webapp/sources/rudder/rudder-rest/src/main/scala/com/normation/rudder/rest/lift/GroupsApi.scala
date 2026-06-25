@@ -51,6 +51,7 @@ import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.properties.Visibility.Displayed
+import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
@@ -60,6 +61,8 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.rest.{GroupApi as API, *}
 import com.normation.rudder.rest.RudderJsonRequest.*
+import com.normation.rudder.rest.data.ComplianceApiData
+import com.normation.rudder.rest.data.ComplianceUtils
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
@@ -79,7 +82,8 @@ class GroupsApi(
     zioJsonExtractor:    ZioJsonExtractor,
     uuidGen:             StringUuidGenerator,
     userPropertyService: UserPropertyService,
-    service:             GroupApiService14
+    service:             GroupApiService14,
+    complianceService:   ComplianceAPIService
 ) extends LiftApiModuleProvider[API] {
 
   implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
@@ -92,19 +96,24 @@ class GroupsApi(
    */
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
-      case API.ListGroups                      => List
-      case API.GetGroupTree                    => GetTree
-      case API.GroupDetails                    => Get
-      case API.GroupInheritedProperties        => GroupInheritedProperties
-      case API.GroupDisplayInheritedProperties => GroupDisplayInheritedProperties
-      case API.DeleteGroup                     => Delete
-      case API.CreateGroup                     => Create
-      case API.UpdateGroup                     => Update
-      case API.DeleteGroupCategory             => DeleteCategory
-      case API.CreateGroupCategory             => CreateCategory
-      case API.GetGroupCategoryDetails         => GetCategory
-      case API.UpdateGroupCategory             => UpdateCategory
-      case API.ReloadGroup                     => Reload
+      case API.ListGroups                             => List
+      case API.GetGroupTree                           => GetTree
+      case API.GroupDetails                           => Get
+      case API.GroupInheritedProperties               => GroupInheritedProperties
+      case API.GroupDisplayInheritedProperties        => GroupDisplayInheritedProperties
+      case API.DeleteGroup                            => Delete
+      case API.CreateGroup                            => Create
+      case API.UpdateGroup                            => Update
+      case API.DeleteGroupCategory                    => DeleteCategory
+      case API.CreateGroupCategory                    => CreateCategory
+      case API.GetGroupCategoryDetails                => GetCategory
+      case API.UpdateGroupCategory                    => UpdateCategory
+      case API.ReloadGroup                            => Reload
+      case API.GetNodeGroupCompliance                 => GetNodeGroupCompliance
+      case API.GetGlobalNodeGroupComplianceId         => GetGlobalNodeGroupComplianceId
+      case API.GetTargetedNodeGroupComplianceId       => GetTargetedNodeGroupComplianceId
+      case API.GetGlobalNodeGroupComplianceByRuleId   => GetGlobalNodeGroupComplianceByRuleId
+      case API.GetTargetedNodeGroupComplianceByRuleId => GetTargetedNodeGroupComplianceByRuleId
     }
   }
 
@@ -415,6 +424,153 @@ class GroupsApi(
         None
       )
     }
+  }
+
+  object GetNodeGroupCompliance extends LiftApiModule0 {
+    override val schema: API.GetNodeGroupCompliance.type = API.GetNodeGroupCompliance
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        targets    = req.params.getOrElse("groups", scala.List.empty).flatMap { nodeGroups =>
+                       nodeGroups.split(",").toList.flatMap(ComplianceUtils.parseSimpleTargetOrNodeGroupId(_).toOption)
+                     }
+
+        group <- complianceService.getNodeGroupComplianceSummary(targets, precision)
+      } yield {
+        given l: Int = 1 // it's a summary
+
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+        group.toList.map {
+          case (id, (global, targeted)) =>
+            ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupSummaryApi(
+              id,
+              targeted.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi],
+              global.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+            )
+        }
+      }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
+        given f: Boolean = params.prettify
+
+        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
+        RudderJsonResponse.successList(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x)
+      }
+    }
+  }
+
+  object GetGlobalNodeGroupComplianceId extends LiftApiModule {
+    override val schema: OneParam = API.GetGlobalNodeGroupComplianceId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        groupId:    String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        target    <- ComplianceUtils
+                       .parseSimpleTargetOrNodeGroupId(groupId)
+                       .chainError("Could not parse the node group id or group target")
+                       .toIO
+        group     <- complianceService.getNodeGroupCompliance(target, level)
+      } yield {
+        given l: Int = level.getOrElse(10)
+
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+        group.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+      }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
+        given f: Boolean = params.prettify
+
+        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
+        RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x, None)
+      }
+    }
+  }
+
+  object GetTargetedNodeGroupComplianceId extends LiftApiModule {
+    override val schema: OneParam = API.GetTargetedNodeGroupComplianceId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        groupId:    String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        target    <- ComplianceUtils
+                       .parseSimpleTargetOrNodeGroupId(groupId)
+                       .chainError("Could not parse the node group id or group target")
+                       .toIO
+        group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance = false)
+      } yield {
+        given l: Int = level.getOrElse(10)
+
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+        group.transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+      }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
+        given f: Boolean = params.prettify
+
+        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
+        RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x, None)
+      }
+    }
+  }
+
+  object GetGlobalNodeGroupComplianceByRuleId extends LiftApiModule {
+    override val schema: OneParam = API.GetGlobalNodeGroupComplianceByRuleId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        groupId:    String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      // TODO
+      ???
+    }
+
+  }
+
+  object GetTargetedNodeGroupComplianceByRuleId extends LiftApiModule {
+    override val schema: OneParam = API.GetTargetedNodeGroupComplianceByRuleId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        groupId:    String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      // TODO
+      ???
+    }
+
   }
 
   // Extracts reason from the request and provide an (implicit ChangeContext)

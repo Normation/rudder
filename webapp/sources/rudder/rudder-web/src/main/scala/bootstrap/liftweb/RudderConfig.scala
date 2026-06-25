@@ -2301,7 +2301,8 @@ object RudderConfigInit {
               workflowLevelService,
               queryParser,
               queryProcessor
-            )
+            ),
+            complianceAPIService
           ),
           new DirectiveApi(
             zioJsonExtractor,

@@ -43,9 +43,14 @@ import cats.syntax.list.*
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
+import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.SimpleTarget
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.reports.ComplianceModeName
@@ -1378,5 +1383,10 @@ object ComplianceUtils {
       case Some(format :: _)                  =>
         ComplianceFormat.fromValue(format).left.map(Inconsistency.apply).toIO
     }
+  }
+
+  def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
+    // attempt to parse a "target" first because format is more specific
+    RuleTarget.unserOne(str).orElse(NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_)))
   }
 }
