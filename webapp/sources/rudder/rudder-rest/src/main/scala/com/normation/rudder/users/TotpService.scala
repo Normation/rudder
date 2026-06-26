@@ -58,7 +58,7 @@ case class TotpStatus(
     needEnrollment: Boolean
 ) derives JsonEncoder
 
-private given JsonEncoder[TotpSecret] = JsonEncoder[String].contramap(_.value)
+private given JsonEncoder[TotpSecret] = JsonEncoder[String].contramap(_.exposeSecret())
 private given JsonEncoder[URI]        = JsonEncoder[String].contramap(_.toString)
 
 /**
@@ -177,7 +177,7 @@ abstract class InMemoryVerificationTotpService(
 }
 
 private def totpUri(userId: String, secret: TotpSecret): IOResult[URI] = {
-  val query = s"secret=${secret.value}&issuer=Rudder"
+  val query = s"secret=${secret.exposeSecret()}&issuer=Rudder"
   // this URI constructor handles encoding
   IOResult.attempt(URI("otpauth", "totp", s"/Rudder:${userId}", query, null))
 }
@@ -212,7 +212,7 @@ object OtpJavaTotpService {
   private class OtpJavaTotpVerificator extends TotpVerificator {
     override def verify(secret: TotpSecret, at: Instant, code: String): PureResult[Instant] = {
       val totp = TOTPGenerator
-        .Builder(secret.value)
+        .Builder(secret.exposeSecret())
         .withClock(java.time.Clock.fixed(at, ZoneId.systemDefault()))
         .withPeriod(DEFAULT_PERIOD)
         .build

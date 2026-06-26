@@ -18,7 +18,7 @@ trait TotpRepository {
 object JdbcTotpRepository {
 
   given Read[TotpSecret]  = Read[String].map(TotpSecret(_))
-  given Write[TotpSecret] = Write[String].contramap(_.value)
+  given Write[TotpSecret] = Write[String].contramap(_.exposeSecret())
   given Read[Totp]        = Read.derived
   given Write[Totp]       = Write.derived
 

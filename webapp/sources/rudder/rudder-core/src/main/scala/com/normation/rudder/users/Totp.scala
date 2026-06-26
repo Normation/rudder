@@ -2,13 +2,17 @@ package com.normation.rudder.users
 
 import java.time.Instant
 
-opaque type TotpSecret = String
-object TotpSecret {
-  def apply(s: String): TotpSecret = s
+// Need to be a case class because opaque type doesn't allow toString override
+case class TotpSecret private (secret: String) extends AnyVal {
+  // Avoid printing the value
+  override def toString: String = "[REDACTED TotpSecret]"
 
-  extension (self: TotpSecret) {
-    def value: String = self
+  def exposeSecret(): String = {
+    secret
   }
+}
+object TotpSecret {
+  def apply(secret: String) = new TotpSecret(secret)
 }
 
 /**
