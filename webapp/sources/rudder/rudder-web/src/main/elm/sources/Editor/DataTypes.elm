@@ -290,7 +290,6 @@ type alias MethodBlockUiInfo =
   { mode       : MethodCallMode
   , tab        : MethodBlockTab
   , validation : ValidationState BlockError
-  , showChildDetails : Bool
   , foreachUI  : ForeachUI
   }
 

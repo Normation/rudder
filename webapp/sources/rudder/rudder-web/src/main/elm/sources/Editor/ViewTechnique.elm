@@ -434,7 +434,7 @@ showTechnique model technique origin ui editInfo =
                            showMethodCall model methodUi ui parentId c
                        Block parentId b ->
                          let
-                           methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True (ForeachUI False False (defaultNewForeach b.foreachName b.foreach))) (Dict.get b.id.value ui.blockUI)
+                           methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState (ForeachUI False False (defaultNewForeach b.foreachName b.foreach))) (Dict.get b.id.value ui.blockUI)
                          in
                            showMethodBlock model ui methodUi parentId b
                 in

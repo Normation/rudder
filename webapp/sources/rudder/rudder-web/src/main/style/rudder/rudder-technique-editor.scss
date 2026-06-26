@@ -960,9 +960,6 @@ ul.list-unstyled > li{
 #methods li.card-method:last-child{
   margin-bottom: 0;
 }
-.block-child .methods {
-  padding-bottom: 15px;
-}
 .card-method:not(.active) .block-child .methods {
   padding-left: 15px;
 }
@@ -1059,7 +1056,6 @@ ul li.hide-method {
 
 .method .method-param{
   align-items: baseline;
-  padding-bottom: 10px;
 }
 .cursorMove p {
   margin : 0;
@@ -1105,11 +1101,10 @@ ul li.hide-method {
 }
 .method .method-info .method-condition:not(.d-none),
 .method .method-info .method-condition.d-none ~ .method-name{
-  padding-top: 35px;
+  padding-top: 30px;
 }
 .method .method-info.closed .method-param{
   padding-left: 15px;
-  padding-bottom: 10px;
 }
 .method .method-name {
   padding: 0 15px;
