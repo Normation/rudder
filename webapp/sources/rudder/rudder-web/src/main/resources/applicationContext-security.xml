@@ -70,7 +70,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <!-- same config as mainHttpSecurityFilters but applies to authenticated API calls (/secure/api/): they need a custom filter for CSRF mitigation -->
     <http pattern="/secure/api/**" disable-url-rewriting="true"  entry-point-ref="restAuthenticationEntryPoint">
-        <intercept-url pattern="/**" access="isAuthenticated()" />
+        <!-- For API access of frontend OTP page -->
+        <intercept-url pattern="/secure/api/otp/**" access="hasRole('ROLE_PRE_AUTH')" />
+
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')" />
+
         <custom-filter after="LAST" ref="restSecureAuthenticationFilter" />
         <headers>
             <xss-protection disabled="true"/>
@@ -103,7 +107,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 	<intercept-url pattern="/secure/otp.html" access="hasRole('ROLE_PRE_AUTH')" />
 
         <!-- For API access of frontend OTP page and OTP check filter -->
-	<intercept-url pattern="/secure/api/otp" access="hasRole('ROLE_PRE_AUTH')" />
 	<intercept-url pattern="/secure/otp/verify" access="permitAll" />
 
         <!--
