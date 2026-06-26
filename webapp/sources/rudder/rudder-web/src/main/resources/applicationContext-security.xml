@@ -104,10 +104,10 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         </session-management>
 
         <!-- OTP login for already logged-in user with ROLE_PRE_AUTH authority to access the OTP submit page -->
-	<intercept-url pattern="/secure/otp.html" access="hasRole('ROLE_PRE_AUTH')" />
+	    <intercept-url pattern="/secure/otp.html" access="hasRole('ROLE_PRE_AUTH')" />
 
         <!-- For API access of frontend OTP page and OTP check filter -->
-	<intercept-url pattern="/secure/otp/verify" access="permitAll" />
+	    <intercept-url pattern="/secure/otp/verify" access="permitAll" />
 
         <!--
            Comment to allows "no auth required", but the login form is still valid
@@ -116,7 +116,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <!-- Start comment -->
 
         <!-- Need user to have the right authority and not the one for OTP verification (it implies being authenticated) -->
-	<intercept-url pattern="/secure/**" access="hasRole('ROLE_USER')" />
+	    <intercept-url pattern="/secure/**" access="hasRole('ROLE_USER')" />
 
         <!-- End comment -->
 
