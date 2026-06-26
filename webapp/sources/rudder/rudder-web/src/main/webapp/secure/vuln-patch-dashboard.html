@@ -1,0 +1,14 @@
+<lift:surround with="common-layout" at="content">
+
+    <head>
+        <title>Rudder - Patch and vulnerabilities dashboard</title>
+        <link   type="text/css"        data-lift="with-cached-resource" href="/style/rudder/rudder-dashboard.css" rel="stylesheet">
+
+        <script src="/javascript/rudder/charting.js" data-lift="with-cached-resource"></script>
+    </head>
+
+    <div class="rudder-template"  data-lift="VulnPatchDashboard.details">
+        <div id="cve-container"></div>
+        <div id="system-update-container"></div>
+    </div>
+</lift:surround>
