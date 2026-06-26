@@ -7,7 +7,7 @@ use anyhow::Result;
 use chrono::Utc;
 use cli_table::format::{HorizontalLine, Separator, VerticalLine};
 use serde::Serialize;
-use tracing::warn;
+use tracing::info;
 
 use crate::{
     cli::Format,
@@ -142,7 +142,9 @@ impl ListOutput {
             .map(|p| p.metadata.name.clone())
             .collect();
         if index.is_none() {
-            warn!("No repository index found. Try to update it using 'rudder package update'")
+            info!(
+                "No repository index present, the available plugins and upgrades are not available."
+            )
         }
         let latest = index.map(|i| i.latest_compatible_plugins(&webapp.version));
 
