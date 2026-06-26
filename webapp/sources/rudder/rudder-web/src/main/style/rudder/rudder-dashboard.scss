@@ -36,13 +36,19 @@
 */
 
 @use 'rudder-variables' as rudder;
+@use 'sass:math';
 
 $doughnut-size : 160px;
+.dashboard{
+  $doughnut-size : 300px;
+}
 
-.homePage > .container-fluid{
+.homePage > .container-fluid,
+.dashboard{
   height: calc(100vh - 50px);
 }
-#headerBar~.content-wrapper .rudder-template .homePage > .container-fluid{
+#headerBar~.content-wrapper .rudder-template .homePage > .container-fluid,
+#headerBar~.content-wrapper .rudder-template .dashboard{
   height: calc(100vh - 80px);
 }
 
@@ -152,6 +158,7 @@ $doughnut-size : 160px;
 }
 
 .homePage canvas,
+.dashboard canvas,
 .placeholder-doughnut-chart{
   width : $doughnut-size !important;
   height: $doughnut-size !important;
@@ -172,8 +179,8 @@ $doughnut-size : 160px;
 
   &:before{
     content: "";
-    width: 150px;
-    height: 150px;
+    width: math.div($doughnut-size, 2);
+    height: math.div($doughnut-size, 2);
     background-color: #fff;
     border-radius: 50%;
   }
@@ -288,4 +295,9 @@ $doughnut-size : 160px;
       top: calc(50% + 2px);
     }
   }
+}
+
+// -- DEDICATED DASHBOARD PAGE
+.dashboard{
+  background-color: #fff;
 }
