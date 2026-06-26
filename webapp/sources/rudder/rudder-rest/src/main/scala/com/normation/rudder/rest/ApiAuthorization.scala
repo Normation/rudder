@@ -183,7 +183,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                 Some("ok")
 
               case (_, ApiAuthz.ACL(acl), _) =>
-                logger.debug(s"Account '${u.name}' has ACL authorizations.")
+                logger.debug(s"Account '${u.name}' has ACL authorizations ${acl}.")
                 checkACL(acl, path, endpoint.schema.action)
 
             }).map(_ => Right(AuthzToken(u)))

@@ -500,17 +500,6 @@ displayRightPanel model user =
             [ div [ class "btn-container" ]
                 [ displayDeleteButton model user
                 , displayToggleStatusButton model user
-                , if model.otpEnabled then
-                    button
-                        [ class "btn btn-sm btn-warning"
-                        , type_ "button"
-                        , onClick (CallApi (\_ -> resetUserOtp model user.login))
-                        , title "Reset TOTP configuration for this user"
-                        ]
-                        [ i [ class "fa fa-refresh" ] [] ]
-
-                  else
-                    text ""
                 , button
                     [ class "btn btn-sm btn-success btn-save"
                     , type_ "button"
