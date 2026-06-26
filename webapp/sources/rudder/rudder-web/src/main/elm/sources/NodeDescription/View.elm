@@ -1,6 +1,6 @@
 module NodeDescription.View exposing (view)
 
-import Html exposing (Html, div, input, label, span, text, textarea)
+import Html exposing (Html, br, div, input, label, span, text, textarea)
 import Html.Attributes exposing (class, disabled, for, id, maxlength, name, readonly, type_, value)
 import Html.Events exposing (onClick, onInput)
 import NodeDescription.DataTypes exposing (..)
@@ -11,6 +11,7 @@ view model =
     div
         []
         [ descriptionTextArea model
+        , br [] []
         , saveDescriptionButton model
         ]
 
