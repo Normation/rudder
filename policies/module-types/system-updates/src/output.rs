@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::package_manager::{PackageDiff, PackageId};
+use crate::package_manager::{PackageAction, PackageDiff, PackageId};
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::{
     fmt::Display,
     process::{Command, Output},
@@ -281,16 +281,32 @@ impl Report {
         if !self.is_err() && !diff.is_empty() {
             self.status = Status::Repaired
         }
-        match details {
-            None => self.software_updated = diff,
+        self.software_updated = match details {
+            None => diff,
             Some(d) => {
-                self.software_updated = diff
+                // Add details if any to the packages already listed in the diff
+                let mut result: Vec<PackageDiff> = diff
                     .into_iter()
                     .map(|x| PackageDiff {
                         details: d.get(&x.id).cloned(),
                         ..x
                     })
-                    .collect::<Vec<PackageDiff>>()
+                    .collect();
+                // Add packages listed in the details, but not already listed in the diff
+                let packages_names: HashSet<PackageId> =
+                    result.iter().map(|x| x.id.clone()).collect();
+                result.extend(
+                    d.into_iter()
+                        .filter(|(k, _)| !packages_names.contains(k))
+                        .map(|(id, log_details)| PackageDiff {
+                            id,
+                            old_version: None,
+                            new_version: None,
+                            action: PackageAction::Pending,
+                            details: Some(log_details),
+                        }),
+                );
+                result
             }
         }
     }
