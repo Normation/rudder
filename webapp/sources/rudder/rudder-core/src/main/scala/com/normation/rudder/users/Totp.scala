@@ -13,7 +13,7 @@ object TotpSecret {
 
 /**
  * Represents a TOTP (Time-based One-Time Password) configuration for a user.
- * Stores the encrypted secret and creation timestamp.
+ * Stores the secret and creation timestamp.
  */
 case class Totp(
     secret:  TotpSecret,
