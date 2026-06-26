@@ -3225,8 +3225,68 @@ response:
         }
       }
     }
-
-
+---
+description: Get compliance for all node groups
+method: GET
+url: /api/latest/groups/compliance
+response:
+  code: 200
+  content: >-
+    "todo"
+---
+description: Get a node group's global compliance
+method: GET
+url: /api/latest/groups/groupId/compliance/global
+response:
+  code: 200
+  content: >-
+    "todo"
+---
+description: Get a node group's targeted compliance
+method: GET
+url: /api/latest/groups/groupId/compliance/targeted
+response:
+  code: 200
+  content: >-
+    "todo"
+---
+description: Get a node group's global compliance by rule in JSON format
+method: GET
+url: /api/latest/groups/groupId/compliance/global/byRule
+response:
+  code: 200
+  content: >-
+    "todo"
+---
+description: Get a node group's targeted compliance by rule in JSON format
+method: GET
+url: /api/latest/groups/groupId/compliance/targeted/byRule
+response:
+  code: 200
+  content: >-
+    "todo"
+---
+description: Get a node group's global compliance by rule in CSV format
+method: GET
+url: /api/latest/groups/groupId/compliance/global/byRule
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "todo"
+---
+description: Get a node group's targeted compliance by rule in CSV format
+method: GET
+url: /api/latest/groups/groupId/compliance/targeted/byRule
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "todo"
 
 #
 # API GROUPSINTERNAL

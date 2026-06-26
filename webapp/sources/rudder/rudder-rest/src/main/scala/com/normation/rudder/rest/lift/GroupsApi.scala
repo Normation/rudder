@@ -62,16 +62,20 @@ import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.rest.{GroupApi as API, *}
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.data.ComplianceApiData
+import com.normation.rudder.rest.data.ComplianceFormat
 import com.normation.rudder.rest.data.ComplianceUtils
+import com.normation.rudder.rest.data.CsvCompliance.NodeGroupComplianceByRuleCsv
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.utils.Csv.toCsv
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
+import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import zio.Chunk
 import zio.ZIO
@@ -539,6 +543,43 @@ class GroupsApi(
     }
   }
 
+  private def getNodeGroupComplianceByRuleId(groupId: String, req: Req, params: DefaultParams, isGlobalCompliance: Boolean)(using
+      qc:     QueryContext,
+      schema: OneParam
+  ): LiftResponse = {
+    (for {
+      level     <- ComplianceUtils.extractComplianceLevel(req.params)
+      precision <- ComplianceUtils.extractPercentPrecision(req.params)
+      format    <- ComplianceUtils.extractComplianceFormat(req.params)
+      target    <- ComplianceUtils
+                     .parseSimpleTargetOrNodeGroupId(groupId)
+                     .chainError("Could not parse the node group id or group target")
+                     .toIO
+      group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance)
+    } yield (level, precision, format, group)).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) {
+      (level, precision, format, group) =>
+        format match {
+          case ComplianceFormat.CSV  =>
+            PlainTextResponse(group.rules.transformInto[Seq[NodeGroupComplianceByRuleCsv]].toCsv)
+          case ComplianceFormat.JSON =>
+            given l: Int                 = level.getOrElse(10)
+            given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+            given f: Boolean             = params.prettify
+
+            val complianceJson = group
+              .transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+              .rules
+              .getOrElse(Seq.empty)
+            RudderJsonResponse.successOne(
+              RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("groupCompliance")),
+              complianceJson,
+              None
+            )
+
+        }
+    }
+  }
+
   object GetGlobalNodeGroupComplianceByRuleId extends LiftApiModule {
     override val schema: OneParam = API.GetGlobalNodeGroupComplianceByRuleId
 
@@ -550,8 +591,10 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      // TODO
-      ???
+      given qc: QueryContext = authzToken.qc
+      given OneParam = schema
+
+      getNodeGroupComplianceByRuleId(groupId, req, params, true)
     }
 
   }
@@ -567,8 +610,10 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      // TODO
-      ???
+      given qc: QueryContext = authzToken.qc
+      given OneParam = schema
+
+      getNodeGroupComplianceByRuleId(groupId, req, params, false)
     }
 
   }
