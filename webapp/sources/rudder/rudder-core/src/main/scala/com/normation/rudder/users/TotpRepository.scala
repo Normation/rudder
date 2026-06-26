@@ -12,6 +12,7 @@ trait TotpRepository {
   def getByUserId(userId: String): IOResult[Option[Totp]]
   def create(userId:      String, totp: Totp): IOResult[Unit]
   def delete(userId:      String): IOResult[Unit]
+  def getEnabledUsers(): IOResult[Set[String]]
 }
 
 object JdbcTotpRepository {
@@ -29,6 +30,9 @@ object JdbcTotpRepository {
 
   def deleteQuerySQL(userId: String): Update0 =
     sql"DELETE FROM userstotp WHERE user_id=${userId}".update
+
+  def getAllByUserSQL(): Query0[String] =
+    sql"SELECT user_id FROM userstotp".query[String]
 }
 
 class JdbcTotpRepository(doobie: Doobie) extends TotpRepository {
@@ -50,6 +54,12 @@ class JdbcTotpRepository(doobie: Doobie) extends TotpRepository {
   def delete(userId: String): IOResult[Unit] = {
     transactIOResult(s"Error deleting TOTP for user ${userId}")(
       deleteQuerySQL(userId).run.transact(_).unit
+    )
+  }
+
+  def getEnabledUsers(): IOResult[Set[String]] = {
+    transactIOResult("Error when getting enabled TOTP users")(
+      getAllByUserSQL().to[List].map(rows => rows.toSet).transact(_)
     )
   }
 }

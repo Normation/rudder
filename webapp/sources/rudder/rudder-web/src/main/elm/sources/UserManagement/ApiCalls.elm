@@ -168,3 +168,20 @@ getRoleConf model =
                 }
     in
     req
+
+
+resetUserOtp : Model -> Username -> Cmd Msg
+resetUserOtp model username =
+    let
+        req =
+            request
+                { method = "POST"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model ("/usermanagement/otp/reset/" ++ username)
+                , body = emptyBody
+                , expect = expectWhatever (ResetUserOtp username)
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req

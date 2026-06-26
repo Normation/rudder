@@ -15,7 +15,7 @@ import zio.syntax.*
 /**
  * Service which has a state of generated OTP and can verify and register them
  */
-trait TotpGeneratorService {
+trait TotpService {
 
   /**
    * Check if the user needs to enroll (generate) a new OTP secret.
@@ -38,12 +38,16 @@ trait TotpGeneratorService {
    */
   def reset(userId: String): IOResult[Unit]
 
-}
+  /**
+   * Check if OTP is globally enforced for all users.
+   */
+  def getGlobalStatus(): IOResult[Boolean]
 
-//TODO: need to be split: the splitted services may not be the right separation
-type TotpService = TotpGeneratorService & TotpVerificationService
+  /**
+   * Get the set of users that have an OTP configured.
+   */
+  def getEnabledUsers(): IOResult[Set[String]]
 
-trait TotpVerificationService {
   def verify(userId: String, code: String): IOResult[Unit]
 }
 
@@ -105,12 +109,13 @@ sealed private trait TotpVerificator {
  * therefore the use of a Caffeine cache could be more secure.
  */
 abstract class InMemoryVerificationTotpService(
+    enabledOtp:     Boolean,
     in:             Ref[Map[String, TotpSecret]],
     generator:      TotpSecretGenerator,
     validator:      UserTotpValidator,
     totpRepository: TotpRepository,
     verificator:    TotpVerificator
-) extends TotpGeneratorService with TotpVerificationService {
+) extends TotpService {
   override def needGeneration(userId: String): IOResult[Boolean] = {
     totpRepository.getByUserId(userId).map(_.isEmpty)
   }
@@ -132,7 +137,7 @@ abstract class InMemoryVerificationTotpService(
       opt  = map.get(userId)
       s   <- opt.notOptional("User has no known generated OTP")
       now <- Clock.instant
-      _   <- verificator.verify(s, now, code).toIO.chainError(s"OTP secret for user '${userId}' does not match provided code")
+      _   <- verificator.verify(s, now, code).toIO
       totp = Totp(s, now)
       _   <- totpRepository
                .create(userId, totp)
@@ -160,6 +165,15 @@ abstract class InMemoryVerificationTotpService(
       _ <- in.update(_ - userId)
     } yield ()
   }
+
+  override def getGlobalStatus(): IOResult[Boolean] = {
+    enabledOtp.succeed
+  }
+
+  override def getEnabledUsers(): IOResult[Set[String]] = {
+    totpRepository.getEnabledUsers()
+  }
+
 }
 
 private def totpUri(userId: String, secret: TotpSecret): IOResult[URI] = {
@@ -170,12 +184,13 @@ private def totpUri(userId: String, secret: TotpSecret): IOResult[URI] = {
 
 // otp-java based TOTP service implementation
 class OtpJavaTotpService(
+    enabledOtp:     Boolean,
     in:             Ref[Map[String, TotpSecret]],
     generator:      TotpSecretGenerator,
     validator:      UserTotpValidator,
     totpRepository: TotpRepository,
     verificator:    TotpVerificator
-) extends InMemoryVerificationTotpService(in, generator, validator, totpRepository, verificator)
+) extends InMemoryVerificationTotpService(enabledOtp, in, generator, validator, totpRepository, verificator)
 
 object OtpJavaTotpService {
 
@@ -205,11 +220,18 @@ object OtpJavaTotpService {
       val valid = totp.verify(code, DEFAULT_DELAY_WINDOW)
 
       if (valid) Right(at)
-      else Left(Inconsistency(s"Invalid TOTP code at ${at}, code is wrong or may be too old"))
+      else {
+        Left(
+          Inconsistency(
+            s"Invalid TOTP code submitted at ${DateFormaterService.getDisplayDate(at)}, code is wrong or may be too old"
+          )
+        )
+      }
     }
   }
 
   def make(
+      enabledOtp:     Boolean,
       validator:      UserTotpValidator,
       totpRepository: TotpRepository
   ): UIO[OtpJavaTotpService] = {
@@ -217,6 +239,7 @@ object OtpJavaTotpService {
       .make(Map.empty[String, TotpSecret])
       .map(
         OtpJavaTotpService(
+          enabledOtp,
           _,
           OtpJavaSecretGenerator(),
           validator,

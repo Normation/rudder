@@ -66,6 +66,19 @@
       <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
       <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-quicksearch.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/rudder-elm.js"></script>
+    <script type="text/javascript" data-lift="with-nonce">
+      $(document).ready(function(){
+        const flags = { contextPath }
+        const appNode  = document.querySelector("rudder-quicksearch")
+        const appQuicksearch = Elm.QuickSearch.init({
+          node  : appNode,
+          flags
+        })
+        appQuicksearch.ports.errorNotification.subscribe(function (str) {
+          createErrorNotification(str)
+        })
+      })
+    </script>
     <script data-lift="with-nonce">
     (function($) {
        $.fn.hasScrollBar = function() {

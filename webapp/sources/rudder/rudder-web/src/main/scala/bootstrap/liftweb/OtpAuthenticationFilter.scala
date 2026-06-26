@@ -10,6 +10,7 @@ import org.springframework.security.authentication.*
 import org.springframework.security.core.*
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.authentication.*
+import scala.jdk.CollectionConverters.*
 import zio.*
 
 /**
@@ -23,11 +24,12 @@ class OtpAuthenticationFilter extends AbstractAuthenticationProcessingFilter("/s
   override def attemptAuthentication(req: HttpServletRequest, res: HttpServletResponse): Authentication = {
     val current = SecurityContextHolder.getContext().getAuthentication
 
+    val validAuthorities = RudderAuthType.PreAuthUser.grantedAuthorities.asScala.toSet
     if (
       current == null || !current
         .getAuthorities()
         .stream()
-        .anyMatch(_.getAuthority().equals("ROLE_PRE_AUTH"))
+        .anyMatch(a => validAuthorities.contains(a))
     ) {
       throw new InsufficientAuthenticationException("OTP step requires prior password auth");
     }

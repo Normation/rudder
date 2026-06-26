@@ -85,13 +85,13 @@ update msg model =
                     case metadata.statusCode of
                         -- Handled verification error case on server
                         403 ->
-                            ( { model | isLoading = False }, errorNotification body )
+                            ( { model | isLoading = False, errorMsg = Just body }, Cmd.none )
 
                         code ->
-                            ( { model | isLoading = False }, errorNotification <| "Error when verifying OTP code: unexpected http code " ++ String.fromInt code )
+                            ( { model | isLoading = False, errorMsg = Just <| "Error when verifying OTP code: unexpected server response " ++ String.fromInt code }, Cmd.none )
 
                 Err _ ->
-                    ( { model | isLoading = False }, errorNotification "Error when verifying OTP code" )
+                    ( { model | isLoading = False, errorMsg = Just "Error when verifying OTP code" }, Cmd.none )
 
         UrlChanged url ->
             case Url.fromString url of

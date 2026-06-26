@@ -29,6 +29,7 @@ init flags =
             , needEnrollment = Nothing
             , generatedSecret = Nothing
             , code = ""
+            , errorMsg = Nothing
             , isLoading = False
             , redirectUrl = Nothing
             }

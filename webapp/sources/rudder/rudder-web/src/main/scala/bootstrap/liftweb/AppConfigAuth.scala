@@ -50,6 +50,7 @@ import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
+import com.normation.rudder.users.RudderAuthType
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -85,7 +86,6 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.GrantedAuthority
-import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
@@ -485,11 +485,10 @@ class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean) extends SavedRe
       val principal = authentication.getPrincipal
 
       // Fixup the authority to make spring-security config give access to MFA enrollment/verification page
-      // FIXME: this could be a typed RudderAuthType
       val preAuthToken = new UsernamePasswordAuthenticationToken(
         principal,
         null,
-        java.util.List.of(new SimpleGrantedAuthority("ROLE_PRE_AUTH"))
+        RudderAuthType.PreAuthUser.grantedAuthorities
       )
 
       SecurityContextHolder.getContext().setAuthentication(preAuthToken)

@@ -59,10 +59,10 @@ class CreateTableUsersTotp(
 
   def createTableStatement: IOResult[Unit] = {
     val sql = {
-      sql"""CREATE TABLE IF NOT EXISTS userstotp (
-        user_id    text PRIMARY KEY
-      , secret     text NOT NULL
-      , created_at timestamp NOT NULL
+      sql"""CREATE TABLE userstotp (
+        user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+      , secret     TEXT NOT NULL
+      , created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );"""
     }
 

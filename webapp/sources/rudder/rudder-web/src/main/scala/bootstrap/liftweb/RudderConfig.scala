@@ -2193,6 +2193,7 @@ object RudderConfigInit {
     lazy val userTotpValidator = new UserTotpValidator(userRepository, totpRepository)
     lazy val totpService       = OtpJavaTotpService
       .make(
+        enabledOtp = ENFORCE_OTP_AUTH,
         validator = userTotpValidator,
         totpRepository = totpRepository
       )
@@ -2416,6 +2417,7 @@ object RudderConfigInit {
               UserFileProcessing.getUserResourceFile()
             ),
             tenantService,
+            totpService,
             () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
             () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
           ),

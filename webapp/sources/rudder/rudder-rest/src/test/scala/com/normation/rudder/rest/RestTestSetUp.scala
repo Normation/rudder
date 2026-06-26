@@ -1014,6 +1014,16 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       } else Empty
     }
   }
+  val otpService = new TotpService {
+    override def getEnabledUsers(): IOResult[Set[String]] = Set.empty.succeed
+    override def getGlobalStatus(): IOResult[Boolean]     = false.succeed
+
+    override def needGeneration(userId:     String): IOResult[Boolean] = ???
+    override def generateUserSecret(userId: String): IOResult[TotpSecretData] = ???
+    override def verifyGenerated(userId:    String, code: String): IOResult[Totp] = ???
+    override def reset(userId:              String): IOResult[Unit] = ???
+    override def verify(userId:             String, code: String): IOResult[Unit] = ???
+  }
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(
     systemApi,
@@ -1072,6 +1082,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       mockUserManagement.userService,
       mockUserManagement.userManagementService,
       mockUserManagement.tenantRepo,
+      otpService,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),

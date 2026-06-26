@@ -43,6 +43,7 @@ type alias Model =
     , needEnrollment : Maybe Bool
     , generatedSecret : Maybe TotpSecretData
     , code : String
+    , errorMsg : Maybe String
     , isLoading : Bool
     , redirectUrl : Maybe String
     }
