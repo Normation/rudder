@@ -57,7 +57,6 @@ class OtpApi(
     API.endpoints.map {
       case API.OtpStatus   => OtpStatus
       case API.OtpGenerate => OtpGenerate
-      case API.OtpReset    => OtpReset
     }
   }
 
@@ -95,20 +94,6 @@ class OtpApi(
       } yield {
         res
       }).toLiftResponseOne(params, schema, None)
-    }
-  }
-
-  object OtpReset extends LiftApiModule0 {
-    val schema: API.OtpReset.type = API.OtpReset
-
-    override def process0(
-        version:    ApiVersion,
-        path:       ApiPath,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      ???
     }
   }
 }

@@ -1748,13 +1748,6 @@ object OtpApi       extends Enum[OtpApi] with ApiModuleProvider[OtpApi]         
     val authz: List[AuthorizationType] = Nil
   }
 
-  case object OtpReset extends OtpApi with ZeroParam with StartsAtVersion24 with SortIndex {
-    val z: Int = implicitly[Line].value
-    val description    = "Reset OTP configuration for current user"
-    val (action, path) = POST / "otp" / "reset"
-    val authz: List[AuthorizationType] = Nil
-  }
-
   def endpoints: List[OtpApi] = values.toList.sortBy(_.z)
 
   def values = findValues
