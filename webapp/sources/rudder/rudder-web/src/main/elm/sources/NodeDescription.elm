@@ -31,14 +31,6 @@ main =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GetNodeWriteAuth result ->
-            case result of
-                Ok auth ->
-                    ( { model | nodeWrite = auth }, Cmd.none )
-
-                Err error ->
-                    processApiError "fetching value of node_write authorization" error model
-
         GetNodeDescription result ->
             case result of
                 Ok description ->

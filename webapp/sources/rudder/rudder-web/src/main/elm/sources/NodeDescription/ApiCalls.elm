@@ -1,4 +1,4 @@
-module NodeDescription.ApiCalls exposing (getNodeDescription, getNodeWriteAuth, getUrl, saveNodeDescription)
+module NodeDescription.ApiCalls exposing (getNodeDescription, getUrl, saveNodeDescription)
 
 import Http exposing (..)
 import NodeDescription.DataTypes exposing (..)
@@ -33,19 +33,6 @@ saveNodeDescription model =
         , url = getUrl model [ "nodes", model.nodeId.value ] []
         , body = encodeNodeDescription model |> jsonBody
         , expect = expectJson SetNodeDescription decodeSetDescription
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-getNodeWriteAuth : Model -> String -> Cmd Msg
-getNodeWriteAuth model username =
-    request
-        { method = "POST"
-        , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
-        , url = getUrl model [ "usermanagement", "coverage", username ] []
-        , body = encodeUserRoleCoverage |> jsonBody
-        , expect = expectJson GetNodeWriteAuth decodeNodeWriteAuth
         , timeout = Nothing
         , tracker = Nothing
         }

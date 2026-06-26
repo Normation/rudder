@@ -673,7 +673,7 @@ object DisplayNode extends Loggable {
                                 |var initValues = {
                                 |  nodeId : "${nodeFact.id.value}",
                                 |  contextPath : contextPath,
-                                |  username : "${CurrentUser.actor.name}"
+                                |  nodeWrite : CanWriteNode
                                 |};
                                 |var app = Elm.NodeDescription.init({node: nodeDocumentation, flags: initValues});
                                 |app.ports.errorNotification.subscribe(function(str) {

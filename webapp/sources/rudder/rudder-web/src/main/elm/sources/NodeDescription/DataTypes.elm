@@ -14,8 +14,7 @@ type alias Model =
 
 
 type Msg
-    = GetNodeWriteAuth (Result Error Bool)
-    | GetNodeDescription (Result Error String)
+    = GetNodeDescription (Result Error String)
     | SetNodeDescription (Result Error String)
     | EditNodeDescription String
     | SubmitDescription

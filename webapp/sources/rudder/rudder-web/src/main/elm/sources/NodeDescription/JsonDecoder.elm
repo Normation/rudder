@@ -1,6 +1,6 @@
-module NodeDescription.JsonDecoder exposing (decodeGetDescription, decodeNodeWriteAuth, decodeSetDescription)
+module NodeDescription.JsonDecoder exposing (decodeGetDescription, decodeSetDescription)
 
-import Json.Decode exposing (Decoder, andThen, at, field, index, list, string, succeed)
+import Json.Decode exposing (Decoder, at, field, index, string, succeed)
 import Json.Decode.Field exposing (optional)
 
 
@@ -17,12 +17,3 @@ decodeGetDescription =
 decodeSetDescription : Decoder String
 decodeSetDescription =
     at [ "data" ] (field "documentation" string)
-
-
-decodeNodeWriteAuth : Decoder Bool
-decodeNodeWriteAuth =
-    let
-        hasNodeWriteAuth authList =
-            succeed (List.member "node_write" authList)
-    in
-    at [ "data", "coverage" ] (field "custom" (list string) |> andThen hasNodeWriteAuth)
