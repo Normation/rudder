@@ -52,6 +52,7 @@ view model =
             ))
             [ text item.name
             , small [class "text-secondary"] [text (" - " ++ if item.dynamic then "Dynamic" else "Static")]
+            , badgeSecurityTags item.security
             , badgeDisabled
             ]
           ]

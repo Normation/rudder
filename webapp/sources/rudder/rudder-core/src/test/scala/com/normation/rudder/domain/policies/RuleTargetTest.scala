@@ -15,6 +15,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.tenants.SecurityTag
 import java.time.Instant
 import net.liftweb.common.*
 import org.junit.runner.RunWith
@@ -156,7 +157,7 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
         "",
         isEnabled = true,
         isSystem = false,
-        security = None
+        security = gt._2.security
       )
     }))
     .toList
@@ -197,7 +198,7 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
     Nil,
     fullRuleTargetInfos,
     isSystem = false,
-    security = None
+    security = Some(SecurityTag.Open) // root category must be open
   )
 
   val allTargets: Set[RuleTarget] = (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))

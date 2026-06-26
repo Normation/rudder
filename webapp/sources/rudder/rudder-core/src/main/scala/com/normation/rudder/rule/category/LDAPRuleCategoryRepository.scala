@@ -40,8 +40,6 @@ package com.normation.rudder.rule.category
 import cats.implicits.*
 import com.normation.NamedZioLogger
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.ldap.sdk.*
@@ -51,6 +49,8 @@ import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.unboundid.ldap.sdk.DN
@@ -81,7 +81,7 @@ class RoLDAPRuleCategoryRepository(
   /**
    * Get category with given Id
    */
-  def get(id: RuleCategoryId): IOResult[RuleCategory] = {
+  def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] = {
     categoryMutex.readLock(for {
       con      <- ldap
       entry    <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
@@ -121,7 +121,7 @@ class RoLDAPRuleCategoryRepository(
   /**
    * get Root category
    */
-  override def getRootCategory(): IOResult[RuleCategory] = {
+  override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] = {
     val catAttributes = Seq(A_OC, A_RULE_CATEGORY_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)
 
     categoryMutex.readLock(for {
@@ -226,7 +226,7 @@ class WoLDAPRuleCategoryRepository(
   /**
    * Return the list of parents for that category, from the root category
    */
-  private def getParents(id: RuleCategoryId): IOResult[List[RuleCategory]] = {
+  private def getParents(id: RuleCategoryId)(using qc: QueryContext): IOResult[List[RuleCategory]] = {
     for {
       root    <- getRootCategory()
       parents <- root.findParents(id).leftMap(s => Inconsistency(s)).toIO
@@ -243,12 +243,10 @@ class WoLDAPRuleCategoryRepository(
    * return the new category.
    */
   override def create(
-      that:   RuleCategory,
-      into:   RuleCategoryId,
-      modId:  ModificationId,
-      actor:  EventActor,
-      reason: Option[String]
-  ): IOResult[RuleCategory] = {
+      that: RuleCategory,
+      into: RuleCategoryId
+  )(implicit cc: ChangeContext): IOResult[RuleCategory] = {
+    given QueryContext = cc.toQC
     categoryMutex.writeLock(for {
       con                 <- ldap
       parentCategoryEntry <-
@@ -264,8 +262,9 @@ class WoLDAPRuleCategoryRepository(
       autoArchive         <- ZIO.when(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
                                  parents  <- getParents(that.id)
-                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 archive  <- gitArchiver.archiveRuleCategory(that, parents.map(_.id), Some((modId, commiter, reason)))
+                                 commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
+                                 archive  <-
+                                   gitArchiver.archiveRuleCategory(that, parents.map(_.id), Some((cc.modId, commiter, cc.message)))
                                } yield {
                                  archive
                                }
@@ -281,11 +280,9 @@ class WoLDAPRuleCategoryRepository(
    */
   override def updateAndMove(
       category:    RuleCategory,
-      containerId: RuleCategoryId,
-      modId:       ModificationId,
-      actor:       EventActor,
-      reason:      Option[String]
-  ): IOResult[RuleCategory] = {
+      containerId: RuleCategoryId
+  )(implicit cc: ChangeContext): IOResult[RuleCategory] = {
+    given QueryContext = cc.toQC
     categoryMutex.writeLock(for {
       con              <- ldap
       oldParents       <- if (autoExportOnModify) {
@@ -314,12 +311,12 @@ class WoLDAPRuleCategoryRepository(
                             case _ if (autoExportOnModify && !updated.isSystem)     =>
                               (for {
                                 parents  <- getParents(updated.id)
-                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                 moved    <- gitArchiver.moveRuleCategory(
                                               updated,
                                               oldParents.map(_.id),
                                               parents.map(_.id),
-                                              Some((modId, commiter, reason))
+                                              Some((cc.modId, commiter, cc.message))
                                             )
                               } yield {
                                 moved
@@ -342,11 +339,9 @@ class WoLDAPRuleCategoryRepository(
    */
   override def delete(
       that:       RuleCategoryId,
-      modId:      ModificationId,
-      actor:      EventActor,
-      reason:     Option[String],
       checkEmpty: Boolean = true
-  ): IOResult[RuleCategoryId] = {
+  )(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
+    given QueryContext = cc.toQC
     categoryMutex.writeLock(for {
       con     <- ldap
       deleted <- {
@@ -363,9 +358,10 @@ class WoLDAPRuleCategoryRepository(
               autoArchive <- ZIO
                                .when(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                  for {
-                                   commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
+                                   commiter <- personIdentService.getPersonIdentOrDefault(cc.actor.name)
                                    archive  <-
-                                     gitArchiver.deleteRuleCategory(that, parents.map(_.id), Some((modId, commiter, reason)))
+                                     gitArchiver
+                                       .deleteRuleCategory(that, parents.map(_.id), Some((cc.modId, commiter, cc.message)))
                                  } yield {
                                    archive
                                  }

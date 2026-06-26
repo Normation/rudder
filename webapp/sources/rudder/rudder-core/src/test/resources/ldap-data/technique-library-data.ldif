@@ -111,6 +111,7 @@ cn: User Techniques
 techniqueCategoryId: ncf_techniques
 description:: CiAgICBUZWNobmlxdWVzIGNyZWF0ZWQgdXNpbmcgdGhlIFRlY2huaXF1ZSBlZGl0b3IuCiAg
 isSystem: FALSE
+securityTag: {"tenants": ["zoneA"]}
 
 dn: activeTechniqueId=user_defined_tech1,techniqueCategoryId=ncf_techniques,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: activeTechnique
@@ -146,6 +147,15 @@ isEnabled: TRUE
 isSystem: FALSE
 tag: rootRuleCategory
 serial: 0
+securityTag: {"tenants": ["zoneA"]}
+
+# a global parameter tagged with tenant `zoneA`, used to test tenant filtering on parameters
+dn: parameterName=param-zoneA,ou=Parameters,ou=Rudder,cn=rudder-configuration
+objectClass: parameter
+objectClass: top
+parameterName: param-zoneA
+description: A global parameter restricted to tenant zoneA
+parameterValue: "zoneA value"
 securityTag: {"tenants": ["zoneA"]}
 
 ##

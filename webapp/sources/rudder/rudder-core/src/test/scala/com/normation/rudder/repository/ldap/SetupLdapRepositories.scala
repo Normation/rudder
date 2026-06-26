@@ -200,72 +200,97 @@ trait SetupLdapRepositories {
 
   lazy val personIdent = new TrivialPersonIdentService
 
-  lazy val roGroupRepo = {
-    new RoLDAPNodeGroupRepository(
-      rudderDit,
-      roLdap,
-      ldapMapper,
-      nodeFactRepo,
-      new ZioTReentrantLock("group-lock")
-    )
-  }
-
-  lazy val woGroupRepo = new WoLDAPNodeGroupRepository(
-    roGroupRepo,
-    rwLdap,
-    ldapDiffMapper,
-    eventLogRepo,
-    gitArchiver,
-    personIdent,
-    tenantService,
-    tenantRepo,
-    false
+  lazy val ldapRoGroupRepo = new RoLDAPNodeGroupRepository(
+    rudderDit,
+    roLdap,
+    ldapMapper,
+    nodeFactRepo,
+    new ZioTReentrantLock("group-lock")
   )
+
+  lazy val roGroupRepo: RoNodeGroupRepository = new RoTenantNodeGroupRepo(tenantService, ldapRoGroupRepo)
+
+  lazy val woGroupRepo: WoNodeGroupRepository = {
+    val ldapWo = new WoLDAPNodeGroupRepository(
+      ldapRoGroupRepo,
+      rwLdap,
+      ldapDiffMapper,
+      eventLogRepo,
+      gitArchiver,
+      personIdent,
+      false
+    )
+    new WoTenantNodeGroupRepo(tenantService, tenantRepo, ldapWo, ldapRoGroupRepo)
+  }
 
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
 
-  lazy val lockDirective   = new ZioTReentrantLock("directive-lock")
-  lazy val roDirectiveRepo = new RoLDAPDirectiveRepository(
+  lazy val lockDirective       = new ZioTReentrantLock("directive-lock")
+  lazy val ldapRoDirectiveRepo = new RoLDAPDirectiveRepository(
     rudderDit,
     roLdap,
     ldapMapper,
     mockTechniques.techniqueRepo,
     new ZioTReentrantLock("directive-lock")
   )
+  lazy val roDirectiveRepo: RoDirectiveRepository =
+    new RoTenantDirectiveRepo(tenantService, ldapRoDirectiveRepo)
 
-  lazy val woDirectiveRepo = new WoLDAPDirectiveRepository(
-    roDirectiveRepo,
-    rwLdap,
-    ldapDiffMapper,
-    eventLogRepo,
-    gitArchiver,
-    gitArchiver,
-    gitArchiver,
-    personIdent,
-    false
-  )
+  lazy val woDirectiveRepo: WoDirectiveRepository = {
+    val ldapWo = new WoLDAPDirectiveRepository(
+      ldapRoDirectiveRepo,
+      rwLdap,
+      ldapDiffMapper,
+      eventLogRepo,
+      gitArchiver,
+      gitArchiver,
+      gitArchiver,
+      personIdent,
+      false
+    )
+    new WoTenantDirectiveRepo(tenantService, tenantRepo, ldapWo, ldapRoDirectiveRepo)
+  }
 
-  lazy val lockRule   = new ZioTReentrantLock("rule-lock")
-  lazy val roRuleRepo = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, lockRule)
+  lazy val lockRule       = new ZioTReentrantLock("rule-lock")
+  lazy val ldapRoRuleRepo = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, lockRule)
+  lazy val roRuleRepo: RoRuleRepository = new RoTenantRuleRepo(tenantService, ldapRoRuleRepo)
+  lazy val woRuleRepo: WoRuleRepository = {
+    val ldapWo = new WoLDAPRuleRepository(
+      ldapRoRuleRepo,
+      rwLdap,
+      ldapDiffMapper,
+      roGroupRepo,
+      eventLogRepo,
+      gitArchiver,
+      personIdent,
+      false
+    )
+    new WoTenantRuleRepo(tenantService, tenantRepo, ldapWo, ldapRoRuleRepo)
+  }
 
-  lazy val lockProperty         = new ZioTReentrantLock("property-lock")
-  lazy val roGlobalPropertyRepo = new RoLDAPParameterRepository(
+  lazy val lockProperty       = new ZioTReentrantLock("property-lock")
+  lazy val ldapRoPropertyRepo = new RoLDAPParameterRepository(
     rudderDit,
     roLdap,
     ldapMapper,
     lockProperty
   )
+  lazy val roGlobalPropertyRepo: RoParameterRepository =
+    new RoTenantParameterRepo(tenantService, ldapRoPropertyRepo)
 
-  lazy val woGlobalPropertyRepo = new WoLDAPParameterRepository(
-    roGlobalPropertyRepo,
-    rwLdap,
-    ldapDiffMapper,
-    eventLogRepo,
-    gitArchiver,
-    personIdent,
-    false
-  )
+  lazy val woGlobalPropertyRepo: WoParameterRepository = {
+    val ldapWo = new WoLDAPParameterRepository(
+      ldapRoPropertyRepo,
+      rwLdap,
+      ldapDiffMapper,
+      eventLogRepo,
+      gitArchiver,
+      personIdent,
+      false
+    )
+    new WoTenantParameterRepo(tenantService, tenantRepo, ldapWo, ldapRoPropertyRepo)
+  }
 
   // event log
   lazy val eventLogRepo = new EventLogRepository {

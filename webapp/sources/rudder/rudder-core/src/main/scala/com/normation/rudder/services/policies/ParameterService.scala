@@ -38,13 +38,13 @@
 package com.normation.rudder.services.policies
 
 import com.normation.box.*
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
+import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.common.*
 
 trait RoParameterService {
@@ -52,12 +52,12 @@ trait RoParameterService {
   /**
    * Returns a Global Parameter by its name
    */
-  def getGlobalParameter(parameterName: String): Box[Option[GlobalParameter]]
+  def getGlobalParameter(parameterName: String)(using qc: QueryContext): Box[Option[GlobalParameter]]
 
   /**
    * Returns all defined Global Parameters
    */
-  def getAllGlobalParameters(): Box[Seq[GlobalParameter]]
+  def getAllGlobalParameters()(using qc: QueryContext): Box[Seq[GlobalParameter]]
 }
 
 trait WoParameterService {
@@ -68,11 +68,8 @@ trait WoParameterService {
    * Will fail if a parameter with the same name exists
    */
   def saveParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): Box[GlobalParameter]
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): Box[GlobalParameter]
 
   /**
    * Updates a parameter
@@ -80,22 +77,16 @@ trait WoParameterService {
    * Will fail if no params with the same name exists
    */
   def updateParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): Box[GlobalParameter]
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): Box[GlobalParameter]
 
   /**
    * Delete a global parameter
    */
   def delete(
       parameterName: String,
-      provider:      Option[PropertyProvider],
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): Box[String]
+      provider:      Option[PropertyProvider]
+  )(using cc: ChangeContext): Box[String]
 }
 
 class RoParameterServiceImpl(
@@ -105,7 +96,7 @@ class RoParameterServiceImpl(
   /**
    * Returns a Global Parameter by its name
    */
-  def getGlobalParameter(parameterName: String): Box[Option[GlobalParameter]] = {
+  def getGlobalParameter(parameterName: String)(using qc: QueryContext): Box[Option[GlobalParameter]] = {
     roParamRepo.getGlobalParameter(parameterName).toBox match {
       case Full(entry) => Full(entry)
       case Empty       => Full(None)
@@ -118,7 +109,7 @@ class RoParameterServiceImpl(
   /**
    * Returns all defined Global Parameters
    */
-  def getAllGlobalParameters(): Box[Seq[GlobalParameter]] = {
+  def getAllGlobalParameters()(using qc: QueryContext): Box[Seq[GlobalParameter]] = {
     roParamRepo.getAllGlobalParameters().toBox match {
       case Full(seq) => Full(seq)
       case Empty     => Full(Seq())
@@ -141,12 +132,9 @@ class WoParameterServiceImpl(
    * Will fail if a parameter with the same name exists
    */
   def saveParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): Box[GlobalParameter] = {
-    woParamRepo.saveParameter(parameter, modId, actor, reason).toBox match {
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): Box[GlobalParameter] = {
+    woParamRepo.saveParameter(parameter).toBox match {
       case e: Failure =>
         logger.error("Error while trying to create param %s : %s".format(parameter.name, e.messageChain))
         e
@@ -155,14 +143,14 @@ class WoParameterServiceImpl(
         Failure("Something unexpected happened when trying to create parameter %s".format(parameter.name))
       case Full(diff) =>
         // Ok, it's been save, try to fetch the new value
-        roParamService.getGlobalParameter(parameter.name) match {
+        roParamService.getGlobalParameter(parameter.name)(using cc.toQC) match {
           case e: EmptyBox => e
           case Full(option) =>
             option match {
               case Some(entry) =>
                 logger.debug("Successfully created parameter %s".format(parameter.name))
                 // launch a deployement
-                asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+                asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
                 Full(entry)
               case None        =>
                 logger.error("Could not fetch back newly created global parameter with name %s".format(parameter.name))
@@ -178,12 +166,9 @@ class WoParameterServiceImpl(
    * Will fail if no params with the same name exists
    */
   def updateParameter(
-      parameter: GlobalParameter,
-      modId:     ModificationId,
-      actor:     EventActor,
-      reason:    Option[String]
-  ): Box[GlobalParameter] = {
-    woParamRepo.updateParameter(parameter, modId, actor, reason).toBox match {
+      parameter: GlobalParameter
+  )(using cc: ChangeContext): Box[GlobalParameter] = {
+    woParamRepo.updateParameter(parameter).toBox match {
       case e: Failure =>
         logger.error("Error while trying to update param %s : %s".format(parameter.name, e.messageChain))
         e
@@ -192,14 +177,14 @@ class WoParameterServiceImpl(
         Failure("Something unexpected happened when trying to update parameter %s".format(parameter.name))
       case Full(diff) =>
         // Ok, it's been updated, try to fetch the new value
-        roParamService.getGlobalParameter(parameter.name) match {
+        roParamService.getGlobalParameter(parameter.name)(using cc.toQC) match {
           case e: EmptyBox => e
           case Full(option) =>
             option match {
               case Some(entry) =>
                 logger.debug("Successfully udated parameter %s".format(parameter.name))
                 // launch a deployement
-                asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+                asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
                 Full(entry)
               case None        =>
                 logger.error("Could not fetch back updated global parameter with name %s".format(parameter.name))
@@ -211,12 +196,9 @@ class WoParameterServiceImpl(
 
   def delete(
       parameterName: String,
-      provider:      Option[PropertyProvider],
-      modId:         ModificationId,
-      actor:         EventActor,
-      reason:        Option[String]
-  ): Box[String] = {
-    woParamRepo.delete(parameterName, provider, modId, actor, reason).toBox match {
+      provider:      Option[PropertyProvider]
+  )(using cc: ChangeContext): Box[String] = {
+    woParamRepo.delete(parameterName, provider).toBox match {
       case e: Failure =>
         logger.error("Error while trying to delete param %s : %s".format(parameterName, e.messageChain))
         e
@@ -225,7 +207,7 @@ class WoParameterServiceImpl(
         Failure("Something unexpected happened when trying to update parameter %s".format(parameterName))
       case Full(diff) =>
         logger.debug("Successfully deleted parameter %s".format(parameterName))
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+        asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         Full(parameterName)
     }
   }

@@ -54,8 +54,10 @@ trait HasSecurityTag[A] {
     // update the security context of the object, returning is updated
     def updateSecurityContext(security: Option[SecurityTag]): A
 
-    // simplify common usage with cc
-    def updateFromChangeContext(implicit cc: ChangeContext): A = updateSecurityContext(cc.accessGrant.toSecurityTag)
+    // simplify common usage with cc: tag the object with the tenants the user can write on
+    def updateFromChangeContext(implicit cc: ChangeContext): A = updateSecurityContext(
+      cc.accessGrant.restrictToWrite.toSecurityTag
+    )
 
     // this is needed for giving useful log/debug message to users
     def debugId: String
@@ -109,6 +111,11 @@ object SecurityTag {
     },
     codecOpen.decoder.widen <> codecByTenants.decoder.widen
   )
+
+  // JsonCodec[A] does not implicitly provide JsonEncoder[A] in ZIO JSON, so we expose it
+  // explicitly so that DeriveJsonEncoder.gen for case classes containing SecurityTag fields
+  // uses our custom non-discriminated encoding instead of auto-deriving a sum-type encoder.
+  implicit val encoderSecurityTag: JsonEncoder[SecurityTag] = codecSecurityTag.encoder
 
   // XML serialization / deserialisation for events
   import scala.xml.*

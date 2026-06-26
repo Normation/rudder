@@ -125,7 +125,7 @@ class DynGroupUpdaterServiceImpl(
 
   override def updateAll(modId: ModificationId)(implicit cc: ChangeContext): Box[Seq[DynGroupDiff]] = {
     for {
-      allGroups <- roNodeGroupRepository.getAll().toBox
+      allGroups <- roNodeGroupRepository.getAll()(using cc.toQC).toBox
       dynGroups  = allGroups.filter(_.isDynamic)
       result    <- com.normation.utils.Control.traverse(dynGroups) { group =>
                      for {

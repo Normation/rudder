@@ -50,6 +50,7 @@ view model =
             , text item.name
             , badgeDisabled
             , buildTagsTree item.tags
+            , badgeSecurityTags item.security
             ]
           ]
         ]

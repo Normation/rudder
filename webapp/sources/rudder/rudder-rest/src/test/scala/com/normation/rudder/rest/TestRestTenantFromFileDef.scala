@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2024 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -40,97 +40,92 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.GitVersion
 import com.normation.errors.*
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
+import com.normation.rudder.domain.policies.AllTarget
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.policies.Tags
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.Visibility
-import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
-import com.normation.zio.*
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantId
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
 import zio.test.junit.ZTestJUnitRunner
 
 @RunWith(classOf[ZTestJUnitRunner])
-class TestInheritedProperties extends ZIOSpecDefault {
+class TestRestTenantFromFileDef extends ZIOSpecDefault {
 
-  val restTestSetUp = RestTestSetUp.newEnv
-
-  // let's say that's /var/rudder/share
-  val tmpApiTemplate: File = restTestSetUp.baseTempDirectory / "apiTemplates"
-  tmpApiTemplate.createDirectories()
-
-  // nodeXX appears at several places
-
-  def yamlSourceDirectory:  String = "api_inherited_prop"
-  def yamlDestTmpDirectory: File   = tmpApiTemplate
-
-  val transformations: Map[String, String => String] = Map()
-
-  // there is some tests that need change in data model, that we don't want to have in all plugins.
-  // For ex, the tests for inherited values
-  val badOverrideType: GlobalParameter = {
-    GlobalParameter(
-      "badOverrideType",
-      GitVersion.DEFAULT_REV,
-      "a string".toConfigValue,
-      None,
-      "a string at first",
-      None,
-      Visibility.default,
-      security = None
-    )
-  }
-  restTestSetUp.mockParameters.paramsRepo.paramsMap.update(m => m + (badOverrideType.name -> badOverrideType)).runNow
-
-  val gProp: GroupProperty = GroupProperty
-    .parse(
-      "badOverrideType",
-      GitVersion.DEFAULT_REV,
-      """{ "now":"a json" }""",
-      None,
-      None
-    )
-    .getOrElse(null) // for test
-
-  import com.softwaremill.quicklens.*
-
-  implicit val qc: QueryContext  = QueryContext.testQC
-  implicit val cc: ChangeContext = qc.newCC()
-
-  val g0Id: NodeGroupId = restTestSetUp.mockNodeGroups.g0.id
-  (for {
-    g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id).notOptional("test")
-    up = g._1.modify(_.properties).using(_.appended(gProp))
-    _ <- restTestSetUp.mockNodeGroups.groupsRepo.update(up)
-    _ <- restTestSetUp.mockNodeGroups.propService.updateAll() // the properties also need to be recomputed after group is updated
-  } yield ()).runNow
-
-  // we are testing error cases, so we don't want to output error log for them
+  // suppress expected error logs from REST utils
   org.slf4j.LoggerFactory
     .getLogger("com.normation.rudder.rest.RestUtils")
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
+  org.slf4j.LoggerFactory
+    .getLogger("tenants")
+    .asInstanceOf[ch.qos.logback.classic.Logger]
+    .setLevel(ch.qos.logback.classic.Level.TRACE)
+
+  // A single shared test setup — all user variants read from the same mock repos
+  val restTestSetUp: RestTestSetUp = RestTestSetUp.newEnv
+
+  // ─── seed tenant-tagged objects ───────────────────────────────────────────
+
+  // Rule restricted to zoneA + zoneB, using the enabled clockDirective so that
+  // getRuleApplicationStatus returns "In application"
+  val tenantRule: Rule = Rule(
+    RuleId(RuleUid("tenant-rule-1")),
+    "Tenant test rule",
+    RuleCategoryId("rootRuleCategory"),
+    Set(AllTarget),
+    Set(DirectiveId(DirectiveUid("directive1"))),
+    "A rule for tenant testing",
+    "",
+    isEnabledStatus = true,
+    isSystem = false,
+    Tags(Set()),
+    security = Some(SecurityTag.ByTenants(zio.Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+  )
+
+  // Global parameter restricted to zoneA + zoneB
+  val tenantParam: GlobalParameter = GlobalParameter(
+    "tenantParam",
+    GitVersion.DEFAULT_REV,
+    "tenant-value".toConfigValue,
+    None,
+    "a tenant-restricted param",
+    None,
+    Visibility.default,
+    security = Some(SecurityTag.ByTenants(zio.Chunk(TenantId("zoneA"), TenantId("zoneB"))))
+  )
+
+  val tmpTenantTemplate: File = restTestSetUp.baseTempDirectory / "tenantApiTemplates"
+  tmpTenantTemplate.createDirectories()
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
-    (suite("All REST tests defined in files") {
-
+    suite("Tenant-aware REST API tests (multi-user)") {
       for {
+        _ <- restTestSetUp.mockParameters.paramsRepo.paramsMap.update(_ + (tenantParam.name -> tenantParam))
+        _ <- restTestSetUp.mockRules.ruleRepo.rulesMap.update(_ + (tenantRule.id -> tenantRule))
+        _ <- restTestSetUp.mockTenants.tenantRepo.setTenantEnabled(true)
         s <- TraitTestApiFromYamlFiles.doTest(
-               yamlSourceDirectory,
-               yamlDestTmpDirectory,
+               "api-tenant",
+               tmpTenantTemplate,
                restTestSetUp.liftRules,
                restTestSetUp.userService,
                Nil,
-               transformations
+               Map.empty
              )
         _ <- effectUioUnit(
                if (java.lang.System.getProperty("tests.clean.tmp") != "false") IOResult.attempt(restTestSetUp.cleanup())
                else ZIO.unit
              )
       } yield s
-    }) // @@ TestAspect.ignore
+    } @@ TestAspect.sequential
   }
 }

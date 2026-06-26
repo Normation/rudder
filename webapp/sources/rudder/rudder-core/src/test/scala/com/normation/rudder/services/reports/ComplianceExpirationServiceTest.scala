@@ -42,6 +42,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.MockGlobalParam
 import com.normation.rudder.MockNodeGroups
 import com.normation.rudder.MockNodes
+import com.normation.rudder.MockTenants
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
@@ -168,8 +169,9 @@ class ComplianceExpirationServiceTest extends Specification {
 
   "Find a property from the mock repos" >> {
     // for correct init of propRepo, we need param, node and group
-    val mockNodes         = new MockNodes
-    val mockGroup         = new MockNodeGroups(mockNodes, new MockGlobalParam)
+    val mockTenants       = new MockTenants()
+    val mockNodes         = new MockNodes(mockTenants)
+    val mockGroup         = new MockNodeGroups(mockNodes, new MockGlobalParam(mockTenants), mockTenants)
     val expirationService = new NodePropertyBasedComplianceExpirationService(
       mockNodes.propRepo,
       NodePropertyBasedComplianceExpirationService.PROP_NAME,

@@ -381,7 +381,7 @@ class RefuseGroups(
   override def refuseOne(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
     // remove server id in all groups
     for {
-      groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))
+      groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))(using cc.toQC)
       _        <- ZIO.foreach(groupIds) { groupId =>
                     for {
                       groupPair <- roGroupRepo.getNodeGroup(groupId)(using cc.toQC)

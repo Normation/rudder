@@ -60,6 +60,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.tenants.QueryContext
 import zio.*
 import zio.syntax.*
 
@@ -84,11 +85,11 @@ trait RoConfigurationRepository {
   /*
    * Get a directive and its matching active technique for the given (id, version)
    */
-  def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]]
+  def getDirective(id: DirectiveId)(using qc: QueryContext): IOResult[Option[ActiveDirective]]
   def getTechnique(id: TechniqueId): IOResult[Option[(Chunk[TechniqueCategoryName], Technique)]]
-  def getRule(id:      RuleId):      IOResult[Option[Rule]]
+  def getRule(id:      RuleId)(using qc:      QueryContext): IOResult[Option[Rule]]
 
-  def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory]
+  def getDirectiveLibrary(ids: Set[DirectiveId])(using qc: QueryContext): IOResult[FullActiveTechniqueCategory]
 
   def getDirectiveRevision(uid: DirectiveUid): IOResult[List[RevisionInfo]]
 }
@@ -122,7 +123,7 @@ class ConfigurationRepositoryImpl(
     groupRevisionRepo:     GroupRevisionRepository
 ) extends ConfigurationRepository {
 
-  override def getDirective(id: DirectiveId): IOResult[Option[ActiveDirective]] = {
+  override def getDirective(id: DirectiveId)(using qc: QueryContext): IOResult[Option[ActiveDirective]] = {
     (id.rev match {
       case GitVersion.DEFAULT_REV =>
         roDirectiveRepository.getActiveTechniqueAndDirective(id)
@@ -144,7 +145,7 @@ class ConfigurationRepositoryImpl(
     }
   }
 
-  override def getRule(id: RuleId): IOResult[Option[Rule]] = {
+  override def getRule(id: RuleId)(using qc: QueryContext): IOResult[Option[Rule]] = {
     id.rev match {
       case GitVersion.DEFAULT_REV =>
         roRuleRepository.getOpt(id)
@@ -157,7 +158,7 @@ class ConfigurationRepositoryImpl(
     directiveRevisionRepo.getRevisions(uid)
   }
 
-  def getDirectiveLibrary(ids: Set[DirectiveId]): IOResult[FullActiveTechniqueCategory] = {
+  def getDirectiveLibrary(ids: Set[DirectiveId])(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] = {
     def nonDefaultRev(rev: Revision): Boolean = rev != GitVersion.DEFAULT_REV
     val versionedDirectives = ids.filter(x => nonDefaultRev(x.rev))
     for {

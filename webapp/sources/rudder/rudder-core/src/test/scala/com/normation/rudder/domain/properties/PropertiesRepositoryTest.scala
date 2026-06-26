@@ -38,6 +38,7 @@
 package com.normation.rudder.domain.properties
 
 import com.normation.rudder.MockNodes
+import com.normation.rudder.MockTenants
 import com.normation.rudder.properties.InMemoryPropertiesRepository
 import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.UnsafeRun
@@ -50,7 +51,8 @@ import zio.Chunk
 class PropertiesRepositoryTest extends Specification {
   sequential
 
-  private val mockNodes    = new MockNodes()
+  private val mockTenants  = new MockTenants()
+  private val mockNodes    = new MockNodes(mockTenants)
   private val nodeFactRepo = mockNodes.nodeFactRepo
   private val repo         = InMemoryPropertiesRepository.make(nodeFactRepo).runNow
 

@@ -14,7 +14,7 @@ import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 
 import Compliance.Utils exposing (defaultComplianceFilter)
-import Rules.ViewUtils exposing (badgePolicyModeNoGlobal, buildTagsTree)
+import Rules.ViewUtils exposing (badgePolicyModeNoGlobal, badgeSecurityTags, buildTagsTree)
 import Ui.Datatable exposing (defaultTableFilters, Category, SubCategories(..))
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
@@ -78,7 +78,8 @@ initTable =
                 , renderHtml = (\rule ->
                     div [] [ badgePolicyModeNoGlobal rule.policyMode
                            , text rule.name
-                           , buildTagsTree rule.tags] )
+                           , buildTagsTree rule.tags
+                           , badgeSecurityTags rule.security] )
                 , ordering = Ordering.byField (.name >> String.toLower) }
                 [ { name = (ColumnName "Category")
                   , renderHtml = .categoryName >> text

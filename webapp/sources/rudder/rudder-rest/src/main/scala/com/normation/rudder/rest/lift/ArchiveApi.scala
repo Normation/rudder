@@ -108,6 +108,7 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
@@ -626,7 +627,7 @@ class ZipArchiveBuilderService(
       Seq().succeed
     } else {
       ruleCategoryRepo
-        .getRootCategory()
+        .getRootCategory()(using QueryContext.systemQC)
         .map(_.transformInto[JRuleCategories].keepInHierarchy(ids).toJsonPretty)
         .map(json => List(Zippable(path, Some(getJsonZippableContent(json)))))
     }
@@ -642,7 +643,7 @@ class ZipArchiveBuilderService(
       usedNames:   Ref[Map[String, Set[String]]],
       rootDirName: String,
       groupLib:    FullNodeGroupCategory
-  ): IOResult[Seq[Zippable]] = {
+  )(using qc: QueryContext): IOResult[Seq[Zippable]] = {
 
     import com.softwaremill.quicklens.*
 
@@ -695,7 +696,7 @@ class ZipArchiveBuilderService(
         cat:         FullNodeGroupCategory,
         catFileName: String,
         usedNames:   Ref[Map[String, Set[String]]]
-    ): IOResult[Chunk[Zippable]] = {
+    )(using qc: QueryContext): IOResult[Chunk[Zippable]] = {
       for {
         ref   <- Ref.make(Chunk.empty[Zippable])
         _     <- ZIO.foreach(cat.subCategories) { sub =>
@@ -1617,14 +1618,17 @@ class SaveArchiveServicebyRepo(
   }
 
   def saveDirective(eventMetadata: EventMetadata, d: DirectiveArchive): IOResult[Unit] = {
+    // archive import is a system-level operation, see all tenants
+    given cc: ChangeContext =
+      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
     for {
       at <-
         roDirectiveRepos
-          .getActiveTechnique(d.technique)
+          .getActiveTechnique(d.technique)(using cc.toQC)
           .notOptional(s"Technique '${d.technique.value}' is used in imported directive ${d.directive.name} but is not in Rudder")
       _  <-
         ApplicationLoggerPure.Archive.debug(s"Adding directive from archive: '${d.directive.name}' (${d.directive.id.serialize})")
-      _  <- woDirectiveRepos.saveDirective(at.id, d.directive, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+      _  <- woDirectiveRepos.saveDirective(at.id, d.directive)
     } yield ()
   }
   def saveGroupCat(
@@ -1639,7 +1643,7 @@ class SaveArchiveServicebyRepo(
        * point that at least all parents exists. But perhaps not that one.
        */
       id       = NodeGroupCategoryId(cat.category.id)
-      exists  <- roGroupRepos.categoryExists(id)
+      exists  <- roGroupRepos.categoryExists(id)(using cc.toQC)
       parentId = catMap.get(File(cat.catPath).parent.pathAsString) match {
                    case Some(p) => p
                    case None    => GroupRootId
@@ -1667,7 +1671,7 @@ class SaveArchiveServicebyRepo(
       // normally, at that point the category of the group exists because we took care to create them before.
       // But we used to have a bug where categories where not exported, so until Rudder 9 we need to check for that
       // if category of group doesn't exist, we need to create one using the UUID as name
-      c <- roGroupRepos.categoryExists(g.category)
+      c <- roGroupRepos.categoryExists(g.category)(using cc.toQC)
       _ <- ZIO.when(!c) {
              woGroupRepos.addGroupCategoryToCategory(
                NodeGroupCategory(
@@ -1698,7 +1702,10 @@ class SaveArchiveServicebyRepo(
     } yield ()
   }
   def saveRuleCategory(eventMetadata: EventMetadata, r: RuleCategoryArchive):    IOResult[Unit] = {
-    roRuleCategoryRepos.getRootCategory().flatMap { root =>
+    // archive import is a system-level operation, see all tenants
+    given cc: ChangeContext =
+      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
+    roRuleCategoryRepos.getRootCategory()(using cc.toQC).flatMap { root =>
       val newRoot  = r.toRuleCategory
       val parents  = r.parentCategories
       val children = r.childCategories
@@ -1715,10 +1722,7 @@ class SaveArchiveServicebyRepo(
              ZIO.unlessZIODiscard(alreadyExists(c.id))(
                woRuleCategoryRepos.create(
                  c.toRuleCategory,
-                 parents.get(c).fold(newRoot.id)(_.id),
-                 eventMetadata.modId,
-                 eventMetadata.actor,
-                 eventMetadata.msg
+                 parents.get(c).fold(newRoot.id)(_.id)
                ) *> created.update(_ + c.id) *>
                ApplicationLoggerPure.Archive.trace(
                  s"Created rule category parent from archive: '${c.name}' (${c.id.value})"
@@ -1727,10 +1731,7 @@ class SaveArchiveServicebyRepo(
            } else {
              woRuleCategoryRepos.updateAndMove(
                c.toRuleCategory,
-               parents.get(c).fold(newRoot.id)(_.id),
-               eventMetadata.modId,
-               eventMetadata.actor,
-               eventMetadata.msg
+               parents.get(c).fold(newRoot.id)(_.id)
              ) *> ApplicationLoggerPure.Archive.trace(
                s"Moved rule category parent from archive: '${c.name}' (${c.id.value}) to ${parents(c).id}"
              )
@@ -1744,9 +1745,12 @@ class SaveArchiveServicebyRepo(
     }
   }
   def saveRule(eventMetadata: EventMetadata, mergePolicy: MergePolicy, r: Rule): IOResult[Unit] = {
+    // archive import is a system-level operation, see all tenants
+    given cc: ChangeContext =
+      ChangeContext.newFor(eventMetadata.actor, TenantAccessGrant.All, eventMetadata.msg).withModId(eventMetadata.modId)
     for {
       _ <- ApplicationLoggerPure.Archive.debug(s"Adding rule from archive: '${r.name}' (${r.id.serialize})")
-      x <- roRuleRepos.getOpt(r.id)
+      x <- roRuleRepos.getOpt(r.id)(using cc.toQC)
       _ <- x match {
              case Some(value) =>
                // if merge policy asks for that, update rule from archive with existing groups before saving so
@@ -1756,12 +1760,12 @@ class SaveArchiveServicebyRepo(
                    r.copy(targets = value.targets)
                  } else r
                }
-               woRuleRepos.update(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+               woRuleRepos.update(ruleToSave)
              case None        =>
                val ruleToSave = if (mergePolicy == MergePolicy.IgnoreSourceTargets) {
                  r.copy(targets = Set())
                } else r
-               woRuleRepos.create(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+               woRuleRepos.create(ruleToSave)
            }
     } yield ()
   }

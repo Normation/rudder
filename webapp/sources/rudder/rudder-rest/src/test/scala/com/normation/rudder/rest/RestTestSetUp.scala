@@ -152,9 +152,7 @@ import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServi
 import com.normation.rudder.services.workflows.CommitAndDeployChangeRequestServiceImpl
 import com.normation.rudder.services.workflows.DefaultWorkflowLevel
 import com.normation.rudder.services.workflows.NoWorkflowServiceImpl
-import com.normation.rudder.tenants.ChangeContext
-import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.tenants.TenantAccessGrant
+import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
 import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.model.LinkUtil
@@ -220,20 +218,48 @@ import zio.test.*
  */
 
 /**
- * A stub user service with full rights to API
+ * A stub user service with full rights to API.
+ * This is a special user service where we can choose which is current user by name.
+ * This only work because all API tests are sequential.
  */
 class TestUserService extends UserService {
-  val user:                    AuthenticatedUser         = new AuthenticatedUser {
-    override val account:     RudderAccount     = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
+  def makeUser(n: String, grant: TenantAccessGrant) = new AuthenticatedUser {
+    override val account:     RudderAccount     = RudderAccount.User(n, UserPassword.unsafeHashed("pass"))
     override val authz:       Rights            = Rights.AnyRights
     override val apiAuthz:    ApiAuthz          = ApiAuthz.allAuthz
-    override val accessGrant: TenantAccessGrant = TenantAccessGrant.All
-
-    override def actorIp: Option[String] = None
-
+    override val accessGrant: TenantAccessGrant = grant
+    override def actorIp:     Option[String]    = None
     override def checkRights(auth: AuthorizationType): Boolean = true
   }
-  override val getCurrentUser: Option[AuthenticatedUser] = Some(user)
+
+  private val users = Map(
+    "admin"    -> makeUser("test-user", TenantAccessGrant.All),
+    "zoneA"    -> makeUser(
+      "zoneA",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.ReadWrite)))
+    ),
+    "zoneB"    -> makeUser(
+      "zoneB",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB"), TenantPermission.ReadWrite)))
+    ),
+    "zoneC"    -> makeUser(
+      "zoneC",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneC"), TenantPermission.ReadWrite)))
+    ),
+    "noTenant" -> makeUser("noTenant", TenantAccessGrant.None)
+  )
+
+  // it's a var, but it should be used only in sequential set-up for rest tests
+  private var currentUser = users("admin")
+
+  def setCurrentUser(name: String): Unit = {
+    users.get(name) match {
+      case Some(u) => currentUser = u
+      case None    => throw new IllegalArgumentException(s"Unknown user '${name}'; known users: '${users.keys.mkString("','")}'")
+    }
+  }
+
+  override def getCurrentUser: Option[AuthenticatedUser] = Some(currentUser)
 }
 
 /*
@@ -243,7 +269,7 @@ class TestUserService extends UserService {
 class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiVersions) {
   import RestTestSetUp.*
 
-  implicit val userService: TestUserService = new TestUserService
+  given userService: UserService = new TestUserService
 
   // Instantiate Service needed to feed System API constructor
 
@@ -254,13 +280,14 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     def registerCallback(callback: TechniquesLibraryUpdateNotification): Unit = {}
   }
 
+  val mockTenants = new MockTenants()
   val mockGitRepo = new MockGitConfigRepo("")
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
-  val mockDirectives                                 = new MockDirectives(mockTechniques)
-  val mockRules                                      = new MockRules()
-  val mockParameters                                 = new MockGlobalParam()
-  val mockNodes                                      = new MockNodes()
-  val mockNodeGroups                                 = new MockNodeGroups(mockNodes, mockParameters)
+  val mockDirectives                                 = new MockDirectives(mockTechniques, mockTenants)
+  val mockRules                                      = new MockRules(mockTenants)
+  val mockParameters                                 = new MockGlobalParam(mockTenants)
+  val mockNodes                                      = new MockNodes(mockTenants)
+  val mockNodeGroups                                 = new MockNodeGroups(mockNodes, mockParameters, mockTenants)
   val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen                                        = new StringUuidGeneratorImpl()
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
@@ -1069,9 +1096,9 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     ),
     new UserManagementApiImpl(
       mockUserManagement.userRepo,
-      mockUserManagement.userService,
+      mockUserManagement.fileUserDetailListProvider,
       mockUserManagement.userManagementService,
-      mockUserManagement.tenantRepo,
+      mockTenants.tenantRepo,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),
@@ -1084,7 +1111,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     new RecentChangesAPI(fakeNodeChangesService)
   )
 
-  val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
+  val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, userService)
 
   // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)
