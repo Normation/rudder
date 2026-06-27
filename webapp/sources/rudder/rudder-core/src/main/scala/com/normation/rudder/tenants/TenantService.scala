@@ -333,32 +333,33 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
               action(updated.updateSecurityContext(e.security))
             // update when feature enabled: check consistency
             case TenantStatus.Enabled(tenants) =>
-              (if (writeGrant.canSee(e)) {
-                 if (writeGrant.canSee(updated)) {
-
-                   (e.security, updated.security) match {
-                     // no tenants in updated: existing security info is cleared (admin only, already checked)
-                     case (_, None)                            => updated.succeed
-                     // if b is open, it's ok
-                     case (_, Some(SecurityTag.Open))          => updated.succeed
-                     // if both have identical tags, it's ok
-                     case (Some(a), Some(b)) if (a == b)       => updated.succeed
-                     // case where the tags are different: update only if the tenant exists.
-                     // Only admin can reach here (checked above).
-                     case (_, Some(SecurityTag.ByTenants(ts))) =>
-                       if (ts.forall(t => tenants.contains(t))) {
-                         updated.succeed
-                       } else {
-                         Inconsistency(
-                           s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
-                         ).fail
-                       }
-                   }
-                 } else {
-                   error(updated)
+              (if (!writeGrant.canSee(e)) {
+                 // the user can't even write the existing object
+                 error(e)
+               } else if (writeGrant == TenantAccessGrant.All) {
+                 // only admin (all-tenants write grant) is allowed to change the tenant list of an object.
+                 (e.security, updated.security) match {
+                   // no tenants in updated: existing security info is cleared (admin only)
+                   case (_, None)                            => updated.succeed
+                   // if b is open, it's ok
+                   case (_, Some(SecurityTag.Open))          => updated.succeed
+                   // if both have identical tags, it's ok
+                   case (Some(a), Some(b)) if (a == b)       => updated.succeed
+                   // case where the tags are different: update only if the tenant exists.
+                   case (_, Some(SecurityTag.ByTenants(ts))) =>
+                     if (ts.forall(t => tenants.contains(t))) {
+                       updated.succeed
+                     } else {
+                       Inconsistency(
+                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
+                       ).fail
+                     }
                  }
                } else {
-                 error(e)
+                 // non-admin user: the tenant list can NOT be changed. Whatever security tag the request
+                 // carries is ignored and the existing tag is kept (this also makes a read-modify-write
+                 // round-trip safe, since the user only ever reads the tenants it owns).
+                 updated.updateSecurityContext(e.security).succeed
                }).flatMap(up => action(up))
           }
       }

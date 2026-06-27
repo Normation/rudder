@@ -1724,7 +1724,8 @@ class MockRules(mockTenants: MockTenants) {
         mockTenants.checkTenant,
         mockTenants.tenantRepo,
         ruleRepoImpl,
-        new RoTenantRuleRepo(mockTenants.checkTenant, ruleRepoImpl)
+        new RoTenantRuleRepo(mockTenants.checkTenant, ruleRepoImpl),
+        ruleCategoryRepoImpl
       ) {
     export ruleRepoImpl.rulesMap
   }

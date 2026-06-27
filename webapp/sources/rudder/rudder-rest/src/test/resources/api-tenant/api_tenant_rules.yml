@@ -18,14 +18,25 @@ response:
             "categoryId": "rootRuleCategory",
             "shortDescription": "A rule for tenant testing",
             "longDescription": "",
-            "directives": ["directive1"],
-            "targets": ["special:all"],
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
             "enabled": true,
             "system": false,
             "tags": [],
             "policyMode": "enforce",
-            "status": {"value": "In application"},
-            "security": {"tenants": ["zoneA", "zoneB"]}
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
           }
         ]
       }
@@ -50,14 +61,26 @@ response:
             "categoryId": "rootRuleCategory",
             "shortDescription": "A rule for tenant testing",
             "longDescription": "",
-            "directives": ["directive1"],
-            "targets": ["special:all"],
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
             "enabled": true,
             "system": false,
             "tags": [],
             "policyMode": "enforce",
-            "status": {"value": "Not applied", "details": "No policy defined, Empty groups"},
-            "security": {"tenants": ["zoneA", "zoneB"]}
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
           }
         ]
       }
@@ -82,14 +105,25 @@ response:
             "categoryId": "rootRuleCategory",
             "shortDescription": "A rule for tenant testing",
             "longDescription": "",
-            "directives": ["directive1"],
-            "targets": ["special:all"],
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
             "enabled": true,
             "system": false,
             "tags": [],
             "policyMode": "enforce",
-            "status": {"value": "Not applied", "details": "No policy defined, Empty groups"},
-            "security": {"tenants": ["zoneB"]}
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": [
+                "zoneB"
+              ]
+            }
           }
         ]
       }
@@ -114,14 +148,25 @@ response:
             "categoryId": "rootRuleCategory",
             "shortDescription": "A rule for tenant testing",
             "longDescription": "",
-            "directives": ["directive1"],
-            "targets": ["special:all"],
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
             "enabled": true,
             "system": false,
             "tags": [],
             "policyMode": "enforce",
-            "status": {"value": "Not applied", "details": "No policy defined, Empty groups"},
-            "security": {"tenants": ["zoneB"]}
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": [
+                "zoneB"
+              ]
+            }
           }
         ]
       }
@@ -136,6 +181,358 @@ response:
   content: >-
     {
       "action": "ruleDetails",
-      "result" : "error",
-      "errorDetails" : "Rule with id 'tenant-rule-1' was not found"
+      "result": "error",
+      "errorDetails": "Rule with id 'tenant-rule-1' was not found"
+    }
+---
+description: zoneB (read-only) cannot update the rule
+user: zoneB
+method: POST
+url: /api/latest/rules/tenant-rule-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-rule-1",
+    "displayName": "Tenant test rule",
+    "shortDescription": "updated by test",
+    "directives": [
+      "directive1"
+    ],
+    "targets": [
+      "special:all"
+    ],
+    "enabled": true,
+    "system": false,
+    "tags": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateRule",
+      "result": "error",
+      "errorDetails": "Inconsistency: Object 'tenant-rule-1' [zoneA,zoneB] can't be modified by 'zoneB' (perm:tags:[zoneB:r])"
+    }
+---
+description: zoneC cannot update the rule (object not visible)
+user: zoneC
+method: POST
+url: /api/latest/rules/tenant-rule-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-rule-1",
+    "displayName": "Tenant test rule",
+    "shortDescription": "updated by test",
+    "directives": [
+      "directive1"
+    ],
+    "targets": [
+      "special:all"
+    ],
+    "enabled": true,
+    "system": false,
+    "tags": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateRule",
+      "result": "error",
+      "errorDetails": "Rule with id 'tenant-rule-1' was not found"
+    }
+---
+description: noTenant cannot update the rule (object not visible)
+user: noTenant
+method: POST
+url: /api/latest/rules/tenant-rule-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-rule-1",
+    "displayName": "Tenant test rule",
+    "shortDescription": "updated by test",
+    "directives": [
+      "directive1"
+    ],
+    "targets": [
+      "special:all"
+    ],
+    "enabled": true,
+    "system": false,
+    "tags": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateRule",
+      "result": "error",
+      "errorDetails": "Rule with id 'tenant-rule-1' was not found"
+    }
+---
+description: zoneAB can update the rule, tag preserved
+user: zoneAB
+method: POST
+url: /api/latest/rules/tenant-rule-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-rule-1",
+    "displayName": "Tenant test rule",
+    "shortDescription": "updated by test",
+    "directives": [
+      "directive1"
+    ],
+    "targets": [
+      "special:all"
+    ],
+    "enabled": true,
+    "system": false,
+    "tags": []
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateRule",
+      "id": "tenant-rule-1",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "tenant-rule-1",
+            "displayName": "Tenant test rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "updated by test",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              {
+                "include": {
+                  "or": [
+                    "special:all"
+                  ]
+                },
+                "exclude": {
+                  "or": []
+                }
+              }
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: admin can update the rule
+user: admin
+method: POST
+url: /api/latest/rules/tenant-rule-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-rule-1",
+    "displayName": "Tenant test rule",
+    "shortDescription": "updated by test",
+    "directives": [
+      "directive1"
+    ],
+    "targets": [
+      "special:all"
+    ],
+    "enabled": true,
+    "system": false,
+    "tags": []
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateRule",
+      "id": "tenant-rule-1",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "tenant-rule-1",
+            "displayName": "Tenant test rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "updated by test",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              {
+                "include": {
+                  "or": [
+                    "special:all"
+                  ]
+                },
+                "exclude": {
+                  "or": []
+                }
+              }
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneB (read-only) cannot delete the rule
+user: zoneB
+method: DELETE
+url: /api/latest/rules/tenant-rule-1
+response:
+  code: 500
+  content: >-
+    {
+      "action": "deleteRule",
+      "result": "error",
+      "errorDetails": "Inconsistency: Object 'tenant-rule-1' can't be deleted by zoneB"
+    }
+---
+description: zoneC delete is a no-op (object not visible)
+user: zoneC
+method: DELETE
+url: /api/latest/rules/tenant-rule-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteRule",
+      "id": "tenant-rule-1",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "tenant-rule-1",
+            "displayName": "",
+            "categoryId": "",
+            "shortDescription": "",
+            "longDescription": "",
+            "directives": [],
+            "targets": [],
+            "enabled": false,
+            "system": false,
+            "tags": []
+          }
+        ]
+      }
+    }
+---
+description: noTenant delete is a no-op (object not visible)
+user: noTenant
+method: DELETE
+url: /api/latest/rules/tenant-rule-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteRule",
+      "id": "tenant-rule-1",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "tenant-rule-1",
+            "displayName": "",
+            "categoryId": "",
+            "shortDescription": "",
+            "longDescription": "",
+            "directives": [],
+            "targets": [],
+            "enabled": false,
+            "system": false,
+            "tags": []
+          }
+        ]
+      }
+    }
+---
+description: admin can delete the rule
+user: admin
+method: DELETE
+url: /api/latest/rules/tenant-rule-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteRule",
+      "id": "tenant-rule-1",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "tenant-rule-1",
+            "displayName": "Tenant test rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "updated by test",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              {
+                "include": {
+                  "or": [
+                    "special:all"
+                  ]
+                },
+                "exclude": {
+                  "or": []
+                }
+              }
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
     }

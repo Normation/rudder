@@ -483,7 +483,10 @@ object JsonQueryObjects {
               q.map(Some(_)),
               dynamic,
               enabled,
-              security
+              // like JQRule/JQDirective/JQGlobalParameter: if the request does not carry a security
+              // tag, keep the existing one (do not wipe it). The actual tenant-change authorization
+              // is enforced later by TenantCheckLogic.manageUpdate.
+              security.orElse(group.security)
             )
           )
       }

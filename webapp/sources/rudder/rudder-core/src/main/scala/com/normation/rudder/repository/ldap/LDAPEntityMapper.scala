@@ -848,7 +848,10 @@ class LDAPEntityMapper(
         name       <- e.required(A_NAME)
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem    = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        security    = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
+        // the root rule category must be open, like the group and active technique library roots,
+        // so that any user can create objects below it
+        security    = if (e.dn == rudderDit.RULECATEGORY.dn) Some(SecurityTag.Open)
+                      else e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
       } yield {
         RuleCategory(RuleCategoryId(id), name, description, Nil, isSystem, security)
       }

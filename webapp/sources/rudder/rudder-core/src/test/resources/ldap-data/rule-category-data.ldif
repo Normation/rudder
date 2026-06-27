@@ -1,0 +1,10 @@
+# The root rule category. In production it is created at runtime; the in-memory test LDAP needs it
+# explicitly so that rule creation (which now checks the parent category) can resolve it.
+# Its security tag is forced to "open" by the LDAP mapper, like the group and active technique roots.
+dn: ruleCategoryId=rootRuleCategory,ou=Rudder,cn=rudder-configuration
+objectClass: ruleCategory
+objectClass: top
+ruleCategoryId: rootRuleCategory
+cn: Rules
+description: This is the main category of Rules
+isSystem: TRUE

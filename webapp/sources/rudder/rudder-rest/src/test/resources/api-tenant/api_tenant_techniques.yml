@@ -1,0 +1,253 @@
+---
+description: Admin sees all active techniques, tenant one carries full tag
+user: admin
+method: GET
+url: /api/latest/techniques/versions
+response:
+  code: 200
+  content: >-
+    {
+      "action": "listTechniques",
+      "result": "success",
+      "data": {
+        "techniques": [
+          {
+            "name": "inventory",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "technique_with_blocks",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "test-migrate-select",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "server-roles",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "technique_by_Rudder",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "technique_any",
+            "versions": [
+              "1.0",
+              "2.0"
+            ]
+          },
+          {
+            "name": "server-common",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "packageManagement",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "common",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "rudder-service-relayd",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "rudder-service-webapp",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "test_import_export_archive",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "rudder-service-apache",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "distributePolicy",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "a_simple_yaml_technique",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "rudder-service-postgresql",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "rpmPackageInstallation",
+            "versions": [
+              "7.0"
+            ],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          },
+          {
+            "name": "test_18205",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "copyGitFile",
+            "versions": [
+              "2.3"
+            ]
+          },
+          {
+            "name": "clockConfiguration",
+            "versions": [
+              "3.0"
+            ]
+          },
+          {
+            "name": "Create_file",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "fileTemplate",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "rudder-service-slapd",
+            "versions": [
+              "1.0"
+            ]
+          },
+          {
+            "name": "genericVariableDefinition",
+            "versions": [
+              "1.0",
+              "2.0"
+            ]
+          }
+        ]
+      }
+    }
+---
+description: zoneAB user sees the tenant active technique with both zoneA and zoneB
+user: zoneAB
+method: GET
+url: /api/latest/techniques/versions
+response:
+  code: 200
+  content: >-
+    {
+      "action": "listTechniques",
+      "result": "success",
+      "data": {
+        "techniques": [
+          {
+            "name": "rpmPackageInstallation",
+            "versions": [
+              "7.0"
+            ],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneB user (read-only) sees the tenant active technique with only zoneB
+user: zoneB
+method: GET
+url: /api/latest/techniques/versions
+response:
+  code: 200
+  content: >-
+    {
+      "action": "listTechniques",
+      "result": "success",
+      "data": {
+        "techniques": [
+          {
+            "name": "rpmPackageInstallation",
+            "versions": [
+              "7.0"
+            ],
+            "security": {
+              "tenants": [
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneC user sees no active technique (no object has zoneC tenant)
+user: zoneC
+method: GET
+url: /api/latest/techniques/versions
+response:
+  code: 200
+  content: >-
+    {
+      "action": "listTechniques",
+      "result": "success",
+      "data": {
+        "techniques": []
+      }
+    }
+---
+description: User with no tenant grant sees no active technique
+user: noTenant
+method: GET
+url: /api/latest/techniques/versions
+response:
+  code: 200
+  content: >-
+    {
+      "action": "listTechniques",
+      "result": "success",
+      "data": {
+        "techniques": []
+      }
+    }

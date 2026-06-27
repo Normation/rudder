@@ -91,8 +91,8 @@ object SecurityTag {
 
   def empty: SecurityTag = SecurityTag.ByTenants(Chunk.empty)
 
-  implicit val codecByTenants: JsonCodec[ByTenants] = DeriveJsonCodec.gen
-  implicit val codecOpen:      JsonCodec[Open.type] = new JsonCodec[Open.type](
+  given codecByTenants: JsonCodec[ByTenants] = DeriveJsonCodec.gen
+  given codecOpen:      JsonCodec[Open.type] = new JsonCodec[Open.type](
     JsonEncoder.string.contramap(_ => "open"),
     JsonDecoder.string.mapOrFail {
       case "open" => Right(Open)
@@ -100,7 +100,7 @@ object SecurityTag {
     }
   )
 
-  implicit val codecSecurityTag: JsonCodec[SecurityTag] = new JsonCodec[SecurityTag](
+  given codecSecurityTag: JsonCodec[SecurityTag] = new JsonCodec[SecurityTag](
     new JsonEncoder[SecurityTag] {
       override def unsafeEncode(a: SecurityTag, indent: Option[Int], out: Write): Unit = {
         a match {
@@ -112,10 +112,12 @@ object SecurityTag {
     codecOpen.decoder.widen <> codecByTenants.decoder.widen
   )
 
-  // JsonCodec[A] does not implicitly provide JsonEncoder[A] in ZIO JSON, so we expose it
-  // explicitly so that DeriveJsonEncoder.gen for case classes containing SecurityTag fields
-  // uses our custom non-discriminated encoding instead of auto-deriving a sum-type encoder.
-  implicit val encoderSecurityTag: JsonEncoder[SecurityTag] = codecSecurityTag.encoder
+  // JsonCodec[A] does not implicitly provide JsonEncoder[A]/JsonDecoder[A] in ZIO JSON, so we expose
+  // them explicitly so that derivation for case classes containing a SecurityTag field uses our custom
+  // non-discriminated encoding/decoding instead of auto-deriving a sum-type codec (which would expect a
+  // discriminator and reject the `{"tenants":[...]}` / `"open"` shapes used by the API).
+  given JsonEncoder[SecurityTag] = codecSecurityTag.encoder
+  given JsonDecoder[SecurityTag] = codecSecurityTag.decoder
 
   // XML serialization / deserialisation for events
   import scala.xml.*

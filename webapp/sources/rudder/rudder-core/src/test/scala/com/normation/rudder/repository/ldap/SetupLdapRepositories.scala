@@ -100,7 +100,7 @@ import zio.syntax.*
 trait SetupLdapRepositories {
 
   lazy val bootstrapLDIFs: List[String] = {
-    ("ldap/bootstrap.ldif" :: "ldap-data/technique-library-data.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map {
+    ("ldap/bootstrap.ldif" :: "ldap-data/technique-library-data.ldif" :: "ldap-data/inventory-sample-data.ldif" :: "ldap-data/rule-category-data.ldif" :: Nil) map {
       name =>
         // toURI is needed for https://issues.rudder.io/issues/19186
         this.getClass.getClassLoader.getResource(name).toURI.getPath
@@ -252,8 +252,16 @@ trait SetupLdapRepositories {
     new WoTenantDirectiveRepo(tenantService, tenantRepo, ldapWo, ldapRoDirectiveRepo)
   }
 
-  lazy val lockRule       = new ZioTReentrantLock("rule-lock")
-  lazy val ldapRoRuleRepo = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, lockRule)
+  lazy val lockRule               = new ZioTReentrantLock("rule-lock")
+  lazy val ldapRoRuleRepo         = new RoLDAPRuleRepository(rudderDit, roLdap, ldapMapper, lockRule)
+  lazy val ldapRoRuleCategoryRepo = {
+    new com.normation.rudder.rule.category.RoLDAPRuleCategoryRepository(
+      rudderDit,
+      roLdap,
+      ldapMapper,
+      new ZioTReentrantLock("rule-cat-lock")
+    )
+  }
   lazy val roRuleRepo: RoRuleRepository = new RoTenantRuleRepo(tenantService, ldapRoRuleRepo)
   lazy val woRuleRepo: WoRuleRepository = {
     val ldapWo = new WoLDAPRuleRepository(
@@ -266,7 +274,7 @@ trait SetupLdapRepositories {
       personIdent,
       false
     )
-    new WoTenantRuleRepo(tenantService, tenantRepo, ldapWo, ldapRoRuleRepo)
+    new WoTenantRuleRepo(tenantService, tenantRepo, ldapWo, ldapRoRuleRepo, ldapRoRuleCategoryRepo)
   }
 
   lazy val lockProperty       = new ZioTReentrantLock("property-lock")

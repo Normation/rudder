@@ -270,8 +270,26 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       )
     }
 
-    "allow tenant update if the plugin is enabled and user has correct rights" in {
+    // only admin can update the tenant list: a non-admin user's tenant change is ignored and the
+    // existing tenants are kept (this runs while groupWithTenantId is still in zoneA).
+    "ignore a non-admin user's attempt to change the tenant list (keep existing tenants)" in {
       given cc: ChangeContext = zoneABC.newCC()
+      given qc: QueryContext  = cc.toQC
+
+      // groupWithTenantId is in zoneA
+      val res = for {
+        _ <- tenantRepo.setTenantEnabled(true)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
+        h  = g.copy(security = zoneB.accessGrant.toSecurityTag)
+        _ <- woGroupRepo.update(h)
+        i <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
+      } yield i.security
+
+      res.runNow must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+
+    "allow an admin (grant '*') to update the tenant list" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
       given qc: QueryContext  = cc.toQC
 
       // groupWithTenantId is in zoneA
@@ -286,11 +304,11 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       res.runNow must beEqualTo(zoneB.accessGrant.toSecurityTag)
     }
   }
-  "get an error if the destination tenant ID does not exist" in {
-    given cc: ChangeContext = zoneABC.newCC()
+  // only admin can change the tenant list, so the "tenant does not exist" check is for an admin
+  "get an error if an admin updates to a destination tenant ID that does not exist" in {
+    given cc: ChangeContext = ChangeContext.newForRudder()
     given qc: QueryContext  = cc.toQC
 
-    // groupWithTenantId is in zoneA
     val res = for {
       _ <- tenantRepo.setTenantEnabled(true)
       g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)

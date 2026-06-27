@@ -649,19 +649,24 @@ class RoTenantRuleRepo(
 }
 
 class WoTenantRuleRepo(
-    checkTenant:   TenantCheckLogic,
-    tenantService: TenantService,
-    underlying:    WoRuleRepository,
-    roRepo:        RoRuleRepository
+    checkTenant:    TenantCheckLogic,
+    tenantService:  TenantService,
+    underlying:     WoRuleRepository,
+    roRepo:         RoRuleRepository,
+    roRuleCategory: RoRuleCategoryRepository
 ) extends RoRuleRepository with WoRuleRepository {
 
   // the read part is just delegated to the (tenant-filtering) `roRepo`
   export roRepo.*
 
   override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
+    given QueryContext = cc.toQC
     for {
-      status <- tenantService.getStatus
-      result <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
+      // an object can only be created in a category the user can see and modify
+      parentCat <- roRuleCategory.get(rule.categoryId)
+      _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
+      status    <- tenantService.getStatus
+      result    <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
     } yield result
   }
 
