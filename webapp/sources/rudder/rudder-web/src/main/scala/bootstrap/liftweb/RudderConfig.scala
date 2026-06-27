@@ -3019,8 +3019,15 @@ object RudderConfigInit {
       personIdentServiceImpl,
       RUDDER_AUTOARCHIVEITEMS
     )
-    lazy val woRuleRepository: WoRuleRepository =
-      new WoTenantRuleRepo(tenantCheckLogic, tenantService, woLdapRuleRepository, roLdapRuleRepository)
+    lazy val woRuleRepository: WoRuleRepository = {
+      new WoTenantRuleRepo(
+        tenantCheckLogic,
+        tenantService,
+        woLdapRuleRepository,
+        roLdapRuleRepository,
+        roLDAPRuleCategoryRepository
+      )
+    }
 
     lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl,

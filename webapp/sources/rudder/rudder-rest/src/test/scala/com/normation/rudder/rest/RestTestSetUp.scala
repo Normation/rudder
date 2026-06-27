@@ -234,7 +234,11 @@ class TestUserService extends UserService {
 
   private val users = Map(
     "admin"    -> makeUser("test-user", TenantAccessGrant.All),
-    "zoneAB"    -> makeUser(
+    "zoneA"    -> makeUser(
+      "zoneA",
+      TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.ReadWrite)))
+    ),
+    "zoneAB"   -> makeUser(
       "zoneAB",
       TenantAccessGrant.ByTenants(
         Chunk(
