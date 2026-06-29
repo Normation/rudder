@@ -1,209 +1,337 @@
 module Accounts.ViewUtils exposing (..)
 
+import Accounts.ApiCalls exposing (..)
+import Accounts.DataTypes exposing (..)
 import DateFormat.Relative
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onCheck)
+import Html.Events exposing (onCheck, onClick)
 import Iso8601
 import List
+import Maybe.Extra
 import Ordering exposing (Ordering)
 import String
 import Time
-import Maybe.Extra
-import Accounts.ApiCalls exposing (..)
-import Accounts.DataTypes exposing (..)
-
-import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
-import Utils.DateUtils exposing (relativeTimeOptions, posixToString, posixOrdering)
+import Ui.Datatable exposing (SortOrder(..), filterSearch, sortTable, thClass)
+import Utils.DateUtils exposing (posixOrdering, posixToString, relativeTimeOptions)
 import Utils.TooltipUtils exposing (buildTooltipContent)
+
 
 
 --
 -- DATATABLE
 --
 
+
 getSortFunction : Model -> Ordering Account
 getSortFunction model =
-  let
-    order = case model.ui.filters.tableFilters.sortBy of
-      Id      -> Ordering.byField .id
-      Name    -> Ordering.byField .name
-      CreDate -> Ordering.byFieldWith posixOrdering .creationDate
-      LstDate -> Ordering.byFieldWith posixOrdering (.lastAuthenticationDate >> Maybe.withDefault (Time.millisToPosix 0))
-      ExpDate -> Ordering.byFieldWith posixOrdering (.expirationPolicy >> expirationDate >> Maybe.withDefault (Time.millisToPosix 0))
-  in
+    let
+        order =
+            case model.ui.filters.tableFilters.sortBy of
+                Id ->
+                    Ordering.byField .id
+
+                Name ->
+                    Ordering.byField .name
+
+                CreDate ->
+                    Ordering.byFieldWith posixOrdering .creationDate
+
+                LstDate ->
+                    Ordering.byFieldWith posixOrdering (.lastAuthenticationDate >> Maybe.withDefault (Time.millisToPosix 0))
+
+                ExpDate ->
+                    Ordering.byFieldWith posixOrdering (.expirationPolicy >> expirationDate >> Maybe.withDefault (Time.millisToPosix 0))
+    in
     if model.ui.filters.tableFilters.sortOrder == Asc then
-      order
+        order
+
     else
-      Ordering.reverse order
+        Ordering.reverse order
+
 
 searchField : DatePickerInfo -> Account -> List String
 searchField datePickerInfo a =
-  List.append [ a.name
-  , a.id
-  ] ( case a.expirationPolicy of
-      ExpireAtDate d  -> [posixToString datePickerInfo.zone d]
-      NeverExpire -> []
-    )
+    List.append
+        [ a.name
+        , a.id
+        ]
+        (case a.expirationPolicy of
+            ExpireAtDate d ->
+                [ posixToString datePickerInfo.zone d ]
+
+            NeverExpire ->
+                []
+        )
+
 
 filterByAuthType : Maybe AuthorizationType -> AuthorizationType -> Bool
 filterByAuthType filterAuthType authType =
-  filterAuthType
-    |> Maybe.map ((==) authType)
-    |> Maybe.withDefault True
+    filterAuthType
+        |> Maybe.map ((==) authType)
+        |> Maybe.withDefault True
+
 
 generateLoadingList : Html Msg
 generateLoadingList =
-  ul[class "skeleton-loading"]
-  [ li[style "width" "calc(100% - 25px)"][i[][], span[][]]
-  , li[][i[][], span[][]]
-  , li[style "width" "calc(100% - 95px)"][i[][], span[][]]
-  , ul[]
-    [ li[style "width" "calc(100% - 45px)"][i[][], span[][]]
-    , li[style "width" "calc(100% - 125px)"][i[][], span[][]]
-    , li[][i[][], span[][]]
-    ]
-  , li[][i[][], span[][]]
-  ]
+    ul [ class "skeleton-loading" ]
+        [ li [ style "width" "calc(100% - 25px)" ] [ i [] [], span [] [] ]
+        , li [] [ i [] [], span [] [] ]
+        , li [ style "width" "calc(100% - 95px)" ] [ i [] [], span [] [] ]
+        , ul []
+            [ li [ style "width" "calc(100% - 45px)" ] [ i [] [], span [] [] ]
+            , li [ style "width" "calc(100% - 125px)" ] [ i [] [], span [] [] ]
+            , li [] [ i [] [], span [] [] ]
+            ]
+        , li [] [ i [] [], span [] [] ]
+        ]
+
 
 displayAccountsTable : Model -> Html Msg
 displayAccountsTable model =
-  let
-    trAccount : Account -> Html Msg
-    trAccount a =
-      let
-        inputId = "toggle-" ++ a.id
-        now = model.ui.datePickerInfo.currentTime
-        expirationDate = case a.expirationPolicy of
-          ExpireAtDate d  -> posixToString model.ui.datePickerInfo.zone d
-          NeverExpire -> "-"
-        (lastUsedDateClass, relativeLastUsedDate)  = case a.lastAuthenticationDate of
-          Just d -> ( Just
-                    [ class "relative-date"
-                    , attribute "data-bs-toggle" "tooltip"
-                    , attribute "data-bs-placement" "top"
-                    , attribute "data-bs-original-title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
-                    , onClick (Copy (Iso8601.fromTime d))
-                    ]
-                    , DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d
-                    )
-          Nothing -> ( a.hasNoUsage |> Maybe.map (\b -> if b then [ class "empty px-0" ] else [])
-                     , a.hasNoUsage |> Maybe.map (\b -> if b then "Never" else "-") |> Maybe.withDefault "-"
-                     )
-        hasToken = Maybe.Extra.isJust a.tokenGenerationDate
-        modalAction = if hasToken then Regenerate else Create
+    let
+        trAccount : Account -> Html Msg
+        trAccount a =
+            let
+                inputId =
+                    "toggle-" ++ a.id
 
-      in
-        tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
-        [ td []
-          [ text a.name
-          , displayAccountDescription a
-          , span [class "badge badge-grey"][ text (getAuthorizationType a.authorizationType) ]
-          , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
-          , (if checkIfTokenV1 a then span[class "badge-disabled"][] else text "")
-          ]
-        , td []
-          [ span [class "token-txt"][ text a.id ] ]
-        , td [class "date"][ text (posixToString model.ui.datePickerInfo.zone a.creationDate) ]
-        , td [class "date"][ text expirationDate ]
-        , td [class "date"]
-          [ span
-            ( lastUsedDateClass |> Maybe.withDefault [] )
-            [ text relativeLastUsedDate ]
-          ]
-        , td []
-          [ button
-            [ class "btn btn-default"
-            , onClick (ToggleEditPopup (EditAccount a))
+                now =
+                    model.ui.datePickerInfo.currentTime
+
+                expirationDate =
+                    case a.expirationPolicy of
+                        ExpireAtDate d ->
+                            posixToString model.ui.datePickerInfo.zone d
+
+                        NeverExpire ->
+                            "-"
+
+                ( lastUsedDateClass, relativeLastUsedDate ) =
+                    case a.lastAuthenticationDate of
+                        Just d ->
+                            ( Just
+                                [ class "relative-date"
+                                , attribute "data-bs-toggle" "tooltip"
+                                , attribute "data-bs-placement" "top"
+                                , attribute "data-bs-original-title" (buildTooltipContent "Token last used on" (posixToString model.ui.datePickerInfo.zone d))
+                                , onClick (Copy (Iso8601.fromTime d))
+                                ]
+                            , DateFormat.Relative.relativeTimeWithOptions relativeTimeOptions now d
+                            )
+
+                        Nothing ->
+                            ( a.hasNoUsage
+                                |> Maybe.map
+                                    (\b ->
+                                        if b then
+                                            [ class "empty px-0" ]
+
+                                        else
+                                            []
+                                    )
+                            , a.hasNoUsage
+                                |> Maybe.map
+                                    (\b ->
+                                        if b then
+                                            "Never"
+
+                                        else
+                                            "-"
+                                    )
+                                |> Maybe.withDefault "-"
+                            )
+
+                hasToken =
+                    Maybe.Extra.isJust a.tokenGenerationDate
+
+                modalAction =
+                    if hasToken then
+                        Regenerate
+
+                    else
+                        Create
+            in
+            tr
+                [ class
+                    (if checkIfExpired model.ui.datePickerInfo a then
+                        "is-expired"
+
+                     else
+                        ""
+                    )
+                ]
+                [ td []
+                    [ text a.name
+                    , displayAccountDescription a
+                    , span [ class "badge badge-grey" ] [ text (getAuthorizationType a.authorizationType) ]
+                    , if checkIfExpired model.ui.datePickerInfo a then
+                        span [ class "badge-expired" ] []
+
+                      else
+                        text ""
+                    , if checkIfTokenV1 a then
+                        span [ class "badge-disabled" ] []
+
+                      else
+                        text ""
+                    ]
+                , td []
+                    [ span [ class "token-txt" ] [ text a.id ] ]
+                , td [ class "date" ] [ text (posixToString model.ui.datePickerInfo.zone a.creationDate) ]
+                , td [ class "date" ] [ text expirationDate ]
+                , td [ class "date" ]
+                    [ span
+                        (lastUsedDateClass |> Maybe.withDefault [])
+                        [ text relativeLastUsedDate ]
+                    ]
+                , td []
+                    [ button
+                        [ class "btn btn-default"
+                        , onClick (ToggleEditPopup (EditAccount a))
+                        ]
+                        [ span [ class "fa fa-pencil" ] [] ]
+                    , label [ for inputId, class "custom-toggle" ]
+                        [ input
+                            [ type_ "checkbox"
+                            , id inputId
+                            , checked (a.status == Enabled)
+                            , onCheck
+                                (\c ->
+                                    CallApi
+                                        (saveAccount
+                                            { a
+                                                | status =
+                                                    if c then
+                                                        Enabled
+
+                                                    else
+                                                        Disabled
+                                            }
+                                        )
+                                )
+                            ]
+                            []
+                        , label [ for inputId, class "custom-toggle-group" ]
+                            [ label [ for inputId, class "toggle-enabled" ] [ text "Enabled" ]
+                            , span [ class "cursor" ] []
+                            , label [ for inputId, class "toggle-disabled" ] [ text "Disabled" ]
+                            ]
+                        ]
+                    , button
+                        [ class "btn btn-danger delete-button"
+                        , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a))))
+                        ]
+                        [ span [ class "fa fa-times-circle" ] [] ]
+                    , span
+                        [ attribute "data-bs-toggle" "tooltip"
+                        , attribute "data-bs-placement" "top"
+                        , attribute "data-bs-original-title"
+                            (buildTooltipContent "Token"
+                                (a.tokenGenerationDate
+                                    |> Maybe.Extra.unpack
+                                        (\_ -> "Generate a token for this account")
+                                        (\p -> "Generate a new token, current token was generated on " ++ posixToString model.ui.datePickerInfo.zone p)
+                                )
+                            )
+                        ]
+                        [ button
+                            [ class "btn btn-default reload-token"
+                            , onClick (ToggleEditPopup (Confirm modalAction a.name (CallApi (regenerateToken modalAction a))))
+                            ]
+                            [ span
+                                [ class
+                                    ("fa "
+                                        ++ (if hasToken then
+                                                "fa-repeat"
+
+                                            else
+                                                "fa-plus-circle"
+                                           )
+                                    )
+                                ]
+                                []
+                            ]
+                        ]
+                    ]
+                ]
+
+        filters =
+            model.ui.filters
+
+        tableFilters =
+            filters.tableFilters
+
+        filteredAccounts =
+            model.accounts
+                |> List.filter (\a -> filterSearch tableFilters.filter (searchField model.ui.datePickerInfo a))
+                |> List.filter (\a -> filterByAuthType filters.authType a.authorizationType)
+                |> List.sortWith (getSortFunction model)
+    in
+    table [ class "dataTable" ]
+        [ thead []
+            [ tr [ class "head" ]
+                [ th [ class (thClass tableFilters Name), onClick (UpdateFilters { filters | tableFilters = sortTable tableFilters Name }) ] [ text "Account name" ]
+                , th [ class (thClass tableFilters Id), onClick (UpdateFilters { filters | tableFilters = sortTable tableFilters Id }) ] [ text "Account id" ]
+                , th [ class (thClass tableFilters CreDate), onClick (UpdateFilters { filters | tableFilters = sortTable tableFilters CreDate }) ] [ text "Created on" ]
+                , th [ class (thClass tableFilters ExpDate), onClick (UpdateFilters { filters | tableFilters = sortTable tableFilters ExpDate }) ] [ text "Expires on" ]
+                , th [ class (thClass tableFilters LstDate), onClick (UpdateFilters { filters | tableFilters = sortTable tableFilters LstDate }) ] [ text "Last used" ]
+                , th [] [ text "Actions" ]
+                ]
             ]
-            [ span [class "fa fa-pencil"] [] ]
-          , label [for inputId, class "custom-toggle"]
-            [ input [type_ "checkbox", id inputId, checked (a.status == Enabled), onCheck (\c -> CallApi (saveAccount {a | status = if c then Enabled else Disabled }))][]
-            , label [for inputId, class "custom-toggle-group"]
-              [ label [for inputId, class "toggle-enabled" ][text "Enabled"]
-              , span  [class "cursor"][]
-              , label [for inputId, class "toggle-disabled"][text "Disabled"]
-              ]
-            ]
-          , button
-            [ class "btn btn-danger delete-button"
-            , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a))))
-            ]
-            [ span [class "fa fa-times-circle"] [] ]
-          , span
-            [ attribute "data-bs-toggle" "tooltip"
-            , attribute "data-bs-placement" "top"
-            , attribute "data-bs-original-title"
-              ( buildTooltipContent "Token"
-                ( a.tokenGenerationDate
-                    |> Maybe.Extra.unpack
-                       ( \_ -> "Generate a token for this account" )
-                       ( \p -> "Generate a new token, current token was generated on " ++ posixToString model.ui.datePickerInfo.zone p )
-                )
-              )
-            ]
-            [ button
-              [ class "btn btn-default reload-token"
-              , onClick (ToggleEditPopup (Confirm modalAction a.name (CallApi (regenerateToken modalAction a))))
-              ]
-              [ span [class ("fa " ++ if hasToken then "fa-repeat" else "fa-plus-circle")][] ]
-            ]
-          ]
+        , tbody []
+            (if List.isEmpty model.accounts then
+                [ tr []
+                    [ td [ class "empty", colspan 6 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "There are no API accounts defined" ] ]
+                ]
+
+             else if List.isEmpty filteredAccounts then
+                [ tr []
+                    [ td [ class "empty", colspan 6 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No API accounts match your filters" ] ]
+                ]
+
+             else
+                List.map (\a -> trAccount a) filteredAccounts
+            )
         ]
-    filters = model.ui.filters
-    tableFilters = filters.tableFilters
-    filteredAccounts = model.accounts
-      |> List.filter (\a -> filterSearch tableFilters.filter (searchField model.ui.datePickerInfo a))
-      |> List.filter (\a -> filterByAuthType filters.authType a.authorizationType)
-      |> List.sortWith (getSortFunction model)
-  in
-    table [class "dataTable"]
-    [ thead []
-      [ tr [class "head"]
-        [ th [class (thClass tableFilters Name    ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Name    )})][ text "Account name"]
-        , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"]
-        , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Created on"]
-        , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expires on" ]
-        , th [class (thClass tableFilters LstDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters LstDate )})][ text "Last used"]
-        , th [][ text "Actions" ]
-        ]
-      ]
-    , tbody []
-      ( if List.isEmpty model.accounts then
-        [ tr[]
-          [ td[class "empty", colspan 6][i [class"fa fa-exclamation-triangle"][], text "There are no API accounts defined"] ]
-        ]
-      else if List.isEmpty filteredAccounts then
-        [ tr[]
-          [ td[class "empty", colspan 6][i [class"fa fa-exclamation-triangle"][], text "No API accounts match your filters"] ]
-        ]
-      else
-        List.map (\a -> trAccount a) filteredAccounts
-      )
-    ]
+
 
 getAuthorizationType : AuthorizationType -> String
 getAuthorizationType authorizationKind =
-  case authorizationKind of
-    RO   -> "Read only"
-    RW   -> "Full access"
-    None -> "No access"
-    ACL  -> "Custom ACLs"
+    case authorizationKind of
+        RO ->
+            "Read only"
+
+        RW ->
+            "Full access"
+
+        None ->
+            "No access"
+
+        ACL ->
+            "Custom ACLs"
+
 
 displayAccountDescription : Account -> Html Msg
 displayAccountDescription a =
-  if String.isEmpty a.description then
-    text ""
-  else
-    span
-      [ class "fa fa-question-circle icon-info"
-      , attribute "data-bs-toggle" "tooltip"
-      , attribute "data-bs-placement" "top"
-      , attribute "data-bs-original-title" (buildTooltipContent "Description" a.description)
-      ][]
+    if String.isEmpty a.description then
+        text ""
+
+    else
+        span
+            [ class "fa fa-question-circle icon-info"
+            , attribute "data-bs-toggle" "tooltip"
+            , attribute "data-bs-placement" "top"
+            , attribute "data-bs-original-title" (buildTooltipContent "Description" a.description)
+            ]
+            []
+
 
 exposeToken : Maybe Token -> String
 exposeToken t =
-  case t of
-    Just (New s) -> s
-    _            -> ""
+    case t of
+        Just (New s) ->
+            s
+
+        _ ->
+            ""

@@ -1,18 +1,25 @@
 port module Dashboard.Init exposing (..)
 
-
-import Dict
-import Time exposing (Month(..), Posix, Zone)
-import TimeZone
-import Task
 import Dashboard.ApiCalls exposing (getActivities)
 import Dashboard.DataTypes exposing (..)
+import Dict
+import Task
+import Time exposing (Month(..), Posix, Zone)
+import TimeZone
+
 
 
 -- PORTS / SUBSCRIPTIONS
+
+
 port errorNotification : String -> Cmd msg
+
+
 port copy : String -> Cmd msg
+
+
 port initTooltips : String -> Cmd msg
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -20,7 +27,8 @@ subscriptions model =
         [ Time.every 1000 Tick -- Update of the current time every second
         ]
 
-init : { contextPath : String, timeZone: String } -> ( Model, Cmd Msg )
+
+init : { contextPath : String, timeZone : String } -> ( Model, Cmd Msg )
 init flags =
     let
         initTimeZone =

@@ -1,21 +1,26 @@
 module About.Init exposing (..)
 
-import About.DataTypes exposing (..)
 import About.ApiCalls exposing (apiGetAboutInfo)
+import About.DataTypes exposing (..)
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
+
 init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
-      initModel = Model flags.contextPath Nothing (UI True True True)
+        initModel =
+            Model flags.contextPath Nothing (UI True True True)
     in
-      ( initModel
-      , apiGetAboutInfo initModel
-      )
+    ( initModel
+    , apiGetAboutInfo initModel
+    )
+
+
+
 {--
 fakeData : AboutInfo
 fakeData =

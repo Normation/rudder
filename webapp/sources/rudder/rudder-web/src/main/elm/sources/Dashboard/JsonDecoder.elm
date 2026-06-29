@@ -1,18 +1,19 @@
 module Dashboard.JsonDecoder exposing (..)
 
 import Dashboard.DataTypes exposing (..)
+import Iso8601
 import Json.Decode exposing (..)
 import Json.Decode.Extra
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
 import String exposing (join, split)
-import Iso8601
 import Time exposing (Posix, Zone)
 
 
 decodeGetActivities : Decoder (List Activity)
 decodeGetActivities =
     at [ "data" ] (list decodeActivity)
+
 
 decodeActivity : Decoder Activity
 decodeActivity =
@@ -21,6 +22,7 @@ decodeActivity =
         |> required "actor" string
         |> required "description" string
         |> required "date" Json.Decode.Extra.datetime
+
 
 decodeErrorDetails : String -> ( String, String )
 decodeErrorDetails json =

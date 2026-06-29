@@ -1,39 +1,55 @@
 module Agentpolicymode.JsonEncoder exposing (..)
 
-import Json.Encode exposing (..)
-
 import Agentpolicymode.DataTypes exposing (..)
+import Json.Encode exposing (..)
 
 
 policyModeToString : PolicyMode -> String
 policyModeToString policyMode =
-  case policyMode of
-    Default -> "default"
-    Audit   -> "audit"
-    Enforce -> "enforce"
-    None    -> ""
+    case policyMode of
+        Default ->
+            "default"
+
+        Audit ->
+            "audit"
+
+        Enforce ->
+            "enforce"
+
+        None ->
+            ""
+
 
 encodeGlobalSettings : Settings -> Value
 encodeGlobalSettings settings =
-  let
-    overridableReason = if settings.overridable then "overridable" else "not overridable"
-    policyMode = policyModeToString settings.policyMode
-    reason = "Change global policy mode to '" ++ policyMode ++ "' (" ++ overridableReason ++ ")"
-  in
-    object (
-      [ ( "global_policy_mode" , string policyMode )
-      , ( "global_policy_mode_overridable" , bool settings.overridable )
-      , ( "reason" , string reason )
-      ]
-    )
+    let
+        overridableReason =
+            if settings.overridable then
+                "overridable"
+
+            else
+                "not overridable"
+
+        policyMode =
+            policyModeToString settings.policyMode
+
+        reason =
+            "Change global policy mode to '" ++ policyMode ++ "' (" ++ overridableReason ++ ")"
+    in
+    object
+        [ ( "global_policy_mode", string policyMode )
+        , ( "global_policy_mode_overridable", bool settings.overridable )
+        , ( "reason", string reason )
+        ]
+
 
 encodeNodeSettings : Maybe Reason -> Settings -> Value
 encodeNodeSettings reason settings =
-  let
-    policyMode = policyModeToString settings.policyMode
-  in
-    object (
-      [ ( "policyMode" , string policyMode )
-      , ( "reason" , reason |> Maybe.map string |> Maybe.withDefault null )
-      ]
-    )
+    let
+        policyMode =
+            policyModeToString settings.policyMode
+    in
+    object
+        [ ( "policyMode", string policyMode )
+        , ( "reason", reason |> Maybe.map string |> Maybe.withDefault null )
+        ]
