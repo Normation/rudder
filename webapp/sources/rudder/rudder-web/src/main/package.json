@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "elm-format": "elm-format --yes",
+    "elm-format-all": "elm-format elm/sources --yes",
+    "elm-format-check": "elm-format elm/sources --validate"
+  },
   "dependencies": {
     "bootstrap": "^5.3.6",
     "chart.js": "^4.5.0",
@@ -23,6 +28,7 @@
     "better-npm-audit": "^3.7.3",
     "del": "^8.0.0",
     "elm": "^0.19.1-6",
+    "elm-format": "^0.8.8",
     "elm-review": "^2.13.2",
     "elm-test": "^0.19.1-revision12",
     "gulp": "^5.0.0",

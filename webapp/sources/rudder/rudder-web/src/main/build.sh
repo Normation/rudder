@@ -32,3 +32,6 @@ elif [ "$WATCH" = true ]; then
 else
   npx gulp
 fi
+
+echo "> npm run elm-format-check"
+npm run elm-format-check | sed "s/\[\]/> All Elm files are formatted \\\\o\//"  
