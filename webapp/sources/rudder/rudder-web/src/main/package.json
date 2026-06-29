@@ -1,6 +1,9 @@
 {
   "scripts": {
-    "elm-git-install": "cd elm && elm-git-install"
+    "elm-git-install": "cd elm && elm-git-install",
+    "elm-format": "elm-format --yes",
+    "elm-format-all": "elm-format elm/sources --yes",
+    "elm-format-check": "elm-format elm/sources --validate"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -24,6 +27,7 @@
     "better-npm-audit": "^3.11.0",
     "del": "^8.0.1",
     "elm": "^0.19.1-6",
+    "elm-format": "^0.8.8",
     "elm-git-install": "^0.1.4",
     "elm-review": "^2.13.5",
     "elm-test": "^0.19.1-revision16",
