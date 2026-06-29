@@ -107,6 +107,17 @@ object Dependencies {
   val bcprov = "org.bouncycastle" % s"bcprov-${V.bouncycastleCompat}" % V.bouncycastle
   val bcpg   = "org.bouncycastle" % s"bcpg-${V.bouncycastleCompat}"   % V.bouncycastle
 
+  // Test-stack artifacts that sbt 2.0 + coursier resolve onto the compile/runtime classpath even
+  // though they are declared `% Test` (libraryDependencies and the published POM correctly say
+  // `test`; only the resolved in-build classpath is wrong, so per-config filtering can't isolate
+  // them). Used to keep them out of the rudder-web war's WEB-INF/lib. All of these trace back to
+  // the test libs below (specs2 / junit / zio-test / difflicious / doobie-specs2 + their transitives).
+  private val testArtifactPrefixes = Seq(
+    "specs2-", "doobie-specs2", "difflicious-core", "zio-test", "junit-",
+    "hamcrest-core", "test-interface", "fansi_", "hearth", "portable-scala-reflect", "xml_3-4.23"
+  )
+  def isTestArtifact(jarName: String): Boolean = testArtifactPrefixes.exists(jarName.startsWith)
+
   // ---- common to ALL modules (parent-pom <dependencies>) ----
   val common: Seq[ModuleID] = Seq(
     "com.github.pathikrit"        %% "better-files"      % V.betterFiles,
