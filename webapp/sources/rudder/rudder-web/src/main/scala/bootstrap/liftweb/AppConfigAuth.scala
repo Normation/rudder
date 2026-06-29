@@ -39,6 +39,7 @@ package bootstrap.liftweb
 
 import bootstrap.liftweb.LogFailedLogin.DisabledUserException
 import bootstrap.liftweb.LogFailedLogin.getRemoteAddr
+import bootstrap.liftweb.RudderParsedProperties
 import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
@@ -49,6 +50,7 @@ import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
+import com.normation.rudder.users.RudderAuthType
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -61,6 +63,8 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.Collection
 import net.liftweb.common.*
@@ -89,7 +93,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache
 import scala.annotation.nowarn
 import scala.util.Try
 import zio.syntax.*
@@ -312,6 +319,10 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean(name = Array("org.springframework.security.authenticationManager"))
   def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders, userRepository)
 
+  @Bean def rudderWebAuthenticationSuccessHandler: AuthenticationSuccessHandler = new RudderUrlAuthenticationSuccessHandler(
+    RudderParsedProperties.ENFORCE_OTP_AUTH
+  )
+
   @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler(
     "/index.html?login_error=true"
   )
@@ -441,6 +452,74 @@ class AppConfigAuth extends ApplicationContextAware {
 
   // userSessionLogEvent must not be lazy, because not used by anybody directly
   @Bean def userSessionLogEvent = new UserSessionLogEvent(RudderConfig.eventLogRepository, RudderConfig.stringUuidGenerator)
+}
+
+/*
+ * The "success login" handler:
+ *  - extends the original Spring handler based with default URL (root of application when authenticated)
+ *  - handles OTP registration logic:
+ *    - for users without OTP, when OTP verification are enforced, they must register an OTP
+ *    - for users already with OTP, they must enter a valid code before being redirected
+ *
+ * Implementation is similar to one of SavedRequestAwareAuthenticationSuccessHandler
+ */
+class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean) extends SavedRequestAwareAuthenticationSuccessHandler {
+  private val otpRedirect = enforceOtp
+
+  private val otpRedirectUri = "/secure/otp.html"
+
+  // Alternative to previous default-target-url="/secure/index.html" in applicationContext-security.
+  // Redirect can be overriden with authentication redirect logic when there is OTP (depends on configuration and user)
+  private val defaultRedirectUri = "/secure/index.html"
+  setDefaultTargetUrl(defaultRedirectUri)
+
+  private val requestCache = new HttpSessionRequestCache()
+
+  override def onAuthenticationSuccess(
+      request:        HttpServletRequest,
+      response:       HttpServletResponse,
+      authentication: Authentication
+  ): Unit = {
+    if (otpRedirect) {
+      // here we should check that it's a Rudder user, and if their OTP is already enabled/freshly verified to determine if we actually need `otpRedirect`
+      val principal = authentication.getPrincipal
+
+      // Fixup the authority to make spring-security config give access to MFA enrollment/verification page
+      val preAuthToken = new UsernamePasswordAuthenticationToken(
+        principal,
+        null,
+        RudderAuthType.PreAuthUser.grantedAuthorities
+      )
+
+      SecurityContextHolder.getContext().setAuthentication(preAuthToken)
+    }
+
+    super.onAuthenticationSuccess(request, response, authentication)
+  }
+
+  // To correctly apply override of defaultRedirectUri (defaultTargetUrl), we need OTP customization
+  override protected def determineTargetUrl(
+      request:        HttpServletRequest,
+      response:       HttpServletResponse,
+      authentication: Authentication
+  ): String = {
+    if (otpRedirect) {
+      // OTP enforcement redirect. It may be based on user, in which case, per-auth basis
+      val nextRedirect = {
+        Option(requestCache.getRequest(request, response))
+          .map(_.getRedirectUrl)
+          .map(url => {
+            requestCache.removeRequest(request, response) // clean is recommended since we intercept it only in this request
+            s"?redirect=${URLEncoder.encode(url, StandardCharsets.UTF_8)}"
+          })
+          .getOrElse("")
+      }
+
+      otpRedirectUri + nextRedirect
+    } else {
+      super.determineTargetUrl(request, response, authentication)
+    }
+  }
 }
 
 /*

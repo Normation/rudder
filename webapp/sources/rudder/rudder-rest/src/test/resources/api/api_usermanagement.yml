@@ -96,7 +96,8 @@ response:
                 "customRights" : []
               }
             },
-            "tenants" : "zoneA"
+            "tenants" : "zoneA",
+            "otpEnabled" : false
           },
           {
             "login" : "user2",
@@ -159,7 +160,8 @@ response:
             },
             "tenants" : "all",
             "lastLogin" : "2024-02-29T00:00:00Z",
-            "previousLogin" : "2024-02-28T12:34:00Z"
+            "previousLogin" : "2024-02-28T12:34:00Z",
+            "otpEnabled" : false
           },
           {
             "login" : "user3",
@@ -184,10 +186,12 @@ response:
                 "customRights" : []
               }
             },
-            "tenants" : "none"
+            "tenants" : "none",
+            "otpEnabled" : false
           }
         ],
         "tenantsEnabled" : false,
+        "otpEnabled" : false,
         "digest" : "ARGON2ID"
       }
     }
@@ -523,7 +527,8 @@ response:
                 "customRights" : []
               }
             },
-            "tenants" : "zoneA"
+            "tenants" : "zoneA",
+            "otpEnabled" : false
           },
           {
             "login" : "user2",
@@ -586,7 +591,8 @@ response:
             },
             "tenants" : "all",
             "lastLogin" : "2024-02-29T00:00:00Z",
-            "previousLogin" : "2024-02-28T12:34:00Z"
+            "previousLogin" : "2024-02-28T12:34:00Z",
+            "otpEnabled" : false
           },
           {
             "login" : "user3",
@@ -611,10 +617,12 @@ response:
                 "customRights" : []
               }
             },
-            "tenants" : "none"
+            "tenants" : "none",
+            "otpEnabled" : false
           }
         ],
         "tenantsEnabled" : false,
+        "otpEnabled" : false,
         "digest" : "ARGON2ID"
         }
       }
@@ -688,7 +696,8 @@ response:
                 "customRights" : []
               }
             },
-            "tenants" : "zoneA"
+            "tenants" : "zoneA",
+            "otpEnabled" : false
           },
           {
             "login" : "user2",
@@ -751,7 +760,8 @@ response:
             },
             "tenants" : "all",
             "lastLogin" : "2024-02-29T00:00:00Z",
-            "previousLogin" : "2024-02-28T12:34:00Z"
+            "previousLogin" : "2024-02-28T12:34:00Z",
+            "otpEnabled" : false
           },
           {
             "login" : "user3",
@@ -776,10 +786,12 @@ response:
                 "customRights" : []
               }
             },
-            "tenants" : "none"
+            "tenants" : "none",
+            "otpEnabled" : false
           }
         ],
         "tenantsEnabled" : false,
+        "otpEnabled" : false,
         "digest" : "ARGON2ID"
         }
       }

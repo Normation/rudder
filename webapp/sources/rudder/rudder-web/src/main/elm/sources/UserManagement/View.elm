@@ -12,7 +12,7 @@ import Set
 import String exposing (isEmpty)
 import NaturalOrdering as N
 import Json.Encode exposing (encode)
-import UserManagement.ApiCalls exposing (deleteUser)
+import UserManagement.ApiCalls exposing (deleteUser, resetUserOtp)
 import UserManagement.DataTypes exposing (..)
 
 import Utils.TooltipUtils exposing (buildTooltipContent)
@@ -93,6 +93,42 @@ hashPasswordMenu isHashedPasswd =
         , a [ class ("btn btn-default " ++ hashPasswdIsActivate), onClick (PreHashedPasswd True) ] [ text "Enter pre-hashed value" ]
         ]
 
+
+displayOtpBlock : Model -> User -> Html Msg
+displayOtpBlock ({ otpEnabled } as model) user =
+    let
+        title =
+            h3 [] [ text "OTP" ]
+
+        content =
+            if user.otpEnabled then
+                div []
+                [ p []
+                  [ if otpEnabled then
+                      em [] [ text "Reset user OTP to enable them register on next login:" ]
+                    else
+                      em [] [ text "Login with OTP is globally disabled, reset of user OTP will have no effect until it is enabled:" ]
+                  ]
+                , button
+                  [ class "btn btn-danger"
+                  , type_ "button"
+                  , onClick (CallApi (\_ -> resetUserOtp model user.login))
+                  ]
+                  [ text "Reset", i [ class "ms-2 fa fa-repeat fa-flip-horizontal" ] [] ]
+                ]
+
+            else
+                div [ class "alert alert-warning" ]
+                [ i [ class "fa fa-exclamation-triangle" ] []
+                , text "User has no OTP registered."
+                , if otpEnabled then p [] [ text "User will be asked to register OTP on their next login." ] else text ""
+                ]
+
+    in
+    div []
+    [ title
+    , content
+    ]
 
 displayPasswordBlock : Model -> Maybe User -> Html Msg
 displayPasswordBlock model user =
@@ -499,6 +535,8 @@ displayRightPanel model user =
                             [ em [] [ text ("Previous login: " ++ String.replace "T" " " l) ] ]
                     )
                 ]
+             , displayOtpBlock model user
+             , hr [] []
              , displayPasswordBlock model (Just user)
              ]
                 ++ displayedProviders
@@ -832,6 +870,8 @@ displayUsersTable model users =
                 [ displayUserPreviousLogin user
                 ]
             , td []
+              [ text (if user.otpEnabled then "✓" else "-") ]
+            , td []
               [ button
                 [ class "btn btn-default"
                 , onClick (ActivePanelSettings user)
@@ -871,6 +911,7 @@ displayUsersTable model users =
             text ""
         )
         , th [class (thClass model.ui.tableFilters PreviousLogin  ), onClick (UpdateTableFilters (sortTable filters PreviousLogin  ))] [ text "Previous login" ]
+        , th [class (thClass model.ui.tableFilters OtpEnabled), onClick (UpdateTableFilters (sortTable filters OtpEnabled  ))] [ text "OTP" ]
         , th [style "width" "220px"][ text "Actions" ]
         ]
       ]
@@ -932,6 +973,13 @@ searchField user =
 getSortFunction : Model -> User -> User -> Order
 getSortFunction model u1 u2 =
   let
+      compareBool : Bool -> Bool -> Order
+      compareBool l1 l2 =
+          case (l1, l2) of
+              (True, False) -> LT
+              (False, True) -> GT
+              _             -> EQ
+
       compareStringList : List String -> List String -> Order
       compareStringList l1 l2 =
           let
@@ -969,6 +1017,7 @@ getSortFunction model u1 u2 =
           Rights        -> compareStringList u1.roles u2.roles
           Providers     -> compareStringList u1.providers u2.providers
           Tenants       -> checkOrder (N.compare u1.name u2.name)
+          OtpEnabled    -> checkOrder (compareBool u1.otpEnabled u2.otpEnabled)
           PreviousLogin ->
               case (u1.previousLogin, u2.previousLogin) of
                   (Just _, Nothing)  -> LT

@@ -1176,6 +1176,20 @@ object RudderParsedProperties {
     }
   }
 
+  // Enforce TOTP login during auth (default: false). OTP is optional for compatibility (when "enabled" is added, be careful with defaults)
+  val ENFORCE_OTP_AUTH: Boolean = {
+    val default = false
+    try {
+      config.getBoolean("rudder.auth.otp.enforce")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'rudder.auth.otp.enforce' is absent in rudder.configFile, defaulting to false (OTP optional)."
+        )
+        default
+    }
+  }
+
   val RUDDERC_CMD: String = {
     try {
       config.getString("rudder.technique.compiler.rudderc.cmd")
@@ -1461,6 +1475,7 @@ object RudderConfig extends Loggable {
   val userPropertyService:                 UserPropertyService                      = rci.userPropertyService
   val userRepository:                      UserRepository                           = rci.userRepository
   val userService:                         UserService                              = rci.userService
+  val otpService:                          TotpService                              = rci.otpService
   val woApiAccountRepository:              WoApiAccountRepository                   = rci.woApiAccountRepository
   val woDirectiveRepository:               WoDirectiveRepository                    = rci.woDirectiveRepository
   val woNodeGroupRepository:               WoNodeGroupRepository                    = rci.woNodeGroupRepository
@@ -1604,6 +1619,7 @@ case class RudderServiceApi(
     userService:                         UserService,
     apiVersions:                         List[ApiVersion],
     apiDispatcher:                       RudderEndpointDispatcher,
+    otpService:                          TotpService,
     configurationRepository:             ConfigurationRepository,
     roParameterService:                  RoParameterService,
     agentRegister:                       AgentRegister,
@@ -2172,6 +2188,17 @@ object RudderConfigInit {
 
     lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
 
+    // OTP (Two-Factor Authentication) service
+    lazy val totpRepository    = new JdbcTotpRepository(doobie)
+    lazy val userTotpValidator = new UserTotpValidator(userRepository, totpRepository)
+    lazy val totpService       = OtpJavaTotpService
+      .make(
+        enabledOtp = ENFORCE_OTP_AUTH,
+        validator = userTotpValidator,
+        totpRepository = totpRepository
+      )
+      .runNow
+
     // we need to init API internal services into the {} block to avoid bug https://issues.rudder.io/issues/26416
     // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
     lazy val rudderApi = ApiInit.api
@@ -2203,6 +2230,8 @@ object RudderConfigInit {
         ),
         linkUtil
       )
+
+      lazy val otpApi = new OtpApi(totpService)
 
       lazy val ruleApiService13 = {
         new RuleApiService14(
@@ -2388,6 +2417,7 @@ object RudderConfigInit {
               UserFileProcessing.getUserResourceFile()
             ),
             tenantService,
+            totpService,
             () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
             () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
           ),
@@ -2417,7 +2447,8 @@ object RudderConfigInit {
           archiveApi,
           new ScoreApiImpl(scoreService),
           eventLogApi,
-          quicksearchApi
+          quicksearchApi,
+          otpApi
           // info api must be resolved latter, because else it misses plugin apis !
         )
       }
@@ -3369,6 +3400,7 @@ object RudderConfigInit {
         BootstrapLogger.Early.DB,
         new CheckPostgreConnection(dataSourceProvider),
         new CreateTableNodeFacts(doobie),
+        new CreateTableUsersTotp(doobie),
         new CheckTableScore(doobie),
         new CheckTableUsers(doobie),
         new CheckTableNodeLastCompliance(doobie),
@@ -3981,6 +4013,7 @@ object RudderConfigInit {
       userService,
       SupportedApiVersion.apiVersions,
       apiDispatcher,
+      totpService,
       configurationRepository,
       roParameterService,
       agentRegister,

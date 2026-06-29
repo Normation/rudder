@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:lift="http://liftweb.net/">
+  <head>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/libs/bootstrap.min.css">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/fontawesome-5-15-1/css/all.min.css"/>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/fontawesome-5-15-1/css/v4-shims.min.css"/>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/ionicons-2.0.1/css/ionicons.min.css">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/login.css">
+
+    <link type="image/x-icon" rel="icon" data-lift="with-cached-resource" href="/images/rudder-favicon.ico" />
+
+    <script data-lift="baseUrl.display" ></script>
+
+    <!-- ELM -->
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery.min.js"></script>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-notifications.css" />
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-notifications.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-otp.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/rudder-elm.js"></script>
+  </head>
+
+  <body>
+    <div class="flex-container">
+      <div class="col-xl-4 col-lg-6 col-sm-8 col-12 px-3 px-md-0">
+
+        <div data-lift="Login.display">
+
+          <div class="logo-container">
+            <img src="/images/logo/rudder-logo-rect-black.svg" data-lift="with-cached-resource" alt="Rudder"/>
+          </div>
+
+          <div class="content-wrapper">
+            <div class="rudder_col">
+              <rudder-notifications></rudder-notifications>
+              <div id="content">
+                <div id="otp-app"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="links">
+            <a href="/rudder-doc" target="_blank">
+              <span>Documentation</span>
+            </a>
+            <a href="https://www.rudder.io/pricing/subscription/" target="_blank">
+              <span>Support</span>
+            </a>
+            <a href="https://www.rudder.io/open-source/community/" target="_blank">
+              <span>Community</span>
+            </a>
+            <a href="https://issues.rudder.io/" target="_blank">
+              <span>Bug tracker</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script data-lift="with-nonce">
+      $(document).ready(function () {
+        const main = document.getElementById("otp-app")
+        const initValues = {
+            contextPath: contextPath
+        };
+
+        const app = Elm.Otp.init({node: main, flags: initValues});
+
+        app.ports.errorNotification.subscribe(function (str) {
+          createErrorNotification(str)
+        });
+
+        app.ports.pushUrl.subscribe(function (url) {
+          window.location.href = url;
+        });
+
+        app.ports.readUrl.send(window.location.href);
+      });
+    </script>
+
+  </body>
+  <div data-lift="CustomPageJs.pageScript"></div>
+</html>

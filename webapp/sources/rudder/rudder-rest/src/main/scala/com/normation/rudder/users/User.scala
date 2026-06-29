@@ -78,10 +78,13 @@ object RudderAuthType {
     Seq(new SimpleGrantedAuthority(s): GrantedAuthority).asJavaCollection
   }
 
-  case object User extends RudderAuthType {
+  case object PreAuthUser extends RudderAuthType {
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_PRE_AUTH")
+  }
+  case object User        extends RudderAuthType {
     override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_USER")
   }
-  case object Api  extends RudderAuthType {
+  case object Api         extends RudderAuthType {
     override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = Rights.NoRights

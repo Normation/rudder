@@ -49,6 +49,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 <!--        <protect-pointcut expression="execution(* bigbank.*Service.post*(..))" access="ROLE_TELLER"/>-->
 <!--        -->
 <!--    </global-method-security>-->
+    <beans:bean id="otpAuthFilter" class="bootstrap.liftweb.OtpAuthenticationFilter">
+      <beans:property name="authenticationManager" ref="org.springframework.security.authenticationManager"/>
+    </beans:bean>
+
+ 
     <beans:bean id="userSessionInvalidationFilter" class="bootstrap.liftweb.UserSessionInvalidationFilter" />
 
 
@@ -65,7 +70,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <!-- same config as mainHttpSecurityFilters but applies to authenticated API calls (/secure/api/): they need a custom filter for CSRF mitigation -->
     <http pattern="/secure/api/**" disable-url-rewriting="true"  entry-point-ref="restAuthenticationEntryPoint">
-        <intercept-url pattern="/**" access="isAuthenticated()" />
+        <!-- For API access of frontend OTP page -->
+        <intercept-url pattern="/secure/api/otp/**" access="hasRole('ROLE_PRE_AUTH')" />
+
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')" />
+
         <custom-filter after="LAST" ref="restSecureAuthenticationFilter" />
         <headers>
             <xss-protection disabled="true"/>
@@ -93,13 +102,21 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           <concurrency-control max-sessions="2" error-if-maximum-exceeded="true" />
           -->
         </session-management>
+
+        <!-- OTP login for already logged-in user with ROLE_PRE_AUTH authority to access the OTP submit page -->
+	    <intercept-url pattern="/secure/otp.html" access="hasRole('ROLE_PRE_AUTH')" />
+
+        <!-- For API access of frontend OTP page and OTP check filter -->
+	    <intercept-url pattern="/secure/otp/verify" access="permitAll" />
+
         <!--
            Comment to allows "no auth required", but the login form is still valid
            May be used for development or demo.
         -->
         <!-- Start comment -->
 
-        <intercept-url pattern="/secure/**" access="isAuthenticated()" />
+        <!-- Need user to have the right authority and not the one for OTP verification (it implies being authenticated) -->
+	    <intercept-url pattern="/secure/**" access="hasRole('ROLE_USER')" />
 
         <!-- End comment -->
 
@@ -109,11 +126,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <form-login
             login-page="/index.html"
             login-processing-url="/j_spring_security_check"
-            default-target-url="/secure/index.html"
+	    authentication-success-handler-ref="rudderWebAuthenticationSuccessHandler"
             authentication-failure-handler-ref="rudderWebAuthenticationFailureHandler"
-            always-use-default-target="false"
         />
 <!--        <remember-me />-->
+
+        <!-- For OTP verification, auth upgrade -->
+        <custom-filter after="FORM_LOGIN_FILTER" ref="otpAuthFilter"/>
 
         <custom-filter after="BASIC_AUTH_FILTER" ref="userSessionInvalidationFilter" />
 

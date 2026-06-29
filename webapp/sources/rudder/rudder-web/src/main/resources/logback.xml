@@ -505,7 +505,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       Trace level is quite verbose and print for each request result for ALL path tested (100 of lines)
 
   -->
-  <logger name="api-processing" level="info" additivity="false">
+  <logger name="api-processing" level="debug" additivity="false">
     <appender-ref ref="APILOG" />
     <appender-ref ref="STDOUT" />
   </logger>

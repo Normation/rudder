@@ -6,7 +6,7 @@ import List
 import Http exposing (..)
 import String exposing (isEmpty)
 
-import UserManagement.ApiCalls exposing (activateUser, addUser, disableUser, getRoleConf, getUsersConf, postReloadConf, updateUser, updateUserInfo)
+import UserManagement.ApiCalls exposing (activateUser, addUser, disableUser, getRoleConf, getUsersConf, postReloadConf, resetUserOtp, updateUser, updateUserInfo)
 import UserManagement.DataTypes exposing (AddUserForm, Model, Msg(..), PanelMode(..), StateInput(..), UserAuth, mergeUserNewInfo, userProviders, userToUserInfoForm)
 import UserManagement.Init exposing (init, subscriptions)
 import UserManagement.View exposing (view)
@@ -49,7 +49,7 @@ update msg model =
                         ui = model.ui
                         newUI = {ui | panelMode = newPanelMode} 
                         newModel =
-                            { model | roleListOverride = u.roleListOverride, users = users, ui = newUI, digest = u.digest, providers = (userProviders u.authenticationBackends), providersProperties = u.providersProperties, tenantsEnabled = u.tenantsEnabled }
+                            { model | roleListOverride = u.roleListOverride, users = users, ui = newUI, digest = u.digest, providers = (userProviders u.authenticationBackends), providersProperties = u.providersProperties, tenantsEnabled = u.tenantsEnabled, otpEnabled = u.otpEnabled }
 
                     in
                     ( newModel, getRoleConf model )
@@ -274,6 +274,14 @@ update msg model =
             (model, activateUser model username)
         DisableUser username ->
             (model, disableUser model username)
+
+        ResetUserOtp username result ->
+            case result of
+                Ok () ->
+                    (model, Cmd.batch [ getUsersConf model, successNotification ("OTP successfully reset for " ++ username) ])
+
+                Err err ->
+                    processApiError err model
 
         PreHashedPasswd bool ->
             let

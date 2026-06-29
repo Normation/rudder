@@ -16,7 +16,7 @@ init flags =
         initUi = UI Closed False (TableFilters UserLogin Asc "")
         initUserInfoForm = UserInfoForm "" "" Dict.empty Dict.empty
         initUserForm = UserForm "" "" True False [] initUserInfoForm [] ValidInputs 
-        initModel = Model flags.contextPath flags.userId "" False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
+        initModel = Model flags.contextPath flags.userId "" False False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
     in
     ( initModel
     , getUsersConf initModel

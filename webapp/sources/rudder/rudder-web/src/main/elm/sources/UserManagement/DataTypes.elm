@@ -56,6 +56,7 @@ type alias User =
     , tenants : String
     , lastLogin : Maybe String
     , previousLogin : Maybe String
+    , otpEnabled : Bool
     }
 
 type UserStatus = 
@@ -161,6 +162,7 @@ type alias UsersConf =
     , providersProperties : Dict String ProviderProperties
     , users : List User
     , tenantsEnabled : Bool
+    , otpEnabled : Bool
     }
 
 type PanelMode
@@ -189,6 +191,7 @@ type alias Model =
     , userId : String
     , digest: String
     , tenantsEnabled : Bool
+    , otpEnabled : Bool
     , users: Users
     , roles: Roles
     , rolesConf : RoleConf  -- from API
@@ -211,6 +214,7 @@ type SortBy
     | Providers
     | Tenants
     | PreviousLogin
+    | OtpEnabled
 
 
 type alias TableFilters =
@@ -237,6 +241,7 @@ type Msg
     | UpdateUser (Result Error String)
     | UpdateUserInfo (Result Error ())
     | UpdateUserStatus (Result Error Username)
+    | ResetUserOtp Username (Result Error ())
     | CallApi (Model -> Cmd Msg)
     | ActivePanelSettings User
     | ActivePanelAddUser
