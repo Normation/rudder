@@ -118,10 +118,6 @@ view model =
           ]
         ]
       ExternalTemplate -> text ""
-
-    modal = case model.ui.modal of
-      NoModal -> text ""
-      ExternalModal -> div [class "modal-backdrop fade show", style "height" "100%"] []
   in
     div [class "rudder-template"]
     [ div [class "template-sidebar sidebar-left"]
@@ -172,5 +168,4 @@ view model =
       [ 
         templateMain
       ]
-    , modal
     ]

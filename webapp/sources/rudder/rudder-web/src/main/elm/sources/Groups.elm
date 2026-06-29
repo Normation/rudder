@@ -54,13 +54,13 @@ update msg model =
         ui = model.ui
         -- we need to reload to make sure we are not in a details page, or else some external elements will replace our Elm dom elements
       in
-       ({ model | mode = Loading, groupsCompliance = Dict.empty, ui = { ui | modal = ExternalModal, loadingGroups = True } }, createGroupModal ())
+       ({ model | mode = Loading, groupsCompliance = Dict.empty, ui = { ui | loadingGroups = True } }, createGroupModal ())
     CloseModal -> 
       let
         ui = model.ui
       in
-        ({ model | ui = { ui | modal = NoModal, loadingGroups = True } }, Cmd.batch [ getGroupsTree model False ])
-    LoadGroupTable -> 
+        ({ model | ui = { ui | loadingGroups = True } }, Cmd.batch [ getGroupsTree model False ])
+    LoadGroupTable ->
       let
         ui = model.ui
         newModel = 
