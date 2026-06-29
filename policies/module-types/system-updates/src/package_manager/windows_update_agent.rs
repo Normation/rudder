@@ -274,16 +274,6 @@ impl UpdateManager for WindowsUpdateAgent {
         &mut self,
         update_type: &FullCampaignType,
     ) -> ResultOutput<Option<HashMap<PackageId, String>>> {
-        if !update_type.exclude.is_empty() {
-            return ResultOutput::new_output(
-                Err(anyhow!(
-                    "Excluding packages is not supported with Windows Update Agent, aborting upgrade"
-                )),
-                Vec::new(),
-                Vec::new(),
-            );
-        }
-
         let mut r = ResultOutput::new(Ok(None));
         // Compute the updates to install
         let raw_available_updates = query_wua(&self.session, "IsInstalled=0");
@@ -327,6 +317,11 @@ impl UpdateManager for WindowsUpdateAgent {
                     .filter_out_excludes(&excludes)
             }
         };
+
+        if updates_to_download.is_empty() {
+            r.stdout("No available update found for this event, exiting".to_string());
+            return r;
+        }
         // Download the available updates
         let raw_update_download_result = download_updates(&self.session, &updates_to_download);
         r.log_step(&raw_update_download_result);
