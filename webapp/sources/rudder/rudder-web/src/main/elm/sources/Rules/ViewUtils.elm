@@ -1,7 +1,9 @@
 module Rules.ViewUtils exposing (..)
 
+import Compliance.DataTypes exposing (..)
+import Compliance.Html exposing (buildComplianceBar)
+import Compliance.Utils exposing (..)
 import Dict exposing (Dict)
-
 import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -11,15 +13,10 @@ import List
 import List.Extra
 import Maybe.Extra
 import NaturalOrdering as N
-import Tuple3
-
-import Rules.DataTypes exposing (..)
-
-import Compliance.DataTypes exposing (..)
-import Compliance.Html exposing (buildComplianceBar)
-import Compliance.Utils exposing (..)
-import Ui.Datatable exposing (SortOrder(..), sortTable, thClass, Category, getAllCats, getAllElems, getSubElems)
 import Rules.ChangeRequest exposing (ChangeRequestSettings)
+import Rules.DataTypes exposing (..)
+import Tuple3
+import Ui.Datatable exposing (Category, SortOrder(..), getAllCats, getAllElems, getSubElems, sortTable, thClass)
 
 
 onCustomClick : msg -> Html.Attribute msg
@@ -154,8 +151,8 @@ valueCompliance complianceFilters =
     ItemFun
         (\_ _ _ -> [])
         (\_ i -> i)
-        [ ( "Value", .value >> (\v -> pre[class "font-monospace text-break-spaces"][text v]), \d1 d2 -> N.compare d1.value d2.value )
-        , ( "Message", .message >> (\v -> pre[class "font-monospace text-break-spaces"][text v]), \d1 d2 -> N.compare d1.message d2.message )
+        [ ( "Value", .value >> (\v -> pre [ class "font-monospace text-break-spaces" ] [ text v ]), \d1 d2 -> N.compare d1.value d2.value )
+        , ( "Message", .message >> (\v -> pre [ class "font-monospace text-break-spaces" ] [ text v ]), \d1 d2 -> N.compare d1.message d2.message )
         , ( "Status", \r -> td [ class "report-compliance" ] [ div [] [ span [ class r.status ] [ text (buildComplianceReport r) ] ] ], \d1 d2 -> Basics.compare (reportStatusOrder d1) (reportStatusOrder d2) )
         ]
         .value
@@ -476,13 +473,17 @@ searchFieldNodes n nodes =
             ""
     ]
 
+
 searchFieldGroups g =
     [ g.id
     , g.name
     ]
 
 
+
 -- TAGS DISPLAY
+
+
 filterTags : List Tag -> List Tag -> Bool
 filterTags ruleTags tags =
     if List.isEmpty tags then
@@ -631,6 +632,7 @@ buildTagsList tags =
 
     else
         text ""
+
 
 
 -- WARNING:
@@ -1012,80 +1014,91 @@ btnSave saving disable action =
 
 rulesTableHeader : Filters -> Html Msg
 rulesTableHeader ruleFilters =
-  let
-    tableFilters = ruleFilters.tableFilters
-  in
+    let
+        tableFilters =
+            ruleFilters.tableFilters
+    in
     tr [ class "head" ]
         [ th
             [ class (thClass tableFilters Name)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Name) })
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = sortTable tableFilters Name })
             ]
             [ text "Name" ]
         , th
             [ class (thClass tableFilters Parent)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Parent) })
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = sortTable tableFilters Parent })
             ]
             [ text "Category" ]
         , th
             [ class (thClass tableFilters Status)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Status) })
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = sortTable tableFilters Status })
             ]
             [ text "Status" ]
         , th
             [ class (thClass tableFilters Compliance)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters Compliance) })
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = sortTable tableFilters Compliance })
             ]
             [ text "Compliance" ]
         , th
             [ class (thClass tableFilters RuleChanges)
             , rowspan 1
             , colspan 1
-            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = (sortTable tableFilters RuleChanges) })
+            , onClick (UpdateRuleFilters { ruleFilters | tableFilters = sortTable tableFilters RuleChanges })
             ]
             [ text "Changes" ]
         ]
 
-buildListCategories : String -> String -> String -> (Category Rule) -> List(Html Msg)
-buildListCategories sep categoryId parentId c =
-  let
-    missingRootCategory = List.filter (\sub -> sub.id /= missingCategoryId) (getSubElems c)
-  in
-  if categoryId == c.id then
-    []
-  else
-    let
-      newList =
-        let
-          blankSpace     = String.repeat 2 (String.fromChar (Char.fromCode 8199))
-          currentOption  = [option [value c.id, selected (parentId == c.id)][text (sep ++ c.name)]]
-          separator      =
-            if String.isEmpty sep then
-              "└─ "
-            else
-               blankSpace ++ sep
 
-          listCategories = List.concatMap (buildListCategories separator categoryId parentId) missingRootCategory
-        in
-          List.append currentOption listCategories
+buildListCategories : String -> String -> String -> Category Rule -> List (Html Msg)
+buildListCategories sep categoryId parentId c =
+    let
+        missingRootCategory =
+            List.filter (\sub -> sub.id /= missingCategoryId) (getSubElems c)
     in
-      newList
+    if categoryId == c.id then
+        []
+
+    else
+        let
+            newList =
+                let
+                    blankSpace =
+                        String.repeat 2 (String.fromChar (Char.fromCode 8199))
+
+                    currentOption =
+                        [ option [ value c.id, selected (parentId == c.id) ] [ text (sep ++ c.name) ] ]
+
+                    separator =
+                        if String.isEmpty sep then
+                            "└─ "
+
+                        else
+                            blankSpace ++ sep
+
+                    listCategories =
+                        List.concatMap (buildListCategories separator categoryId parentId) missingRootCategory
+                in
+                List.append currentOption listCategories
+        in
+        newList
 
 
 viewCrSettingsAlert : ChangeRequestSettings -> Html Msg
 viewCrSettingsAlert cr =
     if cr.enableChangeRequest then
-        div [class "text-center alert alert-info"]
-        [ i [ class "fa fa-info-circle" ] []
-        , text "Workflows are enabled, your change has to be validated in a change request"
-        ]
+        div [ class "text-center alert alert-info" ]
+            [ i [ class "fa fa-info-circle" ] []
+            , text "Workflows are enabled, your change has to be validated in a change request"
+            ]
+
     else
         text ""
 
@@ -1112,35 +1125,44 @@ actionText action =
 viewChangeAuditForm : ChangeRequestSettings -> Html Msg
 viewChangeAuditForm crSettings =
     if crSettings.enableChangeMessage || crSettings.enableChangeRequest then
-      div []
-      [ if crSettings.enableChangeRequest then
-          div [class "text-center alert alert-info"]
-          [ i [ class "fa fa-info-circle" ] []
-          , text "Workflows are enabled, your change has to be validated in a change request"
-          ]
-        else
-          text ""
-      , h4 [class "audit-title"] [text "Change audit log"]
-      , ( if crSettings.enableChangeRequest then
-        div[class "form-group"]
-        [ label[]
-           [ text "Change request title"
-          ]
-          , input [type_ "text", class "form-control", onInput (\s -> UpdateCrSettings {crSettings | changeRequestName = s}), value crSettings.changeRequestName ][]
-        ]
-        else
-        text ""
-        )
-      , div[class "form-group"]
-        [ label[]
-          [ text "Change audit message"
-          , text (if crSettings.enableChangeMessage && crSettings.mandatoryChangeMessage then " (required)" else "")
-          ]
-          , textarea [class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings {crSettings | message = s}), value crSettings.message ][]
-        ]
-      ]
+        div []
+            [ if crSettings.enableChangeRequest then
+                div [ class "text-center alert alert-info" ]
+                    [ i [ class "fa fa-info-circle" ] []
+                    , text "Workflows are enabled, your change has to be validated in a change request"
+                    ]
+
+              else
+                text ""
+            , h4 [ class "audit-title" ] [ text "Change audit log" ]
+            , if crSettings.enableChangeRequest then
+                div [ class "form-group" ]
+                    [ label []
+                        [ text "Change request title"
+                        ]
+                    , input [ type_ "text", class "form-control", onInput (\s -> UpdateCrSettings { crSettings | changeRequestName = s }), value crSettings.changeRequestName ] []
+                    ]
+
+              else
+                text ""
+            , div [ class "form-group" ]
+                [ label []
+                    [ text "Change audit message"
+                    , text
+                        (if crSettings.enableChangeMessage && crSettings.mandatoryChangeMessage then
+                            " (required)"
+
+                         else
+                            ""
+                        )
+                    ]
+                , textarea [ class "form-control", placeholder crSettings.changeMessagePrompt, onInput (\s -> UpdateCrSettings { crSettings | message = s }), value crSettings.message ] []
+                ]
+            ]
+
     else
-      text ""
+        text ""
+
 
 viewModal :
     { action : ModalAction
@@ -1148,14 +1170,16 @@ viewModal :
     , crSettings : Maybe ChangeRequestSettings
     , btnMsg : Msg
     , btnClass : String
-    , btnIconClass : String } -> Html Msg
+    , btnIconClass : String
+    }
+    -> Html Msg
 viewModal { action, ruleName, crSettings, btnMsg, btnClass, btnIconClass } =
     let
         ( auditForm, btnDisabled, changeRequestEnabled ) =
             case crSettings of
-                Just s  ->
+                Just s ->
                     ( viewChangeAuditForm s
-                    , (s.mandatoryChangeMessage && String.isEmpty s.message)
+                    , s.mandatoryChangeMessage && String.isEmpty s.message
                     , s.enableChangeRequest
                     )
 
@@ -1180,21 +1204,21 @@ viewModal { action, ruleName, crSettings, btnMsg, btnClass, btnIconClass } =
                 [ text (actionText action), text " ", i [ class btnIconClass ] [] ]
     in
     div [ tabindex -1, class "modal fade show d-block" ]
-    [ div [class "modal-backdrop fade show", onClick (ClosePopup Ignore)][]
-    , div [ class "modal-dialog" ] [
-        div [ class "modal-content" ]  [
-          div [ class "modal-header" ] [
-            h5[ class "modal-title" ] [ text (actionText action ++ " rule")]
-          , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
-          ]
-        , div [ class "modal-body" ]
-          [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower (actionText action) ++" rule '"++ ruleName ++"'?")]
-          , auditForm
-          ]
-        , div [ class "modal-footer" ]
-          [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ] [ text "Cancel" ]
-          , button ((disabled btnDisabled) :: buttonAttrs) buttonHtml
-          ]
+        [ div [ class "modal-backdrop fade show", onClick (ClosePopup Ignore) ] []
+        , div [ class "modal-dialog" ]
+            [ div [ class "modal-content" ]
+                [ div [ class "modal-header" ]
+                    [ h5 [ class "modal-title" ] [ text (actionText action ++ " rule") ]
+                    , button [ type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close" ] []
+                    ]
+                , div [ class "modal-body" ]
+                    [ h4 [ class "text-center" ] [ text ("Are you sure you want to " ++ String.toLower (actionText action) ++ " rule '" ++ ruleName ++ "'?") ]
+                    , auditForm
+                    ]
+                , div [ class "modal-footer" ]
+                    [ button [ class "btn btn-default", onClick (ClosePopup Ignore) ] [ text "Cancel" ]
+                    , button (disabled btnDisabled :: buttonAttrs) buttonHtml
+                    ]
+                ]
+            ]
         ]
-      ]
-    ]

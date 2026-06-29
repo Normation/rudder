@@ -8,10 +8,12 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
 
+
 init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
-        initModel = Model flags.contextPath [] General
+        initModel =
+            Model flags.contextPath [] General
     in
     ( initModel
     , getHealthCheck initModel

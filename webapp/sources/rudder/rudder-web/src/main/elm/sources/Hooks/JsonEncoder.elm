@@ -1,13 +1,11 @@
 module Hooks.JsonEncoder exposing (..)
 
-import Json.Encode exposing (..)
-
 import Hooks.DataTypes exposing (..)
+import Json.Encode exposing (..)
 
 
 encodeHook : Hook -> Value
 encodeHook hook =
-    object (
-      [ ( "id" , string "" )
-      ]
-    )
+    object
+        [ ( "id", string "" )
+        ]

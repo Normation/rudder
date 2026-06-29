@@ -7,8 +7,8 @@ import Json.Decode exposing (..)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Task
 import Time exposing (Month(..), Posix, Zone)
-
 import Ui.Datatable exposing (defaultTableFilters)
+
 
 
 -- PORTS / SUBSCRIPTIONS
@@ -66,13 +66,14 @@ subscriptions model =
         ]
 
 
-init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled:Bool, tenantsPluginEnabled: Bool } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled : Bool, tenantsPluginEnabled : Bool } -> ( Model, Cmd Msg )
 init flags =
     let
         initDatePicker =
             DatePickerInfo (Time.millisToPosix 0) Time.utc Nothing (SingleDatePicker.init UpdatePicker)
 
-        initFilters = Filters (defaultTableFilters Name) ""
+        initFilters =
+            Filters (defaultTableFilters Name) ""
 
         initUi =
             UI initFilters NoModal False True initDatePicker False False
@@ -83,12 +84,14 @@ init flags =
         initAclPlugin =
             if flags.aclPluginEnabled && not initUi.pluginAclInit then
                 initAcl ""
+
             else
                 Cmd.none
 
         initTenantsPlugin =
             if flags.tenantsPluginEnabled && not initUi.pluginTenantsInit then
                 initTenants ""
+
             else
                 Cmd.none
 

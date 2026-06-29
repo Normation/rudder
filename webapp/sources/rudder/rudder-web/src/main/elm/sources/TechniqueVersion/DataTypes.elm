@@ -4,30 +4,34 @@ module TechniqueVersion.DataTypes exposing (..)
 -- All our data types
 --
 
+
 type alias Technique =
-  { version             : String
-  , isDeprecated        : Bool
-  , deprecationMessage  : String
-  , acceptationDate     : String
-  , dscSupport          : Bool
-  , classicSupport      : Bool
-  , multiVersionSupport : String
-  , mvsMessage          : String
-  }
+    { version : String
+    , isDeprecated : Bool
+    , deprecationMessage : String
+    , acceptationDate : String
+    , dscSupport : Bool
+    , classicSupport : Bool
+    , multiVersionSupport : String
+    , mvsMessage : String
+    }
+
 
 type alias UI =
-  { hasWriteRights    : Bool
-  , displayDeprecated : Bool
-  }
+    { hasWriteRights : Bool
+    , displayDeprecated : Bool
+    }
+
 
 type alias Model =
-  { contextPath    : String
-  , ui             : UI
-  , techniques     : List Technique
-  }
+    { contextPath : String
+    , ui : UI
+    , techniques : List Technique
+    }
+
 
 type Msg
-  = Ignore String
-  | CallApi (Model -> Cmd Msg)
-  | Create String
-  | ToggleDeprecated Bool
+    = Ignore String
+    | CallApi (Model -> Cmd Msg)
+    | Create String
+    | ToggleDeprecated Bool

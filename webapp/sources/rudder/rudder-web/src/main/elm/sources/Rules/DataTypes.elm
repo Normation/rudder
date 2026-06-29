@@ -5,8 +5,8 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
 import Time.ZonedDateTime exposing (ZonedDateTime)
+import Ui.Datatable exposing (Category, SortOrder, TableFilters, getAllCats, getAllElems, getSubElems)
 
-import Ui.Datatable exposing (TableFilters, SortOrder, Category, getAllElems, getAllCats, getSubElems)
 
 
 --
@@ -120,6 +120,7 @@ type alias Group =
     , enabled : Bool
     , target : String
     }
+
 
 
 -- get all missing categories
@@ -252,12 +253,14 @@ type alias TreeFilters =
     , tags : List Tag
     }
 
+
 type SortBy
     = Name
     | Parent
     | Status
     | Compliance
     | RuleChanges
+
 
 type alias Filters =
     { tableFilters : TableFilters SortBy

@@ -1,8 +1,6 @@
 module Accounts.JsonDecoder exposing (..)
 
-import Accounts.DataTypes as TenantMode exposing (..)
-import Accounts.DataTypes as Token exposing (..)
-import Accounts.DataTypes as TokenState exposing (..)
+import Accounts.DataTypes exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
@@ -59,26 +57,36 @@ decodeEnabledStatus =
             )
 
 
+
 -- this one is used to talk to the Rudder API
 -- we flatten the possible several actions into a list of unit ACL which is what is understood by UI
 -- It's why in the JSON, we have [actions] and in elm we have "verb"
+
+
 decodeAcls : Decoder (List AccessControl)
 decodeAcls =
-  let
-    path = field "path" string
-    actions = field "actions" (list string)
-    acls = map2 (\p -> \l -> List.map (\a -> AccessControl p a) l) path actions
-  in
+    let
+        path =
+            field "path" string
+
+        actions =
+            field "actions" (list string)
+
+        acls =
+            map2 (\p -> \l -> List.map (\a -> AccessControl p a) l) path actions
+    in
     acls
 
+
+
 -- this one is used to talk to the JS port
+
+
 decodePortAcl : Decoder AccessControl
 decodePortAcl =
     succeed AccessControl
         |> required "path" string
         |> required "verb" string
-
-
 
 
 decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy
@@ -109,31 +117,45 @@ parseExpirationPolicy zone str =
             fail "Unrecognized \"expirationPolicy\" field, expected \"never\" or \"datetime\""
 
 
-parseToken : String -> ( Token )
+parseToken : String -> Token
 parseToken str =
-  case str of
-    "2" -> Token.Hashed
-    "1" -> Token.ClearText
-    _   -> Token.New str
+    case str of
+        "2" ->
+            Hashed
+
+        "1" ->
+            ClearText
+
+        _ ->
+            New str
 
 
 decodeToken : Decoder Token
 decodeToken =
-  andThen (\s -> succeed (parseToken s)) string
+    andThen (\s -> succeed (parseToken s)) string
 
-parseTokenState: String -> TokenState
+
+parseTokenState : String -> TokenState
 parseTokenState str =
-  case str of
-    "generatedv1" -> TokenState.GeneratedV1
-    "generatedv2" -> TokenState.GeneratedV2
-    _             -> TokenState.Undef
+    case str of
+        "generatedv1" ->
+            GeneratedV1
+
+        "generatedv2" ->
+            GeneratedV2
+
+        _ ->
+            Undef
+
 
 decodeTokenState : Decoder TokenState
 decodeTokenState =
-  andThen (\s -> succeed (parseTokenState s)) string
+    andThen (\s -> succeed (parseTokenState s)) string
+
 
 
 -- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string
+
 
 parseTenants : String -> ( TenantMode, Maybe (List String) )
 parseTenants str =
@@ -142,17 +164,17 @@ parseTenants str =
             \l ->
                 case l of
                     [] ->
-                        ( TenantMode.NoAccess, Nothing )
+                        ( NoAccess, Nothing )
 
                     nonEmptyList ->
                         ( ByTenants, Just nonEmptyList )
     in
     case str of
         "*" ->
-            ( TenantMode.AllAccess, Nothing )
+            ( AllAccess, Nothing )
 
         "-" ->
-            ( TenantMode.NoAccess, Nothing )
+            ( NoAccess, Nothing )
 
         tenantIds ->
             String.split "," tenantIds |> listToTenantMode

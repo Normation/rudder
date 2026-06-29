@@ -8,6 +8,7 @@ import Time exposing (Posix, Zone)
 import Ui.Datatable exposing (TableFilters)
 
 
+
 --
 -- All our data types
 --
@@ -33,20 +34,24 @@ type SortBy
     | CreDate
     | TknDate
 
+
 type TenantMode
     = AllAccess -- special "*" permission giving access to objects in any/no tenants
     | NoAccess -- special "-" permission giving access to no object, whatever the tenant or its absence
     | ByTenants --give access to object in any of the listed tenants
+
 
 type TokenState
     = Undef
     | GeneratedV1
     | GeneratedV2
 
+
 type Token
     = New String
     | Hashed
     | ClearText
+
 
 type alias DatePickerInfo =
     { currentTime : Posix
@@ -55,10 +60,12 @@ type alias DatePickerInfo =
     , picker : DatePicker Msg
     }
 
+
 type alias Filters =
     { tableFilters : TableFilters SortBy
     , authType : String
     }
+
 
 type alias UI =
     { filters : Filters
@@ -70,6 +77,7 @@ type alias UI =
     , pluginTenantsInit : Bool
     }
 
+
 type alias Account =
     { id : String
     , name : String
@@ -78,10 +86,10 @@ type alias Account =
     , kind : String
     , enabled : Bool
     , creationDate : String
-    , tokenState: TokenState
+    , tokenState : TokenState
     , token : Maybe Token
     , tokenGenerationDate : Maybe String
-    , expirationPolicy: ExpirationPolicy
+    , expirationPolicy : ExpirationPolicy
     , acl : Maybe (List AccessControl)
     , tenantMode : TenantMode
     , selectedTenants : Maybe (List String) -- non empty list only
@@ -134,7 +142,6 @@ type Msg
     | Tick Posix
 
 
-
 expirationDate : ExpirationPolicy -> Maybe Posix
 expirationDate policy =
     case policy of
@@ -157,13 +164,11 @@ setIfExpireAtDate date policy =
             NeverExpire
 
 
-
 setExpirationPolicy : ExpirationPolicy -> Account -> Account
 setExpirationPolicy policy account =
     { account
         | expirationPolicy = policy
     }
-
 
 
 updateExpirationPolicy : (ExpirationPolicy -> ExpirationPolicy) -> Account -> Account

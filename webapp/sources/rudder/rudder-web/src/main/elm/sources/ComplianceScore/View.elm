@@ -8,6 +8,6 @@ import Html.String.Attributes exposing (..)
 import Score.DataTypes exposing (Score)
 
 
-buildScoreDetails :  ComplianceDetails  -> Html msg
+buildScoreDetails : ComplianceDetails -> Html msg
 buildScoreDetails details =
-   buildComplianceBar defaultComplianceFilter details
+    buildComplianceBar defaultComplianceFilter details

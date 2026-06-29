@@ -1,7 +1,6 @@
 module Accounts.View exposing (..)
 
 import Accounts.ApiCalls exposing (..)
-import Accounts.DataTypes exposing (..)
 import Accounts.DataTypes as TokenState exposing (..)
 import Accounts.ViewModals exposing (..)
 import Accounts.ViewUtils exposing (..)
@@ -62,10 +61,11 @@ view model =
                                                             let
                                                                 filters =
                                                                     model.ui.filters
+
                                                                 tableFilters =
                                                                     filters.tableFilters
                                                             in
-                                                            UpdateFilters { filters | tableFilters = { tableFilters | filter = s }}
+                                                            UpdateFilters { filters | tableFilters = { tableFilters | filter = s } }
                                                         )
                                                     ]
                                                     []

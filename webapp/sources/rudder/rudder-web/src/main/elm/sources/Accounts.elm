@@ -1,8 +1,6 @@
 module Accounts exposing (..)
 
 import Accounts.ApiCalls exposing (..)
-import Accounts.DataTypes as TenantMode exposing (..)
-import Accounts.DataTypes as Token exposing (..)
 import Accounts.DataTypes as TokenState exposing (..)
 import Accounts.DatePickerUtils exposing (..)
 import Accounts.Init exposing (..)
@@ -12,12 +10,12 @@ import Accounts.View exposing (view)
 import Accounts.ViewUtils exposing (..)
 import Browser
 import Http.Detailed as Detailed
+import Maybe.Extra
 import Random
 import Result
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Time.Extra as Time exposing (Interval(..), add)
 import UUID
-import Maybe.Extra
 
 
 
@@ -83,7 +81,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" "rw" "" True "" TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" "rw" "" True "" GeneratedV2 (Just Hashed) Nothing (ExpireAtDate expDate) Nothing AllAccess Nothing)
 
                         EditAccount a ->
                             Just a
@@ -102,7 +100,6 @@ update msg model =
             in
             ( { model | ui = { ui | modalState = modalState }, editAccount = editAccount }, Cmd.batch [ shareAcl (encodeTokenAcl tokenId acl), focusAccountTenants (encodeAccountTenants tokenId tenants) ] )
 
-
         UpdateFilters filters ->
             let
                 ui =
@@ -119,8 +116,6 @@ update msg model =
 
                         accounts =
                             apiResult.accounts
-
-
                     in
                     ( { model | accounts = accounts, ui = { modelUi | loadingAccounts = False, pluginAclInit = True, pluginTenantsInit = True } }
                     , Cmd.batch [ initTooltips "" ]
@@ -137,7 +132,7 @@ update msg model =
                 ui =
                     model.ui
 
-                (modalState, action) =
+                ( modalState, action ) =
                     case ui.modalState of
                         NewAccount ->
                             ( CopyToken (exposeToken account.token)
@@ -162,7 +157,7 @@ update msg model =
                 ui =
                     model.ui
 
-                (modalState, message) =
+                ( modalState, message ) =
                     case actionType of
                         Delete ->
                             ( NoModal
@@ -176,7 +171,6 @@ update msg model =
 
                 newModel =
                     { model | ui = { ui | modalState = modalState } }
-
             in
             ( newModel, Cmd.batch [ successNotification ("Successfully " ++ message ++ " API account '" ++ account.name ++ "'"), getAccounts model ] )
 
@@ -276,8 +270,7 @@ update msg model =
                                         |> Maybe.Extra.unpack (\_ -> a) (\f -> f a)
 
                                 newTime =
-                                        expirationDate newAccount.expirationPolicy
-
+                                    expirationDate newAccount.expirationPolicy
                             in
                             { model | ui = { ui | datePickerInfo = { datePicker | picker = newPicker, pickedTime = newTime } }, editAccount = Just newAccount }
             in

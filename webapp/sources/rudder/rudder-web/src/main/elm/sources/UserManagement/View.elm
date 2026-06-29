@@ -1,19 +1,20 @@
 module UserManagement.View exposing (..)
 
-import Dict.Extra
-import UserManagement.ApiCalls exposing (deleteUser)
-import UserManagement.DataTypes exposing (..)
 import Dict exposing (Dict, keys)
+import Dict.Extra
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, disabled, for, href, id, placeholder, required, style, tabindex, type_, value, colspan, checked, title)
-import Html.Events exposing (onClick, onInput, onCheck)
+import Html.Attributes exposing (attribute, checked, class, colspan, disabled, for, href, id, placeholder, required, style, tabindex, title, type_, value)
+import Html.Events exposing (onCheck, onClick, onInput)
+import Json.Encode exposing (encode)
 import List
 import List.Extra
 import Maybe.Extra exposing (isJust)
+import NaturalOrdering as N
 import Set
 import String exposing (isEmpty)
-import NaturalOrdering as N
-import Json.Encode exposing (encode)
+import UserManagement.ApiCalls exposing (deleteUser)
+import UserManagement.DataTypes exposing (..)
+
 
 view : Model -> Html Msg
 view model =
@@ -32,7 +33,7 @@ view model =
             else
                 div [] []
     in
-    div [class "rudder-template"]
+    div [ class "rudder-template" ]
         [ deleteModal
         , content
         ]
@@ -503,41 +504,49 @@ displayRightPanel model user =
             )
         ]
 
+
 displayDeleteButton : Model -> User -> Html Msg
-displayDeleteButton model user = -- Do not display button for current user
+displayDeleteButton model user =
+    -- Do not display button for current user
     if user.login == model.userId then
         text ""
+
     else
         button [ class "btn btn-sm btn-danger btn-delete", onClick (OpenDeleteModal user.login) ] [ text "Delete" ]
+
+
 displayToggleStatusButton : Model -> User -> Html Msg
-displayToggleStatusButton model user = -- Do not display button when active : user cannot disable itself
+displayToggleStatusButton model user =
+    -- Do not display button when active : user cannot disable itself
     if user.login == model.userId && user.status == Active then
         text ""
+
     else
         button
-        [ class
-            ("btn btn-sm btn-status-toggle "
-                ++ (if user.status == Active then
-                        "btn-default"
+            [ class
+                ("btn btn-sm btn-status-toggle "
+                    ++ (if user.status == Active then
+                            "btn-default"
 
-                    else
-                        "btn-primary"
-                   )
-            )
-        , onClick
-            (if user.status == Active then
-                DisableUser user.login
+                        else
+                            "btn-primary"
+                       )
+                )
+            , onClick
+                (if user.status == Active then
+                    DisableUser user.login
 
-             else
-                ActivateUser user.login
-            )
-        ]
-        [ if user.status == Active then
-            text "Disable"
+                 else
+                    ActivateUser user.login
+                )
+            ]
+            [ if user.status == Active then
+                text "Disable"
 
-          else
-            text "Activate"
-        ]
+              else
+                text "Activate"
+            ]
+
 
 displayUsersConf : Model -> Html Msg
 displayUsersConf model =
@@ -560,28 +569,35 @@ displayUsersConf model =
         hasExternal =
             isJust (takeFirstExtProvider model.providers)
 
-        (lstOfExtProviders, msgProvider) =
+        ( lstOfExtProviders, msgProvider ) =
             if hasExternal then
                 ( div [ class "provider-list" ] (List.map (\s -> span [ class "providers" ] [ text s ]) model.providers)
                 , "Authentication providers priority: "
                 )
+
             else
                 ( text ""
                 , "Local password-based authentication is used"
                 )
 
-        tableFilters = model.ui.tableFilters
+        tableFilters =
+            model.ui.tableFilters
 
-        existingUsers = model.users
-          |> Dict.values
-          |> List.filter (\user -> user.status /= Deleted)
-        filteredUsers = existingUsers
-          |> List.filter (\u -> filterSearch model.ui.tableFilters.filter (searchField u))
-          |> List.sortWith (getSortFunction model)
+        existingUsers =
+            model.users
+                |> Dict.values
+                |> List.filter (\user -> user.status /= Deleted)
 
-        nbUsers = List.length existingUsers
-        nbFilteredUsers = List.length filteredUsers
+        filteredUsers =
+            existingUsers
+                |> List.filter (\u -> filterSearch model.ui.tableFilters.filter (searchField u))
+                |> List.sortWith (getSortFunction model)
 
+        nbUsers =
+            List.length existingUsers
+
+        nbFilteredUsers =
+            List.length filteredUsers
     in
     div [ class "one-col flex-fill" ]
         [ div [ class "main-header" ]
@@ -593,50 +609,51 @@ displayUsersConf model =
             , div [ class "header-description" ]
                 [ p []
                     [ text "Manage the current Rudder users and their rights."
-                    , span[class "ms-2 text-info"]
-                        [ i[class "fa fa-info-circle me-1"][]
+                    , span [ class "ms-2 text-info" ]
+                        [ i [ class "fa fa-info-circle me-1" ] []
                         , text msgProvider
                         , lstOfExtProviders
                         ]
                     ]
                 ]
             ]
-            , div [ class "one-col-main" ]
-                [ div [ class "template-main" ]
-                    [ div [ class "main-container" ]
-                        [ div [ class "main-details" ]
-                            [ button [ class "btn me-auto btn-success new-icon btn-add", onClick ActivePanelAddUser ] [ text "Create a user" ]
-                            , div [ class "main-table" ]
-                                [ div [ class "table-container" ]
-                                    [ div [ class "dataTables_wrapper_top table-filter" ]
-                                        [ div [ class "form-group" ]
-                                            [ input
-                                                [ class "form-control"
-                                                , type_ "text"
-                                                , value model.ui.tableFilters.filter
-                                                , placeholder "Filter..."
-                                                , onInput (\s -> UpdateTableFilters { tableFilters | filter = s } )
-                                                ]
-                                                []
+        , div [ class "one-col-main" ]
+            [ div [ class "template-main" ]
+                [ div [ class "main-container" ]
+                    [ div [ class "main-details" ]
+                        [ button [ class "btn me-auto btn-success new-icon btn-add", onClick ActivePanelAddUser ] [ text "Create a user" ]
+                        , div [ class "main-table" ]
+                            [ div [ class "table-container" ]
+                                [ div [ class "dataTables_wrapper_top table-filter" ]
+                                    [ div [ class "form-group" ]
+                                        [ input
+                                            [ class "form-control"
+                                            , type_ "text"
+                                            , value model.ui.tableFilters.filter
+                                            , placeholder "Filter..."
+                                            , onInput (\s -> UpdateTableFilters { tableFilters | filter = s })
                                             ]
-                                        , div [ class "end" ]
-                                            [ button [ class "btn btn-default", onClick SendReload ] [ i [ class "fa fa-refresh" ] [] ]
-                                            ]
+                                            []
                                         ]
-                                      , displayUsersTable model filteredUsers
-                                      , div[class "dataTables_wrapper_bottom"]
-                                          [ div [class "dataTables_info"]
-                                              [ text ("Showing " ++ (String.fromInt nbFilteredUsers) ++ " of "++ (String.fromInt nbUsers) ++ " entries") ]
-                                          ]
+                                    , div [ class "end" ]
+                                        [ button [ class "btn btn-default", onClick SendReload ] [ i [ class "fa fa-refresh" ] [] ]
+                                        ]
+                                    ]
+                                , displayUsersTable model filteredUsers
+                                , div [ class "dataTables_wrapper_bottom" ]
+                                    [ div [ class "dataTables_info" ]
+                                        [ text ("Showing " ++ String.fromInt nbFilteredUsers ++ " of " ++ String.fromInt nbUsers ++ " entries") ]
                                     ]
                                 ]
                             ]
                         ]
                     ]
                 ]
-            , newUserMenu
-            , panel
+            ]
+        , newUserMenu
+        , panel
         ]
+
 
 displayAddRole : Model -> User -> ProviderInfo -> Bool -> Bool -> List (Html Msg)
 displayAddRole model user providerInfo readonly hideAddedRoles =
@@ -687,64 +704,94 @@ displayRights user roles =
             List.map
                 (\x ->
                     let
-                        tooltipRoles = case Dict.get x roles of
-                            Just authz  ->
-                                let
-                                    listAuthz = authz
-                                        |> List.map(\a -> "<span class='auth ms-0 me-1 mb-2'>" ++ a ++ "</span>")
-                                        |> String.join " "
-                                    tooltipContent = buildTooltipContent x listAuthz
-                                in
-                                [ attribute "data-bs-toggle" "tooltip"
-                                , attribute "data-bs-placement" "top"
-                                , attribute "data-bs-html" "true"
-                                , title tooltipContent
-                                ]
-                            Nothing -> []
+                        tooltipRoles =
+                            case Dict.get x roles of
+                                Just authz ->
+                                    let
+                                        listAuthz =
+                                            authz
+                                                |> List.map (\a -> "<span class='auth ms-0 me-1 mb-2'>" ++ a ++ "</span>")
+                                                |> String.join " "
+
+                                        tooltipContent =
+                                            buildTooltipContent x listAuthz
+                                    in
+                                    [ attribute "data-bs-toggle" "tooltip"
+                                    , attribute "data-bs-placement" "top"
+                                    , attribute "data-bs-html" "true"
+                                    , title tooltipContent
+                                    ]
+
+                                Nothing ->
+                                    []
                     in
-                        span ((class "role") :: tooltipRoles) [ text x ]
+                    span (class "role" :: tooltipRoles) [ text x ]
                 )
                 user.roles
 
         tooltipAuths =
             if List.isEmpty user.customRights then
                 []
+
             else
                 let
-                    customRights = user.customRights
-                        |> List.map (\a -> "<span class='auth ms-0 me-1 mb-2'>" ++ a ++ "</span>")
-                        |> String.join " "
-                    nbCustomRights = List.length user.customRights
-                    txtCustomRights = (String.fromInt nbCustomRights) ++ " authorization" ++ (if nbCustomRights > 1 then "s" else "")
-                    tooltipContent = buildTooltipContent txtCustomRights customRights
-                    prefix = if List.isEmpty user.roles then "" else "+ "
-                in
-                    [ span
-                        [ class "auth fw-medium"
-                        , attribute "data-bs-toggle" "tooltip"
-                        , attribute "data-bs-placement" "top"
-                        , attribute "data-bs-html" "true"
-                        , title tooltipContent
-                        ]
-                        [ text (prefix ++ txtCustomRights)
-                        , i[class "fa fa-info-circle ms-1"][]
-                        ]
-                    ]
+                    customRights =
+                        user.customRights
+                            |> List.map (\a -> "<span class='auth ms-0 me-1 mb-2'>" ++ a ++ "</span>")
+                            |> String.join " "
 
+                    nbCustomRights =
+                        List.length user.customRights
+
+                    txtCustomRights =
+                        String.fromInt nbCustomRights
+                            ++ " authorization"
+                            ++ (if nbCustomRights > 1 then
+                                    "s"
+
+                                else
+                                    ""
+                               )
+
+                    tooltipContent =
+                        buildTooltipContent txtCustomRights customRights
+
+                    prefix =
+                        if List.isEmpty user.roles then
+                            ""
+
+                        else
+                            "+ "
+                in
+                [ span
+                    [ class "auth fw-medium"
+                    , attribute "data-bs-toggle" "tooltip"
+                    , attribute "data-bs-placement" "top"
+                    , attribute "data-bs-html" "true"
+                    , title tooltipContent
+                    ]
+                    [ text (prefix ++ txtCustomRights)
+                    , i [ class "fa fa-info-circle ms-1" ] []
+                    ]
+                ]
     in
     if List.isEmpty userRoles && List.isEmpty tooltipAuths then
         span [ class "empty" ] [ text "No rights found" ]
+
     else
         span [ class "list-auths" ] (userRoles ++ tooltipAuths)
+
 
 displayProviders : Model -> User -> Html Msg
 displayProviders model user =
     let
         tooltipContent =
             buildTooltipContent "Provider not configured" "This user cannot log in with this provider, because it is not configured with the \"rudder.auth.provider\" property."
+
         attributes p =
             if List.member p model.providers then
                 [ class "badge" ]
+
             else
                 [ class "badge badge-provider-warning"
                 , attribute "data-bs-toggle" "tooltip"
@@ -752,233 +799,320 @@ displayProviders model user =
                 , attribute "data-bs-html" "true"
                 , title tooltipContent
                 ]
+
         providerEl p =
             if List.member p model.providers then
-                span (attributes p)[text p]
+                span (attributes p) [ text p ]
+
             else
-                span(attributes p)[i[class "fa fa-exclamation-triangle warning-icon"][], text p]
-
-
+                span (attributes p) [ i [ class "fa fa-exclamation-triangle warning-icon" ] [], text p ]
     in
-        if List.isEmpty user.providers then
-          i[][text "None"]
-        else
-          div[]
-          (List.map providerEl user.providers)
-    
+    if List.isEmpty user.providers then
+        i [] [ text "None" ]
+
+    else
+        div []
+            (List.map providerEl user.providers)
+
+
 displayTenants : User -> Html Msg
 displayTenants user =
     case user.tenants of
-        "all"  -> span [class "empty"][text "all"]
-        "none" -> span [class "empty"][text "none"]
-        o      -> text o
+        "all" ->
+            span [ class "empty" ] [ text "all" ]
+
+        "none" ->
+            span [ class "empty" ] [ text "none" ]
+
+        o ->
+            text o
+
 
 displayUserPreviousLogin : User -> Html Msg
 displayUserPreviousLogin user =
     case user.previousLogin of
         Nothing ->
-            span[class "empty"][text "Never logged in"]
+            span [ class "empty" ] [ text "Never logged in" ]
 
         Just l ->
             text (String.replace "T" " " l)
 
+
 displayUsersTable : Model -> List User -> Html Msg
 displayUsersTable model users =
-  let
-    hasUserWithUnknownProvider =
-        model.users |> Dict.Extra.any (\_ user -> List.any (\p -> List.Extra.notMember p model.providers) user.providers)
-    hasExternal =
-        isJust (takeFirstExtProvider model.providers) || hasUserWithUnknownProvider
+    let
+        hasUserWithUnknownProvider =
+            model.users |> Dict.Extra.any (\_ user -> List.any (\p -> List.Extra.notMember p model.providers) user.providers)
 
-    trUser : User -> Html Msg
-    trUser user  =
-      let
-        inputId = "toggle-" ++ user.login
-        active = user.status == Active
-        toggleAction =
-            if active then
-                DisableUser user.login
-            else
-                ActivateUser user.login
-      in
-        tr[]
-            [ td []
-                [ text user.login
+        hasExternal =
+            isJust (takeFirstExtProvider model.providers) || hasUserWithUnknownProvider
+
+        trUser : User -> Html Msg
+        trUser user =
+            let
+                inputId =
+                    "toggle-" ++ user.login
+
+                active =
+                    user.status == Active
+
+                toggleAction =
+                    if active then
+                        DisableUser user.login
+
+                    else
+                        ActivateUser user.login
+            in
+            tr []
+                [ td []
+                    [ text user.login
+                    ]
+                , if String.isEmpty user.name then
+                    td [] [ span [ class "empty" ] [ text user.login ] ]
+
+                  else
+                    td [] [ text user.name ]
+                , td []
+                    [ displayRights user model.roles
+                    ]
+                , if hasExternal then
+                    td [] [ displayProviders model user ]
+
+                  else
+                    text ""
+                , if model.tenantsEnabled then
+                    td []
+                        [ displayTenants user
+                        ]
+
+                  else
+                    text ""
+                , td []
+                    [ displayUserPreviousLogin user
+                    ]
+                , td []
+                    [ button
+                        [ class "btn btn-default"
+                        , onClick (ActivePanelSettings user)
+                        ]
+                        [ span [ class "fa fa-pencil" ] [] ]
+                    , label [ for inputId, class "custom-toggle ms-2" ]
+                        [ input [ type_ "checkbox", id inputId, checked active, onCheck (\c -> toggleAction) ] []
+                        , label [ for inputId, class "custom-toggle-group" ]
+                            [ label [ for inputId, class "toggle-enabled" ] [ text "Enabled" ]
+                            , span [ class "cursor" ] []
+                            , label [ for inputId, class "toggle-disabled" ] [ text "Disabled" ]
+                            ]
+                        ]
+                    , button
+                        [ class "btn btn-danger delete-button ms-2"
+                        , onClick (OpenDeleteModal user.login)
+                        ]
+                        [ span [ class "fa fa-times-circle" ] [] ]
+                    ]
                 ]
-            , ( if String.isEmpty user.name then
-                td [] [ span[class "empty"] [text user.login] ]
-            else
-                td [] [ text user.name ]
-            )
-            , td []
-                [ displayRights user model.roles
+
+        filters =
+            model.ui.tableFilters
+    in
+    table [ class "dataTable" ]
+        [ thead []
+            [ tr [ class "head" ]
+                [ th [ class (thClass model.ui.tableFilters UserLogin), onClick (UpdateTableFilters (sortTable filters UserLogin)) ] [ text "User" ]
+                , th [ class (thClass model.ui.tableFilters Name), onClick (UpdateTableFilters (sortTable filters Name)) ] [ text "User name" ]
+                , th [ class (thClass model.ui.tableFilters Rights), onClick (UpdateTableFilters (sortTable filters Rights)) ] [ text "Rights" ]
+                , if hasExternal then
+                    th [ class (thClass model.ui.tableFilters Providers), onClick (UpdateTableFilters (sortTable filters Providers)) ] [ text "Providers" ]
+
+                  else
+                    text ""
+                , if model.tenantsEnabled then
+                    th [ class (thClass model.ui.tableFilters Tenants), onClick (UpdateTableFilters (sortTable filters Tenants)) ] [ text "Tenants" ]
+
+                  else
+                    text ""
+                , th [ class (thClass model.ui.tableFilters PreviousLogin), onClick (UpdateTableFilters (sortTable filters PreviousLogin)) ] [ text "Previous login" ]
+                , th [ style "width" "220px" ] [ text "Actions" ]
                 ]
-            , ( if hasExternal then
-                td [] [ displayProviders model user ]
-            else
-                text ""
-            )
-            , ( if model.tenantsEnabled then
-                td []
-                [ displayTenants user
-                ]
-            else
-                text ""
-            )
-            , td []
-                [ displayUserPreviousLogin user
-                ]
-            , td []
-              [ button
-                [ class "btn btn-default"
-                , onClick (ActivePanelSettings user)
-                ]
-                [ span [class "fa fa-pencil"] [] ]
-              , label [for inputId, class "custom-toggle ms-2"]
-                [ input [type_ "checkbox", id inputId, checked active, onCheck (\c -> toggleAction)][]
-                , label [for inputId, class "custom-toggle-group"]
-                  [ label [for inputId, class "toggle-enabled" ][text "Enabled"]
-                  , span  [class "cursor"][]
-                  , label [for inputId, class "toggle-disabled"][text "Disabled"]
-                  ]
-                ]
-              , button
-                [ class "btn btn-danger delete-button ms-2"
-                , onClick (OpenDeleteModal user.login)
-                ]
-                [ span [class "fa fa-times-circle"] [] ]
-              ]
             ]
-    filters = model.ui.tableFilters
-  in
-    table [class "dataTable"]
-    [ thead []
-      [ tr [class "head"]
-        [ th [class (thClass model.ui.tableFilters UserLogin      ), onClick (UpdateTableFilters (sortTable filters UserLogin      ))] [ text "User"           ]
-        , th [class (thClass model.ui.tableFilters Name           ), onClick (UpdateTableFilters (sortTable filters Name           ))] [ text "User name"      ]
-        , th [class (thClass model.ui.tableFilters Rights         ), onClick (UpdateTableFilters (sortTable filters Rights         ))] [ text "Rights"         ]
-        , ( if hasExternal then
-            th [class (thClass model.ui.tableFilters Providers      ), onClick (UpdateTableFilters (sortTable filters Providers      ))] [ text "Providers"      ]
-        else
-            text ""
-        )
-        , ( if model.tenantsEnabled then
-            th [class (thClass model.ui.tableFilters Tenants        ), onClick (UpdateTableFilters (sortTable filters Tenants        ))] [ text "Tenants"        ]
-        else
-            text ""
-        )
-        , th [class (thClass model.ui.tableFilters PreviousLogin  ), onClick (UpdateTableFilters (sortTable filters PreviousLogin  ))] [ text "Previous login" ]
-        , th [style "width" "220px"][ text "Actions" ]
+        , tbody []
+            (if Dict.isEmpty model.users then
+                [ tr []
+                    [ td [ class "empty", colspan 7 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "There are no users defined" ] ]
+                ]
+
+             else if List.isEmpty users then
+                [ tr []
+                    [ td [ class "empty", colspan 7 ] [ i [ class "fa fa-exclamation-triangle" ] [], text "No users match your filters" ] ]
+                ]
+
+             else
+                List.map (\u -> trUser u) users
+            )
         ]
-      ]
-    , tbody []
-      ( if Dict.isEmpty model.users then
-        [ tr[]
-          [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "There are no users defined"] ]
-        ]
-      else if List.isEmpty users then
-        [ tr[]
-          [ td[class "empty", colspan 7][i [class"fa fa-exclamation-triangle"][], text "No users match your filters"] ]
-        ]
-      else
-        List.map (\u -> trUser u ) users
-      )
-    ]
+
 
 thClass : TableFilters -> SortBy -> String
 thClass tableFilters sortBy =
-  if sortBy == tableFilters.sortBy then
-    case  tableFilters.sortOrder of
-      Asc  -> "sorting_asc"
-      Desc -> "sorting_desc"
-  else
-    "sorting"
+    if sortBy == tableFilters.sortBy then
+        case tableFilters.sortOrder of
+            Asc ->
+                "sorting_asc"
+
+            Desc ->
+                "sorting_desc"
+
+    else
+        "sorting"
+
 
 sortTable : TableFilters -> SortBy -> TableFilters
 sortTable tableFilters sortBy =
-  let
-    order =
-      case tableFilters.sortOrder of
-        Asc -> Desc
-        Desc -> Asc
-  in
+    let
+        order =
+            case tableFilters.sortOrder of
+                Asc ->
+                    Desc
+
+                Desc ->
+                    Asc
+    in
     if sortBy == tableFilters.sortBy then
-      { tableFilters | sortOrder = order}
+        { tableFilters | sortOrder = order }
+
     else
-      { tableFilters | sortBy = sortBy, sortOrder = Asc}
+        { tableFilters | sortBy = sortBy, sortOrder = Asc }
+
 
 filterSearch : String -> List String -> Bool
 filterSearch filterString searchFields =
-  let
-    -- Join all the fields into one string to simplify the search
-    stringToCheck = searchFields
-      |> String.join "|"
-      |> String.toLower
+    let
+        -- Join all the fields into one string to simplify the search
+        stringToCheck =
+            searchFields
+                |> String.join "|"
+                |> String.toLower
 
-    searchString  = filterString
-      |> String.toLower
-      |> String.trim
-  in
+        searchString =
+            filterString
+                |> String.toLower
+                |> String.trim
+    in
     String.contains searchString stringToCheck
 
+
 searchField user =
-  [ user.login
-  , user.name
-  ]
+    [ user.login
+    , user.name
+    ]
+
 
 getSortFunction : Model -> User -> User -> Order
 getSortFunction model u1 u2 =
-  let
-      compareStringList : List String -> List String -> Order
-      compareStringList l1 l2 =
-          let
-              getFirstElement : List String -> String
-              getFirstElement lst =
-                  case List.head lst of
-                      Just el -> el
-                      Nothing -> ""
-              i1 = getFirstElement u1.roles
-              i2 = getFirstElement u2.roles
-          in
-              case (String.isEmpty i1, String.isEmpty i2) of
-                  (False, True)  -> LT
-                  (True, False)  -> GT
-                  (True, True)   -> EQ
-                  _ -> checkOrder (N.compare i1 i2)
+    let
+        compareStringList : List String -> List String -> Order
+        compareStringList l1 l2 =
+            let
+                getFirstElement : List String -> String
+                getFirstElement lst =
+                    case List.head lst of
+                        Just el ->
+                            el
 
-      checkOrder : Order -> Order
-      checkOrder o =
-          if model.ui.tableFilters.sortOrder == Asc then
-              o
-          else
-              case o of
-                  LT -> GT
-                  EQ -> EQ
-                  GT -> LT
-  in
-      case model.ui.tableFilters.sortBy of
-          Name          ->
-              let
-                  name1 = if String.isEmpty u1.name then u1.login else u1.name
-                  name2 = if String.isEmpty u2.name then u2.login else u2.name
-              in
-                  checkOrder (N.compare name1 name2)
-          Rights        -> compareStringList u1.roles u2.roles
-          Providers     -> compareStringList u1.providers u2.providers
-          Tenants       -> checkOrder (N.compare u1.name u2.name)
-          PreviousLogin ->
-              case (u1.previousLogin, u2.previousLogin) of
-                  (Just _, Nothing)  -> LT
-                  (Nothing, Just _)  -> GT
-                  (Nothing, Nothing) -> EQ
-                  (Just l1, Just l2) -> checkOrder (N.compare l1 l2)
-          _ -> checkOrder (N.compare u1.login u2.login)
+                        Nothing ->
+                            ""
+
+                i1 =
+                    getFirstElement u1.roles
+
+                i2 =
+                    getFirstElement u2.roles
+            in
+            case ( String.isEmpty i1, String.isEmpty i2 ) of
+                ( False, True ) ->
+                    LT
+
+                ( True, False ) ->
+                    GT
+
+                ( True, True ) ->
+                    EQ
+
+                _ ->
+                    checkOrder (N.compare i1 i2)
+
+        checkOrder : Order -> Order
+        checkOrder o =
+            if model.ui.tableFilters.sortOrder == Asc then
+                o
+
+            else
+                case o of
+                    LT ->
+                        GT
+
+                    EQ ->
+                        EQ
+
+                    GT ->
+                        LT
+    in
+    case model.ui.tableFilters.sortBy of
+        Name ->
+            let
+                name1 =
+                    if String.isEmpty u1.name then
+                        u1.login
+
+                    else
+                        u1.name
+
+                name2 =
+                    if String.isEmpty u2.name then
+                        u2.login
+
+                    else
+                        u2.name
+            in
+            checkOrder (N.compare name1 name2)
+
+        Rights ->
+            compareStringList u1.roles u2.roles
+
+        Providers ->
+            compareStringList u1.providers u2.providers
+
+        Tenants ->
+            checkOrder (N.compare u1.name u2.name)
+
+        PreviousLogin ->
+            case ( u1.previousLogin, u2.previousLogin ) of
+                ( Just _, Nothing ) ->
+                    LT
+
+                ( Nothing, Just _ ) ->
+                    GT
+
+                ( Nothing, Nothing ) ->
+                    EQ
+
+                ( Just l1, Just l2 ) ->
+                    checkOrder (N.compare l1 l2)
+
+        _ ->
+            checkOrder (N.compare u1.login u2.login)
+
 
 buildTooltipContent : String -> String -> String
 buildTooltipContent title content =
-  let
-    headingTag = "<h4 class='tags-tooltip-title'>"
-    contentTag = "</h4><div class='tooltip-inner-content'>"
-    closeTag   = "</div>"
-  in
+    let
+        headingTag =
+            "<h4 class='tags-tooltip-title'>"
+
+        contentTag =
+            "</h4><div class='tooltip-inner-content'>"
+
+        closeTag =
+            "</div>"
+    in
     headingTag ++ title ++ contentTag ++ content ++ closeTag
