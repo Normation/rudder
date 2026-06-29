@@ -275,50 +275,57 @@ sealed trait GroupApi extends EnumEntry with EndpointSchema with SortIndex    {
 }
 object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
   // API v2
-  case object ListGroups               extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex {
+  case object ListGroups               extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "List all groups with their information"
     val (action, path) = GET / "groups"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Read :: Nil
   }
-  case object CreateGroup              extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex {
+  case object CreateGroup              extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion2 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Create a new group"
     val (action, path) = PUT / "groups"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Write :: Nil
   }
-  case object GetGroupTree             extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion6 with SortIndex {
+  case object GetGroupTree             extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion6 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "List all group categories and group in a tree format"
     val (action, path) = GET / "groups" / "tree"
     val authz:                  List[AuthorizationType] = AuthorizationType.Group.Read :: Nil
     override def dataContainer: None.type               = None
   }
-  case object GroupDetails             extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex  {
+  case object GetNodeGroupCompliance   extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance for all node groups"
+    val (action, path) = GET / "groups" / "compliance"
+    override def dataContainer: None.type               = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GroupDetails             extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
     val z: Int = implicitly[Line].value
     val description    = "Get information about the given group"
     val (action, path) = GET / "groups" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Read :: Nil
   }
-  case object DeleteGroup              extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex  {
+  case object DeleteGroup              extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
     val z: Int = implicitly[Line].value
     val description    = "Delete given group"
     val (action, path) = DELETE / "groups" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Write :: Nil
   }
-  case object UpdateGroup              extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex  {
+  case object UpdateGroup              extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
     val z: Int = implicitly[Line].value
     val description    = "Update given group"
     val (action, path) = POST / "groups" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Write :: Nil
   }
-  case object ReloadGroup              extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex  {
+  case object ReloadGroup              extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
     val z: Int = implicitly[Line].value
     val description    = "Update given dynamic group node list"
     val (action, path) = GET / "groups" / "{id}" / "reload"
     val authz: List[AuthorizationType] = AuthorizationType.Group.Write :: Nil
   }
-  case object GroupInheritedProperties extends GroupApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex {
+  case object GroupInheritedProperties extends GroupApi with GeneralApi with OneParam with StartsAtVersion11 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get all proporeties for that group, included inherited ones"
     val (action, path) = GET / "groups" / "{id}" / "inheritedProperties"
@@ -364,13 +371,6 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
     val authz:                  List[AuthorizationType] = AuthorizationType.Group.Write :: Nil
   }
   // API v24
-  case object GetNodeGroupCompliance extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion24 with SortIndex {
-    val z              = implicitly[Line].value
-    val description    = "Get compliance for all node groups"
-    val (action, path) = GET / "groups" / "compliance"
-    override def dataContainer: None.type               = None
-    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
-  }
   case object GetGlobalNodeGroupComplianceId
       extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
     val z: Int = implicitly[Line].value

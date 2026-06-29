@@ -465,8 +465,10 @@ class GroupsApi(
       }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
         given f: Boolean = params.prettify
 
-        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
-        RudderJsonResponse.successList(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x)
+        RudderJsonResponse.successList(
+          RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("groupCompliance")),
+          x
+        )
       }
     }
   }
@@ -501,8 +503,11 @@ class GroupsApi(
       }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
         given f: Boolean = params.prettify
 
-        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
-        RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x, None)
+        RudderJsonResponse.successOne(
+          RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("groupCompliance")),
+          x,
+          None
+        )
       }
     }
   }
@@ -537,8 +542,11 @@ class GroupsApi(
       }).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { x =>
         given f: Boolean = params.prettify
 
-        val a = if (version.value < 24) "nodeGroups" else "groupCompliance"
-        RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some(a)), x, None)
+        RudderJsonResponse.successOne(
+          RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("groupCompliance")),
+          x,
+          None
+        )
       }
     }
   }
@@ -570,10 +578,10 @@ class GroupsApi(
               .transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
               .rules
               .getOrElse(Seq.empty)
-            RudderJsonResponse.successOne(
+              .toList
+            RudderJsonResponse.successList(
               RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("groupCompliance")),
-              complianceJson,
-              None
+              complianceJson
             )
 
         }
