@@ -1,7 +1,9 @@
 module Editor.ViewTechniqueTabs exposing (..)
 
+import Compliance.Utils exposing (badgePolicyMode)
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
+import Editor.MethodElemUtils exposing (policyModeValue)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -44,6 +46,56 @@ techniqueResource resource =
                 [ i [ class "ion ion-clipboard" ] []
                 ]
             ]
+        ]
+
+
+techniqueDirectives : Model -> Technique -> Html Msg
+techniqueDirectives model technique =
+    let
+        directives =
+            getDirectivesBaseOnTechnique technique.id model.directives
+
+        directiveRow directive =
+            let
+                directiveLink =
+                    model.contextPath ++ "/secure/configurationManager/directiveManagement#{\"directiveId\":\"" ++ directive.id.value ++ "\"}"
+            in
+            tr []
+                [ td [] [ a [ href directiveLink ] [ text directive.displayName ] ]
+                , td [] [ text directive.shortDescription ]
+                , td [] [ badgePolicyMode model.policyMode (policyModeValue (Just directive.policyMode)) ]
+                , td []
+                    [ text
+                        (if directive.enabled then
+                            "Enabled"
+
+                         else
+                            "Disabled"
+                        )
+                    ]
+                ]
+    in
+    div [ class "tab tab-directives" ]
+        [ if List.isEmpty directives then
+            ul [ class "files-list" ]
+                [ li [ class "empty" ]
+                    [ span [] [ text "There is no directive based on this technique." ]
+                    , span [ class "warning-sign" ] [ i [ class "fa fa-info-circle" ] [] ]
+                    ]
+                ]
+
+          else
+            table [ class "table" ]
+                [ thead []
+                    [ tr []
+                        [ th [] [ text "Name" ]
+                        , th [] [ text "Description" ]
+                        , th [] [ text "Policy Mode" ]
+                        , th [] [ text "Status" ]
+                        ]
+                    ]
+                , tbody [] (List.map directiveRow directives)
+                ]
         ]
 
 
@@ -689,6 +741,9 @@ techniqueTab model technique creation ui =
                         ]
                     ]
                 ]
+
+        Directives ->
+            techniqueDirectives model technique
 
         Output ->
             case technique.output of
