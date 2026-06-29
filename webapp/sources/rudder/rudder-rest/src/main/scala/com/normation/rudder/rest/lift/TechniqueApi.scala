@@ -352,7 +352,10 @@ class TechniqueApi(
       val response = {
         val categories = techniqueRepository.getAllCategories
         def serializeTechniqueCategory(t: TechniqueCategory): Json.Obj = {
-          val subs = Chunk.fromIterable(t.subCategoryIds.flatMap(categories.get).map(serializeTechniqueCategory))
+          val subs = Chunk
+            .fromIterable(t.subCategoryIds.flatMap(categories.get))
+            .sortWith((a, b) => a.name.compareToIgnoreCase(b.name) <= 0)
+            .map(serializeTechniqueCategory)
           val name = t match {
             case t: RootTechniqueCategory => "/"
             case _ => t.name

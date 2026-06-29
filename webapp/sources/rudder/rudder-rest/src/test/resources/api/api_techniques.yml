@@ -731,6 +731,24 @@ response:
           "id" : "/",
           "subCategories" : [
             {
+              "name" : "Application management",
+              "path" : "applications",
+              "id" : "applications",
+              "subCategories" : []
+            },
+            {
+              "name" : "Distributing files",
+              "path" : "fileDistribution",
+              "id" : "fileDistribution",
+              "subCategories" : []
+            },
+            {
+              "name" : "Meta Techniques",
+              "path" : "ncf_techniques",
+              "id" : "ncf_techniques",
+              "subCategories" : []
+            },
+            {
               "name" : "System settings",
               "path" : "systemSettings",
               "id" : "systemSettings",
@@ -744,33 +762,15 @@ response:
               ]
             },
             {
-              "name" : "Application management",
-              "path" : "applications",
-              "id" : "applications",
-              "subCategories" : []
-            },
-            {
-              "name" : "Meta Techniques",
-              "path" : "ncf_techniques",
-              "id" : "ncf_techniques",
+              "name" : "System Techniques",
+              "path" : "system",
+              "id" : "system",
               "subCategories" : []
             },
             {
               "name" : "testing things",
               "path" : "test_only",
               "id" : "test_only",
-              "subCategories" : []
-            },
-            {
-              "name" : "Distributing files",
-              "path" : "fileDistribution",
-              "id" : "fileDistribution",
-              "subCategories" : []
-            },
-            {
-              "name" : "System Techniques",
-              "path" : "system",
-              "id" : "system",
               "subCategories" : []
             }
           ]
