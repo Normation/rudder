@@ -4,9 +4,12 @@ import Http exposing (Error)
 import Http.Detailed
 import Time exposing (Posix, Zone)
 
+
+
 --
 -- All our data types
 --
+
 
 type alias Activity =
     { id : Int
@@ -15,17 +18,20 @@ type alias Activity =
     , date : Posix
     }
 
+
 type alias RestEventLogFilter =
-    { draw: Int
-    , start: Int
-    , length: Int
+    { draw : Int
+    , start : Int
+    , length : Int
     }
+
 
 type alias EventLogFilterOrder =
     { column : Int
     , dir : String
     , name : String
     }
+
 
 type alias Model =
     { contextPath : String
@@ -34,8 +40,9 @@ type alias Model =
     , zone : Zone
     }
 
+
 type Msg
     = CallApi (Model -> Cmd Msg)
-    | GetActivities (Result (Http.Detailed.Error String) ( Http.Metadata, (List Activity) ))
+    | GetActivities (Result (Http.Detailed.Error String) ( Http.Metadata, List Activity ))
     | Tick Posix
     | Copy String

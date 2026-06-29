@@ -3,14 +3,16 @@ module About.JsonEncoder exposing (..)
 import About.DataTypes exposing (..)
 import Json.Encode exposing (..)
 
+
 encodeRudderInfo : RudderInfo -> Value
 encodeRudderInfo rudderInfo =
     object
         [ ( "version", string rudderInfo.version )
         , ( "buildTime", string rudderInfo.buildTime )
         , ( "instanceId", string rudderInfo.instanceId )
-        , ( "relays", (list encodeRelay) rudderInfo.relays )
+        , ( "relays", list encodeRelay rudderInfo.relays )
         ]
+
 
 encodeRelay : Relay -> Value
 encodeRelay relay =
@@ -20,6 +22,7 @@ encodeRelay relay =
         , ( "managedNodes", int relay.managedNodes )
         ]
 
+
 encodeSystemInfo : SystemInfo -> Value
 encodeSystemInfo systemInfo =
     object
@@ -27,18 +30,22 @@ encodeSystemInfo systemInfo =
         , ( "jvm", encodeJvm systemInfo.jvm )
         ]
 
+
 encodeOs : OperatingSystem -> Value
 encodeOs os =
     object
         [ ( "name", string os.name )
         , ( "version", string os.version )
         ]
+
+
 encodeJvm : JvmInfo -> Value
 encodeJvm jvm =
     object
         [ ( "version", string jvm.version )
         , ( "cmd", string jvm.cmd )
         ]
+
 
 encodeNodesInfo : NodesInfo -> Value
 encodeNodesInfo nodesInfo =
@@ -50,6 +57,7 @@ encodeNodesInfo nodesInfo =
         , ( "disabled", int nodesInfo.disabled )
         ]
 
+
 encodePluginInfo : PluginInfo -> Value
 encodePluginInfo pluginInfo =
     object
@@ -59,17 +67,22 @@ encodePluginInfo pluginInfo =
         , ( "license", encodeLicenseInfo pluginInfo.license )
         ]
 
+
 encodeLicenseInfo : Maybe LicenseInfo -> Value
 encodeLicenseInfo licenseInfo =
-  case licenseInfo of
-    Nothing -> null
-    Just li ->  object
-        [ ( "licensee", string li.licensee )
-        , ( "startDate", string li.startDate )
-        , ( "endDate", string li.endDate )
-        , ( "allowedNodesNumber", Maybe.map int li.allowedNodesNumber |> Maybe.withDefault null )
-        , ( "supportedVersions", string li.supportedVersions )
-        ]
+    case licenseInfo of
+        Nothing ->
+            null
+
+        Just li ->
+            object
+                [ ( "licensee", string li.licensee )
+                , ( "startDate", string li.startDate )
+                , ( "endDate", string li.endDate )
+                , ( "allowedNodesNumber", Maybe.map int li.allowedNodesNumber |> Maybe.withDefault null )
+                , ( "supportedVersions", string li.supportedVersions )
+                ]
+
 
 encodeAboutInfo : AboutInfo -> Value
 encodeAboutInfo aboutInfo =
@@ -77,5 +90,5 @@ encodeAboutInfo aboutInfo =
         [ ( "rudder", encodeRudderInfo aboutInfo.rudderInfo )
         , ( "system", encodeSystemInfo aboutInfo.system )
         , ( "nodes", encodeNodesInfo aboutInfo.nodes )
-        , ( "plugins", (list encodePluginInfo) aboutInfo.plugins )
+        , ( "plugins", list encodePluginInfo aboutInfo.plugins )
         ]

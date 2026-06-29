@@ -9,9 +9,9 @@ import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Task
 import Time exposing (Month(..), Posix, Zone)
 import TimeZone
-
 import Ui.Datatable exposing (defaultTableFilters)
 import Utils.DatePickerUtils exposing (userDefinedDatePickerSettings)
+
 
 
 -- PORTS / SUBSCRIPTIONS
@@ -27,6 +27,7 @@ port clearTooltips : () -> Cmd msg
 
 
 port resetTooltips : () -> Cmd msg
+
 
 
 -- for desktop copy to clipboard
@@ -71,7 +72,7 @@ subscriptions model =
         ]
 
 
-init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled:Bool, timeZone: String, tenantsPluginEnabled: Bool } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled : Bool, timeZone : String, tenantsPluginEnabled : Bool } -> ( Model, Cmd Msg )
 init flags =
     let
         initTimeZone =
@@ -81,7 +82,8 @@ init flags =
         initDatePicker =
             DatePickerInfo (Time.millisToPosix 0) (initTimeZone ()) Nothing (SingleDatePicker.init UpdatePicker)
 
-        initFilters = Filters (defaultTableFilters Name) Nothing
+        initFilters =
+            Filters (defaultTableFilters Name) Nothing
 
         initUi =
             UI initFilters NoModal False True initDatePicker False False
@@ -92,12 +94,14 @@ init flags =
         initAclPlugin =
             if flags.aclPluginEnabled && not initUi.pluginAclInit then
                 initAcl ""
+
             else
                 Cmd.none
 
         initTenantsPlugin =
             if flags.tenantsPluginEnabled && not initUi.pluginTenantsInit then
                 initTenants ""
+
             else
                 Cmd.none
 

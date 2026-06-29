@@ -9,6 +9,7 @@ import Ui.Datatable exposing (TableFilters)
 import Utils.DateUtils exposing (isBefore)
 
 
+
 --
 -- All our data types
 --
@@ -35,20 +36,24 @@ type SortBy
     | CreDate
     | LstDate
 
+
 type TenantMode
     = AllAccess -- special "*" permission giving access to objects in any/no tenants
     | NoAccess -- special "-" permission giving access to no object, whatever the tenant or its absence
     | ByTenants --give access to object in any of the listed tenants
+
 
 type TokenState
     = Undef
     | GeneratedV1
     | GeneratedV2
 
+
 type Token
     = New String
     | Hashed
     | ClearText
+
 
 type alias DatePickerInfo =
     { currentTime : Posix
@@ -57,10 +62,12 @@ type alias DatePickerInfo =
     , picker : DatePicker Msg
     }
 
+
 type alias Filters =
     { tableFilters : TableFilters SortBy
     , authType : Maybe AuthorizationType
     }
+
 
 type alias UI =
     { filters : Filters
@@ -72,6 +79,7 @@ type alias UI =
     , pluginTenantsInit : Bool
     }
 
+
 type alias Account =
     { id : String
     , name : String
@@ -80,10 +88,10 @@ type alias Account =
     , kind : String
     , status : AccountStatus
     , creationDate : Posix
-    , tokenState: TokenState
+    , tokenState : TokenState
     , token : Maybe Token
     , tokenGenerationDate : Maybe Posix
-    , expirationPolicy: ExpirationPolicy
+    , expirationPolicy : ExpirationPolicy
     , lastAuthenticationDate : Maybe Posix
     , hasNoUsage : Maybe Bool
     , acl : Maybe (List AccessControl)
@@ -216,7 +224,6 @@ setIfExpireAtDate date policy =
             NeverExpire
 
 
-
 setExpirationPolicy : ExpirationPolicy -> Account -> Account
 setExpirationPolicy policy account =
     { account
@@ -224,22 +231,29 @@ setExpirationPolicy policy account =
     }
 
 
-
 updateExpirationPolicy : (ExpirationPolicy -> ExpirationPolicy) -> Account -> Account
 updateExpirationPolicy f account =
     setExpirationPolicy (f account.expirationPolicy) account
 
 
-
 checkIfExpired : DatePickerInfo -> Account -> Bool
 checkIfExpired datePickerInfo account =
-  case account.expirationPolicy of
-    ExpireAtDate p -> isBefore { date = p, reference = datePickerInfo.currentTime }
-    NeverExpire -> False
+    case account.expirationPolicy of
+        ExpireAtDate p ->
+            isBefore { date = p, reference = datePickerInfo.currentTime }
+
+        NeverExpire ->
+            False
+
 
 checkIfTokenV1 : Account -> Bool
 checkIfTokenV1 a =
-  case a.tokenState of
-    GeneratedV1 -> True
-    GeneratedV2 -> False
-    Undef       -> False
+    case a.tokenState of
+        GeneratedV1 ->
+            True
+
+        GeneratedV2 ->
+            False
+
+        Undef ->
+            False

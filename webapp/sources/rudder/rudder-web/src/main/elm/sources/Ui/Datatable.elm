@@ -1,12 +1,16 @@
 module Ui.Datatable exposing (..)
 
 import Dict exposing (Dict)
-import Html exposing (Html, table, thead, tbody, tr, th, td, div, span, text)
+import Html exposing (Html, div, span, table, tbody, td, text, th, thead, tr)
 import Html.Attributes exposing (class, style)
+
 
 type SortOrder
     = Asc
     | Desc
+
+
+
 {--
 type SortBy
     = Hostname
@@ -40,38 +44,52 @@ type SortBy
     | Format
     | Value
 --}
+
+
 type alias TableFilters sortBy =
-  { sortBy     : sortBy
-  , sortOrder  : SortOrder
-  , filter     : String
-  , openedRows : Dict String (String, SortOrder)
-  }
+    { sortBy : sortBy
+    , sortOrder : SortOrder
+    , filter : String
+    , openedRows : Dict String ( String, SortOrder )
+    }
+
 
 defaultTableFilters : sortBy -> TableFilters sortBy
 defaultTableFilters sortBy =
     TableFilters sortBy Asc "" Dict.empty
 
+
 thClass : TableFilters sortBy -> sortBy -> String
 thClass tableFilters sortBy =
-  if sortBy == tableFilters.sortBy then
-    case  tableFilters.sortOrder of
-      Asc  -> "sorting_asc"
-      Desc -> "sorting_desc"
-  else
-    "sorting"
+    if sortBy == tableFilters.sortBy then
+        case tableFilters.sortOrder of
+            Asc ->
+                "sorting_asc"
+
+            Desc ->
+                "sorting_desc"
+
+    else
+        "sorting"
+
 
 sortTable : TableFilters sortBy -> sortBy -> TableFilters sortBy
 sortTable tableFilters sortBy =
-  let
-    order =
-      case tableFilters.sortOrder of
-        Asc -> Desc
-        Desc -> Asc
-  in
+    let
+        order =
+            case tableFilters.sortOrder of
+                Asc ->
+                    Desc
+
+                Desc ->
+                    Asc
+    in
     if sortBy == tableFilters.sortBy then
-      { tableFilters | sortOrder = order}
+        { tableFilters | sortOrder = order }
+
     else
-      { tableFilters | sortBy = sortBy, sortOrder = Asc}
+        { tableFilters | sortBy = sortBy, sortOrder = Asc }
+
 
 filterSearch : String -> List String -> Bool
 filterSearch filterString searchFields =
@@ -87,22 +105,27 @@ filterSearch filterString searchFields =
                 |> String.toLower
                 |> String.trim
     in
-        String.contains searchString stringToCheck
+    String.contains searchString stringToCheck
 
 
 
 --
 -- COMPLIANCE TABLES
 --
-type alias Category a =
-  { id          : String
-  , name        : String
-  , description : String
-  , subElems    : SubCategories a
-  , elems       : List a
-  }
 
-type SubCategories a = SubCategories (List (Category a))
+
+type alias Category a =
+    { id : String
+    , name : String
+    , description : String
+    , subElems : SubCategories a
+    , elems : List a
+    }
+
+
+type SubCategories a
+    = SubCategories (List (Category a))
+
 
 getAllElems : Category a -> List a
 getAllElems category =
@@ -138,35 +161,39 @@ emptyCategory =
     Category "" "" "" (SubCategories []) []
 
 
+
 ---
 --- LOADING ANIMATION
 ---
+
+
 generateLoadingTable : Bool -> Int -> Html msg
 generateLoadingTable withFilter nbColumns =
     let
-        nbRows = 20
+        nbRows =
+            20
+
         filter =
             if withFilter then
-                div [class "dataTables_wrapper_top table-filter"]
-                [ div [class "form-group"]
-                    [ span[][]
+                div [ class "dataTables_wrapper_top table-filter" ]
+                    [ div [ class "form-group" ]
+                        [ span [] []
+                        ]
                     ]
-                ]
+
             else
                 text ""
     in
-        div [class "table-container skeleton-loading"]
-          [ filter
-          , table [class "dataTable"]
+    div [ class "table-container skeleton-loading" ]
+        [ filter
+        , table [ class "dataTable" ]
             [ thead []
-              [ tr [class "head"]
-                ( List.repeat nbColumns (th [][ span[][] ])
-                )
-              ]
+                [ tr [ class "head" ]
+                    (List.repeat nbColumns (th [] [ span [] [] ]))
+                ]
             , tbody []
-              ( List.repeat nbRows
-                ( tr [] ( List.repeat (nbColumns) ( td[][span[][]] ) )
+                (List.repeat nbRows
+                    (tr [] (List.repeat nbColumns (td [] [ span [] [] ])))
                 )
-              )
             ]
-          ]
+        ]

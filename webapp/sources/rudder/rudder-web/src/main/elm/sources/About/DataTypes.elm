@@ -4,12 +4,14 @@ import Http exposing (Error)
 import Http.Detailed
 import Json.Encode exposing (Value)
 
+
 type alias RudderInfo =
-    { version   : String
+    { version : String
     , buildTime : String
-    , instanceId: String
-    , relays    : List Relay
+    , instanceId : String
+    , relays : List Relay
     }
+
 
 type alias Relay =
     { uuid : String
@@ -17,20 +19,24 @@ type alias Relay =
     , managedNodes : Int
     }
 
+
 type alias SystemInfo =
     { os : OperatingSystem
-    , jvm: JvmInfo
+    , jvm : JvmInfo
     }
+
 
 type alias OperatingSystem =
     { name : String
     , version : String
     }
 
+
 type alias JvmInfo =
     { version : String
     , cmd : String
     }
+
 
 type alias NodesInfo =
     { total : Int
@@ -41,12 +47,14 @@ type alias NodesInfo =
     , disabled : Int
     }
 
+
 type alias PluginInfo =
     { name : String
     , version : String
     , abiVersion : String
-    , license    : Maybe LicenseInfo
+    , license : Maybe LicenseInfo
     }
+
 
 type alias LicenseInfo =
     { licensee : String
@@ -64,11 +72,13 @@ type alias AboutInfo =
     , plugins : List PluginInfo
     }
 
+
 type alias Model =
     { contextPath : String
     , info : Maybe AboutInfo
     , ui : UI
     }
+
 
 type alias UI =
     { loading : Bool
@@ -76,8 +86,9 @@ type alias UI =
     , showPlugins : Bool
     }
 
+
 type Msg
-  = ApiGetAboutInfo (Result (Http.Detailed.Error String) ( Http.Metadata, AboutInfo ))
-  | Copy String
-  | CopyJson Value
-  | UpdateUI UI
+    = ApiGetAboutInfo (Result (Http.Detailed.Error String) ( Http.Metadata, AboutInfo ))
+    | Copy String
+    | CopyJson Value
+    | UpdateUI UI
