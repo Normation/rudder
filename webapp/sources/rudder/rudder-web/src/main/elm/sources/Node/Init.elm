@@ -1,19 +1,24 @@
 port module Node.Init exposing (..)
 
 import Dict
-import Node.DataTypes exposing (..)
 import Node.ApiCalls exposing (getScoreDetails, getScoreInfo)
-
+import Node.DataTypes exposing (..)
 import NodeCompliance.DataTypes exposing (NodeId)
 
+
+
 -- PORTS / SUBSCRIPTIONS
-port errorNotification   : String -> Cmd msg
+
+
+port errorNotification : String -> Cmd msg
+
 
 init : { id : String, contextPath : String } -> ( Model, Cmd Msg )
 init flags =
-  let
-    initModel = Model (NodeId flags.id) [] Dict.empty flags.contextPath []
-  in
+    let
+        initModel =
+            Model (NodeId flags.id) [] Dict.empty flags.contextPath []
+    in
     ( initModel
     , Cmd.batch [ getScoreDetails initModel, getScoreInfo initModel ]
     )

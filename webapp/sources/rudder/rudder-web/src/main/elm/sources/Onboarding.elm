@@ -2,145 +2,205 @@ port module Onboarding exposing (update)
 
 import Browser
 import Browser.Navigation
-import Maybe.Extra
-import Result
-import Process
-import Task
 import List
 import List.Extra
-
-import Onboarding.DataTypes exposing (..)
+import Maybe.Extra
 import Onboarding.ApiCalls exposing (..)
+import Onboarding.DataTypes exposing (..)
 import Onboarding.Init exposing (init, subscriptions)
 import Onboarding.View exposing (view)
+import Process
+import Result
+import Task
+
 
 
 --
 -- Port for interacting with external JS
 --
+
+
 port successNotification : String -> Cmd msg
-port errorNotification   : String -> Cmd msg
+
+
+port errorNotification : String -> Cmd msg
+
 
 main =
-  Browser.element
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    }
+    Browser.element
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    ChangeActiveSection index ->
-      let
-        activeSection = List.Extra.getAt index model.sections
-        newSections   = case activeSection of
-          Just s  -> case s of
-            Account state settings ->
-              let
-                newState   = if state == Default then Visited else state
-                newSection = Account newState settings
-              in
-                List.Extra.setAt index newSection model.sections
+    case msg of
+        ChangeActiveSection index ->
+            let
+                activeSection =
+                    List.Extra.getAt index model.sections
 
-         {-   Metrics state setting  ->
-              let
-                newState   = if state == Default then Visited else state
-                newSection = Metrics newState setting
-              in
-                List.Extra.setAt index newSection model.sections -}
-            _ -> model.sections
-          Nothing -> model.sections
-      in
-        ({model | activeSection = index, sections = newSections, animation = False}, Cmd.none)
+                newSections =
+                    case activeSection of
+                        Just s ->
+                            case s of
+                                Account state settings ->
+                                    let
+                                        newState =
+                                            if state == Default then
+                                                Visited
 
-    GoToLast ->
-      ({model | activeSection = (List.length model.sections) - 1}, setupDone model True)
+                                            else
+                                                state
 
-    UpdateSection index newSection ->
-      let
-        (newModel, cmd) = case (index, model.animation) of
-          (2, False) -> ({model | sections = List.Extra.setAt index newSection model.sections, animation = True}, Process.sleep 500 |> Task.perform (always (ChangeActiveSection 3)))
-          (2, True ) -> ( model, Cmd.none )
-          _          -> ({model | sections = List.Extra.setAt index newSection model.sections}, Cmd.none)
-      in
-        (newModel, cmd)
+                                        newSection =
+                                            Account newState settings
+                                    in
+                                    List.Extra.setAt index newSection model.sections
 
-    GetAccountSettings res ->
-      case res of
-        Ok s ->
-          let
-            newState    = if Maybe.Extra.isNothing s.username && Maybe.Extra.isNothing s.password then Default else Completed
-            newSection  = Account newState (AccountSettings s.username s.password)
-            newSections = List.Extra.setAt 1 newSection model.sections
-            newModel    = {model | sections = newSections}
-          in
-            (newModel, Cmd.none)
-        Err _ ->
-          (model, (errorNotification "Error while fetching account credentials"))
-{-
-    GetMetricsSettings res ->
-      case res of
-        Ok s ->
-          let
-            newState    = case s of
-              NotDefined -> Default
-              _          -> Completed
-            newSection  = Metrics newState s
-            newSections = List.Extra.setAt 2 newSection model.sections
-            newModel    = {model | sections = newSections}
-          in
-            (newModel, Cmd.none)
-        Err _ ->
-          (model, (errorNotification "Error while fetching metrics"))
--}
-    PostAccountSettings res ->
-      let
-        flag = case res of
-          Ok _    -> True
-          Err _ -> False
-      in
-        ({ model | saveAccountFlag = flag}, setupDone model True)
+                                {- Metrics state setting  ->
+                                   let
+                                     newState   = if state == Default then Visited else state
+                                     newSection = Metrics newState setting
+                                   in
+                                     List.Extra.setAt index newSection model.sections
+                                -}
+                                _ ->
+                                    model.sections
 
-{-
-    PostMetricsSettings res ->
-      let
-        flag = case res of
-          Ok _  -> True
-          Err _ -> False
-      in
-        ({ model | saveMetricsFlag = flag}, setupDone model True)
--}
+                        Nothing ->
+                            model.sections
+            in
+            ( { model | activeSection = index, sections = newSections, animation = False }, Cmd.none )
 
-    SetupDone _ ->
-        ( model, Cmd.batch [ actionsAfterSaving model, Task.perform (always Redirect) (Process.sleep 3000) ])
+        GoToLast ->
+            ( { model | activeSection = List.length model.sections - 1 }, setupDone model True )
 
-    Redirect ->
-        ( model, Browser.Navigation.load (model.contextPath ++ "/secure/index.html"))
+        UpdateSection index newSection ->
+            let
+                ( newModel, cmd ) =
+                    case ( index, model.animation ) of
+                        ( 2, False ) ->
+                            ( { model | sections = List.Extra.setAt index newSection model.sections, animation = True }, Process.sleep 500 |> Task.perform (always (ChangeActiveSection 3)) )
 
-    SaveAction ->
-      let
-        accountSettings = case List.Extra.getAt 1 model.sections of
-          Just  s -> case s of
-            Account _ settings -> settings
-            _ -> AccountSettings Nothing Nothing
-          Nothing -> AccountSettings Nothing Nothing
-        listActions =  [ postAccountSettings model accountSettings ]
-      in
-        (model, Cmd.batch listActions)
+                        ( 2, True ) ->
+                            ( model, Cmd.none )
 
-actionsAfterSaving : Model ->  Cmd Msg
+                        _ ->
+                            ( { model | sections = List.Extra.setAt index newSection model.sections }, Cmd.none )
+            in
+            ( newModel, cmd )
+
+        GetAccountSettings res ->
+            case res of
+                Ok s ->
+                    let
+                        newState =
+                            if Maybe.Extra.isNothing s.username && Maybe.Extra.isNothing s.password then
+                                Default
+
+                            else
+                                Completed
+
+                        newSection =
+                            Account newState (AccountSettings s.username s.password)
+
+                        newSections =
+                            List.Extra.setAt 1 newSection model.sections
+
+                        newModel =
+                            { model | sections = newSections }
+                    in
+                    ( newModel, Cmd.none )
+
+                Err _ ->
+                    ( model, errorNotification "Error while fetching account credentials" )
+
+        {-
+           GetMetricsSettings res ->
+             case res of
+               Ok s ->
+                 let
+                   newState    = case s of
+                     NotDefined -> Default
+                     _          -> Completed
+                   newSection  = Metrics newState s
+                   newSections = List.Extra.setAt 2 newSection model.sections
+                   newModel    = {model | sections = newSections}
+                 in
+                   (newModel, Cmd.none)
+               Err _ ->
+                 (model, (errorNotification "Error while fetching metrics"))
+        -}
+        PostAccountSettings res ->
+            let
+                flag =
+                    case res of
+                        Ok _ ->
+                            True
+
+                        Err _ ->
+                            False
+            in
+            ( { model | saveAccountFlag = flag }, setupDone model True )
+
+        {-
+           PostMetricsSettings res ->
+             let
+               flag = case res of
+                 Ok _  -> True
+                 Err _ -> False
+             in
+               ({ model | saveMetricsFlag = flag}, setupDone model True)
+        -}
+        SetupDone _ ->
+            ( model, Cmd.batch [ actionsAfterSaving model, Task.perform (always Redirect) (Process.sleep 3000) ] )
+
+        Redirect ->
+            ( model, Browser.Navigation.load (model.contextPath ++ "/secure/index.html") )
+
+        SaveAction ->
+            let
+                accountSettings =
+                    case List.Extra.getAt 1 model.sections of
+                        Just s ->
+                            case s of
+                                Account _ settings ->
+                                    settings
+
+                                _ ->
+                                    AccountSettings Nothing Nothing
+
+                        Nothing ->
+                            AccountSettings Nothing Nothing
+
+                listActions =
+                    [ postAccountSettings model accountSettings ]
+            in
+            ( model, Cmd.batch listActions )
+
+
+actionsAfterSaving : Model -> Cmd Msg
 actionsAfterSaving model =
-  if model.saveAccountFlag == True && model.saveMetricsFlag == True then
-    -- SAVING SUCCESS
-    successNotification "Your changes have been saved. Redirecting to dashboard in a few seconds ..."
-  else
-    -- ERROR WHILE SAVING
-    let
-      errMessage = case (model.saveAccountFlag, model.saveMetricsFlag) of
-        (False, True) -> "Error while saving account credentials"
-        (True, False) -> "Error while saving metrics"
-        _             -> "Error while saving your changes"
-    in
-      errorNotification errMessage
+    if model.saveAccountFlag == True && model.saveMetricsFlag == True then
+        -- SAVING SUCCESS
+        successNotification "Your changes have been saved. Redirecting to dashboard in a few seconds ..."
+
+    else
+        -- ERROR WHILE SAVING
+        let
+            errMessage =
+                case ( model.saveAccountFlag, model.saveMetricsFlag ) of
+                    ( False, True ) ->
+                        "Error while saving account credentials"
+
+                    ( True, False ) ->
+                        "Error while saving metrics"
+
+                    _ ->
+                        "Error while saving your changes"
+        in
+        errorNotification errMessage

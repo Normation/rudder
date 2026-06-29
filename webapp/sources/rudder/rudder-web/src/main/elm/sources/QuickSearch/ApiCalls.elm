@@ -1,35 +1,37 @@
 module QuickSearch.ApiCalls exposing (getSearchResult)
 
-
-import Http exposing (request, header, emptyBody)
+import Http exposing (emptyBody, header, request)
 import Http.Detailed as Detailed exposing (Error)
 import Json.Decode exposing (at, list)
-import QuickSearch.Model exposing (..)
 import QuickSearch.JsonDecoder exposing (decoderResult)
+import QuickSearch.Model exposing (..)
 import Url.Builder exposing (QueryParameter, string)
 
 
-
-getUrl: Model -> String -> String
+getUrl : Model -> String -> String
 getUrl m search =
-  let param = string "value" search
-  -- to filter request on filter, but i don't think we want it, just a front  side filter
-  -- ++ (List.map (kindName >> (++)" is:") m.selectedFilter |> String.join "" ))
-  in
-  Url.Builder.relative (m.contextPath :: "secure" :: "api"  :: "quicksearch" :: []) [ param ]
+    let
+        param =
+            string "value" search
+
+        -- to filter request on filter, but i don't think we want it, just a front  side filter
+        -- ++ (List.map (kindName >> (++)" is:") m.selectedFilter |> String.join "" ))
+    in
+    Url.Builder.relative (m.contextPath :: "secure" :: "api" :: "quicksearch" :: []) [ param ]
+
 
 getSearchResult : Model -> String -> (Result (Error String) ( Http.Metadata, List SearchResult ) -> msg) -> Cmd msg
 getSearchResult model search toMsg =
-  let
-    req =
-      request
-        { method  = "GET"
-        , headers = [header "X-Requested-With" "XMLHttpRequest"]
-        , url     = getUrl model search
-        , body    = emptyBody
-        , expect  = Detailed.expectJson toMsg (at ["data"] (list decoderResult))
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-  in
+    let
+        req =
+            request
+                { method = "GET"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model search
+                , body = emptyBody
+                , expect = Detailed.expectJson toMsg (at [ "data" ] (list decoderResult))
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
     req

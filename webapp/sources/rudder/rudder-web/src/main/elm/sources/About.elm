@@ -1,54 +1,68 @@
 port module About exposing (update)
 
-import Browser
-import Result
-import Json.Decode exposing (Value)
-import Http.Detailed as Detailed
+-- fakeData
 
 import About.DataTypes exposing (..)
-import About.Init exposing (init, subscriptions) -- fakeData
+import About.Init exposing (init, subscriptions)
 import About.View exposing (view)
-import List exposing (drop, head)
-import String exposing (join, split)
+import Browser
+import Http.Detailed as Detailed
 import Json.Decode exposing (..)
+import List exposing (drop, head)
+import Result
+import String exposing (join, split)
+
+
 
 --
 -- Port for interacting with external JS
 --
 
+
 port errorNotification : String -> Cmd msg
+
+
 port copy : String -> Cmd msg
+
+
 port copyJson : Value -> Cmd msg
 
+
 main =
-  Browser.element
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    }
+    Browser.element
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ApiGetAboutInfo res ->
             let
-                ui = model.ui
-                newModel = {model | ui = {ui | loading = False}}
+                ui =
+                    model.ui
+
+                newModel =
+                    { model | ui = { ui | loading = False } }
             in
-                case res of
-                    Ok (_, info) ->
-                        ({newModel | info = Just info}, Cmd.none)
-                    Err err ->
-                      processApiError "Error while fetching information" err model
+            case res of
+                Ok ( _, info ) ->
+                    ( { newModel | info = Just info }, Cmd.none )
+
+                Err err ->
+                    processApiError "Error while fetching information" err model
+
         Copy s ->
             ( model, copy s )
 
         CopyJson value ->
-            (model, copyJson value)
+            ( model, copyJson value )
 
         UpdateUI newUI ->
-            ({model | ui = newUI}, Cmd.none)
+            ( { model | ui = newUI }, Cmd.none )
 
 
 processApiError : String -> Detailed.Error String -> Model -> ( Model, Cmd Msg )
@@ -78,7 +92,7 @@ processApiError msg err model =
                 Detailed.BadBody metadata body m ->
                     m
     in
-    ( model , errorNotification (msg ++ ", details: \n" ++ message) )
+    ( model, errorNotification (msg ++ ", details: \n" ++ message) )
 
 
 decodeErrorDetails : String -> ( String, String )

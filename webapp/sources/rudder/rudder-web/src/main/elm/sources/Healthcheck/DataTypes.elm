@@ -7,22 +7,26 @@ type TabMenu
     = General
     | Details
 
+
 type SeverityLevel
     = Critical
     | Warning
     | CheckPassed
 
+
 type alias Check =
-    { name  : String
-    , msg   : String
+    { name : String
+    , msg : String
     , level : SeverityLevel
     }
+
 
 type alias Model =
     { contextPath : String
     , healthcheck : List Check
-    , tab         : TabMenu
+    , tab : TabMenu
     }
+
 
 type Msg
     = GetHealthCheckResult (Result Error (List Check))

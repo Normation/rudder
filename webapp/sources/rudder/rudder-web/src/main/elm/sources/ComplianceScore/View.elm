@@ -6,6 +6,6 @@ import Compliance.Utils exposing (defaultComplianceFilter)
 import Html.String exposing (..)
 
 
-buildScoreDetails :  ComplianceDetails  -> Html msg
+buildScoreDetails : ComplianceDetails -> Html msg
 buildScoreDetails details =
-   buildComplianceBar defaultComplianceFilter details
+    buildComplianceBar defaultComplianceFilter details
