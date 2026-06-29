@@ -36,7 +36,11 @@ ThisBuild / publishTo := {
   else                  Some("releases"  at nexus + "releases")
 }
 
-// scalac options — copied verbatim from the Maven scala-maven-plugin <args>.
+// scalac options — copied from the Maven scala-maven-plugin <args>. NOTE: the Maven `-Ysemanticdb`
+// is NOT here — it's replaced by `semanticdbEnabled := true` below (sbt-managed semanticdb), which
+// passes `-Xsemanticdb -semanticdb-target:<managed dir>`. The raw flag wrote .semanticdb into the
+// compile output, which (a) crashed cold compiles under sbt 2.0's cached output tree
+// (NoSuchFileException in ExtractSemanticDB) and (b) leaked semanticdb into the published jars/war.
 ThisBuild / scalacOptions ++= Seq(
   "-release:17",
   "-deprecation",
@@ -53,9 +57,16 @@ ThisBuild / scalacOptions ++= Seq(
   "-Wunused:locals",
   "-Wunused:implicits",
   "-Wunused:privates",
-  "-Ycheck-all-patmat",
-  "-Ysemanticdb"
+  "-Ycheck-all-patmat"
 )
+
+// sbt-managed SemanticDB (for scalafix) — writes to a managed target dir, not the class output.
+ThisBuild / semanticdbEnabled := true
+
+// commons-logging is pulled transitively (spring-security-* -> spring-core); Rudder replaces it with
+// jcl-over-slf4j, so exclude it everywhere (Maven excluded it on the spring deps). Removes it from
+// every classpath incl. the rudder-web war's WEB-INF/lib.
+ThisBuild / excludeDependencies += ExclusionRule("commons-logging", "commons-logging")
 
 // javac options — Maven's maven-compiler-plugin used <release>17</release>. Without this,
 // javac compiles against the host JDK API (21+), where java.lang.StringTemplate exists and
@@ -295,6 +306,7 @@ lazy val rudderRest = (project in file("rudder/rudder-rest"))
     name         := "rudder-rest",
     libraryDependencies ++= Seq(
       springSecurity("spring-security-core"),
+      "org.slf4j"          % "jcl-over-slf4j" % V.slf4j, // commons-logging API backed by slf4j (replaces commons-logging)
       "org.apache.commons" % "commons-fileupload2-jakarta-servlet6" % V.commonsFileupload,
       "jakarta.servlet"    % "jakarta.servlet-api" % V.servlet % Provided,
       "com.codacy"        %% "scalaj-http" % V.scalaj,
@@ -333,12 +345,15 @@ lazy val rudderWeb = (project in file("rudder/rudder-web"))
     },
     Runtime / warLib := {
       val conv = fileConverter.value
-      // external deps come back from the Runtime classpath as jars; internal modules come back as
-      // class DIRECTORIES (exportJars:=false) -> keep only the jars here, and add the internal
-      // modules' packageBin jars explicitly (always a jar regardless of exportJars). `.toMap` keyed
-      // by the WEB-INF/lib path dedups if a module appears both ways.
-      val external = (Runtime / dependencyClasspathAsJars).value
-        .map(a => conv.toPath(a.data).toFile).filter(_.getName.endsWith(".jar"))
+      def file(r: xsbti.HashedVirtualFileRef) = conv.toPath(r).toFile
+      // External managed deps only (no project jars, so rudder-web's own `-classes` jar is excluded;
+      // it's already exploded in WEB-INF/classes). sbt 2.0 + coursier wrongly resolve the `% Test`
+      // libs onto the compile/runtime classpath here (every config is equally polluted, so per-config
+      // filtering can't isolate them), so drop them by name — see Dependencies.isTestArtifact.
+      val external = (Runtime / managedClasspath).value
+        .map(a => file(a.data))
+        .filterNot(j => Dependencies.isTestArtifact(j.getName))
+      // internal modules as jars (exportJars:=false -> they aren't on managedClasspath as jars)
       val internal = Seq(
         (utils / Compile / packageBin).value,
         (scalaLdap / Compile / packageBin).value,
@@ -349,7 +364,7 @@ lazy val rudderWeb = (project in file("rudder/rudder-web"))
         (rudderTemplates / Compile / packageBin).value,
         (rudderCore / Compile / packageBin).value,
         (rudderRest / Compile / packageBin).value
-      ).map(ref => conv.toPath(ref).toFile)
+      ).map(file)
       (external ++ internal).map(j => s"WEB-INF/lib/${j.getName}" -> j).toMap
     },
     // Maven also attached the compiled classes as a `-classes` jar (attachClasses=true) so plugins
@@ -361,6 +376,7 @@ lazy val rudderWeb = (project in file("rudder/rudder-web"))
   .settings(
     libraryDependencies ++= Seq(
       "org.reflections"    % "reflections" % V.reflections,
+      "org.slf4j"          % "jcl-over-slf4j" % V.slf4j, // commons-logging API backed by slf4j (replaces commons-logging)
       "jakarta.servlet"    % "jakarta.servlet-api" % V.servlet % Provided,
       "commons-io"         % "commons-io"  % V.commonsIo,
       spring("spring-expression"),
