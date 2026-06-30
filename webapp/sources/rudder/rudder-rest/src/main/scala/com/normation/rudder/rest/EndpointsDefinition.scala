@@ -296,7 +296,7 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
   }
   case object GetNodeGroupCompliance   extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion24 with SortIndex {
     val z: Int = implicitly[Line].value
-    val description    = "Get compliance for all node groups"
+    val description    = "Get compliance for a given list of node groups"
     val (action, path) = GET / "groups" / "compliance"
     override def dataContainer: None.type               = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil

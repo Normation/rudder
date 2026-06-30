@@ -307,6 +307,8 @@ paths:
     $ref: paths/groups/categories.yml
   "/groups/tree":
     $ref: paths/groups/tree.yml
+  "/groups/compliance":
+    $ref: paths/groups/compliance.yml
   "/groups/{targetOrNodeGroupId}/compliance/global":
     $ref: paths/groups/global-compliance-id.yml
   "/groups/{targetOrNodeGroupId}/compliance/targeted":
