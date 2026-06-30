@@ -76,16 +76,16 @@ update msg model =
                 Ok _ ->
                     case model.redirectUrl of
                         Just url ->
-                            ( { model | isLoading = False }, pushUrl url )
+                            ( model, pushUrl url )
 
                         Nothing ->
-                            ( { model | isLoading = False }, pushUrl "/secure/index.html" )
+                            ( model, pushUrl "/secure/index.html" )
 
-                Err (Detailed.BadStatus metadata body) ->
+                Err (Detailed.BadStatus metadata _) ->
                     case metadata.statusCode of
                         -- Handled verification error case on server
                         403 ->
-                            ( { model | isLoading = False, errorMsg = Just body }, Cmd.none )
+                            ( { model | isLoading = False, errorMsg = Just "Could not verify user OTP, pleasy retry with a valid code, generate a new OTP, or ask admin to reset your OTP if you lost it" }, Cmd.none )
 
                         code ->
                             ( { model | isLoading = False, errorMsg = Just <| "Error when verifying OTP code: unexpected server response " ++ String.fromInt code }, Cmd.none )

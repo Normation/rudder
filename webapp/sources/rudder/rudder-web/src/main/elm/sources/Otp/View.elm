@@ -1,8 +1,10 @@
 module Otp.View exposing (..)
 
+import Browser.Events exposing (onKeyDown)
 import Html exposing (..)
-import Html.Attributes exposing (class, disabled, placeholder, type_, value)
+import Html.Attributes exposing (class, disabled, placeholder, size, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onEnter)
 import Maybe.Extra
 import Otp.DataTypes exposing (..)
 import QRCode
@@ -17,7 +19,7 @@ import Svg.Attributes as SvgA
 view : Model -> Html Msg
 view model =
     div [ class "otp-container" ]
-        [ h1 [ class "fs-3" ] [ text "Two-Factor Authentication" ]
+        [ h1 [ class "fs-3" ] [ text "Two-factor authentication" ]
         , hr [] []
         , enrollmentBanner model
         , actions model
@@ -75,7 +77,7 @@ actions model =
         , case model.generatedSecret of
             Just secret ->
                 div [ class "mt-3 d-flex flex-column align-items-center" ]
-                    [ h4 [] [ text "Scan QR Code with your authenticator app" ]
+                    [ h2 [ class "fs-5" ] [ text "Scan QR Code with your authenticator app" ]
                     , qrCodeView secret.uri
                     , div [ class "mt-2 d-flex flex-column align-items-center" ]
                         [ label [] [ text "Or enter this key manually:" ]
@@ -89,17 +91,19 @@ actions model =
             text ""
 
           else
-            div [ class "mt-3 w-50 d-flex flex-column align-items-center" ]
+            div [ class "mt-3 d-flex flex-column align-items-center" ]
                 [ input
                     [ class "form-control mb-2"
                     , type_ "text"
                     , placeholder "Enter 6-digit code"
                     , value model.code
+                    , size 12
                     , onInput SetCode
+                    , onEnter (VerifyOtp model.code)
                     ]
                     []
                 , button
-                    [ class "my-3 btn btn-primary"
+                    [ class "my-3 px-4 btn btn-success"
                     , disabled (model.code == "" || model.isLoading)
                     , onClick (VerifyOtp model.code)
                     ]

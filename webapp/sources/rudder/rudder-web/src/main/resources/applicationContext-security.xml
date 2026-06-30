@@ -126,7 +126,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <form-login
             login-page="/index.html"
             login-processing-url="/j_spring_security_check"
-	    authentication-success-handler-ref="rudderWebAuthenticationSuccessHandler"
+            authentication-success-handler-ref="rudderWebAuthenticationSuccessHandler"
             authentication-failure-handler-ref="rudderWebAuthenticationFailureHandler"
         />
 <!--        <remember-me />-->
