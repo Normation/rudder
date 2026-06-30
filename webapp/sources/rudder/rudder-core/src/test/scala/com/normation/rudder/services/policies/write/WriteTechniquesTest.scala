@@ -59,6 +59,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.schedule.JsonDirectiveSchedule
@@ -162,7 +163,8 @@ class TestSystemData {
       "/we-don-t-want-hooks-here",
       hookIgnore,
       StandardCharsets.UTF_8,
-      None
+      None,
+      WithoutSudo
     )
 
     (rootGeneratedPromisesDir, promiseWriter)

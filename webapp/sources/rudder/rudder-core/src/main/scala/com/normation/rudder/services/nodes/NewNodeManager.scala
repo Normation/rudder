@@ -60,6 +60,7 @@ import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.score.ScoreServiceManager
@@ -138,7 +139,8 @@ trait NewNodeManager {
 class PostNodeAcceptanceHookScripts(
     HOOKS_D:               String,
     HOOKS_IGNORE_SUFFIXES: List[String],
-    nodeFactRepository:    NodeFactRepository
+    nodeFactRepository:    NodeFactRepository,
+    sudoRun:               SudoRun
 ) extends NewNodePostAcceptHooks {
   override def name: String = "new-node-post-accept-hooks"
 
@@ -164,7 +166,7 @@ class PostNodeAcceptanceHookScripts(
                         )
       postHooks      <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       postHooksTime0 <- currentTimeMillis
-      runPostHook    <- RunHooks.asyncRun(name, postHooks, hookEnv, systemEnv, 1.minutes)
+      runPostHook    <- RunHooks.asyncRun(name, postHooks, hookEnv, systemEnv, 1.minutes, sudoRun = sudoRun)
       postHooksTime1 <- currentTimeMillis
       timePostHooks   = (postHooksTime1 - postHooksTime0)
       _              <- PureHooksLogger.For(name).trace(s"node-post-acceptance scripts hooks ran in $timePostHooks ms")
@@ -185,14 +187,15 @@ class UpdateScorePostAcceptance(scoreServiceManager: ScoreServiceManager, nodeFa
 class NewNodeManagerHooksImpl(
     nodeFactRepository:    NodeFactRepository,
     HOOKS_D:               String,
-    HOOKS_IGNORE_SUFFIXES: List[String]
+    HOOKS_IGNORE_SUFFIXES: List[String],
+    sudoRun:               SudoRun
 ) extends NewNodeManagerHooks {
 
   val codeHooks: Ref[Chunk[NewNodePostAcceptHooks]] = Ref
     .make(
       Chunk[NewNodePostAcceptHooks](
         // by default, add the script hooks
-        new PostNodeAcceptanceHookScripts(HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository)
+        new PostNodeAcceptanceHookScripts(HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository, sudoRun)
       )
     )
     .runNow

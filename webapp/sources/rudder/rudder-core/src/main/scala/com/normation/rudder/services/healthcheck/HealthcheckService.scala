@@ -7,6 +7,7 @@ import com.normation.rudder.domain.logger.HealthcheckLoggerPure as logger
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
@@ -143,7 +144,7 @@ final class CheckFileDescriptorLimit(val nodeFactRepository: NodeFactRepository)
   def run:  IOResult[HealthcheckResult] = {
     // Check the soft limit.
     // That can be raise or lower by any user but cannot exceed the hard limit
-    val cmd = Cmd("/usr/bin/prlimit", "-n" :: "-o" :: "SOFT" :: "--noheadings" :: Nil, Map.empty, None)
+    val cmd = Cmd("/usr/bin/prlimit", "-n" :: "-o" :: "SOFT" :: "--noheadings" :: Nil, Map.empty, None, WithoutSudo)
     for {
       fdLimitCmd <- RunNuCommand.run(cmd)
       res        <- fdLimitCmd.await

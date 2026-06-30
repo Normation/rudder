@@ -40,6 +40,7 @@ package com.normation.rudder.campaigns
 import better.files.File
 import com.normation.errors.*
 import com.normation.rudder.hooks.*
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.utils.FileUtils
 import com.normation.zio.*
 import scala.jdk.CollectionConverters.*
@@ -138,7 +139,8 @@ object FsCampaignHooksRepository {
 
 class FsCampaignHooksService(
     HOOKS_D:               String,
-    HOOKS_IGNORE_SUFFIXES: List[String]
+    HOOKS_IGNORE_SUFFIXES: List[String],
+    sudoRun:               SudoRun
 ) extends CampaignHooksService {
 
   override def runPreHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
@@ -196,7 +198,8 @@ class FsCampaignHooksService(
                                          .optAdd("CAMPAIGN_NEXT_STATE", nextState.map(_.entryName)),
                                        systemEnv,
                                        HookExecutionHistory.Keep,
-                                       1.minutes // warn if a hook took more than a minute
+                                       1.minutes, // warn if a hook took more than a minute
+                                       sudoRun = sudoRun
                                      )
                        timeHooks1 <- currentTimeMillis
                        _          <-

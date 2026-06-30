@@ -62,6 +62,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.NodeConfiguration
@@ -253,7 +254,8 @@ class PolicyWriterServiceImpl(
     HOOKS_D:                    String,
     HOOKS_IGNORE_SUFFIXES:      List[String],
     implicit val charset:       Charset,
-    groupOwner:                 Option[String]
+    groupOwner:                 Option[String],
+    sudoRun:                    SudoRun
 ) extends PolicyWriterService {
   import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.*
 
@@ -661,7 +663,8 @@ class PolicyWriterServiceImpl(
                                             hookGlobalWarnTimeout, // warn if all hooks took more than a minute
 
                                             hookUnitWarnTimeout,
-                                            hookUnitKillTimeout
+                                            hookUnitKillTimeout,
+                                            sudoRun
                                           )
                             timeHooks1 <- currentTimeMillis
                             _          <- timingLogger.hooks.trace(
@@ -707,7 +710,8 @@ class PolicyWriterServiceImpl(
                                               hookGlobalWarnTimeout, // warn if a hook took more than a minute
 
                                               hookUnitWarnTimeout,
-                                              hookUnitKillTimeout
+                                              hookUnitKillTimeout,
+                                              sudoRun
                                             )
                               timeHooks1 <- currentTimeMillis
                               _          <- timingLogger.hooks.trace(

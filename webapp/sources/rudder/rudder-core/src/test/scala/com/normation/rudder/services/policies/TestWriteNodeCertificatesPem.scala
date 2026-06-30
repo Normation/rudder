@@ -44,6 +44,7 @@ import ch.qos.logback.core.OutputStreamAppender
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
 import java.io.ByteArrayOutputStream
@@ -141,7 +142,7 @@ class TestWriteNodeCertificatesPem extends Specification {
 
   "When nodes have certificates, they" should {
     "certificate are written to file only for nodes with certificate" in {
-      val writer = new WriteNodeCertificatesPemImpl(Some(s"/usr/bin/touch ${dest.pathAsString}"))
+      val writer = new WriteNodeCertificatesPemImpl(Some(s"/usr/bin/touch ${dest.pathAsString}"), WithoutSudo)
       val res    = ZioRuntime.runNow(writer.writeCertificates(dest, nodes).either)
 
       (res must beRight) and
@@ -151,7 +152,7 @@ class TestWriteNodeCertificatesPem extends Specification {
 
   "when there is an error in async, we shoud get a log" in {
 
-    val writer = new WriteNodeCertificatesPemImpl(Some("/non/existing/command"))
+    val writer = new WriteNodeCertificatesPemImpl(Some("/non/existing/command"), WithoutSudo)
 
     import scala.jdk.CollectionConverters.*
 
