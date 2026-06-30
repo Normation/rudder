@@ -58,7 +58,7 @@ import zio.syntax.*
 @RunWith(classOf[JUnitRunner])
 class DirectiveScheduleEventsTest extends Specification {
 
-  val utc: Option[ScheduleTimeZone] = Some(ScheduleTimeZone("UTC"))
+  val utc: Option[ScheduleTimeZone] = Some(ScheduleTimeZone.UTC)
 
   // all dates in june 2026, UTC. The daily schedule is between 4:00 and 6:00 UTC.
   def date(day: Int, hour: Int, minute: Int = 0): Instant = {

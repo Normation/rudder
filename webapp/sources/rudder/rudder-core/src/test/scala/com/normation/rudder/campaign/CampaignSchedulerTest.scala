@@ -40,15 +40,16 @@ package com.normation.rudder.campaign
 import com.normation.errors.*
 import com.normation.rudder.campaigns.*
 import com.normation.utils.DateFormaterService.toJodaDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
-
-import java.time.{OffsetDateTime, ZoneId, ZoneOffset}
-import java.time.temporal.ChronoUnit
 
 @RunWith(classOf[JUnitRunner])
 class CampaignSchedulerTest extends Specification {
@@ -62,7 +63,7 @@ class CampaignSchedulerTest extends Specification {
     "Give a correct date in january for first occurrence" in {
       val s = CampaignDateScheduler
         .nextCampaignDate(
-          MonthlySchedule(First, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone("UTC"))),
+          MonthlySchedule(First, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone.UTC)),
           now.withYear(2022).withMonth(12).withDayOfMonth(7).toJodaDateTime
         )
 
@@ -90,7 +91,7 @@ class CampaignSchedulerTest extends Specification {
     "Give a correct date in january for Second occurrence" in {
       val s = CampaignDateScheduler
         .nextCampaignDate(
-          MonthlySchedule(Second, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone("UTC"))),
+          MonthlySchedule(Second, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone.UTC)),
           now.withYear(2022).withMonth(12).withDayOfMonth(14).toJodaDateTime
         )
 
@@ -117,7 +118,7 @@ class CampaignSchedulerTest extends Specification {
     "Give a correct date in january for third occurrence" in {
       val s = CampaignDateScheduler
         .nextCampaignDate(
-          MonthlySchedule(Third, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone("UTC"))),
+          MonthlySchedule(Third, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone.UTC)),
           now.withYear(2022).withMonth(12).withDayOfMonth(21).toJodaDateTime
         )
 
@@ -145,7 +146,7 @@ class CampaignSchedulerTest extends Specification {
     "Give a correct date in December for last occurrence" in {
       val s = CampaignDateScheduler
         .nextCampaignDate(
-          MonthlySchedule(Last, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone("UTC"))),
+          MonthlySchedule(Last, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone.UTC)),
           now.withYear(2022).withMonth(12).withDayOfMonth(7).toJodaDateTime
         )
 
@@ -173,7 +174,7 @@ class CampaignSchedulerTest extends Specification {
     "Give a correct date in December for second last occurrence" in {
       val s = CampaignDateScheduler
         .nextCampaignDate(
-          MonthlySchedule(SecondLast, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone("UTC"))),
+          MonthlySchedule(SecondLast, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone.UTC)),
           now.withYear(2022).withMonth(12).withDayOfMonth(7).toJodaDateTime
         )
 
@@ -317,7 +318,7 @@ class CampaignSchedulerTest extends Specification {
         val start            = Time(19, 30)
         val end              = Time(23, 30)
         // 19h30 at +06:00 is 13h30 UTC so it's scheduled on same day
-        val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getId)))
+        val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone)))
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
@@ -341,7 +342,7 @@ class CampaignSchedulerTest extends Specification {
         val scheduleTimeZone = ZoneOffset.ofHours(6)
         val start            = Time(10, 30)
         val end              = Time(14, 30)
-        val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getId)))
+        val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone)))
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
@@ -365,7 +366,7 @@ class CampaignSchedulerTest extends Specification {
         val scheduleTimeZone = ZoneOffset.ofHours(-6)
         val start            = Time(16, 30)
         val end              = Time(20, 30)
-        val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getId)))
+        val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone)))
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
@@ -451,7 +452,7 @@ class CampaignSchedulerTest extends Specification {
         val start            = DayTime(Friday, 16, 0)
         val end              = DayTime(Saturday, 16, 0)
         // 16h00 at +03:00 is 13h00 UTC so it's scheduled on same week (in fact on same day)
-        val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getId)))
+        val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone)))
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
@@ -473,7 +474,7 @@ class CampaignSchedulerTest extends Specification {
         val scheduleTimeZone = ZoneOffset.ofHours(6)
         val start            = DayTime(Friday, 16, 0)
         val end              = DayTime(Saturday, 16, 0)
-        val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getId)))
+        val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone)))
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
@@ -497,7 +498,7 @@ class CampaignSchedulerTest extends Specification {
         val scheduleTimeZone = ZoneOffset.ofHours(-6)
         val start            = DayTime(Sunday, 20, 0)
         val end              = DayTime(Monday, 20, 0)
-        val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getId)))
+        val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone)))
 
         val res = CampaignDateScheduler.nextCampaignDate(
           schedule,

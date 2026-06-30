@@ -59,7 +59,7 @@ object CampaignDateScheduler {
 
   extension (date: OffsetDateTime) {
     def adjustScheduleTimeZone(optTimeZone: Option[ScheduleTimeZone])(implicit defaultTz: ZoneId): ZonedDateTime = {
-      optTimeZone.flatMap(_.toZoneId) match {
+      optTimeZone.map(_.id) match {
         // no schedule time zone (or invalid one) means the default one should be used
         case None             => date.atZoneSameInstant(defaultTz)
         case Some(scheduleTz) => date.atZoneSameInstant(scheduleTz)

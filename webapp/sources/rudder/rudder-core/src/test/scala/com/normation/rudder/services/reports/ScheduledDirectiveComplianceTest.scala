@@ -100,7 +100,7 @@ class ScheduledDirectiveComplianceTest extends Specification {
       maxDate: Option[Instant] = Some(date(30, 0)),
       os:      List[DirectiveScheduleOneShot] = Nil
   ): JsonDirectiveSchedule = {
-    JsonDirectiveSchedule(campaignId, enabled, maxDate, Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone("UTC"))), os)
+    JsonDirectiveSchedule(campaignId, enabled, maxDate, Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone.UTC)), os)
   }
 
   def expectedReports(
