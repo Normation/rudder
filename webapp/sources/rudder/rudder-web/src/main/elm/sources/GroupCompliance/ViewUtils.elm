@@ -487,7 +487,8 @@ filtersView model =
                     ExportGroupComplianceByRule model.groupId complianceScope
 
                 NodesView ->
-                    Debug.todo "global group compliance by node"
+                    -- TODO global group compliance by node
+                    \_ -> Ignore
     in
     div [ class "table-header extra-filters" ]
         [ div [ class "d-inline-flex align-items-baseline pb-3 w-25" ]
