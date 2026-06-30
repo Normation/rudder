@@ -334,6 +334,7 @@ type alias Model =
     , isMethodHovered : Maybe MethodId
     , loadingTechniques : Bool
     , recClone : List Msg
+    , policyMode : String
     }
 
 
@@ -479,6 +480,7 @@ type Tab
     = General
     | Parameters
     | Resources
+    | Directives
     | Output
     | None
 
@@ -505,6 +507,7 @@ type Msg
     | SelectDraft DraftId
     | GetTechniques (Result (Http.Detailed.Error String) ( Http.Metadata, List (Either TechniqueError Technique) ))
     | GetDirectives (Result (Http.Detailed.Error String) ( Http.Metadata, List Directive ))
+    | GetPolicyMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
     | GetYaml (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
     | SaveTechnique (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
     | UpdateTechnique Technique

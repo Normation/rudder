@@ -269,6 +269,23 @@ getDirectives model =
     req
 
 
+getPolicyMode : Model -> Cmd Msg
+getPolicyMode model =
+    let
+        req =
+            request
+                { method = "GET"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model "settings/global_policy_mode"
+                , body = emptyBody
+                , expect = Detailed.expectJson GetPolicyMode decodeGetPolicyMode
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req
+
+
 ignoreMetadata : Result (Detailed.Error String) ( Http.Metadata, a ) -> Result (Detailed.Error String) a
 ignoreMetadata =
     Result.map Tuple.second

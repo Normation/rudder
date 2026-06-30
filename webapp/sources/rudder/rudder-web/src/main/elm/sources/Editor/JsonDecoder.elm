@@ -135,6 +135,11 @@ decodePolicyMode =
         string
 
 
+decodeGetPolicyMode : Decoder String
+decodeGetPolicyMode =
+    at [ "data", "settings", "global_policy_mode" ] string
+
+
 decodeBlock : Decoder MethodBlock
 decodeBlock =
     succeed MethodBlock
