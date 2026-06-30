@@ -3759,7 +3759,7 @@ response:
       "action" : "getGlobalNodeGroupComplianceByRuleId",
       "result" : "success",
       "data" : {
-        "groupCompliance" : [
+        "rules" : [
           {
             "id" : "r1",
             "name" : "R1",
@@ -3924,7 +3924,7 @@ response:
       "action" : "getTargetedNodeGroupComplianceByRuleId",
       "result" : "success",
       "data" : {
-        "groupCompliance" : [
+        "rules" : [
           {
             "id" : "r3",
             "name" : "R3",

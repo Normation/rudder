@@ -580,7 +580,7 @@ class GroupsApi(
               .getOrElse(Seq.empty)
               .toList
             RudderJsonResponse.successList(
-              RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("groupCompliance")),
+              RudderJsonResponse.toResponseSchema(schema).copy(dataContainer = Some("rules")),
               complianceJson
             )
 
