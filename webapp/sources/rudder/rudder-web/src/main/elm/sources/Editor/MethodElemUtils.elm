@@ -193,6 +193,22 @@ checkBlockConstraint block =
     List.foldl fold checkEmptyComponent [ checkFocusNotSet, checkCondition ]
 
 
+policyModeValue : Maybe PolicyMode -> String
+policyModeValue pm =
+    case pm of
+        Nothing ->
+            "default"
+
+        Just Audit ->
+            "audit"
+
+        Just Enforce ->
+            "enforce"
+
+        Just Default ->
+            "default"
+
+
 defaultNewForeach : Maybe String -> Maybe (List (Dict String String)) -> NewForeach
 defaultNewForeach foreachName foreach =
     let
