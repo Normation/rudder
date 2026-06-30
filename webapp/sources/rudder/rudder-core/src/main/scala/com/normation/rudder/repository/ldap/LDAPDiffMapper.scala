@@ -697,8 +697,16 @@ class LDAPDiffMapper(
                                 diff.map(
                                   _.copy(modAPITenants = Some(SimpleDiff(oldAccount.tenants.serialize, mod.getOptValueDefault("-"))))
                                 )
-
-                              case x => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
+                              case A_API_SCHEMA_VERSION          =>
+                                val newVersion = ApiAccountSchemaVersion(mod.getOptValue())
+                                val oldDate    = oldAccount.lastAuthentication.date
+                                val newDate    = AccountLastAuthentication.from(newVersion, oldDate).date
+                                // keep old date, if version changed having impact on date, then we have a diff
+                                val lastDiff   = if (oldDate == newDate) None else Some(SimpleDiff(oldDate, newDate))
+                                diff.map(
+                                  _.copy(modLastAuthentication = lastDiff)
+                                )
+                              case x                             => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                             }
                           }
           } yield {

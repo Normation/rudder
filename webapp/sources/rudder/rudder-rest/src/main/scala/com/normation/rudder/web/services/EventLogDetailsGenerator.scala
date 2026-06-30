@@ -995,6 +995,10 @@ class EventLogDetailsGenerator(
                         apiAccountDiff.modExpirationDate,
                         _.fold("")(_.toString)
                       ) &
+                      "#lastAuthentication *" #> mapSimpleDiffT[Option[Instant]](
+                        apiAccountDiff.modLastAuthentication,
+                        _.fold("")(_.toString)
+                      ) &
                       "#accountKind *" #> mapSimpleDiff(apiAccountDiff.modAccountKind) &
                       // make list of ACL unsderstandable
                       "#acls *" #> mapSimpleDiff(apiAccountDiff.modAccountAcl.map(o => {
