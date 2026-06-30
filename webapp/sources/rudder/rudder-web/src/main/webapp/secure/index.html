@@ -83,7 +83,7 @@
                         <div class="row gx-2 gx-lg-3 gx-xl-4 my-2 my-lg-3 my-xl-4">
                             <div class="col-md-auto mt-2 mt-md-0">
                                 <div id="nodeOverview" class="card h-100">
-                                    <h5 class="card-title py-2 px-3 mb-0">Global score breakdown</h5>
+                                    <h4 class="card-title py-2 px-3 mb-0">Global score breakdown</h4>
                                     <div class="card-body">
                                         <div class="node-compliance-chart d-flex align-items-center justify-content-center px-0 px-xl-3">
                                             <canvas id="nodeCompliance"></canvas>
@@ -95,7 +95,7 @@
                             </div>
                             <div class="col mt-2 mt-md-0">
                                 <div class="card h-100 global-compliance-details flex-grow-1">
-                                    <h5 class="card-title py-2 px-3 mb-0">Global compliance details</h5>
+                                    <h4 class="card-title py-2 px-3 mb-0">Global compliance details</h4>
                                     <div class="card-body d-flex flex-column">
                                         <div id="globalCompliance" class="w-100"></div>
                                         <div class="text-center mt-3 text-center text-secondary fs-5 mt-4" id="globalComplianceStats"></div>
@@ -110,7 +110,7 @@
                             <div class="row h-100">
                                 <div class="col">
                                     <div class="card h-100">
-                                        <h5 class="card-title py-2 px-3 mb-0">Activity</h5>
+                                        <h4 class="card-title py-2 px-3 mb-0">Activity</h4>
                                         <div class="card-body">
                                             <div id="activity-app"></div>
                                         </div>
@@ -124,7 +124,7 @@
                 <div class="row g-2 g-lg-3 g-xl-4 mb-2 mb-lg-3 mb-xl-4 flex-wrap">
                     <div class="col-auto flex-grow-1">
                         <div id="nodeBreakdown" class="card h-100 canvas-only">
-                            <h5 class="card-title py-2 px-3 mb-0">Node breakdown</h5>
+                            <h4 class="card-title py-2 px-3 mb-0">Node breakdown</h4>
                             <div class="card-body">
                                 <div class="node-charts d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4">
 
@@ -150,24 +150,34 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-auto flex-grow-1">
+                    <div class="col flex-grow-1 no-patch-plugin">
                         <div class="card canvas-only h-100">
-                            <h5 class="card-title py-2 px-3 mb-0">Patches & vulnerabilities</h5>
+                            <h4 class="card-title py-2 px-3 mb-0">Patches</h4>
                             <div class="card-body">
-                                <div class="patch-vuln-charts d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4"></div>
+                                <div class="patch-chart d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4"></div>
                             </div>
                         </div>
                     </div>
                     <div class="col-auto flex-grow-1">
                         <div class="card canvas-only h-100">
-                            <h5 class="card-title py-2 px-3 mb-0">Security benchmarks</h5>
+                            <h4 class="card-title py-2 px-3 mb-0">Security benchmarks</h4>
                             <div class="card-body">
                                 <div class="security-benchmark-charts d-flex flex-wrap gap-1 gap-lg-2 gap-xl-4 row-gap-4"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div id="plugin-container" ></div>
+                <div class="row plugin-extension">
+                    <div class="col w-100">
+                        <div class="card">
+                            <h4 class="card-title py-2 px-3 mb-0">Patches & vulnerabilities</h4>
+                            <div class="card-body p-0 row">
+                                <div class="plugin-container col" id="plugin-system-updates-container"></div>
+                                <div class="plugin-container col" id="plugin-cve-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

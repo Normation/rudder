@@ -8,7 +8,24 @@
     </head>
 
     <div class="rudder-template"  data-lift="VulnPatchDashboard.details">
-        <div id="cve-container"></div>
-        <div id="system-update-container"></div>
+        <div class="one-col dashboard w-100">
+            <div class="main-header">
+                <div class="header-title">
+                    <h1>
+                        <span>Patches & vulnerabilities</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="main-navbar"></div>
+            <div class="container-fluid p-0 w-100">
+                <div class="row">
+                    <div class="col" id="system-update-container"></div>
+                </div>
+                <div class="row">
+                    <div class="col" id="cve-container"></div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </lift:surround>

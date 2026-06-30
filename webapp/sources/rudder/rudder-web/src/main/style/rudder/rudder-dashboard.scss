@@ -43,12 +43,10 @@ $doughnut-size : 160px;
   $doughnut-size : 300px;
 }
 
-.homePage > .container-fluid,
-.dashboard{
+.homePage > .container-fluid{
   height: calc(100vh - 50px);
 }
-#headerBar~.content-wrapper .rudder-template .homePage > .container-fluid,
-#headerBar~.content-wrapper .rudder-template .dashboard{
+#headerBar~.content-wrapper .rudder-template .homePage > .container-fluid{
   height: calc(100vh - 80px);
 }
 
@@ -108,7 +106,7 @@ $doughnut-size : 160px;
 .node-chart h4 {
   color: rudder.$txt-light;
   margin-bottom: 15px;
-  font-size: 1.3em;
+  font-size: 1.2em;
   width : $doughnut-size;
 }
 /* Statistics */
@@ -295,6 +293,22 @@ $doughnut-size : 160px;
       top: calc(50% + 2px);
     }
   }
+}
+
+// -- PLUGIN EXTENSIONS
+.plugin-extension{
+  display: none;
+  //Show plugin extensions only if they have been populated
+  &:has(.plugin-container:not(:empty)){
+    display: block;
+  }
+  .plugin-container:empty{
+    display: none;
+  }
+}
+.homePage:has(.plugin-extension #plugin-system-updates-container:not(:empty)) .no-patch-plugin{
+  //Hide the ‘system-updates’ default graph if the plugin is enabled
+  display: none;
 }
 
 // -- DEDICATED DASHBOARD PAGE

@@ -76,12 +76,11 @@ const homePage = (
   doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]), onClickDoughnuts);
 
   const complianceContainer = ".node-charts";
-  const patchVulnContainer = ".patch-vuln-charts";
+  const patchVulnContainer = ".patch-chart";
   const benchmarkContainer = ".security-benchmark-charts";
   const chartContainers = {
     'compliance': complianceContainer,
     'system-updates': patchVulnContainer,
-    'cve': patchVulnContainer,
   };
 
   scoreDetails.forEach(function(score) {
