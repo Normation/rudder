@@ -588,6 +588,12 @@ object AccountLastAuthentication {
       case AtDate(date) => Some(date)
       case _            => None
     }
+
+    def schemaVersion: ApiAccountSchemaVersion = self match {
+      case AtDate(_) => V2 // version when date was added: V2
+      case Never     => V2
+      case Unknown   => V1
+    }
   }
 }
 
