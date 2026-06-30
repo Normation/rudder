@@ -143,9 +143,9 @@ mainInit : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
 mainInit initValues =
     let
         model =
-            Model [] [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True []
+            Model [] [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True [] "default"
     in
-    ( model, Cmd.batch [ getDrafts (), getMethods model, getTechniquesCategories model, getDirectives model ] )
+    ( model, Cmd.batch [ getDrafts (), getMethods model, getTechniquesCategories model, getDirectives model, getPolicyMode model ] )
 
 
 updatedStoreTechnique : Model -> ( Model, Cmd Msg )
@@ -342,6 +342,12 @@ update msg model =
         GetDirectives (Err err) ->
             ( { model | loadingTechniques = False }, errorNotification ("Error when getting directives: " ++ debugHttpErr err) )
 
+        GetPolicyMode (Ok ( _, policyMode )) ->
+            ( { model | policyMode = policyMode }, Cmd.none )
+
+        GetPolicyMode (Err err) ->
+            ( model, errorNotification ("Error when getting global policy mode: " ++ debugHttpErr err) )
+
         OpenTechniques ->
             ( { model | genericMethodsOpen = False }, Cmd.none )
 
@@ -462,7 +468,9 @@ update msg model =
                         m ->
                             m
             in
-            ( { model | mode = newMode }, Cmd.none )
+            -- (re)initialize Bootstrap tooltips so badges rendered in the newly displayed tab
+            -- (eg. the policy mode badges of the Directives tab) get their HTML tooltip wired up
+            ( { model | mode = newMode }, initTooltips () )
 
         UpdateTechnique technique ->
             let
