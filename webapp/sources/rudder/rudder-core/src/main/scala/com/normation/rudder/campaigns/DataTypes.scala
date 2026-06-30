@@ -47,7 +47,6 @@ import java.time.Instant
 import java.time.ZoneId
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import scala.util.Try
 import zio.json.*
 import zio.json.enumeratum.*
 
@@ -231,24 +230,29 @@ case class DayTime(
   def asTime:     Time = Time(hour, minute)
 }
 
-case class ScheduleTimeZone(
-    id: String
-) extends AnyVal {
+case class ScheduleTimeZone(id: ZoneId) extends AnyVal {
+
   def toDateTimeZone: Option[DateTimeZone] = {
-    try { Option(DateTimeZone.forID(id)) }
+    try { Option(DateTimeZone.forID(id.getId)) }
     catch { case _: Throwable => None }
   }
-  def toZoneId:       Option[ZoneId]       = Try(ZoneId.of(id)).toOption
+  def asString:       String               = id.getId
 }
-object ScheduleTimeZone                 {
+object ScheduleTimeZone {
+
+  val UTC: ScheduleTimeZone = ScheduleTimeZone(ZoneId.of("UTC"))
+
   def parse(s: String): Either[String, ScheduleTimeZone] = {
-    if (ZoneId.getAvailableZoneIds.contains(s)) {
-      Right(ScheduleTimeZone(s))
-    } else {
-      Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'")
-    }
+    try {
+      if (ZoneId.getAvailableZoneIds.contains(s)) {
+        Right(ScheduleTimeZone(ZoneId.of(s)))
+      } else {
+        Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'")
+      }
+    } catch { case _: Throwable => Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'") }
   }
-  def now():            ScheduleTimeZone                 = ScheduleTimeZone(DateTimeZone.getDefault().getID())
+
+  def now(): ScheduleTimeZone = ScheduleTimeZone(ZoneId.systemDefault())
 }
 
 @jsonHint("monthly")

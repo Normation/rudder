@@ -364,7 +364,7 @@ object SystemDirectiveSchedule {
       "Rudder system daily directive schedule",
       "A daily schedule used by Rudder infrequent checks",
       com.normation.rudder.campaigns.Enabled,
-      Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone("UTC")))
+      Daily(Time(4, 0), Time(6, 0), Some(ScheduleTimeZone.UTC))
     )
   )
 }
