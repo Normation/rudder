@@ -669,13 +669,13 @@ object DisplayNode extends Loggable {
       <div id="nodedocumentation-app"></div> ++
       WithNonce.scriptWithNonce(
         Script(OnLoad(JsRaw((s"""
-                                |var nodeDocumentation = document.getElementById("nodedocumentation-app")
-                                |var initValues = {
+                                |const nodeDocumentation = document.getElementById("nodedocumentation-app")
+                                |const initValues = {
                                 |  nodeId : "${nodeFact.id.value}",
                                 |  contextPath : contextPath,
                                 |  nodeWrite : CanWriteNode
                                 |};
-                                |var app = Elm.NodeDescription.init({node: nodeDocumentation, flags: initValues});
+                                |const app = Elm.NodeDescription.init({node: nodeDocumentation, flags: initValues});
                                 |app.ports.errorNotification.subscribe(function(str) {
                                 |  createErrorNotification(str)
                                 |});

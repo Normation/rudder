@@ -23,8 +23,8 @@ descriptionTextArea model =
             "form-control col-xs-12"
 
         attributes =
-            [ name "NodeDescription"
-            , id "NodeDescriptionLabel"
+            [ name "node-description"
+            , id "node-description-label"
             ]
                 ++ (if model.nodeWrite then
                         [ maxlength 255
@@ -40,11 +40,11 @@ descriptionTextArea model =
                    )
     in
     div
-        [ id "NodeDescription" ]
+        [ id "node-description" ]
         [ div
             [ class "row" ]
             [ label
-                [ for "NodeDescriptionLabel", class "col-xs-12" ]
+                [ for "node-description-label", class "col-xs-12" ]
                 [ span [ class "fw-normal" ] [ text "Description" ] ]
             , div
                 [ class "col-xs-12" ]
@@ -65,11 +65,11 @@ saveDescriptionButton model =
                 , disabled <| (model.currentDescription == model.newDescription)
                 ]
         in
-        div [ id "SaveNodeDescription" ]
+        div [ id "save-node-description" ]
             [ input
                 attrList
                 [ text "Update" ]
             ]
 
     else
-        div [ id "SaveNodeDescription" ] []
+        div [ id "save-node-description" ] []
