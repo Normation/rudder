@@ -144,8 +144,8 @@ import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
 import doobie.Fragment
-import java.time.Instant
-import java.time.ZoneOffset
+
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -155,6 +155,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
+
 import scala.annotation.nowarn
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
@@ -3522,8 +3523,8 @@ class MockCampaign() {
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
         offset:       Option[Int],
-        afterDate:    Option[DateTime],
-        beforeDate:   Option[DateTime],
+        afterDate:    Option[OffsetDateTime],
+        beforeDate:   Option[OffsetDateTime],
         order:        Option[CampaignSortOrder],
         asc:          Option[CampaignSortDirection]
     ): IOResult[List[CampaignEvent]] = {
@@ -3547,12 +3548,12 @@ class MockCampaign() {
 
       val afterDateFiltered = afterDate match {
         case None     => stateFiltered
-        case Some(id) => stateFiltered.map(_.filter(_._1.end.toJodaDateTime.isAfter(id)))
+        case Some(id) => stateFiltered.map(_.filter(_._1.end.isAfter(id)))
       }
 
       val beforeDateFiltered = beforeDate match {
         case None     => afterDateFiltered
-        case Some(id) => afterDateFiltered.map(_.filter(_._1.start.toJodaDateTime.isBefore(id)))
+        case Some(id) => afterDateFiltered.map(_.filter(_._1.start.isBefore(id)))
       }
 
       val ordered = order match {
@@ -3595,8 +3596,8 @@ class MockCampaign() {
         states:       List[CampaignEventStateType],
         campaignType: Option[CampaignType],
         campaignId:   Option[CampaignId],
-        afterDate:    Option[DateTime],
-        beforeDate:   Option[DateTime]
+        afterDate:    Option[OffsetDateTime],
+        beforeDate:   Option[OffsetDateTime]
     ): IOResult[Unit] = {
 
       val eventIdFiltered: CampaignEvent => Boolean = id match {
@@ -3621,12 +3622,12 @@ class MockCampaign() {
 
       val afterDateFiltered: CampaignEvent => Boolean = afterDate match {
         case None      => stateFiltered
-        case Some(id_) => ev => stateFiltered(ev) && ev.end.toJodaDateTime.isAfter(id_)
+        case Some(id_) => ev => stateFiltered(ev) && ev.end.isAfter(id_)
       }
 
       val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
         case None      => afterDateFiltered
-        case Some(id_) => ev => afterDateFiltered(ev) && ev.start.toJodaDateTime.isBefore(id_)
+        case Some(id_) => ev => afterDateFiltered(ev) && ev.start.isBefore(id_)
       }
 
       for {
