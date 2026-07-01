@@ -44,7 +44,7 @@ properties:
   description:
     type: string
     example: ""
-    description: A human intended description of the node (not used)
+    description: A human intended description of the node
   ipAddresses:
     type: array
     description: IP addresses of the node (IPv4 and IPv6)

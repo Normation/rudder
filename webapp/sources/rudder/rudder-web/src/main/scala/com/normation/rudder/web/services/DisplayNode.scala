@@ -275,7 +275,7 @@ object DisplayNode extends Loggable {
           <button class="nav-link" data-bs-toggle="tab" data-bs-target={
         htmlId_#(jsId, "sd_fs_")
       } type="button" role="tab" aria-controls={htmlId_#(jsId, "sd_fs_")}>File systems</button>
-      </li> ::
+        </li> ::
       <li class="nav-item">
           <button class="nav-link" data-bs-toggle="tab" data-bs-target={
         htmlId_#(jsId, "sd_net_")
@@ -507,30 +507,30 @@ object DisplayNode extends Loggable {
     }
 
     <div class="header-title">
-    <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
-    <h1>
-      <div id="nodeHeaderInfo">
-        <span>{sm.node.main.hostname}</span>
-        <span class="machine-os-info">
-          <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
-          <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
-          <span class="fa fa-info-circle icon-info me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
+      <div class={"os-logo " ++ sm.node.main.osDetails.os.name.toLowerCase()} data-bs-toggle="tooltip" title={osTooltip}></div>
+      <h1>
+        <div id="nodeHeaderInfo">
+          <span>{sm.node.main.hostname}</span>
+          <span class="machine-os-info">
+            <span class="machine-info">{sm.node.main.osDetails.fullName}</span>
+            <span class="machine-info ram">{sm.node.ram.map(_.toStringMo).getOrElse("-")}</span>
+            <span class="fa fa-info-circle icon-info me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title={
       machineTooltip
     }></span>
-        </span>
-        {nodeStateIcon}
+          </span>
+          {nodeStateIcon}
+        </div>
+        <div class="header-subtitle">
+          <a class="clipboard" title="Copy to clipboard" onclick={s"copy('${sm.node.main.id.value}')"}>
+            <span id="nodeHeaderId">{sm.node.main.id.value}</span>
+            <i class="ion ion-clipboard"></i>
+          </a>
+        </div>
+      </h1>
+      <div class="header-buttons">
+        {deleteBtn}
       </div>
-      <div class="header-subtitle">
-        <a class="clipboard" title="Copy to clipboard" onclick={s"copy('${sm.node.main.id.value}')"}>
-          <span id="nodeHeaderId">{sm.node.main.id.value}</span>
-          <i class="ion ion-clipboard"></i>
-        </a>
-      </div>
-    </h1>
-    <div class="header-buttons">
-      {deleteBtn}
     </div>
-  </div>
   }
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
@@ -661,15 +661,28 @@ object DisplayNode extends Loggable {
         .getOrElse("none available")
     }
           </div>
-          
+
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>
-          <div class="markdown" id="nodeDocumentation">
-          </div>
           {
+      <div id="nodedocumentation-app"></div> ++
       WithNonce.scriptWithNonce(
-        Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))
+        Script(OnLoad(JsRaw((s"""
+                                |const nodeDocumentation = document.getElementById("nodedocumentation-app")
+                                |const initValues = {
+                                |  nodeId : "${nodeFact.id.value}",
+                                |  contextPath : contextPath,
+                                |  nodeWrite : CanWriteNode
+                                |};
+                                |const app = Elm.NodeDescription.init({node: nodeDocumentation, flags: initValues});
+                                |app.ports.errorNotification.subscribe(function(str) {
+                                |  createErrorNotification(str)
+                                |});
+                                |app.ports.successNotification.subscribe(function(str) {
+                                |  createSuccessNotification(str)
+                                |});
+                                |""".stripMargin))))
       )
     }
         </div>
@@ -700,16 +713,16 @@ object DisplayNode extends Loggable {
       }
       s"${nodeFact.rudderAgent.agentType.displayName} (${nodeFact.rudderAgent.version.value} with ${capabilities})"
     }
-            </div>
-            {displayPolicyServerInfos(nodeFact.toFullInventory)}
-            <div>
-              {
+        </div>
+        {displayPolicyServerInfos(nodeFact.toFullInventory)}
+        <div>
+          {
       creationDate.map { creation =>
         <xml:group><label>Accepted since:</label> {DateFormaterService.getDisplayDate(creation)}</xml:group>
       }.getOrElse(NodeSeq.Empty)
     }
-            </div>
-            {displaySecurityInfo(nodeFact)}
+        </div>
+        {displaySecurityInfo(nodeFact)}
       </div>
     </div>
   }
@@ -768,7 +781,7 @@ object DisplayNode extends Loggable {
               <div><label>Security token fingerprint (sha1): </label> <samp>{
                 SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
               }</samp></div>
-                    <div><label>Security token expiration date: </label> {
+                <div><label>Security token expiration date: </label> {
                 DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter, DateTimeZone.UTC))
               }</div>
             )
@@ -962,20 +975,20 @@ object DisplayNode extends Loggable {
           </div>
         case Full(seq)                                       =>
           <table cellspacing="0" id={htmlId(jsId, eltName + "_")} class="tablewidth">
-          {
+            {
             title match {
               case None        => NodeSeq.Empty
               case Some(title) => <div style="text-align:center"><b>{title}</b></div>
             }
           }
-          <thead>
-          <tr class="head">
-          </tr>
-            <tr class="head">{
+            <thead>
+              <tr class="head">
+              </tr>
+              <tr class="head">{
             columns.map(h => <th>{h._1}</th>).toSeq
           }</tr>
-          </thead>
-          <tbody class="toggle-color">{
+            </thead>
+            <tbody class="toggle-color">{
             seq.flatMap(x =>
               <tr>{columns.flatMap { case (header, renderLine) => <td class="text-break">{renderLine(x)}</td> }}</tr>
             )
@@ -1174,12 +1187,12 @@ object DisplayNode extends Loggable {
           <td>
             <pre class="json-inventory-vars">{value}</pre>
           </td>
-          <td>
-            <span class="ion ion-clipboard copy-actions" onclick={s"copy('${value}')"}></span>
-          </td>
+            <td>
+              <span class="ion ion-clipboard copy-actions" onclick={s"copy('${value}')"}></span>
+            </td>
         }
       }
-     </tr>
+      </tr>
     }
 
     val os = sm.node.main.osDetails.transformInto[OsDetailsJson]
