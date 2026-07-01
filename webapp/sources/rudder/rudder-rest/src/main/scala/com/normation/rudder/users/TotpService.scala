@@ -85,11 +85,11 @@ trait TotpSecretGenerator {
 class UserTotpValidator(userRepository: UserRepository, totpRepository: TotpRepository) {
   def validateUserCanCreateTotp(userId: String): IOResult[Unit] = {
     for {
-      _ <- userRepository.get(userId).notOptional(s"User '${userId}' is not known, cannot create OTP")
+      _ <- userRepository.get(userId).notOptional(s"User '${userId}' is not known, cannot create TOTP")
       _ <- totpRepository.getByUserId(userId).reject {
              case Some(value) =>
                Inconsistency(
-                 s"User '${userId}' already has an OTP (created on ${DateFormaterService.getDisplayDate(value.created)}), reset it first to create a new one"
+                 s"User '${userId}' already has a TOTP (created on ${DateFormaterService.getDisplayDate(value.created)}), reset it first to create a new one"
                )
            }
     } yield ()
@@ -135,13 +135,13 @@ abstract class InMemoryVerificationTotpService(
     for {
       map <- in.get
       opt  = map.get(userId)
-      s   <- opt.notOptional("User has no known generated OTP")
+      s   <- opt.notOptional("User has no known generated TOTP")
       now <- Clock.instant
       _   <- verificator.verify(s, now, code).toIO
       totp = Totp(s, now)
       _   <- totpRepository
                .create(userId, totp)
-               .chainError("Could not store user OTP in Rudder")
+               .chainError("Could not store user TOTP in Rudder")
                .tapError(err => ApplicationLoggerPure.Auth.error(s"User '${userId}' TOTP registration failed: ${err.fullMsg}"))
       // on success, user secret can be removed from cache
       _   <- in.update(_ - userId)
@@ -155,7 +155,7 @@ abstract class InMemoryVerificationTotpService(
       t   <- totpRepository.getByUserId(userId).map(_.map(_.secret))
       s   <- t.notOptional(s"User '${userId}' OTP was not found")
       now <- Clock.instant
-      _   <- verificator.verify(s, now, code).toIO.chainError(s"OTP secret for user '${userId}' does not match provided code")
+      _   <- verificator.verify(s, now, code).toIO.chainError(s"TOTP secret for user '${userId}' does not match provided code")
     } yield ()
   }
 

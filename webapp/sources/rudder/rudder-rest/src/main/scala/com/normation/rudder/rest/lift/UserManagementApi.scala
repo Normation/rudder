@@ -332,7 +332,7 @@ class UserManagementApiImpl(
                       Map(fileProviderInfo.provider -> fileProviderInfo),
                       lastSession.map(_.creationDate),
                       otpEnabled
-                    ).withRoleCoverage(currentUserDetails).copy(otpEnabled = otpEnabled)
+                    ).withRoleCoverage(currentUserDetails)
                   } else {
                     // we need to merge the two users, the one from the file and the one from the session
                     mainProviderRoleExtension match {
@@ -350,7 +350,6 @@ class UserManagementApiImpl(
                         userWithoutPermissions
                           .merge(fileProviderInfo)
                           .withRoleCoverage(currentUserDetails)
-                          .copy(otpEnabled = otpEnabled)
                       case None                                     =>
                         // Provider no longer known, fallback to file provider
                         transformUser(
@@ -629,7 +628,7 @@ class UserManagementApiImpl(
         _ <- totpService.reset(id)
       } yield {
         "ok"
-      }).chainError(s"Could not reset OTP for user '${id}'").toLiftResponseOne(params, schema, _ => Some(id))
+      }).chainError(s"Could not reset TOTP for user '${id}'").toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -784,7 +783,7 @@ class UserManagementApiImpl(
         implicit val user:          UserInfo          = userInfo
         implicit val tenants:       TenantAccessGrant = nodePerms
         implicit val otpEnabledVal: Boolean           = otpEnabled
-        userSession.transformInto[JsonUser].copy(otpEnabled = otpEnabled)
+        userSession.transformInto[JsonUser]
       }
     }
   }

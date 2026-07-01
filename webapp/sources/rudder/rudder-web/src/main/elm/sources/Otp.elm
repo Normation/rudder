@@ -15,7 +15,7 @@ import Otp.View exposing (..)
 import Result
 import String
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((<?>), Parser, parse)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser, parse, query, top)
 import Url.Parser.Query as Query
 
 
@@ -96,8 +96,15 @@ update msg model =
         UrlChanged url ->
             case Url.fromString url of
                 Just parsedUrl ->
-                    case parseRedirect parsedUrl of
+                    let
+                        validated =
+                            parseRedirect parsedUrl
+                                 |> Maybe.andThen (validateRedirect parsedUrl)
+
+                    in
+                    case validated of
                         Just redirect ->
+                            --TODO: does not work on firefox ? (or verify does not redirect correctly, pushUrl behavior ??)
                             ( { model | redirectUrl = Just redirect }, Cmd.none )
 
                         Nothing ->
@@ -108,9 +115,37 @@ update msg model =
 
 
 parseRedirect : Url -> Maybe String
-parseRedirect =
-    parse (Parser.map (\_ r -> r) (anyPath <?> Query.string "redirect")) >> Maybe.Extra.join
+parseRedirect url =
+    let
+        -- 1. Force the path to "/" so it matches Parser.top, ignoring the 3 segments
+        normalizedUrl =
+            { url | path = "/" }
 
+        -- 2. Create a parser that targets the "redirect" query parameter
+        redirectParser =
+            Parser.map identity (Parser.top <?> Query.string "redirect")
+    in
+    -- 3. Run the parser and flatten the resulting Maybe (Maybe String) into Maybe String
+    Parser.parse redirectParser normalizedUrl
+        |> Maybe.andThen identity
+
+
+validateRedirect : Url -> String -> Maybe String
+validateRedirect originalUrl redirectStr =
+    case Url.fromString redirectStr of
+        Just redirectUrl ->
+            let
+                isSameProtocol = redirectUrl.protocol == originalUrl.protocol
+                isSameHost     = redirectUrl.host == originalUrl.host
+                isSamePort     = redirectUrl.port_ == originalUrl.port_
+            in
+            if isSameProtocol && isSameHost && isSamePort then
+                Just redirectStr
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 {- Consumes all path segments, to ignore them -}

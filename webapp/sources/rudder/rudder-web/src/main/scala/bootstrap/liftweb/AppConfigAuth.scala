@@ -94,8 +94,8 @@ import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache
 import scala.annotation.nowarn
 import scala.util.Try
@@ -463,15 +463,11 @@ class AppConfigAuth extends ApplicationContextAware {
  *
  * Implementation is similar to one of SavedRequestAwareAuthenticationSuccessHandler
  */
-class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean) extends SavedRequestAwareAuthenticationSuccessHandler {
+class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean)
+    extends SimpleUrlAuthenticationSuccessHandler("/secure/index.html") {
   private val otpRedirect = enforceOtp
 
   private val otpRedirectUri = "/secure/otp.html"
-
-  // Alternative to previous default-target-url="/secure/index.html" in applicationContext-security.
-  // Redirect can be overriden with authentication redirect logic when there is OTP (depends on configuration and user)
-  private val defaultRedirectUri = "/secure/index.html"
-  setDefaultTargetUrl(defaultRedirectUri)
 
   private val requestCache = new HttpSessionRequestCache()
 

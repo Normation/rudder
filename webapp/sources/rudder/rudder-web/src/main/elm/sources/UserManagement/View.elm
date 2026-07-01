@@ -98,16 +98,16 @@ displayOtpBlock : Model -> User -> Html Msg
 displayOtpBlock ({ otpEnabled } as model) user =
     let
         title =
-            h3 [] [ text "OTP" ]
+            h3 [] [ text "TOTP" ]
 
         content =
             if user.otpEnabled then
                 div []
                 [ p []
                   [ if otpEnabled then
-                      em [] [ text "Reset user OTP to enable them register on next login:" ]
+                      em [] [ text "Reset user TOTP to enable them register on next login:" ]
                     else
-                      em [] [ text "Login with OTP is globally disabled, reset of user OTP will have no effect until it is enabled:" ]
+                      em [] [ text "Login with TOTP is globally disabled, reset of user OTP will have no effect until it is enabled:" ]
                   ]
                 , button
                   [ class "btn btn-danger"
@@ -120,8 +120,8 @@ displayOtpBlock ({ otpEnabled } as model) user =
             else
                 div [ class "alert alert-warning" ]
                 [ i [ class "fa fa-exclamation-triangle" ] []
-                , text "User has no OTP registered."
-                , if otpEnabled then p [] [ text "User will be asked to register OTP on their next login." ] else text ""
+                , text "User has no TOTP registered."
+                , if otpEnabled then p [] [ text "User will be asked to register TOTP on their next login." ] else text ""
                 ]
 
     in
@@ -911,7 +911,7 @@ displayUsersTable model users =
             text ""
         )
         , th [class (thClass model.ui.tableFilters PreviousLogin  ), onClick (UpdateTableFilters (sortTable filters PreviousLogin  ))] [ text "Previous login" ]
-        , th [class (thClass model.ui.tableFilters OtpEnabled), onClick (UpdateTableFilters (sortTable filters OtpEnabled  ))] [ text "OTP" ]
+        , th [class (thClass model.ui.tableFilters OtpEnabled), onClick (UpdateTableFilters (sortTable filters OtpEnabled  ))] [ text "TOTP" ]
         , th [style "width" "220px"][ text "Actions" ]
         ]
       ]
