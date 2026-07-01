@@ -3225,8 +3225,785 @@ response:
         }
       }
     }
-
-
+---
+description: Get compliance for all node groups
+method: GET
+url: /api/latest/groups/compliance?groups=g1,g2,g3
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeGroupCompliance",
+      "result" : "success",
+      "data" : {
+        "groupCompliance" : [
+          {
+            "id" : "g1",
+            "targeted" : {
+              "id" : "g1",
+              "name" : "G1",
+              "compliance" : 60.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 40.0,
+                "successRepaired" : 20.0,
+                "error" : 40.0
+              }
+            },
+            "global" : {
+              "id" : "g1",
+              "name" : "G1",
+              "compliance" : 60.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 40.0,
+                "successRepaired" : 20.0,
+                "error" : 40.0
+              }
+            }
+          },
+          {
+            "id" : "g2",
+            "targeted" : {
+              "id" : "g2",
+              "name" : "G2",
+              "compliance" : 0.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {}
+            },
+            "global" : {
+              "id" : "g2",
+              "name" : "G2",
+              "compliance" : 50.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 50.0,
+                "error" : 50.0
+              }
+            }
+          },
+          {
+            "id" : "g3",
+            "targeted" : {
+              "id" : "g3",
+              "name" : "G3",
+              "compliance" : 0.0,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "error" : 100.0
+              }
+            },
+            "global" : {
+              "id" : "g3",
+              "name" : "G3",
+              "compliance" : 66.66,
+              "mode" : "full-compliance",
+              "complianceDetails" : {
+                "successAlreadyOK" : 33.33,
+                "successRepaired" : 33.33,
+                "error" : 33.34
+              }
+            }
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's global compliance
+method: GET
+url: /api/latest/groups/g3/compliance/global
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGlobalNodeGroupComplianceId",
+      "result" : "success",
+      "data" : {
+        "groupCompliance" : [
+          {
+            "id" : "g3",
+            "name" : "G3",
+            "compliance" : 66.66,
+            "mode" : "full-compliance",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "successRepaired" : 33.33,
+              "error" : 33.34
+            },
+            "rules" : [
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successRepaired" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successRepaired"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 0.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }    
+            ],
+            "nodes" : [
+              {
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 66.66,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 33.33,
+                  "successRepaired" : 33.33,
+                  "error" : 33.34
+                },
+                "rules" : [
+                  {
+                    "id" : "r1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-techniqueWithBlocks",
+                        "name" : "25. Testing blocks",
+                        "compliance" : 100.0,
+                        "policyMode" : "audit",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "r2",
+                    "name" : "R2",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successRepaired" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successRepaired"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive2",
+                        "name" : "directive2",
+                        "compliance" : 0.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive2-component-r3-n1",
+                            "compliance" : 0.0,
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's targeted compliance
+method: GET
+url: /api/latest/groups/g3/compliance/targeted
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getTargetedNodeGroupComplianceId",
+      "result" : "success",
+      "data" : {
+        "groupCompliance" : [
+          {
+            "id" : "g3",
+            "name" : "G3",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 0.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "n1",
+                "name" : "node1.localhost",
+                "mode" : "full-compliance",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive2",
+                        "name" : "directive2",
+                        "compliance" : 0.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive2-component-r3-n1",
+                            "compliance" : 0.0,
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's global compliance by rule in JSON format
+method: GET
+url: /api/latest/groups/g3/compliance/global/byRule
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGlobalNodeGroupComplianceByRuleId",
+      "result" : "success",
+      "data" : {
+        "rules" : [
+          {
+            "id" : "r1",
+            "name" : "R1",
+            "compliance" : 100.0,
+            "policyMode" : "mixed",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive-techniqueWithBlocks",
+                "name" : "25. Testing blocks",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "r2",
+            "name" : "R2",
+            "compliance" : 100.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successRepaired" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "r3",
+            "name" : "R3",
+            "compliance" : 0.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive2",
+                "name" : "directive2",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-r3-n1",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "compliance" : 0.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's targeted compliance by rule in JSON format
+method: GET
+url: /api/latest/groups/g3/compliance/targeted/byRule
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getTargetedNodeGroupComplianceByRuleId",
+      "result" : "success",
+      "data" : {
+        "rules" : [
+          {
+            "id" : "r3",
+            "name" : "R3",
+            "compliance" : 0.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive2",
+                "name" : "directive2",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-r3-n1",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "compliance" : 0.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's global compliance by rule in CSV format
+method: GET
+url: /api/latest/groups/g3/compliance/global/byRule
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Rule","Directive","Block","Component","Node","Value","Status","Message"
+    "R1","25. Testing blocks","","directive-techniqueWithBlocks-component-r1-n1","node1.localhost","directive-techniqueWithBlocks-component-value-r1-n1","successAlreadyOK",""
+    "R2","directive 99f4ef91-537b-4e03-97bc-e65b447514cc","","99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1","node1.localhost","99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1","successRepaired",""
+    "R3","directive2","","directive2-component-r3-n1","node1.localhost","directive2-component-value-r3-n1","error",""
+---
+description: Get a node group's targeted compliance by rule in CSV format
+method: GET
+url: /api/latest/groups/g3/compliance/targeted/byRule
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Rule","Directive","Block","Component","Node","Value","Status","Message"
+    "R3","directive2","","directive2-component-r3-n1","node1.localhost","directive2-component-value-r3-n1","error",""
 
 #
 # API GROUPSINTERNAL

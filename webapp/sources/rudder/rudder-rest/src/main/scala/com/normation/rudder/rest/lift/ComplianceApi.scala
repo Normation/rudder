@@ -42,7 +42,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.AllPolicyServers
 import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
@@ -295,7 +294,7 @@ class ComplianceApi(
       (for {
         precision <- ComplianceUtils.extractPercentPrecision(req.params)
         targets    = req.params.getOrElse("groups", List.empty).flatMap { nodeGroups =>
-                       nodeGroups.split(",").toList.flatMap(parseSimpleTargetOrNodeGroupId(_).toOption)
+                       nodeGroups.split(",").toList.flatMap(ComplianceUtils.parseSimpleTargetOrNodeGroupId(_).toOption)
                      }
 
         group <- complianceService.getNodeGroupComplianceSummary(targets, precision)
@@ -335,7 +334,10 @@ class ComplianceApi(
       (for {
         level     <- ComplianceUtils.extractComplianceLevel(req.params)
         precision <- ComplianceUtils.extractPercentPrecision(req.params)
-        target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toIO
+        target    <- ComplianceUtils
+                       .parseSimpleTargetOrNodeGroupId(groupId)
+                       .chainError("Could not parse the node group id or group target")
+                       .toIO
         group     <- complianceService.getNodeGroupCompliance(target, level)
       } yield {
         given l: Int                 = level.getOrElse(10)
@@ -366,7 +368,10 @@ class ComplianceApi(
       (for {
         level     <- ComplianceUtils.extractComplianceLevel(req.params)
         precision <- ComplianceUtils.extractPercentPrecision(req.params)
-        target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toIO
+        target    <- ComplianceUtils
+                       .parseSimpleTargetOrNodeGroupId(groupId)
+                       .chainError("Could not parse the node group id or group target")
+                       .toIO
         group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance = false)
       } yield {
         given l: Int                 = level.getOrElse(10)
@@ -478,11 +483,6 @@ class ComplianceApi(
         optCompliance.transformInto[ComplianceApiData.JsonGlobalCompliance.GlobalComplianceApi].withContainer
       }).chainError("Could not get global compliance (for non system rules)").toLiftResponseOne(params, schema, None)
     }
-  }
-
-  private def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
-    // attempt to parse a "target" first because format is more specific
-    RuleTarget.unserOne(str).orElse(NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_)))
   }
 
 }

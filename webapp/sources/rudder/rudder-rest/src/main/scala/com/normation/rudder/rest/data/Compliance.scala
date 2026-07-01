@@ -43,9 +43,14 @@ import cats.syntax.list.*
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
+import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.SimpleTarget
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.reports.ComplianceModeName
@@ -453,6 +458,8 @@ final case class ByNodeDirectiveCompliance(
  */
 object CsvCompliance {
 
+  import CsvComplianceTypes.*
+
   // use "," , quote everything with ", line separator is \n
   val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").get()
 
@@ -500,48 +507,57 @@ object CsvCompliance {
     }
   }
 
-  /** Trait that contains Csv[A] and Csv.Header.One[A] instances 
-   * that are common to all values that can be converted to CSV */
-  trait CsvField[A <: String] {
-    given Csv[A] = Csv.instance(a => a)
-    given Csv.Header.One[A] with {}
-  }
+  object CsvComplianceTypes {
 
-  opaque type DirectiveField = String
-  object DirectiveField extends CsvField[DirectiveField] {
-    def apply(directive: ByRuleDirectiveCompliance) = directive.name
-  }
+    /** Trait that contains Csv[A] and Csv.Header.One[A] instances 
+     * that are common to all values that can be converted to CSV */
+    trait CsvField[A <: String] {
+      given Csv[A] = Csv.instance(a => a)
+      given Csv.Header.One[A] with {}
+    }
 
-  opaque type BlockField = String
-  object BlockField extends CsvField[BlockField] {
-    def apply(block: List[ComponentField]) = block.mkString(",")
-  }
+    opaque type DirectiveField = String
+    object DirectiveField extends CsvField[DirectiveField] {
+      def apply(directive: ByRuleDirectiveCompliance): DirectiveField = directive.name
+      def apply(directive: String):                    DirectiveField = directive
+    }
 
-  opaque type ComponentField = String
-  object ComponentField extends CsvField[ComponentField] {
-    def apply(value: ByRuleValueCompliance) = value.name
-    def apply(block: ByRuleBlockCompliance) = block.name
-  }
+    opaque type BlockField = String
+    object BlockField extends CsvField[BlockField] {
+      def apply(block: List[ComponentField]): BlockField = block.mkString(",")
+    }
 
-  opaque type NodeField = String
-  object NodeField extends CsvField[NodeField] {
-    def apply(node: ByRuleNodeCompliance) = node.name
-  }
+    opaque type ComponentField = String
+    object ComponentField extends CsvField[ComponentField] {
+      def apply(value: ByRuleValueCompliance): ComponentField = value.name
+      def apply(block: ByRuleBlockCompliance): ComponentField = block.name
+    }
 
-  opaque type ValueField = String
-  object ValueField extends CsvField[ValueField] {
-    def apply(value: ComponentValueStatusReport) = value.componentValue
-  }
+    opaque type NodeField = String
+    object NodeField extends CsvField[NodeField] {
+      def apply(node: ByRuleNodeCompliance): NodeField = node.name
+    }
 
-  opaque type StatusField = String
-  object StatusField extends CsvField[StatusField] {
-    import com.normation.rudder.rest.data.ComplianceApiData.serialize
-    def apply(report: MessageStatusReport) = report.reportType.serialize
-  }
+    opaque type ValueField = String
+    object ValueField extends CsvField[ValueField] {
+      def apply(value: ComponentValueStatusReport): ValueField = value.componentValue
+    }
 
-  opaque type MessageField = String
-  object MessageField extends CsvField[MessageField] {
-    def apply(report: MessageStatusReport) = report.message.getOrElse("")
+    opaque type StatusField = String
+    object StatusField extends CsvField[StatusField] {
+      import com.normation.rudder.rest.data.ComplianceApiData.serialize
+      def apply(report: MessageStatusReport): StatusField = report.reportType.serialize
+    }
+
+    opaque type MessageField = String
+    object MessageField extends CsvField[MessageField] {
+      def apply(report: MessageStatusReport): MessageField = report.message.getOrElse("")
+    }
+
+    opaque type RuleField = String
+    object RuleField extends CsvField[RuleField] {
+      def apply(ruleName: String): RuleField = ruleName
+    }
   }
 
   type RuleComponentResult =
@@ -613,6 +629,46 @@ object CsvCompliance {
           res.transformInto[RuleComplianceByNodeCsv]
         }
       })
+    }
+  }
+
+  case class NodeGroupComplianceByRuleCsv(
+      rule:      RuleField,
+      directive: DirectiveField,
+      block:     BlockField,
+      component: ComponentField,
+      node:      NodeField,
+      value:     ValueField,
+      status:    StatusField,
+      message:   MessageField
+  ) derives Csv
+
+  object NodeGroupComplianceByRuleCsv {
+
+    given (using
+        rule:      RuleField,
+        directive: DirectiveField
+    ): Transformer[RuleComponentResult, NodeGroupComplianceByRuleCsv] = {
+      Transformer
+        .define[RuleComponentResult, NodeGroupComplianceByRuleCsv]
+        .withFieldConst(_.rule, rule)
+        .withFieldConst(_.directive, directive)
+        .buildTransformer
+    }
+
+    given Transformer[Seq[ByNodeGroupRuleCompliance], Seq[NodeGroupComplianceByRuleCsv]] = {
+      (rules: Seq[ByNodeGroupRuleCompliance]) =>
+        rules.flatMap(rule => {
+          rule.directives.flatMap(directive => {
+            directive.components.flatMap(component => {
+              given RuleField      = RuleField(rule.name)
+              given DirectiveField = DirectiveField(directive.name)
+              val components       = recurseComponent(component, Nil)
+
+              components.map(_.transformInto[NodeGroupComplianceByRuleCsv])
+            })
+          })
+        })
     }
   }
 }
@@ -1378,5 +1434,10 @@ object ComplianceUtils {
       case Some(format :: _)                  =>
         ComplianceFormat.fromValue(format).left.map(Inconsistency.apply).toIO
     }
+  }
+
+  def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
+    // attempt to parse a "target" first because format is more specific
+    RuleTarget.unserOne(str).orElse(NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_)))
   }
 }

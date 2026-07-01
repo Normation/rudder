@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+get:
+  summary: Targeted compliance details of a group
+  description: Get targeted compliance of a group with only rules that explicitly include the group.
+  operationId: getTargetedNodeGroupComplianceId
+  parameters:
+    - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
+    - $ref: ../../components/parameters/target-or-node-group-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getTargetedNodeGroupComplianceId
+              data:
+                type: object
+                required:
+                  - groupCompliance
+                properties:
+                  groupCompliance:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - mode
+                        - compliance
+                        - complianceDetails
+                        - rules
+                        - nodes
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: id of the group
+                          example: 47e3f2c0-0b1a-4b1a-9b0a-9e9e9e9e9e9e
+                        mode:
+                          type: string
+                          enum:
+                            - full-compliance
+                            - changes-only
+                            - reports-disabled
+                        compliance:
+                          type: number
+                          format: float
+                          description: Group compliance level
+                          example: 57.43
+                        complianceDetails:
+                          $ref: ../../components/schemas/compliance-details.yml
+                        rules:
+                          type: array
+                          items:
+                            $ref: ../../components/schemas/group-rule-compliance.yml
+                        nodes:
+                          type: array
+                          items:
+                            $ref: ../../components/schemas/group-node-compliance.yml
+  tags:
+    - Groups
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/targeted-compliance-id.sh
+
+

@@ -2,7 +2,9 @@ port module Groupcompliance exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Date
 import Dict
+import File.Download
 import GroupCompliance.ApiCalls exposing (..)
 import GroupCompliance.DataTypes exposing (..)
 import GroupCompliance.Init exposing (init)
@@ -187,13 +189,6 @@ update msg model =
                 Err err ->
                     processApiError "Getting group compliance" err newModel
 
-        --TODO later
-        --Export res ->
-        --  case res of
-        --    Ok content ->
-        --      (model, File.Download.string (model.directiveId.value ++ ".csv") "text/csv" content)
-        --    Err err ->
-        --      processApiError "Export directive compliance" err model
         RefreshCompliance complianceScope ->
             let
                 getCompliance =
@@ -235,6 +230,43 @@ update msg model =
             ( newModel
             , actions
             )
+
+        ExportCsv cmd ->
+            ( model, cmd )
+
+        ExportGroupComplianceByRule groupId complianceScope date ->
+            let
+                timeStr =
+                    date |> Date.format "yyyy-MM-dd"
+
+                scope =
+                    case complianceScope of
+                        GlobalCompliance ->
+                            "global"
+
+                        TargetedCompliance ->
+                            "targeted"
+
+                filename =
+                    "rudder_group_" ++ groupId.value ++ "_" ++ scope ++ "_compliance_by_rule" ++ timeStr ++ ".csv"
+
+                cmd =
+                    case complianceScope of
+                        GlobalCompliance ->
+                            getGlobalGroupComplianceByRuleCSV filename model
+
+                        TargetedCompliance ->
+                            getTargetedGroupComplianceByRuleCSV filename model
+            in
+            ( model, cmd )
+
+        RuleComplianceCsvExported filename result ->
+            case result of
+                Ok content ->
+                    ( model, File.Download.string filename "text/csv" content )
+
+                Err error ->
+                    processApiError "Export group compliance" error model
 
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
