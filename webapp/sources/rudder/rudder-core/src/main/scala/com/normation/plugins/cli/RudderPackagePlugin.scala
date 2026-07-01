@@ -43,6 +43,7 @@ import com.normation.plugins.cli.RudderPackagePlugin.LicenseInfo
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
 import java.time.ZonedDateTime
@@ -178,7 +179,7 @@ object RudderPackageService {
 /*
  * We assume that command in config is in format: `/path/to/main/command args1 args2 etc`
  */
-class RudderPackageCmdService(configCmdLine: String) extends RudderPackageService {
+class RudderPackageCmdService(configCmdLine: String, sudoRun: SudoRun) extends RudderPackageService {
 
   val configCmdRes = configCmdLine.split(" ").toList match {
     case Nil       => Left(Unexpected(s"Invalid command for rudder package from configuration: '${configCmdLine}'"))
@@ -241,7 +242,7 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   private def runCmd(params: List[String]):                         IOResult[(Cmd, CmdResult)] = {
     for {
       configCmd   <- configCmdRes.toIO
-      cmd          = Cmd(configCmd._1, configCmd._2 ::: params, Map("NO_COLOR" -> "1"), None)
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: params, Map("NO_COLOR" -> "1"), None, sudoRun)
       packagesCmd <- RunNuCommand.run(cmd)
       result      <- packagesCmd.await
     } yield {

@@ -37,6 +37,8 @@
 
 package com.normation.rudder.hooks
 
+import RunNuCommand.SudoRun
+import SudoRun.*
 import better.files.File
 import com.normation.NamedZioLogger
 import com.normation.errors.*
@@ -45,6 +47,8 @@ import com.zaxxer.nuprocess.NuProcess
 import com.zaxxer.nuprocess.NuProcessBuilder
 import com.zaxxer.nuprocess.codec.NuAbstractCharsetHandler
 import com.zaxxer.nuprocess.internal.BasePosixProcess
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import java.nio.CharBuffer
 import java.nio.charset.CoderResult
 import java.nio.charset.StandardCharsets
@@ -79,10 +83,19 @@ import zio.syntax.*
  * cwd is the path for the current working directory for the command (ie for resolution of relative paths).
  * By default, it's the directory from which the application is started.
  */
-final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String], cwdPath: Option[String]) {
-  def display: String = s"${cmdPath} ${parameters.mkString(" ")}"
+final case class Cmd(
+    cmdPath:     String,
+    parameters:  List[String],
+    environment: Map[String, String],
+    cwdPath:     Option[String],
+    sudoRun:     SudoRun
+) {
+  def display: String = s"${sudoRun match {
+      case WithSudo    => "sudo -E "
+      case WithoutSudo => ""
+    }}${cmdPath} ${parameters.mkString(" ")}"
 }
-final case class CmdResult(code: Int, stdout: String, stderr: String)                                                      {
+final case class CmdResult(code: Int, stdout: String, stderr: String) {
 
   /**
     * Display the attributes of this result, by default each on a new line with indentation
@@ -102,6 +115,14 @@ final case class CmdResult(code: Int, stdout: String, stderr: String)           
 }
 
 object RunNuCommand {
+
+  sealed trait SudoRun extends EnumEntry
+  object SudoRun       extends Enum[SudoRun] {
+    case object WithSudo    extends SudoRun
+    case object WithoutSudo extends SudoRun
+
+    override def values: IndexedSeq[SudoRun] = findValues
+  }
 
   val logger: NamedZioLogger = NamedZioLogger("command-runner")
 
@@ -190,6 +211,10 @@ object RunNuCommand {
      */
     import scala.jdk.CollectionConverters.*
     val errorMsg = s"Error when executing command ${cmd.display}"
+    val command  = (cmd.sudoRun match {
+      case WithSudo    => "sudo" :: "-E" :: Nil
+      case WithoutSudo => Nil
+    }) ::: cmd.cmdPath :: cmd.parameters
 
     (for {
       _             <- ZIO.when(limit == Infinity || limit.toMillis <= 0) {
@@ -200,7 +225,7 @@ object RunNuCommand {
                        }
       promise       <- Promise.make[Nothing, CmdResult]
       handler        = new CmdProcessHandler(promise)
-      processBuilder = new NuProcessBuilder((cmd.cmdPath :: cmd.parameters).asJava, cmd.environment.asJava)
+      processBuilder = new NuProcessBuilder(command.asJava, cmd.environment.asJava)
       _              = setCwd(processBuilder, cmd.cwdPath)
       _             <- IOResult.attempt(errorMsg)(processBuilder.setProcessListener(handler))
 

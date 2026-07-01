@@ -42,6 +42,7 @@ import com.normation.rudder.hooks.HookReturnCode.Ok
 import com.normation.rudder.hooks.HookReturnCode.ScriptError
 import com.normation.rudder.hooks.HookReturnCode.SystemError
 import com.normation.rudder.hooks.HookReturnCode.Warning
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.zio.ZioRuntime
 import java.nio.file.attribute.PosixFilePermissions
 import org.joda.time.DateTime
@@ -81,7 +82,8 @@ class HooksTest() extends Specification with AfterAll {
       HookEnvPairs(Nil),
       1.second,
       500.millis,
-      5.seconds
+      5.seconds,
+      WithoutSudo
     )
   }
 
@@ -96,7 +98,8 @@ class HooksTest() extends Specification with AfterAll {
           HookExecutionHistory.Keep,
           1.second,
           500.millis,
-          5.seconds
+          5.seconds,
+          WithoutSudo
         )
         .map(_._2.map(_._2))
     )
@@ -164,7 +167,8 @@ class HooksTest() extends Specification with AfterAll {
       HookEnvPairs(Nil),
       1.second,
       1.second,
-      500.millis
+      500.millis,
+      WithoutSudo
     )
     timeout must beEqualTo(HookTimeout(Some(6.seconds), Some(10.seconds)))
     res must beEqualTo(Ok(cmd("timeout_ok.sh"), "", ""))

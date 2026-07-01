@@ -44,6 +44,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
 import zio.*
@@ -71,7 +72,7 @@ trait WriteNodeCertificatesPem {
  * In a default Rudder app, the file path is: /var/rudder/lib/ssl/allnodescerts.pem
  * After file is written, a reload hook can be executed if `reloadScriptPath` is not empty
  */
-class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends WriteNodeCertificatesPem {
+class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String], sudoRun: SudoRun) extends WriteNodeCertificatesPem {
 
   val logger: NamedZioLogger = NamedZioLogger(this.getClass.getName)
 
@@ -137,7 +138,10 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
           case cmdPath :: args =>
             for {
               promise <-
-                RunNuCommand.run(Cmd(cmdPath, args, Map(), None), Duration.fromNanos(5L * 60 * 1000 * 1000)) // error after 5 mins
+                RunNuCommand.run(
+                  Cmd(cmdPath, args, Map(), None, sudoRun),
+                  Duration.fromNanos(5L * 60 * 1000 * 1000)
+                ) // error after 5 mins
               result  <- promise.await
               _       <- ZIO.when(result.code != 0) {
                            Unexpected(

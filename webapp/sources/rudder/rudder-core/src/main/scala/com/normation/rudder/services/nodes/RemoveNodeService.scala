@@ -51,6 +51,7 @@ import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
@@ -192,7 +193,8 @@ class RemoveNodeServiceImpl(
     newNodeManager:            NewNodeManager,
     val postNodeDeleteActions: Ref[List[PostNodeDeleteAction]],
     HOOKS_D:                   String,
-    HOOKS_IGNORE_SUFFIXES:     List[String]
+    HOOKS_IGNORE_SUFFIXES:     List[String],
+    sudoRun:                   SudoRun
 ) extends RemoveNodeService {
 
   // effectually add an action
@@ -379,7 +381,7 @@ class RemoveNodeServiceImpl(
     for {
       start <- currentTimeMillis
       hooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
-      res   <- RunHooks.asyncRun(name, hooks, env._1, env._2)
+      res   <- RunHooks.asyncRun(name, hooks, env._1, env._2, sudoRun = sudoRun)
       end   <- currentTimeMillis
       _     <- NodeLoggerPure.Delete.debug(s"    ${name} scripts hooks ran in ${end - start} ms")
     } yield {
