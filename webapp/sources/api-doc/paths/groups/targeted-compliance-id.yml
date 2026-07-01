@@ -66,36 +66,7 @@ get:
                           description: Group compliance level
                           example: 57.43
                         complianceDetails:
-                          type: object
-                          properties:
-                            successAlreadyOK:
-                              type: number
-                              format: float
-                              example: 48.68
-                            noReport:
-                              type: number
-                              format: float
-                              example: 36.18
-                            successNotApplicable:
-                              type: number
-                              format: float
-                              example: 5.92
-                            unexpectedMissingComponent:
-                              type: number
-                              format: float
-                              example: 2.63
-                            error:
-                              type: number
-                              format: float
-                              example: 1.32
-                            unexpectedUnknownComponent:
-                              type: number
-                              format: float
-                              example: 2.63
-                            successRepaired:
-                              type: number
-                              format: float
-                              example: 2.63
+                          $ref: ../../components/schemas/compliance-details.yml
                         rules:
                           type: array
                           items:
