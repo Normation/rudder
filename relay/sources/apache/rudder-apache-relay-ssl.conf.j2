@@ -137,12 +137,14 @@ Alias /common /var/rudder/share/common
 # Expose the server UUID through https
 Alias /uuid /opt/rudder/etc/uuid.hive
 <Directory /opt/rudder/etc>
-  <RequireAll>
+  <Files "uuid.hive">
+    <RequireAll>
 {% if cert_validation %}
-    Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
+      Require expr "%{SSL_CLIENT_VERIFY} == 'SUCCESS'"
 {% endif %}
-    Require all granted
-  </RequireAll>
+      Require all granted
+    </RequireAll>
+  </Files>
 </Directory>
 
 # WebDAV share to receive inventories
