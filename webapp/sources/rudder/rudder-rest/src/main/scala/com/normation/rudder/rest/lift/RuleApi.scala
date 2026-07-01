@@ -405,6 +405,7 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      import com.normation.rudder.rest.data.CsvCompliance.CsvComplianceOpaqueTypes.ComponentName.given
       given qc: QueryContext = authzToken.qc
 
       getRuleComplianceZIO(req, ruleId)
@@ -438,6 +439,7 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      import com.normation.rudder.rest.data.CsvCompliance.CsvComplianceOpaqueTypes.ComponentName.given
       given qc: QueryContext = authzToken.qc
 
       getRuleComplianceZIO(req, ruleId)
