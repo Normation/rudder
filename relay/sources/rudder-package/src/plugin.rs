@@ -51,7 +51,7 @@ pub struct Metadata {
     #[serde(default)]
     pub jar_files: Vec<String>,
     #[serde(default)]
-    /// Does the plugin reauire a valid license.
+    /// Does the plugin require a valid license.
     ///
     /// Default is false.
     pub requires_license: bool,
