@@ -390,7 +390,13 @@ class SettingsApi(
               s""" "delete":["192.168.1.0/24", ...]"}}"""
             )
         res      <-
-          policyServerManagementService.updateAllowedNetworks(nodeId, diff.add, diff.delete.map(_.inet), modificationId, actor)
+          policyServerManagementService.updateAllowedNetworks(
+            nodeId,
+            diff.add.getOrElse(Chunk.empty),
+            diff.delete.getOrElse(Chunk.empty).map(_.inet),
+            modificationId,
+            actor
+          )
       } yield {
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JRAllowedNetworks(Chunk.from(res))
