@@ -1,63 +1,106 @@
 use anyhow::{Context, Result, anyhow, bail};
 use ini::{EscapePolicy, Ini, ParseOption, WriteOption};
+use rudder_module_type::parameters::Parameters;
 use rudder_module_type::utf16_file::{read_utf16_file, write_utf16_file};
-use serde::Serialize;
+use rudder_module_type::{
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
+    ValidateResult,
+};
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use std::fmt::Display;
 use std::{
     path::Path,
     process::{Command, Stdio},
 };
-use tempfile::TempDir;
+use tempfile::{TempDir, tempdir_in};
 
-#[derive(Debug, Default, Serialize)]
-pub enum Outcome {
-    #[default]
-    Success,
-    NonCompliant,
+pub const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const MODULE_FEATURES: [&str; 0] = [];
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct SeceditParameters {
+    #[serde(flatten)]
+    data: Map<String, Value>,
 }
 
 #[derive(Debug, Default, Serialize)]
-pub struct Report {
-    status: Outcome,
+pub enum SeceditOutcome {
+    #[default]
+    Success,
+    Repaired,
+    NonCompliant,
+}
+#[derive(Debug, Default, Serialize)]
+pub struct SeceditReport {
+    pub status: SeceditOutcome,
     errors: Vec<String>,
     diff: String,
 }
 
-pub struct Secedit {
-    tmp_dir: TempDir,
+impl Display for SeceditReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.status {
+            SeceditOutcome::Success => {
+                write!(f, "Configuration was already correct. Nothing to do.")
+            }
+            SeceditOutcome::Repaired => {
+                write!(f, "Configuration was repaired.\nChanged:{}", &self.diff)
+            }
+            SeceditOutcome::NonCompliant => {
+                write!(
+                    f,
+                    "Configuration was not correct.\n{}{}",
+                    &self.diff,
+                    &self.errors.join("\n")
+                )
+            }
+        }
+    }
 }
 
+impl From<SeceditReport> for CheckApplyResult {
+    fn from(s: SeceditReport) -> Self {
+        match s.status {
+            SeceditOutcome::Success => Ok(Outcome::success()),
+            SeceditOutcome::Repaired => Ok(Outcome::repaired(s.to_string())),
+            SeceditOutcome::NonCompliant => Err(anyhow!(s.to_string())),
+        }
+    }
+}
+pub struct Secedit {}
+
 impl Secedit {
-    pub fn new(tmpdir: &str) -> Result<Self> {
-        Ok(Self {
-            tmp_dir: TempDir::new_in(tmpdir)?,
-        })
+    pub fn new() -> Self {
+        Secedit {}
     }
 
-    pub fn run(&self, data: Map<String, Value>, audit: bool) -> Result<Outcome> {
-        let mut config = self.export()?;
+    pub fn run(
+        &self,
+        mode: PolicyMode,
+        parameters: SeceditParameters,
+        temp_dir: &TempDir,
+    ) -> Result<SeceditReport> {
+        let mut config = self.export(temp_dir)?;
         let default_config = get_default_config()?;
 
-        let report = config_search_and_replace(&mut config, &default_config, &data)?;
-        let json_report = serde_json::to_string(&report)?;
-        // Output report
-        println!("{json_report}");
-
-        if !audit {
-            self.apply_config(&config)?;
+        let report = config_search_and_replace(&mut config, &default_config, &parameters.data)?;
+        if mode != PolicyMode::Audit {
+            self.apply_config(&config, temp_dir)?;
             // Check if the configuration was applied
-            let mut new_config = self.export()?;
-            let new_report = config_search_and_replace(&mut new_config, &default_config, &data)?;
+            let mut new_config = self.export(temp_dir)?;
+            let new_report =
+                config_search_and_replace(&mut new_config, &default_config, &parameters.data)?;
             if !new_report.diff.is_empty() {
-                let data = serde_json::to_string(&data)?;
+                let data = serde_json::to_string(&parameters.data)?;
                 bail!("Could not apply configuration:\n{data}")
             }
         }
-
-        Ok(report.status)
+        Ok(report)
     }
 
-    fn apply_config(&self, config: &Ini) -> Result<()> {
+    fn apply_config(&self, config: &Ini, temp_dir: &TempDir) -> Result<()> {
         let opt = WriteOption {
             escape_policy: EscapePolicy::Nothing,
             ..Default::default()
@@ -66,11 +109,10 @@ impl Secedit {
         config.write_to_opt(&mut buf, opt)?;
         let data = String::from_utf8(buf)?;
 
-        let config = self.tmp_dir.path().join("config.ini");
+        let config = temp_dir.path().join("config.ini");
         write_utf16_file(&config, &data)?;
 
-        let db = self
-            .tmp_dir
+        let db = temp_dir
             .path()
             .join("tmp.db")
             .as_path()
@@ -87,14 +129,42 @@ impl Secedit {
         Ok(())
     }
 
-    fn export(&self) -> Result<Ini> {
-        let template_config = self.tmp_dir.path().join("template.ini");
+    fn export(&self, temp_dir: &TempDir) -> Result<Ini> {
+        let template_config = temp_dir.path().join("template.ini");
         let config = template_config.as_path().display().to_string();
 
         let cmd = vec!["/export", "/cfg", &config];
         invoke_with_args(cmd)?;
 
         parse_config(&template_config)
+    }
+}
+
+impl ModuleType0 for Secedit {
+    fn metadata(&self) -> ModuleTypeMetadata {
+        ModuleTypeMetadata::new(MODULE_NAME, Vec::from(MODULE_FEATURES))
+    }
+
+    fn init(&mut self) -> ProtocolResult {
+        ProtocolResult::Success
+    }
+
+    fn validate(&self, parameters: &Parameters) -> ValidateResult {
+        // Parse as parameters type
+        let _: SeceditParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        if !parameters.temporary_dir.as_path().exists() {
+            bail!(
+                "Temporary directory '{}' does not exist",
+                parameters.temporary_dir.display()
+            );
+        }
+        Ok(())
+    }
+    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+        self.validate(parameters)?;
+        let p: SeceditParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let temp_dir = tempdir_in(&parameters.temporary_dir)?;
+        self.run(mode, p, &temp_dir)?.into()
     }
 }
 
@@ -177,8 +247,8 @@ fn config_search_and_replace(
     config: &mut Ini,
     default: &Ini,
     data: &Map<String, Value>,
-) -> Result<Report> {
-    let mut report = Report::default();
+) -> Result<SeceditReport> {
+    let mut report = SeceditReport::default();
 
     for (section, section_data) in data {
         if section.as_str() == "Registry Values" {
@@ -272,9 +342,11 @@ fn config_search_and_replace(
     }
 
     if !report.errors.is_empty() {
-        report.status = Outcome::NonCompliant;
+        report.status = SeceditOutcome::NonCompliant;
     }
-
+    if !report.diff.is_empty() {
+        report.status = SeceditOutcome::Repaired;
+    }
     Ok(report)
 }
 
