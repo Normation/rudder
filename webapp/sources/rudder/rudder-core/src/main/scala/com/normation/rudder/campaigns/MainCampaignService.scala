@@ -40,7 +40,8 @@ package com.normation.rudder.campaigns
 import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.utils.StringUuidGenerator
-import org.joda.time.{Duration as JTDuration, *}
+import com.normation.zio.currentOffsetDateTimeUTC
+import java.time.OffsetDateTime
 import zio.*
 
 /*
@@ -67,7 +68,7 @@ trait CampaignApiService {
   /*
    * Schedule next event for given campaign
    */
-  def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]]
+  def scheduleCampaignEvent(campaign: Campaign, date: OffsetDateTime): IOResult[Option[CampaignEvent]]
 
 }
 
@@ -81,8 +82,8 @@ object MainCampaignService {
       campaignRepo: CampaignRepository,
       hooksService: CampaignHooksService,
       uuidGen:      StringUuidGenerator,
-      startDelay:   Int, // in hour
-      endDelay:     Int  // in hour
+      startDelay:   Duration,
+      endDelay:     Duration
   ): UIO[MainCampaignService] = {
     for {
       queue       <- Queue.unbounded[CampaignEventId] // we need to have metrics on that size
@@ -97,9 +98,7 @@ object MainCampaignService {
         uuidGen
       )
       val orchestrator = new CampaignOrchestrationLogic(effects)
-      val sd           = JTDuration.standardHours(startDelay)
-      val ed           = JTDuration.standardHours(endDelay)
-      val scheduler    = CampaignScheduler(queue, orchestrator, sd, ed)
+      val scheduler    = CampaignScheduler(queue, orchestrator, startDelay, endDelay)
 
       MainCampaignService(repo, campaignRepo, effects, scheduler, handlersRef)
     }
@@ -166,9 +165,10 @@ class MainCampaignService(
   // entry point for API
   override def saveCampaign(c: Campaign): IOResult[Unit] = {
     for {
-      _  <- campaignRepo.save(c)
-      ev <- effects.createNextScheduledCampaignEvent(c, DateTime.now(DateTimeZone.UTC))
-      _  <- effects.saveAndQueueEvents(List(ev))
+      _   <- campaignRepo.save(c)
+      now <- currentOffsetDateTimeUTC
+      ev  <- effects.createNextScheduledCampaignEvent(c, now)
+      _   <- effects.saveAndQueueEvents(List(ev))
     } yield ()
   }
 
@@ -196,7 +196,7 @@ class MainCampaignService(
   }
 
   // entry point for API
-  override def scheduleCampaignEvent(campaign: Campaign, date: DateTime): IOResult[Option[CampaignEvent]] = {
+  override def scheduleCampaignEvent(campaign: Campaign, date: OffsetDateTime): IOResult[Option[CampaignEvent]] = {
     effects.createNextScheduledCampaignEvent(campaign, date).flatMap { event =>
       effects.saveAndQueueEvent(event).map { _ =>
         event match {
@@ -231,7 +231,8 @@ class MainCampaignService(
       campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)
       _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
       toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
-      optNewEvents     <- ZIO.foreach(toStart)(c => effects.createNextScheduledCampaignEvent(c, DateTime.now(DateTimeZone.UTC)))
+      now              <- currentOffsetDateTimeUTC
+      optNewEvents     <- ZIO.foreach(toStart)(c => effects.createNextScheduledCampaignEvent(c, now))
       newEvents         = optNewEvents.collect { case ev if ev != EventOrchestration.IgnoreAndStop => ev }
       _                <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
       _                <- effects.saveAndQueueEvents(newEvents)
@@ -265,8 +266,8 @@ class MainCampaignService(
 class CampaignScheduler(
     val queue:    Queue[CampaignEventId],
     orchestrator: CampaignOrchestrationLogic,
-    startDelay:   JTDuration,
-    endDelay:     JTDuration
+    startDelay:   Duration,
+    endDelay:     Duration
 ) {
 
   // used in main service for bootstrapping
@@ -275,7 +276,7 @@ class CampaignScheduler(
   }
 
   // call the underlying logic.
-  def handle(eventId: CampaignEventId, now: DateTime): UIO[Unit] = {
+  def handle(eventId: CampaignEventId, now: OffsetDateTime): UIO[Unit] = {
     orchestrator.handle(eventId, now, startDelay, endDelay)
   }
 
@@ -292,8 +293,9 @@ class CampaignScheduler(
    */
   def loop(): UIO[Unit] = {
     for {
-      c <- queue.take
-      _ <- handle(c, DateTime.now(DateTimeZone.UTC)).forkDaemon
+      c   <- queue.take
+      now <- currentOffsetDateTimeUTC
+      _   <- handle(c, now).forkDaemon
     } yield ()
   }
 

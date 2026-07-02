@@ -44,10 +44,8 @@ import com.normation.rudder.hooks.HookReturnCode
 import enumeratum.*
 import io.scalaland.chimney.*
 import java.time.Instant
+import java.time.OffsetDateTime
 import java.time.ZoneId
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import scala.util.Try
 import zio.json.*
 import zio.json.enumeratum.*
 
@@ -158,7 +156,7 @@ case class Disabled(reason: String)                 extends CampaignStatus {
   val value: CampaignStatusValue = CampaignStatusValue.Disabled
 }
 @jsonHint("archived")
-case class Archived(reason: String, date: DateTime) extends CampaignStatus {
+case class Archived(reason: String, date: OffsetDateTime) extends CampaignStatus {
   val value: CampaignStatusValue = CampaignStatusValue.Archived
 }
 
@@ -231,24 +229,24 @@ case class DayTime(
   def asTime:     Time = Time(hour, minute)
 }
 
-case class ScheduleTimeZone(
-    id: String
-) extends AnyVal {
-  def toDateTimeZone: Option[DateTimeZone] = {
-    try { Option(DateTimeZone.forID(id)) }
-    catch { case _: Throwable => None }
-  }
-  def toZoneId:       Option[ZoneId]       = Try(ZoneId.of(id)).toOption
+case class ScheduleTimeZone(id: ZoneId) extends AnyVal {
+  def asString: String = id.getId
 }
-object ScheduleTimeZone                 {
+object ScheduleTimeZone {
+
+  val UTC: ScheduleTimeZone = ScheduleTimeZone(ZoneId.of("UTC"))
+
   def parse(s: String): Either[String, ScheduleTimeZone] = {
-    if (ZoneId.getAvailableZoneIds.contains(s)) {
-      Right(ScheduleTimeZone(s))
-    } else {
-      Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'")
-    }
+    try {
+      if (ZoneId.getAvailableZoneIds.contains(s)) {
+        Right(ScheduleTimeZone(ZoneId.of(s)))
+      } else {
+        Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'")
+      }
+    } catch { case _: Throwable => Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'") }
   }
-  def now():            ScheduleTimeZone                 = ScheduleTimeZone(DateTimeZone.getDefault().getID())
+
+  def now(): ScheduleTimeZone = ScheduleTimeZone(ZoneId.systemDefault())
 }
 
 @jsonHint("monthly")
@@ -272,12 +270,14 @@ case class WeeklySchedule(
 }
 
 @jsonHint("one-shot")
-case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule {
-  override def tz:                                     None.type        = None
+case class OneShot(start: OffsetDateTime, end: OffsetDateTime) extends CampaignSchedule {
+  override def tz:                                     Option[ScheduleTimeZone] = None
   // just change the start and end time to the timezone
-  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = timeZone.toDateTimeZone match {
-    case None        => this
-    case Some(value) => copy(start = start.withZone(value), end = end.withZone(value))
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule         = {
+    copy(
+      start = start.atZoneSameInstant(timeZone.id).toOffsetDateTime,
+      end = end.atZoneSameInstant(timeZone.id).toOffsetDateTime
+    )
   }
 }
 
@@ -325,13 +325,16 @@ case class CampaignEvent(
     campaignId:   CampaignId,
     name:         String,
     state:        CampaignEventState,
-    start:        DateTime,
-    end:          DateTime,
+    start:        OffsetDateTime,
+    end:          OffsetDateTime,
     campaignType: CampaignType
 )
 
 object CampaignEvent {
-  import com.normation.utils.DateFormaterService.json.*
+  import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsDecoder
+  import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsEncoder
+  import com.normation.utils.DateFormaterService.json.transformOffsetDateTimeInstant
+
   implicit val campaignEventDecoder: JsonDecoder[CampaignEvent] = DeriveJsonDecoder.gen
   implicit val campaignEventEncoder: JsonEncoder[CampaignEvent] = DeriveJsonEncoder.gen
 
@@ -464,13 +467,14 @@ object CompatV21 {
       campaignId:   CampaignId,
       name:         String,
       state:        CampaignEventState,
-      start:        DateTime,
-      end:          DateTime,
+      start:        OffsetDateTime,
+      end:          OffsetDateTime,
       campaignType: CampaignType
   )
 
   object CampaignEvent {
-    import com.normation.utils.DateFormaterService.json.*
+    import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsEncoder
+    import com.normation.utils.DateFormaterService.json.offsetDateTimeTruncatedToSecondsDecoder
     implicit val codecCampaignEvent: JsonCodec[CampaignEvent] = DeriveJsonCodec.gen
   }
 }

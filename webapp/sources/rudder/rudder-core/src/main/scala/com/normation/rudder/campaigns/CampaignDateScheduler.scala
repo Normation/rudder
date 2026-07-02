@@ -40,15 +40,12 @@ package com.normation.rudder.campaigns
 import cats.implicits.*
 import com.normation.errors.*
 import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.JavaTimeToJoda
-import com.normation.utils.DateFormaterService.toOffsetDateTime
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.TemporalAdjusters.dayOfWeekInMonth
-import org.joda.time.DateTime
 import scala.math.Ordered.orderingToOrdered
 
 /*
@@ -59,7 +56,7 @@ object CampaignDateScheduler {
 
   extension (date: OffsetDateTime) {
     def adjustScheduleTimeZone(optTimeZone: Option[ScheduleTimeZone])(implicit defaultTz: ZoneId): ZonedDateTime = {
-      optTimeZone.flatMap(_.toZoneId) match {
+      optTimeZone.map(_.id) match {
         // no schedule time zone (or invalid one) means the default one should be used
         case None             => date.atZoneSameInstant(defaultTz)
         case Some(scheduleTz) => date.atZoneSameInstant(scheduleTz)
@@ -95,8 +92,8 @@ object CampaignDateScheduler {
 
   def nextCampaignDate(
       schedule: CampaignSchedule,
-      date:     DateTime
-  ): PureResult[Option[(DateTime, DateTime)]] = {
+      date:     OffsetDateTime
+  ): PureResult[Option[(OffsetDateTime, OffsetDateTime)]] = {
     // Schedule needs to be adjusted to current server timezone, not to the one from the base schedule date
     given currentTz: ZoneId = ZoneId.systemDefault()
     schedule match {
@@ -113,7 +110,7 @@ object CampaignDateScheduler {
         }
 
       case Daily(start, end, tz) =>
-        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
+        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
         val startDate           = {
           if (
             scheduleInitialDate.getHour > start.realHour ||
@@ -133,17 +130,17 @@ object CampaignDateScheduler {
           }
         }
 
-        Some((startDate.toJoda, endDate.toJoda)).asRight
+        Some((startDate.toOffsetDateTime, endDate.toOffsetDateTime)).asRight
 
       case WeeklySchedule(start, end, tz) =>
-        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
+        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
         val startDate           = nextDateFromDayTime(scheduleInitialDate, start)
         val endDate             = nextDateFromDayTime(startDate, end)
 
-        Some((startDate.toJoda, endDate.toJoda)).asRight
+        Some((startDate.toOffsetDateTime, endDate.toOffsetDateTime)).asRight
 
       case MonthlySchedule(position, start, end, tz) =>
-        val scheduleInitialDate = date.toOffsetDateTime.adjustScheduleTimeZone(tz)
+        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
 
         val ordinalForDayOfWeekInMonth = position match {
           case First      => 1
@@ -164,7 +161,7 @@ object CampaignDateScheduler {
           currentMonthStart
         }
         val endDate           = nextDateFromDayTime(startDate, end)
-        Some((startDate.toJoda, endDate.toJoda)).asRight
+        Some((startDate.toOffsetDateTime, endDate.toOffsetDateTime)).asRight
     }
   }
 }
