@@ -118,7 +118,7 @@ techniqueParameter model technique param =
                     [ span [] [ text ("${" ++ param_var_name ++ "}") ]
                     ]
                 , div [ class "full-name" ]
-                    [ span [] [ text (technique.id.value ++ "." ++ param_var_name) ]
+                    [ span [] [ text ("{{vars." ++ technique.id.value ++ "." ++ param_var_name ++ "}}") ]
                     ]
                 ]
 
