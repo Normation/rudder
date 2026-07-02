@@ -18,7 +18,10 @@ pipeline {
 
     stages {
         stage('deps-webapp') {
-            when { not { changeRequest() } }
+            // when { not { changeRequest() } }
+
+            when { expression { false } }
+            
             agent {
                 dockerfile {
                     label 'generic-docker'
