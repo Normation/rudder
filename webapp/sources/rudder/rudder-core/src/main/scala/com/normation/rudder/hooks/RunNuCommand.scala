@@ -91,8 +91,9 @@ final case class Cmd(
     sudoRun:     SudoRun
 ) {
   def display: String = s"${sudoRun match {
-      case WithSudo    => "sudo -E "
-      case WithoutSudo => ""
+      case WithSudo            => "sudo "
+      case WithSudoPreserveEnv => "sudo --preserve-env "
+      case WithoutSudo         => ""
     }}${cmdPath} ${parameters.mkString(" ")}"
 }
 final case class CmdResult(code: Int, stdout: String, stderr: String) {
@@ -118,8 +119,9 @@ object RunNuCommand {
 
   sealed trait SudoRun extends EnumEntry
   object SudoRun       extends Enum[SudoRun] {
-    case object WithSudo    extends SudoRun
-    case object WithoutSudo extends SudoRun
+    case object WithSudo            extends SudoRun
+    case object WithSudoPreserveEnv extends SudoRun
+    case object WithoutSudo         extends SudoRun
 
     override def values: IndexedSeq[SudoRun] = findValues
   }
@@ -212,8 +214,9 @@ object RunNuCommand {
     import scala.jdk.CollectionConverters.*
     val errorMsg = s"Error when executing command ${cmd.display}"
     val command  = (cmd.sudoRun match {
-      case WithSudo    => "sudo" :: "-E" :: Nil
-      case WithoutSudo => Nil
+      case WithSudo            => "sudo" :: Nil
+      case WithSudoPreserveEnv => "sudo" :: "--preserve-env" :: Nil
+      case WithoutSudo         => Nil
     }) ::: cmd.cmdPath :: cmd.parameters
 
     (for {
