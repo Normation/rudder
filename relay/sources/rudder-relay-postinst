@@ -45,6 +45,9 @@ fi
 systemctl stop "${APACHE}" >> ${LOG_FILE} || true
 systemctl stop rudder-relayd.service >> ${LOG_FILE} || true
 
+# contains credentials
+chmod 700 /opt/rudder/etc/rudder-pkg/
+
 # share directory with rudder-policy-reader
 chgrp rudder-policy-reader /var/rudder/share
 chmod g+s-w /var/rudder/share
