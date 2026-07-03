@@ -283,7 +283,7 @@ mod tests {
         diesel::delete(reportsexecution).execute(db).unwrap();
 
         let mut runlog = RunLog::new(
-            "tests/files/runlogs/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+            "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
         )
         .unwrap();
 
