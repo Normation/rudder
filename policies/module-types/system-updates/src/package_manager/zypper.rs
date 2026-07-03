@@ -9,6 +9,7 @@ use anyhow::{Result, anyhow};
 use crate::campaign::CampaignTarget;
 use crate::output::{CommandBehavior, CommandCapture};
 use crate::package_manager::{PackageId, PackageManager};
+use crate::systemd::systemd_get_restartable_services;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -156,7 +157,8 @@ impl UpdateManager for ZypperPackageManager {
                     PackageManager::parse_services(&[
                         String::from_utf8_lossy(&s.stdout).to_string()
                     ]);
-                Ok(services)
+                let filtered = systemd_get_restartable_services(&services);
+                Ok(filtered)
             }
             Err(e) => Err(e),
         };
