@@ -586,7 +586,7 @@ class RuleApiService14(
         case None =>
           // create from scratch - base rule is the same with default values
           val category       = restRule.categoryId.getOrElse("rootRuleCategory")
-          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.accessGrant.toSecurityTag)
+          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.accessGrant.restrictToWrite.toSecurityTag)
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -895,7 +895,7 @@ class RuleApiService14(
                     name,
                     restData.description.getOrElse(""),
                     Nil,
-                    security = cc.accessGrant.toSecurityTag
+                    security = cc.accessGrant.restrictToWrite.toSecurityTag
                   )
       parent    = restData.parent.getOrElse("rootRuleCategory")
       _        <- writeRuleCategory.create(update, RuleCategoryId(parent))

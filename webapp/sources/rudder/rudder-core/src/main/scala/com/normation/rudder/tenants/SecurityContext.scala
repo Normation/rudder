@@ -145,6 +145,24 @@ object TenantAccessGrant {
     }
   }
 
+  /*
+   * Build the (read) access grant that an object carrying the given security tag "scopes to" for
+   * policy-generation filtering. The tenants on a rule (or a group) direct which objects and nodes
+   * are actually used at generation time:
+   *   - `None` (admin-only object) and `Open` (library object) mean "no tenant restriction" => `All`,
+   *     so admin/system objects keep applying to everything and non-tenant setups are unaffected,
+   *   - a `ByTenants` list scopes to exactly those tenants (read permission is enough for filtering);
+   *     an empty list scopes to nothing (`None`).
+   * Combined with `canSee`, this keeps only the nodes/objects that share a tenant with the scoping object.
+   */
+  def fromSecurityScope(tag: Option[SecurityTag]): TenantAccessGrant = tag match {
+    case scala.None                      => TenantAccessGrant.All
+    case Some(SecurityTag.Open)          => TenantAccessGrant.All
+    case Some(SecurityTag.ByTenants(ts)) =>
+      if (ts.isEmpty) TenantAccessGrant.None
+      else TenantAccessGrant.ByTenants(ts.map(id => TenantAccess(id, TenantPermission.Read)))
+  }
+
   // json codec for `TenantAccessGrant`
   given encoderTenantAccessGrant: JsonEncoder[TenantAccessGrant] =
     JsonEncoder.string.contramap(_.serialize)

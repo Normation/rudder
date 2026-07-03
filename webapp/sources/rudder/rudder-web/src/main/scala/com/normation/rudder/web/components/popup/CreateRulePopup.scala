@@ -220,7 +220,7 @@ class CreateOrCloneRulePopup(
           shortDescription = ruleShortDescription.get,
           longDescription = clonedRule.map(_.longDescription).getOrElse(""),
           isEnabledStatus = !clonedRule.isDefined,
-          security = qc.accessGrant.toSecurityTag
+          security = qc.accessGrant.restrictToWrite.toSecurityTag
         )
       }
 

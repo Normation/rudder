@@ -62,6 +62,19 @@ import zio.*
  *       - then we check for see, and for write
  */
 
+/*
+ * Note on authorization: repositories never reach into `cc.accessGrant.*` directly. All tenant and system
+ * authorization decisions go through the `TenantCheckLogic` service (`checkTenant`):
+ *   - `checkModify(obj, cc)`      : the actor may change/move `obj` (tenant write-visibility + system-admin-only),
+ *   - `checkWriteInto(cont, cc)`  : the actor may create/move children under container `cont` (tenant
+ *                                   write-visibility only - NOT system-gated, so objects can be created under
+ *                                   the shared/system root categories),
+ *   - `checkAdmin(cc)`            : admin-only operations that have no object to check (e.g. policy server targets),
+ *   - `manageCreate`/`manageUpdate`/`checkDelete` : the create/update/delete logic, which also enforce the
+ *     system-object admin-only rule (a system object can only be managed by an all-tenants grant, because a
+ *     change to a shared/global object can affect other tenants).
+ */
+
 // ----- Directives -----------------------------------
 
 class RoTenantDirectiveRepo(
@@ -215,7 +228,7 @@ class WoTenantDirectiveRepo(
       parentAt <- roRepo
                     .getActiveTechniqueByActiveTechnique(inActiveTechniqueId)
                     .notOptional(s"Can not find active technique with id '${inActiveTechniqueId.value}'")
-      _        <- cc.accessGrant.canModifyOrFail(parentAt)(ZIO.unit)
+      _        <- checkTenant.checkWriteInto(parentAt, cc)
       oldDir   <- roRepo.getActiveTechniqueAndDirective(DirectiveId(directive.id.uid))
       status   <- tenantService.getStatus
       result   <- checkTenant.manageUpdate(oldDir.map(_._2), directive, cc, status) { dir =>
@@ -239,8 +252,12 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       existing <- roRepo.getActiveTechniqueAndDirective(DirectiveId(id))
-      _        <- ZIO.foreach(existing)(p => checkTenant.checkDelete(p._2, cc).toIO)
-      result   <- underlying.delete(id)
+      // fail-closed: `roRepo` is tenant-filtered, so a `None` means the object is absent OR invisible to the
+      // actor. In both cases we must not delete through the underlying repo.
+      result   <- existing match {
+                    case None    => ZIO.none
+                    case Some(p) => checkTenant.checkDelete(p._2, cc).toIO *> underlying.delete(id)
+                  }
     } yield result
   }
 
@@ -248,8 +265,10 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       existing <- roRepo.getActiveTechniqueAndDirective(DirectiveId(id))
-      _        <- ZIO.foreach(existing)(p => checkTenant.checkDelete(p._2, cc).toIO)
-      result   <- underlying.deleteSystemDirective(id)
+      result   <- existing match {
+                    case None    => ZIO.none
+                    case Some(p) => checkTenant.checkDelete(p._2, cc).toIO *> underlying.deleteSystemDirective(id)
+                  }
     } yield result
   }
 
@@ -269,7 +288,7 @@ class WoTenantDirectiveRepo(
     )
     for {
       parentCat <- roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
-      _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
+      _         <- checkTenant.checkWriteInto(parentCat, cc)
       status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(probe, cc, status) { _ =>
                      underlying.addTechniqueInUserLibrary(categoryId, techniqueName, versions, policyTypes)
@@ -283,9 +302,9 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       at      <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _       <- cc.accessGrant.canModifyOrFail(at)(ZIO.unit)
+      _       <- checkTenant.checkModify(at, cc)
       destCat <- roRepo.getActiveTechniqueCategory(newCategoryId).notOptional(s"Category '${newCategoryId.value}' was not found")
-      _       <- cc.accessGrant.canModifyOrFail(destCat)(ZIO.unit)
+      _       <- checkTenant.checkWriteInto(destCat, cc)
       result  <- underlying.move(id, newCategoryId)
     } yield result
   }
@@ -294,7 +313,7 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       at     <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _      <- cc.accessGrant.canModifyOrFail(at)(ZIO.unit)
+      _      <- checkTenant.checkModify(at, cc)
       result <- underlying.changeStatus(id, status)
     } yield result
   }
@@ -305,7 +324,7 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       at     <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _      <- cc.accessGrant.canModifyOrFail(at)(ZIO.unit)
+      _      <- checkTenant.checkModify(at, cc)
       result <- underlying.setAcceptationDatetimes(id, datetimes)
     } yield result
   }
@@ -313,8 +332,9 @@ class WoTenantDirectiveRepo(
   override def deleteActiveTechnique(id: ActiveTechniqueId)(using cc: ChangeContext): IOResult[ActiveTechniqueId] = {
     given QueryContext = cc.toQC
     for {
-      existing <- roRepo.getActiveTechniqueByActiveTechnique(id)
-      _        <- ZIO.foreach(existing)(at => checkTenant.checkDelete(at, cc).toIO)
+      // fail-closed: refuse to delete an active technique the actor can't see (`roRepo` is tenant-filtered)
+      existing <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
+      _        <- checkTenant.checkDelete(existing, cc).toIO
       result   <- underlying.deleteActiveTechnique(id)
     } yield result
   }
@@ -325,7 +345,7 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       parentCat <- roRepo.getActiveTechniqueCategory(into).notOptional(s"Category '${into.value}' was not found")
-      _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
+      _         <- checkTenant.checkWriteInto(parentCat, cc)
       status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(that, cc, status)(cat => underlying.addActiveTechniqueCategory(cat, into))
     } yield result
@@ -347,8 +367,9 @@ class WoTenantDirectiveRepo(
   ): IOResult[ActiveTechniqueCategoryId] = {
     given QueryContext = cc.toQC
     for {
-      existing <- roRepo.getActiveTechniqueCategory(id)
-      _        <- ZIO.foreach(existing)(cat => checkTenant.checkDelete(cat, cc).toIO)
+      // fail-closed: refuse to delete a category the actor can't see (`roRepo` is tenant-filtered)
+      existing <- roRepo.getActiveTechniqueCategory(id).notOptional(s"Category '${id.value}' was not found")
+      _        <- checkTenant.checkDelete(existing, cc).toIO
       result   <- underlying.deleteCategory(id, checkEmpty)
     } yield result
   }
@@ -361,9 +382,9 @@ class WoTenantDirectiveRepo(
     given QueryContext = cc.toQC
     for {
       cat       <- roRepo.getActiveTechniqueCategory(categoryId).notOptional(s"Category '${categoryId.value}' was not found")
-      _         <- cc.accessGrant.canModifyOrFail(cat)(ZIO.unit)
+      _         <- checkTenant.checkModify(cat, cc)
       parentCat <- roRepo.getActiveTechniqueCategory(intoParent).notOptional(s"Category '${intoParent.value}' was not found")
-      _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
+      _         <- checkTenant.checkWriteInto(parentCat, cc)
       result    <- underlying.move(categoryId, intoParent, optionNewName)
     } yield result
   }
@@ -502,7 +523,7 @@ class WoTenantNodeGroupRepo(
     given QueryContext = cc.toQC
     for {
       parentCat <- roRepo.getGroupCategory(into)
-      _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
+      _         <- checkTenant.checkWriteInto(parentCat, cc)
       status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(nodeGroup, cc, status)(ng => underlying.create(ng, into))
     } yield result
@@ -560,9 +581,9 @@ class WoTenantNodeGroupRepo(
     for {
       existingOpt <- roRepo.getNodeGroupOpt(nodeGroupId)
       existing    <- existingOpt.map(_._1).notOptional(s"Group ${nodeGroupId.serialize} not found")
-      _           <- cc.accessGrant.canModifyOrFail(existing)(ZIO.unit)
+      _           <- checkTenant.checkModify(existing, cc)
       destCat     <- roRepo.getGroupCategory(containerId)
-      _           <- cc.accessGrant.canModifyOrFail(destCat)(ZIO.unit)
+      _           <- checkTenant.checkWriteInto(destCat, cc)
       result      <- underlying.move(nodeGroupId, containerId)
     } yield result
   }
@@ -583,7 +604,7 @@ class WoTenantNodeGroupRepo(
     given QueryContext = cc.toQC
     for {
       parent <- roRepo.getGroupCategory(into)
-      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
+      _      <- checkTenant.checkWriteInto(parent, cc)
       status <- tenantService.getStatus
       result <- checkTenant.manageUpdate[NodeGroupCategory, NodeGroupCategory, NodeGroupCategory](None, that, cc, status) { cat =>
                   underlying.addGroupCategoryToCategory(cat, into)
@@ -595,7 +616,6 @@ class WoTenantNodeGroupRepo(
     given QueryContext = cc.toQC
     for {
       old    <- roRepo.getGroupCategory(category.id)
-      _      <- cc.accessGrant.canModifyOrFail(old)(ZIO.unit)
       status <- tenantService.getStatus
       result <- checkTenant.manageUpdate(Some(old), category, cc, status)(cat => underlying.saveGroupCategory(cat))
     } yield result
@@ -603,27 +623,31 @@ class WoTenantNodeGroupRepo(
 
   override def saveGroupCategory(category: NodeGroupCategory, containerId: NodeGroupCategoryId)(implicit
       cc: ChangeContext
-  ): IOResult[NodeGroupCategory] =
-    underlying.saveGroupCategory(category, containerId)
+  ): IOResult[NodeGroupCategory] = {
+    checkTenant.checkModify(category, cc) *> underlying.saveGroupCategory(category, containerId)
+  }
 
   override def delete(id: NodeGroupCategoryId, checkEmpty: Boolean)(implicit
       cc: ChangeContext
   ): IOResult[NodeGroupCategoryId] = {
     given QueryContext = cc.toQC
     for {
-      catOpt <- roRepo.getGroupCategory(id).option
-      _      <- ZIO.foreach(catOpt)(cat => checkTenant.checkDelete(cat, cc).toIO)
+      // fail-closed: `getGroupCategory` (tenant-filtered) fails if the category is absent or invisible,
+      // so we never delete a category the actor can't see
+      cat    <- roRepo.getGroupCategory(id)
+      _      <- checkTenant.checkDelete(cat, cc).toIO
       result <- underlying.delete(id, checkEmpty)
     } yield result
   }
 
+  // a policy server target is a system topology object: only an administrator may create or delete it
   override def createPolicyServerTarget(target: PolicyServerTarget)(implicit cc: ChangeContext): IOResult[LDIFChangeRecord] =
-    underlying.createPolicyServerTarget(target)
+    checkTenant.checkAdmin(cc) *> underlying.createPolicyServerTarget(target)
 
   override def deletePolicyServerTarget(
       policyServer: PolicyServerTarget
   )(implicit cc: ChangeContext): IOResult[PolicyServerTarget] =
-    underlying.deletePolicyServerTarget(policyServer)
+    checkTenant.checkAdmin(cc) *> underlying.deletePolicyServerTarget(policyServer)
 }
 
 // ----- Rules -----------------------------------
@@ -664,7 +688,7 @@ class WoTenantRuleRepo(
     for {
       // an object can only be created in a category the user can see and modify
       parentCat <- roRuleCategory.get(rule.categoryId)
-      _         <- cc.accessGrant.canModifyOrFail(parentCat)(ZIO.unit)
+      _         <- checkTenant.checkWriteInto(parentCat, cc)
       status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
     } yield result
@@ -697,23 +721,27 @@ class WoTenantRuleRepo(
   override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = {
     for {
       existing <- roRepo.getOpt(ruleId)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(r => checkTenant.checkDelete(r, cc).toIO)
-      result   <- underlying.unload(ruleId)
+      // fail-closed: `roRepo` is tenant-filtered, so `None` means absent or invisible - do not touch storage
+      result   <- existing match {
+                    case None    => ZIO.unit
+                    case Some(r) => checkTenant.checkDelete(r, cc).toIO *> underlying.unload(ruleId)
+                  }
     } yield result
   }
 
   override def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
     for {
-      existing <- roRepo.getOpt(id)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(r => checkTenant.checkDelete(r, cc).toIO)
+      // fail-closed: refuse to delete a rule the actor can't see (`roRepo` is tenant-filtered)
+      existing <- roRepo.getOpt(id)(using cc.toQC).notOptional(s"Rule '${id.serialize}' was not found")
+      _        <- checkTenant.checkDelete(existing, cc).toIO
       result   <- underlying.delete(id)
     } yield result
   }
 
   override def deleteSystemRule(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
     for {
-      existing <- roRepo.getOpt(id)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(r => checkTenant.checkDelete(r, cc).toIO)
+      existing <- roRepo.getOpt(id)(using cc.toQC).notOptional(s"Rule '${id.serialize}' was not found")
+      _        <- checkTenant.checkDelete(existing, cc).toIO
       result   <- underlying.deleteSystemRule(id)
     } yield result
   }
@@ -772,8 +800,11 @@ class WoTenantParameterRepo(
   )(using cc: ChangeContext): IOResult[Option[DeleteGlobalParameterDiff]] = {
     for {
       existing <- roRepo.getGlobalParameter(parameterName)(using cc.toQC)
-      _        <- ZIO.foreach(existing)(p => checkTenant.checkDelete(p, cc).toIO)
-      result   <- underlying.delete(parameterName, provider)
+      // fail-closed: `roRepo` is tenant-filtered, so `None` means absent or invisible - do not touch storage
+      result   <- existing match {
+                    case None    => ZIO.none
+                    case Some(p) => checkTenant.checkDelete(p, cc).toIO *> underlying.delete(parameterName, provider)
+                  }
     } yield result
   }
 
@@ -818,7 +849,7 @@ class WoTenantRuleCategoryRepo(
     given QueryContext = cc.toQC
     for {
       parent <- roRepo.get(into)
-      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
+      _      <- checkTenant.checkWriteInto(parent, cc)
       status <- tenantService.getStatus
       result <- checkTenant.manageCreate(that, cc, status)(cat => underlying.create(cat, into))
     } yield result
@@ -828,8 +859,10 @@ class WoTenantRuleCategoryRepo(
     given QueryContext = cc.toQC
     for {
       old    <- roRepo.get(that.id)
+      // guard on both the existing and the submitted category, so a system category can't be edited nor
+      // turned into/out of a system one by a non-admin
       parent <- roRepo.get(into)
-      _      <- cc.accessGrant.canModifyOrFail(parent)(ZIO.unit)
+      _      <- checkTenant.checkWriteInto(parent, cc)
       status <- tenantService.getStatus
       result <- checkTenant.manageUpdate(Some(old), that, cc, status)(cat => underlying.updateAndMove(cat, into))
     } yield result
@@ -838,8 +871,9 @@ class WoTenantRuleCategoryRepo(
   override def delete(category: RuleCategoryId, checkEmpty: Boolean)(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
     given QueryContext = cc.toQC
     for {
-      old    <- roRepo.get(category).option
-      _      <- ZIO.foreach(old)(cat => checkTenant.checkDelete(cat, cc).toIO)
+      // fail-closed: `get` fails if the category does not exist, and `checkDelete` gates on tenant + system
+      old    <- roRepo.get(category)
+      _      <- checkTenant.checkDelete(old, cc).toIO
       result <- underlying.delete(category, checkEmpty)
     } yield result
   }

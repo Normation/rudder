@@ -47,6 +47,7 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import net.liftweb.common.*
 
 /**
@@ -107,10 +108,16 @@ class DynGroupUpdaterServiceImpl(
         case None        => Full(group)
         case Some(query) =>
           val timePreCompute = System.currentTimeMillis
+          // Tenant boundary: a dynamic group only ever contains nodes its own tenants can see, whatever the
+          // tenant grant of the actor triggering the update. We run the query under the group's tenant scope
+          // (untagged/`None` group => `All`, so non-tenant setups are unaffected).
+          val groupScopedQc  = qc.copy(accessGrant = TenantAccessGrant.fromSecurityScope(group.security))
           for {
             newMembers      <-
               queryProcessor.process(
                 query
+              )(using
+                groupScopedQc
               ) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
             timeGroupCompute = (System.currentTimeMillis - timePreCompute)
             _                = DynamicGroupLoggerPure.Timing.logEffect.trace(

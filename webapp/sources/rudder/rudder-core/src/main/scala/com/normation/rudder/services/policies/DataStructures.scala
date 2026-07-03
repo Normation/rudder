@@ -81,6 +81,7 @@ import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.schedule.JsonDirectiveSchedule
+import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.ConfigValue
 import java.time.Instant
 import scala.collection.immutable.TreeMap
@@ -822,3 +823,11 @@ final case class RuleVal(
     nodeIds:            Set[NodeId],
     parsedPolicyDrafts: Seq[ParsedPolicyDraft]
 )
+
+/*
+ * The per-node information needed to resolve a rule's targets to actual nodes during policy generation:
+ * whether the node is a policy server (used by the special targets), and its tenant security tag (used to
+ * enforce the tenant boundary). Both come from the same `NodeFact`, so they travel together rather than as
+ * two parallel `Map[NodeId, _]`.
+ */
+final case class NodeSecurityInfo(isPolicyServer: Boolean, security: Option[SecurityTag])

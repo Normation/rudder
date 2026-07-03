@@ -149,7 +149,7 @@ class TechniqueAcceptationUpdater(
             List(),
             List(),
             isSystem = false,
-            security = cc.accessGrant.toSecurityTag
+            security = cc.accessGrant.restrictToWrite.toSecurityTag
           )
 
           rwActiveTechniqueRepo

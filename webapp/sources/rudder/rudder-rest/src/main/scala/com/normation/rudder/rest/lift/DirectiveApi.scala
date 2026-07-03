@@ -403,7 +403,7 @@ class DirectiveApiService14(
                                "",
                                None,
                                _isEnabled = true,
-                               security = cc.accessGrant.toSecurityTag
+                               security = cc.accessGrant.restrictToWrite.toSecurityTag
                              )
           result          <- actualDirectiveCreation(restDirective, baseDirective, activeTechnique, technique)
         } yield {

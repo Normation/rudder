@@ -748,6 +748,8 @@ object NodeProperty {
   given HasSecurityTag[NodeProperty] with {
     extension (a: NodeProperty) {
       override def security: Option[SecurityTag] = a.security
+      // properties have no system notion
+      override def isSystem: Boolean             = false
       override def debugId:  String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): NodeProperty = a.withSecurity(security)
     }
@@ -794,6 +796,8 @@ object GroupProperty {
   given HasSecurityTag[GroupProperty] with {
     extension (a: GroupProperty) {
       override def security: Option[SecurityTag] = a.security
+      // properties have no system notion
+      override def isSystem: Boolean             = false
       override def debugId:  String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): GroupProperty = a.withSecurity(security)
     }
@@ -927,6 +931,8 @@ object GlobalParameter {
   given HasSecurityTag[GlobalParameter] with {
     extension (a: GlobalParameter) {
       override def security: Option[SecurityTag] = a.security
+      // global parameters have no system flag
+      override def isSystem: Boolean             = false
       override def debugId:  String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): GlobalParameter = a.withSecurity(security)
     }

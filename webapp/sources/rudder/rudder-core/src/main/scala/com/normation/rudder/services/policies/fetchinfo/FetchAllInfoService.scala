@@ -64,6 +64,7 @@ import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.services.policies.FetchAllInfo
+import com.normation.rudder.services.policies.NodeSecurityInfo
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.RuleValService
@@ -204,18 +205,18 @@ class FetchAllInfoServiceImpl(
    * to a context latter.
    */
   def buildRuleVals(
-      activeRuleIds:    Set[RuleId],
-      rules:            List[Rule],
-      directiveLib:     FullActiveTechniqueCategory,
-      allGroups:        FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
+      activeRuleIds: Set[RuleId],
+      rules:         List[Rule],
+      directiveLib:  FullActiveTechniqueCategory,
+      allGroups:     FullNodeGroupCategory,
+      nodes:         Map[NodeId, NodeSecurityInfo]
   ): IOResult[Seq[RuleVal]] = {
 
     val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
     for {
-      rawRuleVals <- appliedRules.accumulate { rule =>
-                       ruleValService.buildRuleVal(rule, directiveLib, allGroups, arePolicyServers)
-                     }.chainError("Could not find configuration vals")
+      rawRuleVals <- appliedRules
+                       .accumulate(rule => ruleValService.buildRuleVal(rule, directiveLib, allGroups, nodes))
+                       .chainError("Could not find configuration vals")
     } yield rawRuleVals
   }
 
@@ -294,14 +295,18 @@ class FetchAllInfoServiceImpl(
       ///// - number of rules: any rule without target or with only target with no node can be skipped
 
       ruleValTime0                             <- currentTimeMillis
-      arePolicyServers                          = nodeFacts.view.mapValues(_.rudderSettings.isPolicyServer).toMap
+      // per-node info (is-policy-server + tenant security tag) is the single source of truth derived from
+      // the node facts; `getAppliedRuleIds` only needs the is-policy-server projection.
+      nodeInfos                                 =
+        nodeFacts.view.mapValues(nf => NodeSecurityInfo(nf.rudderSettings.isPolicyServer, nf.rudderSettings.security)).toMap
+      arePolicyServers                          = nodeInfos.view.mapValues(_.isPolicyServer).toMap
       activeRuleIds                             = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
       ruleVals                                 <- buildRuleVals(
                                                     activeRuleIds,
                                                     allRules.toList,
                                                     directiveLib,
                                                     groupLib,
-                                                    arePolicyServers
+                                                    nodeInfos
                                                   ).chainError("Cannot build Rule vals")
       ruleValTime1                             <- currentTimeMillis
       timeRuleVal                               = ruleValTime1 - ruleValTime0

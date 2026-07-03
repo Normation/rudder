@@ -51,6 +51,11 @@ trait HasSecurityTag[A] {
   extension (a: A) {
     def security: Option[SecurityTag]
 
+    // Whether the object is a system (shared/global) object. System objects can only be managed by an
+    // administrator (all-tenants grant), so the tenant check logic needs to know it. There is no default:
+    // each instance states explicitly whether its type has a system notion (and how it is computed).
+    def isSystem: Boolean
+
     // update the security context of the object, returning is updated
     def updateSecurityContext(security: Option[SecurityTag]): A
 

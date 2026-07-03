@@ -236,7 +236,7 @@ class RuleCategoryPopup(
             categoryDescription.get,
             Nil,
             isSystem = false,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           )
 
           val parent = RuleCategoryId(categoryParent.get)

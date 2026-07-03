@@ -538,7 +538,7 @@ class GroupApiService14(
               isDynamic = true,
               serverList = Set(),
               _isEnabled = defaultEnabled,
-              security = cc.accessGrant.toSecurityTag
+              security = cc.accessGrant.restrictToWrite.toSecurityTag
             )
           }
 

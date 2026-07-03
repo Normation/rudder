@@ -46,10 +46,7 @@ import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.WindowsType
 import com.normation.inventory.ldap.core.TimingDebugLoggerPure
-import com.normation.ldap.sdk.BuildFilter.*
-import com.normation.ldap.sdk.FALSE
 import com.normation.plugins.SecureExtendableSnippet
-import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.ComplianceLogger
@@ -155,7 +152,7 @@ class HomePage extends SecureExtendableSnippet[HomePage] with StatefulSnippet wi
     )
   }
 
-  def details(html: NodeSeq):                                 NodeSeq = {
+  def details(html: NodeSeq):                              NodeSeq = {
     html
   }
   def pendingNodes(html: NodeSeq)(using qc: QueryContext): NodeSeq = {

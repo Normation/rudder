@@ -132,7 +132,7 @@ class CreateCloneGroupPopup(
                   Nil,
                   Nil,
                   isSystem = false,
-                  security = qc.accessGrant.toSecurityTag
+                  security = qc.accessGrant.restrictToWrite.toSecurityTag
                 ),
                 NodeGroupCategoryId(groupContainer.get)
               )(using
@@ -167,7 +167,7 @@ class CreateCloneGroupPopup(
               isDynamic,
               srvList,
               _isEnabled = true,
-              security = qc.accessGrant.toSecurityTag
+              security = qc.accessGrant.restrictToWrite.toSecurityTag
             )
 
             woNodeGroupRepository

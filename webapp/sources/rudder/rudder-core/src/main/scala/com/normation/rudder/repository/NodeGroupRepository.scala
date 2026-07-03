@@ -218,6 +218,7 @@ object FullNodeGroupCategory {
   given HasSecurityTag[FullNodeGroupCategory] with {
     extension (a: FullNodeGroupCategory) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): FullNodeGroupCategory = a.copy(security = security)
     }

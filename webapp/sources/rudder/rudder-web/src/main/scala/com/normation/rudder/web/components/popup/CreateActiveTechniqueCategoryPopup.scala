@@ -149,7 +149,7 @@ class CreateActiveTechniqueCategoryPopup(
             children = Nil,
             items = Nil,
             isSystem = false,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           ),
           ActiveTechniqueCategoryId(categoryContainer.get)
         )(using qc.newCC(Some("user created a new category")))

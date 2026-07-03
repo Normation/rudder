@@ -515,7 +515,7 @@ response:
     {
       "action": "updateDirective",
       "result": "error",
-      "errorDetails": "Could not start workflow for change request creation on Directive 'directive2'; cause was: Unexpected: Inconsistency: Object 'rpmPackageInstallation' can't be modified in current security context"
+      "errorDetails": "Could not start workflow for change request creation on Directive 'directive2'; cause was: Unexpected: Inconsistency: Objects can't be created or moved under 'rpmPackageInstallation' in the current security context"
     }
 ---
 description: zoneC cannot update the directive (object not visible)

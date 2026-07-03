@@ -109,6 +109,8 @@ object Rule {
     extension (a: Rule) {
       override def security: Option[SecurityTag] = a.security
 
+      override def isSystem: Boolean = a.isSystem
+
       override def debugId: String = a.id.debugString
 
       override def updateSecurityContext(security: Option[SecurityTag]): Rule =

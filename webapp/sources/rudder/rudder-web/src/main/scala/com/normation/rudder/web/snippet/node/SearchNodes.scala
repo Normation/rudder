@@ -146,7 +146,7 @@ class SearchNodes extends SecureDispatchSnippet with StatefulSnippet with Loggab
               serverList = serverList.openOr(Seq[CoreNodeFact]()).map(_.id).toSet,
               _isEnabled = true,
               isSystem = false,
-              security = qc.accessGrant.toSecurityTag
+              security = qc.accessGrant.restrictToWrite.toSecurityTag
             )
           ),
           rootCategory = groupLibrary,

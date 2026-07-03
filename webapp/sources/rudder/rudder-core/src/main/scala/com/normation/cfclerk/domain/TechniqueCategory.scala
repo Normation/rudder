@@ -66,6 +66,7 @@ object TechniqueCategoryMetadata {
   given HasSecurityTag[TechniqueCategoryMetadata] with {
     extension (a: TechniqueCategoryMetadata) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.name
       override def updateSecurityContext(security: Option[SecurityTag]): TechniqueCategoryMetadata = a.copy(security = security)
     }
@@ -253,6 +254,7 @@ object RootTechniqueCategory {
   given HasSecurityTag[RootTechniqueCategory] with {
     extension (a: RootTechniqueCategory) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.toString
       override def updateSecurityContext(security: Option[SecurityTag]): RootTechniqueCategory = a.copy(security = security)
     }
@@ -275,6 +277,7 @@ object SubTechniqueCategory {
   given HasSecurityTag[SubTechniqueCategory] with {
     extension (a: SubTechniqueCategory) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.toString
       override def updateSecurityContext(security: Option[SecurityTag]): SubTechniqueCategory = a.copy(security = security)
     }

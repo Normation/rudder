@@ -721,7 +721,7 @@ class DirectiveManagement extends SecureDispatchSnippet with Loggable {
             "",
             5,
             _isEnabled = true,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           )
         }
         updateDirectiveSettingForm(

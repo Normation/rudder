@@ -1651,7 +1651,7 @@ class SaveArchiveServicebyRepo(
                    Nil,
                    Nil,
                    isSystem = false,
-                   security = cc.accessGrant.toSecurityTag
+                   security = cc.accessGrant.restrictToWrite.toSecurityTag
                  )
       _       <- if (exists) {
                    woGroupRepos.saveGroupCategory(category, parentId)
@@ -1677,7 +1677,7 @@ class SaveArchiveServicebyRepo(
                  Nil,
                  Nil,
                  isSystem = false,
-                 security = cc.accessGrant.toSecurityTag
+                 security = cc.accessGrant.restrictToWrite.toSecurityTag
                ),
                GroupRootId
              )

@@ -144,6 +144,8 @@ object FullActiveTechnique {
   given HasSecurityTag[FullActiveTechnique] with {
     extension (a: FullActiveTechnique) {
       override def security: Option[SecurityTag] = a.security
+      // an active technique is "system" when it carries the system policy type
+      override def isSystem: Boolean             = a.policyTypes.isSystem
       override def debugId:  String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechnique = a.copy(security = security)
     }
@@ -305,7 +307,7 @@ final case class FullActiveTechniqueCategory(
             Nil,
             isEnabled = true,
             policyTypes = PolicyTypes.rudderBase,
-            security = cc.accessGrant.toSecurityTag // inherit user tenant creating that technique
+            security = cc.accessGrant.restrictToWrite.toSecurityTag // inherit user tenant creating that technique
           )
         case Some(fat) =>
           fat.modify(_.acceptationDatetimes).using(_ ++ newTimes).modify(_.techniques).using(_ ++ newTechs)
@@ -335,6 +337,7 @@ object FullActiveTechniqueCategory {
   given HasSecurityTag[FullActiveTechniqueCategory] with {
     extension (a: FullActiveTechniqueCategory) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechniqueCategory = a.copy(security = security)
     }

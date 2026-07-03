@@ -332,7 +332,7 @@ class NodeGroupCategoryForm(
         _nodeGroupCategory.children,
         _nodeGroupCategory.items,
         _nodeGroupCategory.isSystem,
-        security = qc.accessGrant.toSecurityTag
+        security = qc.accessGrant.restrictToWrite.toSecurityTag
       )
 
       woGroupCategoryRepository

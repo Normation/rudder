@@ -168,12 +168,37 @@ trait TenantCheckLogic {
   ): IOResult[B]
 
   /*
-   * Check if the node can be deleted given ChangeContext
+   * Check if the node can be deleted given ChangeContext. A delete is a write, so this enforces the same
+   * rules as `checkModify`: tenant write-visibility and, for system objects, admin-only.
    */
   def checkDelete[A: HasSecurityTag](
       existing: A,
       cc:       ChangeContext
   ): Either[RudderError, A]
+
+  /*
+   * The single write-authorization entry point for repositories. Check that the actor may change
+   * (create/update/move/delete) the given object:
+   *   - it must share a writable tenant with the object (tenant write-visibility), and
+   *   - if the object is a system object, the actor must be an administrator (all-tenants grant).
+   * Repositories must use this instead of reaching into `accessGrant.canModify*` directly, so that all
+   * the tenant/authorization logic lives here.
+   */
+  def checkModify[A: HasSecurityTag](a: A, cc: ChangeContext): IOResult[Unit]
+
+  /*
+   * Check that the actor may add or keep children under the given container (a parent category, a parent
+   * active technique, a move destination): it must share a writable tenant with the container. Unlike
+   * `checkModify`, this is NOT system-gated: tenant objects legitimately live under the shared/system root
+   * categories, so being able to create into a system container is a matter of tenant write-visibility only.
+   */
+  def checkWriteInto[A: HasSecurityTag](container: A, cc: ChangeContext): IOResult[Unit]
+
+  /*
+   * Check that the actor may perform an admin-only operation. Used for system operations that have no
+   * `HasSecurityTag` object to check (e.g. policy server targets). Fails unless the grant is all-tenants.
+   */
+  def checkAdmin(cc: ChangeContext): IOResult[Unit]
 
 }
 
@@ -301,9 +326,11 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
     // a read-only ('r') tenant access is dropped, as if the user didn't have the grant for that tenant.
     val writeGrant = cc.accessGrant.restrictToWrite
 
-    // whatever the status of "existing", if the plugin is disabled and there is a write grant
-    // different from '*' for user, then return an error
-    if (tenantStatus == TenantStatus.Disabled && writeGrant != TenantAccessGrant.All) {
+    // system objects (whether the existing one being changed, or the submitted one) can only be managed by
+    // an administrator (all-tenants grant), whatever the tenant scoping.
+    if ((existing.exists(_.isSystem) || updated.isSystem) && cc.accessGrant != TenantAccessGrant.All) {
+      systemAdminError(updated.debugId).fail
+    } else if (tenantStatus == TenantStatus.Disabled && writeGrant != TenantAccessGrant.All) {
       error(updated)
     } else if (writeGrant.isNone) {
       // the user has no tenant it can write on (e.g. read-only tenant access or no grant): it can't modify anything
@@ -376,12 +403,43 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       existing: A,
       cc:       ChangeContext
   ): Either[RudderError, A] = {
-    // delete is a write operation: only tenants with write permission are considered
-    if (cc.accessGrant.canModify(existing)) {
+    // a system object can only be deleted by an administrator (all-tenants grant)
+    if (existing.isSystem && cc.accessGrant != TenantAccessGrant.All) {
+      Left(systemAdminError(existing.debugId))
+    } else if (cc.accessGrant.canModify(existing)) {
+      // delete is a write operation: only tenants with write permission are considered
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case
       Left(Inconsistency(s"Object '${existing.debugId}' can't be deleted by ${cc.actor.name}"))
     }
   }
+
+  override def checkModify[A: HasSecurityTag](a: A, cc: ChangeContext): IOResult[Unit] = {
+    // a system object can only be changed by an administrator (all-tenants grant)
+    if (a.isSystem && cc.accessGrant != TenantAccessGrant.All) {
+      systemAdminError(a.debugId).fail
+    } else if (!cc.accessGrant.canModify(a)) {
+      Inconsistency(s"Object '${a.debugId}' can't be modified in the current security context").fail
+    } else ZIO.unit
+  }
+
+  override def checkWriteInto[A: HasSecurityTag](container: A, cc: ChangeContext): IOResult[Unit] = {
+    // tenant write-visibility only, NOT system-gated (children can be created under system root categories)
+    if (!cc.accessGrant.canModify(container)) {
+      Inconsistency(s"Objects can't be created or moved under '${container.debugId}' in the current security context").fail
+    } else ZIO.unit
+  }
+
+  override def checkAdmin(cc: ChangeContext): IOResult[Unit] = {
+    ZIO
+      .unless(cc.accessGrant == TenantAccessGrant.All)(
+        Inconsistency("This operation on a system object is only allowed to an administrator").fail
+      )
+      .unit
+  }
+
+  // error raised when a non-administrator (a tenant-restricted actor) tries to manage a system object
+  private def systemAdminError(debugId: String): RudderError =
+    Inconsistency(s"Only an administrator can create, modify or delete the system object '${debugId}'")
 }

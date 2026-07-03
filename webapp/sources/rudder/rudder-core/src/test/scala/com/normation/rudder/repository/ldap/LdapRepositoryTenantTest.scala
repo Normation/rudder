@@ -241,6 +241,48 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       )).runNow._1.security must beEqualTo(zoneA.accessGrant.toSecurityTag)
     }
   }
+  // A system object is admin-only to change, uniformly, *in addition to* tenant scoping: even a tenant
+  // user who can see and (tenant-wise) write a system object must be refused, because system objects are
+  // shared/global and a change can affect other tenants.
+  "[Groups] The system-object admin-only guard" should {
+    val sysGroupId = NodeGroupId(NodeGroupUid("system-zoneA-group"))
+    def sysGroup(desc: String): NodeGroup = {
+      NodeGroup(
+        sysGroupId,
+        "system-zoneA-group",
+        desc,
+        Nil,
+        None,
+        isDynamic = false,
+        serverList = Set(),
+        _isEnabled = true,
+        isSystem = true,
+        security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
+      )
+    }
+
+    "let an admin (grant '*') create a system group tagged with a tenant" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      (tenantRepo.setTenantEnabled(true) *> woGroupRepo.create(sysGroup("v1"), rootCat)).either.runNow must beRight
+    }
+    "confirm the zoneA user can actually see that system group (so the block below is the system guard, not tenant scoping)" in {
+      given qc: QueryContext = zoneA
+      roGroupRepo.getNodeGroupOpt(sysGroupId).runNow.map(_._1.id) must beSome(sysGroupId)
+    }
+    "refuse a tenant user (who can see it) from updating that system group" in {
+      given cc: ChangeContext = zoneA.newCC()
+      woGroupRepo.updateSystemGroup(sysGroup("v2-by-zoneA")).either.runNow must beLeft
+    }
+    "refuse a tenant user from deleting that system group" in {
+      given cc: ChangeContext = zoneA.newCC()
+      woGroupRepo.delete(sysGroupId).either.runNow must beLeft
+    }
+    "still let an admin update that system group" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      woGroupRepo.updateSystemGroup(sysGroup("v3-by-admin")).either.runNow must beRight
+    }
+  }
+
   "[Groups] Updating a group" should {
     "doesn't change the tag if the plugin is disabled" in {
       given cc: ChangeContext = ChangeContext.newForRudder()
