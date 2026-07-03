@@ -44,6 +44,9 @@ ignore = [
     "RUSTSEC-2026-0134",
     # We don't use diesel CopyToQuery with the PostgreSQL backend
     "RUSTSEC-2026-0136",
+    # DoS on unstrusted XML in quick-xml, acceptable
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
 ]
 
 [bans]
