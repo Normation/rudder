@@ -899,10 +899,6 @@ final case class PolicyArchiveMetadata(
     filename: String
 )
 
-case object PolicyArchiveMetadata {
-  def empty: PolicyArchiveMetadata = PolicyArchiveMetadata("")
-}
-
 final case class TechniqueCategoryArchive(
     metadata: TechniqueCategoryMetadata,
     // the path, last one is category with the metadata (ie also category id)
@@ -994,9 +990,9 @@ final case class PolicyArchive(
   // format: on
 }
 object PolicyArchive {
-  def empty: PolicyArchive = {
+  def empty(archiveName: String): PolicyArchive = {
     PolicyArchive(
-      PolicyArchiveMetadata.empty,
+      PolicyArchiveMetadata(archiveName),
       Chunk.empty,
       Chunk.empty,
       Chunk.empty,
@@ -1028,7 +1024,7 @@ final case class PolicyArchiveUnzip(
 )
 
 object PolicyArchiveUnzip {
-  def empty: PolicyArchiveUnzip = PolicyArchiveUnzip(PolicyArchive.empty, Chunk.empty)
+  def empty(archiveName: String): PolicyArchiveUnzip = PolicyArchiveUnzip(PolicyArchive.empty(archiveName), Chunk.empty)
 }
 
 sealed trait TechniqueType { def name: String }
@@ -1356,7 +1352,7 @@ class ZipArchiveReaderImpl(
                            )
       // check for ZipSlip path traversal
       _                 <- ZIO.foreach(zipEntries) { case (e, _) => ZipUtils.checkForZipSlip(e) }
-      withTechniques    <- parseTechniques(archiveName, PolicyArchiveUnzip.empty, techniqueUnzips)
+      withTechniques    <- parseTechniques(archiveName, PolicyArchiveUnzip.empty(archiveName), techniqueUnzips)
       _                 <-
         ApplicationLoggerPure.Archive.debug(
           s"Processing archive '${archiveName}': technique categories: '${sortedEntries.techniquesCats.map(_._1).mkString("', '")}'"
