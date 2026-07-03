@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024-2026 Normation SAS
 
 use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
+use log::debug;
 use std::process::Command;
 
 pub fn systemd_reboot() -> ResultOutput<()> {
@@ -41,4 +42,32 @@ pub fn systemd_restart_services(services: &[String]) -> ResultOutput<()> {
         CommandCapture::StdoutStderr,
     ));
     res.clear_ok()
+}
+
+pub fn systemd_get_restartable_services(services: &[String]) -> Vec<String> {
+    let mut res = Vec::new();
+
+    for service in services {
+        let output = Command::new("systemctl")
+            .arg("show")
+            .arg(service)
+            .arg("--property")
+            .arg("RefuseManualStop")
+            .arg("--value")
+            .output();
+
+        let output = match output {
+            Ok(o) if o.status.success() => o,
+            _ => continue,
+        };
+
+        let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+        if value.eq("no") {
+            res.push(service.to_string());
+        } else {
+            debug!("Skipping restart for service: '{service}' (RefuseManualStop=yes)");
+        }
+    }
+    res
 }
