@@ -243,3 +243,55 @@ response:
         "allowed_networks":["192.168.0.0/16","192.168.2.0/24","192.168.2.0/32"]
       }
     }
+---
+description: Modify allowed networks for root (only add)
+method: POST
+url: /api/latest/settings/allowed_networks/root/diff
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "allowed_networks": {
+      "add": [
+        "192.168.3.0/24",
+        "192.168.1.0/16"
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"modifyDiffAllowedNetworks",
+      "id":"root",
+      "result":"success",
+      "data":{
+        "allowed_networks":["192.168.0.0/16","192.168.1.0/16","192.168.2.0/24","192.168.2.0/32","192.168.3.0/24"]
+      }
+    }
+---
+description: Modify allowed networks for root (only delete)
+method: POST
+url: /api/latest/settings/allowed_networks/root/diff
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "allowed_networks": {
+      "delete": [
+        "192.168.1.0/16",
+        "192.168.2.0/32"
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"modifyDiffAllowedNetworks",
+      "id":"root",
+      "result":"success",
+      "data":{
+        "allowed_networks":["192.168.0.0/16","192.168.2.0/24","192.168.3.0/24"]
+       }
+    }

@@ -548,8 +548,8 @@ object JsonQueryObjects {
       allowed_networks: Option[JQAllowedNetworkDiff]
   )
   final case class JQAllowedNetworkDiff(
-      add:    Chunk[AllowedNetwork],
-      delete: Chunk[AllowedNetwork]
+      add:    Option[Chunk[AllowedNetwork]],
+      delete: Option[Chunk[AllowedNetwork]]
   )
 
 }
