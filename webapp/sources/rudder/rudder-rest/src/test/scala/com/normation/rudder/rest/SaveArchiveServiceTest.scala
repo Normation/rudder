@@ -123,7 +123,7 @@ class SaveArchiveServiceTest extends ZIOSpecDefault {
   }
 
   private def policyArchiveRuleCategory(rootCategory: RuleCategory) = {
-    PolicyArchive.empty.copy(ruleCats = Chunk.single(rootCategory.transformInto[RuleCategoryArchive]))
+    PolicyArchive.empty("test archive").copy(ruleCats = Chunk.single(rootCategory.transformInto[RuleCategoryArchive]))
   }
 
   /**
