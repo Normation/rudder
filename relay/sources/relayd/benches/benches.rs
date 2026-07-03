@@ -51,7 +51,7 @@ fn bench_nodeslist_certs(c: &mut Criterion) {
 
 fn bench_parse_runlog(c: &mut Criterion) {
     let runlog = read_to_string(
-        "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+        "tests/files/runlogs/2018-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
     )
     .unwrap();
     let info =
@@ -117,7 +117,7 @@ fn bench_insert_runlog(c: &mut Criterion) {
     assert_eq!(results.len(), 0);
 
     let runlog = RunLog::new(
-        "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
+        "tests/files/runlogs/2018-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.log",
     )
     .unwrap();
 
