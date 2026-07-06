@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
+// The whole suite drives cf-agent through `unix::test`, which only exists on Unix.
+#![cfg(target_family = "unix")]
 use std::{env, fs, fs::read_to_string, path::Path};
 
 use anyhow::anyhow;

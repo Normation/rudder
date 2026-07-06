@@ -31,6 +31,7 @@ from optparse import OptionParser
 
 import jinja2
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2.sandbox import SandboxedEnvironment
 
 try:
     import simplejson as json
@@ -39,7 +40,7 @@ except ImportError:
 
 PY3 = sys.version_info > (3,)
 
-def render(args):
+def render(args, sandboxed, inline):
     if len(args) == 1:
         data = sys.stdin.read()
     else:
@@ -59,16 +60,25 @@ def render(args):
         sys.stderr.write(str(err))
         sys.exit(1)
 
+    # Sandboxed: SandboxedEnvironment blocks Python-internals access (no code
+    # execution). A filesystem loader (for include/import/extends) is used only
+    # for trusted file-based templates, rooted at the template's own directory.
+    # Inline templates have no real directory (theirs is a temp file in the
+    # shared temp dir), so they get no loader.
+    use_loader = not sandboxed and not inline
+    env_class = SandboxedEnvironment if sandboxed else Environment
+    loader = FileSystemLoader(os.path.dirname(template_path)) if use_loader else None
+
     # keep_trailing_newline appeared in jinja 2.7, see http://jinja.pocoo.org/docs/dev/api/
     # we add a case for this as it can be really important in configuration management context
     if [int(x) for x in jinja2.__version__.split(".")[0:2]] >= [2, 7]:
-        env = Environment(
-            loader=FileSystemLoader(os.path.dirname(template_path)),
+        env = env_class(
+            loader=loader,
             keep_trailing_newline=True
         )
     else:
-        env = Environment(
-            loader=FileSystemLoader(os.path.dirname(template_path)),
+        env = env_class(
+            loader=loader,
         )
 
     env.undefined = StrictUndefined
@@ -93,24 +103,43 @@ def render(args):
             env.tests.update(CUSTOM_TESTS)
     sys.path.pop()
 
-    if PY3:
-      output = env.get_template(os.path.basename(template_path)).render(data)
+    if use_loader:
+        template = env.get_template(os.path.basename(template_path))
     else:
-      output = env.get_template(os.path.basename(template_path)).render(data).encode("utf-8")
+        # No loader, so load straight from content.
+        with open(template_path, encoding='utf-8') if PY3 else open(template_path) as f:
+            template = env.from_string(f.read())
+
+    if PY3:
+      output = template.render(data)
+    else:
+      output = template.render(data).encode("utf-8")
 
     sys.stdout.write(output)
 
 def main():
     parser = OptionParser(
-        usage="usage: %prog <template_file> [data_file]",
+        usage="usage: %prog [--sandboxed] [--inline] <template_file> [data_file]",
     )
-    _, args = parser.parse_args()
+    parser.add_option(
+        "--sandboxed",
+        action="store_true",
+        default=False,
+        help="restrict untrusted templates: sandboxed env, no filesystem access",
+    )
+    parser.add_option(
+        "--inline",
+        action="store_true",
+        default=False,
+        help="template is inline (no file loader for include/import/extends)",
+    )
+    options, args = parser.parse_args()
 
     if len(args) not in [1, 2]:
         parser.print_help()
         sys.exit(1)
 
-    render(args)
+    render(args, options.sandboxed, options.inline)
     sys.exit(0)
 
 if __name__ == '__main__':
