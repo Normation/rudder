@@ -497,12 +497,14 @@ class DependencyAndDeletionServiceImpl(
         for {
           configRules   <- findDependencies.findRulesForTarget(targetToDelete)
           updatedRules  <- ZIO.foreach(configRules)(updateRule)
-          deletedTarget <- woGroupRepository
-                             .delete(groupId)
-                             .chainError(
-                               "Error when deleting target %s. All dependent rules where updated %s"
-                                 .format(targetToDelete, configRules.map(_.id.serialize).mkString("(", ", ", ")"))
-                             )
+          deletedTarget <-
+            woGroupRepository
+              .delete(groupId)
+              .chainError(
+                s"Error when deleting target '${targetToDelete.target}'. All dependent rules where updated: ${configRules
+                    .map(_.id.serialize)
+                    .mkString("(", ", ", ")")}"
+              )
         } yield {
           TargetDependencies(targetToDelete, configRules.toSet)
         }

@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.IOStream
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.softwaremill.quicklens.*
 import scala.collection.MapView
 import zio.*
 import zio.stream.ZStream
@@ -345,10 +346,22 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
               action(updated.updateSecurityContext(None))
             // in the case of creation, we force the user tenant to its (writable) tenant
             case TenantStatus.Enabled(tenants) =>
-              if (writeGrant.canSee(updated)) {
-                action(updated)
-              } else {
-                action(updated.updateFromChangeContext(using cc))
+              cc.accessGrant match {
+                case TenantAccessGrant.All           =>
+                  // for admin, use admin logic: admin can chose tenant
+                  action(updated)
+                case TenantAccessGrant.None          =>
+                  // already manage above
+                  error(updated)
+                case TenantAccessGrant.ByTenants(ts) =>
+                  // restrict to the actual list of writeGrant intersect existing tenants
+                  val intersect = ts.filter(t => tenants.contains(t.id))
+                  if (intersect.isEmpty) {
+                    error(updated)
+                  } else {
+                    val restrictedCC = cc.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(intersect))
+                    action(updated.updateFromChangeContext(using restrictedCC))
+                  }
               }
           }
 

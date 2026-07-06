@@ -324,7 +324,7 @@ object JsonQueryObjects {
       value:       Option[ConfigValue],
       description: Option[String],
       inheritMode: Option[InheritMode],
-      security:    Option[SecurityTag] = None
+      security:    Option[SecurityTag]
   ) {
     def updateParameter(parameter: GlobalParameter): GlobalParameter = {
       // provider from API is force set to default.
@@ -962,7 +962,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
       value       <- params.parse2("value", GenericProperty.parseValue(_))
       inheritMode <- params.parse2("inheritMode", InheritMode.parseString(_))
     } yield {
-      JQGlobalParameter(params.optGet("id"), value, params.optGet("description"), inheritMode)
+      JQGlobalParameter(params.optGet("id"), value, params.optGet("description"), inheritMode, None)
     }
   }
 

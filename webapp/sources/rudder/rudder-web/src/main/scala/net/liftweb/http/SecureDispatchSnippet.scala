@@ -56,12 +56,12 @@ trait SecureDispatchSnippet extends DispatchSnippet {
     CurrentUser.queryContext.withQCOr(loggedInsecureDispatch)(secureDispatch)
   }
 
-  private def logInvaliAccess: Unit = ApplicationLoggerPure.Auth.logEffect.warn(
+  private def logInvalidAccess: Unit = ApplicationLoggerPure.Auth.logEffect.warn(
     s"Snippet '${this.getClass.getName}' can't be accessed in current security context (user is not authenticated)"
   )
 
   private def loggedInsecureDispatch: DispatchIt = {
-    logInvaliAccess
+    logInvalidAccess
     PartialFunction.empty
   }
 
@@ -69,7 +69,7 @@ trait SecureDispatchSnippet extends DispatchSnippet {
   // This need to be a val to avoid evaluation on ZIO runtime: https://github.com/Normation/rudder/pull/7188
   val snippetQC: QueryContext = {
     CurrentUser.queryContext.getOrElse {
-      logInvaliAccess
+      logInvalidAccess
       QueryContext.noneQC
     }
   }

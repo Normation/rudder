@@ -323,7 +323,7 @@ response:
     {
       "action": "deleteGroup",
       "result": "error",
-      "errorDetails": "Error when deleting target GroupTarget(NodeGroupId(NodeGroupUid(tenant-group-1),Revision(default))). All dependent rules where updated (); cause was: Unexpected: Inconsistency: Object 'tenant-group-1' can't be deleted by zoneB"
+      "errorDetails": "Error when deleting target 'group:tenant-group-1'. All dependent rules where updated: (); cause was: Unexpected: Inconsistency: Object 'tenant-group-1' can't be deleted by zoneB"
     }
 ---
 description: zoneC delete is a no-op (object not visible)
