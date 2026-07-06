@@ -41,15 +41,13 @@ import com.normation.errors.*
 import com.normation.rudder.*
 import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
-import com.normation.utils.DateFormaterService
-import com.normation.utils.DateFormaterService.toJavaInstant
 import com.normation.zio.*
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import org.joda.time.{Duration as JTDuration, *}
 import org.junit.runner.RunWith
 import zio.*
-import zio.Clock.currentTime
 import zio.syntax.*
 import zio.test.*
 import zio.test.Assertion.*
@@ -59,12 +57,11 @@ import zio.test.junit.ZTestJUnitRunner
 class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
 
   // the delay before / after configured window to change state for workflow
-  private val bufferDelayAroundRun = JTDuration.standardMinutes(5)
+  private val bufferDelayAroundRun = 5.minutes
   // the windows for exec "run" state
-  private def runWindow(d: DateTime) = (d.minusMinutes(1), d.plusMinutes(1))
+  private def runWindow(d: OffsetDateTime) = (d.minusMinutes(1), d.plusMinutes(1))
 
-  private val now: DateTime =
-    DateFormaterService.parseDate("2026-01-17T14:26:42Z").getOrElse(throw new RuntimeException("Bad test init"))
+  private val now: OffsetDateTime = OffsetDateTime.parse("2026-01-17T14:26:42Z")
 
   private val c0: TestCampaign = TestCampaign(
     CampaignInfo(
@@ -134,7 +131,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
       eventTrail.set(Nil) *> eventStore.set(Map()) *> nextEvent.set((boot, 0)) *> campaignHandlers.set(Nil)
     }
 
-    override def createNextScheduledCampaignEvent(campaign: Campaign, date: DateTime): IOResult[EventOrchestration] = {
+    override def createNextScheduledCampaignEvent(campaign: Campaign, date: OffsetDateTime): IOResult[EventOrchestration] = {
       for {
         x      <- nextEvent.get
         (eb, i) = x
@@ -183,7 +180,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         eventTrail.update(e :: _) *> eventStore.update(_ + (e.id -> e))
       }
 
-      def queueEvent(o: CampaignOrchestrationLogic, id: CampaignEventId, d: DateTime): IOResult[Unit] = {
+      def queueEvent(o: CampaignOrchestrationLogic, id: CampaignEventId, d: OffsetDateTime): IOResult[Unit] = {
         for {
           event <- eventStore.get.map(_.get(id)).notOptional("test:queue")
           // for testing purpose, we DON'T TSchedule next iteration but end the process.
@@ -195,10 +192,10 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
                      // close, we fork the process, then advance the clock
                    } else if (event.state.value == RunningType) {
                      for {
-                       t     <- currentTime(TimeUnit.MILLISECONDS)
-                       adjust = event.end.plusMillis(5).plus(bufferDelayAroundRun).getMillis - t
+                       t     <- currentOffsetDateTimeUTC
+                       adjust = Duration.fromInterval(t, event.end.plus(5L, ChronoUnit.MILLIS).plus(bufferDelayAroundRun))
                        f     <- o.handle(id, d, bufferDelayAroundRun, bufferDelayAroundRun).fork
-                       _     <- TestClock.adjust(Duration(adjust, TimeUnit.MILLISECONDS))
+                       _     <- TestClock.adjust(adjust)
                        _     <- f.await
                      } yield ()
                    } else {
@@ -209,13 +206,13 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
 
       for {
         o <- orchestrator.get.notOptional("error in test, no orchestrator")
-        d <- currentTime(TimeUnit.MILLISECONDS)
+        d <- currentOffsetDateTimeUTC
         _ <- ZIO
                .foreach(events) {
-                 case EventOrchestration.SaveAndQueue(e)              => saveEvent(e) *> queueEvent(o, e.id, new DateTime(d))
+                 case EventOrchestration.SaveAndQueue(e)              => saveEvent(e) *> queueEvent(o, e.id, d)
                  case EventOrchestration.SaveThenUpdateAndQueue(e, s) =>
-                   saveEvent(e) *> saveEvent(e.copy(state = s)) *> queueEvent(o, e.id, new DateTime(d))
-                 case EventOrchestration.Queue(id)                    => queueEvent(o, id, new DateTime(d))
+                   saveEvent(e) *> saveEvent(e.copy(state = s)) *> queueEvent(o, e.id, d)
+                 case EventOrchestration.Queue(id)                    => queueEvent(o, id, d)
                  case EventOrchestration.SaveAndStop(e)               => saveEvent(e)
                  case EventOrchestration.IgnoreAndStop                => ZIO.unit
                }
@@ -261,7 +258,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
       test("When there is no handler, a campaign event should stop immediately") {
         for {
           _ <- Effects.reset(eb0)
-          _ <- TestClock.setTime(now.toJavaInstant)
+          _ <- TestClock.setTime(now.toInstant)
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
@@ -272,7 +269,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
       test("if before date-1h then stop at schedule") {
         for {
           _ <- Effects.reset(eb0)
-          _ <- TestClock.setTime(now.minusDays(1).toJavaInstant)
+          _ <- TestClock.setTime(now.minusDays(1).toInstant)
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
@@ -284,7 +281,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         for {
           _ <- Effects.reset(eb0)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
-          _ <- TestClock.setTime(now.toJavaInstant)
+          _ <- TestClock.setTime(now.toInstant)
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e0.id)).notOptional("missing event in store")
@@ -309,7 +306,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         for {
           _ <- Effects.reset(eb1)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
-          _ <- TestClock.setTime(now.toJavaInstant)
+          _ <- TestClock.setTime(now.toInstant)
           n <- Effects.createNextScheduledCampaignEvent(failingCampaign, now)
           _ <- Effects.saveAndQueueEvent(n)
           e <- Effects.eventStore.get.map(_.get(e1.id)).notOptional("missing event in store")
