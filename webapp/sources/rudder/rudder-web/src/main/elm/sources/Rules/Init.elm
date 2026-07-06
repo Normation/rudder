@@ -13,6 +13,7 @@ import Rudder.Table exposing (Column, ColumnName(..), FilterOptionsType(..), bui
 import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (badgePolicyModeNoGlobal, buildTagsTree)
+import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, SubCategories(..), defaultTableFilters)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
@@ -88,6 +89,7 @@ initTable =
                             [ badgePolicyModeNoGlobal rule.policyMode
                             , text rule.name
                             , buildTagsTree rule.tags
+                            , badgeSecurityTags rule.security
                             ]
                 , ordering = Ordering.byField (.name >> String.toLower)
                 }

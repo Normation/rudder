@@ -10,6 +10,7 @@ import NaturalOrdering
 import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (..)
 import String
+import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (SortOrder(..), filterSearch)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
@@ -148,6 +149,7 @@ buildRulesTable model rules =
                     [ badgePolicyMode model.policyMode r.policyMode
                     , text r.name
                     , buildTagsTree r.tags
+                    , badgeSecurityTags r.security
                     ]
                 , td [] [ categoryName ]
                 , td [] [ displayStatus ]
