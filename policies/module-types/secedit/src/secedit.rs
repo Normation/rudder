@@ -121,8 +121,14 @@ fn parse_config(path: &Path) -> Result<Ini> {
         enabled_quote: false,
         ..Default::default()
     };
-    let template = Ini::load_from_str_opt(&data, opt)
+    let mut template = Ini::load_from_str_opt(&data, opt)
         .with_context(|| format!("Failed to read template file '{}'", path.display()))?;
+
+    template
+        .with_section(Some("Privilege Rights"))
+        .set("SeTrustedCredManAccessPrivilege", "")
+        .set("SeRelabelPrivilege", "")
+        .set("SeUnsolicitedInputPrivilege", "");
 
     Ok(template)
 }
@@ -488,5 +494,24 @@ mod test {
             "*S-1-5-32-551,*S-1-1-0,*S-1-5-32-545,*S-1-5-32-544",
         );
         assert!(res);
+    }
+
+    #[test]
+    fn test_injecting_missing_keys() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/config.ini");
+        let mut config = parse_config(&path).unwrap();
+        let data = json!({
+          "Privilege Rights": {
+            "SeTrustedCredManAccessPrivilege": "*S-1-1-0",
+            "SeRelabelPrivilege": "*S-1-1-0",
+            "SeUnsolicitedInputPrivilege": "*S-1-1-0",
+          }
+        });
+        let data = data.as_object().unwrap();
+        let report = config_search_and_replace(&mut config, &Ini::new(), data).unwrap();
+        assert_eq!(
+            report.diff,
+            "\n- SeRelabelPrivilege=\n+ SeRelabelPrivilege=*S-1-1-0\n- SeTrustedCredManAccessPrivilege=\n+ SeTrustedCredManAccessPrivilege=*S-1-1-0\n- SeUnsolicitedInputPrivilege=\n+ SeUnsolicitedInputPrivilege=*S-1-1-0"
+        );
     }
 }
