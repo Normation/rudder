@@ -45,3 +45,13 @@ parameters:
       allow_empty: true
       allow_whitespace_string: false
     p_type: bool
+  mode:
+    description: "Trust level for the template content: 'sandboxed' limits the risk from untrusted content (including filesystem access), 'unrestricted' removes those limits (defaults to sandboxed)"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+      select:
+        - "sandboxed"
+        - "unrestricted"
+      default: "sandboxed"
+    p_type: String

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
+#[cfg(target_family = "unix")]
 pub mod unix {
-    use std::{fs, path::Path};
+    use std::{fs, os::unix::fs::PermissionsExt, path::Path};
 
     use assert_cmd::{Command, prelude::*};
     use predicates::prelude::*;
@@ -32,7 +33,10 @@ pub mod unix {
         fs::copy(cfe_dir.join("cf-promises"), bin_dir.join("cf-promises")).unwrap();
         // write test policy into promises.cf
         fs::create_dir(work_dir.path().join("inputs")).unwrap();
-        fs::write(policy_path, policy.as_bytes()).unwrap();
+        fs::write(&policy_path, policy.as_bytes()).unwrap();
+        // cf-agent refuses to load a policy file that is writable by group or
+        // others, so restrict it regardless of the environment's umask.
+        fs::set_permissions(&policy_path, fs::Permissions::from_mode(0o600)).unwrap();
 
         let action_policy = match policy_mode {
             PolicyMode::Enforce => "fix",
