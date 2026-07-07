@@ -1051,7 +1051,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       zioJsonExtractor,
       uuidGen,
       userPropertyService,
-      groupService14
+      groupService14,
+      mockCompliance.complianceAPIService
     ),
     new SettingsApi(
       settingsService.configService,

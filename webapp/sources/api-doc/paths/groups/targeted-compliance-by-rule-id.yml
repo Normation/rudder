@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2026 Normation SAS
+get:
+  summary: Targeted compliance details of a group by rule
+  description: Get targeted compliance of a group with only rules that explicitly include the group, sorted by rule
+  operationId: getTargetedNodeGroupComplianceByRuleId
+  parameters:
+    - in: query
+      name: format
+      schema:
+        type: string
+        enum:
+          - csv
+          - json
+        default: json
+      description: format of export
+      style: form
+      explode: false
+    - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
+    - $ref: ../../components/parameters/target-or-node-group-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getTargetedNodeGroupComplianceByRuleId
+              data:
+                type: object
+                required:
+                  - rules
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-rule-compliance.yml
+        text/plain:
+          schema:
+            type: string
+          example: |
+            "Rule","Directive","Block","Component","Node","Value","Status","Message"
+            "R3","directive2","","directive2-component-r3-n1","node1.localhost","directive2-component-value-r3-n1","error",""
+  tags:
+    - Groups
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/targeted-compliance-by-rule-id.sh
+
+

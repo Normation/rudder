@@ -66,3 +66,29 @@ getTargetedGroupCompliance model =
                 }
     in
     req
+
+
+getGlobalGroupComplianceByRuleCSV : String -> Model -> Cmd Msg
+getGlobalGroupComplianceByRuleCSV filename model =
+    request
+        { method = "GET"
+        , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+        , url = getUrl model [ "groups", model.groupId.value, "compliance", "global", "byRule" ] [ Url.Builder.string "format" "csv" ]
+        , body = emptyBody
+        , expect = expectString (RuleComplianceCsvExported filename)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getTargetedGroupComplianceByRuleCSV : String -> Model -> Cmd Msg
+getTargetedGroupComplianceByRuleCSV filename model =
+    request
+        { method = "GET"
+        , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+        , url = getUrl model [ "groups", model.groupId.value, "compliance", "targeted", "byRule" ] [ Url.Builder.string "format" "csv" ]
+        , body = emptyBody
+        , expect = expectString (RuleComplianceCsvExported filename)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
