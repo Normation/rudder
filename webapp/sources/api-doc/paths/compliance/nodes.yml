@@ -3,7 +3,7 @@
 get:
   summary: Compliance details for all nodes
   description: Get current compliance of all the nodes of a Rudder server
-  operationId: getNodesCompliance
+  operationId: getNodesComplianceOld
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
     - $ref: ../../components/parameters/compliance-percent-precision.yml

@@ -1080,7 +1080,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       userPropertyService,
       new NodeApiInheritedProperties(mockNodes.propRepo),
       uuidGen,
-      DeleteMode.Erase
+      DeleteMode.Erase,
+      mockCompliance.complianceAPIService
     ),
     new GroupsApi(
       mockNodeGroups.propService,

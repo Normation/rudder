@@ -2,7 +2,9 @@ port module Nodecompliance exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Date
 import Dict
+import File.Download
 import Http exposing (..)
 import NodeCompliance.ApiCalls exposing (..)
 import NodeCompliance.DataTypes exposing (..)
@@ -160,6 +162,27 @@ update msg model =
 
                 Err err ->
                     processApiError "Getting node compliance" err newModel
+
+        ExportCsv cmd ->
+            ( model, cmd )
+
+        ExportNodeCompliance nodeId date ->
+            let
+                timeStr =
+                    date |> Date.format "yyyy-MM-dd"
+
+                filename =
+                    "rudder_node_" ++ nodeId.value ++ "_compliance_" ++ timeStr ++ ".csv"
+            in
+            ( model, getNodeComplianceCsv filename model )
+
+        NodeComplianceCsvExported filename result ->
+            case result of
+                Ok content ->
+                    ( model, File.Download.string filename "text/csv" content )
+
+                Err error ->
+                    processApiError "exporting node compliance to CSV" error model
 
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )

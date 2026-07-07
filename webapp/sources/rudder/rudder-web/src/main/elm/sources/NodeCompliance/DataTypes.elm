@@ -1,6 +1,7 @@
 module NodeCompliance.DataTypes exposing (..)
 
 import Compliance.DataTypes exposing (..)
+import Date
 import Http exposing (Error)
 import Ui.Datatable exposing (SortOrder, TableFilters)
 
@@ -86,3 +87,6 @@ type Msg
     | GetNodeComplianceResult (Result Error NodeCompliance)
     | CallApi (Model -> Cmd Msg)
     | Refresh
+    | ExportCsv (Cmd Msg)
+    | ExportNodeCompliance NodeId Date.Date
+    | NodeComplianceCsvExported String (Result Error String)

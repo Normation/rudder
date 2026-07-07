@@ -1694,3 +1694,956 @@ response:
         "policyMode":"enforce","state":"enabled"
       }
     }
+---
+description: Get node compliance
+method: GET
+url: /secure/api/nodes/bn1/compliance
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeComplianceId",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "bn1",
+            "name" : "node1.localhost",
+            "compliance" : 66.66,
+            "mode" : "full-compliance",
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "successRepaired" : 33.33,
+              "error" : 33.34
+            },
+            "rules" : [
+              {
+                "id" : "br1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-br3-bn1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get node compliance in CSV format
+method: GET
+url: /secure/api/nodes/bn1/compliance
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Rule","Directive","Block","Component","Value","Status","Message"
+    "R1","directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9","","e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1","e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1","successAlreadyOK",""
+    "R3","directive2","","directive2-component-br3-bn1","directive2-component-value-br3-bn1","error",""
+    "R2","directive 99f4ef91-537b-4e03-97bc-e65b447514cc","","99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1","99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1","successRepaired",""
+---
+description: Get system node compliance
+method: GET
+url: /secure/api/nodes/bn1/compliance/system
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeSystemCompliance",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "bn1",
+            "name" : "node1.localhost",
+            "compliance" : 66.66,
+            "mode" : "full-compliance",
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "successRepaired" : 33.33,
+              "error" : 33.34
+            },
+            "rules" : []
+          }
+        ]
+      }
+    }
+---
+description: Get system node compliance in CSV format
+method: GET
+url: /secure/api/nodes/bn1/compliance/system
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Rule","Directive","Block","Component","Value","Status","Message"
+---
+description: Get compliance for all nodes
+method: GET
+url: /secure/api/nodes/compliance
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodesCompliance",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "n2",
+            "name" : "node1.localhost",
+            "compliance" : 50.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 50.0,
+              "error" : 50.0
+            },
+            "rules" : [
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n2",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n2",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn5",
+            "name" : "node1.localhost",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br4",
+                "name" : "R4",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br6",
+                "name" : "R6",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 0.0,
+                    "policyMode" : "skipped",
+                    "complianceDetails" : {},
+                    "components" : []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn3",
+            "name" : "node1.localhost",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br4",
+                "name" : "R4",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn3",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn3",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "n3",
+            "name" : "node1.localhost",
+            "compliance" : 0.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {},
+            "rules" : []
+          },
+          {
+            "id" : "n1",
+            "name" : "node1.localhost",
+            "compliance" : 66.66,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "successRepaired" : 33.33,
+              "error" : 33.34
+            },
+            "rules" : [
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn2",
+            "name" : "node1.localhost",
+            "compliance" : 66.67,
+            "mode" : "full-compliance",
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "successAlreadyOK" : 66.67,
+              "error" : 33.33
+            },
+            "rules" : [
+              {
+                "id" : "br4",
+                "name" : "R4",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-br3-bn2",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn2",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn1",
+            "name" : "node1.localhost",
+            "compliance" : 66.66,
+            "mode" : "full-compliance",
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "successRepaired" : 33.33,
+              "error" : 33.34
+            },
+            "rules" : [
+              {
+                "id" : "br1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-br3-bn1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn4",
+            "name" : "node1.localhost",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br4",
+                "name" : "R4",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br4-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br6",
+                "name" : "R6",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 0.0,
+                    "policyMode" : "skipped",
+                    "complianceDetails" : {},
+                    "components" : []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }

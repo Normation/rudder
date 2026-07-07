@@ -39,10 +39,10 @@ getNodeCompliance model =
     let
         url =
             if model.onlySystem then
-                [ "compliance", "nodes", model.nodeId.value, "system" ]
+                [ "nodes", model.nodeId.value, "compliance", "system" ]
 
             else
-                [ "compliance", "nodes", model.nodeId.value ]
+                [ "nodes", model.nodeId.value, "compliance" ]
 
         req =
             request
@@ -51,6 +51,30 @@ getNodeCompliance model =
                 , url = getUrl model url []
                 , body = emptyBody
                 , expect = expectJson GetNodeComplianceResult decodeGetNodeCompliance
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req
+
+
+getNodeComplianceCsv : String -> Model -> Cmd Msg
+getNodeComplianceCsv filename model =
+    let
+        url =
+            if model.onlySystem then
+                [ "nodes", model.nodeId.value, "compliance", "system" ]
+
+            else
+                [ "nodes", model.nodeId.value, "compliance" ]
+
+        req =
+            request
+                { method = "GET"
+                , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+                , url = getUrl model url [ Url.Builder.string "format" "csv" ]
+                , body = emptyBody
+                , expect = expectString (NodeComplianceCsvExported filename)
                 , timeout = Nothing
                 , tracker = Nothing
                 }

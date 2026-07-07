@@ -497,7 +497,33 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val (action, path) = GET / "nodes" / "pending" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Node.Read :: Nil
   }
-  case object NodeDetails        extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex   {
+
+  case object GetNodesCompliance extends NodeApi with GeneralApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance information for all nodes"
+    val (action, path) = GET / "nodes" / "compliance"
+    val authz: List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+
+  /**
+   * this compliance is more about how rudder works on that node, it's not really "compliance"
+   * so, it can be accessed with node read rights
+   */
+  case object GetNodeSystemCompliance extends NodeApi with InternalApi with OneParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance information for the system rules that are applied to the given node"
+    val (action, path) = GET / "nodes" / "{id}" / "compliance" / "system"
+    val authz: List[AuthorizationType] = AuthorizationType.Compliance.Read :: AuthorizationType.Node.Read :: Nil
+  }
+
+  case object GetNodeComplianceId extends NodeApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance information for every rule that is applied to the given node"
+    val (action, path) = GET / "nodes" / "{id}" / "compliance"
+    val authz: List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+
+  case object NodeDetails extends NodeApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get information about the given accepted node"
     val (action, path) = GET / "nodes" / "{id}"
@@ -614,6 +640,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     override def dataContainer: Option[String]          = None
     val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
+
   def endpoints: List[NodeApi] = values.toList.sortBy(_.z)
 
   def values = findValues
