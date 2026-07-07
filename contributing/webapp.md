@@ -1,34 +1,3 @@
-<style>
-    .pitfall {
-        border-radius: 5px; 
-        margin: 0 0 1em; 
-        padding: 0.5em 1em; 
-        border: 3px solid #ffb46e; 
-        background-color: #ff7b00; 
-        font-style: italic; 
-        color:white;
-    }
-    .code-format {
-        color:white;
-    }
-    code .pitfall {
-        color:white;
-    }
-
-    .success {
-        border-radius: 5px; 
-        margin: 0 0 1em; 
-        padding: 0.5em 1em; 
-        border: 3px solid #488759; 
-        background-color: #0a521d; 
-        font-style: italic;
-    }   
-    code .success {
-        color: white;
-    }
-
-</style>
-
 # How to setup your development's environment for Rudder's web application
 
 ## Synopsis
@@ -69,7 +38,9 @@ $DOWNLOAD_PASSWORD="<password>"
 - Create a command line launcher by going running `Create a command line launcher...` from the `Tools` menu
 - Edit `~/.bashrc` and add Intellij bin path to `$PATH`, save and close `.bashrc`
 
-> Note: this is an example of path to add in the .bashrc file `export $PATH="/usr/local/bin/idea-IC-252.25557.131/bin:$PATH"`
+> [!TIP]
+> This is an example of path to add in the .bashrc file `export $PATH="/usr/local/bin/idea-IC-252.25557.131/bin:$PATH"`
+
 - Source `.bashrc` to update `$PATH` running `source ~/.bashrc` in your terminal
 - Check if the `$PATH` is properly updated by running `echo $PATH` you should the idea path. For instance:
 ```
@@ -77,31 +48,35 @@ echo $PATH
 /usr/local/bin/idea-IC-252.25557.131/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
 ```
 
-<div class="success">
-<span style="font-weight: bold;">Congrats!</span> You can start intellij in command line from anywhere by executing <code>idea</code> in a terminal.
-</div>
+> [!NOTE]
+> ✅ Congrats! You can start intellij in command line from anywhere by executing `idea` in a terminal.
 
 
 - Create a Desktop entry by running `Create a desktop entry...` from the `Tools` menu, see https://youtrack.jetbrains.com/articles/SUPPORT-A-56/How-to-handle-Switch-to-a-native-launcher-notification
 
-<div class="success">
-<span style="font-weight: bold;">Congrats!</span> Now you can exit IDEA and start it from the system menu. If a new menu entry is not shown, restart your login session.
-</div>
+
+> [!NOTE]
+> ✅ Congrats! Now you can exit IDEA and start it from the system menu. 
+> If a new menu entry is not shown, restart your login session.
+
 
 ### Install a jdk
 
 Install a recent JDK, the latest LTS version should be fine. Ensure that it's really a JDK, not only the 
 Java runtime (JRE). 
 
-> Note: avoid using `apt` to install an open jdk, the jdk packaged by ubuntu do not work (strange behaviors compiling rudder webapp). 
+> [!TIP]
+> Avoid using `apt` to install an open jdk, the jdk packaged by ubuntu do not work (strange behaviors compiling rudder webapp).
 
+> [!TIP]
 > Suggestion: see `sdkman` for a handy open source java installer.
 
 Run `java -version` to validate
 
 ### ldap apache directory studio installation
 
-> Note: a jre is required
+> [!IMPORTANT]
+> A jre is required
 
 Download and install `ApacheDirectoryStudio`. https://directory.apache.org/studio/download/download-linux.html#verifyIntegrity in `/usr/local/bin`.
 Add `/usr/local/bin/ApacheDirectoryStudio` path in the `$PATH` variable of the `~/.barshrc` file.
@@ -110,9 +85,9 @@ Run `ApacheDirectoryStudio`
 
 ![img_2.png](img_2.png)
 
-<div class="success">
-<span style="font-weight: bold;">Congrats!</span> You succeed to run <code class="code-format">ApachDirectoryStudio</code>
-</div>
+> [!NOTE]
+> ✅ Congrats! You succeed to run `ApachDirectoryStudio`
+
 
 ### Rudder Test framework (RTF) installation
 
@@ -132,50 +107,49 @@ cd ~/Workspace/rudder-tests
 ./rtf platorm setup debian<latest>
 ```
 
-<div class="pitfall">
-<span style="font-weight: bold;">Pitfall</span>: maybe you will need to disable the secure boot in the bios
-</div>
+> [!WARNING]
+> Pitfall: maybe you will need to disable the secure boot in the bios
 
-<div class="pitfall">
-<span style="font-weight: bold;">Pitfall</span>: maybe you will need to update the address used to be within the allowed
+> [!WARNING]
+> Pitfall: maybe you will need to update the address used to be within the allowed
 ranges and run the command again if the IP address configured for the host-only network is not within the
-allowed ranges. </br> 
-Valid ranges can be modified in the <code class="code-format">/etc/vbox/networks.conf</code> file. </br>
-For more information including valid format see:</br>
+allowed ranges.
+> 
+> 
+> Valid ranges can be modified in the `/etc/vbox/networks.conf` file.
+> 
+> For more information including valid format see:
+> https://www.virtualbox.org/manual/ch06.html#network_hostonly
 
-https://www.virtualbox.org/manual/ch06.html#network_hostonly
 
-</div>
+> [!WARNING]
+> Pitfall: When running ./rtf
+> 
+> ```
+> Stderr: Warning: program compiled against libxml 212 using older 209
+> ```
+> 
+> If you have this error the version of ubuntu and virtualbox are probably incompatible. Maybe you downloaded a .deb file from the website not compatible with your system.
+> 
+> If so remove the .deb:
+> ```
+>  ps aux | grep -i vbox
+>  sudo apt purge virtualbox-<version>
+>  sudo apt install virtualbox
+> ```
+> You can also update your system.
 
-<div class="pitfall">
-<span style="font-weight: bold;">Pitfall</span>: When running ./rtf
 
-<code style="color:white;">Stderr: Warning: program compiled against libxml 212 using older 209</code>
-<br />
-If you have this error the version of ubuntu and virtualbox are probably incompatible. Maybe you downloaded a .deb file from the website not compatible with your system.<br/>
-
-If so remove the .deb: <br />
-<code style="color: white;">ps aux | grep -i vbox</code><br/>
-<code style="color: white;">sudo apt purge virtualbox-<version></code><br/>
-<code style="color: white;">sudo apt install virtualbox</code><br/>
-
-You can also update your system.
-
-</div>
-
-<div class="pitfall">
-<span style="font-weight: bold;">Pitfall</span>: When running ./rtf
-
-<span style="font-family: Courier New;">Stderr: VBoxManage: error: VirtualBox can't enable the AMD-V extension. Please disable the KVM kernel extension, recompile your kernel and reboot (VERR_SVM_IN_USE)</span>
-</div>
 
 ![img.png](img.png)
 
-Run <code>VirtualBox</code>, you should see 3 virtual machines running.
-<div class="success">
-<span style="font-weight: bold;">Congrats!</span> You succeed to run <code class="code-format">./rtf</code> which validates <code class="code-format">virtualbox</code> and <code class="code-format">vagrant</code>. Now let's go further and see how to configure <code class="code-format">rudder-tests</code> for your needs.
+Run `VirtualBox`, you should see 3 virtual machines running.
 
-</div>
+
+> [!NOTE]
+> ✅ Congrats! You succeed to run `./rtf` which validates `virtualbox` and `vagrant`. 
+> Now let's go further and see how to configure `rudder-tests` for your needs.
+
 
 ## Part 1 : Setup `rudder-tests` and `rudder` local environment
 
@@ -192,7 +166,8 @@ Create a `<dev_env_name>.json` file in `./platform/` and put your platform's con
 
 > NOTE: The dev.json platform is well-suited for tests in a developer environment, but some additional steps are required in order to configure it properly. These steps are described in the "Developer platform configuration" section.
 
-> Note: no `.` are allowed in the name of the file except for the extension `.json` or it doesn't work properly.
+> [!IMPORTANT]
+> The character dot : `.` is not allowed in the name of the file except for the extension `.json` or it doesn't work properly.
 
 Here is the most minimalistic example of a functional configuration:
 
@@ -237,9 +212,8 @@ You can find the port number back in the Vagrantfile.
 ```
 vagrant ssh <env-name>_server
 ```
-<div class="success">
-<span style="font-weight: bold;">Congrats!</span> You succeed to start your own test environment.
-</div>
+> [!NOTE]
+> ✅ Congrats! You succeed to start your own test environment.
 
 #### Test LDAP connection
 
@@ -254,7 +228,8 @@ vagrant ssh <env-name>_server
    rootdn should look like that :
    `rootdn   "cn=Manager,cn=rudder-configuration"`
 
-> Note: You have to open the file with a root user, or you will see an empty file which is totally confusing.
+> [!TIP]
+> You have to open the file with a root user, or you will see an empty file which is totally confusing.
 
 3. Run Apache Directory Studio (installed in Part 0)
 4. in _LDAP -> New Connection_
@@ -577,6 +552,9 @@ Clone rudder repository, if not already done
 ```
 sudo ln -s <Workspace>/rudder/policies/lib /usr/share/ncf
 mkdir -p /var/rudder/configuration-repository/ncf 
+mkdir -p /var/rudder/ncf/common/
+cp <Workspace>/rudder/policies/lib/tree/* /var/rudder/ncf/common/
+sudo chown <user>:rudder -R /var/rudder/ncf
 ```
 
 ```
