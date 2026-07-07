@@ -80,6 +80,8 @@ import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.*
 import com.normation.rudder.inventory.DefaultProcessInventoryService
 import com.normation.rudder.inventory.InventoryFailedHook
 import com.normation.rudder.inventory.InventoryFileWatcher
@@ -1078,14 +1080,24 @@ object RudderParsedProperties {
   val INVENTORY_DIR_RECEIVED: String = INVENTORY_ROOT_DIR + "/received"
   val INVENTORY_DIR_UPDATE:   String = INVENTORY_ROOT_DIR + "/accepted-nodes-updates"
 
-  val WATCHER_ENABLE: Boolean = {
+  val WATCHER_ENABLE:                         Boolean  = {
     try {
       config.getBoolean("inventories.watcher.enable")
     } catch {
       case ex: ConfigException => true
     }
   }
-
+  val RUN_WITH_SUDO_NO_ENV:                   SudoRun  = {
+    try {
+      if (config.getBoolean("command.with.sudo")) then WithSudo else WithoutSudo
+    } catch {
+      case ex: ConfigException => WithSudo
+    }
+  }
+  val RUN_WITH_SUDO_HOOKS:                    SudoRun  = RUN_WITH_SUDO_NO_ENV match {
+    case WithSudo => WithSudoPreserveEnv
+    case r        => r
+  }
   val WATCHER_GARBAGE_OLD_INVENTORIES_PERIOD: Duration = {
     try {
       Duration.fromScala(
@@ -1694,7 +1706,7 @@ object RudderConfigInit {
       (done: Boolean) => configService.set_rudder_setup_done(value = done).chainError("Could not get 'setup done' property")
     )
 
-    lazy val rudderPackageService = new RudderPackageCmdService(RUDDER_PACKAGE_CMD)
+    lazy val rudderPackageService = new RudderPackageCmdService(RUDDER_PACKAGE_CMD, RUN_WITH_SUDO_NO_ENV)
     lazy val pluginSystemService  = new PluginsServiceImpl(
       rudderPackageService,
       PluginsInfo.plugins,
@@ -2048,7 +2060,7 @@ object RudderConfigInit {
 //      new FactRepositoryPostCommit[Unit](factRepo, nodeFactInfoService)
         // deprecated: we use fact repo now
 //      :: new PostCommitLogger(ldifInventoryLogger)
-        new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository)
+        new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository, RUN_WITH_SUDO_HOOKS)
         // removed: this is done as a callback of CoreNodeFactRepos
         // :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, stringUuidGenerator)
         :: Nil
@@ -2102,7 +2114,8 @@ object RudderConfigInit {
         INVENTORY_DIR_FAILED,
         new InventoryFailedHook(
           HOOKS_D,
-          HOOKS_IGNORE_SUFFIXES
+          HOOKS_IGNORE_SUFFIXES,
+          RUN_WITH_SUDO_HOOKS
         )
       )
       new DefaultProcessInventoryService(inventoryProcessorInternal, mover)
@@ -3140,7 +3153,8 @@ object RudderConfigInit {
         HOOKS_D,
         HOOKS_IGNORE_SUFFIXES,
         RUDDER_CHARSET.value,
-        Some(RUDDER_GROUP_OWNER_GENERATED_POLICIES)
+        Some(RUDDER_GROUP_OWNER_GENERATED_POLICIES),
+        RUN_WITH_SUDO_HOOKS
       )
     }
 
@@ -3182,11 +3196,12 @@ object RudderConfigInit {
     lazy val policyGenerationHookService    = new PolicyGenerationHookServiceImpl(
       HOOKS_D,
       HOOKS_IGNORE_SUFFIXES,
-      UPDATED_NODE_IDS_COMPABILITY
+      UPDATED_NODE_IDS_COMPABILITY,
+      RUN_WITH_SUDO_HOOKS
     )
     lazy val deploymentService              = {
       val writeCertificate        = new WriteCertificatesPemServiceImpl(
-        new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD)),
+        new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD), RUN_WITH_SUDO_HOOKS),
         better.files.File("/var/rudder/lib/ssl/allnodescerts.pem")
       )
       val buildNodeContext        = new NodeContextBuilderImpl(interpolationCompiler, systemVariableService)
@@ -3262,7 +3277,7 @@ object RudderConfigInit {
         unitRefuseGroup ::
         Nil
       }
-      val hooksRunner  = new NewNodeManagerHooksImpl(nodeFactRepository, HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+      val hooksRunner  = new NewNodeManagerHooksImpl(nodeFactRepository, HOOKS_D, HOOKS_IGNORE_SUFFIXES, RUN_WITH_SUDO_HOOKS)
 
       val composedManager = new ComposedNewNodeManager[Unit](
         nodeFactRepository,
@@ -3526,7 +3541,8 @@ object RudderConfigInit {
       newNodeManagerImpl,
       postNodeDeleteActions,
       HOOKS_D,
-      HOOKS_IGNORE_SUFFIXES
+      HOOKS_IGNORE_SUFFIXES,
+      RUN_WITH_SUDO_HOOKS
     )
 
     lazy val healthcheckService = new HealthcheckService(
@@ -3541,7 +3557,7 @@ object RudderConfigInit {
     lazy val campaignSerializer             = new CampaignSerializer()
     lazy val campaignEventRepo              = new CampaignEventRepositoryImpl(doobie, campaignSerializer)
     lazy val campaignHooksRepository        = new FsCampaignHooksRepository(HOOKS_D)
-    lazy val campaignHooksService           = new FsCampaignHooksService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+    lazy val campaignHooksService           = new FsCampaignHooksService(HOOKS_D, HOOKS_IGNORE_SUFFIXES, RUN_WITH_SUDO_HOOKS)
     lazy val campaignArchiver               = new CampaignArchiverImpl(gitConfigRepo, "campaigns", personIdentService)
 
     lazy val campaignRepo = CampaignRepositoryImpl

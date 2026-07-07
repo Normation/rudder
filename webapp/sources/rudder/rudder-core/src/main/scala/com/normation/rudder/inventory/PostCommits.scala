@@ -50,6 +50,7 @@ import com.normation.rudder.facts.nodes.NodeFactStorage
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.currentTimeMillis
@@ -68,7 +69,8 @@ import zio.syntax.*
 class PostCommitInventoryHooks[A](
     HOOKS_D:               String,
     HOOKS_IGNORE_SUFFIXES: List[String],
-    nodeFactRepo:          NodeFactRepository
+    nodeFactRepo:          NodeFactRepository,
+    sudoRun:               SudoRun
 ) extends PostCommit[A] {
   import QueryContext.todoQC
   import scala.jdk.CollectionConverters.*
@@ -108,7 +110,8 @@ class PostCommitInventoryHooks[A](
                                        ("RUDDER_AGENT_TYPE", inventory.node.agents.headOption.map(_.agentType.id).getOrElse("unknown"))
                                      ),
                                      systemEnv,
-                                     1.minutes // warn if a hook took more than a minute
+                                     1.minutes, // warn if a hook took more than a minute
+                                     sudoRun = sudoRun
                                    )
                      timeHooks1 <- currentTimeMillis
                      _          <- PureHooksLogger.For(n).trace(s"Inventory received hooks ran in ${timeHooks1 - timeHooks0} ms")

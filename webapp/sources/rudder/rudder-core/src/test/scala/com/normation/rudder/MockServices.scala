@@ -88,6 +88,7 @@ import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.ncf.DeleteEditorTechnique
 import com.normation.rudder.ncf.EditorTechniqueCompilationResult
 import com.normation.rudder.ncf.EditorTechniqueReader
@@ -2685,7 +2686,8 @@ class MockNodes() {
     newNodeManager,
     Ref.make(List.empty[PostNodeDeleteAction]).runNow,
     "",
-    List.empty
+    List.empty,
+    WithoutSudo
   ) {
     override def buildHooksEnv(nodeInfo: CoreNodeFact): IOResult[(HookEnvPairs, HookEnvPairs)] = {
       (HookEnvPairs(List.empty), HookEnvPairs(List.empty)).succeed

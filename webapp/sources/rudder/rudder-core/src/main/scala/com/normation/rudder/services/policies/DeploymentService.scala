@@ -74,6 +74,7 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.Hooks
 import com.normation.rudder.hooks.HooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.repository.*
 import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.schedule.DirectiveScheduleEvent
@@ -1358,7 +1359,8 @@ class PolicyGenerationHookServiceImpl(
     // file, it's just a constant.
     HOOKS_D:                           String,
     HOOKS_IGNORE_SUFFIXES:             List[String],
-    postGenerationHookCompabilityMode: Option[Boolean]
+    postGenerationHookCompabilityMode: Option[Boolean],
+    sudoRun:                           SudoRun
 ) extends PolicyGenerationHookService {
 
   /*
@@ -1393,7 +1395,8 @@ class PolicyGenerationHookServiceImpl(
           name,
           preHooks,
           HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)),
-          systemEnv
+          systemEnv,
+          sudoRun = sudoRun
         ) match {
           case _: HookReturnCode.Success => ().succeed
           case x: HookReturnCode.Error   =>
@@ -1414,7 +1417,13 @@ class PolicyGenerationHookServiceImpl(
       // fetch all
       preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       _        <-
-        RunHooks.asyncRun(name, preHooks, HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)), systemEnv)
+        RunHooks.asyncRun(
+          name,
+          preHooks,
+          HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)),
+          systemEnv,
+          sudoRun = sudoRun
+        )
     } yield ()
   }
 
@@ -1582,7 +1591,8 @@ class PolicyGenerationHookServiceImpl(
                            name,
                            postHooks,
                            HookEnvPairs.build(envParams*),
-                           systemEnv
+                           systemEnv,
+                           sudoRun = sudoRun
                          )
 
     } yield ()
@@ -1648,7 +1658,8 @@ class PolicyGenerationHookServiceImpl(
                         name,
                         failureHooks,
                         HookEnvPairs.build(envParams*),
-                        systemEnv
+                        systemEnv,
+                        sudoRun = sudoRun
                       )
     } yield ()
   }

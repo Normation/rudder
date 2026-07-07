@@ -38,6 +38,7 @@
 package com.normation.rudder.hooks
 
 import com.normation.errors.*
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.zio.*
 import java.io.File
 import org.joda.time.DateTime
@@ -69,7 +70,7 @@ class RunNuCommandTest() extends Specification {
     "has only the environment variable explicitly defined" in {
       val prog = {
         for {
-          p <- RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar"), None))
+          p <- RunNuCommand.run(Cmd("env", Nil, Map("PATH" -> PATH, "foo" -> "bar"), None, WithoutSudo))
           c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           s"return code=${c.code}\n" ++
@@ -86,7 +87,7 @@ class RunNuCommandTest() extends Specification {
       // (we have one more line because last line ends with a "\n"
       val prog = {
         for {
-          p <- RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH), None))
+          p <- RunNuCommand.run(Cmd("ls", "-1" :: "/proc/self/fd" :: Nil, Map("PATH" -> PATH), None, WithoutSudo))
           c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           (c.code, c.stdout.split("\n").size)
@@ -104,7 +105,7 @@ class RunNuCommandTest() extends Specification {
 
       val prog = {
         for {
-          p <- RunNuCommand.run(Cmd("mkdir", "-p" :: file.getPath :: Nil, Map("PATH" -> PATH), None))
+          p <- RunNuCommand.run(Cmd("mkdir", "-p" :: file.getPath :: Nil, Map("PATH" -> PATH), None, WithoutSudo))
           c <- p.await.timeout(500.millis).notOptional("oups, timed out")
         } yield {
           c.code

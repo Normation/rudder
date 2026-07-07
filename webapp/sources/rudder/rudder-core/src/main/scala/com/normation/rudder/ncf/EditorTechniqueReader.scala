@@ -13,6 +13,7 @@ import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.ncf.Constraint.Constraint
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
@@ -180,7 +181,7 @@ class EditorTechniqueReaderImpl(
     // We want everything in configuration repository to belong to the "rudder" group
     val groupOwner    = "rudder"
 
-    val cmd = Cmd(ruddercCmd, ruddercParams ::: ruddercLibs, Map.empty, None)
+    val cmd = Cmd(ruddercCmd, ruddercParams ::: ruddercLibs, Map.empty, None, WithoutSudo)
     for {
       _         <- RuddercLogger.debug(s"Reading generic methods information with command: '${cmd.display}'")
       updateCmd <- RunNuCommand.run(cmd)
