@@ -41,6 +41,7 @@ import com.normation.NamedZioLogger
 import com.normation.RudderLogger
 import com.normation.box.*
 import com.normation.errors.*
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.zio.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -242,7 +243,8 @@ object RunHooks {
       envVariables:    HookEnvPairs,
       globalWarnAfter: Duration = 1.minutes,
       unitWarnAfter:   Duration = 30.seconds,
-      unitKillAfter:   Duration = 5.minutes
+      unitKillAfter:   Duration = 5.minutes,
+      sudoRun:         SudoRun
   ): IOResult[(HookReturnCode, Long)] = {
     asyncRunHistory(
       logIdentifier,
@@ -252,7 +254,8 @@ object RunHooks {
       HookExecutionHistory.DoNotKeep,
       globalWarnAfter,
       unitWarnAfter,
-      unitKillAfter
+      unitKillAfter,
+      sudoRun
     ).map { case (c, _, d) => (c, d) }
   }
 
@@ -283,7 +286,8 @@ object RunHooks {
       history:         HookExecutionHistory,
       globalWarnAfter: Duration = 1.minutes,
       unitWarnAfter:   Duration = 30.seconds,
-      unitKillAfter:   Duration = 5.minutes
+      unitKillAfter:   Duration = 5.minutes,
+      sudoRun:         SudoRun
   ): IOResult[(HookReturnCode, List[(String, HookReturnCode)], Long)] = {
     import HookReturnCode.*
 
@@ -356,7 +360,7 @@ object RunHooks {
                        .warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}")
                        .delay(warnTimeout)
                        .fork
-                p <- RunNuCommand.run(Cmd(path, Nil, env.toMap, Some(hooks.basePath)))
+                p <- RunNuCommand.run(Cmd(path, Nil, env.toMap, Some(hooks.basePath), sudoRun))
                 r <- p.await.timeout(killTimeout).flatMap {
                        case Some(ok) =>
                          ok.succeed
@@ -436,7 +440,8 @@ object RunHooks {
       envVariables:    HookEnvPairs,
       globalWarnAfter: Duration = 1.minutes,
       unitWarnAfter:   Duration = 30.seconds,
-      unitKillAfter:   Duration = 5.minutes
+      unitKillAfter:   Duration = 5.minutes,
+      sudoRun:         SudoRun
   ): HookReturnCode = {
     asyncRun(
       logIdentifier,
@@ -445,7 +450,8 @@ object RunHooks {
       envVariables,
       globalWarnAfter,
       unitWarnAfter,
-      unitKillAfter
+      unitKillAfter,
+      sudoRun
     ).either.runNow match {
       case Right(x)  => x._1
       case Left(err) =>

@@ -57,6 +57,7 @@ import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
+import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
@@ -338,7 +339,8 @@ class InventoryProcessor(
 
 class InventoryFailedHook(
     HOOKS_D:               String,
-    HOOKS_IGNORE_SUFFIXES: List[String]
+    HOOKS_IGNORE_SUFFIXES: List[String],
+    sudoRun:               SudoRun
 ) {
   import scala.jdk.CollectionConverters.*
 
@@ -357,7 +359,8 @@ class InventoryFailedHook(
                                        ("RUDDER_INVENTORY_PATH", file.pathAsString)
                                      ),
                                      systemEnv,
-                                     1.minutes // warn if a hook took more than a minute
+                                     1.minutes, // warn if a hook took more than a minute
+                                     sudoRun = sudoRun
                                    )
                      timeHooks1 <- currentTimeMillis
                      _          <- PureHooksLogger.For(name).trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")

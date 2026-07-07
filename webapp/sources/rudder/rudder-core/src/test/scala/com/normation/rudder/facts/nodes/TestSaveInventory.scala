@@ -53,6 +53,7 @@ import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.git.GitRepositoryProviderImpl
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.inventory.DefaultProcessInventoryService
 import com.normation.rudder.inventory.InventoryFailedHook
 import com.normation.rudder.inventory.InventoryMover
@@ -548,7 +549,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
     val mover = new InventoryMover(
       INVENTORY_DIR_RECEIVED,
       INVENTORY_DIR_FAILED,
-      new InventoryFailedHook("/tmp", Nil)
+      new InventoryFailedHook("/tmp", Nil, WithoutSudo)
     )
     new DefaultProcessInventoryService(inventoryProcessorInternal, mover)
   }

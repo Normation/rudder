@@ -44,6 +44,7 @@ import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
+import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.zio.currentTimeNanos
 import enumeratum.*
@@ -303,7 +304,7 @@ class RuddercServiceImpl(
       ("--directory" :: techniquePath.pathAsString :: "build" :: Nil)
     }
 
-    Cmd(ruddercCmd, params, Map("NO_COLOR" -> "1"), None)
+    Cmd(ruddercCmd, params, Map("NO_COLOR" -> "1"), None, WithoutSudo)
   }
 
   def logReturnCode(result: RuddercResult): IOResult[Unit] = {

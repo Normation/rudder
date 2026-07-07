@@ -764,6 +764,11 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
 #
 rudder.package.cmd=/opt/rudder/bin/rudder package
 
+
+# Rudder will run some commands as sudo such as rudder package commands, or any hooks it should run
+# This should be disabled on environment development only.
+command.with.sudo=true
+
 ########################
 # Relayd reload command ########################################################
 ########################
