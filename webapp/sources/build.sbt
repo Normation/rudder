@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter
 // ---- versions surfaced into resources / artifacts ----
 val rudderVersion      = "9.2.0~alpha1-SNAPSHOT"
 val rudderMajorVersion = "9.2"
+// I think we don't really need that, or should not have it
 val currentYear        = "2026"
 
 // ---- shared settings for every module ----------------------------------------------------------
@@ -69,7 +70,7 @@ ThisBuild / semanticdbEnabled := true
 ThisBuild / excludeDependencies += ExclusionRule("commons-logging", "commons-logging")
 
 // javac options — Maven's maven-compiler-plugin used <release>17</release>. Without this,
-// javac compiles against the host JDK API (21+), where java.lang.StringTemplate exists and
+// javac compiles against the host JDK API (21+), where for ex java.lang.StringTemplate exists and
 // collides with org.antlr.stringtemplate.StringTemplate in the generated ANTLR parser.
 ThisBuild / javacOptions ++= Seq("--release", "17", "-encoding", "UTF-8")
 
@@ -86,6 +87,7 @@ lazy val commonSettings = Seq(
   // surefire did). Forward any -Dtest.* / -Dtests.* so e.g. `sbt -Dtest.postgres=true test`
   // enables the Postgres tests (DBCommon: test.postgres in {true,1}), like Maven did.
   Test / javaOptions ++= sys.props.collect {
+    // not sure about the key pattern. We could make things consistant in code and only use "tests" everywhere.
     case (k, v) if k.startsWith("test.") || k.startsWith("tests.") => s"-D$k=$v"
   }.toSeq,
   // Run test classes sequentially, like maven-surefire (forkCount=1, parallel=none). sbt
@@ -127,7 +129,7 @@ def versionPropertiesGen = Def.task {
       .replace("${rudder-major-version}", rudderMajorVersion)
       .replace("${version}", rudderVersion)
       .replace("${current-year}", currentYear)
-      .replace("${build-timestamp}", ts)
+      .replace("${build-timestamp}", ts) // one reason for not reproducible build
     IO.write(out, filtered)
     Seq(out)
   } else Seq.empty
