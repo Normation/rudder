@@ -18,6 +18,12 @@ GitHub or CI directly, and never act "in the name of" the human. Produce changes
 the human reviews the diff and performs all commits, pushes, PRs, and merges. Remind the
 contributor to disclose AI assistance in the PR.
 
+## Rust - read the skill first
+
+Before reading, writing, rewiewing or refactoring Rust code in this repository,
+read [`.claude/skills/rudder-rust/SKILL.md`](.claude/skills/rudder-rust/SKILL.md),
+nothing there is Claude-specific.
+
 ## Scala conventions — read the skill first
 
 Before reading, writing, reviewing, or refactoring **Scala** in this repo, read the
@@ -47,7 +53,7 @@ These files are vendor-neutral Markdown — read them directly regardless of you
 (The `.claude/skills/` path is also where Claude Code auto-discovers the same content as
 a "skill", but nothing in the files is Claude-specific.)
 
-## Scope
+### Scope
 
 The conventions apply to the Scala code in **`rudder`** and in the sibling plugin repos
 **`rudder-plugins`** and **`rudder-plugins-private`** (same stack: `IOResult`/
