@@ -75,6 +75,7 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.{ComplianceApi as API, *}
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.CsvCompliance.*
+import com.normation.rudder.rest.data.CsvCompliance.CsvComplianceOpaqueTypes.*
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.tenants.QueryContext
@@ -517,7 +518,7 @@ class ComplianceAPIService(
        val bidule = groupsComponents.flatMap { case (nodeId, c) => c.subComponents.map(sub => (nodeId, sub)) }
          .groupBy(_._2.componentName)
        ByRuleBlockCompliance(
-         name,
+         BlockName(name),
          groupsComponents.map(_._2.reportingLogic).head,
          bidule.flatMap(c => components(nodeFacts, globalMode)(c._1, c._2)).toList
        ) :: Nil
@@ -525,7 +526,7 @@ class ComplianceAPIService(
                Nil
              } else {
                ByRuleValueCompliance(
-                 name,
+                 ValueName(name),
                  ComplianceLevel.sum(
                    uniqueComponents.map(_._2.compliance)
                  ), // here, we finally group by nodes for each components !
@@ -537,7 +538,10 @@ class ComplianceAPIService(
                        val policyMode  = ComputePolicyMode.nodeMode(globalMode, optNodeInfo.flatMap(_.rudderSettings.policyMode))
                        ByRuleNodeCompliance(
                          nodeId,
-                         optNodeInfo.map(_.fqdn).getOrElse("Unknown node"),
+                         optNodeInfo.map(_.fqdn) match {
+                           case Some(value) => NodeName(value)
+                           case None        => NodeName.from(nodeId)
+                         },
                          policyMode,
                          ComplianceLevel.sum(components.map(_._2.compliance)),
                          components.sortBy(_._2.componentName).flatMap(_._2.componentValues)
@@ -781,7 +785,7 @@ class ComplianceAPIService(
                 }
                 ByRuleDirectiveCompliance(
                   directiveId,
-                  directive.map(_._2.name).getOrElse("Unknown directive"),
+                  DirectiveName(directive.map(_._2.name).getOrElse("Unknown directive")),
                   ComplianceLevel.sum(
                     nodeDirectives.map(_._2.compliance)
                   ),

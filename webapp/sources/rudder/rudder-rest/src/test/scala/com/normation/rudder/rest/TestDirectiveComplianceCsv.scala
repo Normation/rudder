@@ -57,6 +57,7 @@ import com.normation.rudder.rest.data.ByRuleBlockCompliance
 import com.normation.rudder.rest.data.ByRuleNodeCompliance
 import com.normation.rudder.rest.data.ByRuleValueCompliance
 import com.normation.rudder.rest.data.CsvCompliance
+import com.normation.rudder.rest.data.CsvCompliance.CsvComplianceOpaqueTypes.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
@@ -111,16 +112,16 @@ class TestDirectiveComplianceCsv extends Specification {
           enforce,
           Seq(
             ByRuleBlockCompliance(
-              "Check Cipher TLS_RSA_WITH_DES_CBC_SHA",
+              BlockName("Check Cipher TLS_RSA_WITH_DES_CBC_SHA"),
               ReportingLogic.WeightedReport,
               Seq(
                 ByRuleValueCompliance(
-                  "Command execution",
+                  ValueName("Command execution"),
                   notUsed,
                   List(
                     ByRuleNodeCompliance(
                       NodeId("n1"),
-                      "prod-www-01.lab.rudder.io",
+                      NodeName("prod-www-01.lab.rudder.io"),
                       enforce,
                       notUsed,
                       Seq(
@@ -141,7 +142,7 @@ class TestDirectiveComplianceCsv extends Specification {
                     ),
                     ByRuleNodeCompliance(
                       NodeId("n1"),
-                      "prod-windows-2016.demo.normation.com",
+                      NodeName("prod-windows-2016.demo.normation.com"),
                       enforce,
                       notUsed,
                       Seq(
@@ -163,12 +164,12 @@ class TestDirectiveComplianceCsv extends Specification {
                   )
                 ),
                 ByRuleValueCompliance(
-                  "Audit from Powershell execution",
+                  ValueName("Audit from Powershell execution"),
                   notUsed,
                   List(
                     ByRuleNodeCompliance(
                       NodeId("n1"),
-                      "prod-app-01.lab.rudder.io",
+                      NodeName("prod-app-01.lab.rudder.io"),
                       enforce,
                       notUsed,
                       Seq(
@@ -189,7 +190,7 @@ class TestDirectiveComplianceCsv extends Specification {
                     ),
                     ByRuleNodeCompliance(
                       NodeId("n1"),
-                      "prod-windows-2016.demo.normation.com",
+                      NodeName("prod-windows-2016.demo.normation.com"),
                       enforce,
                       notUsed,
                       Seq(

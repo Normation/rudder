@@ -49,6 +49,8 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.rest.data.CsvCompliance.*
+import com.normation.rudder.rest.data.CsvCompliance.CsvComplianceOpaqueTypes.*
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.Csv
 import enumeratum.*
@@ -59,6 +61,7 @@ import java.lang
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
 import scala.collection.immutable
+import zio.json.JsonCodec
 import zio.json.JsonEncoder
 import zio.syntax.ToZio
 
@@ -125,7 +128,7 @@ final case class ByDirectiveByRuleCompliance(
 
 final case class ByDirectiveNodeCompliance(
     id:         NodeId,
-    name:       String,
+    name:       NodeName,
     policyMode: ComputedPolicyMode,
     compliance: ComplianceLevel,
     rules:      Seq[ByDirectiveByNodeRuleCompliance]
@@ -174,9 +177,17 @@ final case class ByNodeGroupByRuleDirectiveCompliance(
     components:     Seq[ByRuleComponentCompliance]
 )
 
+opaque type DirectiveName = String
+object DirectiveName extends CsvField[DirectiveName] {
+
+  given jsonCodec: JsonCodec[DirectiveName] = JsonCodec.string
+
+  def apply(name: String): DirectiveName = name
+}
+
 final case class ByRuleDirectiveCompliance(
     id:             DirectiveId,
-    name:           String,
+    name:           DirectiveName,
     compliance:     ComplianceLevel,
     skippedDetails: Option[SkippedDetails],
     policyMode:     ComputedPolicyMode,
@@ -184,26 +195,26 @@ final case class ByRuleDirectiveCompliance(
 )
 
 sealed trait ByRuleComponentCompliance extends ComponentComplianceByNode {
-  def name:       String
+  def name:       ComponentName
   def compliance: ComplianceLevel
 }
 
 final case class ByRuleBlockCompliance(
-    name:           String,
+    name:           BlockName,
     reportingLogic: ReportingLogic,
     subComponents:  Seq[ByRuleComponentCompliance]
 ) extends ByRuleComponentCompliance with BlockComplianceByNode[ByRuleComponentCompliance] {
   override def subs: List[ByRuleComponentCompliance & ComponentCompliance] = subComponents.toList
 
-  override def componentName: String = name
+  override def componentName: String = name.value
 }
 
 final case class ByRuleValueCompliance(
-    name:       String,
+    name:       ValueName,
     compliance: ComplianceLevel,
     nodes:      List[ByRuleNodeCompliance]
 ) extends ByRuleComponentCompliance {
-  override def componentName: String = name
+  override def componentName: String = name.value
 
   override def allReports: List[ReportType] = reportsByNode.values.flatten.toList
 
@@ -213,7 +224,7 @@ final case class ByRuleValueCompliance(
 
 final case class ByRuleNodeCompliance(
     id:         NodeId,
-    name:       String,
+    name:       NodeName,
     policyMode: ComputedPolicyMode,
     compliance: ComplianceLevel,
     values:     Seq[ComponentValueStatusReport]
@@ -230,7 +241,7 @@ final case class ByRuleNodeCompliance(
 
 final case class GroupComponentCompliance(
     id:         NodeId,
-    name:       String,
+    name:       NodeName,
     compliance: ComplianceLevel,
     policyMode: ComputedPolicyMode,
     directives: Seq[ByRuleByNodeByDirectiveCompliance]
@@ -238,7 +249,7 @@ final case class GroupComponentCompliance(
 
 final case class ByRuleByNodeByDirectiveCompliance(
     id:             DirectiveId,
-    name:           String,
+    name:           DirectiveName,
     compliance:     ComplianceLevel,
     skippedDetails: Option[SkippedDetails],
     policyMode:     ComputedPolicyMode,
@@ -246,26 +257,26 @@ final case class ByRuleByNodeByDirectiveCompliance(
 )
 
 sealed trait ByRuleByNodeByDirectiveByComponentCompliance extends ComponentCompliance {
-  def name:       String
+  def name:       ComponentName
   def compliance: ComplianceLevel
 }
 
 final case class ByRuleByNodeByDirectiveByBlockCompliance(
-    name:           String,
+    name:           BlockName,
     reportingLogic: ReportingLogic,
     subComponents:  Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 ) extends ByRuleByNodeByDirectiveByComponentCompliance with BlockCompliance[ByRuleByNodeByDirectiveByComponentCompliance] {
   override def subs: List[ByRuleByNodeByDirectiveByComponentCompliance & ComponentCompliance] = subComponents.toList
 
-  override def componentName: String = name
+  override def componentName: String = name.value
 }
 
 final case class ByRuleByNodeByDirectiveByValueCompliance(
-    name:       String,
+    name:       ValueName,
     compliance: ComplianceLevel,
     values:     Seq[ComponentValueStatusReport]
 ) extends ByRuleByNodeByDirectiveByComponentCompliance {
-  override def componentName: String = name
+  override def componentName: String = name.value
 
   override def allReports: List[ReportType] = values.flatMap(c => c.messages.map(_ => c.status)).toList
 }
@@ -282,7 +293,7 @@ object GroupComponentCompliance {
   // This function do the recursive treatment of components, we will have each time a pair of Sequence of tuple (NodeId , component compliance structure)
   def recurseComponent(
       byRuleComponentCompliance: ByRuleComponentCompliance
-  ): Seq[((NodeId, String, ComputedPolicyMode), ByRuleByNodeByDirectiveByComponentCompliance)] = {
+  ): Seq[((NodeId, NodeName, ComputedPolicyMode), ByRuleByNodeByDirectiveByComponentCompliance)] = {
     byRuleComponentCompliance match {
       // Block case
       case b: ByRuleBlockCompliance =>
@@ -332,36 +343,36 @@ object GroupComponentCompliance {
   def fromDirective(directives: Seq[ByRuleDirectiveCompliance]): immutable.Iterable[GroupComponentCompliance] = {
     for {
       // Regroup all Directive by node getting Nodes values from components
-      (nodeId, data) <- directives.flatMap { d =>
-                          (for {
-                            // Treat all directives deeply
-                            subs <- d.components
-                            s    <- recurseComponent(subs)
-                          } yield {
-                            s
-                          }).groupBy(_._1).map {
-                            // All components were regrouped by nodes
-                            case (nodeId, s) =>
-                              val subs = s.map(_._2)
-                              // Rebuild a Directive compliance for a Node
-                              (
-                                nodeId,
-                                ByRuleByNodeByDirectiveCompliance(
-                                  d.id,
-                                  d.name,
-                                  ComplianceLevel.sum(subs.map(_.compliance)),
-                                  d.skippedDetails,
-                                  d.policyMode,
-                                  subs
-                                )
-                              )
-                          }
+      ((nodeId, nodeName, policyMode), data) <- directives.flatMap { d =>
+                                                  (for {
+                                                    // Treat all directives deeply
+                                                    subs <- d.components
+                                                    s    <- recurseComponent(subs)
+                                                  } yield {
+                                                    s
+                                                  }).groupBy(_._1).map {
+                                                    // All components were regrouped by nodes
+                                                    case (nodeId, s) =>
+                                                      val subs = s.map(_._2)
+                                                      // Rebuild a Directive compliance for a Node
+                                                      (
+                                                        nodeId,
+                                                        ByRuleByNodeByDirectiveCompliance(
+                                                          d.id,
+                                                          d.name,
+                                                          ComplianceLevel.sum(subs.map(_.compliance)),
+                                                          d.skippedDetails,
+                                                          d.policyMode,
+                                                          subs
+                                                        )
+                                                      )
+                                                  }
 
-                        }.groupBy(_._1)
+                                                }.groupBy(_._1)
     } yield {
       // All Directive were regrouped by Nodes (_._1), rebuild a strucutre containing all Directives
       val subs = data.map(_._2)
-      GroupComponentCompliance(nodeId._1, nodeId._2, ComplianceLevel.sum(subs.map(_.compliance)), nodeId._3, subs)
+      GroupComponentCompliance(nodeId, nodeName, ComplianceLevel.sum(subs.map(_.compliance)), policyMode, subs)
     }
   }
 
@@ -371,35 +382,35 @@ object GroupComponentCompliance {
   def fromRules(directives: Seq[ByDirectiveByRuleCompliance]): immutable.Iterable[ByDirectiveNodeCompliance] = {
     for {
       // Regroup all Directive by node getting Nodes values from components
-      (nodeId, data) <- directives.flatMap { d =>
-                          (for {
-                            // Treat all directives deeply
-                            subs <- d.components
-                            s    <- recurseComponent(subs)
-                          } yield {
-                            s
-                          }).groupBy(_._1).map {
-                            // All components were regrouped by nodes
-                            case (nodeId, s) =>
-                              val subs = s.map(_._2)
-                              // Rebuild a Directtive compliance for a Node
-                              (
-                                nodeId,
-                                ByDirectiveByNodeRuleCompliance(
-                                  d.id,
-                                  d.name,
-                                  ComplianceLevel.sum(subs.map(_.compliance)),
-                                  d.policyMode,
-                                  subs
-                                )
-                              )
-                          }
+      ((nodeId, nodeName, policyMode), data) <- directives.flatMap { d =>
+                                                  (for {
+                                                    // Treat all directives deeply
+                                                    subs <- d.components
+                                                    s    <- recurseComponent(subs)
+                                                  } yield {
+                                                    s
+                                                  }).groupBy(_._1).map {
+                                                    // All components were regrouped by nodes
+                                                    case (nodeId, s) =>
+                                                      val subs = s.map(_._2)
+                                                      // Rebuild a Directtive compliance for a Node
+                                                      (
+                                                        nodeId,
+                                                        ByDirectiveByNodeRuleCompliance(
+                                                          d.id,
+                                                          d.name,
+                                                          ComplianceLevel.sum(subs.map(_.compliance)),
+                                                          d.policyMode,
+                                                          subs
+                                                        )
+                                                      )
+                                                  }
 
-                        }.groupBy(_._1)
+                                                }.groupBy(_._1)
     } yield {
       // All Directive were regrouped by Nodes (_._1), rebuild a strucutre containing all Directives
       val subs = data.map(_._2)
-      ByDirectiveNodeCompliance(nodeId._1, nodeId._2, nodeId._3, ComplianceLevel.sum(subs.map(_.compliance)), subs)
+      ByDirectiveNodeCompliance(nodeId, nodeName, policyMode, ComplianceLevel.sum(subs.map(_.compliance)), subs)
     }
   }
 
@@ -452,13 +463,14 @@ final case class ByNodeDirectiveCompliance(
  * These objects are only used to export compliance in CSV format, for example in directive screen.
  */
 object CsvCompliance {
+  import ComponentName.given
 
   // use "," , quote everything with ", line separator is \n
   val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").get()
 
   def recurseComponent(
       component: ByRuleComponentCompliance,
-      block:     List[ComponentField]
+      block:     List[ComponentName]
   ): Seq[RuleComponentResult] = {
 
     component match {
@@ -467,18 +479,18 @@ object CsvCompliance {
           node.values.flatMap { value =>
             value.messages.map { report =>
               (
-                BlockField(block),
-                ComponentField(component),
-                NodeField(node),
-                ValueField(value),
-                StatusField(report),
-                MessageField(report)
+                BlockName(block.mkString(",")),
+                component.name,
+                node.name,
+                ValueName(value.componentValue),
+                Status(report.reportType),
+                Message(report.message)
               )
             }
           }
         }
       case component: ByRuleBlockCompliance =>
-        component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component) :: Nil)))
+        component.subComponents.flatMap(c => recurseComponent(c, block ::: (component.name :: Nil)))
     }
   }
 
@@ -500,61 +512,80 @@ object CsvCompliance {
     }
   }
 
-  /** Trait that contains Csv[A] and Csv.Header.One[A] instances 
-   * that are common to all values that can be converted to CSV */
-  trait CsvField[A <: String] {
-    given Csv[A] = Csv.instance(a => a)
-    given Csv.Header.One[A] with {}
-  }
+  object CsvComplianceOpaqueTypes {
 
-  opaque type DirectiveField = String
-  object DirectiveField extends CsvField[DirectiveField] {
-    def apply(directive: ByRuleDirectiveCompliance) = directive.name
-  }
+    /** Trait that contains Csv[A] and Csv.Header.One[A] instances
+     * that are common to all values that can be converted to CSV */
+    sealed trait CsvField[A <: String] {
+      given Csv[A] = Csv.instance(a => a)
+      given Csv.Header.One[A] with {}
+    }
 
-  opaque type BlockField = String
-  object BlockField extends CsvField[BlockField] {
-    def apply(block: List[ComponentField]) = block.mkString(",")
-  }
+    type ComponentName = BlockName | ValueName
 
-  opaque type ComponentField = String
-  object ComponentField extends CsvField[ComponentField] {
-    def apply(value: ByRuleValueCompliance) = value.name
-    def apply(block: ByRuleBlockCompliance) = block.name
-  }
+    object ComponentName extends CsvField[ComponentName] {
+      given JsonEncoder[ComponentName] = JsonEncoder[String]
+    }
 
-  opaque type NodeField = String
-  object NodeField extends CsvField[NodeField] {
-    def apply(node: ByRuleNodeCompliance) = node.name
-  }
+    opaque type BlockName = String
 
-  opaque type ValueField = String
-  object ValueField extends CsvField[ValueField] {
-    def apply(value: ComponentValueStatusReport) = value.componentValue
-  }
+    object BlockName extends CsvField[BlockName] {
+      def apply(name: String): BlockName = name
 
-  opaque type StatusField = String
-  object StatusField extends CsvField[StatusField] {
-    import com.normation.rudder.rest.data.ComplianceApiData.serialize
-    def apply(report: MessageStatusReport) = report.reportType.serialize
-  }
+      extension (blockName: BlockName) {
+        def value: String = blockName
+      }
 
-  opaque type MessageField = String
-  object MessageField extends CsvField[MessageField] {
-    def apply(report: MessageStatusReport) = report.message.getOrElse("")
+      given jsonCodec: JsonCodec[BlockName] = JsonCodec.string
+    }
+
+    opaque type ValueName = String
+    object ValueName extends CsvField[ValueName] {
+      def apply(value: String): ValueName = value
+
+      extension (valueName: ValueName) {
+        def value: String = valueName
+      }
+
+      given jsonCodec: JsonCodec[ValueName] = JsonCodec.string
+    }
+
+    opaque type Status = String
+    object Status extends CsvField[Status] {
+      import com.normation.rudder.rest.data.ComplianceApiData.serialize
+      def apply(reportType: ReportType): Status = reportType.serialize
+    }
+
+    opaque type Message = String
+    object Message extends CsvField[Message] {
+      def apply(reportMessage: Option[String]): Message = reportMessage.getOrElse("")
+    }
+
+    opaque type NodeName = Either[NodeId, String]
+
+    object NodeName {
+      def apply(name:  String): NodeName = Right(name)
+      def from(nodeId: NodeId): NodeName = Left(nodeId)
+      given Csv[NodeName]         = Csv.instance {
+        case Left(nodeId) => nodeId.value
+        case Right(name)  => name
+      }
+      given Csv.Header.One[NodeName] with {}
+      given JsonEncoder[NodeName] = JsonEncoder.string.contramap(nodeName => nodeName.getOrElse("Unknown node"))
+    }
   }
 
   type RuleComponentResult =
-    (block: BlockField, component: ComponentField, node: NodeField, value: ValueField, status: StatusField, message: MessageField)
+    (block: BlockName, component: ComponentName, node: NodeName, value: ValueName, status: Status, message: Message)
 
   case class RuleComplianceByDirectiveCsv(
-      directive: DirectiveField,
-      block:     BlockField,
-      component: ComponentField,
-      node:      NodeField,
-      value:     ValueField,
-      status:    StatusField,
-      message:   MessageField
+      directive: DirectiveName,
+      block:     BlockName,
+      component: ComponentName,
+      node:      NodeName,
+      value:     ValueName,
+      status:    Status,
+      message:   Message
   ) derives Csv
   object RuleComplianceByDirectiveCsv {
     import com.normation.rudder.rest.data.CsvCompliance.RuleComponentResult
@@ -564,7 +595,7 @@ object CsvCompliance {
     ): Transformer[RuleComponentResult, RuleComplianceByDirectiveCsv] = {
       Transformer
         .define[RuleComponentResult, RuleComplianceByDirectiveCsv]
-        .withFieldConst(_.directive, DirectiveField(directive))
+        .withFieldConst(_.directive, directive.name)
         .buildTransformer
     }
 
@@ -582,13 +613,13 @@ object CsvCompliance {
   }
 
   case class RuleComplianceByNodeCsv(
-      node:      NodeField,
-      directive: DirectiveField,
-      block:     BlockField,
-      component: ComponentField,
-      value:     ValueField,
-      status:    StatusField,
-      message:   MessageField
+      node:      NodeName,
+      directive: DirectiveName,
+      block:     BlockName,
+      component: ComponentName,
+      value:     ValueName,
+      status:    Status,
+      message:   Message
   ) derives Csv
 
   object RuleComplianceByNodeCsv {
@@ -598,7 +629,7 @@ object CsvCompliance {
     given (using directive: ByRuleDirectiveCompliance): Transformer[RuleComponentResult, RuleComplianceByNodeCsv] = {
       Transformer
         .define[RuleComponentResult, RuleComplianceByNodeCsv]
-        .withFieldConst(_.directive, DirectiveField(directive))
+        .withFieldConst(_.directive, directive.name)
         .buildTransformer
     }
 
@@ -640,6 +671,8 @@ object ComplianceFormat extends Enum[ComplianceFormat] {
  * This is used for serialization of compliance API object. These are pure DTO
  */
 object ComplianceApiData {
+
+  import ComponentName.given
   // generic transformers
   private given complianceLevelTransformer(using precision: CompliancePrecision): Transformer[ComplianceLevel, Double] =
     _.complianceWithoutPending(precision)
@@ -703,7 +736,7 @@ object ComplianceApiData {
 
   final case class ByRuleNodeComplianceApi(
       id:                NodeId,
-      name:              String,
+      name:              NodeName,
       compliance:        Double,
       policyMode:        ComputedPolicyMode,
       complianceDetails: ComplianceSerializable,
@@ -725,7 +758,7 @@ object ComplianceApiData {
   }
 
   final case class ByRuleByNodeByDirectiveByComponentComplianceApi(
-      name:              String,
+      name:              ComponentName,
       compliance:        Double,
       complianceDetails: ComplianceSerializable,
       components:        Option[Seq[ByRuleByNodeByDirectiveByComponentComplianceApi]],
@@ -834,7 +867,7 @@ object ComplianceApiData {
     }
 
     final case class ByRuleComponentComplianceApi(
-        name:              String,
+        name:              ComponentName,
         compliance:        Double,
         complianceDetails: ComplianceSerializable,
         components:        Option[Seq[ByRuleComponentComplianceApi]],
@@ -866,7 +899,7 @@ object ComplianceApiData {
 
     final case class ByDirectiveNodeComplianceApi(
         id:                NodeId,
-        name:              String,
+        name:              NodeName,
         compliance:        Double,
         policyMode:        ComputedPolicyMode,
         complianceDetails: ComplianceSerializable,
@@ -942,7 +975,7 @@ object ComplianceApiData {
 
     final case class ByRuleDirectiveComplianceApi(
         id:                DirectiveId,
-        name:              String,
+        name:              DirectiveName,
         compliance:        Double,
         policyMode:        ComputedPolicyMode,
         complianceDetails: ComplianceSerializable,
@@ -965,7 +998,7 @@ object ComplianceApiData {
     }
 
     final case class ByRuleComponentComplianceApi(
-        name:              String,
+        name:              ComponentName,
         compliance:        Double,
         complianceDetails: ComplianceSerializable,
         components:        Option[Seq[ByRuleComponentComplianceApi]],
@@ -997,7 +1030,7 @@ object ComplianceApiData {
 
     final case class GroupComponentComplianceApi(
         id:                NodeId,
-        name:              String,
+        name:              NodeName,
         compliance:        Double,
         policyMode:        ComputedPolicyMode,
         complianceDetails: ComplianceSerializable,
@@ -1020,7 +1053,7 @@ object ComplianceApiData {
 
     final case class ByRuleByNodeByDirectiveComplianceApi(
         id:                DirectiveId,
-        name:              String,
+        name:              DirectiveName,
         compliance:        Double,
         policyMode:        ComputedPolicyMode,
         complianceDetails: ComplianceSerializable,
@@ -1173,7 +1206,7 @@ object ComplianceApiData {
     }
 
     final case class ByRuleComponentComplianceApi(
-        name:              String,
+        name:              ComponentName,
         compliance:        Double,
         complianceDetails: ComplianceSerializable,
         components:        Option[Seq[ByRuleComponentComplianceApi]],
