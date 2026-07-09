@@ -1,5 +1,8 @@
 port module Editor exposing (..)
 
+import Activity.ApiCalls exposing (getActivities, processApiError)
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search(..))
+import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Browser
 import Dict exposing (Dict)
 import Dict.Extra
@@ -18,14 +21,21 @@ import Either exposing (Either(..))
 import File
 import File.Download
 import File.Select
+import Html exposing (Html, text)
+import Html.Attributes exposing (class)
 import Http.Detailed as Detailed
 import Json.Decode exposing (Value)
 import List.Extra
+import List.Nonempty as NonEmptyList
 import Maybe.Extra
+import Ordering exposing (Ordering)
 import Random
+import Rudder.Table exposing (ColumnName(..), buildConfig, buildCustomizations, buildOptions, updateData)
 import Task
-import Time
+import Time exposing (Posix, Zone)
+import TimeZone
 import UUID
+import Utils.DateUtils exposing (posixToString)
 
 
 
@@ -139,13 +149,91 @@ parseDraftsResponse json =
             Notification errorNotification "Invalid drafts in local storage, please clean your local storage"
 
 
-mainInit : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
+initTable : Zone -> Rudder.Table.Model Activity Msg
+initTable timezone =
+    let
+        columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity Msg)
+        columns =
+            NonEmptyList.Nonempty
+                { name = ColumnName "Id", renderHtml = .id >> String.fromInt >> text, ordering = Ordering.byField .id }
+                [ { name = ColumnName "Actor", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
+                , { name = ColumnName "Description"
+                  , renderHtml = .description >> toHtml
+                  , ordering = Ordering.byField (.description >> toString)
+                  }
+                , { name = ColumnName "Date", renderHtml = .date >> posixToString timezone >> text, ordering = Ordering.byField (.date >> Time.posixToMillis) }
+                ]
+
+        config =
+            buildConfig.newConfig columns
+                |> buildConfig.withOptions
+                    (buildOptions.newOptions
+                        |> buildOptions.withCustomizations
+                            (buildCustomizations.newCustomizations
+                                |> buildCustomizations.withTableContainerAttrs [ class "table-container" ]
+                                |> buildCustomizations.withTableAttrs [ class "no-footer dataTable" ]
+                            )
+                    )
+    in
+    Rudder.Table.init config []
+
+
+filterTypes : List String
+filterTypes =
+    [ "EditorTechniqueAdded", "EditorTechniqueDeleted", "EditorTechniqueModified" ]
+
+
+mainInit :
+    { contextPath : String
+    , hasWriteRights : Bool
+    , timeZone : String
+    }
+    -> ( Model, Cmd Msg )
 mainInit initValues =
     let
+        search =
+            Search ""
+
+        initTimeZone =
+            Dict.get initValues.timeZone TimeZone.zones
+                |> Maybe.withDefault (\() -> Time.utc)
+
+        zone =
+            initTimeZone ()
+
         model =
-            Model [] [] Dict.empty (TechniqueCategory "" "" "" (SubCategories [])) Dict.empty [] Introduction initValues.contextPath (TreeFilters "" []) (MethodListUI (MethodFilter "" False Nothing FilterClosed) []) False DragDrop.initialState Nothing initValues.hasWriteRights Nothing Nothing True [] "default"
+            { techniques = []
+            , errors = []
+            , methods = Dict.empty
+            , categories = TechniqueCategory "" "" "" (SubCategories [])
+            , drafts = Dict.empty
+            , directives = []
+            , mode = Introduction
+            , contextPath = initValues.contextPath
+            , techniqueFilter = TreeFilters "" []
+            , methodsUI = MethodListUI (MethodFilter "" False Nothing FilterClosed) []
+            , genericMethodsOpen = False
+            , dnd = DragDrop.initialState
+            , modal = Nothing
+            , hasWriteRights = initValues.hasWriteRights
+            , dropTarget = Nothing
+            , isMethodHovered = Nothing
+            , loadingTechniques = True
+            , recClone = []
+            , policyMode = "default"
+            , activityTable = initTable zone
+            }
     in
-    ( model, Cmd.batch [ getDrafts (), getMethods model, getTechniquesCategories model, getDirectives model, getPolicyMode model ] )
+    ( model
+    , Cmd.batch
+        [ getDrafts ()
+        , getMethods model
+        , getTechniquesCategories model
+        , getDirectives model
+        , getPolicyMode model
+        , Cmd.map ActivityMessage (getActivities search filterTypes (ContextPath initValues.contextPath))
+        ]
+    )
 
 
 updatedStoreTechnique : Model -> ( Model, Cmd Msg )
@@ -385,10 +473,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, cmd )
+                        ( newModel, Cmd.map ActivityMessage (getActivities (Search id.value) filterTypes (ContextPath model.contextPath)) )
 
                 _ ->
-                    ( newModel, cmd )
+                    ( newModel, Cmd.map ActivityMessage (getActivities (Search id.value) filterTypes (ContextPath model.contextPath)) )
 
         SelectDraft id ->
             let
@@ -1550,3 +1638,28 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        RudderTableMsg m ->
+            let
+                ( activityTable, tableMsg, _ ) =
+                    Rudder.Table.update m model.activityTable
+            in
+            ( { model | activityTable = activityTable }, tableMsg )
+
+        ActivityMessage activityMsg ->
+            case activityMsg of
+                GetActivities res ->
+                    case res of
+                        -- Update table data
+                        Ok ( _, activities ) ->
+                            let
+                                updatedTable =
+                                    updateData activities model.activityTable
+                            in
+                            ( { model | activityTable = updatedTable }, Cmd.none )
+
+                        Err err ->
+                            ( model, processApiError "Getting activities list" err errorNotification )
+
+                CopyToClipboard s ->
+                    ( model, copy s )

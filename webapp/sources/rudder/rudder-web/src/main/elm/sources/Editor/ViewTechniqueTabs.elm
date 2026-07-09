@@ -1,5 +1,6 @@
 module Editor.ViewTechniqueTabs exposing (..)
 
+import Activity.DataTypes exposing (Activity)
 import Compliance.Utils exposing (badgePolicyMode)
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
@@ -10,6 +11,7 @@ import Html.Events exposing (..)
 import List.Extra
 import Maybe.Extra
 import Regex
+import Rudder.Table
 import String.Extra
 
 
@@ -46,6 +48,13 @@ techniqueResource resource =
                 [ i [ class "ion ion-clipboard" ] []
                 ]
             ]
+        ]
+
+
+techniqueRecentActivity : Rudder.Table.Model Activity Msg -> Html Msg
+techniqueRecentActivity activityTable =
+    div [ class "tab" ]
+        [ div [ class "main-table" ] [ Html.map RudderTableMsg (Rudder.Table.view activityTable) ]
         ]
 
 
@@ -743,6 +752,9 @@ techniqueTab model technique creation ui =
 
         Directives ->
             techniqueDirectives model technique
+
+        RecentActivity ->
+            techniqueRecentActivity model.activityTable
 
         Output ->
             case technique.output of
