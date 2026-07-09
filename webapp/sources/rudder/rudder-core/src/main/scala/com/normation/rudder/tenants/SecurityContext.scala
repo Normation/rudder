@@ -75,7 +75,7 @@ sealed trait TenantAccessGrant {
 object TenantAccessGrant {
 
   // a grant that can see all nodes whatever their security tags
-  case object All                                      extends TenantAccessGrant {
+  case object All                                          extends TenantAccessGrant {
     override val value = "all"
     override def serialize:     String              = "*"
     // Be careful here: having the right to see any tenants does mean that the security
@@ -83,18 +83,21 @@ object TenantAccessGrant {
     override def toSecurityTag: Option[SecurityTag] = Option.empty
   }
   // a grant that can't see any node. Very good for performance.
-  case object None                                     extends TenantAccessGrant {
+  case object None                                         extends TenantAccessGrant {
     override val value     = "none"
     override def serialize = "-"
     override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.empty)
   }
-  // a grant associated with a list of tenants. If the node share at least one of the
-  // tenants, if it can be seen. Be careful, it's really just non-empty interesting (so that adding
-  // more tag here leads to more nodes, not less).
-  final case class ByTenants(tenants: Chunk[TenantId]) extends TenantAccessGrant {
-    override val value: String = s"tags:[${tenants.map(_.value).mkString(", ")}]"
-    override def serialize = tenants.map(_.value).mkString(",")
-    override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.ByTenants(tenants))
+  // a grant associated with a list of tenant accesses (tenant id + read/write permission). If the
+  // node shares at least one of the tenants (with a compatible permission), it can be seen/changed.
+  // Be careful, it's really just non-empty interesting (so that adding more tag here leads to more
+  // nodes, not less).
+  final case class ByTenants(tenants: Chunk[TenantAccess]) extends TenantAccessGrant {
+    override val value:     String = s"tags:[${tenants.map(_.serialize).mkString(", ")}]"
+    override def serialize: String = tenants.map(_.serialize).mkString(",")
+
+    // the security tag of an object is just its set of tenant ids, whatever the user's permission on them
+    override def toSecurityTag: Option[SecurityTag] = Some(SecurityTag.ByTenants(tenants.map(_.id)))
   }
 
   /*
@@ -116,18 +119,22 @@ object TenantAccessGrant {
             case (x: Left[RudderError, TenantAccessGrant], _) => x
             case (Right(t1), t2)                              =>
               t2.strip() match {
-                case "*"                       => Right(t1.plus(TenantAccessGrant.All))
-                case "-"                       => Right(TenantAccessGrant.None)
-                case TenantId.checkTenantId(v) => Right(t1.plus(TenantAccessGrant.ByTenants(Chunk(TenantId(v)))))
-                case x                         =>
-                  if (ignoreMalformed) Right(t1.plus(TenantAccessGrant.ByTenants(Chunk.empty)))
-                  else {
-                    Left(
-                      Inconsistency(
-                        s"Value '${x}' is not a valid tenant identifier. It must contains only alpha-num  ascii chars or " +
-                        s"'-' and '_' (not in the first) place; or exactly '*' (all tenants) or '-' (none tenants)"
-                      )
-                    )
+                case "*" => Right(t1.plus(TenantAccessGrant.All))
+                case "-" => Right(TenantAccessGrant.None)
+                case x   =>
+                  TenantAccess.parse(x) match {
+                    case Some(ta)   => Right(t1.plus(TenantAccessGrant.ByTenants(Chunk(ta))))
+                    case scala.None =>
+                      if (ignoreMalformed) Right(t1.plus(TenantAccessGrant.ByTenants(Chunk.empty)))
+                      else {
+                        Left(
+                          Inconsistency(
+                            s"Value '${x}' is not a valid tenant access. It must be a tenant identifier (alpha-num ascii " +
+                            s"chars or '-'/'_', not in first place) optionally followed by ':r' or ':rw'; or exactly '*' " +
+                            s"(all tenants) or '-' (none tenants)"
+                          )
+                        )
+                      }
                   }
               }
           })
@@ -136,6 +143,24 @@ object TenantAccessGrant {
             case x                                             => x
           }
     }
+  }
+
+  /*
+   * Build the (read) access grant that an object carrying the given security tag "scopes to" for
+   * policy-generation filtering. The tenants on a rule (or a group) direct which objects and nodes
+   * are actually used at generation time:
+   *   - `None` (admin-only object) and `Open` (library object) mean "no tenant restriction" => `All`,
+   *     so admin/system objects keep applying to everything and non-tenant setups are unaffected,
+   *   - a `ByTenants` list scopes to exactly those tenants (read permission is enough for filtering);
+   *     an empty list scopes to nothing (`None`).
+   * Combined with `canSee`, this keeps only the nodes/objects that share a tenant with the scoping object.
+   */
+  def fromSecurityScope(tag: Option[SecurityTag]): TenantAccessGrant = tag match {
+    case scala.None                      => TenantAccessGrant.All
+    case Some(SecurityTag.Open)          => TenantAccessGrant.All
+    case Some(SecurityTag.ByTenants(ts)) =>
+      if (ts.isEmpty) TenantAccessGrant.None
+      else TenantAccessGrant.ByTenants(ts.map(id => TenantAccess(id, TenantPermission.Read)))
   }
 
   // json codec for `TenantAccessGrant`
@@ -158,13 +183,14 @@ object TenantAccessGrant {
     }
 
     // can that security tag be seen in that context, given the set of known tenants?
+    // (read semantics: a tenant access grants visibility as soon as it allows read - `r` or `rw`)
     def canSee(tag: SecurityTag): Boolean = {
       tag match {
         case SecurityTag.ByTenants(tenants) =>
           nsc match {
             case All           => true
             case None          => false
-            case ByTenants(ts) => ts.exists(s => tenants.exists(_ == s))
+            case ByTenants(ts) => ts.exists(a => a.grant.canRead && tenants.exists(_ == a.id))
           }
         case SecurityTag.Open               => true
       }
@@ -186,6 +212,42 @@ object TenantAccessGrant {
       if (canSee(n)) zio else Inconsistency(s"Object '${n.debugId}' can't be accessed in current security context'").fail
     }
 
+    /*
+     * The same grant restricted to the tenants on which the user has write (`rw`) permission.
+     * Used for `ChangeContext`-protected (write) operations: a read-only (`r`) tenant access is dropped,
+     * so the user behaves "as if it didn't have the grant" for that tenant when writing.
+     */
+    def restrictToWrite: TenantAccessGrant = nsc match {
+      case All           => All
+      case None          => None
+      case ByTenants(ts) =>
+        val writable = ts.filter(_.grant.canWrite)
+        if (writable.isEmpty) None else ByTenants(writable)
+    }
+
+    // write semantics of `canSee`: only tenants with `rw` permission are considered.
+    def canModify[A: HasSecurityTag](n: A): Boolean = {
+      nsc.restrictToWrite.canSee(n)
+    }
+
+    // execute given action if the object can be modified in that context (write permission), or fail.
+    def canModifyOrFail[A: HasSecurityTag, B](n: A)(zio: IOResult[B]): IOResult[B] = {
+      if (nsc.canModify(n)) zio
+      else Inconsistency(s"Object '${n.debugId}' can't be modified in current security context").fail
+    }
+
+    // Filter a security tag for display: admin sees everything; a ByTenants user sees only the
+    // tenants of the object that are also in their own grant (intersection).
+    def visibleSecurityTag(tag: Option[SecurityTag]): Option[SecurityTag] = (nsc, tag) match {
+      case (All, t)                                         => t
+      case (None, _)                                        => scala.None
+      case (ByTenants(_), scala.None)                       => scala.None
+      case (ByTenants(_), Some(SecurityTag.Open))           => Some(SecurityTag.Open)
+      case (ByTenants(us), Some(SecurityTag.ByTenants(os))) =>
+        val userIds = us.map(_.id).toSet
+        Some(SecurityTag.ByTenants(os.filter(t => userIds.contains(t))))
+    }
+
     // NodeSecurityContext is a lattice
     def plus(nsc2: TenantAccessGrant): TenantAccessGrant = {
       (nsc, nsc2) match {
@@ -193,7 +255,16 @@ object TenantAccessGrant {
         case (_, None)                      => None
         case (All, _)                       => All
         case (_, All)                       => All
-        case (ByTenants(c1), ByTenants(c2)) => ByTenants((c1 ++ c2).distinctBy(_.value))
+        case (ByTenants(c1), ByTenants(c2)) =>
+          // merge accesses by tenant id, keeping the highest permission for a given tenant and
+          // preserving the first-seen order (so serialization is deterministic)
+          val merged = (c1 ++ c2).foldLeft(Chunk.empty[TenantAccess]) { (acc, ta) =>
+            acc.indexWhere(_.id == ta.id) match {
+              case -1 => acc :+ ta
+              case i  => acc.updated(i, TenantAccess(ta.id, TenantPermission.union(acc(i).grant, ta.grant)))
+            }
+          }
+          ByTenants(merged)
       }
     }
   }
@@ -228,6 +299,9 @@ object QueryContext {
 
   // for system queries (when rudder needs to look-up things)
   implicit val systemQC: QueryContext = QueryContext(eventlog.RudderEventActor, TenantAccessGrant.All)
+
+  // for no right queries
+  implicit val noneQC: QueryContext = QueryContext(EventActor("none"), TenantAccessGrant.None)
 
   // For places where a query context may be required (UI snippets), provide a way to recover from unknown
   extension (opt: Option[QueryContext]) {

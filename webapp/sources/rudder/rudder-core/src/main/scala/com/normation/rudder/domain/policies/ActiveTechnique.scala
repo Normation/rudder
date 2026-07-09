@@ -80,6 +80,9 @@ object ActiveTechnique {
     extension (a: ActiveTechnique) {
       override def security: Option[SecurityTag] = a.security
 
+      // an active technique is "system" when it carries the system policy type
+      override def isSystem: Boolean = a.policyTypes.isSystem
+
       override def debugId: String = a.id.value
 
       override def updateSecurityContext(security: Option[SecurityTag]): ActiveTechnique =

@@ -87,6 +87,7 @@ import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.ChangesByRule
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.InstanceId
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -697,12 +698,17 @@ object JsonResponseObjects {
 
   final case class JRActiveTechnique(
       name:     String,
-      versions: List[String]
+      versions: List[String],
+      security: Option[SecurityTag]
   ) derives JsonEncoder
 
   object JRActiveTechnique {
-    def fromTechnique(activeTechnique: FullActiveTechnique): JRActiveTechnique = {
-      JRActiveTechnique(activeTechnique.techniqueName.value, activeTechnique.techniques.map(_._1.serialize).toList)
+    def fromTechnique(activeTechnique: FullActiveTechnique)(using qc: QueryContext): JRActiveTechnique = {
+      JRActiveTechnique(
+        activeTechnique.techniqueName.value,
+        activeTechnique.techniques.map(_._1.serialize).toList,
+        qc.accessGrant.visibleSecurityTag(activeTechnique.security)
+      )
     }
   }
 
@@ -954,7 +960,9 @@ object JsonResponseObjects {
     def empty(id: String): JRDirective =
       JRDirective(None, id, "", "", "", "", "", Map(), 5, enabled = false, system = false, policyMode = "", tags = List(), None)
 
-    def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId]): JRDirective = {
+    def fromDirective(technique: Technique, directive: Directive, crId: Option[ChangeRequestId])(using
+        qc: QueryContext
+    ): JRDirective = {
       directive
         .into[JRDirective]
         .enableBeanGetters
@@ -974,6 +982,7 @@ object JsonResponseObjects {
         )
         .withFieldComputed(_.policyMode, _.policyMode.map(_.name).getOrElse("default"))
         .withFieldComputed(_.tags, x => JRTags.fromTags(x.tags))
+        .withFieldConst(_.security, qc.accessGrant.visibleSecurityTag(directive.security))
         .transform
     }
   }
@@ -987,7 +996,7 @@ object JsonResponseObjects {
       techniques:    List[JRDirectiveTreeTechnique]
   ) derives JsonEncoder
   object JRDirectiveTreeCategory {
-    def fromActiveTechniqueCategory(technique: FullActiveTechniqueCategory): JRDirectiveTreeCategory = {
+    def fromActiveTechniqueCategory(technique: FullActiveTechniqueCategory)(using qc: QueryContext): JRDirectiveTreeCategory = {
       JRDirectiveTreeCategory(
         technique.name,
         technique.description,
@@ -1004,7 +1013,7 @@ object JsonResponseObjects {
   ) derives JsonEncoder
 
   object JRDirectiveTreeTechnique {
-    def fromActiveTechnique(technique: FullActiveTechnique): JRDirectiveTreeTechnique = {
+    def fromActiveTechnique(technique: FullActiveTechnique)(using qc: QueryContext): JRDirectiveTreeTechnique = {
       JRDirectiveTreeTechnique(
         technique.techniqueName.value,
         technique.newestAvailableTechnique.map(_.name).getOrElse(technique.techniqueName.value),
@@ -1090,7 +1099,7 @@ object JsonResponseObjects {
         crId:       Option[ChangeRequestId],
         policyMode: Option[String],
         status:     Option[(String, Option[String])]
-    ): JRRule = {
+    )(using qc: QueryContext): JRRule = {
       rule
         .into[JRRule]
         .enableBeanGetters
@@ -1104,6 +1113,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.tags, x => JRTags.fromTags(rule.tags))
         .withFieldConst(_.policyMode, policyMode)
         .withFieldConst(_.status, status.map(s => JRApplicationStatus(s._1, s._2)))
+        .withFieldConst(_.security, qc.accessGrant.visibleSecurityTag(rule.security))
         .transform
     }
   }
@@ -1207,7 +1217,7 @@ object JsonResponseObjects {
         cat:      RuleCategory,
         allRules: Map[String, Seq[(Rule, Option[String], Option[(String, Option[String])])]],
         parent:   Option[String]
-    ): JRFullRuleCategory = {
+    )(using qc: QueryContext): JRFullRuleCategory = {
       cat
         .into[JRFullRuleCategory]
         .withFieldConst(_.parent, parent)
@@ -1323,14 +1333,23 @@ object JsonResponseObjects {
       value:           ConfigValue,
       description:     String,
       inheritMode:     Option[InheritMode],
-      provider:        Option[PropertyProvider]
+      provider:        Option[PropertyProvider],
+      security:        Option[SecurityTag]
   )
 
   object JRGlobalParameter {
     import GenericProperty.*
-    def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
-    def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
-      JRGlobalParameter(crId.map(_.value.toString), p.name, p.value, p.description, p.inheritMode, p.provider)
+    def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None, None)
+    def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId])(using qc: QueryContext): JRGlobalParameter = {
+      JRGlobalParameter(
+        crId.map(_.value.toString),
+        p.name,
+        p.value,
+        p.description,
+        p.inheritMode,
+        p.provider,
+        qc.accessGrant.visibleSecurityTag(p.security)
+      )
     }
 
     given JsonEncoder[JRGlobalParameter] = DeriveJsonEncoder
@@ -2056,7 +2075,9 @@ object JsonResponseObjects {
       security = None
     )
 
-    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId]): JRGroup = {
+    def fromGroup(group: NodeGroup, catId: NodeGroupCategoryId, crId: Option[ChangeRequestId])(using
+        qc: QueryContext
+    ): JRGroup = {
       group
         .into[JRGroup]
         .enableBeanGetters
@@ -2070,6 +2091,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.properties, _.properties.filter(_.visibility == Displayed).map(JRProperty.fromGroupProp(_)))
         .withFieldComputed(_.target, x => GroupTarget(x.id).target)
         .withFieldComputed(_.system, _.isSystem)
+        .withFieldConst(_.security, qc.accessGrant.visibleSecurityTag(group.security))
         .transform
     }
 
@@ -2127,7 +2149,7 @@ object JsonResponseObjects {
     def fromCategory(
         cat:    FullNodeGroupCategory,
         parent: Option[NodeGroupCategoryId]
-    ): JRFullGroupCategory = {
+    )(using qc: QueryContext): JRFullGroupCategory = {
       cat
         .into[JRFullGroupCategory]
         .withFieldConst(

@@ -37,16 +37,28 @@
 
 package com.normation.rudder.repository.ldap
 
+import com.normation.GitVersion
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.Visibility
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantAccess
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.tenants.TenantPermission
 import com.normation.zio.*
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -64,12 +76,19 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.DEBUG)
 
-  val zoneA   = QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"))))
-  val zoneB   = QueryContext(EventActor("zoneB user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneB"))))
-  val zoneC   = QueryContext(EventActor("zoneC user"), TenantAccessGrant.ByTenants(Chunk(TenantId("zoneC"))))
+  val zoneA   = QueryContext(EventActor("zoneA user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+  val zoneB   = QueryContext(EventActor("zoneB user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneB")))))
+  val zoneC   = QueryContext(EventActor("zoneC user"), TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneC")))))
+  // a user with read-only access on zoneA: it can read zoneA objects but not write them
+  val zoneAro = QueryContext(
+    EventActor("zoneA read-only user"),
+    TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA"), TenantPermission.Read)))
+  )
   val zoneABC = QueryContext(
     EventActor("zoneA+B+C user"),
-    TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB"), TenantId("zoneC")))
+    TenantAccessGrant.ByTenants(
+      Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")), TenantAccess(TenantId("zoneC")))
+    )
   )
 
   val groupWithTenantId = NodeGroupId(NodeGroupUid("test-group-node1"))
@@ -96,10 +115,99 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     val targetWithTenantsA  = Set("group:test-group-node1")
 
     "have an admin with tenant=* able to see everything" in {
-      implicit val qc = QueryContext.systemQC
+      given qc: QueryContext = QueryContext.systemQC
       roGroupRepo.getFullGroupLibrary().runNow.allTargets.values.map(_.debugId) must containTheSameElementsAs(
         targetWithNoTenants.toList ++ targetWithTenantsA
       )
+    }
+  }
+
+  // read-time filtering on the other read APIs (filtering depends only on the access grant,
+  // not on the plugin status, so these are independent of the tenant feature being enabled)
+  "[Groups] Reading groups" should {
+    "have admin (tenant=*) see the zoneA group in getAll" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roGroupRepo.getAll().runNow.map(_.id).contains(groupWithTenantId) must beTrue
+    }
+    "have a zoneA user see the zoneA group in getAll" in {
+      given qc: QueryContext = zoneA
+      roGroupRepo.getAll().runNow.map(_.id).contains(groupWithTenantId) must beTrue
+    }
+    "have a zoneB user NOT see the zoneA group in getAll" in {
+      given qc: QueryContext = zoneB
+      roGroupRepo.getAll().runNow.map(_.id).contains(groupWithTenantId) must beFalse
+    }
+    "have a zoneA user see the zoneA group as a single read (getNodeGroupOpt)" in {
+      given qc: QueryContext = zoneA
+      roGroupRepo.getNodeGroupOpt(groupWithTenantId).runNow.map(_._1.id) must beSome(groupWithTenantId)
+    }
+    "have a zoneB user NOT see the zoneA group as a single read (getNodeGroupOpt)" in {
+      given qc: QueryContext = zoneB
+      roGroupRepo.getNodeGroupOpt(groupWithTenantId).runNow must beNone
+    }
+    "have a zoneA user see the zoneA group in getAllNodeIds" in {
+      given qc: QueryContext = zoneA
+      roGroupRepo.getAllNodeIds().runNow.keySet.contains(groupWithTenantId) must beTrue
+    }
+    "have a zoneB user NOT see the zoneA group in getAllNodeIds" in {
+      given qc: QueryContext = zoneB
+      roGroupRepo.getAllNodeIds().runNow.keySet.contains(groupWithTenantId) must beFalse
+    }
+    "have a zoneB user NOT see the zoneA group in findGroupWithAnyMember" in {
+      given qc: QueryContext = zoneB
+      // the zoneA group's members, if any, must not leak to a zoneB user
+      val membersOfZoneA =
+        roGroupRepo.getNodeGroupOpt(groupWithTenantId)(using QueryContext.systemQC).runNow.map(_._1.serverList).getOrElse(Set())
+      roGroupRepo.findGroupWithAnyMember(membersOfZoneA.toSeq).runNow.contains(groupWithTenantId) must beFalse
+    }
+  }
+
+  // write operations on a group must be refused for a user that can't see it, whatever the plugin status
+  "[Groups] Writing a group a user can't see" should {
+    "refuse to delete it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woGroupRepo.delete(groupWithTenantId).either.runNow must beLeft
+    }
+    "refuse to move it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woGroupRepo.move(groupWithTenantId, rootCat).either.runNow must beLeft
+    }
+    "refuse to update its node list" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woGroupRepo.updateDiffNodes(groupWithTenantId, Nil, Nil).either.runNow must beLeft
+    }
+    "still be visible to admin afterwards (it was not modified)" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roGroupRepo.getNodeGroupOpt(groupWithTenantId).runNow.map(_._1.id) must beSome(groupWithTenantId)
+    }
+  }
+
+  // a `r` (read-only) tenant access grants read but not write on that tenant's objects
+  "[Groups] A read-only (r) tenant access" should {
+    "allow to read the tenant's group (getNodeGroupOpt)" in {
+      given qc: QueryContext = zoneAro
+      roGroupRepo.getNodeGroupOpt(groupWithTenantId).runNow.map(_._1.id) must beSome(groupWithTenantId)
+    }
+    "allow to read the tenant's group (getAll)" in {
+      given qc: QueryContext = zoneAro
+      roGroupRepo.getAll().runNow.map(_.id).contains(groupWithTenantId) must beTrue
+    }
+    "refuse to delete the tenant's group" in {
+      given cc: ChangeContext = zoneAro.newCC()
+      woGroupRepo.delete(groupWithTenantId).either.runNow must beLeft
+    }
+    "refuse to move the tenant's group" in {
+      given cc: ChangeContext = zoneAro.newCC()
+      woGroupRepo.move(groupWithTenantId, rootCat).either.runNow must beLeft
+    }
+    "refuse to update the tenant's group node list" in {
+      given cc: ChangeContext = zoneAro.newCC()
+      woGroupRepo.updateDiffNodes(groupWithTenantId, Nil, Nil).either.runNow must beLeft
+    }
+    "refuse to create a group (no writable tenant)" in {
+      given cc: ChangeContext = zoneAro.newCC()
+      val group = newGroup("group-created-by-readonly", None)
+      woGroupRepo.create(group, rootCat).either.runNow must beLeft
     }
   }
 
@@ -108,20 +216,24 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
 
   "[Groups] Creating a group" should {
     "put no security tag if it's a Grant '*', even if plugin disabled" in {
-      implicit val cc = ChangeContext.newForRudder()
-      val group       = newGroup("grantAll-feature-disabled", None)
-      (woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)(using cc.toQC)).runNow._1.security must beNone
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      given qc: QueryContext  = cc.toQC
+
+      val group = newGroup("grantAll-feature-disabled", None)
+      (woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)).runNow._1.security must beNone
     }
     "lead to an error if the user has a tenant and the plugin is disabled" in {
-      implicit val cc = zoneA.newCC()
-      val group       = newGroup("grantZoneA-feature-disabled", None)
-      (woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)(using cc.toQC)).either.runNow.left
+      given cc: ChangeContext = zoneA.newCC()
+      given qc: QueryContext  = cc.toQC
+
+      val group = newGroup("grantZoneA-feature-disabled", None)
+      (woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)).either.runNow.left
         .map(_.msg) must beLeft(
         beEqualTo("Object 'grantZoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
       )
     }
     "automatically get the correct tenant when the plugin is enabled" in {
-      implicit val cc = zoneA.newCC()
+      given cc: ChangeContext = zoneA.newCC()
 
       val group = newGroup("grantZoneA-feature-enabled", None)
       (tenantRepo.setTenantEnabled(true) *> woGroupRepo.create(group, rootCat) *> roGroupRepo.getNodeGroup(group.id)(using
@@ -129,24 +241,67 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       )).runNow._1.security must beEqualTo(zoneA.accessGrant.toSecurityTag)
     }
   }
+  // A system object is admin-only to change, uniformly, *in addition to* tenant scoping: even a tenant
+  // user who can see and (tenant-wise) write a system object must be refused, because system objects are
+  // shared/global and a change can affect other tenants.
+  "[Groups] The system-object admin-only guard" should {
+    val sysGroupId = NodeGroupId(NodeGroupUid("system-zoneA-group"))
+    def sysGroup(desc: String): NodeGroup = {
+      NodeGroup(
+        sysGroupId,
+        "system-zoneA-group",
+        desc,
+        Nil,
+        None,
+        isDynamic = false,
+        serverList = Set(),
+        _isEnabled = true,
+        isSystem = true,
+        security = Some(SecurityTag.ByTenants(Chunk(TenantId("zoneA"))))
+      )
+    }
+
+    "let an admin (grant '*') create a system group tagged with a tenant" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      (tenantRepo.setTenantEnabled(true) *> woGroupRepo.create(sysGroup("v1"), rootCat)).either.runNow must beRight
+    }
+    "confirm the zoneA user can actually see that system group (so the block below is the system guard, not tenant scoping)" in {
+      given qc: QueryContext = zoneA
+      roGroupRepo.getNodeGroupOpt(sysGroupId).runNow.map(_._1.id) must beSome(sysGroupId)
+    }
+    "refuse a tenant user (who can see it) from updating that system group" in {
+      given cc: ChangeContext = zoneA.newCC()
+      woGroupRepo.updateSystemGroup(sysGroup("v2-by-zoneA")).either.runNow must beLeft
+    }
+    "refuse a tenant user from deleting that system group" in {
+      given cc: ChangeContext = zoneA.newCC()
+      woGroupRepo.delete(sysGroupId).either.runNow must beLeft
+    }
+    "still let an admin update that system group" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      woGroupRepo.updateSystemGroup(sysGroup("v3-by-admin")).either.runNow must beRight
+    }
+  }
+
   "[Groups] Updating a group" should {
     "doesn't change the tag if the plugin is disabled" in {
-      implicit val cc = ChangeContext.newForRudder()
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      given qc: QueryContext  = cc.toQC
 
       val res = for {
         _ <- tenantRepo.setTenantEnabled(false)
-        g <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
         h  = g.copy(security = None)
         _ <- woGroupRepo.update(h)
-        i <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+        i <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
       } yield i.security
 
       res.runNow must beEqualTo(zoneA.accessGrant.toSecurityTag)
     }
 
     "lead to an error if the user has a tenant and the plugin is disabled" in {
-      implicit val cc = zoneA.newCC()
-      val group       = newGroup(groupWithTenantId.uid.value, None)
+      given cc: ChangeContext = zoneA.newCC()
+      val group = newGroup(groupWithTenantId.uid.value, None)
       woGroupRepo
         .update(group)
         .either
@@ -157,28 +312,48 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
       )
     }
 
-    "allow tenant update if the plugin is enabled and user as correct rights" in {
-      implicit val cc = zoneABC.newCC()
+    // only admin can update the tenant list: a non-admin user's tenant change is ignored and the
+    // existing tenants are kept (this runs while groupWithTenantId is still in zoneA).
+    "ignore a non-admin user's attempt to change the tenant list (keep existing tenants)" in {
+      given cc: ChangeContext = zoneABC.newCC()
+      given qc: QueryContext  = cc.toQC
 
       // groupWithTenantId is in zoneA
       val res = for {
         _ <- tenantRepo.setTenantEnabled(true)
-        g <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
         h  = g.copy(security = zoneB.accessGrant.toSecurityTag)
         _ <- woGroupRepo.update(h)
-        i <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+        i <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
+      } yield i.security
+
+      res.runNow must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+
+    "allow an admin (grant '*') to update the tenant list" in {
+      given cc: ChangeContext = ChangeContext.newForRudder()
+      given qc: QueryContext  = cc.toQC
+
+      // groupWithTenantId is in zoneA
+      val res = for {
+        _ <- tenantRepo.setTenantEnabled(true)
+        g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
+        h  = g.copy(security = zoneB.accessGrant.toSecurityTag)
+        _ <- woGroupRepo.update(h)
+        i <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
       } yield i.security
 
       res.runNow must beEqualTo(zoneB.accessGrant.toSecurityTag)
     }
   }
-  "get an error if the destination tenant ID does not exist" in {
-    implicit val cc = zoneABC.newCC()
+  // only admin can change the tenant list, so the "tenant does not exist" check is for an admin
+  "get an error if an admin updates to a destination tenant ID that does not exist" in {
+    given cc: ChangeContext = ChangeContext.newForRudder()
+    given qc: QueryContext  = cc.toQC
 
-    // groupWithTenantId is in zoneA
     val res = for {
       _ <- tenantRepo.setTenantEnabled(true)
-      g <- roGroupRepo.getNodeGroup(groupWithTenantId)(using cc.toQC).map(_._1)
+      g <- roGroupRepo.getNodeGroup(groupWithTenantId).map(_._1)
       h  = g.copy(security = zoneC.accessGrant.toSecurityTag)
       _ <- woGroupRepo.update(h)
     } yield ()
@@ -186,5 +361,193 @@ class LdapRepositoryTenantTest extends Specification with SetupLdapRepositories 
     res.either.runNow.left.map(_.msg) must beLeft(
       beEqualTo("Object 'test-group-node1' security tag's tenant can not be updated to 'zoneC' because it does not exist")
     )
+  }
+
+  // in the test technique library, the active technique `user_defined_tech1` and its directive
+  // `ce8aec6f-...` (and the parent category `ncf_techniques`) are tagged with tenant `zoneA`.
+  val directiveWithTenantA = DirectiveUid("ce8aec6f-d371-4047-96d1-6b69ccdef9ae")
+  val atRootCat            = ActiveTechniqueCategoryId("Active Techniques")
+
+  "[Directives] Reading the full directive library" should {
+    "let an admin (tenant=*) see the zoneA active technique and directive" in {
+      given qc: QueryContext = QueryContext.systemQC
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beTrue) and
+      (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beTrue)
+    }
+    "let a zoneA user see the zoneA active technique and directive" in {
+      given qc: QueryContext = zoneA
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beTrue) and
+      (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beTrue)
+    }
+    "hide the zoneA active technique and directive from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      val lib = roDirectiveRepo.getFullDirectiveLibrary().runNow
+      (lib.allActiveTechniques.keySet.map(_.value).contains("user_defined_tech1") must beFalse) and
+      (lib.allDirectives.keySet.map(_.uid.value).contains(directiveWithTenantA.value) must beFalse)
+    }
+  }
+
+  "[Directives] Reading a single directive" should {
+    "be visible to a zoneA user" in {
+      given qc: QueryContext = zoneA
+      roDirectiveRepo.getDirective(directiveWithTenantA).runNow.map(_.id.uid.value) must beSome(directiveWithTenantA.value)
+    }
+    "be hidden from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roDirectiveRepo.getDirective(directiveWithTenantA).runNow must beNone
+    }
+  }
+
+  "[Directives] Deleting a directive" should {
+    "be refused for a user who can not see it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woDirectiveRepo.delete(directiveWithTenantA).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(s"Object '${directiveWithTenantA.value}' can't be deleted by zoneB user")
+      )
+    }
+  }
+
+  def newActiveTechniqueCategory(id: String, tenant: Option[SecurityTag]): ActiveTechniqueCategory =
+    ActiveTechniqueCategory(ActiveTechniqueCategoryId(id), id, id, Nil, Nil, isSystem = false, security = tenant)
+
+  "[ActiveTechniqueCategories] Creating a category" should {
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val cat = newActiveTechniqueCategory("cat-zoneA-feature-disabled", None)
+      (tenantRepo.setTenantEnabled(false) *> woDirectiveRepo.addActiveTechniqueCategory(cat, atRootCat)).either.runNow.left
+        .map(_.msg) must beLeft(
+        beEqualTo("Object 'cat-zoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val cat = newActiveTechniqueCategory("cat-zoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *>
+      woDirectiveRepo.addActiveTechniqueCategory(cat, atRootCat) *>
+      roDirectiveRepo.getActiveTechniqueCategory(cat.id)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+  }
+
+  // in the test data, the rule `34323555-...` is tagged with tenant `zoneA`.
+  val ruleWithTenantA = RuleId(RuleUid("34323555-6b6b-4d07-b3bd-043df1239797"))
+
+  "[Rules] Reading all rules" should {
+    "let an admin (tenant=*) see the zoneA rule" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roRuleRepo.getAll().runNow.map(_.id.serialize).contains(ruleWithTenantA.serialize) must beTrue
+    }
+    "let a zoneA user see the zoneA rule" in {
+      given qc: QueryContext = zoneA
+      roRuleRepo.getAll().runNow.map(_.id.serialize).contains(ruleWithTenantA.serialize) must beTrue
+    }
+    "hide the zoneA rule from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roRuleRepo.getAll().runNow.map(_.id.serialize).contains(ruleWithTenantA.serialize) must beFalse
+    }
+  }
+
+  "[Rules] Reading a single rule" should {
+    "be visible to a zoneA user" in {
+      given qc: QueryContext = zoneA
+      roRuleRepo.getOpt(ruleWithTenantA).runNow.map(_.id.serialize) must beSome(ruleWithTenantA.serialize)
+    }
+    "be hidden from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roRuleRepo.getOpt(ruleWithTenantA).runNow must beNone
+    }
+  }
+
+  "[Rules] Deleting a rule" should {
+    "be refused for a user who can not see it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woRuleRepo.delete(ruleWithTenantA).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(s"Object '${ruleWithTenantA.serialize}' can't be deleted by zoneB user")
+      )
+    }
+  }
+
+  def newRule(id: String, tenant: Option[SecurityTag]): Rule =
+    Rule(RuleId(RuleUid(id)), id, RuleCategoryId("rootRuleCategory"), security = tenant)
+
+  "[Rules] Creating a rule" should {
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val rule = newRule("rule-zoneA-feature-disabled", None)
+      (tenantRepo.setTenantEnabled(false) *> woRuleRepo.create(rule)).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo("Object 'rule-zoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val rule = newRule("rule-zoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *> woRuleRepo.create(rule) *>
+      roRuleRepo.getOpt(rule.id)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
+  }
+
+  // in the test data, the global parameter `param-zoneA` is tagged with tenant `zoneA`.
+  val parameterWithTenantA = "param-zoneA"
+
+  "[Parameters] Reading all parameters" should {
+    "let an admin (tenant=*) see the zoneA parameter" in {
+      given qc: QueryContext = QueryContext.systemQC
+      roGlobalPropertyRepo.getAllGlobalParameters().runNow.map(_.name).contains(parameterWithTenantA) must beTrue
+    }
+    "let a zoneA user see the zoneA parameter" in {
+      given qc: QueryContext = zoneA
+      roGlobalPropertyRepo.getAllGlobalParameters().runNow.map(_.name).contains(parameterWithTenantA) must beTrue
+    }
+    "hide the zoneA parameter from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roGlobalPropertyRepo.getAllGlobalParameters().runNow.map(_.name).contains(parameterWithTenantA) must beFalse
+    }
+  }
+
+  "[Parameters] Reading a single parameter" should {
+    "be visible to a zoneA user" in {
+      given qc: QueryContext = zoneA
+      roGlobalPropertyRepo.getGlobalParameter(parameterWithTenantA).runNow.map(_.name) must beSome(parameterWithTenantA)
+    }
+    "be hidden from a zoneB user" in {
+      given qc: QueryContext = zoneB
+      roGlobalPropertyRepo.getGlobalParameter(parameterWithTenantA).runNow must beNone
+    }
+  }
+
+  "[Parameters] Deleting a parameter" should {
+    "be refused for a user who can not see it" in {
+      given cc: ChangeContext = zoneB.newCC()
+      woGlobalPropertyRepo.delete(parameterWithTenantA, None).either.runNow.left.map(_.msg) must beLeft(
+        beEqualTo(s"Object '$parameterWithTenantA' can't be deleted by zoneB user")
+      )
+    }
+  }
+
+  def newParameter(name: String, tenant: Option[SecurityTag]): GlobalParameter = {
+    GlobalParameter
+      .parse(name, GitVersion.DEFAULT_REV, "\"" + name + "\"", None, "", None, Visibility.default, tenant)
+      .getOrElse(throw new RuntimeException(s"Error in test: can not build parameter '$name'"))
+  }
+
+  "[Parameters] Creating a parameter" should {
+    "lead to an error if the user has a tenant and the plugin is disabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val param = newParameter("param-zoneA-feature-disabled", None)
+      (tenantRepo.setTenantEnabled(false) *> woGlobalPropertyRepo.saveParameter(param)).either.runNow.left
+        .map(_.msg) must beLeft(
+        beEqualTo("Object 'param-zoneA-feature-disabled' [*] can't be modified by 'zoneA user' (perm:tags:[zoneA])")
+      )
+    }
+    "automatically get the correct tenant when the plugin is enabled" in {
+      given cc: ChangeContext = zoneA.newCC()
+      val param = newParameter("param-zoneA-feature-enabled", None)
+      (tenantRepo.setTenantEnabled(true) *> woGlobalPropertyRepo.saveParameter(param) *>
+      roGlobalPropertyRepo.getGlobalParameter(param.name)(using QueryContext.systemQC)).runNow
+        .flatMap(_.security) must beEqualTo(zoneA.accessGrant.toSecurityTag)
+    }
   }
 }

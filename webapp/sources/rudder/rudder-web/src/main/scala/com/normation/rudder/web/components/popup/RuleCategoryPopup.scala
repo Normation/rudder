@@ -39,7 +39,6 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.tenants.QueryContext
@@ -207,8 +206,7 @@ class RuleCategoryPopup(
   private def onSubmitDelete()(using qc: QueryContext): JsCmd = {
     targetCategory match {
       case Some(category) =>
-        val modId = new ModificationId(uuidGen.newUuid)
-        woRulecategoryRepository.delete(category.id, modId, qc.actor, None, checkEmpty = true).toBox match {
+        woRulecategoryRepository.delete(category.id, checkEmpty = true)(using qc.newCC()).toBox match {
           case Full(x) =>
             closePopup() &
             onSuccessCallback(x.value) &
@@ -238,12 +236,11 @@ class RuleCategoryPopup(
             categoryDescription.get,
             Nil,
             isSystem = false,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           )
 
           val parent = RuleCategoryId(categoryParent.get)
-          val modId  = new ModificationId(uuidGen.newUuid)
-          woRulecategoryRepository.create(newCategory, parent, modId, qc.actor, None).toBox
+          woRulecategoryRepository.create(newCategory, parent)(using qc.newCC()).toBox
         case Some(category) =>
           val updated = category.copy(
             name = categoryName.get,
@@ -254,8 +251,7 @@ class RuleCategoryPopup(
           if (updated == category && parentCategory.exists(_ == parent.value)) {
             Failure("There are no modifications to save")
           } else {
-            val modId = new ModificationId(uuidGen.newUuid)
-            woRulecategoryRepository.updateAndMove(updated, parent, modId, qc.actor, None).toBox
+            woRulecategoryRepository.updateAndMove(updated, parent)(using qc.newCC()).toBox
           }
       }) match {
         case Full(x)          => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)

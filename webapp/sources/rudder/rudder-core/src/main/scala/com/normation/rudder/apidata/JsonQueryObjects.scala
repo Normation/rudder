@@ -76,6 +76,7 @@ import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.DeleteMode
+import com.normation.rudder.tenants.SecurityTag
 import com.typesafe.config.ConfigValue
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -234,7 +235,8 @@ object JsonQueryObjects {
       policyMode:       Option[Option[PolicyMode]] = None,
       tags:             Option[Tags] = None, // for clone
 
-      source: Option[DirectiveId] = None
+      source:   Option[DirectiveId] = None,
+      security: Option[SecurityTag] = None
   ) {
     val onlyName: Boolean = displayName.isDefined &&
       shortDescription.isEmpty &&
@@ -248,20 +250,22 @@ object JsonQueryObjects {
       tags.isEmpty // no need to check source or reason
 
     def updateDirective(directive: Directive): Directive = {
-      directive.patchUsing(
-        PatchDirective(
-          id,
-          techniqueVersion,
-          parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2))),
-          displayName,
-          shortDescription,
-          policyMode,
-          longDescription,
-          priority,
-          enabled,
-          tags
+      directive
+        .patchUsing(
+          PatchDirective(
+            id,
+            techniqueVersion,
+            parameters.flatMap(_.get("section").map(s => SectionVal.toMapVariables(s.toSectionVal._2))),
+            displayName,
+            shortDescription,
+            policyMode,
+            longDescription,
+            priority,
+            enabled,
+            tags
+          )
         )
-      )
+        .copy(security = security.orElse(directive.security))
     }
   }
 
@@ -276,7 +280,8 @@ object JsonQueryObjects {
       enabled:                             Option[Boolean] = None,
       tags:                                Option[Tags] = None, // for clone
 
-      source: Option[RuleId] = None
+      source:   Option[RuleId] = None,
+      security: Option[SecurityTag] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
@@ -308,7 +313,8 @@ object JsonQueryObjects {
         directiveIds = updateDirectives,
         targets = updateTargets,
         isEnabledStatus = updateEnabled,
-        tags = updateTags
+        tags = updateTags,
+        security = security.orElse(rule.security)
       )
     }
   }
@@ -317,11 +323,17 @@ object JsonQueryObjects {
       id:          Option[String],
       value:       Option[ConfigValue],
       description: Option[String],
-      inheritMode: Option[InheritMode]
+      inheritMode: Option[InheritMode],
+      security:    Option[SecurityTag]
   ) {
     def updateParameter(parameter: GlobalParameter): GlobalParameter = {
       // provider from API is force set to default.
-      parameter.patch(PatchProperty(id, value, Some(PropertyProvider.defaultPropertyProvider), description, inheritMode))
+      val patched =
+        parameter.patch(PatchProperty(id, value, Some(PropertyProvider.defaultPropertyProvider), description, inheritMode))
+      security match {
+        case None      => patched
+        case Some(tag) => patched.withSecurity(Some(tag))
+      }
     }
   }
 
@@ -368,7 +380,8 @@ object JsonQueryObjects {
       properties:  Option[List[GroupProperty]],
       query:       Option[Option[Query]],
       isDynamic:   Option[Boolean],
-      _isEnabled:  Option[Boolean]
+      _isEnabled:  Option[Boolean],
+      security:    Option[SecurityTag]
   )
 
   final case class JQGroupCategory private[apidata] (
@@ -433,7 +446,8 @@ object JsonQueryObjects {
       dynamic:                             Option[Boolean] = None,
       enabled:                             Option[Boolean] = None,
       @jsonAliases("category") categoryId: Option[NodeGroupCategoryId] = None,
-      source:                              Option[NodeGroupId] = None
+      source:                              Option[NodeGroupId] = None,
+      security:                            Option[SecurityTag] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
@@ -458,18 +472,23 @@ object JsonQueryObjects {
                       properties.map(_ ::: group.properties.filter(p => p.visibility == Hidden && !propNames.contains(p.name)))
                     )
       } yield {
-        group.patchUsing(
-          GroupPatch(
-            // we can't change id, but revision yes
-            Some(NodeGroupId(group.id.uid, id.map(_.rev).getOrElse(group.id.rev))),
-            displayName,
-            description,
-            Some(p),
-            q.map(Some(_)),
-            dynamic,
-            enabled
+        group
+          .patchUsing(
+            GroupPatch(
+              // we can't change id, but revision yes
+              Some(NodeGroupId(group.id.uid, id.map(_.rev).getOrElse(group.id.rev))),
+              displayName,
+              description,
+              Some(p),
+              q.map(Some(_)),
+              dynamic,
+              enabled,
+              // like JQRule/JQDirective/JQGlobalParameter: if the request does not carry a security
+              // tag, keep the existing one (do not wipe it). The actual tenant-change authorization
+              // is enforced later by TenantCheckLogic.manageUpdate.
+              security.orElse(group.security)
+            )
           )
-        )
       }
     }
   }
@@ -943,7 +962,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
       value       <- params.parse2("value", GenericProperty.parseValue(_))
       inheritMode <- params.parse2("inheritMode", InheritMode.parseString(_))
     } yield {
-      JQGlobalParameter(params.optGet("id"), value, params.optGet("description"), inheritMode)
+      JQGlobalParameter(params.optGet("id"), value, params.optGet("description"), inheritMode, None)
     }
   }
 

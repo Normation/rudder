@@ -46,7 +46,6 @@ import com.normation.cfclerk.domain.TechniqueGenerationMode.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueId
@@ -92,7 +91,7 @@ object JsonDirectiveRId {
 /**
  * Snippet for managing the System and Active Technique libraries.
  *
- * It allow to see what Techniques are available in the
+ * It allows to see what Techniques are available in the
  * system library, choose and configure which one to use in
  * the user private library.
  *
@@ -100,7 +99,9 @@ object JsonDirectiveRId {
  *
  */
 class DirectiveManagement extends SecureDispatchSnippet with Loggable {
-  import DirectiveManagement.*
+  import com.normation.rudder.web.snippet.configuration.DirectiveManagement.*
+
+  given qc: QueryContext = RudderConfig.userService.getCurrentQC
 
   private val techniqueRepository = RudderConfig.techniqueRepository
   private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
@@ -659,13 +660,12 @@ class DirectiveManagement extends SecureDispatchSnippet with Loggable {
                 "Delete",
                 () => {
                   RudderConfig.woDirectiveRepository
-                    .delete(
-                      directive.id.uid,
-                      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-                      qc.actor,
-                      Some(
-                        s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
-                      ).toBox
+                    .delete(directive.id.uid)(using
+                      qc.newCC(
+                        Some(
+                          s"Deleting directive '${directive.name}' (${directive.id.debugString}) because its technique isn't available anymore"
+                        )
+                      )
                     )
                     .toBox match {
                     case Full(diff) =>
@@ -721,7 +721,7 @@ class DirectiveManagement extends SecureDispatchSnippet with Loggable {
             "",
             5,
             _isEnabled = true,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           )
         }
         updateDirectiveSettingForm(

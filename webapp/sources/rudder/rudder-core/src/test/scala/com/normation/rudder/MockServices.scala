@@ -215,6 +215,11 @@ object revisionRepo {
   }
 }
 
+class MockTenants() {
+  val tenantRepo = InMemoryTenantService.make(List(TenantId("zoneA"), TenantId("zoneB"))).runNow
+  val checkTenant: TenantCheckLogic = new DefaultTenantCheckLogic()
+}
+
 class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: String = "configuration-repository") {
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -547,7 +552,7 @@ object TV {
     TechniqueVersion.parse(s).getOrElse(throw new IllegalArgumentException(s"Cannot parse '${s}' as a technique version'"))
 }
 
-class MockDirectives(mockTechniques: MockTechniques) {
+class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
 
   object directives {
 
@@ -915,7 +920,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         subCategories = Nil,
         activeTechniques = Nil,
         isSystem = true,
-        security = None
+        security = Some(SecurityTag.Open)
       )
     )
     .runNow
@@ -935,7 +940,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .mkString("", "\n", "")}""".stripMargin
   }
 
-  object directiveRepo extends RoDirectiveRepository with WoDirectiveRepository with DirectiveRevisionRepository {
+  object directiveRepoImpl extends RoDirectiveRepository with WoDirectiveRepository with DirectiveRevisionRepository {
 
     override def getDirectiveRevision(
         uid: DirectiveUid,
@@ -959,31 +964,38 @@ class MockDirectives(mockTechniques: MockTechniques) {
       }
     }
 
-    override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = rootActiveTechniqueCategory.get
+    override def getFullDirectiveLibrary()(using qc: QueryContext): IOResult[FullActiveTechniqueCategory] =
+      rootActiveTechniqueCategory.get
 
-    override def getDirective(uid: DirectiveUid): IOResult[Option[Directive]] = {
+    override def getDirective(uid: DirectiveUid)(using qc: QueryContext): IOResult[Option[Directive]] = {
       getDirectiveRevision(uid, GitVersion.DEFAULT_REV).map(_.map(_._2))
     }
 
-    override def getDirectiveWithContext(directiveId: DirectiveUid): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
+    override def getDirectiveWithContext(
+        directiveId: DirectiveUid
+    )(using qc: QueryContext): IOResult[Option[(Technique, ActiveTechnique, Directive)]] = {
       rootActiveTechniqueCategory.get.map(_.allDirectives.get(DirectiveId(directiveId)).map {
         case (fat, d) =>
           (fat.techniques(d.techniqueVersion), fat.toActiveTechnique(), d)
       })
     }
 
-    override def getActiveTechniqueAndDirective(id: DirectiveId): IOResult[Option[(ActiveTechnique, Directive)]] = {
+    override def getActiveTechniqueAndDirective(
+        id: DirectiveId
+    )(using qc: QueryContext): IOResult[Option[(ActiveTechnique, Directive)]] = {
       getDirectiveWithContext(id.uid).map(_.map { case (t, at, d) => (at, d) })
     }
 
-    override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean): IOResult[Seq[Directive]] = {
+    override def getDirectives(activeTechniqueId: ActiveTechniqueId, includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[Directive]] = {
       val predicate = (d: Directive) => if (includeSystem) true else !d.isSystem
       rootActiveTechniqueCategory.get.map(_.allDirectives.collect { case (_, (_, d)) if (predicate(d)) => d }.toSeq)
     }
 
     override def getActiveTechniqueByCategory(
         includeSystem: Boolean
-    ): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
+    )(using qc: QueryContext): IOResult[ISortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = {
       implicit val ordering = ActiveTechniqueCategoryOrdering
       rootActiveTechniqueCategory.get.map(c => {
         ISortedMap.empty[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques] ++ c.fullIndex.map {
@@ -996,17 +1008,23 @@ class MockDirectives(mockTechniques: MockTechniques) {
       })
     }
 
-    override def getActiveTechniqueByActiveTechnique(id: ActiveTechniqueId): IOResult[Option[ActiveTechnique]] = {
+    override def getActiveTechniqueByActiveTechnique(
+        id: ActiveTechniqueId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = {
       rootActiveTechniqueCategory.get.map(_.allActiveTechniques.get(id).map(_.toActiveTechnique()))
     }
 
-    override def getActiveTechnique(techniqueName: TechniqueName): IOResult[Option[ActiveTechnique]] = {
+    override def getActiveTechnique(
+        techniqueName: TechniqueName
+    )(using qc: QueryContext): IOResult[Option[ActiveTechnique]] = {
       rootActiveTechniqueCategory.get.map(
         _.allActiveTechniques.valuesIterator.find(_.techniqueName == techniqueName).map(_.toActiveTechnique())
       )
     }
 
-    override def activeTechniqueBreadCrump(id: ActiveTechniqueId): IOResult[List[ActiveTechniqueCategory]] = {
+    override def activeTechniqueBreadCrump(
+        id: ActiveTechniqueId
+    )(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = {
       import cats.implicits.*
 
       rootActiveTechniqueCategory.get.map(root => {
@@ -1024,11 +1042,13 @@ class MockDirectives(mockTechniques: MockTechniques) {
       })
     }
 
-    override def getActiveTechniqueLibrary: IOResult[ActiveTechniqueCategory] = {
+    override def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.get.map(_.toActiveTechniqueCategory())
     }
 
-    override def getAllActiveTechniqueCategories(includeSystem: Boolean): IOResult[Seq[ActiveTechniqueCategory]] = {
+    override def getAllActiveTechniqueCategories(includeSystem: Boolean)(using
+        qc: QueryContext
+    ): IOResult[Seq[ActiveTechniqueCategory]] = {
       val predicate = (fat: FullActiveTechniqueCategory) => if (includeSystem) true else !fat.isSystem
       rootActiveTechniqueCategory.get.map {
         _.allCategories.values.collect {
@@ -1038,11 +1058,15 @@ class MockDirectives(mockTechniques: MockTechniques) {
       }
     }
 
-    override def getActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[Option[ActiveTechniqueCategory]] = {
+    override def getActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[Option[ActiveTechniqueCategory]] = {
       rootActiveTechniqueCategory.get.map(_.allCategories.get(id).map(_.toActiveTechniqueCategory()))
     }
 
-    override def getParentActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[ActiveTechniqueCategory] = {
+    override def getParentActiveTechniqueCategory(
+        id: ActiveTechniqueCategoryId
+    )(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
       rootActiveTechniqueCategory.get.flatMap(root => {
         root.fullIndex.find(_._1.lastOption == Some(id)) match {
           case None            =>
@@ -1059,10 +1083,12 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
     // scalafmt makes scalameta ScalametaParser to fail for now
     // format: off
-    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId): IOResult[List[ActiveTechniqueCategory]] = ???
+    override def getParentsForActiveTechniqueCategory(id: ActiveTechniqueCategoryId)(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = ???
     // format: on
 
-    override def getParentsForActiveTechnique(id: ActiveTechniqueId): IOResult[ActiveTechniqueCategory] = ???
+    override def getParentsForActiveTechnique(id: ActiveTechniqueId)(using
+        qc: QueryContext
+    ): IOResult[ActiveTechniqueCategory] = ???
 
     override def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
 
@@ -1116,22 +1142,16 @@ class MockDirectives(mockTechniques: MockTechniques) {
     }
     override def saveDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = {
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = {
       if (directive.isSystem) Inconsistency(s"Can not modify system directive '${directive.id}' here").fail
       else saveGen(inActiveTechniqueId, directive)
     }
 
     override def saveSystemDirective(
         inActiveTechniqueId: ActiveTechniqueId,
-        directive:           Directive,
-        modId:               ModificationId,
-        actor:               EventActor,
-        reason:              Option[String]
-    ): IOResult[Option[DirectiveSaveDiff]] = {
+        directive:           Directive
+    )(using cc: ChangeContext): IOResult[Option[DirectiveSaveDiff]] = {
       if (!directive.isSystem) Inconsistency(s"Can not modify non system directive '${directive.id}' here").fail
       else saveGen(inActiveTechniqueId, directive)
     }
@@ -1143,20 +1163,14 @@ class MockDirectives(mockTechniques: MockTechniques) {
         .map(_.map(p => DeleteDirectiveDiff(p._1.techniqueName, p._2)))
     }
     override def delete(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = {
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
     override def deleteSystemDirective(
-        id:     DirectiveUid,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[DeleteDirectiveDiff]] = {
+        id: DirectiveUid
+    )(using cc: ChangeContext): IOResult[Option[DeleteDirectiveDiff]] = {
       deleteGen(id)
     }
 
@@ -1199,11 +1213,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
     )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def deleteActiveTechnique(
-        id:     ActiveTechniqueId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[ActiveTechniqueId] = ???
+        id: ActiveTechniqueId
+    )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
 
     override def addActiveTechniqueCategory(
         that: ActiveTechniqueCategory,
@@ -1240,22 +1251,35 @@ class MockDirectives(mockTechniques: MockTechniques) {
 
   }
 
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `directiveRepoImpl`
+  object directiveRepo
+      extends WoTenantDirectiveRepo(
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
+        directiveRepoImpl,
+        new RoTenantDirectiveRepo(mockTenants.checkTenant, directiveRepoImpl)
+      ) with DirectiveRevisionRepository {
+    export directiveRepoImpl.getDirectiveRevision
+    export directiveRepoImpl.getRevisions
+  }
+
+  // seeding is done directly on the underlying repo, as an admin, to avoid any tenant filtering
   val initDirectivesTree =
-    new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepo, directiveRepo, new StringUuidGeneratorImpl())
+    new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepoImpl, directiveRepoImpl, new StringUuidGeneratorImpl())
 
   initDirectivesTree.copyReferenceLib(includeSystem = true)
 
   {
-    val modId = ModificationId(s"init directives in lib")
+    given cc: ChangeContext = ChangeContext.newForRudder(Some("init directives in lib"))
     ZIO
       .foreachDiscard(directives.all) {
         case (t, list) =>
           val at = ActiveTechniqueId(t.id.name.value)
           ZIO.foreachDiscard(list) { d =>
             if (d.isSystem) {
-              directiveRepo.saveSystemDirective(at, d, modId, TestActor.get, None)
+              directiveRepoImpl.saveSystemDirective(at, d)
             } else {
-              directiveRepo.saveDirective(at, d, modId, TestActor.get, None)
+              directiveRepoImpl.saveDirective(at, d)
             }
           }
       }
@@ -1263,7 +1287,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
   }
 }
 
-class MockRules() {
+class MockRules(mockTenants: MockTenants) {
   val t1: Long = System.currentTimeMillis()
 
   val rootRuleCategory: RuleCategory = RuleCategory(
@@ -1272,10 +1296,10 @@ class MockRules() {
     "This is the main category of Rules",
     RuleCategory(RuleCategoryId("category1"), "Category 1", "description of category 1", Nil, security = None) :: Nil,
     isSystem = true,
-    security = None
+    security = Some(SecurityTag.Open) // root cat must be open
   )
 
-  object ruleCategoryRepo extends RoRuleCategoryRepository with WoRuleCategoryRepository {
+  object ruleCategoryRepoImpl extends RoRuleCategoryRepository with WoRuleCategoryRepository {
 
     import com.softwaremill.quicklens.*
 
@@ -1315,18 +1339,15 @@ class MockRules() {
 
     val categories: Ref.Synchronized[RuleCategory] = Ref.Synchronized.make(rootRuleCategory).runNow
 
-    override def get(id: RuleCategoryId): IOResult[RuleCategory] = {
+    override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] = {
       categories.get.flatMap(c => recGet(c, id).map(_._2).notOptional(s"category with id '${id.value}' not found"))
     }
-    override def getRootCategory():       IOResult[RuleCategory] = categories.get
+    override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] = categories.get
 
     override def create(
-        that:   RuleCategory,
-        into:   RuleCategoryId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[RuleCategory] = {
+        that: RuleCategory,
+        into: RuleCategoryId
+    )(implicit cc: ChangeContext): IOResult[RuleCategory] = {
       categories
         .updateZIO(cats => {
           recGet(cats, into) match {
@@ -1343,12 +1364,9 @@ class MockRules() {
     }
 
     override def updateAndMove(
-        that:   RuleCategory,
-        into:   RuleCategoryId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[RuleCategory] = {
+        that: RuleCategory,
+        into: RuleCategoryId
+    )(implicit cc: ChangeContext): IOResult[RuleCategory] = {
       categories
         .updateZIO(cats => {
           recGet(cats, that.id) match {
@@ -1371,14 +1389,20 @@ class MockRules() {
 
     override def delete(
         category:   RuleCategoryId,
-        modId:      ModificationId,
-        actor:      EventActor,
-        reason:     Option[String],
         checkEmpty: Boolean
-    ): IOResult[RuleCategoryId] = {
+    )(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
       categories.updateZIO(cats => inDelete(cats, category).succeed).map(_ => category)
     }
   }
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `ruleCategoryRepoImpl`
+  object ruleCategoryRepo
+      extends WoTenantRuleCategoryRepo(
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
+        ruleCategoryRepoImpl,
+        new RoTenantRuleCategoryRepo(mockTenants.checkTenant, ruleCategoryRepoImpl)
+      )
 
   object rules {
 
@@ -1561,25 +1585,25 @@ class MockRules() {
     )
   }
 
-  object ruleRepo extends RoRuleRepository with WoRuleRepository {
+  object ruleRepoImpl extends RoRuleRepository with WoRuleRepository {
 
     val rulesMap: Ref.Synchronized[Map[RuleId, Rule]] = Ref.Synchronized.make(rules.all.map(r => (r.id, r)).toMap).runNow
 
     val predicate: Boolean => (Rule => Boolean) = (includeSystem: Boolean) =>
       (r: Rule) => if (includeSystem) true else r.isSystem == false
 
-    override def getOpt(ruleId: RuleId): IOResult[Option[Rule]] =
+    override def getOpt(ruleId: RuleId)(using qc: QueryContext): IOResult[Option[Rule]] =
       rulesMap.get.map(_.get(ruleId))
 
-    override def getAll(includeSystem: Boolean): IOResult[Seq[Rule]] = {
+    override def getAll(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[Rule]] = {
       rulesMap.get.map(_.valuesIterator.filter(predicate(includeSystem)).toSeq)
     }
 
-    override def getIds(includeSystem: Boolean): IOResult[Set[RuleId]] = {
+    override def getIds(includeSystem: Boolean)(using qc: QueryContext): IOResult[Set[RuleId]] = {
       rulesMap.get.map(_.valuesIterator.collect { case r if (predicate(includeSystem)(r)) => r.id }.toSet)
     }
 
-    override def create(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[AddRuleDiff] = {
+    override def create(rule: Rule)(using cc: ChangeContext): IOResult[AddRuleDiff] = {
       rulesMap
         .updateZIO(rules => {
           rules.get(rule.id) match {
@@ -1617,12 +1641,7 @@ class MockRules() {
       }
     }
 
-    override def update(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = {
+    override def update(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(rule.id) match {
@@ -1637,12 +1656,7 @@ class MockRules() {
         .map(buildRuleDiff(_, rule))
     }
 
-    override def updateSystem(
-        rule:   Rule,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[Option[ModifyRuleDiff]] = {
+    override def updateSystem(rule: Rule)(using cc: ChangeContext): IOResult[Option[ModifyRuleDiff]] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(rule.id) match {
@@ -1657,12 +1671,7 @@ class MockRules() {
         .map(buildRuleDiff(_, rule))
     }
 
-    override def delete(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = {
+    override def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(id) match {
@@ -1678,12 +1687,7 @@ class MockRules() {
         .map(DeleteRuleDiff(_))
     }
 
-    override def deleteSystemRule(
-        id:     RuleId,
-        modId:  ModificationId,
-        actor:  EventActor,
-        reason: Option[String]
-    ): IOResult[DeleteRuleDiff] = {
+    override def deleteSystemRule(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
       rulesMap
         .modifyZIO(rules => {
           rules.get(id) match {
@@ -1710,9 +1714,21 @@ class MockRules() {
 
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ZIO.unit
 
-    override def load(rule: Rule, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
+    override def load(rule: Rule)(using cc: ChangeContext): IOResult[Unit] = ???
 
-    override def unload(ruleId: RuleId, modId: ModificationId, actor: EventActor, reason: Option[String]): IOResult[Unit] = ???
+    override def unload(ruleId: RuleId)(using cc: ChangeContext): IOResult[Unit] = ???
+  }
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `ruleRepoImpl`
+  object ruleRepo
+      extends WoTenantRuleRepo(
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
+        ruleRepoImpl,
+        new RoTenantRuleRepo(mockTenants.checkTenant, ruleRepoImpl),
+        ruleCategoryRepoImpl
+      ) {
+    export ruleRepoImpl.rulesMap
   }
 }
 
@@ -1735,7 +1751,7 @@ class MockConfigRepo(
   )
 }
 
-class MockGlobalParam() {
+class MockGlobalParam(mockTenants: MockTenants) {
 
   val mode: InheritMode = {
     import com.normation.rudder.domain.properties.InheritMode.*
@@ -1825,8 +1841,7 @@ class MockGlobalParam() {
   val all: Map[String, GlobalParameter] =
     List(stringParam, hiddenParam, jsonParam, modeParam, systemParam, rudderConfig).map(p => (p.name, p)).toMap
 
-  val paramsRepo: paramsRepo = new paramsRepo
-  class paramsRepo extends RoParameterRepository with WoParameterRepository {
+  class paramsRepoImpl extends RoParameterRepository with WoParameterRepository {
 
     // needed because we don't have real dyngroup update in mock, so propertiesService is
     // not called when it should.
@@ -1842,20 +1857,17 @@ class MockGlobalParam() {
     val paramsMap: Ref.Synchronized[Map[String, GlobalParameter]] =
       Ref.Synchronized.make[Map[String, GlobalParameter]](all).runNow
 
-    override def getGlobalParameter(parameterName: String): IOResult[Option[GlobalParameter]] = {
+    override def getGlobalParameter(parameterName: String)(using qc: QueryContext): IOResult[Option[GlobalParameter]] = {
       paramsMap.get.map(_.get(parameterName))
     }
 
-    override def getAllGlobalParameters(): IOResult[Seq[GlobalParameter]] = {
+    override def getAllGlobalParameters()(using qc: QueryContext): IOResult[Seq[GlobalParameter]] = {
       paramsMap.get.map(_.valuesIterator.toSeq)
     }
 
     override def saveParameter(
-        parameter: GlobalParameter,
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[AddGlobalParameterDiff] = {
+        parameter: GlobalParameter
+    )(using cc: ChangeContext): IOResult[AddGlobalParameterDiff] = {
       paramsMap
         .updateZIO(params => {
           params.get(parameter.name) match {
@@ -1870,11 +1882,8 @@ class MockGlobalParam() {
     }
 
     override def updateParameter(
-        parameter: GlobalParameter,
-        modId:     ModificationId,
-        actor:     EventActor,
-        reason:    Option[String]
-    ): IOResult[Option[ModifyGlobalParameterDiff]] = {
+        parameter: GlobalParameter
+    )(using cc: ChangeContext): IOResult[Option[ModifyGlobalParameterDiff]] = {
       paramsMap
         .modifyZIO(params => {
           params.get(parameter.name) match {
@@ -1895,11 +1904,8 @@ class MockGlobalParam() {
 
     override def delete(
         parameterName: String,
-        provider:      Option[PropertyProvider],
-        modId:         ModificationId,
-        actor:         EventActor,
-        reason:        Option[String]
-    ): IOResult[Option[DeleteGlobalParameterDiff]] = {
+        provider:      Option[PropertyProvider]
+    )(using cc: ChangeContext): IOResult[Option[DeleteGlobalParameterDiff]] = {
       paramsMap
         .modifyZIO(params => {
           params.get(parameterName) match {
@@ -1921,6 +1927,20 @@ class MockGlobalParam() {
       ZIO.unit
     }
 
+  }
+
+  private val paramsRepoImplInstance = new paramsRepoImpl
+
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `paramsRepoImplInstance`
+  object paramsRepo
+      extends WoTenantParameterRepo(
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
+        paramsRepoImplInstance,
+        new RoTenantParameterRepo(mockTenants.checkTenant, paramsRepoImplInstance)
+      ) {
+    export paramsRepoImplInstance.callbacks
+    export paramsRepoImplInstance.paramsMap
   }
 }
 
@@ -2422,7 +2442,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
   }
 }
 
-class MockNodes() {
+class MockNodes(mockTenant: MockTenants) {
   val t2: Long = System.currentTimeMillis()
 
   object nodeFactStorage extends NodeFactStorage {
@@ -2500,7 +2520,7 @@ class MockNodes() {
   }
 
   object softwareDao extends ReadOnlySoftwareDAO {
-    implicit val qc: QueryContext = QueryContext.todoQC
+    implicit val qc: QueryContext = QueryContext.systemQC
 
     val softRef: Ref.Synchronized[Map[SoftwareUuid, Software]] =
       Ref.Synchronized.make(MockNodes.softwares.map(s => (s.id, s)).toMap).runNow
@@ -2545,11 +2565,10 @@ class MockNodes() {
 
   val getNodesBySoftwareName = new SoftDaoGetNodesBySoftwareName(softwareDao)
 
-  val tenantRepo: TenantService = InMemoryTenantService.make(Nil).runNow
-  val tenantService = new DefaultTenantCheckLogic()
-
   val nodeFactRepo: CoreNodeFactRepository = {
-    CoreNodeFactRepository.make(nodeFactStorage, getNodesBySoftwareName, tenantRepo, tenantService, Chunk(), Chunk()).runNow
+    CoreNodeFactRepository
+      .make(nodeFactStorage, getNodesBySoftwareName, mockTenant.tenantRepo, mockTenant.checkTenant, Chunk(), Chunk())
+      .runNow
   }
 
   val propRepo: PropertiesRepository = {
@@ -2648,7 +2667,7 @@ class MockNodes() {
   }
 
   object newNodeManager extends NewNodeManager {
-    implicit val qc: QueryContext = QueryContext.todoQC
+    implicit val qc: QueryContext = QueryContext.systemQC
 
     val list = new FactListNewNodes(nodeFactRepo)
 
@@ -2700,9 +2719,9 @@ class MockNodes() {
   val scoreManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 }
 
-class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
+class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam, mockTenants: MockTenants) {
 
-  object groupsRepo extends RoNodeGroupRepository with WoNodeGroupRepository {
+  object groupsRepoImpl extends RoNodeGroupRepository with WoNodeGroupRepository {
     implicit val qc:       QueryContext                   = QueryContext.testQC
     implicit val ordering: NodeGroupCategoryOrdering.type = com.normation.rudder.repository.NodeGroupCategoryOrdering
 
@@ -2715,12 +2734,12 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
           subCategories = Nil,
           targetInfos = Nil,
           isSystem = true,
-          security = None
+          security = Some(SecurityTag.Open) // root must be open
         )
       )
       .runNow
 
-    override def categoryExists(id: NodeGroupCategoryId): IOResult[Boolean] = {
+    override def categoryExists(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean] = {
       categories.get.map(_.allCategories.keySet.contains(id))
     }
 
@@ -2736,22 +2755,23 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         })
       })
     }
-    override def getNodeGroupCategory(id: NodeGroupId): IOResult[NodeGroupCategory] = {
+    override def getNodeGroupCategory(id: NodeGroupId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
       for {
         root <- categories.get
         cid  <- root.categoryByGroupId.get(id).notOptional(s"Category for group '${id.serialize}' not found")
         cat  <- root.allCategories.get(cid).map(_.toNodeGroupCategory).notOptional(s"Category '${cid.value}' not found")
       } yield cat
     }
-    override def getAll():                              IOResult[Seq[NodeGroup]]    = categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
-    override def getAllByIds(ids: Seq[NodeGroupId]):    IOResult[Seq[NodeGroup]]    = {
+    override def getAll()(using qc: QueryContext):                              IOResult[Seq[NodeGroup]]    =
+      categories.get.map(_.allGroups.values.map(_.nodeGroup).toSeq)
+    override def getAllByIds(ids: Seq[NodeGroupId])(using qc: QueryContext):    IOResult[Seq[NodeGroup]]    = {
       categories.get.map(_.allGroups.values.map(_.nodeGroup).filter(g => ids.contains(g.id)).toSeq)
     }
 
-    override def getAllNodeIds(): IOResult[Map[NodeGroupId, Set[NodeId]]] =
+    override def getAllNodeIds()(using qc: QueryContext): IOResult[Map[NodeGroupId, Set[NodeId]]] =
       categories.get.map(_.allGroups.values.map(_.nodeGroup).map(g => (g.id, g.serverList)).toMap)
 
-    override def getAllNodeIdsChunk(): IOResult[Map[NodeGroupId, Chunk[NodeId]]] =
+    override def getAllNodeIdsChunk()(using qc: QueryContext): IOResult[Map[NodeGroupId, Chunk[NodeId]]] =
       categories.get.map(_.allGroups.values.map(_.nodeGroup).map(g => (g.id, Chunk.fromIterable(g.serverList))).toMap)
 
     override def getGroupsByCategory(
@@ -2778,13 +2798,15 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       c
     }
 
-    override def getCategoryHierarchy: IOResult[ISortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
+    override def getCategoryHierarchy(using
+        qc: QueryContext
+    ): IOResult[ISortedMap[List[NodeGroupCategoryId], NodeGroupCategory]] = {
       getGroupsByCategory(true).map(
         _.map { case (k, v) => (k, v.category) }
       )
     }
 
-    override def findGroupWithAnyMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
+    override def findGroupWithAnyMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
       categories.get.map { root =>
         root.allGroups.collect {
           case (_, c) if (c.nodeGroup.serverList.exists(s => nodeIds.contains(s))) => c.nodeGroup.id
@@ -2792,7 +2814,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       }
     }
 
-    override def findGroupWithAllMember(nodeIds: Seq[NodeId]): IOResult[Seq[NodeGroupId]] = {
+    override def findGroupWithAllMember(nodeIds: Seq[NodeId])(using qc: QueryContext): IOResult[Seq[NodeGroupId]] = {
       categories.get.map { root =>
         root.allGroups.collect {
           case (_, c) if (nodeIds.forall(s => c.nodeGroup.serverList.contains(s))) => c.nodeGroup.id
@@ -2800,10 +2822,11 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       }
     }
 
-    override def getRootCategoryPure(): IOResult[NodeGroupCategory] = categories.get.map(_.toNodeGroupCategory)
-    override def getRootCategory():     NodeGroupCategory           = getRootCategoryPure().runNow
+    override def getRootCategoryPure()(using qc: QueryContext): IOResult[NodeGroupCategory] =
+      categories.get.map(_.toNodeGroupCategory)
+    override def getRootCategory()(using qc: QueryContext): NodeGroupCategory = getRootCategoryPure().runNow
 
-    override def getAllGroupCategories(includeSystem: Boolean): IOResult[Seq[NodeGroupCategory]] = {
+    override def getAllGroupCategories(includeSystem: Boolean)(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] = {
       categories.get
         .map(_.allCategories.values.collect {
           case c if (!c.isSystem || c.isSystem && includeSystem) => c.toNodeGroupCategory
@@ -2811,11 +2834,11 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         .map(_.toSeq)
     }
 
-    override def getGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
+    override def getGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
       categories.get.flatMap(_.allCategories.get(id).notOptional(s"Category '${id.value}' not found").map(_.toNodeGroupCategory))
     }
 
-    override def getParentGroupCategory(id: NodeGroupCategoryId): IOResult[NodeGroupCategory] = {
+    override def getParentGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
       categories.get.flatMap { root =>
         root.parentCategories.get(id).notOptional(s"Parent of category '${id.value}' not found").map(_.toNodeGroupCategory)
       }
@@ -2829,11 +2852,15 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       }
     }
 
-    override def getParents_NodeGroupCategory(id: NodeGroupCategoryId): IOResult[List[NodeGroupCategory]] = {
+    override def getParents_NodeGroupCategory(id: NodeGroupCategoryId)(using
+        qc: QueryContext
+    ): IOResult[List[NodeGroupCategory]] = {
       categories.get.map(recGetParent(_, id).map(_.toNodeGroupCategory))
     }
 
-    override def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = getAllGroupCategories(false)
+    override def getAllNonSystemCategories()(using qc: QueryContext): IOResult[Seq[NodeGroupCategory]] = getAllGroupCategories(
+      false
+    )
 
     // returns (parents, group) if found
     def recGetCat(
@@ -3070,6 +3097,17 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
     }
   }
 
+  // the tenant-filtering repository used by services/tests, backed by the in-memory `groupsRepoImpl`
+  object groupsRepo
+      extends WoTenantNodeGroupRepo(
+        mockTenants.checkTenant,
+        mockTenants.tenantRepo,
+        groupsRepoImpl,
+        new RoTenantNodeGroupRepo(mockTenants.checkTenant, groupsRepoImpl)
+      ) {
+    export groupsRepoImpl.categories
+  }
+
   // data
   val g0props: List[GroupProperty] = List(
     GroupProperty(
@@ -3182,7 +3220,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       description = "",
       isEnabled = true,
       isSystem = false,
-      security = None
+      security = gt._2.security
     )
   }
 
@@ -3198,7 +3236,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
         subCategories = Nil,
         targetInfos = List(groupsTargetInfos.head), // that g0 id:0000f5d3-8c61-4d20-88a7-bb947705ba8
         isSystem = false,
-        security = None
+        security = Some(SecurityTag.Open)           // root must be open
       ),
       FullNodeGroupCategory(
         NodeGroupCategoryId("system-category1"),
@@ -3290,7 +3328,7 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
       )
     ) ++ groupsTargetInfos.drop(1),
     isSystem = true,
-    security = None
+    security = Some(SecurityTag.Open)
   )
 
   // init with full lib

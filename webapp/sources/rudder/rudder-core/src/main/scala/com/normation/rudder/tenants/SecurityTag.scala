@@ -51,11 +51,18 @@ trait HasSecurityTag[A] {
   extension (a: A) {
     def security: Option[SecurityTag]
 
+    // Whether the object is a system (shared/global) object. System objects can only be managed by an
+    // administrator (all-tenants grant), so the tenant check logic needs to know it. There is no default:
+    // each instance states explicitly whether its type has a system notion (and how it is computed).
+    def isSystem: Boolean
+
     // update the security context of the object, returning is updated
     def updateSecurityContext(security: Option[SecurityTag]): A
 
-    // simplify common usage with cc
-    def updateFromChangeContext(implicit cc: ChangeContext): A = updateSecurityContext(cc.accessGrant.toSecurityTag)
+    // simplify common usage with cc: tag the object with the tenants the user can write on
+    def updateFromChangeContext(implicit cc: ChangeContext): A = updateSecurityContext(
+      cc.accessGrant.restrictToWrite.toSecurityTag
+    )
 
     // this is needed for giving useful log/debug message to users
     def debugId: String
@@ -89,8 +96,8 @@ object SecurityTag {
 
   def empty: SecurityTag = SecurityTag.ByTenants(Chunk.empty)
 
-  implicit val codecByTenants: JsonCodec[ByTenants] = DeriveJsonCodec.gen
-  implicit val codecOpen:      JsonCodec[Open.type] = new JsonCodec[Open.type](
+  given codecByTenants: JsonCodec[ByTenants] = DeriveJsonCodec.gen
+  given codecOpen:      JsonCodec[Open.type] = new JsonCodec[Open.type](
     JsonEncoder.string.contramap(_ => "open"),
     JsonDecoder.string.mapOrFail {
       case "open" => Right(Open)
@@ -98,7 +105,7 @@ object SecurityTag {
     }
   )
 
-  implicit val codecSecurityTag: JsonCodec[SecurityTag] = new JsonCodec[SecurityTag](
+  given codecSecurityTag: JsonCodec[SecurityTag] = new JsonCodec[SecurityTag](
     new JsonEncoder[SecurityTag] {
       override def unsafeEncode(a: SecurityTag, indent: Option[Int], out: Write): Unit = {
         a match {
@@ -109,6 +116,13 @@ object SecurityTag {
     },
     codecOpen.decoder.widen <> codecByTenants.decoder.widen
   )
+
+  // JsonCodec[A] does not implicitly provide JsonEncoder[A]/JsonDecoder[A] in ZIO JSON, so we expose
+  // them explicitly so that derivation for case classes containing a SecurityTag field uses our custom
+  // non-discriminated encoding/decoding instead of auto-deriving a sum-type codec (which would expect a
+  // discriminator and reject the `{"tenants":[...]}` / `"open"` shapes used by the API).
+  given JsonEncoder[SecurityTag] = codecSecurityTag.encoder
+  given JsonDecoder[SecurityTag] = codecSecurityTag.decoder
 
   // XML serialization / deserialisation for events
   import scala.xml.*

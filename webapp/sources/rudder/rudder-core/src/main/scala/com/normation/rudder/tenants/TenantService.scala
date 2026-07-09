@@ -42,6 +42,7 @@ import com.normation.errors.IOResult
 import com.normation.errors.IOStream
 import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.softwaremill.quicklens.*
 import scala.collection.MapView
 import zio.*
 import zio.stream.ZStream
@@ -73,7 +74,7 @@ trait TenantService {
       case TenantAccessGrant.ByTenants(tenants) =>
         getStatus.map {
           case TenantStatus.Enabled(existingTenants) =>
-            TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t)))
+            TenantAccessGrant.ByTenants(tenants.filter(t => existingTenants.contains(t.id)))
           case TenantStatus.Disabled                 =>
             TenantAccessGrant.None
         }
@@ -92,22 +93,54 @@ trait TenantCheckLogic {
    */
   def flatMap[A: HasSecurityTag](opt: Option[A])(using qc: QueryContext): Option[A]
 
+  def flatMap[A: HasSecurityTag, B: HasSecurityTag](opt: Option[(A, B)])(using qc: QueryContext): Option[(A, B)] = {
+    for {
+      (a, b) <- opt
+      _      <- check(a)
+      _      <- check(b)
+    } yield (a, b)
+  }
+
+  def flatMap[A: HasSecurityTag, B: HasSecurityTag, C: HasSecurityTag](
+      opt: Option[(A, B, C)]
+  )(using qc: QueryContext): Option[(A, B, C)] = {
+    for {
+      (a, b, c) <- opt
+      _         <- check(a)
+      _         <- check(b)
+      _         <- check(c)
+    } yield (a, b, c)
+  }
+
   /*
    * Check if the node can be seen in the given query context. Return none if it can't.
    */
-  def filter[A: HasSecurityTag](a: A)(using qc: QueryContext): Option[A] = flatMap(Some(a))
+  def check[A: HasSecurityTag](a: A)(using qc: QueryContext): Option[A] = flatMap(Some(a))
+
+  /*
+   * Collect elements that can be seen
+   */
+  def collect[A: HasSecurityTag, B, CC[A] <: Iterable[A]](it: CC[A])(
+      f: A => B
+  )(using qc: QueryContext, bf: BuildFrom[CC[A], B, CC[B]]): CC[B]
+
+  def filter[A: HasSecurityTag, CC[A] <: Iterable[A]](
+      it: CC[A]
+  )(using qc: QueryContext, bf: BuildFrom[CC[A], A, CC[A]]): CC[A] = {
+    collect(it)(identity)
+  }
 
   def filterStream[A: HasSecurityTag](s: IOStream[A])(using qc: QueryContext): IOStream[A]
 
   /*
    * Filter a map of objects `A` based on tenants
    */
-  def filterMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]])(using qc: QueryContext): UIO[MapView[ID, A]]
+  def filterMapView[ID, A: HasSecurityTag](objs: Ref[Map[ID, A]])(using qc: QueryContext): UIO[MapView[ID, A]]
 
   /*
    * Get the node with ID if it exists on ref map and qc/tenants allows to get it
    */
-  def getMapView[ID, A: HasSecurityTag](nodes: Ref[Map[ID, A]], id: ID)(using
+  def getMapView[ID, A: HasSecurityTag](objs: Ref[Map[ID, A]], id: ID)(using
       qc: QueryContext
   ): IOResult[Option[A]]
 
@@ -136,12 +169,37 @@ trait TenantCheckLogic {
   ): IOResult[B]
 
   /*
-   * Check if the node can be deleted given ChangeContext
+   * Check if the node can be deleted given ChangeContext. A delete is a write, so this enforces the same
+   * rules as `checkModify`: tenant write-visibility and, for system objects, admin-only.
    */
   def checkDelete[A: HasSecurityTag](
       existing: A,
       cc:       ChangeContext
   ): Either[RudderError, A]
+
+  /*
+   * The single write-authorization entry point for repositories. Check that the actor may change
+   * (create/update/move/delete) the given object:
+   *   - it must share a writable tenant with the object (tenant write-visibility), and
+   *   - if the object is a system object, the actor must be an administrator (all-tenants grant).
+   * Repositories must use this instead of reaching into `accessGrant.canModify*` directly, so that all
+   * the tenant/authorization logic lives here.
+   */
+  def checkModify[A: HasSecurityTag](a: A, cc: ChangeContext): IOResult[Unit]
+
+  /*
+   * Check that the actor may add or keep children under the given container (a parent category, a parent
+   * active technique, a move destination): it must share a writable tenant with the container. Unlike
+   * `checkModify`, this is NOT system-gated: tenant objects legitimately live under the shared/system root
+   * categories, so being able to create into a system container is a matter of tenant write-visibility only.
+   */
+  def checkWriteInto[A: HasSecurityTag](container: A, cc: ChangeContext): IOResult[Unit]
+
+  /*
+   * Check that the actor may perform an admin-only operation. Used for system operations that have no
+   * `HasSecurityTag` object to check (e.g. policy server targets). Fails unless the grant is all-tenants.
+   */
+  def checkAdmin(cc: ChangeContext): IOResult[Unit]
 
 }
 
@@ -161,6 +219,7 @@ object InMemoryTenantService {
  * We still put its modification behind an eval.
  */
 class InMemoryTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
+  private def showTenantIds(ids: Set[TenantId]) = ids.toList.map(_.value).sorted.mkString(s",", "','", "'")
 
   def setTenantEnabled(isEnabled: Boolean): UIO[Unit] = {
     ApplicationLoggerPure.Plugin.info(s"Multi-tenants feature enabled: ${isEnabled}") *>
@@ -172,20 +231,41 @@ class InMemoryTenantService(private var _tenantsEnabled: Boolean, val tenantIds:
   }
 
   override def getStatus: UIO[TenantStatus] = {
-    if (tenantsEnabled) tenantIds.get.map(TenantStatus.Enabled(_))
-    else TenantStatus.Disabled.succeed
+    if (tenantsEnabled) {
+      tenantIds.get.flatMap(ids => {
+        TenantsLogger.debug(
+          s"Multi-tenant feature is enabled on tenants: '${showTenantIds(ids)}'"
+        ) *>
+        TenantStatus.Enabled(ids).succeed
+      })
+    } else {
+      TenantsLogger.debug("Multi-tenant feature is disabled") *>
+      TenantStatus.Disabled.succeed
+    }
   }
 
   override def updateTenants(ids: Set[TenantId]): IOResult[Unit] = {
-    if (tenantsEnabled) tenantIds.set(ids)
-    else Inconsistency(s"Error: tenants are not enabled").fail
+    if (tenantsEnabled) {
+      tenantIds
+        .getAndSet(ids)
+        .flatMap(oldIds =>
+          TenantsLogger.info(s"Available tenant list updated from: ${showTenantIds(oldIds)} to: ${showTenantIds(ids)}")
+        )
+    } else Inconsistency(s"Error: tenants are not enabled").fail
   }
 }
 
 class DefaultTenantCheckLogic extends TenantCheckLogic {
   override def flatMap[A: HasSecurityTag](opt: Option[A])(implicit qc: QueryContext): Option[A] = {
     opt match {
-      case Some(n) => if (qc.accessGrant.canSee(n)) Some(n) else None
+      case Some(n) =>
+        if (qc.accessGrant.canSee(n)) {
+          TenantsLogger.logEffect.trace(s"User '${qc.actor.name}' can see ${n.debugId}")
+          Some(n)
+        } else {
+          TenantsLogger.logEffect.trace(s"User '${qc.actor.name}' can not see ${n.debugId}")
+          None
+        }
       case None    => None
     }
   }
@@ -199,6 +279,17 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       for {
         ns <- nodes.get
       } yield ns.view.filter { case (_, n) => qc.accessGrant.canSee(n) }
+    }
+  }
+
+  override def collect[A: HasSecurityTag, B, CC[A] <: Iterable[A]](
+      it: CC[A]
+  )(f: A => B)(using qc: QueryContext, bf: BuildFrom[CC[A], B, CC[B]]): CC[B] = {
+    if (qc.accessGrant.isNone) bf.fromSpecific(it)(Nil)
+    else {
+      bf.fromSpecific(it)(it.collect {
+        case x if qc.accessGrant.canSee(x.security) => f(x)
+      })
     }
   }
 
@@ -232,9 +323,18 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       Inconsistency(s"Object '${x.debugId}' [${tag}] can't be modified by '${cc.actor.name}' (perm:${cc.accessGrant.value})").fail
     }
 
-    // whatever the status of "existing", if the plugin is disabled and there is a grant
-    // different from '*' for user, then return an error
-    if (tenantStatus == TenantStatus.Disabled && cc.accessGrant != TenantAccessGrant.All) {
+    // a write operation only considers the tenants on which the user has write ('rw') permission:
+    // a read-only ('r') tenant access is dropped, as if the user didn't have the grant for that tenant.
+    val writeGrant = cc.accessGrant.restrictToWrite
+
+    // system objects (whether the existing one being changed, or the submitted one) can only be managed by
+    // an administrator (all-tenants grant), whatever the tenant scoping.
+    if ((existing.exists(_.isSystem) || updated.isSystem) && cc.accessGrant != TenantAccessGrant.All) {
+      systemAdminError(updated.debugId).fail
+    } else if (tenantStatus == TenantStatus.Disabled && writeGrant != TenantAccessGrant.All) {
+      error(updated)
+    } else if (writeGrant.isNone) {
+      // the user has no tenant it can write on (e.g. read-only tenant access or no grant): it can't modify anything
       error(updated)
     } else {
       existing match {
@@ -244,16 +344,28 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
             // creation when feature disabled: set securityTag to "none".
             case TenantStatus.Disabled         =>
               action(updated.updateSecurityContext(None))
-            // in the case of creation, we force the user tenant to its tenant
+            // in the case of creation, we force the user tenant to its (writable) tenant
             case TenantStatus.Enabled(tenants) =>
-              if (cc.accessGrant.canSee(updated)) {
-                action(updated)
-              } else {
-                action(updated.updateFromChangeContext(using cc))
+              cc.accessGrant match {
+                case TenantAccessGrant.All           =>
+                  // for admin, use admin logic: admin can chose tenant
+                  action(updated)
+                case TenantAccessGrant.None          =>
+                  // already manage above
+                  error(updated)
+                case TenantAccessGrant.ByTenants(ts) =>
+                  // restrict to the actual list of writeGrant intersect existing tenants
+                  val intersect = ts.filter(t => tenants.contains(t.id))
+                  if (intersect.isEmpty) {
+                    error(updated)
+                  } else {
+                    val restrictedCC = cc.modify(_.accessGrant).setTo(TenantAccessGrant.ByTenants(intersect))
+                    action(updated.updateFromChangeContext(using restrictedCC))
+                  }
               }
           }
 
-        // when we update an existing item, we must also check that the user can see the previous item
+        // when we update an existing item, we must also check that the user can write the previous item
         case Some(e) =>
           tenantStatus match {
             // update when feature is disabled: keep existing security tag if any
@@ -261,33 +373,33 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
               action(updated.updateSecurityContext(e.security))
             // update when feature enabled: check consistency
             case TenantStatus.Enabled(tenants) =>
-              (if (cc.accessGrant.canSee(e)) {
-                 if (cc.accessGrant.canSee(updated)) {
-
-                   (e.security, updated.security) match {
-                     // no tenants in updated: existing security info is cleared
-                     case (_, None)                            => updated.succeed
-                     // if b is open, it's ok
-                     case (_, Some(SecurityTag.Open))          => updated.succeed
-                     // if both have identical tags, it's ok
-                     case (Some(a), Some(b)) if (a == b)       => updated.succeed
-                     // case where the tags are different: update only if the tenant exists.
-                     // We know that the user has the right to change the security tag because
-                     // his access grant is ok on both existing and updated items.
-                     case (_, Some(SecurityTag.ByTenants(ts))) =>
-                       if (ts.forall(t => tenants.contains(t))) {
-                         updated.succeed
-                       } else {
-                         Inconsistency(
-                           s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
-                         ).fail
-                       }
-                   }
-                 } else {
-                   error(updated)
+              (if (!writeGrant.canSee(e)) {
+                 // the user can't even write the existing object
+                 error(e)
+               } else if (writeGrant == TenantAccessGrant.All) {
+                 // only admin (all-tenants write grant) is allowed to change the tenant list of an object.
+                 (e.security, updated.security) match {
+                   // no tenants in updated: existing security info is cleared (admin only)
+                   case (_, None)                            => updated.succeed
+                   // if b is open, it's ok
+                   case (_, Some(SecurityTag.Open))          => updated.succeed
+                   // if both have identical tags, it's ok
+                   case (Some(a), Some(b)) if (a == b)       => updated.succeed
+                   // case where the tags are different: update only if the tenant exists.
+                   case (_, Some(SecurityTag.ByTenants(ts))) =>
+                     if (ts.forall(t => tenants.contains(t))) {
+                       updated.succeed
+                     } else {
+                       Inconsistency(
+                         s"Object '${updated.debugId}' security tag's tenant can not be updated to '${ts.map(_.value).mkString(",")}' because it does not exist"
+                       ).fail
+                     }
                  }
                } else {
-                 error(e)
+                 // non-admin user: the tenant list can NOT be changed. Whatever security tag the request
+                 // carries is ignored and the existing tag is kept (this also makes a read-modify-write
+                 // round-trip safe, since the user only ever reads the tenants it owns).
+                 updated.updateSecurityContext(e.security).succeed
                }).flatMap(up => action(up))
           }
       }
@@ -304,11 +416,43 @@ class DefaultTenantCheckLogic extends TenantCheckLogic {
       existing: A,
       cc:       ChangeContext
   ): Either[RudderError, A] = {
-    if (cc.accessGrant.canSee(existing)) {
+    // a system object can only be deleted by an administrator (all-tenants grant)
+    if (existing.isSystem && cc.accessGrant != TenantAccessGrant.All) {
+      Left(systemAdminError(existing.debugId))
+    } else if (cc.accessGrant.canModify(existing)) {
+      // delete is a write operation: only tenants with write permission are considered
       Right(existing)
     } else {
       // only id to avoid giving too much info in error in that case
       Left(Inconsistency(s"Object '${existing.debugId}' can't be deleted by ${cc.actor.name}"))
     }
   }
+
+  override def checkModify[A: HasSecurityTag](a: A, cc: ChangeContext): IOResult[Unit] = {
+    // a system object can only be changed by an administrator (all-tenants grant)
+    if (a.isSystem && cc.accessGrant != TenantAccessGrant.All) {
+      systemAdminError(a.debugId).fail
+    } else if (!cc.accessGrant.canModify(a)) {
+      Inconsistency(s"Object '${a.debugId}' can't be modified in the current security context").fail
+    } else ZIO.unit
+  }
+
+  override def checkWriteInto[A: HasSecurityTag](container: A, cc: ChangeContext): IOResult[Unit] = {
+    // tenant write-visibility only, NOT system-gated (children can be created under system root categories)
+    if (!cc.accessGrant.canModify(container)) {
+      Inconsistency(s"Objects can't be created or moved under '${container.debugId}' in the current security context").fail
+    } else ZIO.unit
+  }
+
+  override def checkAdmin(cc: ChangeContext): IOResult[Unit] = {
+    ZIO
+      .unless(cc.accessGrant == TenantAccessGrant.All)(
+        Inconsistency("This operation on a system object is only allowed to an administrator").fail
+      )
+      .unit
+  }
+
+  // error raised when a non-administrator (a tenant-restricted actor) tries to manage a system object
+  private def systemAdminError(debugId: String): RudderError =
+    Inconsistency(s"Only an administrator can create, modify or delete the system object '${debugId}'")
 }

@@ -1,0 +1,1410 @@
+---
+description: Admin sees full security tag on tenant-restricted directive
+user: admin
+method: GET
+url: /api/latest/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action": "directiveDetails",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "directive2",
+            "shortDescription": "",
+            "longDescription": "",
+            "techniqueName": "rpmPackageInstallation",
+            "techniqueVersion": "7.0",
+            "parameters": {
+              "section": {
+                "name": "sections",
+                "sections": [
+                  {
+                    "section": {
+                      "name": "Check interval",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                            "value": "5"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "RHEL/CentOS/SuSE packages",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDACTION",
+                            "value": "add"
+                          }
+                        },
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDLIST",
+                            "value": "vim"
+                          }
+                        }
+                      ],
+                      "sections": [
+                        {
+                          "section": {
+                            "name": "Package version",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_CRITERION",
+                                  "value": "=="
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                                  "value": "default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section": {
+                            "name": "Post-modification hook",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                                  "value": "false"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "ZMD process"
+                    }
+                  }
+                ]
+              }
+            },
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "default",
+            "tags": [],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneAB user sees both zoneA and zoneB in security tag
+user: zoneAB
+method: GET
+url: /api/latest/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action": "directiveDetails",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "directive2",
+            "shortDescription": "",
+            "longDescription": "",
+            "techniqueName": "rpmPackageInstallation",
+            "techniqueVersion": "7.0",
+            "parameters": {
+              "section": {
+                "name": "sections",
+                "sections": [
+                  {
+                    "section": {
+                      "name": "Check interval",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                            "value": "5"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "RHEL/CentOS/SuSE packages",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDACTION",
+                            "value": "add"
+                          }
+                        },
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDLIST",
+                            "value": "vim"
+                          }
+                        }
+                      ],
+                      "sections": [
+                        {
+                          "section": {
+                            "name": "Package version",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_CRITERION",
+                                  "value": "=="
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                                  "value": "default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section": {
+                            "name": "Post-modification hook",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                                  "value": "false"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "ZMD process"
+                    }
+                  }
+                ]
+              }
+            },
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "default",
+            "tags": [],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneB user (read-only) sees only zoneB in security tag
+user: zoneB
+method: GET
+url: /api/latest/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action": "directiveDetails",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "directive2",
+            "shortDescription": "",
+            "longDescription": "",
+            "techniqueName": "rpmPackageInstallation",
+            "techniqueVersion": "7.0",
+            "parameters": {
+              "section": {
+                "name": "sections",
+                "sections": [
+                  {
+                    "section": {
+                      "name": "Check interval",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                            "value": "5"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "RHEL/CentOS/SuSE packages",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDACTION",
+                            "value": "add"
+                          }
+                        },
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDLIST",
+                            "value": "vim"
+                          }
+                        }
+                      ],
+                      "sections": [
+                        {
+                          "section": {
+                            "name": "Package version",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_CRITERION",
+                                  "value": "=="
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                                  "value": "default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section": {
+                            "name": "Post-modification hook",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                                  "value": "false"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "ZMD process"
+                    }
+                  }
+                ]
+              }
+            },
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "default",
+            "tags": [],
+            "security": {
+              "tenants": [
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneC user sees nothing (no object has zoneC tenant)
+user: zoneC
+method: GET
+url: /api/latest/directives/directive2
+response:
+  code: 500
+  content: >-
+    {
+      "action": "directiveDetails",
+      "result": "error",
+      "errorDetails": "Directive with id 'directive2' was not found"
+    }
+---
+description: User with no tenant grant sees nothing
+user: noTenant
+method: GET
+url: /api/latest/directives/directive2
+response:
+  code: 500
+  content: >-
+    {
+      "action": "directiveDetails",
+      "result": "error",
+      "errorDetails": "Directive with id 'directive2' was not found"
+    }
+---
+description: zoneB (read-only) cannot update the directive
+user: zoneB
+method: POST
+url: /api/latest/directives/directive2
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "displayName": "directive2",
+    "shortDescription": "updated by test",
+    "longDescription": "",
+    "enabled": false,
+    "techniqueName": "rpmPackageInstallation",
+    "techniqueVersion": "7.0",
+    "parameters": {
+      "section": {
+        "name": "sections",
+        "sections": [
+          {
+            "section": {
+              "name": "Check interval",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                    "value": "5"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "RHEL/CentOS/SuSE packages",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDACTION",
+                    "value": "add"
+                  }
+                },
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDLIST",
+                    "value": "vim"
+                  }
+                }
+              ],
+              "sections": [
+                {
+                  "section": {
+                    "name": "Package version",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_CRITERION",
+                          "value": "=="
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                          "value": "default"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "section": {
+                    "name": "Post-modification hook",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                          "value": "false"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "ZMD process"
+            }
+          }
+        ]
+      }
+    },
+    "policyMode": "default",
+    "tags": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateDirective",
+      "result": "error",
+      "errorDetails": "Could not start workflow for change request creation on Directive 'directive2'; cause was: Unexpected: Inconsistency: Objects can't be created or moved under 'rpmPackageInstallation' in the current security context"
+    }
+---
+description: zoneC cannot update the directive (object not visible)
+user: zoneC
+method: POST
+url: /api/latest/directives/directive2
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "displayName": "directive2",
+    "shortDescription": "updated by test",
+    "longDescription": "",
+    "enabled": false,
+    "techniqueName": "rpmPackageInstallation",
+    "techniqueVersion": "7.0",
+    "parameters": {
+      "section": {
+        "name": "sections",
+        "sections": [
+          {
+            "section": {
+              "name": "Check interval",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                    "value": "5"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "RHEL/CentOS/SuSE packages",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDACTION",
+                    "value": "add"
+                  }
+                },
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDLIST",
+                    "value": "vim"
+                  }
+                }
+              ],
+              "sections": [
+                {
+                  "section": {
+                    "name": "Package version",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_CRITERION",
+                          "value": "=="
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                          "value": "default"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "section": {
+                    "name": "Post-modification hook",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                          "value": "false"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "ZMD process"
+            }
+          }
+        ]
+      }
+    },
+    "policyMode": "default",
+    "tags": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateDirective",
+      "result": "error",
+      "errorDetails": "Could not find Directive directive2"
+    }
+---
+description: noTenant cannot update the directive (object not visible)
+user: noTenant
+method: POST
+url: /api/latest/directives/directive2
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "displayName": "directive2",
+    "shortDescription": "updated by test",
+    "longDescription": "",
+    "enabled": false,
+    "techniqueName": "rpmPackageInstallation",
+    "techniqueVersion": "7.0",
+    "parameters": {
+      "section": {
+        "name": "sections",
+        "sections": [
+          {
+            "section": {
+              "name": "Check interval",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                    "value": "5"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "RHEL/CentOS/SuSE packages",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDACTION",
+                    "value": "add"
+                  }
+                },
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDLIST",
+                    "value": "vim"
+                  }
+                }
+              ],
+              "sections": [
+                {
+                  "section": {
+                    "name": "Package version",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_CRITERION",
+                          "value": "=="
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                          "value": "default"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "section": {
+                    "name": "Post-modification hook",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                          "value": "false"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "ZMD process"
+            }
+          }
+        ]
+      }
+    },
+    "policyMode": "default",
+    "tags": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateDirective",
+      "result": "error",
+      "errorDetails": "Could not find Directive directive2"
+    }
+---
+description: zoneAB can update the directive, tag preserved
+user: zoneAB
+method: POST
+url: /api/latest/directives/directive2
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "displayName": "directive2",
+    "shortDescription": "updated by test",
+    "longDescription": "",
+    "enabled": false,
+    "techniqueName": "rpmPackageInstallation",
+    "techniqueVersion": "7.0",
+    "parameters": {
+      "section": {
+        "name": "sections",
+        "sections": [
+          {
+            "section": {
+              "name": "Check interval",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                    "value": "5"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "RHEL/CentOS/SuSE packages",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDACTION",
+                    "value": "add"
+                  }
+                },
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDLIST",
+                    "value": "vim"
+                  }
+                }
+              ],
+              "sections": [
+                {
+                  "section": {
+                    "name": "Package version",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_CRITERION",
+                          "value": "=="
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                          "value": "default"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "section": {
+                    "name": "Post-modification hook",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                          "value": "false"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "ZMD process"
+            }
+          }
+        ]
+      }
+    },
+    "policyMode": "default",
+    "tags": []
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateDirective",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "directive2",
+            "shortDescription": "updated by test",
+            "longDescription": "",
+            "techniqueName": "rpmPackageInstallation",
+            "techniqueVersion": "7.0",
+            "parameters": {
+              "section": {
+                "name": "sections",
+                "sections": [
+                  {
+                    "section": {
+                      "name": "Check interval",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                            "value": "5"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "RHEL/CentOS/SuSE packages",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDACTION",
+                            "value": "add"
+                          }
+                        },
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDLIST",
+                            "value": "vim"
+                          }
+                        }
+                      ],
+                      "sections": [
+                        {
+                          "section": {
+                            "name": "Package version",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_CRITERION",
+                                  "value": "=="
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                                  "value": "default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section": {
+                            "name": "Post-modification hook",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                                  "value": "false"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "ZMD process"
+                    }
+                  }
+                ]
+              }
+            },
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "default",
+            "tags": [],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: admin can update the directive
+user: admin
+method: POST
+url: /api/latest/directives/directive2
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "displayName": "directive2",
+    "shortDescription": "updated by test",
+    "longDescription": "",
+    "enabled": false,
+    "techniqueName": "rpmPackageInstallation",
+    "techniqueVersion": "7.0",
+    "parameters": {
+      "section": {
+        "name": "sections",
+        "sections": [
+          {
+            "section": {
+              "name": "Check interval",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                    "value": "5"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "RHEL/CentOS/SuSE packages",
+              "vars": [
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDACTION",
+                    "value": "add"
+                  }
+                },
+                {
+                  "var": {
+                    "name": "RPM_PACKAGE_REDLIST",
+                    "value": "vim"
+                  }
+                }
+              ],
+              "sections": [
+                {
+                  "section": {
+                    "name": "Package version",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_CRITERION",
+                          "value": "=="
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                          "value": "default"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "section": {
+                    "name": "Post-modification hook",
+                    "vars": [
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                          "value": ""
+                        }
+                      },
+                      {
+                        "var": {
+                          "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                          "value": "false"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "section": {
+              "name": "ZMD process"
+            }
+          }
+        ]
+      }
+    },
+    "policyMode": "default",
+    "tags": []
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateDirective",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "directive2",
+            "shortDescription": "updated by test",
+            "longDescription": "",
+            "techniqueName": "rpmPackageInstallation",
+            "techniqueVersion": "7.0",
+            "parameters": {
+              "section": {
+                "name": "sections",
+                "sections": [
+                  {
+                    "section": {
+                      "name": "Check interval",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                            "value": "5"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "RHEL/CentOS/SuSE packages",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDACTION",
+                            "value": "add"
+                          }
+                        },
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDLIST",
+                            "value": "vim"
+                          }
+                        }
+                      ],
+                      "sections": [
+                        {
+                          "section": {
+                            "name": "Package version",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_CRITERION",
+                                  "value": "=="
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                                  "value": "default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section": {
+                            "name": "Post-modification hook",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                                  "value": "false"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "ZMD process"
+                    }
+                  }
+                ]
+              }
+            },
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "default",
+            "tags": [],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneB (read-only) cannot delete the directive
+user: zoneB
+method: DELETE
+url: /api/latest/directives/directive2
+response:
+  code: 500
+  content: >-
+    {
+      "action": "deleteDirective",
+      "result": "error",
+      "errorDetails": "Could not start workflow for change request creation on Directive 'directive2'; cause was: Error when deleting policy instance with ID 'directive2'.; cause was: Unexpected: Inconsistency: Object 'directive2' can't be deleted by zoneB"
+    }
+---
+description: zoneC delete is a no-op (object not visible)
+user: zoneC
+method: DELETE
+url: /api/latest/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteDirective",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "",
+            "shortDescription": "",
+            "longDescription": "",
+            "techniqueName": "",
+            "techniqueVersion": "",
+            "parameters": {},
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "",
+            "tags": []
+          }
+        ]
+      }
+    }
+---
+description: noTenant delete is a no-op (object not visible)
+user: noTenant
+method: DELETE
+url: /api/latest/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteDirective",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "",
+            "shortDescription": "",
+            "longDescription": "",
+            "techniqueName": "",
+            "techniqueVersion": "",
+            "parameters": {},
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "",
+            "tags": []
+          }
+        ]
+      }
+    }
+---
+description: admin can delete the directive
+user: admin
+method: DELETE
+url: /api/latest/directives/directive2
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteDirective",
+      "id": "directive2",
+      "result": "success",
+      "data": {
+        "directives": [
+          {
+            "id": "directive2",
+            "displayName": "directive2",
+            "shortDescription": "updated by test",
+            "longDescription": "",
+            "techniqueName": "rpmPackageInstallation",
+            "techniqueVersion": "7.0",
+            "parameters": {
+              "section": {
+                "name": "sections",
+                "sections": [
+                  {
+                    "section": {
+                      "name": "Check interval",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_CHECK_INTERVAL",
+                            "value": "5"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "RHEL/CentOS/SuSE packages",
+                      "vars": [
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDACTION",
+                            "value": "add"
+                          }
+                        },
+                        {
+                          "var": {
+                            "name": "RPM_PACKAGE_REDLIST",
+                            "value": "vim"
+                          }
+                        }
+                      ],
+                      "sections": [
+                        {
+                          "section": {
+                            "name": "Package version",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_CRITERION",
+                                  "value": "=="
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_VERSION_DEFINITION",
+                                  "value": "default"
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "section": {
+                            "name": "Post-modification hook",
+                            "vars": [
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_COMMAND",
+                                  "value": ""
+                                }
+                              },
+                              {
+                                "var": {
+                                  "name": "RPM_PACKAGE_POST_HOOK_RUN",
+                                  "value": "false"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "section": {
+                      "name": "ZMD process"
+                    }
+                  }
+                ]
+              }
+            },
+            "priority": 5,
+            "enabled": false,
+            "system": false,
+            "policyMode": "default",
+            "tags": [],
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }

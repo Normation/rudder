@@ -178,9 +178,8 @@ object TechniqueGenerationMode extends Enum[TechniqueGenerationMode] {
 final case class TechniqueDeprecationInfo(message: String) extends AnyVal
 
 /**
- * A Policy is made of a name, a description, and the list of templates name relevant
- * The templates are found thanks to the Descriptor file which holds all the relevant
- * informations
+ * A Policy is made of a name, a description, and the list of templates name relevant.
+ * The templates are found thanks to the Descriptor file which holds all the relevant information
  * A policy may or may not be shown (ex : common which is a system policy)
  * @author Nicolas Charles
  *

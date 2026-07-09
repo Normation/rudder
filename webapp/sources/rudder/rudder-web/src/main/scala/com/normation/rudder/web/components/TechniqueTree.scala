@@ -119,7 +119,7 @@ class TechniqueTree(
       dep:             TechniqueDependencies,
       technique:       Technique,
       activeTechnique: ActiveTechnique
-  ): JsTreeNode = new JsTreeNode {
+  )(using qc: QueryContext): JsTreeNode = new JsTreeNode {
     override val attrs = ("data-jstree" -> """{ "type" : "category" }""") :: Nil
     val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
     override def body: NodeSeq = {
@@ -137,7 +137,7 @@ class TechniqueTree(
       dep:             TechniqueDependencies,
       technique:       Technique,
       activeTechnique: ActiveTechnique
-  ): JsTreeNode = new JsTreeNode {
+  )(using qc: QueryContext): JsTreeNode = new JsTreeNode {
     val tooltipContent = s"<h3>${technique.name}</h3>\n<div>${technique.description}</div>"
     override def body: NodeSeq = {
       <a href="#"><span class="treeTechniqueName"  data-bs-toggle="tooltip" title={tooltipContent}>{technique.name}</span></a>
@@ -148,7 +148,7 @@ class TechniqueTree(
                                                                                       else Nil)
   }
 
-  private def directiveNode(dep: TechniqueDependencies, id: DirectiveUid): JsTreeNode = {
+  private def directiveNode(dep: TechniqueDependencies, id: DirectiveUid)(using qc: QueryContext): JsTreeNode = {
     val (directive, ruleIds) = dep.directives(id)
 
     new JsTreeNode {
@@ -163,7 +163,7 @@ class TechniqueTree(
     }
   }
 
-  private def ruleNode(id: RuleId): JsTreeNode = {
+  private def ruleNode(id: RuleId)(using qc: QueryContext): JsTreeNode = {
     ruleRepository.get(id).toBox match {
       case Full(rule) =>
         new JsTreeNode {

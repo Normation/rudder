@@ -147,9 +147,7 @@ class RuleApi(
         result   <- service.createRule(
                       restRule,
                       restRule.id.getOrElse(RuleId(RuleUid(uuidGen.newUuid))),
-                      restRule.source,
-                      params,
-                      authzToken.qc.actor
+                      restRule.source
                     )
       } yield {
         val action = if (restRule.source.nonEmpty) "cloneRule" else schema.name
@@ -217,7 +215,9 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      service.getCategoryDetails(RuleCategoryId(id)).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
+      service
+        .getCategoryDetails(RuleCategoryId(id))(using authzToken.qc)
+        .toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
@@ -227,7 +227,7 @@ class RuleApi(
       implicit val cc: ChangeContext = authzToken.qc.newCC(params.reason)
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
-        res <- service.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
+        res <- service.createCategory(cat, () => uuidGen.newUuid, params)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
@@ -246,7 +246,7 @@ class RuleApi(
     ): LiftResponse = {
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
-        res <- service.updateCategory(RuleCategoryId(id), cat, params, authzToken.qc.actor)
+        res <- service.updateCategory(RuleCategoryId(id), cat, params, authzToken.qc.actor)(using authzToken.qc)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
@@ -264,7 +264,7 @@ class RuleApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       service
-        .deleteCategory(RuleCategoryId(id), params, authzToken.qc.actor)
+        .deleteCategory(RuleCategoryId(id), params, authzToken.qc.actor)(using authzToken.qc)
         .toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
@@ -298,9 +298,11 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
+      given cc: ChangeContext = authzToken.qc.newCC(params.reason)
+
       (for {
         rid <- RuleId.parse(id).toIO
-        res <- service.unloadRule(rid, params, authzToken.qc.actor)
+        res <- service.unloadRule(rid)
       } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
     }
   }
@@ -559,9 +561,7 @@ class RuleApiService14(
   def createRule(
       restRule: JQRule,
       ruleId:   RuleId,
-      clone:    Option[RuleId],
-      params:   DefaultParams,
-      actor:    EventActor
+      clone:    Option[RuleId]
   )(implicit cc: ChangeContext): IOResult[JRRule] = {
     // decide if we should create a new rule or clone an existing one
     // Return the source rule to use in each case.
@@ -569,9 +569,7 @@ class RuleApiService14(
         name:     String,
         restRule: JQRule,
         ruleId:   RuleId,
-        clone:    Option[RuleId],
-        params:   DefaultParams,
-        actor:    EventActor
+        clone:    Option[RuleId]
     )(implicit cc: ChangeContext): IOResult[RuleChangeRequest] = {
       clone match {
         case Some(sourceId) =>
@@ -579,7 +577,7 @@ class RuleApiService14(
           for {
             rule <-
               readRule
-                .get(sourceId)
+                .get(sourceId)(using cc.toQC)
                 .chainError(s"Could not create rule '${name}' (id:${ruleId.serialize}) by cloning rule '${sourceId.serialize}')")
           } yield {
             RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule).copy(id = ruleId), Some(rule))
@@ -588,7 +586,7 @@ class RuleApiService14(
         case None =>
           // create from scratch - base rule is the same with default values
           val category       = restRule.categoryId.getOrElse("rootRuleCategory")
-          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.accessGrant.toSecurityTag)
+          val baseRule       = Rule(ruleId, name, RuleCategoryId(category), security = cc.accessGrant.restrictToWrite.toSecurityTag)
           // If enable is missing in parameter consider it to true
           val defaultEnabled = restRule.enabled.getOrElse(true)
 
@@ -604,7 +602,7 @@ class RuleApiService14(
            */
           for {
             workflow <- workflowLevelService
-                          .getForRule(actor, change)
+                          .getForRule(cc.actor, change)
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the rule if a workflow should be
@@ -618,18 +616,17 @@ class RuleApiService14(
 
     (for {
       name   <- restRule.displayName.notOptional("Missing manadatory parameter 'displayName'")
-      change <- createOrClone(name, restRule, ruleId, clone, params, actor)
-      modId   = ModificationId(uuidGen.newUuid)
-      _      <- writeRule.create(change.newRule, modId, actor, params.reason)
+      change <- createOrClone(name, restRule, ruleId, clone)
+      _      <- writeRule.create(change.newRule)
 
-      directiveLib <- readDirectives.getFullDirectiveLibrary()
+      directiveLib <- readDirectives.getFullDirectiveLibrary()(using cc.toQC)
       groupLib     <- readGroup.getFullGroupLibrary()(using cc.toQC)
       nodesLib     <- nodeFactRepos.getAll()(using cc.toQC)
       globalMode   <- getGlobalPolicyMode()
     } yield {
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
+      asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
+      JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))(using cc.toQC)
     }).chainError(s"Error when creating new rule")
   }
 
@@ -668,7 +665,7 @@ class RuleApiService14(
              )
          // perhaps that will need to go throught change requests
          modId         = ModificationId(uuidGen.newUuid)
-         ldap         <- writeRule.load(rule, modId, actor, params.reason)
+         ldap         <- writeRule.load(rule)(using qc.newCC(params.reason).withModId(modId))
          _            <-
            ConfigurationLoggerPure.info(
              s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' loaded. It will be used in comming policy generations."
@@ -685,20 +682,19 @@ class RuleApiService14(
      })
   }
 
-  def unloadRule(id: RuleId, params: DefaultParams, actor: EventActor): IOResult[RuleId] = {
+  def unloadRule(id: RuleId)(using cc: ChangeContext): IOResult[RuleId] = {
     (if (id.rev == GitVersion.DEFAULT_REV) {
        Inconsistency(s"The default revision can not be specifically loaded for generation (it is always loaded)").fail
      } else {
-       val modId = ModificationId(uuidGen.newUuid)
        for {
          // perhaps that will need to go throught change requests
-         ldap <- writeRule.unload(id, modId, actor, params.reason)
+         ldap <- writeRule.unload(id)
          _    <-
            ConfigurationLoggerPure.info(
              s"Revision '${id.rev.value}' for rule with id '${id.uid.serialize}' unloaded. It will not be used anymore in comming policy generations."
            )
        } yield {
-         asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+         asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
          id
        }
      })
@@ -792,7 +788,7 @@ class RuleApiService14(
     }
   }
 
-  def getCategoryDetails(id: RuleCategoryId): IOResult[JRCategoriesRootEntrySimple] = {
+  def getCategoryDetails(id: RuleCategoryId)(using qc: QueryContext): IOResult[JRCategoriesRootEntrySimple] = {
     // returns (parent, child)
     def recFind(root: RuleCategory, id: RuleCategoryId): Option[(RuleCategory, RuleCategory)] = {
       root.childs.foldLeft(Option.empty[(RuleCategory, RuleCategory)]) {
@@ -843,7 +839,10 @@ class RuleApiService14(
     }
   }
 
-  def deleteCategory(id: RuleCategoryId, params: DefaultParams, actor: EventActor): IOResult[JRCategoriesRootEntrySimple] = {
+  def deleteCategory(id: RuleCategoryId, params: DefaultParams, actor: EventActor)(using
+      qc: QueryContext
+  ): IOResult[JRCategoriesRootEntrySimple] = {
+    given cc: ChangeContext = ChangeContext.newFor(actor, qc.accessGrant, params.reason)
     for {
       root              <- readRuleCategory.getRootCategory()
       found             <- root.find(id).toIO
@@ -853,7 +852,7 @@ class RuleApiService14(
                              Inconsistency(s"Cannot delete category '${category.name}' since that category is not empty").fail
                            }
       category          <- getCategoryDetails(id)
-      _                 <- writeRuleCategory.delete(id, ModificationId(uuidGen.newUuid), actor, params.reason)
+      _                 <- writeRuleCategory.delete(id)
     } yield {
       category
     }
@@ -864,19 +863,19 @@ class RuleApiService14(
       restData: JQRuleCategory,
       params:   DefaultParams,
       actor:    EventActor
-  ): IOResult[JRCategoriesRootEntrySimple] = {
+  )(using qc: QueryContext): IOResult[JRCategoriesRootEntrySimple] = {
+    given cc: ChangeContext = ChangeContext.newFor(actor, qc.accessGrant, params.reason)
     for {
       root                <- readRuleCategory.getRootCategory()
       found               <- root.find(id).toIO
       (category, parentId) = found
       rules               <- readRule.getAll()
       update               = restData.update(category)
-      modId                = ModificationId(uuidGen.newUuid)
       _                   <- restData.parent match {
                                case Some(parent) =>
-                                 writeRuleCategory.updateAndMove(update, RuleCategoryId(parent), modId, actor, params.reason)
+                                 writeRuleCategory.updateAndMove(update, RuleCategoryId(parent))
                                case None         =>
-                                 writeRuleCategory.updateAndMove(update, parentId, modId, actor, params.reason)
+                                 writeRuleCategory.updateAndMove(update, parentId)
                              }
       category            <- getCategoryDetails(id)
     } yield {
@@ -887,8 +886,7 @@ class RuleApiService14(
   def createCategory(
       restData:  JQRuleCategory,
       defaultId: () => String,
-      params:    DefaultParams,
-      actor:     EventActor
+      params:    DefaultParams
   )(implicit cc: ChangeContext): IOResult[JRCategoriesRootEntrySimple] = {
     for {
       name     <- restData.name.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
@@ -897,12 +895,11 @@ class RuleApiService14(
                     name,
                     restData.description.getOrElse(""),
                     Nil,
-                    security = cc.accessGrant.toSecurityTag
+                    security = cc.accessGrant.restrictToWrite.toSecurityTag
                   )
       parent    = restData.parent.getOrElse("rootRuleCategory")
-      modId     = ModificationId(uuidGen.newUuid)
-      _        <- writeRuleCategory.create(update, RuleCategoryId(parent), modId, actor, params.reason)
-      category <- getCategoryDetails(update.id)
+      _        <- writeRuleCategory.create(update, RuleCategoryId(parent))
+      category <- getCategoryDetails(update.id)(using cc.toQC)
     } yield {
       category
     }

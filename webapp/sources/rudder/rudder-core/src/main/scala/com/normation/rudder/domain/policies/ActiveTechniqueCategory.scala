@@ -58,6 +58,7 @@ object ActiveTechniqueCategory {
   given HasSecurityTag[ActiveTechniqueCategory] with {
     extension (a: ActiveTechniqueCategory) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): ActiveTechniqueCategory = a.copy(security = security)
     }

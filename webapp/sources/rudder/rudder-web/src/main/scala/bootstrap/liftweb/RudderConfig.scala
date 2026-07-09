@@ -1444,8 +1444,8 @@ object RudderConfig extends Loggable {
   val roApiAccountRepository:              RoApiAccountRepository                   = rci.roApiAccountRepository
   val roDirectiveRepository:               RoDirectiveRepository                    = rci.roDirectiveRepository
   val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection] = rci.roLDAPConnectionProvider
-  val roLDAPParameterRepository:           RoLDAPParameterRepository                = rci.roLDAPParameterRepository
-  val woLDAPParameterRepository:           WoLDAPParameterRepository                = rci.woLDAPParameterRepository
+  val roLDAPParameterRepository:           RoParameterRepository                    = rci.roLDAPParameterRepository
+  val woLDAPParameterRepository:           WoParameterRepository                    = rci.woLDAPParameterRepository
   val roNodeGroupRepository:               RoNodeGroupRepository                    = rci.roNodeGroupRepository
   val roParameterService:                  RoParameterService                       = rci.roParameterService
   val roRuleCategoryRepository:            RoRuleCategoryRepository                 = rci.roRuleCategoryRepository
@@ -1630,8 +1630,8 @@ case class RudderServiceApi(
     rwLdap:                              LDAPConnectionProvider[RwLDAPConnection],
     apiAuthorizationLevelService:        DefaultApiAuthorizationLevel,
     tokenGenerator:                      TokenGeneratorImpl,
-    roLDAPParameterRepository:           RoLDAPParameterRepository,
-    woLDAPParameterRepository:           WoLDAPParameterRepository,
+    roLDAPParameterRepository:           RoParameterRepository,
+    woLDAPParameterRepository:           WoParameterRepository,
     interpolationCompiler:               InterpolatedValueCompilerImpl,
     policyGenerationHookService:         PolicyGenerationHookService,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
@@ -1767,9 +1767,17 @@ object RudderConfigInit {
       }
     }
 
-    lazy val roRuleCategoryRepository: RoRuleCategoryRepository = roLDAPRuleCategoryRepository
+    lazy val roRuleCategoryRepository: RoRuleCategoryRepository =
+      new RoTenantRuleCategoryRepo(tenantCheckLogic, roLDAPRuleCategoryRepository)
     lazy val ruleCategoryService:      RuleCategoryService      = new RuleCategoryService()
-    lazy val woRuleCategoryRepository: WoRuleCategoryRepository = woLDAPRuleCategoryRepository
+    lazy val woRuleCategoryRepository: WoRuleCategoryRepository = {
+      new WoTenantRuleCategoryRepo(
+        tenantCheckLogic,
+        tenantService,
+        woLDAPRuleCategoryRepository,
+        roLDAPRuleCategoryRepository
+      )
+    }
 
     lazy val changeRequestEventLogService: ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
     lazy val secretEventLogService:        SecretEventLogService        = new SecretEventLogServiceImpl(eventLogRepository)
@@ -2959,9 +2967,17 @@ object RudderConfigInit {
     lazy val ruleReadWriteMutex      = new ZioTReentrantLock("rule-lock")
     lazy val ruleCatReadWriteMutex   = new ZioTReentrantLock("rule-cat-lock")
 
-    lazy val roLdapDirectiveRepository =
-      new RoLDAPDirectiveRepository(rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
-    lazy val roDirectiveRepository: RoDirectiveRepository = roLdapDirectiveRepository
+    lazy val roLdapDirectiveRepository = {
+      new RoLDAPDirectiveRepository(
+        rudderDitImpl,
+        roLdap,
+        ldapEntityMapper,
+        techniqueRepositoryImpl,
+        uptLibReadWriteMutex
+      )
+    }
+    lazy val roDirectiveRepository: RoDirectiveRepository =
+      new RoTenantDirectiveRepo(tenantCheckLogic, roLdapDirectiveRepository)
     lazy val woLdapDirectiveRepository = {
       val repo = new WoLDAPDirectiveRepository(
         roLdapDirectiveRepository,
@@ -2993,13 +3009,21 @@ object RudderConfigInit {
 
       repo
     }
-    lazy val woDirectiveRepository: WoDirectiveRepository = woLdapDirectiveRepository
+    lazy val woDirectiveRepository: WoDirectiveRepository = {
+      new WoTenantDirectiveRepo(
+        tenantCheckLogic,
+        tenantService,
+        woLdapDirectiveRepository,
+        roLdapDirectiveRepository
+      )
+    }
 
     lazy val roLdapRuleRepository =
       new RoLDAPRuleRepository(rudderDitImpl, roLdap, ldapEntityMapper, ruleReadWriteMutex)
-    lazy val roRuleRepository: RoRuleRepository = roLdapRuleRepository
+    lazy val roRuleRepository: RoRuleRepository =
+      new RoTenantRuleRepo(tenantCheckLogic, roLdapRuleRepository)
 
-    lazy val woLdapRuleRepository: WoRuleRepository = new WoLDAPRuleRepository(
+    lazy val woLdapRuleRepository = new WoLDAPRuleRepository(
       roLdapRuleRepository,
       rwLdap,
       ldapDiffMapper,
@@ -3009,7 +3033,15 @@ object RudderConfigInit {
       personIdentServiceImpl,
       RUDDER_AUTOARCHIVEITEMS
     )
-    lazy val woRuleRepository = woLdapRuleRepository
+    lazy val woRuleRepository: WoRuleRepository = {
+      new WoTenantRuleRepo(
+        tenantCheckLogic,
+        tenantService,
+        woLdapRuleRepository,
+        roLdapRuleRepository,
+        roLDAPRuleCategoryRepository
+      )
+    }
 
     lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl,
@@ -3018,7 +3050,8 @@ object RudderConfigInit {
       nodeFactRepository,
       groupLibReadWriteMutex
     )
-    lazy val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
+    lazy val roNodeGroupRepository: RoNodeGroupRepository =
+      new RoTenantNodeGroupRepo(tenantCheckLogic, roLdapNodeGroupRepository)
 
     lazy val woLdapNodeGroupRepository = new WoLDAPNodeGroupRepository(
       roLdapNodeGroupRepository,
@@ -3027,11 +3060,16 @@ object RudderConfigInit {
       logRepository,
       gitNodeGroupArchiver,
       personIdentServiceImpl,
-      tenantCheckLogic,
-      tenantService,
       RUDDER_AUTOARCHIVEITEMS
     )
-    lazy val woNodeGroupRepository: WoNodeGroupRepository = woLdapNodeGroupRepository
+    lazy val woNodeGroupRepository: WoNodeGroupRepository = {
+      new WoTenantNodeGroupRepo(
+        tenantCheckLogic,
+        tenantService,
+        woLdapNodeGroupRepository,
+        roLdapNodeGroupRepository
+      )
+    }
 
     lazy val roLDAPRuleCategoryRepository = {
       new RoLDAPRuleCategoryRepository(
@@ -3053,15 +3091,17 @@ object RudderConfigInit {
       )
     }
 
-    lazy val roLDAPParameterRepository = new RoLDAPParameterRepository(
+    lazy val roLdapParameterRepository = new RoLDAPParameterRepository(
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
       parameterReadWriteMutex
     )
+    lazy val roLDAPParameterRepository: RoParameterRepository =
+      new RoTenantParameterRepo(tenantCheckLogic, roLdapParameterRepository)
 
-    lazy val woLDAPParameterRepository = new WoLDAPParameterRepository(
-      roLDAPParameterRepository,
+    lazy val woLdapParameterRepository = new WoLDAPParameterRepository(
+      roLdapParameterRepository,
       rwLdap,
       ldapDiffMapper,
       logRepository,
@@ -3069,6 +3109,14 @@ object RudderConfigInit {
       personIdentServiceImpl,
       RUDDER_AUTOARCHIVEITEMS
     )
+    lazy val woLDAPParameterRepository: WoParameterRepository = {
+      new WoTenantParameterRepo(
+        tenantCheckLogic,
+        tenantService,
+        woLdapParameterRepository,
+        roLdapParameterRepository
+      )
+    }
 
     lazy val itemArchiveManagerImpl = new ItemArchiveManagerImpl(
       roLdapRuleRepository,
@@ -3076,8 +3124,8 @@ object RudderConfigInit {
       roLDAPRuleCategoryRepository,
       roLdapDirectiveRepository,
       roLdapNodeGroupRepository,
-      roLDAPParameterRepository,
-      woLDAPParameterRepository,
+      roLdapParameterRepository,
+      woLdapParameterRepository,
       gitConfigRepo,
       gitRuleArchiver,
       gitRuleCategoryArchiver,
@@ -3874,7 +3922,7 @@ object RudderConfigInit {
         val subGroup = new SubGroupComparatorRepository {
           override def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]] = Chunk.empty.succeed
 
-          override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.empty.succeed
+          override def getGroups(using qc: QueryContext): IOResult[Chunk[SubGroupChoice]] = Chunk.empty.succeed
         }
         new InternalLDAPQueryProcessor(
           roLdap,

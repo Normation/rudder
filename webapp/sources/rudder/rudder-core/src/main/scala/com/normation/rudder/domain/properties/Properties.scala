@@ -441,7 +441,8 @@ object GenericProperty {
     s match {
       case None          => c
       case Some(None)    => c.withoutPath(GenericProperty.SECURITY)
-      case Some(Some(v)) => c.withValue(GenericProperty.SECURITY, ConfigFactory.parseString(v.toJson).root())
+      // the security tag is stored as a json string (the `security` getter reads it with `getString`)
+      case Some(Some(v)) => c.withValue(GenericProperty.SECURITY, ConfigValueFactory.fromAnyRef(v.toJson))
     }
   }
 
@@ -652,7 +653,7 @@ object GenericProperty {
       security:    Option[SecurityTag], // optional for backward compat. None means "no tenant"
       options:     ConfigParseOptions = ConfigParseOptions.defaults()
   ): Config = {
-    val m = new java.util.HashMap[String, ConfigValue]()
+    val m              = new java.util.HashMap[String, ConfigValue]()
     m.put(NAME, ConfigValueFactory.fromAnyRef(name))
     rev match {
       case GitVersion.DEFAULT_REV => // nothing
@@ -662,7 +663,9 @@ object GenericProperty {
     description.foreach(x => m.put(DESCRIPTION, ConfigValueFactory.fromAnyRef(x)))
     m.put(VALUE, value)
     mode.foreach(x => m.put(INHERIT_MODE, ConfigValueFactory.fromAnyRef(x.value)))
-    GenericProperty.patchVisibility(ConfigFactory.parseMap(m, options.getOriginDescription), visibility)
+    val withVisibility = GenericProperty.patchVisibility(ConfigFactory.parseMap(m, options.getOriginDescription), visibility)
+    // `security.map(Some(_))`: None means "no tenant" (leave the path absent), Some(tag) sets it
+    GenericProperty.patchSecurity(withVisibility, security.map(Some(_)))
   }
 
   def valueToConfig(value: ConfigValue): Config = {
@@ -745,6 +748,8 @@ object NodeProperty {
   given HasSecurityTag[NodeProperty] with {
     extension (a: NodeProperty) {
       override def security: Option[SecurityTag] = a.security
+      // properties have no system notion
+      override def isSystem: Boolean             = false
       override def debugId:  String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): NodeProperty = a.withSecurity(security)
     }
@@ -791,6 +796,8 @@ object GroupProperty {
   given HasSecurityTag[GroupProperty] with {
     extension (a: GroupProperty) {
       override def security: Option[SecurityTag] = a.security
+      // properties have no system notion
+      override def isSystem: Boolean             = false
       override def debugId:  String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): GroupProperty = a.withSecurity(security)
     }
@@ -924,6 +931,8 @@ object GlobalParameter {
   given HasSecurityTag[GlobalParameter] with {
     extension (a: GlobalParameter) {
       override def security: Option[SecurityTag] = a.security
+      // global parameters have no system flag
+      override def isSystem: Boolean             = false
       override def debugId:  String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): GlobalParameter = a.withSecurity(security)
     }

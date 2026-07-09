@@ -46,15 +46,18 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.tenants.TenantAccessGrant
 import java.time.Instant
 import zio.syntax.*
 
 trait RuleValService {
   def buildRuleVal(
-      rule:             Rule,
-      directiveLib:     FullActiveTechniqueCategory,
-      groupLib:         FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
+      rule:         Rule,
+      directiveLib: FullActiveTechniqueCategory,
+      groupLib:     FullNodeGroupCategory,
+      // per-node info (is-policy-server + tenant security tag) used to resolve targets and enforce the
+      // tenant boundary at generation time
+      nodes:        Map[NodeId, NodeSecurityInfo]
   ): IOResult[RuleVal]
 
   def lookupNodeParameterization(
@@ -197,30 +200,63 @@ class RuleValServiceImpl(
     }
   }
 
-  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, arePolicyServers: Map[NodeId, Boolean]): Set[NodeId] = {
-    val wantedNodeIds = groupLib.getNodeIds(rule.targets, arePolicyServers)
-    val nodeIds       = wantedNodeIds.intersect(arePolicyServers.keySet)
-    if (nodeIds.size != wantedNodeIds.size) {
+  def getTargetedNodes(
+      rule:     Rule,
+      groupLib: FullNodeGroupCategory,
+      nodes:    Map[NodeId, NodeSecurityInfo]
+  ): Set[NodeId] = {
+    // Tenant boundary: the tenants on a rule direct which objects and nodes it actually reaches.
+    val ruleScope = TenantAccessGrant.fromSecurityScope(rule.security)
+
+    // (d) target-level filter: drop simple targets the rule can't see - foreign groups, and admin-only
+    // special targets (AllTarget, etc: security `None`) which must not be usable by a tenant-scoped rule.
+    // Composite targets (union/intersection/exclusion) are not in `allTargets`; they pass through and are
+    // contained by the node-level filter below.
+    val scopedTargets = rule.targets.filter(t => groupLib.allTargets.get(t).forall(info => ruleScope.canSee(info.security)))
+
+    // target resolution only needs the is-policy-server flag; project it from the node info
+    val arePolicyServers = nodes.view.mapValues(_.isPolicyServer).toMap
+    val wantedNodeIds    = groupLib.getNodeIds(scopedTargets, arePolicyServers)
+    val presentNodeIds   = wantedNodeIds.intersect(nodes.keySet)
+    if (presentNodeIds.size != wantedNodeIds.size) {
       // ignored nodes are filtered-out early during generation, so we don't have access to their node info here,
       // they are just missing from allNodeInfos map.
       logger.debug(
         s"Some nodes are in the target of rule '${rule.name}' (${rule.id.serialize}) but are not present " +
-        s"in the system. These nodes are likely in state `ignored`: ${(wantedNodeIds -- nodeIds).map(_.value).mkString(", ")}"
+        s"in the system. These nodes are likely in state `ignored`: ${(wantedNodeIds -- presentNodeIds).map(_.value).mkString(", ")}"
+      )
+    }
+
+    // (node level, load-bearing) whatever the targets resolved to, keep only the nodes the rule's tenants
+    // can see. This contains composite targets and any node wrongly present in a group's serverList.
+    val nodeIds = presentNodeIds.filter(id => ruleScope.canSee(nodes.get(id).flatMap(_.security)))
+    if (nodeIds.size != presentNodeIds.size) {
+      logger.trace(
+        s"Rule '${rule.name}' (${rule.id.serialize}) targeted nodes filtered by tenant: excluded " +
+        s"${(presentNodeIds -- nodeIds).map(_.value).mkString(", ")}"
       )
     }
     nodeIds
   }
 
   override def buildRuleVal(
-      rule:             Rule,
-      directiveLib:     FullActiveTechniqueCategory,
-      groupLib:         FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
+      rule:         Rule,
+      directiveLib: FullActiveTechniqueCategory,
+      groupLib:     FullNodeGroupCategory,
+      nodes:        Map[NodeId, NodeSecurityInfo]
   ): IOResult[RuleVal] = {
-    val nodeIds = getTargetedNodes(rule, groupLib, arePolicyServers)
+    val ruleScope = TenantAccessGrant.fromSecurityScope(rule.security)
+    val nodeIds   = getTargetedNodes(rule, groupLib, nodes)
+
+    // (e) directive-level filter: a tenant-scoped rule only applies directives it shares a tenant with.
+    // Foreign or admin-only (`None`) directives referenced by a tenant rule are dropped. Untagged/admin
+    // rules (scope `All`) see every directive, so non-tenant setups are unaffected.
+    val scopedDirectiveIds = rule.directiveIds.toList.filter { id =>
+      directiveLib.allDirectives.get(id).forall { case (_, directive) => ruleScope.canSee(directive.security) }
+    }
 
     for {
-      drafts <- rule.directiveIds.toList.accumulate {
+      drafts <- scopedDirectiveIds.accumulate {
                   getParsedPolicyDraft(_, rule.id, BundleOrder(rule.name), rule.name, directiveLib)
                 }
     } yield {

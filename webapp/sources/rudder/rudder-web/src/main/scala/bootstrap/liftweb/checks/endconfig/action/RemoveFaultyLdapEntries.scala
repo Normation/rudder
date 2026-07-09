@@ -39,11 +39,10 @@ package bootstrap.liftweb.checks.endconfig.action
 
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 
@@ -55,18 +54,13 @@ class RemoveFaultyLdapEntries(
   override val description = "Remove LDAP entries breaking directive api, see https://issues.rudder.io/issues/22314"
 
   override def checks(): Unit = {
+    given cc: ChangeContext = ChangeContext.newForRudder()
     (for {
       directive <- woLDAPDirectiveRepository.delete(
-                     DirectiveUid.apply("test_import_export_archive_directive"),
-                     ModificationId(uuidGen.newUuid),
-                     RudderEventActor,
-                     None
+                     DirectiveUid.apply("test_import_export_archive_directive")
                    )
       technique <- woLDAPDirectiveRepository.deleteActiveTechnique(
-                     ActiveTechniqueId("test_import_export_archive"),
-                     ModificationId(uuidGen.newUuid),
-                     RudderEventActor,
-                     None
+                     ActiveTechniqueId("test_import_export_archive")
                    )
     } yield {
       ()

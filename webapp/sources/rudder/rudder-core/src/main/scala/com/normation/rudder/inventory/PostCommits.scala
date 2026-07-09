@@ -72,7 +72,7 @@ class PostCommitInventoryHooks[A](
     nodeFactRepo:          NodeFactRepository,
     sudoRun:               SudoRun
 ) extends PostCommit[A] {
-  import QueryContext.todoQC
+
   import scala.jdk.CollectionConverters.*
   override val name = "post_commit_inventory:run_node-inventory-received_hooks"
 
@@ -80,7 +80,7 @@ class PostCommitInventoryHooks[A](
     val node  = inventory.node.main
     val hooks = (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
-      nHooks    <- nodeFactRepo.getStatus(node.id).flatMap {
+      nHooks    <- nodeFactRepo.getStatus(node.id)(using QueryContext.systemQC).flatMap {
                      case PendingInventory  =>
                        val n = "node-inventory-received-pending"
                        RunHooks.getHooksPure(HOOKS_D + "/" + n, HOOKS_IGNORE_SUFFIXES).map(h => (n, h))

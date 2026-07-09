@@ -68,7 +68,7 @@ import scala.util.matching.Regex
 import scala.xml.*
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
-  import AsyncDeployment.*
+  import com.normation.rudder.web.comet.AsyncDeployment.*
 
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val nodeFactRepo         = RudderConfig.nodeFactRepository
@@ -409,7 +409,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     val groupsErrors: Map[NodeGroup, String] = failures.toList match {
       case Nil      => Map.empty
       case statuses =>
-        val groups = nodeGroupRepo.getAllByIds(statuses.map { case (id, _) => id }).runNow
+        // I'm not sure whose group it is. Maybe rudder?
+        val groups = nodeGroupRepo.getAllByIds(statuses.map { case (id, _) => id })(using QueryContext.todoQC).runNow
         groups.flatMap(g => failures.get(g.id).map(f => g -> f.getMessage)).toMap
     }
     groupsErrors.toList match {
@@ -462,7 +463,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       val btnId = nodeBtnId(node)
       scriptLinkButton(btnId, link)
     }
-    val allNodes = nodeFactRepo.getAll()(using QueryContext.systemQC).runNow
+    val allNodes = nodeFactRepo.getAll()(using QueryContext.systemQC).runNow // systemQC because rudder action
     val nodesErrors:                   Map[MinimalNodeFactInterface, String] = nodeProperties.flatMap {
       case (_, _: SuccessNodePropertyHierarchy)     => None
       case (nodeId, f: FailedNodePropertyHierarchy) => allNodes.get(nodeId).map(_ -> f.getMessage)

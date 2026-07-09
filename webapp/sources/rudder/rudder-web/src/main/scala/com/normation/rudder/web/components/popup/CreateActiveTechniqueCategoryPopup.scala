@@ -72,7 +72,7 @@ class CreateActiveTechniqueCategoryPopup(
   private val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
   private val uuidGen                             = RudderConfig.stringUuidGenerator
 
-  private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
+  private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories()(using snippetQC).toBox
 
   def secureDispatch: QueryContext ?=> PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
 
@@ -149,7 +149,7 @@ class CreateActiveTechniqueCategoryPopup(
             children = Nil,
             items = Nil,
             isSystem = false,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           ),
           ActiveTechniqueCategoryId(categoryContainer.get)
         )(using qc.newCC(Some("user created a new category")))

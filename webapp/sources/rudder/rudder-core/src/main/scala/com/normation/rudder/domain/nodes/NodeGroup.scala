@@ -121,6 +121,7 @@ object NodeGroup {
   given HasSecurityTag[NodeGroup] with {
     extension (a: NodeGroup) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.debugString
       override def updateSecurityContext(security: Option[SecurityTag]): NodeGroup = a.copy(security = security)
     }

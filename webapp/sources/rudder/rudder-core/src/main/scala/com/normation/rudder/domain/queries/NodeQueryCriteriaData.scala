@@ -77,7 +77,7 @@ import zio.syntax.*
 
 trait SubGroupComparatorRepository {
   def getNodeIds(groupId: NodeGroupId)(implicit qc: QueryContext): IOResult[Chunk[NodeId]]
-  def getGroups: IOResult[Chunk[SubGroupChoice]]
+  def getGroups(using qc: QueryContext): IOResult[Chunk[SubGroupChoice]]
 }
 // default implementation out of test use GroupRepo for that
 class DefaultSubGroupComparatorRepository(repo: RoNodeGroupRepository) extends SubGroupComparatorRepository {
@@ -89,7 +89,7 @@ class DefaultSubGroupComparatorRepository(repo: RoNodeGroupRepository) extends S
     }
   }
 
-  override def getGroups: IOResult[Chunk[SubGroupChoice]] = {
+  override def getGroups(using qc: QueryContext): IOResult[Chunk[SubGroupChoice]] = {
     repo.getAll().map(seq => Chunk.fromIterable(seq).map(g => SubGroupChoice(g.id, g.name)))
   }
 }

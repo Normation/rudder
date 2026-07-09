@@ -3,6 +3,7 @@ package com.normation.rudder.score
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.MockNodes
+import com.normation.rudder.MockTenants
 import com.normation.rudder.score.ScoreValue.A
 import com.normation.rudder.score.ScoreValue.B
 import com.normation.rudder.score.ScoreValue.D
@@ -18,10 +19,11 @@ import zio.syntax.*
 
 class ScoreServiceTest extends Specification {
 
-  val mock    = new MockNodes()
-  import MockNodes.*
+  val mockTenants = new MockTenants()
+  val mock        = new MockNodes(mockTenants)
+  import com.normation.rudder.MockNodes.*
   import mock.*
-  val scoreId = "testScore"
+  val scoreId     = "testScore"
   case class TestScoreEvent(nodeId: NodeId) extends ScoreEvent
 
   object TestScoreEventHandler extends ScoreEventHandler {

@@ -308,6 +308,9 @@ object NodeFact {
     extension (a: NodeFact) {
       override def security: Option[SecurityTag] = a.rudderSettings.security
 
+      // nodes are not system configuration objects: node writes are governed by tenant scoping only
+      override def isSystem: Boolean = false
+
       override def debugId: String = a.id.value
 
       override def updateSecurityContext(security: Option[SecurityTag]): NodeFact =
@@ -1012,6 +1015,8 @@ object CoreNodeFact {
   given HasSecurityTag[CoreNodeFact] with {
     extension (a: CoreNodeFact) {
       override def security:                                             Option[SecurityTag] = a.rudderSettings.security
+      // nodes are not system configuration objects: node writes are governed by tenant scoping only
+      override def isSystem:                                             Boolean             = false
       override def debugId:                                              String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): CoreNodeFact        =
         a.modify(_.rudderSettings.security).setTo(security)

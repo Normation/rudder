@@ -8,6 +8,7 @@ import NaturalOrdering as N
 import Rudder.Filters exposing (SearchFilterState)
 import Rudder.Table exposing (Model)
 import Set
+import Tenants.SecurityTag exposing (SecurityTag)
 import Time
 import Ui.Datatable exposing (Category, SubCategories(..), TableFilters, getAllElems)
 
@@ -51,6 +52,7 @@ type alias Group =
     , dynamic : Bool
     , enabled : Bool
     , target : String
+    , security : Maybe SecurityTag
     }
 
 

@@ -259,7 +259,7 @@ class CreateCategoryOrGroupPopup(
             Nil,
             Nil,
             isSystem = false,
-            security = qc.accessGrant.toSecurityTag
+            security = qc.accessGrant.restrictToWrite.toSecurityTag
           ),
           NodeGroupCategoryId(piContainer.get)
         )(using
@@ -293,7 +293,7 @@ class CreateCategoryOrGroupPopup(
         isDynamic,
         srvList,
         _isEnabled = true,
-        security = qc.accessGrant.toSecurityTag
+        security = qc.accessGrant.restrictToWrite.toSecurityTag
       )
       woNodeGroupRepository
         .create(nodeGroup, NodeGroupCategoryId(piContainer.get))(using

@@ -1,0 +1,426 @@
+---
+description: Admin sees full security tag on tenant-restricted group
+user: admin
+method: GET
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "groupDetails",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "Tenant test group",
+            "description": "a tenant-restricted group",
+            "categoryId": "GroupRoot",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": true,
+            "groupClass": [
+              "group_tenant_group_1",
+              "group_tenant_test_group"
+            ],
+            "properties": [],
+            "target": "group:tenant-group-1",
+            "system": false,
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneAB user sees both zoneA and zoneB in security tag
+user: zoneAB
+method: GET
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "groupDetails",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "Tenant test group",
+            "description": "a tenant-restricted group",
+            "categoryId": "GroupRoot",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": true,
+            "groupClass": [
+              "group_tenant_group_1",
+              "group_tenant_test_group"
+            ],
+            "properties": [],
+            "target": "group:tenant-group-1",
+            "system": false,
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneB user (read-only) sees only zoneB in security tag
+user: zoneB
+method: GET
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "groupDetails",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "Tenant test group",
+            "description": "a tenant-restricted group",
+            "categoryId": "GroupRoot",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": true,
+            "groupClass": [
+              "group_tenant_group_1",
+              "group_tenant_test_group"
+            ],
+            "properties": [],
+            "target": "group:tenant-group-1",
+            "system": false,
+            "security": {
+              "tenants": [
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneC user sees nothing (no object has zoneC tenant)
+user: zoneC
+method: GET
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 500
+  content: >-
+    {
+      "action": "groupDetails",
+      "result": "error",
+      "errorDetails": "Group with id 'tenant-group-1' was not found'"
+    }
+---
+description: User with no tenant grant sees nothing
+user: noTenant
+method: GET
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 500
+  content: >-
+    {
+      "action": "groupDetails",
+      "result": "error",
+      "errorDetails": "Group with id 'tenant-group-1' was not found'"
+    }
+---
+description: zoneB (read-only) cannot update the group
+user: zoneB
+method: POST
+url: /api/latest/groups/tenant-group-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-group-1",
+    "displayName": "Tenant test group",
+    "description": "updated by test",
+    "enabled": true,
+    "system": false,
+    "properties": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateGroup",
+      "result": "error",
+      "errorDetails": "Inconsistency: Object 'tenant-group-1' [zoneA,zoneB] can't be modified by 'zoneB' (perm:tags:[zoneB:r])"
+    }
+---
+description: zoneC cannot update the group (object not visible)
+user: zoneC
+method: POST
+url: /api/latest/groups/tenant-group-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-group-1",
+    "displayName": "Tenant test group",
+    "description": "updated by test",
+    "enabled": true,
+    "system": false,
+    "properties": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateGroup",
+      "result": "error",
+      "errorDetails": "Group with id 'tenant-group-1' was not found'"
+    }
+---
+description: noTenant cannot update the group (object not visible)
+user: noTenant
+method: POST
+url: /api/latest/groups/tenant-group-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-group-1",
+    "displayName": "Tenant test group",
+    "description": "updated by test",
+    "enabled": true,
+    "system": false,
+    "properties": []
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "updateGroup",
+      "result": "error",
+      "errorDetails": "Group with id 'tenant-group-1' was not found'"
+    }
+---
+description: zoneAB can update the group, tag preserved
+user: zoneAB
+method: POST
+url: /api/latest/groups/tenant-group-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-group-1",
+    "displayName": "Tenant test group",
+    "description": "updated by test",
+    "enabled": true,
+    "system": false,
+    "properties": []
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateGroup",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "Tenant test group",
+            "description": "updated by test",
+            "categoryId": "GroupRoot",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": true,
+            "groupClass": [
+              "group_tenant_group_1",
+              "group_tenant_test_group"
+            ],
+            "properties": [],
+            "target": "group:tenant-group-1",
+            "system": false,
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: admin can update the group, tag preserved when not specified
+user: admin
+method: POST
+url: /api/latest/groups/tenant-group-1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "tenant-group-1",
+    "displayName": "Tenant test group",
+    "description": "updated by test",
+    "enabled": true,
+    "system": false,
+    "properties": []
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateGroup",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "Tenant test group",
+            "description": "updated by test",
+            "categoryId": "GroupRoot",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": true,
+            "groupClass": [
+              "group_tenant_group_1",
+              "group_tenant_test_group"
+            ],
+            "properties": [],
+            "target": "group:tenant-group-1",
+            "system": false,
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: zoneB (read-only) cannot delete the group
+user: zoneB
+method: DELETE
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 500
+  content: >-
+    {
+      "action": "deleteGroup",
+      "result": "error",
+      "errorDetails": "Error when deleting target 'group:tenant-group-1'. All dependent rules where updated: (); cause was: Unexpected: Inconsistency: Object 'tenant-group-1' can't be deleted by zoneB"
+    }
+---
+description: zoneC delete is a no-op (object not visible)
+user: zoneC
+method: DELETE
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteGroup",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "",
+            "description": "",
+            "categoryId": "",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": false,
+            "groupClass": [],
+            "properties": [],
+            "target": "",
+            "system": false
+          }
+        ]
+      }
+    }
+---
+description: noTenant delete is a no-op (object not visible)
+user: noTenant
+method: DELETE
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteGroup",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "",
+            "description": "",
+            "categoryId": "",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": false,
+            "groupClass": [],
+            "properties": [],
+            "target": "",
+            "system": false
+          }
+        ]
+      }
+    }
+---
+description: admin can delete the group
+user: admin
+method: DELETE
+url: /api/latest/groups/tenant-group-1
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteGroup",
+      "id": "tenant-group-1",
+      "result": "success",
+      "data": {
+        "groups": [
+          {
+            "id": "tenant-group-1",
+            "displayName": "Tenant test group",
+            "description": "updated by test",
+            "categoryId": "GroupRoot",
+            "nodeIds": [],
+            "dynamic": false,
+            "enabled": true,
+            "groupClass": [
+              "group_tenant_group_1",
+              "group_tenant_test_group"
+            ],
+            "properties": [],
+            "target": "group:tenant-group-1",
+            "system": false,
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }

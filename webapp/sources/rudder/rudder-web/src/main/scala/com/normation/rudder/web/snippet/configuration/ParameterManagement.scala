@@ -46,6 +46,7 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import com.normation.rudder.web.snippet.WithNonce
@@ -86,13 +87,24 @@ class ParameterManagement extends SecureDispatchSnippet with Loggable {
     }
   }
 
+  private def tenantsBadge(param: GlobalParameter)(implicit qc: QueryContext): NodeSeq = {
+    qc.accessGrant.visibleSecurityTag(param.security) match {
+      case Some(SecurityTag.ByTenants(tenants)) if tenants.nonEmpty =>
+        val label = tenants.map(_.value).mkString(", ")
+        <span class="tenants-label" data-bs-toggle="tooltip" data-bs-placement="top" title={s"Tenants: ${label}"}>
+          <i class="fa fa-building"></i><b> {tenants.size}</b>
+        </span>
+      case _                                                        => NodeSeq.Empty
+    }
+  }
+
   def displayGridParameters(params: Seq[GlobalParameter], gridName: String)(implicit qc: QueryContext): NodeSeq = {
     (
       "tbody *" #> ("tr" #> params.map { param =>
         val lineHtmlId = Helpers.nextFuncName
         ".parameterLine [jsuuid]" #> lineHtmlId &
         ".parameterLine [class]" #> Text("cursorPointer") &
-        ".name *" #> <b>{param.name}</b> &
+        ".name *" #> (<b>{param.name}</b> ++ tenantsBadge(param)) &
         ".value *" #> <pre class="json-beautify">{param.valueAsString}</pre> &
         ".description *" #> <span><ul class="ms-2"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &

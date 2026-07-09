@@ -149,7 +149,7 @@ class TechniqueAcceptationUpdater(
             List(),
             List(),
             isSystem = false,
-            security = cc.accessGrant.toSecurityTag
+            security = cc.accessGrant.restrictToWrite.toSecurityTag
           )
 
           rwActiveTechniqueRepo
@@ -243,7 +243,7 @@ class TechniqueAcceptationUpdater(
             }
           case TechniqueCategoryModType.Updated(cat)         =>
             logPure.debug(s"Category '${cat.id.toString}' updated") *>
-            roActiveTechniqueRepo.getActiveTechniqueCategory(toActiveCatId(cat.id)).flatMap { opt =>
+            roActiveTechniqueRepo.getActiveTechniqueCategory(toActiveCatId(cat.id))(using cc.toQC).flatMap { opt =>
               opt match {
                 case None           =>
                   (cat.id: @unchecked) match {
@@ -275,7 +275,7 @@ class TechniqueAcceptationUpdater(
 
     (for {
       _               <- handleCategoriesUpdate(updatedCategories)
-      techLib         <- roActiveTechniqueRepo.getFullDirectiveLibrary()
+      techLib         <- roActiveTechniqueRepo.getFullDirectiveLibrary()(using cc.toQC)
       activeTechniques = techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
       now             <- Clock.instant
       accepted        <- techniqueMods.accumulate {
