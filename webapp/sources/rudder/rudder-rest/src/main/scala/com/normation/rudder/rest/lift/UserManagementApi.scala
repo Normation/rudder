@@ -731,7 +731,7 @@ class UserManagementApiImpl(
     nodePerms match {
       case TenantAccessGrant.All                => "all"
       case TenantAccessGrant.None               => "none"
-      case TenantAccessGrant.ByTenants(tenants) => tenants.map(_.value).mkString(",")
+      case TenantAccessGrant.ByTenants(tenants) => tenants.map(_.serialize).mkString(",")
     }
   }
 }

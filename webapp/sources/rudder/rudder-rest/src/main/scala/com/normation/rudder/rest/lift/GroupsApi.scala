@@ -651,7 +651,9 @@ class GroupApiService14(
       id       <- workflow.startWorkflow(cr)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory().id), optCrId)
+      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory()(using cc.toQC).id), optCrId)(using
+        cc.toQC
+      )
     }
   }
 
@@ -671,7 +673,7 @@ class GroupApiService14(
   )(implicit cc: ChangeContext): ZIO[Any, RudderError, JRGroup] = {
     def actualGroupCreation(change: NodeGroupChangeRequest, groupId: NodeGroupId) = {
       (for {
-        rootCat  <- readGroup.getRootCategoryPure()
+        rootCat  <- readGroup.getRootCategoryPure()(using cc.toQC)
         cat       = change.category.getOrElse(rootCat.id)
         saveDiff <- writeGroup.create(change.newGroup, cat)
         // after group creation, its properties should be computed and resolved
@@ -681,7 +683,7 @@ class GroupApiService14(
           // Trigger a deployment only if it is needed
           asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         }
-        JRGroup.fromGroup(saveDiff.group, cat, None)
+        JRGroup.fromGroup(saveDiff.group, cat, None)(using cc.toQC)
       }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
     }
 
@@ -727,7 +729,7 @@ class GroupApiService14(
               isDynamic = true,
               serverList = Set(),
               _isEnabled = defaultEnabled,
-              security = cc.accessGrant.toSecurityTag
+              security = cc.accessGrant.restrictToWrite.toSecurityTag
             )
           }
 
@@ -791,7 +793,7 @@ class GroupApiService14(
               .chainError(s"Could not reload Group ${sid} details")
 
           case None =>
-            JRGroup.fromGroup(group, cat, None).succeed
+            JRGroup.fromGroup(group, cat, None)(using qc).succeed
         }
     }
   }
@@ -845,7 +847,7 @@ class GroupApiService14(
     }
     readGroup
       .getFullGroupLibrary()
-      .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None))
+      .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None)(using qc))
   }
 
   def getCategoryDetails(id: NodeGroupCategoryId)(implicit qc: QueryContext): IOResult[JRMinimalGroupCategory] = {

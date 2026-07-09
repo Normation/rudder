@@ -68,10 +68,14 @@ class NodePropertiesServiceImpl(
     propertiesRepository:  PropertiesRepository
 ) extends NodePropertiesService {
   override def updateAll(): IOResult[Unit] = {
+
+    // this is a rudder operation
+    given qc: QueryContext = QueryContext.systemQC
+
     for {
       params      <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
-      groups      <- roNodeGroupRepository.getFullGroupLibrary()(using QueryContext.systemQC)
-      nodes       <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.values)
+      groups      <- roNodeGroupRepository.getFullGroupLibrary()
+      nodes       <- nodeFactRepository.getAll().map(_.values)
       mergedGroups = {
         groups.allGroups.map {
           case (gid, group) =>

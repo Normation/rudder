@@ -95,7 +95,8 @@ class TestNodeFactQueryProcessor {
       }).succeed
     }
 
-    override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.fromIterable(groups.keys).succeed
+    override def getGroups(using qc: QueryContext): IOResult[Chunk[SubGroupChoice]] =
+      Chunk.fromIterable(groups.keys).succeed
   }
   val instanceIdService = new InstanceIdService(InstanceId("test-instance-id"))
   val queryData = new NodeQueryCriteriaData(() => subGroupComparatorRepo, instanceIdService)

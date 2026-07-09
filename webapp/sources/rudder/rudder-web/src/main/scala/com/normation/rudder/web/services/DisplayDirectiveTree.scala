@@ -47,6 +47,8 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.snippet.WithNonce
@@ -118,6 +120,17 @@ object DisplayDirectiveTree extends Loggable {
 
   private val linkUtil = RudderConfig.linkUtil
 
+  private def tenantsBadge(security: Option[SecurityTag])(using qc: QueryContext): NodeSeq = {
+    qc.accessGrant.visibleSecurityTag(security) match {
+      case Some(SecurityTag.ByTenants(tenants)) if tenants.nonEmpty =>
+        val label = tenants.map(_.value).mkString(", ")
+        <span class="tenants-label" data-bs-toggle="tooltip" data-bs-placement="top" title={s"Tenants: ${label}"}>
+          <i class="fa fa-building"></i><b> {tenants.size}</b>
+        </span>
+      case _                                                        => NodeSeq.Empty
+    }
+  }
+
   /**
    * Display the directive tree, optionaly filtering out
    * some category or group by defining which one to
@@ -139,7 +152,7 @@ object DisplayDirectiveTree extends Loggable {
       keepCategory:     FullActiveTechniqueCategory => Boolean = _ => true,
       keepTechnique:    FullActiveTechnique => Boolean = _ => true,
       keepDirective:    Directive => Boolean = _ => true
-  ): NodeSeq = {
+  )(using qc: QueryContext): NodeSeq = {
 
     def displayCategory(
         category: FullActiveTechniqueCategory,
@@ -262,7 +275,7 @@ object DisplayDirectiveTree extends Loggable {
               """
             }
 
-            val className     = {
+            val className        = {
               val defaultClass    = "treeActiveTechniqueName"
               val disabledClass   = if (!activeTechnique.isEnabled) { "is-disabled" }
               else { "" }
@@ -270,15 +283,16 @@ object DisplayDirectiveTree extends Loggable {
               else { "" }
               s"${defaultClass} ${disabledClass} ${deprecatedClass}"
             }
-            val disabledBadge = if (!activeTechnique.isEnabled) { <span class="badge-disabled"></span> }
+            val disabledBadge    = if (!activeTechnique.isEnabled) { <span class="badge-disabled"></span> }
             else { NodeSeq.Empty }
+            val tenantsBadgeHtml = tenantsBadge(activeTechnique.security)
             <span class={
               className
             } data-bs-toggle="tooltip" data-bs-placement="top" title={
               tooltipContent
             }>{
               agentCompat.icon
-            }{technique.name}</span> ++ disabledBadge ++ btnCreateDirective
+            }{technique.name}</span> ++ disabledBadge ++ tenantsBadgeHtml ++ btnCreateDirective
           case None            =>
             <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
@@ -495,7 +509,7 @@ object DisplayDirectiveTree extends Loggable {
               NodeSeq.Empty
             }
           }
-          </span> ++ { directiveTagsTooltip } ++
+          </span> ++ { directiveTagsTooltip } ++ { tenantsBadge(directive.security) } ++
           <div class="treeActions-container"> {actionBtns} {editButton} </div> ++
           WithNonce.scriptWithNonce(
             Script(

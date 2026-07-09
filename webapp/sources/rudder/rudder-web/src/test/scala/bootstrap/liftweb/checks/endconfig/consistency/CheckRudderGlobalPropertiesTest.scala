@@ -39,6 +39,7 @@ package bootstrap.liftweb.checks.endconfig.consistency
 
 import com.normation.GitVersion
 import com.normation.rudder.MockGlobalParam
+import com.normation.rudder.MockTenants
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
@@ -59,7 +60,7 @@ object CheckRudderGlobalPropertiesTest extends ZIOSpecDefault {
       test("it should check the global properties without errors") {
         for {
           counterRef <- Ref.make(0)
-          pRepo       = new MockGlobalParam().paramsRepo
+          pRepo       = new MockGlobalParam(new MockTenants()).paramsRepo
           uuidGen     = stubStringUuidGenerator
           underTest   = CheckRudderGlobalProperties(roParamRepo = pRepo, woParamRepo = pRepo, uuidGen = uuidGen)
           _           = underTest.checks()
@@ -69,7 +70,7 @@ object CheckRudderGlobalPropertiesTest extends ZIOSpecDefault {
       test("it should check the inconsistent global properties handling errors") {
         for {
           counterRef <- Ref.make(0)
-          pRepo       = new MockGlobalParam().paramsRepo
+          pRepo       = new MockGlobalParam(new MockTenants).paramsRepo
           uuidGen     = stubStringUuidGenerator
           underTest   = CheckRudderGlobalInconsistentProperties(roParamRepo = pRepo, woParamRepo = pRepo, uuidGen = uuidGen)
           _           = underTest.checks()

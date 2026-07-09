@@ -212,7 +212,12 @@ class TestBuildNodeConfiguration extends Specification {
     val t1           = System.currentTimeMillis()
     val ruleVal      = {
       ruleValService
-        .buildRuleVal(rule, directiveLib, groupLib, allNodes.view.mapValues(_.rudderSettings.isPolicyServer).toMap)
+        .buildRuleVal(
+          rule,
+          directiveLib,
+          groupLib,
+          allNodes.view.mapValues(n => NodeSecurityInfo(n.rudderSettings.isPolicyServer, n.rudderSettings.security)).toMap
+        )
         .runNow
     }
     val ruleVals     = Seq(ruleVal)

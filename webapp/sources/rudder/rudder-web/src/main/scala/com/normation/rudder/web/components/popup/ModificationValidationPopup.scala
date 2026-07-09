@@ -43,7 +43,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
@@ -58,6 +57,7 @@ import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
 import com.normation.rudder.services.workflows.NodeGroupChangeRequest
 import com.normation.rudder.services.workflows.WorkflowService
+import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
@@ -211,7 +211,6 @@ class ModificationValidationPopup(
 
   private val userPropertyService   = RudderConfig.userPropertyService
   private val dependencyService     = RudderConfig.dependencyAndDeletionService
-  private val uuidGen               = RudderConfig.stringUuidGenerator
   private val techniqueRepo         = RudderConfig.techniqueRepository
   private val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
@@ -654,13 +653,13 @@ class ModificationValidationPopup(
       activeTechniqueId: ActiveTechniqueId,
       why:               Option[String]
   )(using qc: QueryContext): JsCmd = {
-    val modId = ModificationId(uuidGen.newUuid)
-    woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, qc.actor, why).either.runNow match {
+    given cc: ChangeContext = qc.newCC(why)
+    woDirectiveRepository.saveDirective(activeTechniqueId, directive).either.runNow match {
       case Right(optChanges) =>
         optChanges match {
           case Some(diff) if diff.needDeployment =>
             // There is a modification diff that required deployment, launch a deployment.
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+            asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
           case _                                 => // No change worthy of deployment, don't launch a deployment
         }
 

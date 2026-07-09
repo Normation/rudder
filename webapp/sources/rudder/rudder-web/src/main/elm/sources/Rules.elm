@@ -562,7 +562,7 @@ update msg model =
         NewRule id ->
             let
                 rule =
-                    Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) [] Nothing
+                    Rule id "" "rootRuleCategory" "" "" True False [] [] "" (RuleStatus "" Nothing) [] Nothing Nothing
 
                 ruleDetails =
                     RuleDetails Nothing rule Information { defaultRulesUI | editGroups = True, editDirectives = True } Nothing Nothing Nothing []
@@ -1149,6 +1149,7 @@ toRuleWithCompliance model rule =
     , compliance = getRuleCompliance model rule.id
     , changes = countRecentChanges rule.id model.changes
     , tags = rule.tags
+    , security = rule.security
     }
 
 

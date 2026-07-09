@@ -18,6 +18,7 @@ import Rules.ViewRuleDetails exposing (..)
 import Rules.ViewRulesTable exposing (..)
 import Rules.ViewUtils exposing (..)
 import String
+import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, filterSearch, generateLoadingTable, getSubElems)
 
 
@@ -61,6 +62,7 @@ view model =
                         , text item.name
                         , badgeDisabled
                         , buildTagsTree item.tags
+                        , badgeSecurityTags item.security
                         ]
                     ]
                 ]

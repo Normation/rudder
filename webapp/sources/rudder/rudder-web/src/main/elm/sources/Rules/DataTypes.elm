@@ -6,6 +6,7 @@ import Dict exposing (Dict)
 import Http exposing (Error)
 import Rudder.Table
 import Rules.ChangeRequest exposing (ChangeRequest, ChangeRequestSettings)
+import Tenants.SecurityTag exposing (SecurityTag)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 import Ui.Datatable exposing (Category, SortOrder, TableFilters, getAllCats, getAllElems, getSubElems)
 
@@ -83,6 +84,7 @@ type alias Rule =
     , status : RuleStatus
     , tags : List Tag
     , changeRequestId : Maybe String
+    , security : Maybe SecurityTag
     }
 
 
@@ -251,6 +253,7 @@ type alias RuleWithCompliance =
     , compliance : Maybe RuleComplianceGlobal
     , changes : Float
     , tags : List Tag
+    , security : Maybe SecurityTag
     }
 
 

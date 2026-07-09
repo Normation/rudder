@@ -54,6 +54,7 @@ import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
 import com.normation.rudder.rest.syntax.*
+import com.normation.rudder.tenants.QueryContext
 import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
@@ -284,7 +285,7 @@ class TechniqueApi(
     val schema: API.GetTechniques.type = API.GetTechniques
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      service.getTechniquesWithData().toLiftResponseList(params, schema)
+      service.getTechniquesWithData()(using authzToken.qc).toLiftResponseList(params, schema)
     }
 
   }
@@ -502,7 +503,7 @@ class TechniqueApi(
     val schema: API.ListTechniques.type = API.ListTechniques
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      service.listTechniques.toLiftResponseList(params, schema)
+      service.listTechniques(using authzToken.qc).toLiftResponseList(params, schema)
     }
   }
 
@@ -518,7 +519,7 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val techniqueName = TechniqueName(name)
-      service.listDirectives(techniqueName, None).toLiftResponseList(params, schema)
+      service.listDirectives(techniqueName, None)(using authzToken.qc).toLiftResponseList(params, schema)
     }
   }
 
@@ -537,7 +538,7 @@ class TechniqueApi(
 
       val directives = TechniqueVersion.parse(version) match {
         case Right(techniqueVersion) =>
-          service.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
+          service.listDirectives(techniqueName, Some(techniqueVersion :: Nil))(using authzToken.qc)
         case Left(error)             =>
           Inconsistency(
             s"Could not find list of directives based on '${techniqueName.value}' technique, because we could not parse '${version}' as a valid technique version"
@@ -559,7 +560,7 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val techniqueName = TechniqueName(name)
-      service.getTechniqueWithData(techniqueName, None, QueryFormat.Json).toLiftResponseList(params, schema)
+      service.getTechniqueWithData(techniqueName, None, QueryFormat.Json)(using authzToken.qc).toLiftResponseList(params, schema)
     }
   }
 
@@ -580,7 +581,7 @@ class TechniqueApi(
         req.params.get("format").flatMap(_.map(QueryFormat.parse).headOption).getOrElse(QueryFormat.Json)
       val json = TechniqueVersion.parse(version) match {
         case Right(techniqueVersion) =>
-          service.getTechniqueWithData(techniqueName, Some(techniqueVersion), format)
+          service.getTechniqueWithData(techniqueName, Some(techniqueVersion), format)(using authzToken.qc)
         case Left(error)             =>
           Inconsistency(
             s"Could not find technique '${techniqueName.value}' details, because we could not parse '${version}' as a valid technique version"
@@ -633,7 +634,7 @@ class TechniqueAPIService14(
     )
   }
 
-  def listTechniques: IOResult[Seq[JRActiveTechnique]] = {
+  def listTechniques(using qc: QueryContext): IOResult[Seq[JRActiveTechnique]] = {
     for {
       lib             <- readDirective.getFullDirectiveLibrary()
       activeTechniques = lib.allActiveTechniques.values.toSeq
@@ -643,7 +644,9 @@ class TechniqueAPIService14(
     }
   }
 
-  def listDirectives(techniqueName: TechniqueName, wantedVersions: Option[List[TechniqueVersion]]): IOResult[Seq[JRDirective]] = {
+  def listDirectives(techniqueName: TechniqueName, wantedVersions: Option[List[TechniqueVersion]])(using
+      qc: QueryContext
+  ): IOResult[Seq[JRDirective]] = {
     def serializeDirectives(
         directives:     Seq[Directive],
         techniques:     SortedMap[TechniqueVersion, Technique],
@@ -724,7 +727,7 @@ class TechniqueAPIService14(
       techniqueName: TechniqueName,
       version:       Option[TechniqueVersion],
       format:        TechniqueApi.QueryFormat
-  ): ZIO[Any, RudderError, Seq[Json]] = {
+  )(using qc: QueryContext): ZIO[Any, RudderError, Seq[Json]] = {
     for {
       lib            <- readDirective.getFullDirectiveLibrary()
       activeTechnique = lib.allActiveTechniques.values.find(_.techniqueName == techniqueName).toSeq
@@ -767,7 +770,7 @@ class TechniqueAPIService14(
     }
   }
 
-  def getTechniquesWithData(): IOResult[Seq[Json]] = {
+  def getTechniquesWithData()(using qc: QueryContext): IOResult[Seq[Json]] = {
     for {
       lib             <- readDirective.getFullDirectiveLibrary()
       activeTechniques = lib.allActiveTechniques.values.toSeq

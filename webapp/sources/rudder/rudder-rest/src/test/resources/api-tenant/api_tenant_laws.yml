@@ -1,0 +1,613 @@
+---
+description: LAW4 admin creates a parameter with the exact tenant he chose
+user: admin
+method: PUT
+url: /api/latest/parameters
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "lawParamAdmin",
+    "value": "v",
+    "description": "d",
+    "security": {
+      "tenants": [
+        "zoneA"
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "createParameter",
+      "id": "lawParamAdmin",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamAdmin",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW4 the parameter created by admin really has tenant zoneA
+user: admin
+method: GET
+url: /api/latest/parameters/lawParamAdmin
+response:
+  code: 200
+  content: >-
+    {
+      "action": "parameterDetails",
+      "id": "lawParamAdmin",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamAdmin",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW6 zoneA creates a parameter, gets its own tenant
+user: zoneA
+method: PUT
+url: /api/latest/parameters
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "lawParamZoneA",
+    "value": "v",
+    "description": "d"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "createParameter",
+      "id": "lawParamZoneA",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamZoneA",
+            "value": "v",
+            "description": "d"
+          }
+        ]
+      }
+    }
+---
+description: LAW6 the parameter created by zoneA is tagged zoneA
+user: admin
+method: GET
+url: /api/latest/parameters/lawParamZoneA
+response:
+  code: 200
+  content: >-
+    {
+      "action": "parameterDetails",
+      "id": "lawParamZoneA",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamZoneA",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW6 zoneAB creates a parameter, gets both its tenants
+user: zoneAB
+method: PUT
+url: /api/latest/parameters
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "lawParamZoneAB",
+    "value": "v",
+    "description": "d"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "createParameter",
+      "id": "lawParamZoneAB",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamZoneAB",
+            "value": "v",
+            "description": "d"
+          }
+        ]
+      }
+    }
+---
+description: LAW6 the parameter created by zoneAB is tagged zoneA and zoneB
+user: admin
+method: GET
+url: /api/latest/parameters/lawParamZoneAB
+response:
+  code: 200
+  content: >-
+    {
+      "action": "parameterDetails",
+      "id": "lawParamZoneAB",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamZoneAB",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW6 noTenant user can not create a parameter
+user: noTenant
+method: PUT
+url: /api/latest/parameters
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "lawParamNoTenant",
+    "value": "v",
+    "description": "d"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action": "createParameter",
+      "result": "error",
+      "errorDetails": "Inconsistency: Object 'lawParamNoTenant' [*] can't be modified by 'noTenant' (perm:none)"
+    }
+---
+description: LAW7 zoneA only sees its own tenant on a zoneA+zoneB object
+user: zoneA
+method: GET
+url: /api/latest/rules/law-rule-shared
+response:
+  code: 200
+  content: >-
+    {
+      "action": "ruleDetails",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW7 zoneA can not change the tenant list (drop zoneB is ignored)
+user: zoneA
+method: POST
+url: /api/latest/rules/law-rule-shared
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "law-rule-shared",
+    "security": {
+      "tenants": [
+        "zoneA"
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateRule",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW7 admin confirms zoneB was preserved after zoneA attempt
+user: admin
+method: GET
+url: /api/latest/rules/law-rule-shared
+response:
+  code: 200
+  content: >-
+    {
+      "action": "ruleDetails",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW8 zoneA can not remove the last tenant it sees (empty is ignored)
+user: zoneA
+method: POST
+url: /api/latest/rules/law-rule-shared
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "law-rule-shared",
+    "security": {
+      "tenants": []
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateRule",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "Not applied",
+              "details": "No policy defined, Empty groups"
+            },
+            "security": {
+              "tenants": []
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW8 admin confirms the tenant list is still zoneA and zoneB
+user: admin
+method: GET
+url: /api/latest/rules/law-rule-shared
+response:
+  code: 200
+  content: >-
+    {
+      "action": "ruleDetails",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW admin can change the tenant list (drop zoneB)
+user: admin
+method: POST
+url: /api/latest/rules/law-rule-shared
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "law-rule-shared",
+    "security": {
+      "tenants": [
+        "zoneA"
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action": "updateRule",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: LAW admin confirms tenant list is now only zoneA
+user: admin
+method: GET
+url: /api/latest/rules/law-rule-shared
+response:
+  code: 200
+  content: >-
+    {
+      "action": "ruleDetails",
+      "id": "law-rule-shared",
+      "result": "success",
+      "data": {
+        "rules": [
+          {
+            "id": "law-rule-shared",
+            "displayName": "law shared rule",
+            "categoryId": "rootRuleCategory",
+            "shortDescription": "A rule for tenant testing",
+            "longDescription": "",
+            "directives": [
+              "directive1"
+            ],
+            "targets": [
+              "special:all"
+            ],
+            "enabled": true,
+            "system": false,
+            "tags": [],
+            "policyMode": "enforce",
+            "status": {
+              "value": "In application"
+            },
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: cleanup lawParamAdmin
+user: admin
+method: DELETE
+url: /api/latest/parameters/lawParamAdmin
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteParameter",
+      "id": "lawParamAdmin",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamAdmin",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: cleanup lawParamZoneA
+user: admin
+method: DELETE
+url: /api/latest/parameters/lawParamZoneA
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteParameter",
+      "id": "lawParamZoneA",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamZoneA",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA"
+              ]
+            }
+          }
+        ]
+      }
+    }
+---
+description: cleanup lawParamZoneAB
+user: admin
+method: DELETE
+url: /api/latest/parameters/lawParamZoneAB
+response:
+  code: 200
+  content: >-
+    {
+      "action": "deleteParameter",
+      "id": "lawParamZoneAB",
+      "result": "success",
+      "data": {
+        "parameters": [
+          {
+            "id": "lawParamZoneAB",
+            "value": "v",
+            "description": "d",
+            "security": {
+              "tenants": [
+                "zoneA",
+                "zoneB"
+              ]
+            }
+          }
+        ]
+      }
+    }

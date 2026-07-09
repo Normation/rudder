@@ -46,6 +46,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import com.normation.utils.DateFormaterService
@@ -77,7 +78,7 @@ class LogDisplayer(
     "logs-content"
   )
 
-  def ajaxRefresh(nodeId: NodeId, runDate: Option[DateTime], tableId: String): GUIDJsExp = {
+  def ajaxRefresh(nodeId: NodeId, runDate: Option[DateTime], tableId: String)(using qc: QueryContext): GUIDJsExp = {
     runDate match {
       case Some(runDate) =>
         SHtml.ajaxInvoke(() => {
@@ -91,7 +92,7 @@ class LogDisplayer(
     }
   }
 
-  def asyncDisplay(nodeId: NodeId, runDate: Option[DateTime], tableId: String): JsCmd = {
+  def asyncDisplay(nodeId: NodeId, runDate: Option[DateTime], tableId: String)(using qc: QueryContext): JsCmd = {
     val id      = JsNodeId(nodeId)
     val refresh = ajaxRefresh(nodeId, runDate, tableId)
     def getEventsInterval(jsonInterval: String): JsCmd = {
@@ -172,7 +173,7 @@ class LogDisplayer(
     """) // JsRaw ok, escaped
   }
 
-  def refreshData(nodeId: NodeId, reports: => Seq[Reports], tableId: String): JsCmd = {
+  def refreshData(nodeId: NodeId, reports: => Seq[Reports], tableId: String)(using qc: QueryContext): JsCmd = {
     def getDirectiveName(directiveId: DirectiveId): Box[String] = {
       configRepository
         .getDirective(directiveId)

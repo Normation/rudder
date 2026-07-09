@@ -41,6 +41,7 @@ import com.normation.rudder.MockGlobalParam
 import com.normation.rudder.MockNodeGroups
 import com.normation.rudder.MockNodes
 import com.normation.rudder.MockRules
+import com.normation.rudder.MockTenants
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.components.RuleGrid.*
@@ -55,9 +56,10 @@ import zio.json.*
 @RunWith(classOf[JUnitRunner])
 class RuleLineTest extends Specification {
 
-  val mockRules  = new MockRules()
-  val mockNodes  = new MockNodes
-  val mockGroups = new MockNodeGroups(mockNodes, new MockGlobalParam)
+  val mockTenants = new MockTenants
+  val mockRules   = new MockRules(mockTenants)
+  val mockNodes   = new MockNodes(mockTenants)
+  val mockGroups  = new MockNodeGroups(mockNodes, new MockGlobalParam(mockTenants), mockTenants)
 
   import com.normation.utils.SimpleStatus.*
 

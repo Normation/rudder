@@ -52,6 +52,7 @@ import com.normation.rudder.UncheckedCustomRole
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.tenants.TenantAccess
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.users.Argon2EncoderParams
@@ -337,14 +338,16 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
         val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
 
         test("be able to define one tenants") {
-          assert(userDetailList.users("user_single").accessGrant)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
+          assert(userDetailList.users("user_single").accessGrant)(
+            equalTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+          )
         }
 
         test("be able to define a list of tenants") {
           assert(userDetailList.users("user_multi").accessGrant)(
             equalTo(
               TenantAccessGrant.ByTenants(
-                Chunk(TenantId("zoneA"), TenantId("zoneB"))
+                Chunk(TenantAccess(TenantId("zoneA")), TenantAccess(TenantId("zoneB")))
               )
             )
           )
@@ -367,7 +370,9 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
         }
 
         test("only have access to sane ascii identifier") {
-          assert(userDetailList.users("user_ascii").accessGrant)(equalTo(TenantAccessGrant.ByTenants(Chunk(TenantId("zoneA")))))
+          assert(userDetailList.users("user_ascii").accessGrant)(
+            equalTo(TenantAccessGrant.ByTenants(Chunk(TenantAccess(TenantId("zoneA")))))
+          )
         }
       }
     }

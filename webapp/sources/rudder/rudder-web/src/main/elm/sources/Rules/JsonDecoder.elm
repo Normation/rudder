@@ -7,6 +7,7 @@ import Json.Decode exposing (..)
 import Json.Decode.Field exposing (require)
 import Json.Decode.Pipeline exposing (..)
 import Rules.DataTypes exposing (..)
+import Tenants.SecurityTag exposing (decodeSecurityTag)
 import Time.Iso8601
 import Time.Iso8601ErrorMsg
 import Time.TimeZones exposing (utc)
@@ -106,6 +107,7 @@ decodeRule =
         |> required "status" decodeStatus
         |> required "tags" (list (keyValuePairs string) |> andThen toTags)
         |> optional "changeRequestId" (map Just string) Nothing
+        |> optional "security" (map Just decodeSecurityTag) Nothing
 
 
 toTags : List (List ( String, String )) -> Decoder (List Tag)

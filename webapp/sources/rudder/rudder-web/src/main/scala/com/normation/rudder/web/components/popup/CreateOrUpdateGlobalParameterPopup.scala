@@ -158,7 +158,7 @@ class CreateOrUpdateGlobalParameterPopup(
                                parameterDescription.get,
                                None,
                                Visibility.default,
-                               security = qc.accessGrant.toSecurityTag
+                               security = qc.accessGrant.restrictToWrite.toSecurityTag
                              )
           diff            <- globalParamDiffFromAction(param)
           cr               = ChangeRequestService.createChangeRequestFromGlobalParameter(

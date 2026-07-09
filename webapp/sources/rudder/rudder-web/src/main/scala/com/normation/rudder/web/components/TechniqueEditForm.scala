@@ -41,7 +41,6 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
@@ -108,7 +107,6 @@ class TechniqueEditForm(
   private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
   private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
   private val checkSyncService            = RudderConfig.techniqueCheckSyncService
-  private val uuidGen                     = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
   private val directiveEditorService      = RudderConfig.directiveEditorService
   private val dependencyService           = RudderConfig.dependencyAndDeletionService
@@ -118,7 +116,7 @@ class TechniqueEditForm(
   private var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
     for {
       tech          <- Box(technique)
-      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name).toBox
+      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name)(using snippetQC).toBox
       activeTech    <- optActiveTech
     } yield {
       activeTech
@@ -371,11 +369,13 @@ class TechniqueEditForm(
         onFailureRemovePopup()
       } else {
         JsRaw("hideBsModal('deleteActionDialog');") & { // JsRaw ok, const
-          val modId = ModificationId(uuidGen.newUuid)
+          given cc: ChangeContext = qc.newCC(crReasonsRemovePopup.map(_.get))
+
           (for {
-            deleted <- dependencyService.cascadeDeleteTechnique(id, modId, qc.actor, crReasonsRemovePopup.map(_.get))
+            deleted <-
+              dependencyService.cascadeDeleteTechnique(id)
             deploy  <- {
-              asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+              asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, RudderEventActor)
               Full("Policy update request sent")
             }
           } yield {
@@ -538,10 +538,11 @@ class TechniqueEditForm(
    * of given root Active Technique library.
    * The template may not be present in the library.
    */
-  private def findUserBreadCrump(target: Technique): Option[List[ActiveTechniqueCategory]] = {
+  private def findUserBreadCrump(target: Technique)(using qc: QueryContext): Option[List[ActiveTechniqueCategory]] = {
     // find the potential WBUsreTechnique for given WBTechnique
     (for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).toBox.flatMap(Box(_))
+      activeTechnique <-
+        roActiveTechniqueRepository.getActiveTechnique(target.id.name).toBox.flatMap(Box(_))
       crump           <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id).toBox
     } yield {
       crump.reverse

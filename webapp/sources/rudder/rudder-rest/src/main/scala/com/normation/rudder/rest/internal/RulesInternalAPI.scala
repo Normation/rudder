@@ -107,6 +107,7 @@ class RulesInternalApi(
       * All passed invalid or non existing rule ids are ignored.
       */
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
       val ruleIdsFilter      = req.params
         .get("rules")
         .map(
@@ -159,7 +160,7 @@ class RuleInternalApiService(
       ruleIdsFilter:        Option[Seq[RuleId]], // optional list of rule ids to filter the tree with
       getMissingCategories: (RuleCategory, List[Rule]) => Set[RuleCategory],
       missingCatId:         RuleCategoryId
-  ): IOResult[JRCategoriesRootEntryInfo] = {
+  )(using qc: QueryContext): IOResult[JRCategoriesRootEntryInfo] = {
     for {
       root              <- readRuleCategory.getRootCategory()
       rules             <- ruleIdsFilter match {

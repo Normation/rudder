@@ -11,6 +11,7 @@ import NaturalOrdering as N
 import Rudder.Filters
 import Rudder.Table
 import String
+import Tenants.SecurityTag exposing (badgeSecurityTags)
 import Ui.Datatable exposing (Category, filterSearch, generateLoadingTable)
 import Utils.TooltipUtils exposing (buildTooltipContent)
 
@@ -66,6 +67,7 @@ view model =
                                        )
                                 )
                             ]
+                        , badgeSecurityTags item.security
                         , badgeDisabled
                         ]
                     ]

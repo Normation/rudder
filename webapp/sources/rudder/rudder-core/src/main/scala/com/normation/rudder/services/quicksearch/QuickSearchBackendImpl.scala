@@ -62,6 +62,7 @@ import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.SecurityTag
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.Filter
 import java.util.regex.Pattern
@@ -206,7 +207,7 @@ object QSDirectiveBackend extends Loggable {
   /**
    * Lookup directives
    */
-  def search(query: Query)(implicit repo: RoDirectiveRepository): IOResult[Seq[QuickSearchResult]] = {
+  def search(query: Query)(using repo: RoDirectiveRepository, qc: QueryContext): IOResult[Seq[QuickSearchResult]] = {
 
     // only search if query is on Directives and attributes contains
     // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion
@@ -415,7 +416,8 @@ object QSLdapBackend {
    */
   def search(query: Query)(implicit
       ldap:      LDAPConnectionProvider[RoLDAPConnection],
-      rudderDit: RudderDit
+      rudderDit: RudderDit,
+      qc:        QueryContext
   ): IOResult[Seq[QuickSearchResult]] = {
     // the filter for attribute and for attributes must be non empty, else return nothing
     val ocFilter           = query.objectClass.map(_.filter).flatten.toSeq
@@ -426,9 +428,12 @@ object QSLdapBackend {
     )
     // the ldap query part. It should be in a box, but the person who implemented ldap backend was
     // not really strict on the semantic
-    // the second group is always needed (displayed name, id+test system)
-    val returnedAttributes =
-      (query.attributes.map(_.ldapName).toSeq ++ Seq(A_OC, A_HOSTNAME, A_NAME, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM)).distinct
+    // the second group is always needed (displayed name, id+test system). `A_SECURITY_TAG` is needed to
+    // enforce the tenant boundary below.
+    val returnedAttributes = {
+      (query.attributes.map(_.ldapName).toSeq
+      ++ Seq(A_OC, A_HOSTNAME, A_NAME, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM, A_SECURITY_TAG)).distinct
+    }
 
     if (ocFilter.isEmpty || attrFilter.isEmpty) { // nothing to search for in that backend
       Seq.empty[QuickSearchResult].succeed
@@ -437,10 +442,13 @@ object QSLdapBackend {
         connection <- ldap
         entries    <- connection.search(rudderDit.BASE_DN, Sub, filter, returnedAttributes*)
       } yield {
-        // transformat LDAPEntries to quicksearch results, keeping only the attribute
-        // that matches the query on the result and no system entries but nodes.
-        // Also, only keep nodes that exists.
-        entries.flatMap(_.toResult(query))
+        // tenant boundary: only keep entries the current security context can see. Rules/groups/parameters
+        // carry a security tag; an entry without one is admin-only (`canSee(None)` is true only for `*`).
+        // Then transform LDAPEntries to quicksearch results, keeping only the attribute that matches the
+        // query, and no system entries but nodes.
+        entries
+          .filter(e => qc.accessGrant.canSee(e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)))
+          .flatMap(_.toResult(query))
       }
     }
   }

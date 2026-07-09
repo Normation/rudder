@@ -75,7 +75,7 @@ class SaveDirectivesOnTechniqueCallback(
   )(implicit cc: ChangeContext): Box[Unit] = {
 
     for {
-      techLib <- roDirectiveRepo.getFullDirectiveLibrary().toBox
+      techLib <- roDirectiveRepo.getFullDirectiveLibrary()(using cc.toQC).toBox
       updated <- bestEffort(techLib.allDirectives.values.toSeq) {
                    case (inActiveTechnique, directive) =>
                      techniqueIds.get(inActiveTechnique.techniqueName) match {
@@ -89,11 +89,11 @@ class SaveDirectivesOnTechniqueCallback(
                            newDirective = directive.copy(parameters = paramEditor.mapValueSeq)
                            saved       <- if (directive.isSystem) {
                                             woDirectiveRepo
-                                              .saveSystemDirective(inActiveTechnique.id, newDirective, cc.modId, cc.actor, cc.message)
+                                              .saveSystemDirective(inActiveTechnique.id, newDirective)
                                               .toBox
                                           } else {
                                             woDirectiveRepo
-                                              .saveDirective(inActiveTechnique.id, newDirective, cc.modId, cc.actor, cc.message)
+                                              .saveDirective(inActiveTechnique.id, newDirective)
                                               .toBox
                                           }
                          } yield {

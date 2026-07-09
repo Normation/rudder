@@ -5,6 +5,7 @@ import GroupCompliance.DataTypes exposing (GroupId)
 import Groups.DataTypes exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
+import Tenants.SecurityTag exposing (decodeSecurityTag)
 import Ui.Datatable exposing (Category, SubCategories(..))
 
 
@@ -65,6 +66,7 @@ decodeGroup =
         |> required "dynamic" bool
         |> required "enabled" bool
         |> required "target" string
+        |> optional "security" (map Just decodeSecurityTag) Nothing
 
 
 decodeTarget : Decoder Group
@@ -77,3 +79,4 @@ decodeTarget =
         |> hardcoded True
         |> required "enabled" bool
         |> required "target" string
+        |> optional "security" (map Just decodeSecurityTag) Nothing

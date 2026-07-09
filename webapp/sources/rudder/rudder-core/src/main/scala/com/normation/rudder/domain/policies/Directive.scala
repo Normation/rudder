@@ -224,6 +224,7 @@ object Directive {
   given HasSecurityTag[Directive] with {
     extension (a: Directive) {
       override def security: Option[SecurityTag] = a.security
+      override def isSystem: Boolean             = a.isSystem
       override def debugId:  String              = a.id.debugString
       override def updateSecurityContext(security: Option[SecurityTag]): Directive = a.copy(security = security)
     }

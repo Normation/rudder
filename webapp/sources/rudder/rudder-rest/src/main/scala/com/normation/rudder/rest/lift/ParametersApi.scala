@@ -56,6 +56,7 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.ChangeContext
+import com.normation.rudder.tenants.QueryContext
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.syntax.*
@@ -80,7 +81,7 @@ class ParameterApi(
   object ListParameters extends LiftApiModule0 {
     val schema:                                                                                                API.ListParameters.type = API.ListParameters
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
-      service.listParameters().toLiftResponseList(params, schema)
+      service.listParameters()(using authzToken.qc).toLiftResponseList(params, schema)
     }
   }
 
@@ -94,7 +95,7 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      service.parameterDetails(id).toLiftResponseOne(params, schema, s => Some(s.id))
+      service.parameterDetails(id)(using authzToken.qc).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
@@ -174,23 +175,21 @@ class ParameterApiService14(
       id       <- workflow.startWorkflow(cr)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRGlobalParameter.fromGlobalParameter(parameter, optCrId)
+      JRGlobalParameter.fromGlobalParameter(parameter, optCrId)(using cc.toQC)
     }
   }
 
-  def listParameters(): IOResult[Seq[JRGlobalParameter]] = {
+  def listParameters()(using qc: QueryContext): IOResult[Seq[JRGlobalParameter]] = {
     readParameter
       .getAllGlobalParameters()
-      .map(_.filter(_.visibility == Visibility.Displayed).sortBy(_.name).map(JRGlobalParameter.fromGlobalParameter(_, None)))
+      .map(_.filter(_.visibility == Visibility.Displayed).sortBy(_.name).map(p => JRGlobalParameter.fromGlobalParameter(p, None)))
   }
 
-  def parameterDetails(id: String): IOResult[JRGlobalParameter] = {
+  def parameterDetails(id: String)(using qc: QueryContext): IOResult[JRGlobalParameter] = {
     readParameter
       .getGlobalParameter(id)
       .notOptional(s"Could not find Parameter ${id}")
-      .map(
-        JRGlobalParameter.fromGlobalParameter(_, None)
-      )
+      .map(p => JRGlobalParameter.fromGlobalParameter(p, None))
   }
 
   def createParameter(restParameter: JQGlobalParameter, params: DefaultParams, actor: EventActor)(implicit
@@ -213,7 +212,7 @@ class ParameterApiService14(
   ): IOResult[JRGlobalParameter] = {
     for {
       id          <- restParameter.id.notOptional("Parameter name is mandatory for update")
-      param       <- readParameter.getGlobalParameter(id).notOptional(s"Could not find Parameter '${id}''")
+      param       <- readParameter.getGlobalParameter(id)(using cc.toQC).notOptional(s"Could not find Parameter '${id}''")
       updatedParam = restParameter.updateParameter(param)
       diff         = ModifyToGlobalParameterDiff(updatedParam)
       change       = GlobalParamChangeRequest(GlobalParamModAction.Update, Some(param))
@@ -226,7 +225,7 @@ class ParameterApiService14(
   def deleteParameter(id: String, params: DefaultParams, actor: EventActor)(implicit
       cc: ChangeContext
   ): IOResult[JRGlobalParameter] = {
-    readParameter.getGlobalParameter(id).flatMap {
+    readParameter.getGlobalParameter(id)(using cc.toQC).flatMap {
       case None            => // already deleted
         JRGlobalParameter.empty(id).succeed
       case Some(parameter) =>
