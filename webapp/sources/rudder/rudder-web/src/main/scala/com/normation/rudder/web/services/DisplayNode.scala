@@ -1200,8 +1200,9 @@ object DisplayNode extends Loggable {
     val machine = sm.machine.transformInto[MachineJson]
 
     val values = Seq[(String, String)](
-      ("localAdministratorAccountName", StringEscapeUtils.escapeHtml4(sm.node.main.rootUser)),
+      ("nodeId", StringEscapeUtils.escapeHtml4(sm.node.main.id.value)),
       ("hostname", StringEscapeUtils.escapeHtml4(sm.node.main.hostname)),
+      ("localAdministratorAccountName", StringEscapeUtils.escapeHtml4(sm.node.main.rootUser)),
       ("policyServerId", StringEscapeUtils.escapeHtml4(sm.node.main.policyServerId.value)),
       ("os", os.toJsonEscaped),
       ("archDescription", StringEscapeUtils.escapeHtml4(sm.node.archDescription.getOrElse("None"))),
