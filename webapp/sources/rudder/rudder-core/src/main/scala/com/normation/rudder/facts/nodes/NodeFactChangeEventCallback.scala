@@ -39,34 +39,19 @@ package com.normation.rudder.facts.nodes
 
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PendingInventory
-import com.normation.inventory.domain.RemovedInventory
-import com.normation.rudder.batch.AsyncDeploymentActor
-import com.normation.rudder.batch.AutomaticStartDeployment
-import com.normation.rudder.batch.UpdateDynamicGroups
-import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
-import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
-import com.normation.rudder.domain.eventlog.InventoryLogDetails
-import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
+import com.normation.inventory.domain.*
+import com.normation.rudder.batch.{AsyncDeploymentActor, AutomaticStartDeployment, UpdateDynamicGroups}
+import com.normation.rudder.domain.eventlog.{AcceptNodeEventLog, DeleteNodeEventLog, InventoryLogDetails, RefuseNodeEventLog}
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
-import com.normation.rudder.repository.CachedRepository
-import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.score.ScoreService
-import com.normation.rudder.score.ScoreServiceManager
-import com.normation.rudder.score.SystemUpdateScoreEvent
-import com.normation.rudder.services.nodes.history.impl.FactLogData
-import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
-import com.normation.rudder.services.reports.CacheComplianceQueueAction
-import com.normation.rudder.services.reports.CacheExpectedReportAction
-import com.normation.rudder.services.reports.InvalidateCache
-import com.normation.utils.DateFormaterService
-import com.normation.utils.StringUuidGenerator
-import java.time.Instant
+import com.normation.rudder.repository.{CachedRepository, EventLogRepository}
+import com.normation.rudder.score.{ScoreService, ScoreServiceManager, SystemUpdateScoreEvent}
+import com.normation.rudder.services.nodes.history.impl.{FactLogData, InventoryHistoryJdbcRepository}
+import com.normation.rudder.services.reports.{CacheComplianceQueueAction, CacheExpectedReportAction, InvalidateCache}
+import com.normation.utils.{DateFormaterService, StringUuidGenerator}
 import zio.*
+
+import java.time.Instant
 
 /*
  * This file store callbacks for node events.
@@ -264,7 +249,7 @@ class EventLogsNodeFactChangeEventCallback(
         next: MinimalNodeFactInterface
     ): IOResult[Unit] = {
       val diff = ModifyNodeDiff.fromFacts(old, next)
-      eventLogRepository.saveModifyNode(cc.modId, cc.actor, diff, cc.message, cc.eventDate).unit
+      eventLogRepository.saveModifyNode(cc.modId, next.fqdn, cc.actor, diff, cc.message, cc.eventDate).unit
     }
 
     change.event match {
@@ -319,11 +304,11 @@ class EventLogsNodeFactChangeEventCallback(
           principal = change.cc.actor,
           creationDate = change.cc.eventDate,
           inventoryDetails = InventoryLogDetails(
-            node.id,
-            node.lastInventoryDate.getOrElse(node.factProcessedDate),
-            node.fqdn,
-            node.os.fullName,
-            change.cc.actorIp.getOrElse("actor ip unknown")
+            nodeId = node.id,
+            inventoryVersion = node.lastInventoryDate.getOrElse(node.factProcessedDate),
+            hostname = node.fqdn,
+            fullOsName = node.os.fullName,
+            actorIp = change.cc.actorIp.getOrElse("actor ip unknown")
           )
         )
         eventLogRepository

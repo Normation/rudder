@@ -282,6 +282,7 @@ trait EventLogFactory {
   ): ModifyGlobalProperty
 
   def getModifyNodeFromDiff(
+      hostname:String,
       id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
@@ -1093,7 +1094,8 @@ class EventLogFactoryImpl(
   }
 
   def getModifyNodeFromDiff(
-      id:             Option[Int] = None,
+                             hostname: String,
+                             id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyNodeDiff,
@@ -1104,6 +1106,7 @@ class EventLogFactoryImpl(
     val details = EventLog.withContent {
       scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{modifyDiff.id.value}</id>
+        <hostname>{hostname}</hostname>
         {
         modifyDiff.modProperties match {
           case None    => NodeSeq.Empty
