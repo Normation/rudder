@@ -7,10 +7,9 @@ pub(crate) mod sequoia;
 
 use anyhow::{Result, bail};
 use digest_io::IoWrapper;
-use regex::Regex;
+use regex::regex;
 use sha2::{Digest, Sha512};
 use std::path::PathBuf;
-use std::sync::LazyLock;
 use std::{fs::File, io, os::unix::ffi::OsStrExt, path::Path, str};
 
 pub fn verifier(keyring_path: PathBuf) -> Result<Box<dyn SignatureVerifier>> {
@@ -81,11 +80,9 @@ fn file_sha512(path: &Path) -> Result<String> {
 }
 
 fn lookup_hashes(name: &str, hash_list: &str) -> Vec<String> {
-    static RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"(?<h>[0-9a-f]{128}) +(?<f>[0-9a-zA-Z~.\-_]+)").unwrap());
     let mut res = vec![];
     for line in hash_list.lines() {
-        if let Some(caps) = RE.captures(line) {
+        if let Some(caps) = regex!(r"(?<h>[0-9a-f]{128}) +(?<f>[0-9a-zA-Z~.\-_]+)").captures(line) {
             let hash = caps.name("h").unwrap().as_str();
             let hash_file_name = caps.name("f").unwrap().as_str();
             if name == hash_file_name {

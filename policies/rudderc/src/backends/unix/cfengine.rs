@@ -32,22 +32,16 @@ pub(crate) mod bundle;
 pub(crate) mod promise;
 
 use anyhow::{Context, Result, bail};
-use regex::Regex;
+use regex::regex;
 use rudder_commons::report::{Report, RunLog};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::LazyLock;
 use std::{fs, path::Path, process::Command};
 use tempfile::tempdir;
 use tracing::debug;
 
 pub const MIN_INT: i64 = -99_999_999_999;
 pub const MAX_INT: i64 = 99_999_999_999;
-
-static ONE_VARIABLE_REF_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\$\{[^\}]*}$").unwrap());
-static VARIABLE_REF_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(\$\{[^\}]*})").unwrap());
 
 // FIXME only quote when necessary + only concat when necessary
 // no need to call explicitly
@@ -138,13 +132,13 @@ pub fn cfengine_canonify_condition(c: &str) -> String {
     // not a big deal if as specific as possible
     if !c.contains("${") {
         format!("\"{c}\"")
-    } else if ONE_VARIABLE_REF_REGEX.is_match(c) {
+    } else if regex!(r"^\$\{[^\}]*}$").is_match(c) {
         format!("canonify(\"{c}\")")
     } else {
         // TODO: does not handle nested vars, we need a parser for this.
         format!(
             "concat(\"{}\")",
-            VARIABLE_REF_REGEX.replace_all(c, r#"",canonify("$1"),""#)
+            regex!(r"(\$\{[^\}]*})").replace_all(c, r#"",canonify("$1"),""#)
         )
     }
 }

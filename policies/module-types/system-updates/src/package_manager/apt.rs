@@ -20,11 +20,10 @@ use anyhow::{Context, Result, anyhow, bail};
 use gag::Gag;
 use log::debug;
 use memfile::MemFile;
-use regex::Regex;
+use regex::regex;
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;
 use rudder_module_type::os_release::OsRelease;
-use std::sync::LazyLock;
 
 #[cfg(feature = "apt-compat")]
 use rust_apt_compat as rust_apt;
@@ -113,14 +112,11 @@ impl AptPackageManager {
     ///
     /// <https://github.com/liske/needrestart/blob/master/README.batch.md>
     pub fn parse_services_to_restart(output: &[String]) -> Result<Vec<String>> {
-        static SVC_RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"NEEDRESTART-SVC:\s*(\S+)\s*").unwrap());
-
         Ok(output
             .iter()
             .flat_map(|s| s.lines())
             .flat_map(|line| {
-                let service_name = SVC_RE
+                let service_name = regex!(r"NEEDRESTART-SVC:\s*(\S+)\s*")
                     .captures(line)
                     .map(|cap| cap.get(1).map_or("", |m| m.as_str()).to_string());
                 service_name
@@ -129,11 +125,8 @@ impl AptPackageManager {
     }
 
     pub fn parse_reboot_required(output: &[String]) -> Result<bool> {
-        static KERNEL_REBOOT_RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"NEEDRESTART-KSTA:\s*(\d+)").unwrap());
-
         let status = output.iter().find_map(|line| {
-            KERNEL_REBOOT_RE
+            regex!(r"NEEDRESTART-KSTA:\s*(\d+)")
                 .captures(line)
                 .and_then(|cap| cap.get(1))
                 .and_then(|m| m.as_str().parse::<i32>().ok())
