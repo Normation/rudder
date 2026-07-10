@@ -1,13 +1,22 @@
 use crate::secedit::Secedit;
 use crate::secedit::{SeceditOutcome, SeceditParameters};
 use anyhow::{Context, Result, bail};
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use rudder_module_type::PolicyMode;
 use std::{fs::read_to_string, path::PathBuf, process};
 use tempfile::tempdir_in;
 
+#[derive(Debug, Clone, ValueEnum)]
+#[value(rename_all = "lowercase")]
+enum Format {
+    Json,
+    Human,
+}
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None,
+after_help = "NOTE: Regardless of the selected --format, any runtime or execution errors \
+                  will always be printed in plain text (human-readable) to stderr."
+)]
 pub struct Cli {
     /// JSON data file
     #[arg(short, long, value_name = "JSON data file")]
@@ -18,9 +27,9 @@ pub struct Cli {
     /// Path for temporary files
     #[arg(short, long, value_name = "Temp work dir path")]
     tmp: PathBuf,
-    /// Output in JSON format
-    #[arg(short, long)]
-    json: bool,
+    /// Output format, ignored in case of error
+    #[arg(short, long, value_enum, default_value_t = Format::Json)]
+    format: Format,
 }
 
 impl Cli {
@@ -45,10 +54,13 @@ impl Cli {
             SeceditOutcome::Success | SeceditOutcome::Repaired => 0,
             _ => 1,
         };
-        if cli.json {
-            println!("{}", serde_json::to_string_pretty(&report)?);
-        } else {
-            println!("{}", report);
+        match cli.format {
+            Format::Json => {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            }
+            Format::Human => {
+                println!("{}", report);
+            }
         }
         process::exit(exit_code);
     }
