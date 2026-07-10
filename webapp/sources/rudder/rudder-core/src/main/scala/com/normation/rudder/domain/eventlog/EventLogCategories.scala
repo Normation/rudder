@@ -242,7 +242,7 @@ case object ExportFullArchiveEventType      extends NoRollbackEventLogType {
 case object ImportFullArchiveEventType      extends RollbackEventLogType   {
   def serialize = "ImportFullArchive"
 }
-case object RollbackEventType               extends RollbackEventLogType   {
+case object RollbackEventType               extends NoRollbackEventLogType {
   def serialize = "Rollback"
 }
 case object WorkflowStepChangedEventType    extends NoRollbackEventLogType {
