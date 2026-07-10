@@ -121,14 +121,8 @@ fn parse_config(path: &Path) -> Result<Ini> {
         enabled_quote: false,
         ..Default::default()
     };
-    let mut template = Ini::load_from_str_opt(&data, opt)
+    let template = Ini::load_from_str_opt(&data, opt)
         .with_context(|| format!("Failed to read template file '{}'", path.display()))?;
-
-    template
-        .with_section(Some("Privilege Rights"))
-        .set("SeTrustedCredManAccessPrivilege", "")
-        .set("SeRelabelPrivilege", "")
-        .set("SeUnsolicitedInputPrivilege", "");
 
     Ok(template)
 }
