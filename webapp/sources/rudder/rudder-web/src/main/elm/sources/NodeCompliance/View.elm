@@ -1,6 +1,7 @@
 module NodeCompliance.View exposing (..)
 
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
+import Date
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -10,8 +11,10 @@ import List
 import List.Extra
 import NodeCompliance.DataTypes exposing (..)
 import NodeCompliance.ViewUtils exposing (..)
+import Task
 import Tuple3
 import Ui.Datatable exposing (SortOrder(..), filterSearch, generateLoadingTable)
+import Utils.CsvExportUtils exposing (exportToCsvButton)
 
 
 view : Model -> Html Msg
@@ -105,8 +108,12 @@ view model =
                                     ]
                                     []
                                 ]
-                            , button [ class "btn btn-default btn-sm btn-refresh", onClick Refresh ]
-                                [ i [ class "fa fa-refresh" ] [] ]
+                            , div
+                                [ class "ms-auto my-auto" ]
+                                [ exportToCsvButton (ExportCsv (Task.perform (ExportNodeCompliance model.nodeId) Date.today))
+                                , button [ class "btn btn-default btn-sm btn-refresh", onClick Refresh ]
+                                    [ i [ class "fa fa-refresh" ] [] ]
+                                ]
                             ]
                         , displayComplianceFilters complianceFilters UpdateComplianceFilters
                         ]

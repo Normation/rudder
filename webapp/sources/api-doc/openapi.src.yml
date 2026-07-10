@@ -271,6 +271,12 @@ paths:
     $ref: paths/nodes/inherited-properties.yml
   "/nodes/{nodeId}/applyPolicy":
     $ref: paths/nodes/apply-policy-id.yml
+  "/nodes/compliance":
+    $ref: paths/nodes/compliance.yml
+  "/nodes/{nodeId}/compliance":
+    $ref: paths/nodes/compliance-id.yml
+  "/nodes/{nodeId}/compliance/system":
+    $ref: paths/nodes/compliance-id-system.yml
   "/techniques":
     $ref: paths/techniques/all.yml
   "/techniques/{techniqueId}/directives":

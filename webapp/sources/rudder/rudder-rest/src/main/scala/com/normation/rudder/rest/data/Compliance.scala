@@ -531,6 +531,7 @@ object CsvCompliance {
     object ComponentField extends CsvField[ComponentField] {
       def apply(value: ByRuleValueCompliance): ComponentField = value.name
       def apply(block: ByRuleBlockCompliance): ComponentField = block.name
+      def apply(name:  String):                ComponentField = name
     }
 
     opaque type NodeField = String
@@ -669,6 +670,56 @@ object CsvCompliance {
             })
           })
         })
+    }
+  }
+
+  case class NodeComplianceByRuleCsv(
+      rule:      RuleField,
+      directive: DirectiveField,
+      block:     BlockField,
+      component: ComponentField,
+      value:     ValueField,
+      status:    StatusField,
+      message:   MessageField
+  ) derives Csv
+  object NodeComplianceByRuleCsv {
+
+    private def recurseComponent(
+        component: ComponentStatusReport,
+        block:     List[ComponentField]
+    )(using ruleField: RuleField, directiveField: DirectiveField): Seq[NodeComplianceByRuleCsv] = {
+
+      component match {
+        case component: ValueStatusReport =>
+          component.componentValues.flatMap(value => {
+            value.messages.map { report =>
+              NodeComplianceByRuleCsv(
+                ruleField,
+                directiveField,
+                BlockField(block),
+                ComponentField(component.componentName),
+                ValueField(value),
+                StatusField(report),
+                MessageField(report)
+              )
+            }
+          })
+        case component: BlockStatusReport =>
+          component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component.componentName) :: Nil)))
+      }
+    }
+
+    given Transformer[Seq[ByNodeRuleCompliance], Seq[NodeComplianceByRuleCsv]] = { (rules: Seq[ByNodeRuleCompliance]) =>
+      rules.flatMap(rule => {
+        rule.directives.flatMap(directive => {
+          directive.components.flatMap(component => {
+            given RuleField      = RuleField(rule.name)
+            given DirectiveField = DirectiveField(directive.name)
+
+            recurseComponent(component, Nil)
+          })
+        })
+      })
     }
   }
 }

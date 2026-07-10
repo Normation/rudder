@@ -56,6 +56,7 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodeProperty
@@ -67,6 +68,7 @@ import com.normation.rudder.domain.properties.PropertyHierarchySpecificError
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
@@ -85,6 +87,7 @@ import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
+import com.normation.rudder.rest.data.CsvCompliance.NodeComplianceByRuleCsv
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
 import com.normation.rudder.rest.data.Rest.NodeDetails
@@ -105,6 +108,7 @@ import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.utils.Csv.toCsv
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -121,6 +125,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
+import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import scala.collection.MapView
 import scalaj.http.Http
@@ -144,7 +149,8 @@ class NodeApi(
     userPropertyService:   UserPropertyService,
     inheritedProperties:   NodeApiInheritedProperties,
     uuidGen:               StringUuidGenerator,
-    deleteDefaultMode:     DeleteMode
+    deleteDefaultMode:     DeleteMode,
+    complianceService:     ComplianceAPIService
 ) extends LiftApiModuleProvider[API] {
 
   implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
@@ -173,6 +179,9 @@ class NodeApi(
       case API.NodeGlobalScore                => GetNodeGlobalScore
       case API.NodeScoreDetails               => GetNodeScoreDetails
       case API.NodeScoreDetail                => GetNodeScoreDetail
+      case API.GetNodeComplianceId            => GetNodeComplianceId
+      case API.GetNodesCompliance             => GetNodesCompliance
+      case API.GetNodeSystemCompliance        => GetNodeSystemCompliance
     }
   }
 
@@ -663,6 +672,94 @@ class NodeApi(
         err => RudderJsonResponse.internalError(None, RudderJsonResponse.ResponseSchema.fromSchema(schema), err.fullMsg),
         RudderJsonResponse.LiftJsonResponse(_, params.prettify, 200)
       )
+    }
+  }
+
+  object GetNodesCompliance extends LiftApiModule0 {
+    override val schema: API.GetNodesCompliance.type = API.GetNodesCompliance
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase)
+      } yield {
+        given l: Int = level.getOrElse(10)
+
+        given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+        nodes.map(_.transformInto[ComplianceApiData.JsonByNodeCompliance.ByNodeNodeComplianceApi])
+      }).chainError("Could not get compliances for nodes").toLiftResponseList(params, schema)
+    }
+  }
+
+  private def getNodeComplianceId(req: Req, nodeId: String, policyTypeName: PolicyTypeName)(using
+      qc:     QueryContext,
+      schema: OneParam,
+      params: DefaultParams
+  ): LiftResponse = {
+    (for {
+      level     <- ComplianceUtils.extractComplianceLevel(req.params)
+      precision <- ComplianceUtils.extractPercentPrecision(req.params)
+      format    <- ComplianceUtils.extractComplianceFormat(req.params)
+      node      <- complianceService
+                     .getNodeCompliance(NodeId(nodeId), policyTypeName)
+                     .chainError(s"Could not get compliance for node '${nodeId}'")
+    } yield (level, precision, format, node))
+      .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, format, node) =>
+        format match {
+          case ComplianceFormat.CSV  =>
+            PlainTextResponse(node.nodeCompliances.transformInto[Seq[NodeComplianceByRuleCsv]].toCsv)
+          case ComplianceFormat.JSON =>
+            given l:        Int                 = level.getOrElse(10)
+            given p:        CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+            given prettify: Boolean             = params.prettify
+
+            val compliance = node.transformInto[ComplianceApiData.JsonByNodeCompliance.ByNodeNodeComplianceApi]
+            RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema), compliance, None)
+        }
+      }
+  }
+
+  object GetNodeComplianceId extends LiftApiModule {
+    override val schema: OneParam = API.GetNodeComplianceId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        nodeId:     String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getNodeComplianceId(req, nodeId, PolicyTypeName.rudderBase)(using qc, schema, params)
+    }
+  }
+
+  object GetNodeSystemCompliance extends LiftApiModule {
+    override val schema: OneParam = API.GetNodeSystemCompliance
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        nodeId:     String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      getNodeComplianceId(req, nodeId, PolicyTypeName.rudderSystem)(using qc, schema, params)
     }
   }
 }

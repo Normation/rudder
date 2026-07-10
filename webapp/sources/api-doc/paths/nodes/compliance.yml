@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
-  summary: Compliance details by node
-  description: Get current compliance of a node of a Rudder server
-  operationId: getNodeComplianceOld
+  summary: Compliance details for all nodes
+  description: Get current compliance of all managed nodes
+  operationId: getNodesCompliance
   parameters:
     - $ref: ../../components/parameters/compliance-level.yml
     - $ref: ../../components/parameters/compliance-percent-precision.yml
-    - $ref: ../../components/parameters/node-id.yml
   responses:
     "200":
       description: Success
@@ -31,7 +30,7 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getNodeCompliance
+                  - getNodesCompliance
               data:
                 type: object
                 required:
@@ -64,39 +63,10 @@ get:
                           description: Rule compliance level
                           example: 57.43
                         complianceDetails:
-                          type: object
-                          properties:
-                            successAlreadyOK:
-                              type: number
-                              format: float
-                              example: 48.68
-                            noReport:
-                              type: number
-                              format: float
-                              example: 36.18
-                            successNotApplicable:
-                              type: number
-                              format: float
-                              example: 5.92
-                            unexpectedMissingComponent:
-                              type: number
-                              format: float
-                              example: 2.63
-                            error:
-                              type: number
-                              format: float
-                              example: 1.32
-                            unexpectedUnknownComponent:
-                              type: number
-                              format: float
-                              example: 2.63
-                            successRepaired:
-                              type: number
-                              format: float
-                              example: 2.63
+                          $ref: ../../components/schemas/compliance-details.yml
   tags:
-    - Compliance
+    - Nodes
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/compliance/node.sh
+        $ref: ../../code_samples/curl/nodes/compliance.sh

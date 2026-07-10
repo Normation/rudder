@@ -2,9 +2,20 @@
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
 get:
   summary: Compliance details by node
-  description: Get current compliance of a node of a Rudder server
-  operationId: getNodeComplianceOld
+  description: Get the compliance of all rules that are applied to a given node
+  operationId: getNodeComplianceId
   parameters:
+    - in: query
+      name: format
+      schema:
+        type: string
+        enum:
+          - csv
+          - json
+        default: json
+      description: format of export
+      style: form
+      explode: false
     - $ref: ../../components/parameters/compliance-level.yml
     - $ref: ../../components/parameters/compliance-percent-precision.yml
     - $ref: ../../components/parameters/node-id.yml
@@ -31,7 +42,7 @@ get:
                 type: string
                 description: The id of the action
                 enum:
-                  - getNodeCompliance
+                  - getNodeComplianceId
               data:
                 type: object
                 required:
@@ -64,39 +75,19 @@ get:
                           description: Rule compliance level
                           example: 57.43
                         complianceDetails:
-                          type: object
-                          properties:
-                            successAlreadyOK:
-                              type: number
-                              format: float
-                              example: 48.68
-                            noReport:
-                              type: number
-                              format: float
-                              example: 36.18
-                            successNotApplicable:
-                              type: number
-                              format: float
-                              example: 5.92
-                            unexpectedMissingComponent:
-                              type: number
-                              format: float
-                              example: 2.63
-                            error:
-                              type: number
-                              format: float
-                              example: 1.32
-                            unexpectedUnknownComponent:
-                              type: number
-                              format: float
-                              example: 2.63
-                            successRepaired:
-                              type: number
-                              format: float
-                              example: 2.63
+                          $ref: ../../components/schemas/compliance-details.yml
+        text/plain:
+          schema:
+            type: string
+          example: |
+            "Rule","Directive","Block","Component","Value","Status","Message"
+            "R1","directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9","","e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1","e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1","successAlreadyOK",""
+            "R3","directive2","","directive2-component-br3-bn1","directive2-component-value-br3-bn1","error",""
+            "R2","directive 99f4ef91-537b-4e03-97bc-e65b447514cc","","99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1","99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1","successRepaired",""
+
   tags:
-    - Compliance
+    - Nodes
   x-codeSamples:
     - lang: curl
       source:
-        $ref: ../../code_samples/curl/compliance/node.sh
+        $ref: ../../code_samples/curl/nodes/compliance-id.sh
