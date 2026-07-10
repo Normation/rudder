@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
+use crate::engine::Mode;
 use crate::{Engine, compute_diff_or_warning};
 
 use anyhow::{Context, Result, bail};
@@ -36,6 +37,10 @@ pub struct Cli {
     /// Controls output of diffs
     #[arg(short, long)]
     show_content: bool,
+
+    /// Trust level for the template content
+    #[arg(long, default_value_t = Mode::Sandboxed)]
+    mode: Mode,
 }
 
 impl Cli {
@@ -49,7 +54,7 @@ impl Cli {
 
         let value: Value = serde_json::from_str(&data)?;
         let renderer = cli.engine.renderer(None)?;
-        let output = renderer.render(Some(cli.template.as_path()), None, &value)?;
+        let output = renderer.render(Some(cli.template.as_path()), None, &value, cli.mode)?;
 
         let already_present = cli.out.exists();
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021-2025 Normation SAS
 
-use crate::engine::TemplateEngine;
+use crate::engine::{Mode, TemplateEngine};
 use anyhow::{Context, Result};
 use serde_json::Value;
 use std::fs;
@@ -15,6 +15,11 @@ impl TemplateEngine for MustacheEngine {
         template_path: Option<&Path>,
         template_string: Option<&str>,
         data: &Value,
+        // FIXME: mode is not enforced. Mustache is logic-less, but `{{> name}}`
+        // partials read `<name>.mustache` from disk (relative to the cwd here,
+        // since we use `compile_str`), violating the sandboxed contract.
+        // Sandboxed mode should reject templates containing partials.
+        _mode: Mode,
     ) -> Result<String> {
         let template = match (template_path, template_string) {
             // The lib has a `compile_path` method, but it requires a mustache file extension.
@@ -46,7 +51,7 @@ mod tests {
         let data = json!({ "name": "World" });
 
         let result = engine
-            .render(None, Some(template), &data)
+            .render(None, Some(template), &data, Mode::Sandboxed)
             .expect("Rendering failed");
 
         assert_eq!(result, r#"Hello, World!"#);
@@ -65,7 +70,7 @@ mod tests {
         let data = json!({ "name": "World" });
 
         let result = engine
-            .render(Some(tmp_file.as_path()), None, &data)
+            .render(Some(tmp_file.as_path()), None, &data, Mode::Sandboxed)
             .expect("Rendering failed");
 
         assert_eq!(result, r#"Hello, World!"#);
@@ -78,7 +83,7 @@ mod tests {
         let template = "{{%-top-}}";
         let data = json!({ "items": ["A", "B", "C"] });
         let result = engine
-            .render(None, Some(template), &data)
+            .render(None, Some(template), &data, Mode::Sandboxed)
             .expect("Rendering failed");
         assert_eq!(
             result,
@@ -93,7 +98,7 @@ mod tests {
         let template = "test\n";
         let data = json!({ "items": ["A", "B", "C"] });
         let result = engine
-            .render(None, Some(template), &data)
+            .render(None, Some(template), &data, Mode::Sandboxed)
             .expect("Rendering failed");
         assert_eq!(result, "test\n");
     }

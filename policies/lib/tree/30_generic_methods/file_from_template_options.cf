@@ -29,6 +29,11 @@
 #   - If `data` is provided, the template will only use those data to render the template. The agent datastate will not be passed to the templating engine.
 #   - If `data` is not provided, the **agent datastate** is used instead (containing the existing variables and classes of the current agent run).
 #
+# ### Security: template data exposure
+#   - `mode: sandboxed` limits what a template can *do* (no filesystem access, bounded compute) but not what it can *see*.
+#   - When `data` is empty, the **entire agent datastate** — every variable and class of the run, across all directives, including any secrets stored in variables and node properties — is passed to the template. A sandboxed template can still read all of it and write it into the destination file (and, with `show_content: true`, into the report).
+#   - To render an untrusted template safely, always pass an explicit, minimal `data` object instead of relying on the implicit datastate.
+#
 # ### Template Source:
 #   - `template_string`: Inline template string.
 #   - `template_path`: Path to an external template file.
@@ -112,6 +117,9 @@
 # @parameter            show_content Show the file content in the report, "true" or "false" (defaults to "true")
 # @parameter_constraint show_content "allow_empty_string" : true
 # @parameter_constraint show_content "select" : [ "", "true", "false" ]
+# @parameter            mode Trust level for the template content: "sandboxed" limits the risk from untrusted content (including filesystem access), "unrestricted" removes those limits (defaults to "sandboxed")
+# @parameter_constraint mode "allow_empty_string" : true
+# @parameter_constraint mode "select" : [ "", "sandboxed", "unrestricted" ]
 #
 # @class_prefix file_from_template_options
 # @class_parameter destination
@@ -121,7 +129,7 @@ promise agent template {
   path => "/opt/rudder/bin/rudder-module-template";
 }
 
-bundle agent file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
+bundle agent file_from_template_options(destination, engine, data, template_string, template_path, show_content, mode) {
   vars:
       "module_file"  string => "/opt/rudder/bin/rudder-module-template";
       "class_prefix" string => canonify("file_from_template_options_${destination}");
@@ -129,6 +137,7 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
   defaults:
       "engine"       string => "minijinja", if_match_regex => "";
       "show_content" string => "true", if_match_regex => "";
+      "mode"         string => "sandboxed", if_match_regex => "";
 
   classes:
       "has_module"   expression => fileexists("${module_file}");
@@ -139,7 +148,7 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
   methods:
     pass3.has_module::
       "${report_data.method_id}" usebundle => call_method("rudder_actual_file_from_template_options");
-      "${report_data.method_id}" usebundle => rudder_actual_file_from_template_options("${destination}", "${engine}", "${data}", "${template_string}", "${template_path}", "${show_content}");
+      "${report_data.method_id}" usebundle => rudder_actual_file_from_template_options("${destination}", "${engine}", "${data}", "${template_string}", "${template_path}", "${show_content}", "${mode}");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("rudder_actual_file_from_template_options");
@@ -151,7 +160,7 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
       "${report_data.method_id}" usebundle => log_rudder_v4_2("${destination}", "Template module is not supported on this agent");
 }
 
-bundle agent template_module_serializer(r_destination, r_engine, r_data, r_template_string, r_template_path, r_datastate_path, r_report_file) {
+bundle agent template_module_serializer(r_destination, r_engine, r_data, r_template_string, r_template_path, r_datastate_path, r_report_file, r_mode) {
   vars:
     "path"            string => "${r_destination}";
     "engine"          string => "${r_engine}";
@@ -160,9 +169,10 @@ bundle agent template_module_serializer(r_destination, r_engine, r_data, r_templ
     "template_path"   string => "${r_template_path}";
     "datastate_path"  string => "${r_datastate_path}";
     "report_file"     string => "${r_report_file}";
+    "mode"            string => "${r_mode}";
 }
 
-bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
+bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content, mode) {
   vars:
      "destination_c"   string => canonify("${destination}");
      "report_file"     string => "/var/rudder/tmp/rudder-module-template${destination_c}.log";
@@ -221,7 +231,8 @@ show_content: ${show_content}
                                                                          "${template_string}",
                                                                          "${template_path}",
                                                                          "${datastate_path}",
-                                                                         "${report_file}");
+                                                                         "${report_file}",
+                                                                         "${mode}");
 
     pass3.!has_report::
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");

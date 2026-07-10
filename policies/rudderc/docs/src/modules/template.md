@@ -2,7 +2,7 @@
 
 The module supports the following template engines:
 
-* MiniJinja (which is a subset of Jinja2)
+* MiniJinja (which is based on Jinja2)
 * Mustache
 * Jinja2 (available only on Linux)
 
@@ -19,6 +19,56 @@ The module takes the following arguments:
 | `engine` | Template engine | `mustache`, `minijinja`, `jinja2` (default: `minijinja`) |
 | `data` | JSON data used for templating | A valid JSON |
 | `show_content` | Controls output of diffs in the report | `true`/`false` (default: `true`) |
+| `mode` | Trust level for the template content | `sandboxed`, `unrestricted` (default: `sandboxed`) |
+
+## Security
+
+### Engine sandboxing
+
+The `mode` argument sets the trust level for the template content:
+
+* `sandboxed` (the default) restricts what a template can do — no reading of
+  arbitrary files, no cross-file includes, and bounded compute — to limit the
+  impact of rendering untrusted content.
+* `unrestricted` lifts those restrictions for **trusted** templates that need
+  them (reading files, cross-file includes, or Jinja2 dynamic features).
+
+Set `mode: unrestricted` only for templates you trust. Note that sandboxing
+limits what a template can *do*, not what it can *see*.
+
+### Template data and the agent state
+
+<div class="warning">
+<b>⚠️ When `data` is empty, the `file_from_template_*` methods pass the **entire
+agent datastate** to the template.</b>
+</div>
+
+By default these methods render with no explicit `data`, in which case the whole
+agent internal state — every variable and class of the current run, across **all**
+directives, including secrets stored in variables and node properties — is handed
+to the template as `data`. A `sandboxed` template cannot touch the filesystem, but
+it can still read that entire state and write it out.
+
+So `mode: sandboxed` alone does **not** make it safe to render a fully untrusted
+template. To render untrusted content safely, also pass an explicit, minimal
+`data` object so the template only ever sees what you intend — never the implicit
+datastate.
+
+### Reporting and sensitive content
+
+<div class="warning">
+
+<b>⚠️ With `show_content: true` (the default), the rendered file
+content is included in the agent report.</b>
+</div>
+
+The diff (and, for a new file, the full content) is sent to the server and stored
+as compliance data. If the template renders secrets — values from
+`data`, or a file read with `lookup('file', …)` in
+`unrestricted` mode — those secrets end up in the reports.
+
+Set `show_content: false` when rendering files that contain sensitive
+data (passwords, private keys, tokens, …).
 
 ## CLI
 
@@ -34,13 +84,14 @@ Options:
   -d, --data <DATA>          JSON data file
   -o, --out <OUT>            Output file
   -a, --audit                Audit mode
+      --mode <MODE>          Trust level for the template content [default: sandboxed] [possible values: sandboxed, unrestricted]
   -h, --help                 Print help
   -V, --version              Print version
 ```
 
 ## Minijinja 
 
-MiniJinja is a subset of the Jinja2 templating language, implemented in pure Rust.
+MiniJinja is based on the Jinja2 templating language.
 For a complete reference on MiniJinja syntax, see the [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/)
 and the [MiniJinja compatibility](https://github.com/mitsuhiko/minijinja/blob/main/COMPATIBILITY.md).
 
@@ -94,6 +145,8 @@ You can also modify what is displayed by using filters.
 Will display the variable in uppercase.
 
 #### Iteration
+
+Loops support `{% break %}` and `{% continue %}` to exit early or skip an item.
 
 To iterate over a list, for example defined with:
 
@@ -179,6 +232,13 @@ prop1 -> value1
 prop2 -> value2
 ```
 
+##### Key order
+
+When iterating a dict (`.items()`, `.keys()`, `.values()`) or serializing it
+(`tojson`, `{{%-top-}}`), keys keep the order they have in the input data — they
+are **not** sorted alphabetically. As a result, changing the order of keys in the
+source data changes the rendered output (and so triggers a file update).
+
 #### Filters
 
 | Name | Description | Required Args | Optional Args | Example |
@@ -245,6 +305,41 @@ prop2 -> value2
 | `regex_escape` | Escape regex chars. | None | None | `{{ re\|regex_escape }}` |
 | `regex_replace` | Replace a string via regex. | None | `count` | `{{ re\|regex_replace }}` |
 
+#### Reading files
+
+**Reading files is only available with `mode: unrestricted`.**
+
+The `lookup('file', path)` function reads a file's raw UTF-8
+content **at render time, on the node**:
+
+```
+{{ lookup('file', "/etc/issue") }}
+```
+
+A missing file, or one that is not valid UTF-8, makes the rendering fail.
+`lookup` currently only supports the `file` kind.
+
+Use absolute paths, and only use trusted template contents.
+
+#### Including other template files
+
+**Including files is only available with `mode: unrestricted`.**
+
+`{% include %}`, `{% import %}` and `{% extends %}`
+load other templates relative to the rendered template file's directory.
+
+```
+{% include "header.j2" %}
+{% import "macros.j2" as macros %}
+```
+
+Paths are resolved relative to the rendered template, so a `header.j2` sitting
+next to your `template_path` is included as `"header.j2"`.
+
+This requires `template_path` (inline templates have no base directory).
+
+#### Additional methods for Python compatibility
+
 The following methods on basic types are provided:
 
 - dict.get
@@ -275,20 +370,20 @@ The following methods on basic types are provided:
 - str.strip
 - str.title
 
+### Sandboxing
+
+With `mode: sandboxed` (the default):
+
+* the `lookup('file', …)` function (which reads arbitrary files) is not
+  registered, and
+* no template loader is configured, so `include`/`import`/`extends` cannot read
+  files.
+
+A fuel limit caps the total number of operations a render may perform in **both**
+modes (higher when `unrestricted`), so a runaway template — even an
+accidental infinite loop in a trusted one — fails instead of hanging.
+
 ## Jinja2 
-
-<div class="warning">
-<b>⚠️ Important: The Jinja2 engine is not sandboxed in this module.</b>
-
-It executes within the full Python runtime context of the process, without
-Jinja2’s sandboxed environment enabled. This means templates are not restricted
-from accessing Python objects exposed to the rendering context and may,
-depending on the environment, interact with underlying Python internals or
-imported modules.
-
-Jinja2 is provided on Linux systems, strictly for backward compatibility and
-<b>trusted-template use cases only</b>.
-</div>
 
 Jinja2 behaves for the most part the same way as MiniJinja. For a complete
 reference of features, see the official [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/).
@@ -311,6 +406,24 @@ TESTS = {'odd': odd}
 ```
 
 These filters and tests will be usable in your jinja2 templates automatically.
+
+### Sandboxing
+
+<div class="warning">
+<b>⚠️ Important: `mode: unrestricted` disables all protections on the Jinja2 engine.</b>
+</div>
+
+With `mode: unrestricted`, Jinja2 executes within the full Python runtime
+context of the process, without Jinja2’s sandboxed environment enabled.
+
+Only set `mode: unrestricted` for <b>trusted templates</b>. With the
+default `mode: sandboxed`, Jinja2 uses its `SandboxedEnvironment`
+(which restricts access to Python internals), has no filesystem loader (so
+`include`/`import`/`extends` cannot read files),
+and each render is bounded by a timeout (3s sandboxed, longer when unrestricted).
+
+<b>The Jinja2 sandbox is best-effort, not a hard security boundary.</b>
+For untrusted templates, prefer the <b>MiniJinja</b> engine.
 
 ## Mustache
 
@@ -487,3 +600,9 @@ Or rendered as a multi-line JSON representation
 ```
 {{%-top-}}
 ```
+
+### Sandboxing
+
+Mustache does not currently enforce `mode`. It is logic-less, but `{{> partial}}`
+partials are always evaluated and read files from disk, so **do not** rely on
+sandboxing for untrusted Mustache templates — use MiniJinja instead.
