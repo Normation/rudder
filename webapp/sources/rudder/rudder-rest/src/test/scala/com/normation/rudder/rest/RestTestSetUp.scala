@@ -700,7 +700,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       asyncDeploymentAgent,
       workflowLevelService,
       directiveEditorService,
-      mockTechniques.techniqueRepo
+      mockTechniques.techniqueRepo,
+      mockCompliance.complianceAPIService
     )
   }
 

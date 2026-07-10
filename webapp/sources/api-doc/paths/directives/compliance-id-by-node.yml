@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2026 Normation SAS
+get:
+  summary: Get compliance details by node for a given directive
+  description: Get current compliance by node of a directive of a Rudder server
+  operationId: getDirectiveComplianceByNodeId
+  parameters:
+    - in: query
+      name: format
+      schema:
+        type: string
+        enum:
+          - csv
+          - json
+        default: json
+      description: format of export
+      style: form
+      explode: false
+    - $ref: ../../components/parameters/directive-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getDirectiveComplianceByNodeId
+              data:
+                type: object
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/directive-node-compliance.yml
+        text/plain:
+          schema:
+            type: string
+          example: |
+            "Node","Rule","Block","Component","Value","Status","Message"
+            "node1.localhost","R3","","directive2-component-br3-bn2","directive2-component-value-br3-bn2","error",""
+            "node1.localhost","R3","","directive2-component-br3-bn1","directive2-component-value-br3-bn1","error",""
+            "node1.localhost","R3","","directive2-component-r3-n2","directive2-component-value-r3-n2","error",""
+            "node1.localhost","R3","","directive2-component-r3-n1","directive2-component-value-r3-n1","error",""
+
+  tags:
+    - Directives
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/compliance-id-by-node.sh
+
+

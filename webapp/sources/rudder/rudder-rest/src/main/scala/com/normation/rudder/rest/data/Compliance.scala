@@ -463,7 +463,7 @@ object CsvCompliance {
   // use "," , quote everything with ", line separator is \n
   val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").get()
 
-  def recurseComponent(
+  private def recurseComponent(
       component: ByRuleComponentCompliance,
       block:     List[ComponentField]
   ): Seq[RuleComponentResult] = {
@@ -486,6 +486,29 @@ object CsvCompliance {
         }
       case component: ByRuleBlockCompliance =>
         component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component) :: Nil)))
+    }
+  }
+
+  private def recurseComponent(
+      component: ByRuleByNodeByDirectiveByComponentCompliance,
+      block:     List[ComponentField]
+  ): Seq[DirectiveComponentResult] = {
+
+    component match {
+      case component: ByRuleByNodeByDirectiveByValueCompliance =>
+        component.values.flatMap { value =>
+          value.messages.map { report =>
+            (
+              BlockField(block),
+              ComponentField(component.componentName),
+              ValueField(value),
+              StatusField(report),
+              MessageField(report)
+            )
+          }
+        }
+      case component: ByRuleByNodeByDirectiveByBlockCompliance =>
+        component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component.componentName) :: Nil)))
     }
   }
 
@@ -536,7 +559,8 @@ object CsvCompliance {
 
     opaque type NodeField = String
     object NodeField extends CsvField[NodeField] {
-      def apply(node: ByRuleNodeCompliance): NodeField = node.name
+      def apply(node:     ByRuleNodeCompliance): NodeField = node.name
+      def apply(nodeName: String):               NodeField = nodeName
     }
 
     opaque type ValueField = String
@@ -564,6 +588,10 @@ object CsvCompliance {
   type RuleComponentResult =
     (block: BlockField, component: ComponentField, node: NodeField, value: ValueField, status: StatusField, message: MessageField)
 
+  type DirectiveComponentResult =
+    (block: BlockField, component: ComponentField, value: ValueField, status: StatusField, message: MessageField)
+
+  // Rule compliance
   case class RuleComplianceByDirectiveCsv(
       directive: DirectiveField,
       block:     BlockField,
@@ -586,15 +614,14 @@ object CsvCompliance {
     }
 
     given Transformer[ByRuleRuleCompliance, Seq[RuleComplianceByDirectiveCsv]] = (rule: ByRuleRuleCompliance) => {
-      rule.directives.flatMap(d => {
-        for {
-          c   <- d.components
-          res <- recurseComponent(c, Nil)
-        } yield {
-          given ByRuleDirectiveCompliance = d
-          res.transformInto[RuleComplianceByDirectiveCsv]
-        }
-      })
+      for {
+        d   <- rule.directives
+        c   <- d.components
+        res <- recurseComponent(c, Nil)
+      } yield {
+        given ByRuleDirectiveCompliance = d
+        res.transformInto[RuleComplianceByDirectiveCsv]
+      }
     }
   }
 
@@ -620,19 +647,19 @@ object CsvCompliance {
     }
 
     given Transformer[ByRuleRuleCompliance, Seq[RuleComplianceByNodeCsv]] = (rule: ByRuleRuleCompliance) => {
-      rule.directives.flatMap(d => {
-        for {
-          c   <- d.components
-          res <- recurseComponent(c, Nil)
-        } yield {
-          given ByRuleDirectiveCompliance = d
+      for {
+        d   <- rule.directives
+        c   <- d.components
+        res <- recurseComponent(c, Nil)
+      } yield {
+        given ByRuleDirectiveCompliance = d
 
-          res.transformInto[RuleComplianceByNodeCsv]
-        }
-      })
+        res.transformInto[RuleComplianceByNodeCsv]
+      }
     }
   }
 
+  // Node group compliance
   case class NodeGroupComplianceByRuleCsv(
       rule:      RuleField,
       directive: DirectiveField,
@@ -659,17 +686,17 @@ object CsvCompliance {
 
     given Transformer[Seq[ByNodeGroupRuleCompliance], Seq[NodeGroupComplianceByRuleCsv]] = {
       (rules: Seq[ByNodeGroupRuleCompliance]) =>
-        rules.flatMap(rule => {
-          rule.directives.flatMap(directive => {
-            directive.components.flatMap(component => {
-              given RuleField      = RuleField(rule.name)
-              given DirectiveField = DirectiveField(directive.name)
-              val components       = recurseComponent(component, Nil)
+        for {
+          rule      <- rules
+          directive <- rule.directives
+          component <- directive.components
+          c         <- recurseComponent(component, Nil)
+        } yield {
+          given RuleField      = RuleField(rule.name)
+          given DirectiveField = DirectiveField(directive.name)
 
-              components.map(_.transformInto[NodeGroupComplianceByRuleCsv])
-            })
-          })
-        })
+          c.transformInto[NodeGroupComplianceByRuleCsv]
+        }
     }
   }
 
@@ -720,6 +747,42 @@ object CsvCompliance {
           })
         })
       })
+    }
+  }
+
+  case class DirectiveComplianceByNodeCsv(
+      node:      NodeField,
+      rule:      RuleField,
+      block:     BlockField,
+      component: ComponentField,
+      value:     ValueField,
+      status:    StatusField,
+      message:   MessageField
+  ) derives Csv
+
+  object DirectiveComplianceByNodeCsv {
+
+    given (using node: NodeField, rule: RuleField): Transformer[DirectiveComponentResult, DirectiveComplianceByNodeCsv] = {
+      Transformer
+        .define[DirectiveComponentResult, DirectiveComplianceByNodeCsv]
+        .withFieldConst(_.node, node)
+        .withFieldConst(_.rule, rule)
+        .buildTransformer
+    }
+
+    given Transformer[Seq[ByDirectiveNodeCompliance], Seq[DirectiveComplianceByNodeCsv]] = {
+      (nodes: Seq[ByDirectiveNodeCompliance]) =>
+        for {
+          node      <- nodes
+          rule      <- node.rules
+          component <- rule.components
+          c         <- recurseComponent(component, Nil)
+        } yield {
+          given NodeField = NodeField(node.name)
+          given RuleField = RuleField(rule.name)
+
+          c.transformInto[DirectiveComplianceByNodeCsv]
+        }
     }
   }
 }

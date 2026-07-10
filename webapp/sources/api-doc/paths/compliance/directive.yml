@@ -3,7 +3,7 @@
 get:
   summary: Compliance details by directive
   description: Get current compliance of a directive of a Rudder server
-  operationId: getDirectiveComplianceId
+  operationId: getDirectiveComplianceIdOld
   parameters:
     - in: query
       name: format

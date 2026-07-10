@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2026 Normation SAS
+get:
+  summary: Get compliance details for a given directive
+  description: Get current compliance of a directive of a Rudder server
+  operationId: getDirectiveComplianceId
+  parameters:
+    - $ref: ../../components/parameters/directive-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: ../../components/responses/compliance-directive-id.yml
+
+  tags:
+    - Directives
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/directives/compliance-id.sh
+
+

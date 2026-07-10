@@ -1,6 +1,7 @@
 module DirectiveCompliance.ViewNodesCompliance exposing (..)
 
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance)
+import Date
 import Dict
 import DirectiveCompliance.ApiCalls exposing (..)
 import DirectiveCompliance.DataTypes exposing (..)
@@ -10,8 +11,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import List
 import List.Extra
+import Task
 import Tuple3
 import Ui.Datatable exposing (SortOrder(..), filterSearch, generateLoadingTable)
+import Utils.CsvExportUtils exposing (exportToCsvButton)
 
 
 displayNodesComplianceTable : Model -> Html Msg
@@ -99,8 +102,11 @@ displayNodesComplianceTable model =
                             ]
                             []
                         ]
-                    , button [ class "btn btn-sm btn-default btn-refresh", onClick (CallApi getDirectiveCompliance) ]
-                        [ i [ class "fa fa-refresh" ] [] ]
+                    , div [ class "ms-auto my-auto" ]
+                        [ exportToCsvButton (CallApi (\m -> Task.perform (ExportDirectiveComplianceByNode m.directiveId) Date.today))
+                        , button [ class "btn btn-sm btn-default btn-refresh", onClick (CallApi getDirectiveCompliance) ]
+                            [ i [ class "fa fa-refresh" ] [] ]
+                        ]
                     ]
                 , displayComplianceFilters complianceFilters UpdateComplianceFilters
                 ]
