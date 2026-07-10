@@ -111,7 +111,7 @@ pub fn method_call(
             Some(define_noop.unless_condition(incall_condition.clone())),
             Some(Promise::usebundle("log_rudder_v4", Some(&report_component), vec![
                 quoted("${c_key}"),
-                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
+                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", method_name, incall_condition)),
                 quoted(""),
             ]).unless_condition(incall_condition))
         ].into_iter().flatten().collect(),
@@ -120,7 +120,7 @@ pub fn method_call(
             define_noop,
             Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
                 quoted("${c_key}"),
-                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
+                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", method_name, condition)),
                 quoted("")
             ])
         ],

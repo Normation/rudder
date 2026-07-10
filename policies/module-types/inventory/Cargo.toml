@@ -9,8 +9,8 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-quick-xml = { version = "0.39.0", features = ["serialize"] }
-sysinfo = "0.38"
+quick-xml = { version = "0.41.0", features = ["serialize"] }
+sysinfo = "0.39"
 serde = { version = "1", features = ["derive"] }
 hostname = "0.4"
 anyhow = "1"

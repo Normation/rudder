@@ -46,14 +46,14 @@ impl Display for SeceditReport {
                 write!(f, "Configuration was already correct. Nothing to do.")
             }
             SeceditOutcome::Repaired => {
-                write!(f, "Configuration was repaired.\nChanged:{}", &self.diff)
+                write!(f, "Configuration was repaired.\nChanged:{}", self.diff)
             }
             SeceditOutcome::NonCompliant => {
                 write!(
                     f,
                     "Configuration was not correct.\n{}{}",
-                    &self.diff,
-                    &self.errors.join("\n")
+                    self.diff,
+                    self.errors.join("\n")
                 )
             }
         }

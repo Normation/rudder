@@ -48,7 +48,7 @@ impl Cli {
         if cli.json {
             println!("{}", serde_json::to_string_pretty(&report)?);
         } else {
-            println!("{}", &report);
+            println!("{}", report);
         }
         process::exit(exit_code);
     }

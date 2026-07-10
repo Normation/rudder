@@ -123,7 +123,7 @@ impl MethodToTest {
             .map(|s| {
                 cfengine_canonify(&format!(
                     "{}_{}_{}",
-                    &self.method_info.class_prefix,
+                    self.method_info.class_prefix,
                     self.params.get(&self.method_info.class_parameter).unwrap(),
                     s
                 ))

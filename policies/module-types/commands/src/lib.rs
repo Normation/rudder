@@ -153,13 +153,7 @@ impl Commands {
         D: Deserializer<'de>,
     {
         let value: Option<PathBuf> = Option::deserialize(deserializer)?;
-        Ok(value.and_then(|p| {
-            if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
-                None
-            } else {
-                Some(p)
-            }
-        }))
+        Ok(value.filter(|p| !p.as_path().to_str().is_none_or(|s| s.is_empty())))
     }
 
     fn parse_env_vars_value(value: Value) -> Result<IndexMap<String, String>> {
@@ -238,7 +232,7 @@ impl Commands {
         D: Deserializer<'de>,
     {
         let value: Option<String> = Option::deserialize(deserializer)?;
-        Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
+        Ok(value.filter(|s| !s.is_empty()))
     }
 
     pub fn default_shell_path() -> String {

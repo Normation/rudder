@@ -38,7 +38,7 @@ impl Cli {
         }
 
         if opts.verbose {
-            println!("Parsed options: {:#?}", &opts);
+            println!("Parsed options: {:#?}", opts);
         }
 
         let dir = opts.state_dir.unwrap_or(PathBuf::from(MODULE_DIR));

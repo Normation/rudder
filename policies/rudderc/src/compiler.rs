@@ -362,7 +362,7 @@ pub fn check_foreach_keys_consistency(technique: &DeserTechnique) -> Result<()> 
                         bail!(
                             "Item with id {} has inconsistent uses of foreach keys: {:?}",
                             item.id,
-                            &diff
+                            diff
                         );
                     }
                 })?,
