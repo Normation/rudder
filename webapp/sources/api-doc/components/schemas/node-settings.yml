@@ -38,3 +38,7 @@ properties:
     example: enabled
   agentKey:
     $ref: agent-key.yml
+  documentation:
+    type: string
+    description: Human-readable node documentation.
+    example: Rudder root node

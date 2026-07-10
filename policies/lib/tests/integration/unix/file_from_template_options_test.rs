@@ -18,6 +18,7 @@ fn it_should_render_template_to_new_file() {
             r#"{{foo}} + {{bar}} = {{foobar}}"#,
             "",
             "true",
+            "sandboxed",
         ],
     )
     .enforce();
@@ -51,6 +52,7 @@ fn it_should_audit_template() {
             r#"{{foo}} + {{bar}} = {{foobar}}"#,
             "",
             "true",
+            "sandboxed",
         ],
     )
     .audit();
@@ -93,6 +95,7 @@ fn it_should_render_template_to_new_file_using_datastate() {
             r#"Welcome {{ vars.db.users.Bob.name }}!"#,
             "",
             "false",
+            "sandboxed",
         ],
     )
     .enforce();
@@ -126,6 +129,7 @@ fn it_should_fail_if_not_template_is_given() {
             "",
             "",
             "false",
+            "sandboxed",
         ],
     )
     .enforce();
@@ -137,5 +141,95 @@ fn it_should_fail_if_not_template_is_given() {
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
 
     assert!(!file_path.exists(), "The target file should not be created");
+    end_test(workdir);
+}
+// Requires a rudder-module-template that supports the `lookup` function and the
+// sandboxed/unrestricted modes (>= 9.2). The lib integration tests run the
+// installed /opt/rudder/bin/rudder-module-template, so this fails against older
+// published packages (e.g. on ARM runners lagging behind the feature).
+#[ignore = "requires template module with lookup/unrestricted support (>= 9.2)"]
+#[test]
+fn it_should_block_lookup_when_sandboxed_by_default() {
+    let workdir = init_test();
+    let file_path = workdir.path().join("output.txt");
+    let source_path = workdir.path().join("source.txt");
+
+    // Mode is left empty, so it defaults to "sandboxed": the `lookup` function
+    // is not available and rendering must fail.
+    let tested_method = &method(
+        "file_from_template_options",
+        &[
+            file_path.to_str().unwrap(),
+            "minijinja",
+            "",
+            &format!(
+                "{{{{ lookup('file', '{}') }}}}",
+                source_path.to_str().unwrap()
+            ),
+            "",
+            "false",
+            "",
+        ],
+    )
+    .enforce();
+
+    let r = MethodTestSuite::new()
+        .given(Given::file_present(
+            source_path.to_str().unwrap(),
+            "secret content",
+        ))
+        .when(tested_method)
+        .execute(get_lib_path(), workdir.path().to_path_buf());
+    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
+
+    assert!(
+        !file_path.exists(),
+        "The target file must not be created when lookup is blocked"
+    );
+    end_test(workdir);
+}
+// See the note on it_should_block_lookup_when_sandboxed_by_default.
+#[ignore = "requires template module with lookup/unrestricted support (>= 9.2)"]
+#[test]
+fn it_should_allow_lookup_when_unrestricted() {
+    let workdir = init_test();
+    let file_path = workdir.path().join("output.txt");
+    let file_str = file_path.to_str().unwrap();
+    let source_path = workdir.path().join("source.txt");
+
+    // With mode = "unrestricted", `lookup` is available and reads the file.
+    let tested_method = &method(
+        "file_from_template_options",
+        &[
+            file_path.to_str().unwrap(),
+            "minijinja",
+            "",
+            &format!(
+                "{{{{ lookup('file', '{}') }}}}",
+                source_path.to_str().unwrap()
+            ),
+            "",
+            "false",
+            "unrestricted",
+        ],
+    )
+    .enforce();
+
+    let r = MethodTestSuite::new()
+        .given(Given::file_present(
+            source_path.to_str().unwrap(),
+            "secret content",
+        ))
+        .when(tested_method)
+        .execute(get_lib_path(), workdir.path().to_path_buf());
+    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
+
+    let content = std::fs::read_to_string(file_str).unwrap();
+    assert_eq!(
+        content, "secret content",
+        "lookup should have inlined the source file content"
+    );
     end_test(workdir);
 }

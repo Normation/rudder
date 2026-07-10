@@ -4,7 +4,7 @@
 mod cli;
 mod engine;
 use crate::cli::Cli;
-use engine::Engine;
+use engine::{Engine, Mode};
 use rudder_module_type::ProtocolResult;
 use rudder_module_type::diff::diff;
 
@@ -63,6 +63,9 @@ pub struct TemplateParameters {
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
+    /// Trust level for the template content.
+    #[serde(default)]
+    mode: Mode,
     #[serde(default)]
     report_file: Option<PathBuf>,
 }
@@ -187,6 +190,7 @@ impl Template {
             p.template_path.as_deref(),
             p.template_string.as_deref(),
             template_data,
+            p.mode,
         )?;
 
         let already_present = output_file.exists();

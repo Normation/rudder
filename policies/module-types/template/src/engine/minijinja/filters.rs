@@ -7,7 +7,7 @@ use regex::Regex;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 use shlex::try_quote;
-use std::{ffi::OsStr, path::Path};
+use std::{ffi::OsStr, fs::read_to_string, path::Path};
 use urlencoding::decode;
 
 pub fn b64encode(plain: String) -> String {
@@ -119,6 +119,24 @@ pub fn regex_replace(
     Ok(r.replacen(&data, n, re).to_string())
 }
 
+/// `lookup(kind, ...)`. Only `file` is supported: it reads a
+/// file's raw UTF-8 content at render time on the node.
+pub fn lookup(kind: String, path: String) -> Result<String, Error> {
+    match kind.as_str() {
+        "file" => read_to_string(&path).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidOperation,
+                format!("cannot read file: {path}"),
+            )
+            .with_source(e)
+        }),
+        other => Err(Error::new(
+            ErrorKind::InvalidOperation,
+            format!("unsupported lookup type: '{other}' (only 'file' is supported)"),
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,9 +144,7 @@ mod tests {
     use rudder_commons_test::module_type::unix;
     #[cfg(target_family = "unix")]
     use rudder_module_type::{Outcome, PolicyMode};
-    #[cfg(target_family = "unix")]
-    use std::fs::{self, read_to_string};
-    #[cfg(target_family = "unix")]
+    use std::fs;
     use tempfile::tempdir;
 
     #[cfg(target_family = "unix")]
@@ -432,6 +448,74 @@ mod tests {
         );
         let output = read_to_string(&test_path).unwrap();
         assert_eq!(quote, output);
+    }
+
+    #[test]
+    fn test_minijinja_lookup_file() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("f.txt");
+        fs::write(&p, "raw content").unwrap();
+        assert_eq!(
+            lookup("file".to_string(), p.to_string_lossy().to_string()).unwrap(),
+            "raw content"
+        );
+        // Missing file must error (and so fail the render).
+        assert!(
+            lookup(
+                "file".to_string(),
+                dir.path().join("missing").to_string_lossy().to_string()
+            )
+            .is_err()
+        );
+        // Unknown lookup kind must error.
+        assert!(lookup("env".to_string(), "PATH".to_string()).is_err());
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_lookup_file_function() {
+        let root_dir = tempdir().unwrap();
+        let test_path = root_dir.path().join("output");
+        let source_path = root_dir.path().join("source");
+        fs::write(&source_path, "raw content").unwrap();
+
+        unix::test(
+            Path::new(BIN),
+            &format!(
+                r#"{{"path": "{}", "engine": "{}", "mode": "unrestricted", "template_path": "", "datastate_path": "", "template_string": "{{{{ lookup('file', '{}') }}}}", "data": {{ }} }}"#,
+                test_path.display(),
+                "minijinja",
+                source_path.display(),
+            ),
+            PolicyMode::Enforce,
+            Ok(Outcome::repaired("".to_string())),
+        );
+        let output = read_to_string(&test_path).unwrap();
+        assert_eq!("raw content", output);
+    }
+
+    /// Default mode: `lookup` is unavailable, so the render must fail.
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_lookup_file_blocked_when_sandboxed() {
+        let root_dir = tempdir().unwrap();
+        let test_path = root_dir.path().join("output");
+        let source_path = root_dir.path().join("source");
+        fs::write(&source_path, "raw content").unwrap();
+
+        unix::test(
+            Path::new(BIN),
+            &format!(
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "{{{{ lookup('file', '{}') }}}}", "data": {{ }} }}"#,
+                test_path.display(),
+                "minijinja",
+                source_path.display(),
+            ),
+            PolicyMode::Enforce,
+            Err(anyhow::anyhow!("lookup is disabled in sandboxed mode")),
+        );
+        // Output file must not have been written with the file's content.
+        assert!(!test_path.exists());
     }
 
     #[test]

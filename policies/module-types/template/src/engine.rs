@@ -33,11 +33,40 @@ impl std::fmt::Display for Engine {
     }
 }
 
+/// What template content is allowed to do at render time.
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord, ValueEnum, Default,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum Mode {
+    /// No filesystem access, no escape to the host runtime.
+    #[default]
+    Sandboxed,
+    /// No restriction; trusted templates only.
+    Unrestricted,
+}
+
+impl Mode {
+    pub fn is_sandboxed(self) -> bool {
+        matches!(self, Mode::Sandboxed)
+    }
+}
+
+impl std::fmt::Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mode = match self {
+            Mode::Sandboxed => "sandboxed",
+            Mode::Unrestricted => "unrestricted",
+        };
+        write!(f, "{mode}")
+    }
+}
+
 impl Engine {
     pub fn renderer(&self, python_version: Option<String>) -> Result<Box<dyn TemplateEngine>> {
         Ok(match self {
             Engine::Mustache => Box::new(mustache::MustacheEngine),
-            Engine::Minijinja => Box::new(minijinja::MiniJinjaEngine),
+            Engine::Minijinja => Box::new(minijinja::MiniJinjaEngine::default()),
             Engine::Jinja2 => Box::new(
                 jinja2::Jinja2Engine::new(python_version)
                     .context("Failed to create Jinja2 engine")?,
@@ -47,10 +76,15 @@ impl Engine {
 }
 
 pub trait TemplateEngine {
+    /// With `Mode::Sandboxed`, implementations must keep the render a pure
+    /// function of the template and `data`: no filesystem reads besides the
+    /// template file itself, no writes, no code execution on the host, and
+    /// bounded compute (as strictly as the engine allows).
     fn render(
         &self,
         template_path: Option<&Path>,
         template_string: Option<&str>,
         data: &Value,
+        mode: Mode,
     ) -> Result<String>;
 }
