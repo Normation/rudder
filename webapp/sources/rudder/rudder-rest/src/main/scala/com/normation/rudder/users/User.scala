@@ -41,6 +41,8 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.api.ApiAuthorization
+import com.normation.rudder.rest.AuthzForApi
+import com.normation.rudder.rest.OtpApi
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.users.UserPassword.HashedUserPassword
@@ -78,14 +80,51 @@ object RudderAuthType {
     Seq(new SimpleGrantedAuthority(s): GrantedAuthority).asJavaCollection
   }
 
-  case object User extends RudderAuthType {
+  case object PreAuthUser extends RudderAuthType {
+    override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_PRE_AUTH")
+  }
+  case object User        extends RudderAuthType {
     override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_USER")
   }
-  case object Api  extends RudderAuthType {
+  case object Api         extends RudderAuthType {
     override val grantedAuthorities: Collection[GrantedAuthority] = buildAuthority("ROLE_REMOTE")
 
     val apiRudderRights = Rights.NoRights
     val apiRudderRole: Set[Role] = Set(Role.NoRights)
+  }
+}
+
+/**
+ * A user in pending authentication, bound with [[RudderAuthType.PreAuthUser]] authorities.
+ * Such user is set on SpringSecurity context and upon retrieval should be handled as a non-fully authenticated user,
+ * until authentication is finished.
+ * Useful for MFA cases.
+ */
+final case class RudderPreAuthUser(authenticatingUser: RudderUserDetail) extends AuthenticatedUser with UserDetails {
+  // We need to provide minimal API authorizations to generate and get info from OTP API
+  // Only initial api authz need to be overridden, others should not be for authz check during MFA authentication flow
+  export authenticatingUser.accessGrant
+  export authenticatingUser.account
+  export authenticatingUser.actorIp
+  export authenticatingUser.authz
+  export authenticatingUser.checkRights
+  export authenticatingUser.getPassword
+  export authenticatingUser.getUsername
+  export authenticatingUser.roles
+  export authenticatingUser.status
+
+  override val apiAuthz: ApiAuthorization = {
+    ApiAuthorization.ACL(OtpApi.values.map(AuthzForApi(_)).toList)
+  }
+
+  override val getAuthorities: Collection[GrantedAuthority] = RudderAuthType.PreAuthUser.grantedAuthorities
+}
+
+extension (rudderUser: RudderPreAuthUser | RudderUserDetail) {
+  // Used in UserInformation snippet, actually unused since pre-auth user has no access to page
+  def roles: Set[Role] = rudderUser match {
+    case u: RudderPreAuthUser => u.roles
+    case u: RudderUserDetail  => u.roles
   }
 }
 
@@ -154,7 +193,7 @@ case class RudderUserDetail(
  * We can't use ContainerVar because spring migrates jetty session and we don't want
  * to impose a MigratingSession to everything just to that variable.
  */
-object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserService {
+object CurrentUser extends RequestVar[Option[RudderUserDetail | RudderPreAuthUser]](None) with UserService {
   // it's ok if that request var is not read in all/most request - but it must be
   // set in case it's needed.
   override def logUnreadVal = false

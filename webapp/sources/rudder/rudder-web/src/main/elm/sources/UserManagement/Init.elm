@@ -25,7 +25,7 @@ init flags =
             UserForm "" "" True False [] initUserInfoForm [] ValidInputs
 
         initModel =
-            Model flags.contextPath flags.userId "" False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
+            Model flags.contextPath flags.userId "" False False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
     in
     ( initModel
     , getUsersConf initModel

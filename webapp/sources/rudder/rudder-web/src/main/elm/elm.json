@@ -53,7 +53,8 @@
             "toastal/either": "3.6.3",
             "visotype/elm-dom": "1.1.3",
             "webbhuset/elm-json-decode": "1.2.0",
-            "zwilias/elm-html-string": "2.0.2"
+            "zwilias/elm-html-string": "2.0.2",
+            "pablohirafuji/elm-qrcode": "4.0.3"
         },
         "indirect": {
             "NoRedInk/elm-string-conversions": "1.0.1",
@@ -62,7 +63,10 @@
             "TSFoster/elm-sha1": "2.1.1",
             "danfishgold/base64-bytes": "1.1.0",
             "kuon/elm-string-normalize": "1.0.6",
-            "rtfeldman/elm-hex": "1.0.0"
+            "rtfeldman/elm-hex": "1.0.0",
+            "avh4/elm-color": "1.0.0",
+            "folkertdev/elm-flate": "2.0.6",
+            "justgook/elm-image": "5.0.0"
         }
     },
     "test-dependencies": {

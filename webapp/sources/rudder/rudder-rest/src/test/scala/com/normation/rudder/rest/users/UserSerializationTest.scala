@@ -41,10 +41,22 @@ class UserSerializationTest extends Specification {
         providersInfo,
         "",
         None,
-        None
+        None,
+        false
       )
 
-      JsonUser("user", None, None, Json.Obj(), UserStatus.Active, providersInfo, "", None, None) must beEqualTo(expected)
+      JsonUser(
+        "user",
+        None,
+        None,
+        Json.Obj(),
+        UserStatus.Active,
+        providersInfo,
+        "",
+        None,
+        None,
+        false
+      ) must beEqualTo(expected)
     }
   }
 

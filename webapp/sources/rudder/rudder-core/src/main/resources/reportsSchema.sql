@@ -75,6 +75,14 @@ CREATE TABLE Users (
 , otherInfo      jsonb -- general additional user info
 );
 
+
+CREATE TABLE userstotp (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+, secret TEXT NOT NULL
+, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
 CREATE TABLE UserSessions (
   userId       text NOT NULL CHECK (userId <> '')
 , sessionId    text NOT NULL CHECK (sessionId <> '')

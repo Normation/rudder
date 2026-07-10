@@ -39,7 +39,10 @@ package bootstrap.liftweb
 
 import bootstrap.liftweb.LogFailedLogin.DisabledUserException
 import bootstrap.liftweb.LogFailedLogin.getRemoteAddr
+import bootstrap.liftweb.RestAuthenticationFilter.SYSTEM_API_ACL
+import bootstrap.liftweb.RudderParsedProperties
 import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
+import cats.syntax.apply.*
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
@@ -49,6 +52,7 @@ import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
+import com.normation.rudder.users.RudderAuthType
 import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -61,6 +65,8 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.Collection
 import net.liftweb.common.*
@@ -89,7 +95,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.AuthenticationFailureHandler
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache
 import scala.annotation.nowarn
 import scala.util.Try
 import zio.syntax.*
@@ -112,9 +121,6 @@ import zio.syntax.*
 @ComponentScan(Array("bootstrap.rudder.plugin"))
 class AppConfigAuth extends ApplicationContextAware {
   import bootstrap.liftweb.RudderProperties.config
-
-  // we define the System ApiAcl as one that is all mighty and can manage everything
-  val SYSTEM_API_ACL = ApiAuthorization.RW
 
   // Configuration values within an authentication provider config from which we get provider properties
   val A_ROLES_ENABLED  = "roles.enabled"
@@ -312,6 +318,10 @@ class AppConfigAuth extends ApplicationContextAware {
   @Bean(name = Array("org.springframework.security.authenticationManager"))
   def authenticationManager = new RudderProviderManager(RudderConfig.authenticationProviders, userRepository)
 
+  @Bean def rudderWebAuthenticationSuccessHandler: AuthenticationSuccessHandler = new RudderUrlAuthenticationSuccessHandler(
+    RudderParsedProperties.ENFORCE_OTP_AUTH
+  )
+
   @Bean def rudderWebAuthenticationFailureHandler: AuthenticationFailureHandler = new RudderUrlAuthenticationFailureHandler(
     "/index.html?login_error=true"
   )
@@ -354,50 +364,16 @@ class AppConfigAuth extends ApplicationContextAware {
   }
 
   @Bean def rootAdminAuthenticationProvider: AuthenticationProvider = {
-    // We want to be able to disable that account.
-    // For that, we let the user either let undefined rudder.auth.admin.login,
-    // or let empty udder.auth.admin.login or rudder.auth.admin.password
-
     implicit val encoder: RudderPasswordEncoder = RudderPasswordEncoder(passwordEncoderDispatcher)
-    val admin = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
-      val login    = config.getString("rudder.auth.admin.login")
-      val password = config.getString("rudder.auth.admin.password")
-
-      if (login.isEmpty || password.isEmpty) {
-        None
-      } else {
-        Some(
-          RudderUserDetail(
-            RudderAccount.User(
-              login,
-              UserPassword.unsafeHashed(password)
-            ),
-            UserStatus.Active,
-            Set(Role.Administrator),
-            SYSTEM_API_ACL,
-            TenantAccessGrant.All
-          )
-        )
-      }
-    } else {
-      None
-    }
-
-    if (admin.isEmpty) {
-      ApplicationLoggerPure.logEffect.info(
-        "No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file"
-      )
-    }
-
     val authConfigProvider = new UserDetailListProvider {
-      override def authConfig: UserList = SingleUserList(encoder, admin)
+      override def authConfig: UserList = SingleUserList(encoder, RudderParsedProperties.RUDDER_ROOT_ADMIN)
     }
     (for {
       now                 <- currentOffsetDateTimeUTC
       rootAccountUserRepo <- InMemoryUserRepository.make()
       _                   <- rootAccountUserRepo.setExistingUsers(
                                "root-account",
-                               admin.map(_.getUsername).toList,
+                               RudderParsedProperties.RUDDER_ROOT_ADMIN.map(_.getUsername).toList,
                                EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, now)
                              )
     } yield {
@@ -415,7 +391,6 @@ class AppConfigAuth extends ApplicationContextAware {
       RudderConfig.woApiAccountRepository,
       rudderUserDetailsService,
       RudderConfig.tenantService,
-      SYSTEM_API_ACL,
       RestAuthenticationFilter.API_TOKEN_HEADER
     )
   }
@@ -441,6 +416,97 @@ class AppConfigAuth extends ApplicationContextAware {
 
   // userSessionLogEvent must not be lazy, because not used by anybody directly
   @Bean def userSessionLogEvent = new UserSessionLogEvent(RudderConfig.eventLogRepository, RudderConfig.stringUuidGenerator)
+}
+
+/*
+ * The "success login" handler:
+ *  - extends the original Spring handler based with default URL (root of application when authenticated)
+ *  - handles OTP registration logic:
+ *    - for users without OTP, when OTP verification are enforced, they must register an OTP
+ *    - for users already with OTP, they must enter a valid code before being redirected
+ *
+ * Implementation is similar to one of SavedRequestAwareAuthenticationSuccessHandler
+ */
+class RudderUrlAuthenticationSuccessHandler(enforceOtp: Boolean)
+    extends SimpleUrlAuthenticationSuccessHandler("/secure/index.html") {
+  private val otpRedirect = enforceOtp
+
+  private val otpRedirectUri = "/secure/otp.html"
+
+  private val requestCache = new HttpSessionRequestCache()
+
+  /**
+   * Saves the SecurityContext with a ROLE_PRE_AUTH authority, only possible because of security-context-explicit-save="false"
+   */
+  override def onAuthenticationSuccess(
+      request:        HttpServletRequest,
+      response:       HttpServletResponse,
+      authentication: Authentication
+  ): Unit = {
+    (for {
+      (preAuthPrincipal, grantedAuthorities) <- withUserOtpRequired(authentication)(
+                                                  u => (u, u.getAuthorities),
+                                                  // PRE_AUTH does not grant more access than for OTP, keeps the authentication flow consistent: empty would lead nowhere
+                                                  fallback = (_, RudderAuthType.PreAuthUser.grantedAuthorities)
+                                                )
+    } yield {
+      new UsernamePasswordAuthenticationToken(
+        preAuthPrincipal,
+        null,
+        grantedAuthorities
+      )
+    }).foreach(preAuthToken => SecurityContextHolder.getContext().setAuthentication(preAuthToken))
+
+    super.onAuthenticationSuccess(request, response, authentication)
+  }
+
+  // Logic to do some action, ONLY WHEN OTP is required, i.e. contains the logic for "user needs OTP", could include
+  // When need an explicit fallback default to take "no known auth => provided no user grants", keeping the OTP workflow consistent
+  // None means: we can safely redirect to home, without otpRedirect
+  private def withUserOtpRequired[A](
+      authentication: Authentication
+  )(action: RudderPreAuthUser => A, fallback: Object => A): Option[A] = {
+    // OTP is not set, skip with the "unless" pattern
+    Option.unless(!otpRedirect)(()) *> {
+      // here we should check that it's a Rudder user, and if their OTP is already enabled/freshly verified to determine if OTP flow is required
+      val principal = authentication.getPrincipal
+
+      principal match {
+        case u: RudderUserDetail if RudderParsedProperties.RUDDER_ROOT_ADMIN.map(_.getUsername).contains(u.getUsername) =>
+          // rootAdmin account doesn't need OTP, and is always attempted to auth first, so we can skip OTP
+          None
+
+        case u: RudderUserDetail =>
+          // already fixes up the authority to make spring-security config give access to MFA enrollment/verification page
+          Some(action(RudderPreAuthUser(u)))
+
+        case o =>
+          Some(fallback(o))
+      }
+    }
+  }
+
+  // To correctly apply override of defaultRedirectUri (defaultTargetUrl), we need OTP customization
+  override protected def determineTargetUrl(
+      request:        HttpServletRequest,
+      response:       HttpServletResponse,
+      authentication: Authentication
+  ): String = {
+    def nextOtpRedirect = {
+      Option(requestCache.getRequest(request, response))
+        .map(_.getRedirectUrl)
+        .map(url => {
+          requestCache.removeRequest(request, response) // clean is recommended since we intercept it only in this request
+          s"?redirect=${URLEncoder.encode(url, StandardCharsets.UTF_8)}"
+        })
+        .getOrElse("")
+    }
+    def fallback        = super.determineTargetUrl(request, response, authentication)
+    withUserOtpRequired(authentication)(
+      _ => otpRedirectUri + nextOtpRedirect,
+      _ => fallback
+    ).getOrElse(fallback)
+  }
 }
 
 /*
@@ -797,7 +863,6 @@ class RestAuthenticationFilter(
     writeApiTokenRepository: WoApiAccountRepository,
     userDetailsService:      RudderInMemoryUserDetailsService,
     tenantRepo:              TenantService,
-    systemApiAcl:            ApiAuthorization,
     apiTokenHeaderName:      String
 ) extends Filter with Loggable {
   override def destroy(): Unit = {}
@@ -932,7 +997,7 @@ class RestAuthenticationFilter(
                     RudderAccount.Api(systemAccount),
                     UserStatus.Active,
                     Set(Role.Administrator), // this token has "admin rights - use with care
-                    systemApiAcl,
+                    SYSTEM_API_ACL,
                     TenantAccessGrant.All
                   ),
                   httpRequest,
@@ -960,7 +1025,7 @@ class RestAuthenticationFilter(
                             RudderAccount.Api(principal),
                             UserStatus.Active,
                             Set(Role.Administrator), // this token has "admin rights - use with care
-                            systemApiAcl,
+                            SYSTEM_API_ACL,
                             TenantAccessGrant.All
                           ),
                           httpRequest,
@@ -1071,7 +1136,8 @@ class RestAuthenticationFilter(
 }
 
 object RestAuthenticationFilter {
-  val API_TOKEN_HEADER: String = "X-API-Token"
+  val API_TOKEN_HEADER: String           = "X-API-Token"
+  val SYSTEM_API_ACL:   ApiAuthorization = ApiAuthorization.RW // the almighty authorization that can manage everything
 }
 
 /*

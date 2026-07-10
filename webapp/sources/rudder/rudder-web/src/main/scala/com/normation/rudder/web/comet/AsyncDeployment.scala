@@ -54,7 +54,7 @@ import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
 import com.normation.rudder.ncf.EditorTechniqueError
 import com.normation.rudder.ncf.EditorTechniqueStatus
 import com.normation.rudder.tenants.QueryContext
-import com.normation.rudder.users.RudderUserDetail
+import com.normation.rudder.users.AuthenticatedUser
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
@@ -91,7 +91,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:                                               Option[RudderUserDetail]                        = FindCurrentUser.get()
+  private val currentUser:                                               Option[AuthenticatedUser]                       = FindCurrentUser.get()
   private def havePerm[A](perm: AuthorizationType)(a: EventActor ?=> A): Option[A]                                       = {
     currentUser match {
       case None    => Option.empty

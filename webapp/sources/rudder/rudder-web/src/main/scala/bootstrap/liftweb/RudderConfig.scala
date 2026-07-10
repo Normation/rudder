@@ -62,6 +62,7 @@ import com.normation.ldap.sdk.*
 import com.normation.plugins.*
 import com.normation.plugins.cli.RudderPackageCmdService
 import com.normation.plugins.settings.*
+import com.normation.rudder.Role
 import com.normation.rudder.api.*
 import com.normation.rudder.apidata.*
 import com.normation.rudder.batch.*
@@ -1188,6 +1189,20 @@ object RudderParsedProperties {
     }
   }
 
+  // Enforce TOTP login during auth (default: false). OTP is optional for compatibility (when "enabled" is added, be careful with defaults)
+  val ENFORCE_OTP_AUTH: Boolean = {
+    val default = false
+    try {
+      config.getBoolean("rudder.auth.otp.enforce")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'rudder.auth.otp.enforce' is absent in rudder.configFile, defaulting to false (OTP optional)."
+        )
+        default
+    }
+  }
+
   val RUDDERC_CMD: String = {
     try {
       config.getString("rudder.technique.compiler.rudderc.cmd")
@@ -1269,6 +1284,50 @@ object RudderParsedProperties {
           "value is not formatted as a long digit and time unit (ms, s, m, h, d), example: 5 days or 5d. Leave it empty to keep forever",
           Some(ex)
         )
+    }
+  }
+
+  // ROOT admin user
+  // We want to be able to disable that account.
+  // For that, we let the user either let undefined rudder.auth.admin.login,
+  // or let empty rudder.auth.admin.login or rudder.auth.admin.password
+  val RUDDER_ROOT_ADMIN: Option[RudderUserDetail] = {
+    def noRootAdmin = Option.empty[RudderUserDetail]
+    try {
+      val admin = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+        val login    = config.getString("rudder.auth.admin.login")
+        val password = config.getString("rudder.auth.admin.password")
+
+        if (login.isEmpty || password.isEmpty) {
+          noRootAdmin
+        } else {
+          Some(
+            RudderUserDetail(
+              RudderAccount.User(
+                login,
+                UserPassword.unsafeHashed(password)
+              ),
+              UserStatus.Active,
+              Set(Role.Administrator),
+              ApiAuthorization.RW,
+              TenantAccessGrant.All
+            )
+          )
+        }
+      } else {
+        noRootAdmin
+      }
+      if (admin.isEmpty) {
+        ApplicationLoggerPure.logEffect.info(
+          "No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file"
+        )
+      }
+      admin
+    } catch {
+      // presence of both fields is already checked, other configuration exception may happen consider it's absent
+      case ex: Exception =>
+        logger.error("Configuration of root admin has error, falling back to no root admin.", ex)
+        noRootAdmin
     }
   }
 
@@ -1473,6 +1532,7 @@ object RudderConfig extends Loggable {
   val userPropertyService:                 UserPropertyService                      = rci.userPropertyService
   val userRepository:                      UserRepository                           = rci.userRepository
   val userService:                         UserService                              = rci.userService
+  val otpService:                          TotpService                              = rci.otpService
   val woApiAccountRepository:              WoApiAccountRepository                   = rci.woApiAccountRepository
   val woDirectiveRepository:               WoDirectiveRepository                    = rci.woDirectiveRepository
   val woNodeGroupRepository:               WoNodeGroupRepository                    = rci.woNodeGroupRepository
@@ -1616,6 +1676,7 @@ case class RudderServiceApi(
     userService:                         UserService,
     apiVersions:                         List[ApiVersion],
     apiDispatcher:                       RudderEndpointDispatcher,
+    otpService:                          TotpService,
     configurationRepository:             ConfigurationRepository,
     roParameterService:                  RoParameterService,
     agentRegister:                       AgentRegister,
@@ -2193,6 +2254,17 @@ object RudderConfigInit {
 
     lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
 
+    // OTP (Two-Factor Authentication) service
+    lazy val totpRepository    = new JdbcTotpRepository(doobie)
+    lazy val userTotpValidator = new UserTotpValidator(userRepository, totpRepository)
+    lazy val totpService       = OtpJavaTotpService
+      .make(
+        enabledOtp = ENFORCE_OTP_AUTH,
+        validator = userTotpValidator,
+        totpRepository = totpRepository
+      )
+      .runNow
+
     // we need to init API internal services into the {} block to avoid bug https://issues.rudder.io/issues/26416
     // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
     lazy val rudderApi = ApiInit.api
@@ -2224,6 +2296,8 @@ object RudderConfigInit {
         ),
         linkUtil
       )
+
+      lazy val otpApi = new OtpApi(totpService)
 
       lazy val ruleApiService13 = {
         new RuleApiService14(
@@ -2411,6 +2485,7 @@ object RudderConfigInit {
               UserFileProcessing.getUserResourceFile()
             ),
             tenantService,
+            totpService,
             () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
             () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
           ),
@@ -2440,7 +2515,8 @@ object RudderConfigInit {
           archiveApi,
           new ScoreApiImpl(scoreService),
           eventLogApi,
-          quicksearchApi
+          quicksearchApi,
+          otpApi
           // info api must be resolved latter, because else it misses plugin apis !
         )
       }
@@ -3434,6 +3510,7 @@ object RudderConfigInit {
         BootstrapLogger.Early.DB,
         new CheckPostgreConnection(dataSourceProvider),
         new CreateTableNodeFacts(doobie),
+        new CreateTableUsersTotp(doobie),
         new CheckTableScore(doobie),
         new CheckTableUsers(doobie),
         new CheckTableNodeLastCompliance(doobie),
@@ -4047,6 +4124,7 @@ object RudderConfigInit {
       userService,
       SupportedApiVersion.apiVersions,
       apiDispatcher,
+      totpService,
       configurationRepository,
       roParameterService,
       agentRegister,

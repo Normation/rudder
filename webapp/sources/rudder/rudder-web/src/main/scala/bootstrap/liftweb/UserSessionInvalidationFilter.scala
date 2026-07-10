@@ -40,6 +40,7 @@ import com.normation.errors.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.RudderAuthorizationFileReloadCallback
+import com.normation.rudder.users.RudderPreAuthUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserStatus
@@ -50,6 +51,7 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletException
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpSession
 import java.io.IOException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
@@ -94,46 +96,12 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
         val userDetails = auth.getPrincipal
         userDetails match { // we should only do session invalidation in specific cases : status is disabled/deleted, user is unknown
           case user: RudderUserDetail =>
-            val username = user.getUsername
-            implicit val userDetail: RudderUserDetail = user
-            // we need to NOT put doFilter into ZIO effect, so we exec immediately, see https://issues.rudder.io/issues/29034
-            userCache.get
-              .map(_.get(username))
-              .flatMap {
-                case checkUser(reason) =>
-                  val endSessionReason = s"Session invalidated because ${reason}"
-                  IOResult.attempt {
-                    session.invalidate()
-                    response.sendRedirect(request.getContextPath)
-                  }
-                    .foldZIO(
-                      {
-                        case SystemError(_, _: IllegalStateException) =>
-                          ApplicationLoggerPure.info(
-                            s"User session for user '${username}' is already invalidated because : ${reason}"
-                          )
-                        case err                                      =>
-                          err
-                            .copy(msg = {
-                              s"User session for user '${username}' could not be invalidated for reason : ${reason}. " +
-                              s"Please contact Rudder developers with the following explanation : ${err.fullMsg}"
-                            })
-                            .fail
-                      },
-                      _ => {
-                        for {
-                          now <- currentOffsetDateTimeUTC
-                          _   <- userRepository.logCloseSession(user.getUsername, now, endSessionReason)
-                          _   <-
-                            ApplicationLoggerPure.info(s"User session for user '${username}' is invalidated because : ${reason}")
-                        } yield ()
-                      }
-                    )
-                case _                 =>
-                  ZIO.unit
-              }
-              .either
-              .runNow match {
+            checkUser(user)(session, request, response).either.runNow match {
+              case Left(err) => throw new RuntimeException(err.fullMsg)
+              case Right(()) => filterChain.doFilter(request, response)
+            }
+          case RudderPreAuthUser(user) =>
+            checkUser(user)(session, request, response).either.runNow match {
               case Left(err) => throw new RuntimeException(err.fullMsg)
               case Right(()) => filterChain.doFilter(request, response)
             }
@@ -178,6 +146,49 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
     */
   def updateUser(user: RudderUserDetail): UIO[Unit] = {
     userCache.update(_ + (user.getUsername -> hashRudderUserDetail(user)))
+  }
+
+  private def checkUser(
+      user: RudderUserDetail
+  )(session: HttpSession, request: HttpServletRequest, response: HttpServletResponse): IOResult[Unit] = {
+    val username = user.getUsername
+    implicit val userDetail: RudderUserDetail = user
+    // we need to NOT put doFilter into ZIO effect, so we exec immediately, see https://issues.rudder.io/issues/29034
+    userCache.get
+      .map(_.get(username))
+      .flatMap {
+        case checkUser(reason) =>
+          val endSessionReason = s"Session invalidated because ${reason}"
+          IOResult.attempt {
+            session.invalidate()
+            response.sendRedirect(request.getContextPath)
+          }
+            .foldZIO(
+              {
+                case SystemError(_, _: IllegalStateException) =>
+                  ApplicationLoggerPure.info(
+                    s"User session for user '${username}' is already invalidated because : ${reason}"
+                  )
+                case err                                      =>
+                  err
+                    .copy(msg = {
+                      s"User session for user '${username}' could not be invalidated for reason : ${reason}. " +
+                      s"Please contact Rudder developers with the following explanation : ${err.fullMsg}"
+                    })
+                    .fail
+              },
+              _ => {
+                for {
+                  now <- currentOffsetDateTimeUTC
+                  _   <- userRepository.logCloseSession(user.getUsername, now, endSessionReason)
+                  _   <-
+                    ApplicationLoggerPure.info(s"User session for user '${username}' is invalidated because : ${reason}")
+                } yield ()
+              }
+            )
+        case _                 =>
+          ZIO.unit
+      }
   }
 }
 

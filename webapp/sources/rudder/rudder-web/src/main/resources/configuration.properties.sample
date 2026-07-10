@@ -82,6 +82,7 @@ rudder.server.hstsIncludeSubDomains=false
 #
 # LDAP directory connection information
 #
+
 ldap.host=localhost
 ldap.port=389
 ldap.authdn=cn=manager,cn=rudder-configuration
@@ -688,6 +689,13 @@ rudder.users.cleanup.sessions.purgeAfter=30 days
 # your existing entreprise Active Directory or LDAP directory.
 #
 rudder.auth.provider=file
+
+
+# OTP configuration property
+# - Enforce TOTP confirmation code step during login for users which have configured a TOTP
+# Default: false (OTP is optional, but recommended especially for administrators)
+rudder.auth.otp.enforce=false
+
 
 #
 # To disable access to the REST API using user-generated API token
