@@ -1,5 +1,6 @@
 module Editor.DataTypes exposing (..)
 
+import Activity.DataTypes exposing (Activity, ActivityMsg)
 import Bytes exposing (Bytes)
 import Dict exposing (Dict)
 import Dom.DragDrop as DragDrop
@@ -8,6 +9,7 @@ import Either exposing (Either)
 import File exposing (File)
 import Http exposing (Error)
 import Http.Detailed
+import Rudder.Table
 import Time exposing (Posix)
 
 
@@ -335,6 +337,7 @@ type alias Model =
     , loadingTechniques : Bool
     , recClone : List Msg
     , policyMode : String
+    , activityTable : Rudder.Table.Model Activity Msg
     }
 
 
@@ -481,6 +484,7 @@ type Tab
     | Parameters
     | Resources
     | Directives
+    | RecentActivity
     | Output
     | None
 
@@ -572,6 +576,8 @@ type Msg
     | DisableDragDrop
     | EnableDragDrop CallId
     | HoverMethod (Maybe CallId)
+    | RudderTableMsg (Rudder.Table.Msg Msg)
+    | ActivityMessage ActivityMsg
 
 
 dragDropMessages : DragDrop.Messages Msg DragElement DropElement

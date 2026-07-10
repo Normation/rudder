@@ -53,6 +53,7 @@ $(document).ready(function(){
   var initValues = {
     contextPath : contextPath
   , hasWriteRights : hasWriteRights
+  , timeZone: localStorage.getItem('timeZone') ?? 'UTC'
   };
   var app  = Elm.Editor.init({node: main, flags: initValues});
   app.ports.copy.subscribe(function(value) {

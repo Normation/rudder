@@ -1,6 +1,6 @@
 port module DirectiveRecentActivity exposing (..)
 
-import Activity.ApiCalls exposing (getActivities)
+import Activity.ApiCalls exposing (getActivities, processApiError)
 import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search(..))
 import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Activity.JsonDecoder exposing (decodeErrorDetails)
@@ -116,33 +116,6 @@ view model =
     table model
 
 
-processApiError : String -> Detailed.Error String -> Cmd msg
-processApiError apiName err =
-    let
-        message =
-            case err of
-                Detailed.BadUrl url ->
-                    "The URL " ++ url ++ " was invalid"
-
-                Detailed.Timeout ->
-                    "Unable to reach the server, try again"
-
-                Detailed.NetworkError ->
-                    "Unable to reach the server, check your network connection"
-
-                Detailed.BadStatus _ body ->
-                    let
-                        ( title, errors ) =
-                            decodeErrorDetails body
-                    in
-                    title ++ "\n" ++ errors
-
-                Detailed.BadBody _ _ msg ->
-                    msg
-    in
-    errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message)
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -169,7 +142,7 @@ update msg model =
                             ( { model | activityTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processApiError "Getting activities list" err )
+                            ( model, processApiError "Getting activities list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

@@ -23,3 +23,30 @@ getActivities search filterType (ContextPath contextPath) =
                 }
     in
     req
+
+
+processApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
+processApiError apiName err errorNotification =
+    let
+        message =
+            case err of
+                Detailed.BadUrl url ->
+                    "The URL " ++ url ++ " was invalid"
+
+                Detailed.Timeout ->
+                    "Unable to reach the server, try again"
+
+                Detailed.NetworkError ->
+                    "Unable to reach the server, check your network connection"
+
+                Detailed.BadStatus _ body ->
+                    let
+                        ( title, errors ) =
+                            decodeErrorDetails body
+                    in
+                    title ++ "\n" ++ errors
+
+                Detailed.BadBody _ _ msg ->
+                    msg
+    in
+    errorNotification ("Error when " ++ apiName ++ ", details: \n" ++ message)
