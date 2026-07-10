@@ -39,7 +39,11 @@ package com.normation.rudder.facts.nodes
 
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.*
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.InventoryStatus
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PendingInventory
+import com.normation.inventory.domain.RemovedInventory
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.batch.UpdateDynamicGroups
