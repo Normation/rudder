@@ -133,7 +133,7 @@ pub mod book {
                 let md_file = format!("{}.md", m.bundle_name);
                 let mut file = File::create(src_dir.join(&md_file))?;
                 file.write_all(markdown::method(m)?.as_bytes())?;
-                writeln!(summary, "  - [{}]({})", m.bundle_name, &md_file)?;
+                writeln!(summary, "  - [{}]({})", m.bundle_name, md_file)?;
             }
 
             // Category method index

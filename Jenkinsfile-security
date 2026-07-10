@@ -129,7 +129,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check license sources bans', label: 'check rust dependencies'
+                    sh script: 'cargo deny check licenses sources bans', label: 'check rust dependencies'
                 }
             }
             post {

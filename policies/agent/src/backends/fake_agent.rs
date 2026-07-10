@@ -59,7 +59,7 @@ impl AgentTestRunner {
         )
         .context(format!(
             "Writing the state file to {}",
-            &config.state_file_path.display()
+            config.state_file_path.display()
         ))?;
 
         Ok(())

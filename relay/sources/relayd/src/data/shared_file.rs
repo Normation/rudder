@@ -93,7 +93,7 @@ impl SharedFile {
     }
 
     pub fn url(&self) -> String {
-        format!("{}/{}/{}", &self.target_id, &self.source_id, &self.file_id)
+        format!("{}/{}/{}", self.target_id, self.source_id, self.file_id)
     }
 }
 
@@ -121,14 +121,14 @@ pub struct Metadata {
 
 impl fmt::Display for Metadata {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "header={}", &self.format)?;
-        writeln!(f, "algorithm={}", &self.hash.hash_type)?;
-        writeln!(f, "digest={}", &self.digest)?;
-        writeln!(f, "hash_value={}", &self.hash.hex())?;
-        writeln!(f, "short_pubkey={}", &self.short_pubkey)?;
-        writeln!(f, "hostname={}", &self.hostname)?;
-        writeln!(f, "keydate={}", &self.key_date)?;
-        writeln!(f, "keyid={}", &self.key_id)?;
+        writeln!(f, "header={}", self.format)?;
+        writeln!(f, "algorithm={}", self.hash.hash_type)?;
+        writeln!(f, "digest={}", self.digest)?;
+        writeln!(f, "hash_value={}", self.hash.hex())?;
+        writeln!(f, "short_pubkey={}", self.short_pubkey)?;
+        writeln!(f, "hostname={}", self.hostname)?;
+        writeln!(f, "keydate={}", self.key_date)?;
+        writeln!(f, "keyid={}", self.key_id)?;
         if let Some(expires) = self.expires {
             writeln!(f, "expires={expires}")?;
         }

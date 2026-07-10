@@ -15,14 +15,13 @@ PATH := $(PATH):$(HOME)/.cargo/bin:$(PATH)
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 # https://doc.rust-lang.org/nightly/cargo/guide/build-performance.html
 
-CARGO_AUDITABLE_VER := 0.7.4
+CARGO_AUDITABLE_VER := 0.7.5
 CARGO_CYCLONEDX_VER := 0.5.9
-CARGO_NEXTEST_VER   := 0.9.133
+CARGO_NEXTEST_VER   := 0.9.140
 
 # Specific CI behavior
 ifeq ($(CI),1)
-export RUSTFLAGS=--deny warnings
-export RUSTDOCFLAGS=--deny warnings
+export CARGO_BUILD_WARNINGS=deny
 export CARGO_TERM_COLOR=always
 export RUSTUP_TERM_COLOR=always
 # faster cold builds

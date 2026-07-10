@@ -16,6 +16,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 clap = { version = "4.5.32", features = ["derive"] }
 wait-timeout = "0.2.1"
 rustix = { version = "1.0.8", features = ["process", "fs"] }
-itertools = "0.14.0"
+itertools = "0.15.0"
 indexmap = { version = "2.11.3", features = ["serde"] }
 uzers = "0.12.1"

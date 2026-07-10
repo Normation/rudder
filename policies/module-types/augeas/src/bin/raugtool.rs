@@ -155,7 +155,7 @@ impl Cli {
         let opts = Self::parse_args_default_or_exit();
         if opts.verbose {
             set_max_level(LevelFilter::Debug);
-            println!("Parsed options: {:#?}", &opts);
+            println!("Parsed options: {:#?}", opts);
         }
         if opts.version {
             // load minimal augeas

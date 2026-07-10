@@ -542,7 +542,7 @@ pub mod action {
 
         let file = File::create(&actual_output).context(format!(
             "Creating export output file {}",
-            &actual_output.display()
+            actual_output.display()
         ))?;
         let options: FileOptions<ExtendedFileOptions> = FileOptions::default();
         let mut zip = ZipWriter::new(file);

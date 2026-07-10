@@ -113,7 +113,7 @@ pub fn run_inner(args: Args) -> Result<()> {
     // Parse configuration file
     debug!("Parsed CLI arguments: {args:?}");
     let cfg = Configuration::read(Path::new(&args.config))
-        .with_context(|| format!("Reading configuration from '{}'", &args.config))?;
+        .with_context(|| format!("Reading configuration from '{}'", args.config))?;
     debug!("Parsed configuration: {cfg:?}");
 
     // Now initialize all common data structures

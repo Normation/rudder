@@ -38,7 +38,7 @@ impl Step {
         env: Vec<(&str, &str)>,
         target_dir: &Path,
     ) -> Result<()> {
-        ok_output("Running", format!("'{}'", &self.command));
+        ok_output("Running", format!("'{}'", self.command));
         let output = match target {
             Target::Unix => Command::new("/bin/sh")
                 .arg("-c")
@@ -55,7 +55,7 @@ impl Step {
                 Command::new(POWERSHELL_BIN)
                     .args(POWERSHELL_OPTS)
                     .arg("-Command")
-                    .arg(format!("&'{}'", &script.canonicalize()?.to_string_lossy()))
+                    .arg(format!("&'{}'", script.canonicalize()?.to_string_lossy()))
                     .envs(env)
                     .current_dir(cwd)
                     .output()?
@@ -64,7 +64,7 @@ impl Step {
         if !output.status.success() {
             bail!(
                 "Test '{}' failed\nstdout: {}\nstderr: {}",
-                &self.command,
+                self.command,
                 String::from_utf8_lossy(&output.stdout),
                 String::from_utf8_lossy(&output.stderr),
             )

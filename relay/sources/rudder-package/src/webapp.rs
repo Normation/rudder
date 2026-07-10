@@ -66,7 +66,7 @@ impl Webapp {
         let mut reader = Reader::from_file(&self.path).with_context(|| {
             format!(
                 "Failed to read from webapp config file '{}'",
-                &self.path.to_string_lossy()
+                self.path.to_string_lossy()
             )
         })?;
         let mut buf = Vec::new();

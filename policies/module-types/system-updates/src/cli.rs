@@ -97,7 +97,7 @@ impl Cli {
     pub fn run() -> Result<()> {
         let opts = Self::parse_args_default_or_exit();
         if opts.verbose {
-            println!("Parsed options: {:#?}", &opts);
+            println!("Parsed options: {:#?}", opts);
         }
 
         match opts.command {

@@ -494,7 +494,7 @@ impl ForeachContext {
     fn expand(self, template: String, canonify_iterator: bool) -> String {
         let pattern = format!(r"\$\{{{}\.(\w+)\}}", regex::escape(&self.variable_name));
         let regex = regex::Regex::new(&pattern)
-            .unwrap_or_else(|_| panic!("Invalid loop variable iterator {}", &self.variable_name));
+            .unwrap_or_else(|_| panic!("Invalid loop variable iterator {}", self.variable_name));
         regex
             .replace_all(&template, |captures: &regex::Captures| {
                 let key = &captures[1];
@@ -524,7 +524,7 @@ impl DeserItem {
                 &context.clone()
                     .into_iter()
                     .fold(self.condition.to_string(), |acc, x| x.clone().expand(acc.to_string(), true))
-            ).with_context(|| format!("Failed to render the condition in item {} while resolving the foreach items, using context {:#?}", &self.id, context))?;
+            ).with_context(|| format!("Failed to render the condition in item {} while resolving the foreach items, using context {:#?}", self.id, context))?;
         let documentation = self.documentation.as_ref().map(|d| {
             context
                 .iter()
@@ -674,7 +674,7 @@ impl DeserItem {
                 id: self.id.clone(),
                 reporting: self.reporting.try_into().context(format!(
                     "Method {} ({}) has an unexpected reporting mode",
-                    &self.name, &self.id
+                    self.name, self.id
                 ))?,
                 info: None,
                 policy_mode_override: self.policy_mode_override,
