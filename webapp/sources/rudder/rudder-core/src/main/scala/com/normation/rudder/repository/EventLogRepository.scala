@@ -435,7 +435,7 @@ trait EventLogRepository {
    */
   def saveModifyNode(
       modId:      ModificationId,
-      hostname: String,
+      hostname:   String,
       principal:  EventActor,
       modifyDiff: ModifyNodeDiff,
       reason:     Option[String],

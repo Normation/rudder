@@ -167,7 +167,14 @@ class WoLDAPNodeRepository(
                            case _                       =>
                              val diff =
                                ModifyNodeDiff.keyInfo(nodeId, agentsInfo._1.map(_.securityToken), agentsInfo._2, agentKey, agentKeyStatus)
-                             actionLogger.saveModifyNode(modId, hostname = ???, actor, diff, reason, Instant.now()) // FIXME not sure to have the hostname node available here
+                             actionLogger.saveModifyNode(
+                               modId,
+                               hostname = ???,
+                               actor,
+                               diff,
+                               reason,
+                               Instant.now()
+                             ) // FIXME not sure to have the hostname node available here
                          }
       } yield ())
     }

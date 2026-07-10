@@ -119,15 +119,16 @@ class EventLogDetailsGenerator(
     }
 
     def nodeDesc(x: EventLog, actionName: NodeSeq) = {
-      val id   = (x.details \\ "node" \ "id").text
+      val id       = (x.details \\ "node" \ "id").text
       val hostname = (x.details \\ "node" \ "hostname").text
-      val fqdn =  (x.details \\ "node" \ "fqdn").text
-      val node =  (x.details \\ "node").text
-      val name = (x.details \\ "node" \ "hostname").text.strip() match {
-        case "" => (x.details \\ "node" \ "fqdn").text.strip() match {
-          case "" => id // FIXME
-          case x => x
-        }
+      val fqdn     = (x.details \\ "node" \ "fqdn").text
+      val node     = (x.details \\ "node").text
+      val name     = (x.details \\ "node" \ "hostname").text.strip() match {
+        case "" =>
+          (x.details \\ "node" \ "fqdn").text.strip() match {
+            case "" => id // FIXME
+            case x  => x
+          }
         case x  => x
       }
       if (id != "root") {
@@ -136,7 +137,7 @@ class EventLogDetailsGenerator(
         println(fqdn)
         println(node)
       }
-      val text = Text("Node ") ++ {
+      val text     = Text("Node ") ++ {
         if ((id.size < 1) || (actionName == Text(" deleted"))) Text(s"${name} deleted")
         else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
       }

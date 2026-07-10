@@ -282,7 +282,7 @@ trait EventLogFactory {
   ): ModifyGlobalProperty
 
   def getModifyNodeFromDiff(
-      hostname:String,
+      hostname:       String,
       id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
@@ -1094,8 +1094,8 @@ class EventLogFactoryImpl(
   }
 
   def getModifyNodeFromDiff(
-                             hostname: String,
-                             id:             Option[Int] = None,
+      hostname:       String,
+      id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyNodeDiff,
