@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr, sync::LazyLock};
+use std::{collections::HashMap, fmt, path::PathBuf, str, str::FromStr};
 
 use anyhow::Error;
 use openssl::{
@@ -10,7 +10,7 @@ use openssl::{
     rsa::Rsa,
     sign::Verifier,
 };
-use regex::Regex;
+use regex::regex;
 
 use crate::{
     error::RudderError,
@@ -59,11 +59,10 @@ impl SharedFile {
         // Only ascii alphanumeric, - and .
         // This is the documented constraint for file_id
         // More than enough for node ids too but we don't have a precise spec.
-        static CHECK: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap());
         // Also reject the special `.` and `..` values which could lead to a path traversal
         // as IDs as used as paths.
-        let is_valid = |id: &str| CHECK.is_match(id) && id != "." && id != "..";
+        let is_valid =
+            |id: &str| regex!(r"^[A-Za-z0-9\-_.]+$").is_match(id) && id != "." && id != "..";
         if !is_valid(&source_id) {
             return Err(
                 RudderError::InvalidSharedFile(format!("invalid source_id: {source_id}",)).into(),

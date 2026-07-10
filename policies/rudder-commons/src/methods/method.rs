@@ -5,29 +5,14 @@
 //!
 //! Use a method (function-like) based model.
 
-use std::{path::PathBuf, str::FromStr, sync::LazyLock};
+use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{Error, Result, bail};
 use log::debug;
-use regex::Regex;
+use regex::regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{Escaping, MethodConstraint, MethodConstraints, Target};
-
-/// Parameter tags (with a parameter sub key)
-static ATTRIBUTES_TAG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*#\s*@(parameter\w*)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$").unwrap()
-});
-/// Other tags, allow multiline
-static TAG_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*#\s*@(\w+)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$").unwrap());
-static MULTILINE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\s*# ?(.*)$").unwrap());
-static BUNDLE_AGENT_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"[^#]*bundle\s+agent.*$").unwrap());
-/// Bundle signature
-static BUNDLE_SIGNATURE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"[^#{]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*").unwrap()
-});
 
 /// Supported agent for a legacy method, now replaced by `Target`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -161,7 +146,10 @@ impl FromStr for MethodInfo {
 
         for line in s.lines() {
             // Parameter tags (with a parameter sub key)
-            if let Some(caps) = ATTRIBUTES_TAG_REGEX.captures(line) {
+            if let Some(caps) =
+                regex!(r"^\s*#\s*@(parameter\w*)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$")
+                    .captures(line)
+            {
                 multiline = None;
                 let tag = &caps[1];
                 let parameter_name = &caps[3];
@@ -207,7 +195,9 @@ impl FromStr for MethodInfo {
             }
 
             // Other tags, allow multiline
-            if let Some(caps) = TAG_REGEX.captures(line) {
+            if let Some(caps) =
+                regex!(r"^\s*#\s*@(\w+)\s*(([a-zA-Z0-9_]+)?\s+(.*?)|.*?)\s*$").captures(line)
+            {
                 multiline = None;
                 let tag = &caps[1];
                 match tag {
@@ -245,7 +235,7 @@ impl FromStr for MethodInfo {
             }
 
             if let Some(multi) = multiline {
-                if let Some(caps) = MULTILINE_REGEX.captures(line) {
+                if let Some(caps) = regex!(r"^\s*# ?(.*)$").captures(line) {
                     match multi {
                         "description" => {
                             method.description.push('\n');
@@ -271,14 +261,16 @@ impl FromStr for MethodInfo {
                 continue;
             }
 
-            if BUNDLE_AGENT_REGEX.captures(line).is_some() {
+            if regex!(r"[^#]*bundle\s+agent.*$").captures(line).is_some() {
                 // We're done with metadata parsing, let's stop now
                 break;
             }
         }
 
         // Select the first bundle, which is by convention the main one
-        if let Some(caps) = BUNDLE_SIGNATURE_REGEX.captures(s) {
+        if let Some(caps) =
+            regex!(r"[^#{]*bundle\s+agent\s+(\w+)\s*(\(([^)]*)\))?\s*\{?\s*").captures(s)
+        {
             method.bundle_name = (caps[1]).to_string();
             method.bundle_args = match &caps.get(3) {
                 Some(args) => args
