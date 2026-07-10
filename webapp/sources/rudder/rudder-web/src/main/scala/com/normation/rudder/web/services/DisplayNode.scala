@@ -646,11 +646,24 @@ object DisplayNode extends Loggable {
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>
-          <div class="markdown" id="nodeDocumentation">
-          </div>
           {
+      <div id="nodedocumentation-app"></div> ++
       WithNonce.scriptWithNonce(
-        Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))
+        Script(OnLoad(JsRaw((s"""
+                                |const nodeDocumentation = document.getElementById("nodedocumentation-app")
+                                |const initValues = {
+                                |  nodeId : "${nodeFact.id.value}",
+                                |  contextPath : contextPath,
+                                |  nodeWrite : CanWriteNode
+                                |};
+                                |const app = Elm.NodeDescription.init({node: nodeDocumentation, flags: initValues});
+                                |app.ports.errorNotification.subscribe(function(str) {
+                                |  createErrorNotification(str)
+                                |});
+                                |app.ports.successNotification.subscribe(function(str) {
+                                |  createSuccessNotification(str)
+                                |});
+                                |""".stripMargin))))
       )
     }
         </div>
@@ -749,7 +762,7 @@ object DisplayNode extends Loggable {
               <div><label>Security token fingerprint (sha1): </label> <samp>{
                 SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
               }</samp></div>
-                    <div><label>Security token expiration date: </label> {
+                <div><label>Security token expiration date: </label> {
                 DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter, DateTimeZone.UTC))
               }</div>
             )
