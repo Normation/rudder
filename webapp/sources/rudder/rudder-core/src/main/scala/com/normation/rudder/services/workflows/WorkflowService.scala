@@ -61,6 +61,21 @@ import zio.syntax.ToZio
 case object WorkflowUpdate
 
 /*
+ * Tells whether the user acting on a change request is the one who authored it. Used to
+ * enforce the self-validation / self-deployment control (segregation of duties): a user
+ * may be forbidden to validate/deploy their own change request.
+ */
+sealed trait ChangeRequestAuthorship
+object ChangeRequestAuthorship {
+  case object Author    extends ChangeRequestAuthorship
+  case object NotAuthor extends ChangeRequestAuthorship
+
+  // single place that decides if the acting user authored the change request
+  def of(changeRequest: ChangeRequest, user: AuthenticatedUser): ChangeRequestAuthorship =
+    if (changeRequest.owner == user.name) Author else NotAuthor
+}
+
+/*
  * For rules, we have dedicated actions
  */
 sealed abstract class RuleModAction(val name: String)
@@ -225,9 +240,16 @@ trait WorkflowService {
 
   def stepsValue: List[WorkflowNodeId]
 
-  def findNextSteps(currentStep: WorkflowNodeId)(implicit auth: AuthenticatedUser): WorkflowAction
+  /*
+   * `authorship` tells if the current user is the author of the change request the step
+   * belongs to. It is needed to enforce the self-validation / self-deployment control
+   * (segregation of duties): a user may be forbidden to validate/deploy their own change.
+   */
+  def findNextSteps(currentStep: WorkflowNodeId, authorship: ChangeRequestAuthorship)(implicit
+      auth: AuthenticatedUser
+  ): WorkflowAction
 
-  def findBackSteps(currentStep: WorkflowNodeId)(implicit
+  def findBackSteps(currentStep: WorkflowNodeId, authorship: ChangeRequestAuthorship)(implicit
       auth: AuthenticatedUser
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])]
 
@@ -241,8 +263,7 @@ trait WorkflowService {
    */
   def getAllChangeRequestsStep(): IOResult[Map[ChangeRequestId, WorkflowNodeId]]
 
-  def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean
-  def isPending(currentStep:        WorkflowNodeId): Boolean
+  def isPending(currentStep: WorkflowNodeId): Boolean
 
   /*
    * A method that tells if the workflow requires an external validation.
@@ -275,9 +296,11 @@ class NoWorkflowServiceImpl(
 
   val name = "no-changes-validation-workflow"
 
-  def findNextSteps(currentStep: WorkflowNodeId)(implicit authz: AuthenticatedUser): WorkflowAction = NoWorkflowAction
+  def findNextSteps(currentStep: WorkflowNodeId, authorship: ChangeRequestAuthorship)(implicit
+      authz: AuthenticatedUser
+  ): WorkflowAction = NoWorkflowAction
 
-  def findBackSteps(currentStep: WorkflowNodeId)(implicit
+  def findBackSteps(currentStep: WorkflowNodeId, authorship: ChangeRequestAuthorship)(implicit
       auth: AuthenticatedUser
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])] = Seq()
 
@@ -298,8 +321,6 @@ class NoWorkflowServiceImpl(
       result.id
     }
   }
-
-  def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean = false
 
   def isPending(currentStep: WorkflowNodeId): Boolean = false
 
