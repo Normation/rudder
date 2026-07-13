@@ -67,6 +67,9 @@ mod variable_string_from_command_test;
 #[cfg(test)]
 mod variable_string_test;
 
+#[cfg(test)]
+mod variable_string_match_test;
+
 use log::debug;
 use rudder_commons::methods::Methods;
 use std::mem::ManuallyDrop;

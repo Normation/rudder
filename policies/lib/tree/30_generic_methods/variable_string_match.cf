@@ -36,11 +36,7 @@
 bundle agent variable_string_match(name, expected_match)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_string_match_${name}");
-      "args"               slist => { "${name}", "${expected_match}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("variable_string_match_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("variable_string_match_${name}");
 
   classes:
       "pass3" expression => "pass2";
@@ -53,20 +49,17 @@ bundle agent variable_string_match(name, expected_match)
       "matches"           and => {regcmp("${expected_match}", "${${name}}"), "var_exists"};
 
   methods:
-    pass3::
-      "failure" usebundle => _classes_failure("${old_class_prefix}"),
-        ifvarclass => "!matches";
-      "failure" usebundle => _classes_failure("${class_prefix}"),
-        ifvarclass => "!matches";
+    pass3.!matches::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
-      "success" usebundle => _classes_success("${old_class_prefix}"),
-        ifvarclass => "matches";
-      "success" usebundle => _classes_success("${class_prefix}"),
-        ifvarclass => "matches";
+    pass3.matches::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
     pass3.var_exists::
-      "report"  usebundle => _log("Check that the variable ${name} matches the regex: /${expected_match}/", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}"  usebundle => log_rudder_v4("${name}", "Check that the variable ${name} matches the regex: /${expected_match}/", "");
     pass3.!var_exists::
-      "report"  usebundle => _log("The variable ${name} could not be found", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}"  usebundle => log_rudder_v4("${name}", "The variable ${name} could not be found", "");
 }
 
