@@ -149,6 +149,12 @@ impl SharedFilesPutParams {
             Err(_) => parse_duration(&self.ttl).map_err(|e| e.into()),
         }
     }
+
+    /// Removal timestamp = now + ttl
+    fn expires(&self) -> Result<i64, Error> {
+        let ttl = chrono::Duration::from_std(self.ttl()?)?;
+        Ok((Utc::now() + ttl).timestamp())
+    }
 }
 
 #[instrument(name = "shared_files_put", level = "debug", skip(job_config, body))]
@@ -254,24 +260,19 @@ pub async fn put_local(
         }
     }
 
+    let expires = match params.expires() {
+        Ok(expires) => expires,
+        Err(e) => {
+            warn!("invalid ttl: {}", e);
+            return Ok(StatusCode::BAD_REQUEST);
+        }
+    };
+
     // Everything is correct, let's store the file
     fs::create_dir_all(&base_path).await?;
     fs::write(
         &base_path.join(format!("{}.metadata", file.file_id)),
-        format!(
-            "{}expires={}\n",
-            meta,
-            match params.ttl() {
-                // Removal timestamp = now + ttl
-                Ok(ttl) => (Utc::now()
-                    + chrono::Duration::from_std(ttl).expect("Unexpectedly large duration"))
-                .timestamp(),
-                Err(e) => {
-                    warn!("invalid ttl: {}", e);
-                    return Ok(StatusCode::INTERNAL_SERVER_ERROR);
-                }
-            }
-        ),
+        format!("{}expires={}\n", meta, expires),
     )
     .await?;
     fs::write(&base_path.join(file.file_id), file_content).await?;
@@ -388,5 +389,29 @@ mod tests {
         assert!(SharedFilesPutParams::new("913j").ttl().is_err());
         assert!(SharedFilesPutParams::new("913b83").ttl().is_err());
         assert!(SharedFilesPutParams::new("913h 89j").ttl().is_err());
+    }
+
+    #[test]
+    pub fn it_computes_expires_for_a_valid_ttl() {
+        let before = Utc::now().timestamp();
+        let expires = SharedFilesPutParams::new("1h").expires().unwrap();
+        let after = Utc::now().timestamp();
+
+        assert!(expires >= before + 3600);
+        assert!(expires <= after + 3600);
+    }
+
+    #[test]
+    pub fn it_rejects_an_invalid_ttl_format_in_expires() {
+        assert!(SharedFilesPutParams::new("913j").expires().is_err());
+    }
+
+    #[test]
+    pub fn it_rejects_a_ttl_too_large_for_chrono_instead_of_panicking() {
+        // `u64::MAX` seconds is a valid `std::time::Duration` but overflows
+        // `chrono::Duration`, which is backed by an `i64` millisecond count.
+        assert!(SharedFilesPutParams::new(&u64::MAX.to_string())
+            .expires()
+            .is_err());
     }
 }
