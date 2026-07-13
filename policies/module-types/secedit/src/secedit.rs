@@ -278,6 +278,7 @@ fn config_search_and_replace(
             }
         };
 
+        let mut section_diff: Vec<String> = vec![];
         for (key, new_value) in entries {
             let new_value = validate_property(key, section, new_value)?.replace("\"", "");
             let new_value = if new_value.is_empty() {
@@ -334,10 +335,15 @@ fn config_search_and_replace(
             };
 
             if !key_equal(&new_value, &old_value) {
-                let diffline = format!("\n- {key}={old_value}\n+ {key}={new_value}");
-                report.diff.push_str(&diffline);
+                let diffline = format!("\n    - {key}={old_value}\n    + {key}={new_value}");
+                section_diff.push(diffline);
                 properties.insert(key, &new_value);
             }
+        }
+        if !section_diff.is_empty() {
+            report
+                .diff
+                .push_str(&format!("\n {section}:{}", section_diff.join("\n")));
         }
     }
 
@@ -538,7 +544,7 @@ mod test {
         let report = config_search_and_replace(&mut config, &Ini::new(), data).unwrap();
         assert_eq!(
             report.diff,
-            "\n- MinimumPasswordLength=0\n+ MinimumPasswordLength=12\n- NewAdministratorName=Administrator\n+ NewAdministratorName=Ferris"
+            "\n System Access:\n    - MinimumPasswordLength=0\n    + MinimumPasswordLength=12\n\n    - NewAdministratorName=Administrator\n    + NewAdministratorName=Ferris"
         );
     }
 
