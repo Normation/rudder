@@ -467,15 +467,18 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       interval: Interval,
       limit:    Option[Int]
   ): Box[Seq[ResultRepairedReport]] = {
-    val l = limit match {
-      case Some(i) if (i > 0) => s"limit ${i}"
-      case _                  => ""
+    val limitFr = limit match {
+      case Some(i) if (i > 0) => fr"limit ${i}"
+      case _                  => Fragment.empty
     }
-    transactRunBox(xa => query[ResultRepairedReport](s"""
-      ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.serialize}'
-      and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp
-      and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)}'::timestamp order by executionTimeStamp asc ${l}
-    """).to[Vector].transact(xa))
+    // typedQuery is a trusted constant; all runtime values are bound as parameters to prevent SQL injection
+    val start   = new DateTime(interval.getStartMillis)
+    val end     = new DateTime(interval.getEndMillis)
+    val q       = Fragment.const(typedQuery) ++
+      fr"and eventtype = ${Reports.RESULT_REPAIRED} and ruleid = ${ruleId}" ++
+      fr"and executionTimeStamp >  ${start} and executionTimeStamp <= ${end}" ++
+      fr"order by executionTimeStamp asc" ++ limitFr
+    transactRunBox(xa => q.query[ResultRepairedReport].to[Vector].transact(xa))
   }
 
   override def getReportsByKindBetween(

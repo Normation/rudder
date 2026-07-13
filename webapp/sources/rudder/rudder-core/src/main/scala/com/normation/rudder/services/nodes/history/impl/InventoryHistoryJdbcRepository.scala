@@ -188,8 +188,10 @@ class InventoryHistoryJdbcRepository(
 
   // delete all facts which have a delete event older than given data
   def deleteFactIfDeleteEventBefore(date: DateTime): IOResult[Vector[NodeId]] = {
+    // the date is stored as an ISO-8601 UTC string (see DateFormaterService.serialize), so cast it to
+    // timestamptz and compare instants: this is independent of the JVM/PostgreSQL session time zone.
     val q = sql"""delete from nodefacts
-           where to_timestamp(deleteEvent->>'date', 'YYYY-MM-DDTHH:MI:SS"Z"') < ${date}
+           where (deleteEvent->>'date')::timestamptz < ${date}
            returning nodeid"""
 
     transactIOResult(
@@ -200,11 +202,11 @@ class InventoryHistoryJdbcRepository(
   }
 
   // delete all facts which were created before given data (whatever node current status)
-  // Postgresql has a "returning id" clause, but it does not seems to be supported by JDBC. It
-  // would have been good for logs
+  // the "returning nodeid" clause gives back the list of deleted node ids (useful for logs)
   def deleteFactCreatedBefore(date: DateTime): IOResult[Vector[NodeId]] = {
+    // see deleteFactIfDeleteEventBefore: compare instants via timestamptz to stay time-zone independent
     val q = sql"""delete from nodefacts
-         where to_timestamp(acceptRefuseEvent->>'date', 'YYYY-MM-DDTHH:MI:SS"Z"') < ${date}
+         where (acceptRefuseEvent->>'date')::timestamptz < ${date}
          returning nodeid"""
 
     transactIOResult(
