@@ -346,7 +346,7 @@ impl JobConfig {
         let new_nodes =
             spawn_blocking(move || NodesList::new(my_id, nodes_file, Some(certs_file))).await??;
 
-        // No take the write lock and swap the data
+        // Now take the write lock and swap the data
         let mut nodes = self.nodes.write().await;
         *nodes = new_nodes;
 
