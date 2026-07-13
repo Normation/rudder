@@ -6,7 +6,8 @@ use std::{
     env,
     fs::{self, *},
     io::{Cursor, Read},
-    path::PathBuf,
+    path::{Component, Path, PathBuf},
+    str,
 };
 
 use anyhow::{Context, Ok, Result, anyhow, bail};
@@ -71,6 +72,23 @@ impl fmt::Display for PackageScriptArg {
     }
 }
 
+/// Joins `relative` onto `prefix`, rejecting entries that would let the
+/// result escape `prefix`.
+fn safe_join(prefix: &Path, relative: &str) -> Result<PathBuf> {
+    let relative = Path::new(relative);
+    if relative.is_absolute()
+        || relative
+            .components()
+            .any(|c| matches!(c, Component::ParentDir | Component::Prefix(_)))
+    {
+        bail!(
+            "Archive entry '{}' has an unsafe path, refusing to install it",
+            relative.display()
+        );
+    }
+    Ok(prefix.join(relative))
+}
+
 #[derive(Clone)]
 pub struct Rpkg {
     pub path: PathBuf,
@@ -85,12 +103,16 @@ impl Rpkg {
         })
     }
 
-    fn get_txz_dst(&self, txz_name: &str) -> PathBuf {
+    fn get_txz_dst(&self, txz_name: &str) -> Result<PathBuf> {
         // Build the destination path
         if txz_name == PACKAGE_SCRIPTS_ARCHIVE {
-            return PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone());
+            return Ok(PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone()));
         }
-        PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string())
+        let dst =
+            self.metadata.content.get(txz_name).ok_or_else(|| {
+                anyhow!("txz member '{txz_name}' is missing from metadata content")
+            })?;
+        Ok(PathBuf::from(dst.to_string()))
     }
 
     fn get_archive_installed_files(&self) -> Result<Vec<String>> {
@@ -107,7 +129,7 @@ impl Rpkg {
         let mut txz_names = Vec::<String>::new();
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
         while let Some(entry_result) = archive.next_entry() {
-            let name = std::str::from_utf8(entry_result?.header().identifier())?.to_string();
+            let name = str::from_utf8(entry_result?.header().identifier())?.to_string();
             if name.ends_with(".txz") {
                 txz_names.push(name);
             }
@@ -120,7 +142,8 @@ impl Rpkg {
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
         while let Some(entry_result) = archive.next_entry() {
             let txz_archive = entry_result.unwrap();
-            let entry_title = std::str::from_utf8(txz_archive.header().identifier()).unwrap();
+            let entry_title = str::from_utf8(txz_archive.header().identifier())
+                .context("Invalid archive member name")?;
             if entry_title != txz_name {
                 continue;
             }
@@ -145,13 +168,19 @@ impl Rpkg {
     }
 
     fn get_absolute_file_list_of_txz(&self, txz_name: &str) -> Result<Vec<String>> {
-        let prefix = self.get_txz_dst(txz_name);
+        let prefix = self.get_txz_dst(txz_name)?;
         let relative_files = self.get_relative_file_list_of_txz(txz_name)?;
-        Ok(relative_files
+        relative_files
             .iter()
-            .map(|x| -> PathBuf { prefix.join(x) })
-            .map(|y| y.to_str().ok_or(anyhow!("err")).map(|z| z.to_owned()))
-            .collect::<Result<Vec<String>>>()?)
+            .map(|x| safe_join(&prefix, x))
+            .map(|p| {
+                p.and_then(|y| {
+                    y.to_str().map(|z| z.to_owned()).ok_or_else(|| {
+                        anyhow!("Archive entry path '{}' is not valid UTF-8", y.display())
+                    })
+                })
+            })
+            .collect::<Result<Vec<String>>>()
     }
 
     fn unpack_embedded_txz(&self, txz_name: &str, dst_path: PathBuf) -> Result<(), anyhow::Error> {
@@ -164,7 +193,8 @@ impl Rpkg {
         let mut archive = Archive::new(File::open(self.path.clone()).unwrap());
         while let Some(entry_result) = archive.next_entry() {
             let txz_archive = entry_result.unwrap();
-            let entry_title = std::str::from_utf8(txz_archive.header().identifier()).unwrap();
+            let entry_title = str::from_utf8(txz_archive.header().identifier())
+                .context("Invalid archive member name")?;
             if entry_title != txz_name {
                 continue;
             }
@@ -230,7 +260,7 @@ impl Rpkg {
         // Extract archive content
         let keys = self.metadata.content.keys().clone();
         for txz_name in keys {
-            self.unpack_embedded_txz(txz_name, self.get_txz_dst(txz_name))?
+            self.unpack_embedded_txz(txz_name, self.get_txz_dst(txz_name)?)?
         }
         // Update the plugin index file to track installed files
         // We need to add the content section to the metadata to do so
@@ -275,7 +305,8 @@ fn read_metadata(path: &str) -> Result<Metadata> {
     while let Some(entry_result) = archive.next_entry() {
         let mut entry = entry_result.unwrap();
         let mut buffer = String::new();
-        let entry_title = std::str::from_utf8(entry.header().identifier()).unwrap();
+        let entry_title =
+            str::from_utf8(entry.header().identifier()).context("Invalid archive member name")?;
         if entry_title == "metadata" {
             let _ = entry.read_to_string(&mut buffer)?;
             let m: Metadata = serde_json::from_str(&buffer)
@@ -293,6 +324,43 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+
+    #[test]
+    fn test_safe_join_rejects_path_traversal() {
+        let prefix = Path::new("/opt/rudder/share");
+        assert!(safe_join(prefix, "../../../../etc/cron.d/persistence").is_err());
+        assert!(safe_join(prefix, "foo/../../bar").is_err());
+    }
+
+    #[test]
+    fn test_safe_join_rejects_absolute_path() {
+        let prefix = Path::new("/opt/rudder/share");
+        assert!(safe_join(prefix, "/etc/cron.d/persistence").is_err());
+    }
+
+    #[test]
+    fn test_safe_join_accepts_normal_relative_path() {
+        let prefix = Path::new("/opt/rudder/share");
+        assert_eq!(
+            safe_join(prefix, "python/glpi.py").unwrap(),
+            PathBuf::from("/opt/rudder/share/python/glpi.py")
+        );
+    }
+
+    #[test]
+    fn test_read_metadata_rejects_non_utf8_member_name() {
+        // An `.rpkg` (ar archive) with a member name that isn't valid UTF-8
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("non-utf8-member.rpkg");
+        {
+            let file = File::create(&path).unwrap();
+            let mut builder = ar::Builder::new(file);
+            let data = b"not metadata";
+            let header = ar::Header::new(vec![0xFF, 0xFE], data.len() as u64);
+            builder.append(&header, &data[..]).unwrap();
+        }
+        assert!(read_metadata(path.to_str().unwrap()).is_err());
+    }
 
     #[test]
     fn test_read_rpkg_metadata() {
@@ -338,6 +406,15 @@ mod tests {
     }
 
     #[test]
+    fn test_get_txz_dst_missing_from_metadata_content_is_an_error() {
+        let mut r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
+        // Simulate an `.rpkg` whose physical `.txz` archive members disagree with the
+        // declared `metadata.content` map.
+        r.metadata.content.remove("files.txz");
+        assert!(r.get_txz_dst("files.txz").is_err());
+    }
+
+    #[test]
     fn test_get_archive_installed_files() {
         let r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
         assert_eq!(
@@ -358,7 +435,7 @@ mod tests {
         let expected_dir_content = "./tests/archive/expected_dir_content";
         let d = tempdir().unwrap().keep();
         let effective_target = {
-            let real_unpack_target = r.get_txz_dst("files.txz");
+            let real_unpack_target = r.get_txz_dst("files.txz").unwrap();
             let trimmed = Path::new(&real_unpack_target).strip_prefix("/").unwrap();
             bind = d.join(trimmed);
             bind.to_str().unwrap()
