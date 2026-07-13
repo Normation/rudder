@@ -152,3 +152,40 @@ fn it_rejects_too_large_shared_file_upload() {
         within_limit.status()
     );
 }
+
+#[test]
+fn it_rejects_invalid_ttl_values() {
+    let cli_cfg = CliConfiguration::new("tests/files/config/", false);
+    let (api_port, https_port) = random_ports();
+
+    thread::spawn(move || {
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
+    });
+    assert!(common::start_api(api_port).is_ok());
+
+    let client = reqwest::blocking::Client::new();
+
+    let file = "tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file2";
+    let signature = read_to_string(format!("{file}.sign")).unwrap();
+    let content = read_to_string(format!("{file}.source")).unwrap();
+
+    let too_large_ttl = client.put(format!(
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl={}", u64::MAX
+    )).body(format!("{signature}\n{content}"))
+        .send().unwrap();
+    assert_eq!(400, too_large_ttl.status());
+
+    let invalid_ttl = client
+        .put(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=not-a-duration"
+        ))
+        .body(format!("{signature}\n{content}"))
+        .send()
+        .unwrap();
+    assert_eq!(400, invalid_ttl.status());
+}
