@@ -78,6 +78,7 @@ import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.repository.*
 import com.normation.rudder.schedule.DirectiveSchedule
 import com.normation.rudder.schedule.DirectiveScheduleEvent
+import com.normation.rudder.schedule.DirectiveScheduleOneShot
 import com.normation.rudder.schedule.JsonDirectiveSchedule
 import com.normation.rudder.services.policies.fetchinfo.FetchAllInfoService
 import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurationHashRepository
@@ -489,6 +490,10 @@ trait ScheduleManagement {
   // This can come from elsewhere (workflow engine, etc).
   def updateSchedules(now: Instant, schedules: Seq[DirectiveSchedule]): IOResult[ScheduleData]
 
+  // add an on-demand occurrence window ("run now") to the given schedule. It works even
+  // when the schedule is disabled. The caller must then trigger a policy generation.
+  def addOneShotEvent(id: CampaignId, start: Instant, duration: java.time.Duration): IOResult[DirectiveScheduleOneShot]
+
 }
 
 /*
@@ -497,6 +502,14 @@ trait ScheduleManagement {
 class NoopScheduleManagement extends ScheduleManagement {
   override def updateSchedules(now: Instant, schedules: Seq[DirectiveSchedule]): IOResult[ScheduleData] = {
     ScheduleData.empty.succeed
+  }
+
+  override def addOneShotEvent(
+      id:       CampaignId,
+      start:    Instant,
+      duration: java.time.Duration
+  ): IOResult[DirectiveScheduleOneShot] = {
+    Inconsistency(s"On-demand runs are not supported by this schedule management implementation").fail
   }
 }
 
