@@ -68,14 +68,6 @@ impl Cli {
     }
 }
 
-fn shorten(s: &str, max_len: usize) -> String {
-    if s.len() > max_len {
-        format!("{}…", &s[..max_len - 1])
-    } else {
-        s.to_string()
-    }
-}
-
 pub fn show_events(events: Vec<DbEvent>) -> Result<()> {
     use cli_table::{Cell, Style, Table, print_stdout};
 
@@ -84,8 +76,8 @@ pub fn show_events(events: Vec<DbEvent>) -> Result<()> {
         .map(|e| {
             vec![
                 // No need for a full uuid, make the table more readable
-                shorten(&e.id, 9).cell(),
-                shorten(&e.schedule_id, 9).cell(),
+                rudder_commons::shorten(&e.id, 9).cell(),
+                rudder_commons::shorten(&e.schedule_id, 9).cell(),
                 e.schedule_type.cell(),
                 e.name.cell(),
                 e.schedule.cell(),
