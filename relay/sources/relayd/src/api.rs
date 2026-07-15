@@ -147,8 +147,12 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
             StatusCode::NOT_FOUND,
         ))
     } else {
+        // Do not leak internal details (warp filter internals, body
+        // deserialization errors, ...) to the client: log them server-side and
+        // return a generic message.
+        error!("Unhandled API rejection: {reject:?}");
         Ok(reply::with_status(
-            format!("{reject:?}"),
+            "INTERNAL SERVER ERROR".to_string(),
             StatusCode::INTERNAL_SERVER_ERROR,
         ))
     }
