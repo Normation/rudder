@@ -12,6 +12,7 @@ use anyhow::Error;
 use tokio::{
     signal::unix::{SignalKind, signal},
     sync::RwLock,
+    task::spawn_blocking,
 };
 use tracing::{debug, error, info, warn};
 use tracing_subscriber::{
@@ -335,12 +336,19 @@ impl JobConfig {
     }
 
     async fn reload_nodeslist(&self) -> Result<(), Error> {
+        let my_id = self.cfg.node_id()?;
+        let nodes_file = self.cfg.general.nodes_list_file.clone();
+        let certs_file = self.cfg.general.nodes_certs_file.clone();
+
+        // Reading and parsing the nodes list and certificates is blocking I/O
+        // (and CPU-bound PEM parsing), so run it on a blocking thread instead
+        // of on the async runtime.
+        let new_nodes =
+            spawn_blocking(move || NodesList::new(my_id, nodes_file, Some(certs_file))).await??;
+
+        // Now take the write lock and swap the data
         let mut nodes = self.nodes.write().await;
-        *nodes = NodesList::new(
-            self.cfg.node_id()?,
-            &self.cfg.general.nodes_list_file,
-            Some(&self.cfg.general.nodes_certs_file),
-        )?;
+        *nodes = new_nodes;
 
         Ok(())
     }
