@@ -54,6 +54,7 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.RudderLDAPConstants
+import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
@@ -61,11 +62,16 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
+import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.rest.{DirectiveApi as API, *}
 import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.data.ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi
+import com.normation.rudder.rest.data.ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveNodeComplianceApi
+import com.normation.rudder.rest.data.CsvCompliance.CsvDirectiveCompliance
+import com.normation.rudder.rest.data.CsvCompliance.DirectiveComplianceByNodeCsv
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
@@ -76,10 +82,14 @@ import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.model.DirectiveEditor
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control.*
+import com.normation.utils.Csv.toCsv
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio.currentTimeMillis
 import com.softwaremill.quicklens.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
+import net.liftweb.http.PlainTextResponse
 import net.liftweb.http.Req
 import zio.*
 import zio.syntax.*
@@ -94,14 +104,18 @@ class DirectiveApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
-      case API.DirectiveTree      => DirectiveTree
-      case API.ListDirectives     => ListDirective
-      case API.DirectiveDetails   => DirectiveDetails
-      case API.DirectiveRevisions => DirectiveRevisions
-      case API.CreateDirective    => CreateDirective
-      case API.UpdateDirective    => UpdateDirective
-      case API.DeleteDirective    => DeleteDirective
-      case API.CheckDirective     => CheckDirective
+      case API.DirectiveTree                  => DirectiveTree
+      case API.ListDirectives                 => ListDirective
+      case API.DirectiveDetails               => DirectiveDetails
+      case API.DirectiveRevisions             => DirectiveRevisions
+      case API.CreateDirective                => CreateDirective
+      case API.UpdateDirective                => UpdateDirective
+      case API.DeleteDirective                => DeleteDirective
+      case API.CheckDirective                 => CheckDirective
+      case API.GetDirectiveComplianceId       => GetDirectiveComplianceId
+      case API.GetDirectiveComplianceByNodeId => GetDirectiveComplianceByNodeId
+      case API.GetDirectiveComplianceByRuleId => GetDirectiveComplianceByRuleId
+      case API.GetDirectivesCompliance        => GetDirectivesCompliance
     }
   }
 
@@ -232,6 +246,191 @@ class DirectiveApi(
       }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
+
+  object GetDirectiveComplianceId extends LiftApiModule {
+    override val schema: API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
+
+    override def process(
+        version:     ApiVersion,
+        path:        ApiPath,
+        directiveId: String,
+        req:         Req,
+        params:      DefaultParams,
+        authzToken:  AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        t1        <- currentTimeMillis
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        id        <- DirectiveId.parse(directiveId).toIO
+        d         <- service.getDirective(id)
+        t2        <- currentTimeMillis
+        _         <- TimingDebugLoggerPure.trace(s"API DirectiveCompliance - getting query param in ${t2 - t1} ms")
+        directive <- service.getDirectiveCompliance(d, level)
+        t3        <- currentTimeMillis
+        _          = TimingDebugLoggerPure.trace(
+                       s"API DirectiveCompliance - getting directive compliance '${id.uid.value}' in ${t3 - t2} ms"
+                     )
+      } yield (level, precision, directive))
+        .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, directive) =>
+          // by default, all details are displayed
+          given l: Int                 = level.getOrElse(10)
+          given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+          given f: Boolean             = params.prettify
+
+          val d = ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceContainer(
+            directive.transformInto[ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi]
+          )
+
+          RudderJsonResponse.successOne(RudderJsonResponse.toResponseSchema(schema), d, Some(directiveId))
+        }
+    }
+  }
+
+  object GetDirectiveComplianceByNodeId extends LiftApiModule {
+    override val schema: API.GetDirectiveComplianceByNodeId.type = API.GetDirectiveComplianceByNodeId
+
+    override def process(
+        version:     ApiVersion,
+        path:        ApiPath,
+        directiveId: String,
+        req:         Req,
+        params:      DefaultParams,
+        authzToken:  AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        t1        <- currentTimeMillis
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        format    <- ComplianceUtils.extractComplianceFormat(req.params)
+        id        <- DirectiveId.parse(directiveId).toIO
+        d         <- service.getDirective(id)
+        t2        <- currentTimeMillis
+        _         <- TimingDebugLoggerPure.trace(s"API DirectiveCompliance - getting query param in ${t2 - t1} ms")
+        directive <- service.getDirectiveCompliance(d, level)
+        t3        <- currentTimeMillis
+        _          = TimingDebugLoggerPure.trace(
+                       s"API DirectiveCompliance - getting directive compliance by node for directive '${id.uid.value}' in ${t3 - t2} ms"
+                     )
+      } yield (level, precision, format, directive))
+        .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, format, directive) =>
+          format match {
+            case ComplianceFormat.CSV =>
+              PlainTextResponse(directive.nodes.transformInto[Seq[DirectiveComplianceByNodeCsv]].toCsv)
+
+            case ComplianceFormat.JSON =>
+              // by default, all details are displayed
+              given l: Int                 = level.getOrElse(10)
+              given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+              given f: Boolean             = params.prettify
+
+              val d = {
+                directive
+                  .transformInto[ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi]
+                  .nodes
+                  .getOrElse(Seq.empty)
+                  .toList
+              }
+
+              RudderJsonResponse.successList(RudderJsonResponse.toResponseSchema(schema), d)
+          }
+        }
+    }
+  }
+
+  object GetDirectiveComplianceByRuleId extends LiftApiModule {
+    override val schema: API.GetDirectiveComplianceByRuleId.type = API.GetDirectiveComplianceByRuleId
+
+    override def process(
+        version:     ApiVersion,
+        path:        ApiPath,
+        directiveId: String,
+        req:         Req,
+        params:      DefaultParams,
+        authzToken:  AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level     <- ComplianceUtils.extractComplianceLevel(req.params)
+        t1        <- currentTimeMillis
+        precision <- ComplianceUtils.extractPercentPrecision(req.params)
+        format    <- ComplianceUtils.extractComplianceFormat(req.params)
+        id        <- DirectiveId.parse(directiveId).toIO
+        d         <- service.getDirective(id)
+        t2        <- currentTimeMillis
+        _         <- TimingDebugLoggerPure.trace(s"API DirectiveCompliance - getting query param in ${t2 - t1} ms")
+        directive <- service.getDirectiveCompliance(d, level)
+        t3        <- currentTimeMillis
+        _          = TimingDebugLoggerPure.trace(
+                       s"API DirectiveCompliance - getting directive compliance by rule for directive '${id.uid.value}' in ${t3 - t2} ms"
+                     )
+      } yield (level, precision, format, directive))
+        .toLiftResponseGeneric(params, schema, IdTrace.Const(None)) { (level, precision, format, directive) =>
+          format match {
+            case ComplianceFormat.CSV =>
+              PlainTextResponse(directive.toCsv) // CSVFormat takes care of line separators
+
+            case ComplianceFormat.JSON =>
+              // by default, all details are displayed
+              given l: Int                 = level.getOrElse(10)
+              given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+              given f: Boolean             = params.prettify
+
+              val d = {
+                directive
+                  .transformInto[ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi]
+                  .rules
+                  .getOrElse(Seq.empty)
+                  .toList
+              }
+
+              RudderJsonResponse.successList(RudderJsonResponse.toResponseSchema(schema), d)
+          }
+        }
+    }
+  }
+
+  object GetDirectivesCompliance extends LiftApiModule0 {
+    override val schema: API.GetDirectivesCompliance.type = API.GetDirectivesCompliance
+
+    override def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+
+      (for {
+        level      <- ComplianceUtils.extractComplianceLevel(req.params)
+        t1         <- currentTimeMillis
+        precision  <- ComplianceUtils.extractPercentPrecision(req.params)
+        t2         <- currentTimeMillis
+        _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
+        t4         <- currentTimeMillis
+        directives <- service.getDirectivesCompliance(level)
+        t5         <- currentTimeMillis
+        _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - getting directives compliance in ${t5 - t4} ms")
+        json        = {
+          given l: Int = level.getOrElse(10)
+
+          given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+
+          directives.map(_.transformInto[ComplianceApiData.JsonByDirectiveCompliance.ByDirectiveComplianceApi])
+        }
+        t6         <- currentTimeMillis
+        _          <- TimingDebugLoggerPure.trace(s"API DirectivesCompliance - serialize to json in ${t6 - t5} ms")
+      } yield {
+        json
+      }).toLiftResponseList(params, schema)
+    }
+  }
 }
 
 // utility methods used in both service
@@ -266,7 +465,8 @@ class DirectiveApiService14(
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
     editorService:        DirectiveEditorService,
-    techniqueRepository:  TechniqueRepository
+    techniqueRepository:  TechniqueRepository,
+    complianceService:    ComplianceAPIService
 ) {
 
   def directiveTree(includeSystem: Boolean)(using qc: QueryContext): IOResult[JRDirectiveTreeCategory] = {
@@ -561,5 +761,17 @@ class DirectiveApiService14(
       val updatedDirective = directiveUpdate.after.directive
       JRDirective.fromDirective(updatedTechnique, updatedDirective, None)
     }
+  }
+
+  def getDirective(id: DirectiveId)(using qc: QueryContext): IOResult[Directive] = {
+    readDirective.getDirective(id.uid).notOptional(s"Directive with id '${id.serialize}' not found")
+  }
+
+  def getDirectiveCompliance(d: Directive, level: Option[Int])(using qc: QueryContext): IOResult[ByDirectiveCompliance] = {
+    complianceService.getDirectiveCompliance(d, level)
+  }
+
+  def getDirectivesCompliance(level: Option[Int])(using qc: QueryContext): IOResult[Seq[ByDirectiveCompliance]] = {
+    complianceService.getDirectivesCompliance(level)
   }
 }

@@ -2410,7 +2410,8 @@ object RudderConfigInit {
               asyncDeploymentAgent,
               workflowLevelService,
               directiveEditorService,
-              techniqueRepositoryImpl
+              techniqueRepositoryImpl,
+              complianceAPIService
             )
           ),
           new NodeApi(

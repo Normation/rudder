@@ -331,6 +331,14 @@ paths:
     $ref: paths/directives/id-check.yml
   "/directives/tree":
     $ref: paths/directives/tree.yml
+  "/directives/compliance":
+    $ref: paths/directives/compliance.yml
+  "/directives/{directiveId}/compliance":
+    $ref: paths/directives/compliance-id.yml
+  "/directives/{directiveId}/compliance/byNode":
+    $ref: paths/directives/compliance-id-by-node.yml
+  "/directives/{directiveId}/compliance/byRule":
+    $ref: paths/directives/compliance-id-by-rule.yml
   "/rules":
     $ref: paths/rules/all.yml
   "/rules/{ruleId}":

@@ -1,6 +1,7 @@
 module DirectiveCompliance.DataTypes exposing (..)
 
 import Compliance.DataTypes exposing (..)
+import Date
 import Dict exposing (Dict)
 import Http exposing (Error)
 import Rules.DataTypes exposing (RuleCompliance)
@@ -103,6 +104,8 @@ type Msg
     | ToggleRowSort String String SortOrder
     | GetPolicyModeResult (Result Error String)
     | GetDirectiveComplianceResult (Result Error DirectiveCompliance)
-    | Export (Result Error String)
     | CallApi (Model -> Cmd Msg)
     | LoadCompliance String
+    | ExportDirectiveComplianceByNode DirectiveId Date.Date
+    | ExportDirectiveComplianceByRule DirectiveId Date.Date
+    | DirectiveComplianceCsvExported String (Result Error String)

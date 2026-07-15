@@ -2,6 +2,7 @@ port module Directivecompliance exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Date
 import Dict
 import Dict.Extra
 import DirectiveCompliance.ApiCalls exposing (..)
@@ -186,14 +187,6 @@ update msg model =
                 Err err ->
                     processApiError "Getting directive compliance" err newModel
 
-        Export res ->
-            case res of
-                Ok content ->
-                    ( model, File.Download.string (model.directiveId.value ++ ".csv") "text/csv" content )
-
-                Err err ->
-                    processApiError "Export directive compliance" err model
-
         LoadCompliance str ->
             let
                 ui =
@@ -214,6 +207,34 @@ update msg model =
             ( newModel
             , actions
             )
+
+        ExportDirectiveComplianceByNode directiveId date ->
+            let
+                timeStr =
+                    date |> Date.format "yyyy-MM-dd"
+
+                filename =
+                    "rudder_directive_" ++ directiveId.value ++ "_compliance_by_node_" ++ timeStr ++ ".csv"
+            in
+            ( model, getCSVExportByNode filename model )
+
+        ExportDirectiveComplianceByRule directiveId date ->
+            let
+                timeStr =
+                    date |> Date.format "yyyy-MM-dd"
+
+                filename =
+                    "rudder_directive_" ++ directiveId.value ++ "_compliance_by_rule_" ++ timeStr ++ ".csv"
+            in
+            ( model, getCSVExportByRule filename model )
+
+        DirectiveComplianceCsvExported filename result ->
+            case result of
+                Ok content ->
+                    ( model, File.Download.string filename "text/csv" content )
+
+                Err error ->
+                    processApiError "exporting directive compliance to CSV" error model
 
 
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )

@@ -2314,3 +2314,727 @@ response:
         ]
       }
     }
+---
+description: Get a directive's compliance
+method: GET
+url: /secure/api/directives/e9a1a909-2490-4fc9-95c3-9d0aa01717c9/compliance?level=3
+comment: N1 and N2 and BR1 are in audit mode, the other N3-N5 are in enforce, and BR4 is targeting N2-N5 so it is mixed
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectiveComplianceId",
+      "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+      "result" : "success",
+      "data" : {
+        "directiveCompliance" : {
+          "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+          "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {
+            "successAlreadyOK" : 100.0
+          },
+          "rules" : [
+            {
+              "id" : "br1",
+              "name" : "R1",
+              "compliance" : 100.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : []
+            },
+            {
+              "id" : "br6",
+              "name" : "R6",
+              "compliance" : 0.0,
+              "policyMode" : "skipped",
+              "complianceDetails" : {},
+              "skippedDetails" : {
+                "overridingRuleId" : "br5",
+                "overridingRuleName" : "R5"
+              },
+              "components" : []
+            },
+            {
+              "id" : "br4",
+              "name" : "R4",
+              "compliance" : 100.0,
+              "policyMode" : "mixed",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : []
+            }
+          ],
+          "nodes" : []
+        }
+      }
+    }
+---
+description: Get directive Directive2 compliance
+method: GET
+url: /secure/api/directives/directive2/compliance
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectiveComplianceId",
+      "id" : "directive2",
+      "result" : "success",
+      "data" : {
+        "directiveCompliance" : {
+          "id" : "directive2",
+          "name" : "directive2",
+          "compliance" : 0.0,
+          "mode" : "full-compliance",
+          "policyMode" : "enforce",
+          "complianceDetails" : {
+            "error" : 100.0
+          },
+          "rules" : [
+            {
+              "id" : "br3",
+              "name" : "R3",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive2-component-br3-bn1",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn1",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive2-component-br3-bn2",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "bn2",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "audit",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "r3",
+              "name" : "R3",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "components" : [
+                {
+                  "name" : "directive2-component-r3-n1",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n1",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive2-component-r3-n2",
+                  "compliance" : 0.0,
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n2",
+                      "name" : "node1.localhost",
+                      "compliance" : 0.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "nodes" : [
+            {
+              "id" : "bn2",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "br3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-br3-bn2",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "bn1",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "audit",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "br3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "audit",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-br3-bn1",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-br3-bn1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "n2",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "r3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-r3-n2",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n2",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id" : "n1",
+              "name" : "node1.localhost",
+              "compliance" : 0.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "error" : 100.0
+              },
+              "rules" : [
+                {
+                  "id" : "r3",
+                  "name" : "R3",
+                  "compliance" : 0.0,
+                  "policyMode" : "enforce",
+                  "complianceDetails" : {
+                    "error" : 100.0
+                  },
+                  "components" : [
+                    {
+                      "name" : "directive2-component-r3-n1",
+                      "compliance" : 0.0,
+                      "complianceDetails" : {
+                        "error" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive2-component-value-r3-n1",
+                          "reports" : [
+                            {
+                              "status" : "error"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+---
+description: Get directive Directive2 compliance by node
+method: GET
+url: /secure/api/directives/directive2/compliance/byNode
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectiveComplianceByNodeId",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "bn2",
+            "name" : "node1.localhost",
+            "compliance" : 0.0,
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-br3-bn2",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-br3-bn2",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "bn1",
+            "name" : "node1.localhost",
+            "compliance" : 0.0,
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-br3-bn1",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-br3-bn1",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "n2",
+            "name" : "node1.localhost",
+            "compliance" : 0.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-r3-n2",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-r3-n2",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "n1",
+            "name" : "node1.localhost",
+            "compliance" : 0.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive2-component-r3-n1",
+                    "compliance" : 0.0,
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-r3-n1",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get directive Directive2 compliance by node in CSV format
+method: GET
+url: /secure/api/directives/directive2/compliance/byNode?format=csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Node","Rule","Block","Component","Value","Status","Message"
+    "node1.localhost","R3","","directive2-component-br3-bn2","directive2-component-value-br3-bn2","error",""
+    "node1.localhost","R3","","directive2-component-br3-bn1","directive2-component-value-br3-bn1","error",""
+    "node1.localhost","R3","","directive2-component-r3-n2","directive2-component-value-r3-n2","error",""
+    "node1.localhost","R3","","directive2-component-r3-n1","directive2-component-value-r3-n1","error",""
+---
+description: Get directive Directive2 compliance by rule
+method: GET
+url: /secure/api/directives/directive2/compliance/byRule
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectiveComplianceByRuleId",
+      "result" : "success",
+      "data" : {
+        "rules" : [
+          {
+            "id" : "br3",
+            "name" : "R3",
+            "compliance" : 0.0,
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "components" : [
+              {
+                "name" : "directive2-component-br3-bn1",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "nodes" : [
+                  {
+                    "id" : "bn1",
+                    "name" : "node1.localhost",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-br3-bn1",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name" : "directive2-component-br3-bn2",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "nodes" : [
+                  {
+                    "id" : "bn2",
+                    "name" : "node1.localhost",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-br3-bn2",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id" : "r3",
+            "name" : "R3",
+            "compliance" : 0.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "components" : [
+              {
+                "name" : "directive2-component-r3-n1",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "nodes" : [
+                  {
+                    "id" : "n1",
+                    "name" : "node1.localhost",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-r3-n1",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name" : "directive2-component-r3-n2",
+                "compliance" : 0.0,
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "nodes" : [
+                  {
+                    "id" : "n2",
+                    "name" : "node1.localhost",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "values" : [
+                      {
+                        "value" : "directive2-component-value-r3-n2",
+                        "reports" : [
+                          {
+                            "status" : "error"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get directive Directive2 compliance by rule in CSV format
+method: GET
+url: /secure/api/directives/directive2/compliance/byRule?format=csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Rule","Block","Component","Node","Value","Status","Message"
+    "R3","","directive2-component-br3-bn1","node1.localhost","directive2-component-value-br3-bn1","error",""
+    "R3","","directive2-component-br3-bn2","node1.localhost","directive2-component-value-br3-bn2","error",""
+    "R3","","directive2-component-r3-n1","node1.localhost","directive2-component-value-r3-n1","error",""
+    "R3","","directive2-component-r3-n2","node1.localhost","directive2-component-value-r3-n2","error",""

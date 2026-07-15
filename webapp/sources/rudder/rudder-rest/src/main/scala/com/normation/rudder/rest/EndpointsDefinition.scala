@@ -410,53 +410,83 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
 }
 
 sealed trait DirectiveApi extends EnumEntry with EndpointSchema with GeneralApi with SortIndex {
-  override def dataContainer: Some[String] = Some("directives")
+  override def dataContainer: Option[String] = Some("directives")
 }
 object DirectiveApi       extends Enum[DirectiveApi] with ApiModuleProvider[DirectiveApi]      {
 
-  case object ListDirectives     extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex  {
+  case object ListDirectives           extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "List all directives"
     val (action, path) = GET / "directives"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Read :: Nil
   }
-  case object DirectiveTree      extends DirectiveApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  case object DirectiveTree            extends DirectiveApi with ZeroParam with StartsAtVersion14 with SortIndex                 {
     val z: Int = implicitly[Line].value
     val description    = "Get Directive tree"
     val (action, path) = GET / "directives" / "tree"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Read :: Nil
   }
-  case object DirectiveDetails   extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex   {
+  case object GetDirectiveComplianceId extends DirectiveApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance for a given directive"
+    val (action, path) = GET / "directives" / "{id}" / "compliance"
+    override def dataContainer: Option[String]          = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetDirectiveComplianceByNodeId
+      extends DirectiveApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance by node for a given directive"
+    val (action, path) = GET / "directives" / "{id}" / "compliance" / "byNode"
+    override def dataContainer: Option[String]          = Some("nodes")
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetDirectiveComplianceByRuleId
+      extends DirectiveApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance by rule for a given directive"
+    val (action, path) = GET / "directives" / "{id}" / "compliance" / "byRule"
+    override def dataContainer: Option[String]          = Some("rules")
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetDirectivesCompliance  extends DirectiveApi with GeneralApi with ZeroParam with StartsAtVersion24 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get compliance for all directives"
+    val (action, path) = GET / "directives" / "compliance"
+    override def dataContainer: Option[String]          = None
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object DirectiveDetails         extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex                   {
     val z: Int = implicitly[Line].value
     val description    = "Get information about given directive"
     val (action, path) = GET / "directives" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Read :: Nil
   }
-  case object DirectiveRevisions extends DirectiveApi with OneParam with StartsAtVersion14 with SortIndex  {
+  case object DirectiveRevisions       extends DirectiveApi with OneParam with StartsAtVersion14 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Get revisions for given directive"
     val (action, path) = GET / "directives" / "{id}" / "revisions"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Read :: Nil
   }
-  case object CreateDirective    extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex  {
+  case object CreateDirective          extends DirectiveApi with ZeroParam with StartsAtVersion2 with SortIndex                  {
     val z: Int = implicitly[Line].value
     val description    = "Create a new directive or clone an existing one"
     val (action, path) = PUT / "directives"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Write :: Nil
   }
-  case object DeleteDirective    extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex   {
+  case object DeleteDirective          extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex                   {
     val z: Int = implicitly[Line].value
     val description    = "Delete given directive"
     val (action, path) = DELETE / "directives" / "{id}"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Write :: Nil
   }
-  case object CheckDirective     extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex   {
+  case object CheckDirective           extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex                   {
     val z: Int = implicitly[Line].value
     val description    = "Check if the given directive can be migrated to target technique version"
     val (action, path) = POST / "directives" / "{id}" / "check"
     val authz: List[AuthorizationType] = AuthorizationType.Directive.Write :: Nil
   }
-  case object UpdateDirective    extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex   {
+  case object UpdateDirective          extends DirectiveApi with OneParam with StartsAtVersion2 with SortIndex                   {
     val z: Int = implicitly[Line].value
     val description    = "Update given directive information"
     val (action, path) = POST / "directives" / "{id}"
