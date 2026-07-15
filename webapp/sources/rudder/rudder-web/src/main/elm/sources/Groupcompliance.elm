@@ -260,6 +260,32 @@ update msg model =
             in
             ( model, cmd )
 
+        ExportGroupComplianceByNode groupId complianceScope date ->
+            let
+                timeStr =
+                    date |> Date.format "yyyy-MM-dd"
+
+                scope =
+                    case complianceScope of
+                        GlobalCompliance ->
+                            "global"
+
+                        TargetedCompliance ->
+                            "targeted"
+
+                filename =
+                    "rudder_group_" ++ groupId.value ++ "_" ++ scope ++ "_compliance_by_node" ++ timeStr ++ ".csv"
+
+                cmd =
+                    case complianceScope of
+                        GlobalCompliance ->
+                            getGlobalGroupComplianceByNodeCSV filename model
+
+                        TargetedCompliance ->
+                            getTargetedGroupComplianceByNodeCSV filename model
+            in
+            ( model, cmd )
+
         RuleComplianceCsvExported filename result ->
             case result of
                 Ok content ->

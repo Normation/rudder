@@ -127,4 +127,5 @@ type Msg
     | LoadCompliance ComplianceScope
     | ExportCsv (Cmd Msg)
     | ExportGroupComplianceByRule GroupId ComplianceScope Date.Date
+    | ExportGroupComplianceByNode GroupId ComplianceScope Date.Date
     | RuleComplianceCsvExported String (Result Error String)

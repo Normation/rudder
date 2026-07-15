@@ -64,6 +64,7 @@ import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.data.ComplianceApiData
 import com.normation.rudder.rest.data.ComplianceFormat
 import com.normation.rudder.rest.data.ComplianceUtils
+import com.normation.rudder.rest.data.CsvCompliance.NodeGroupComplianceByNodeCsv
 import com.normation.rudder.rest.data.CsvCompliance.NodeGroupComplianceByRuleCsv
 import com.normation.rudder.rest.syntax.*
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -118,6 +119,8 @@ class GroupsApi(
       case API.GetTargetedNodeGroupComplianceId       => GetTargetedNodeGroupComplianceId
       case API.GetGlobalNodeGroupComplianceByRuleId   => GetGlobalNodeGroupComplianceByRuleId
       case API.GetTargetedNodeGroupComplianceByRuleId => GetTargetedNodeGroupComplianceByRuleId
+      case API.GetGlobalNodeGroupComplianceByNodeId   => GetGlobalNodeGroupComplianceByNodeId
+      case API.GetTargetedNodeGroupComplianceByNodeId => GetTargetedNodeGroupComplianceByNodeId
     }
   }
 
@@ -570,6 +573,38 @@ class GroupsApi(
     }
   }
 
+  private def getNodeGroupComplianceByNodeId(groupId: String, req: Req, params: DefaultParams, isGlobalCompliance: Boolean)(using
+      qc:     QueryContext,
+      schema: OneParam
+  ): LiftResponse = {
+    (for {
+      level     <- ComplianceUtils.extractComplianceLevel(req.params)
+      precision <- ComplianceUtils.extractPercentPrecision(req.params)
+      format    <- ComplianceUtils.extractComplianceFormat(req.params)
+      target    <- ComplianceUtils
+                     .parseSimpleTargetOrNodeGroupId(groupId)
+                     .toIO
+      group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance)
+    } yield (level, precision, format, group)).toLiftResponseGeneric(params, schema, IdTrace.Const(None)) {
+      (level, precision, format, group) =>
+        format match {
+          case ComplianceFormat.CSV  =>
+            PlainTextResponse(group.nodes.transformInto[Seq[NodeGroupComplianceByNodeCsv]].toCsv)
+          case ComplianceFormat.JSON =>
+            given l: Int                 = level.getOrElse(10)
+            given p: CompliancePrecision = precision.getOrElse(CompliancePrecision.Level2)
+            given f: Boolean             = params.prettify
+
+            val complianceJson = group
+              .transformInto[ComplianceApiData.JsonByNodeGroupCompliance.ByNodeGroupComplianceApi]
+              .nodes
+              .getOrElse(Seq.empty)
+              .toList
+            RudderJsonResponse.successList(RudderJsonResponse.toResponseSchema(schema), complianceJson)
+        }
+    }
+  }
+
   object GetGlobalNodeGroupComplianceByRuleId extends LiftApiModule {
     override val schema: OneParam = API.GetGlobalNodeGroupComplianceByRuleId
 
@@ -606,6 +641,43 @@ class GroupsApi(
       getNodeGroupComplianceByRuleId(groupId, req, params, isGlobalCompliance = false)
     }
 
+  }
+
+  object GetGlobalNodeGroupComplianceByNodeId extends LiftApiModule {
+    override val schema: OneParam = API.GetGlobalNodeGroupComplianceByNodeId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        groupId:    String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+      given OneParam = schema
+
+      getNodeGroupComplianceByNodeId(groupId, req, params, isGlobalCompliance = true)
+    }
+
+  }
+
+  object GetTargetedNodeGroupComplianceByNodeId extends LiftApiModule {
+    override val schema: OneParam = API.GetTargetedNodeGroupComplianceByNodeId
+
+    override def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        groupId:    String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      given qc: QueryContext = authzToken.qc
+      given OneParam = schema
+
+      getNodeGroupComplianceByNodeId(groupId, req, params, isGlobalCompliance = false)
+    }
   }
 
   // Extracts reason from the request and provide an (implicit ChangeContext)

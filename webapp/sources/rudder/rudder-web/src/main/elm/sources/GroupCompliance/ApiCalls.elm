@@ -92,3 +92,29 @@ getTargetedGroupComplianceByRuleCSV filename model =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+getGlobalGroupComplianceByNodeCSV : String -> Model -> Cmd Msg
+getGlobalGroupComplianceByNodeCSV filename model =
+    request
+        { method = "GET"
+        , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+        , url = getUrl model [ "groups", model.groupId.value, "compliance", "global", "byNode" ] [ Url.Builder.string "format" "csv" ]
+        , body = emptyBody
+        , expect = expectString (RuleComplianceCsvExported filename)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+getTargetedGroupComplianceByNodeCSV : String -> Model -> Cmd Msg
+getTargetedGroupComplianceByNodeCSV filename model =
+    request
+        { method = "GET"
+        , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+        , url = getUrl model [ "groups", model.groupId.value, "compliance", "targeted", "byNode" ] [ Url.Builder.string "format" "csv" ]
+        , body = emptyBody
+        , expect = expectString (RuleComplianceCsvExported filename)
+        , timeout = Nothing
+        , tracker = Nothing
+        }

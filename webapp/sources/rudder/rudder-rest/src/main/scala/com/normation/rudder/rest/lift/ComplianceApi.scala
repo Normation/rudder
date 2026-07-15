@@ -1119,7 +1119,7 @@ class ComplianceAPIService(
           case GroupTarget(nodeGroupId) =>
             nodeGroupRepo
               .getNodeGroupOpt(nodeGroupId)
-              .notOptional(s"Node group with id '${nodeGroupId.serialize}' not found'")
+              .notOptional(s"Node group with id '${nodeGroupId.serialize}' not found")
               .map(g => (g._1.id.serialize, g._1.name, g._1.serverList))
           case t: NonGroupRuleTarget =>
             nodeGroupRepo

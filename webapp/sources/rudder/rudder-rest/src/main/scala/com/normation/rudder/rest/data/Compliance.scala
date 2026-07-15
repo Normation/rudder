@@ -464,8 +464,8 @@ object CsvCompliance {
   val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").get()
 
   private def recurseComponent(
-      component: ByRuleComponentCompliance,
-      block:     List[ComponentField]
+      component:        ByRuleComponentCompliance,
+      blockAccumulator: List[ComponentField]
   ): Seq[RuleComponentResult] = {
 
     component match {
@@ -474,7 +474,7 @@ object CsvCompliance {
           node.values.flatMap { value =>
             value.messages.map { report =>
               (
-                BlockField(block),
+                BlockField(blockAccumulator),
                 ComponentField(component),
                 NodeField(node),
                 ValueField(value),
@@ -485,13 +485,13 @@ object CsvCompliance {
           }
         }
       case component: ByRuleBlockCompliance =>
-        component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component) :: Nil)))
+        component.subComponents.flatMap(c => recurseComponent(c, blockAccumulator ::: (ComponentField(component) :: Nil)))
     }
   }
 
   private def recurseComponent(
-      component: ByRuleByNodeByDirectiveByComponentCompliance,
-      block:     List[ComponentField]
+      component:        ByRuleByNodeByDirectiveByComponentCompliance,
+      blockAccumulator: List[ComponentField]
   ): Seq[DirectiveComponentResult] = {
 
     component match {
@@ -499,7 +499,7 @@ object CsvCompliance {
         component.values.flatMap { value =>
           value.messages.map { report =>
             (
-              BlockField(block),
+              BlockField(blockAccumulator),
               ComponentField(component.componentName),
               ValueField(value),
               StatusField(report),
@@ -508,7 +508,36 @@ object CsvCompliance {
           }
         }
       case component: ByRuleByNodeByDirectiveByBlockCompliance =>
-        component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component.componentName) :: Nil)))
+        component.subComponents.flatMap(c =>
+          recurseComponent(c, blockAccumulator ::: (ComponentField(component.componentName) :: Nil))
+        )
+    }
+  }
+
+  private def recurseComponent(
+      component:        ComponentStatusReport,
+      blockAccumulator: List[ComponentField]
+  )(using ruleField: RuleField, directiveField: DirectiveField): Seq[NodeComplianceByRuleCsv] = {
+
+    component match {
+      case component: ValueStatusReport =>
+        component.componentValues.flatMap(value => {
+          value.messages.map { report =>
+            NodeComplianceByRuleCsv(
+              ruleField,
+              directiveField,
+              BlockField(blockAccumulator),
+              ComponentField(component.componentName),
+              ValueField(value),
+              StatusField(report),
+              MessageField(report)
+            )
+          }
+        })
+      case component: BlockStatusReport =>
+        component.subComponents.flatMap(c =>
+          recurseComponent(c, blockAccumulator ::: (ComponentField(component.componentName) :: Nil))
+        )
     }
   }
 
@@ -700,6 +729,44 @@ object CsvCompliance {
     }
   }
 
+  case class NodeGroupComplianceByNodeCsv(
+      node:      NodeField,
+      rule:      RuleField,
+      directive: DirectiveField,
+      block:     BlockField,
+      component: ComponentField,
+      value:     ValueField,
+      status:    StatusField,
+      message:   MessageField
+  ) derives Csv
+
+  object NodeGroupComplianceByNodeCsv {
+
+    given (using node: NodeField): Transformer[NodeComplianceByRuleCsv, NodeGroupComplianceByNodeCsv] = {
+      Transformer
+        .define[NodeComplianceByRuleCsv, NodeGroupComplianceByNodeCsv]
+        .withFieldConst(_.node, node)
+        .buildTransformer
+    }
+
+    given Transformer[Seq[ByNodeGroupNodeCompliance], Seq[NodeGroupComplianceByNodeCsv]] = {
+      (nodes: Seq[ByNodeGroupNodeCompliance]) =>
+        for {
+          node          <- nodes
+          rule          <- node.rules
+          directive     <- rule.directives
+          component     <- directive.components
+          ruleField      = RuleField(rule.name)
+          directiveField = DirectiveField(directive.name)
+          c             <- recurseComponent(component, Nil)(using ruleField, directiveField)
+        } yield {
+          given NodeField = NodeField(node.name)
+
+          c.transformInto[NodeGroupComplianceByNodeCsv]
+        }
+    }
+  }
+
   case class NodeComplianceByRuleCsv(
       rule:      RuleField,
       directive: DirectiveField,
@@ -711,42 +778,15 @@ object CsvCompliance {
   ) derives Csv
   object NodeComplianceByRuleCsv {
 
-    private def recurseComponent(
-        component: ComponentStatusReport,
-        block:     List[ComponentField]
-    )(using ruleField: RuleField, directiveField: DirectiveField): Seq[NodeComplianceByRuleCsv] = {
-
-      component match {
-        case component: ValueStatusReport =>
-          component.componentValues.flatMap(value => {
-            value.messages.map { report =>
-              NodeComplianceByRuleCsv(
-                ruleField,
-                directiveField,
-                BlockField(block),
-                ComponentField(component.componentName),
-                ValueField(value),
-                StatusField(report),
-                MessageField(report)
-              )
-            }
-          })
-        case component: BlockStatusReport =>
-          component.subComponents.flatMap(c => recurseComponent(c, block ::: (ComponentField(component.componentName) :: Nil)))
-      }
-    }
-
     given Transformer[Seq[ByNodeRuleCompliance], Seq[NodeComplianceByRuleCsv]] = { (rules: Seq[ByNodeRuleCompliance]) =>
-      rules.flatMap(rule => {
-        rule.directives.flatMap(directive => {
-          directive.components.flatMap(component => {
-            given RuleField      = RuleField(rule.name)
-            given DirectiveField = DirectiveField(directive.name)
-
-            recurseComponent(component, Nil)
-          })
-        })
-      })
+      for {
+        rule          <- rules
+        directive     <- rule.directives
+        ruleField      = RuleField(rule.name)
+        directiveField = DirectiveField(directive.name)
+        component     <- directive.components
+        c             <- recurseComponent(component, Nil)(using ruleField, directiveField)
+      } yield c
     }
   }
 
