@@ -163,14 +163,6 @@ impl Cli {
     }
 }
 
-fn shorten(s: &str, max_len: usize) -> String {
-    if s.len() > max_len {
-        format!("{}…", &s[..max_len - 1])
-    } else {
-        s.to_string()
-    }
-}
-
 pub fn show_events(events: Vec<Event>) -> Result<()> {
     use cli_table::{Cell, Style, Table, print_stdout};
 
@@ -184,7 +176,7 @@ pub fn show_events(events: Vec<Event>) -> Result<()> {
                 .unwrap_or("".to_string());
             vec![
                 // No need for a full uuid, make the table more readable
-                shorten(&e.id, 9).cell(),
+                rudder_commons::shorten(&e.id, 9).cell(),
                 e.campaign_name.cell(),
                 e.status.to_string().cell(),
                 e.scheduled_datetime
