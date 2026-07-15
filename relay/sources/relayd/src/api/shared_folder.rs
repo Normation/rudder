@@ -120,6 +120,11 @@ pub async fn head(
             debug!("{} does not exist on the server", file_path.display());
             Ok(StatusCode::NOT_FOUND)
         }
-        Err(e) => Err(e.into()),
+        // Internal error while reading the file: log it server-side but do not
+        // leak the details to the client.
+        Err(e) => {
+            error!("Failed to read {}: {}", file_path.display(), e);
+            Ok(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
