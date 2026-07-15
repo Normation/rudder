@@ -36,7 +36,9 @@ fn is_enclosed_with(line: &str, pattern: char) -> bool {
 
 fn parse_line(line: &str, skip: usize) -> &str {
     let line = line[skip..].trim();
-    if is_enclosed_with(line, '"') || is_enclosed_with(line, '\'') {
+    // A single quote char is start and end of an empty pair for `is_enclosed_with`,
+    // so require at least two chars before stripping to avoid slicing out of bounds.
+    if line.len() >= 2 && (is_enclosed_with(line, '"') || is_enclosed_with(line, '\'')) {
         &line[1..line.len() - 1]
     } else {
         line
@@ -196,6 +198,17 @@ PRIVACY_POLICY_URL="https://system76.com/privacy"
 VERSION_CODENAME=bionic
 EXTRA_KEY=thing
 ANOTHER_KEY="#;
+
+    #[test]
+    fn it_parses_lone_quote_value_without_panicking() {
+        // A single quote char as value used to slice out of bounds (#29268).
+        let osr = OsRelease::from_iter(["ID=\"".to_string()]);
+        assert_eq!(osr.id, "\"");
+        let osr = OsRelease::from_iter(["ID='".to_string()]);
+        assert_eq!(osr.id, "'");
+        let osr = OsRelease::from_iter(["ID=".to_string()]);
+        assert_eq!(osr.id, "");
+    }
 
     #[test]
     fn os_release() {
