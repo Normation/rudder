@@ -37,6 +37,7 @@
 
 package com.normation.rudder.repository.jdbc
 
+import cats.data.NonEmptyList
 import cats.free.Free
 import cats.implicits.*
 import com.normation.errors.IOResult
@@ -69,34 +70,40 @@ class PostgresqlInClause(
     // see link below
     val inClauseMaxNbElt: Int
 ) {
+  import cats.implicits.*
+  import doobie.*
+  import doobie.implicits.*
+
   /*
-   * Build a clause to match if the given attribute is in the given list of values.
+   * Build a fragment matching if the given attribute is in the given list of values.
    *
-   * Try to be as efficient as possible for postgres. TODO: check VALUES; ARRAY
+   * All values are bound as SQL parameters (never string-interpolated), so this is safe
+   * against SQL injection. The `attribute` is a caller-provided, trusted column fragment.
    *
+   * Try to be as efficient as possible for postgres.
    * http://postgres.cz/wiki/PostgreSQL_SQL_Tricks_I#Predicate_IN_optimalization
    *
-   * Does not build anything is the list of values is empty
-   *
+   * Builds Fragment.empty if the list of values is empty.
    *
    * NOTE: do not use that on arrays with "generate_subscripts", this is highly inefficient.
    * See http://www.rudder-project.org/redmine/issues/8057 for details.
-   *
    */
-  def in(attribute: String, values: Iterable[String]): String = {
-    // with values, we need more ()
-    if (values.isEmpty) ""
-    else if (values.size < inClauseMaxNbElt) s"${attribute} IN (${values.mkString("'", "','", "'")})"
-    // use IN ( VALUES (), (), ... )
-    else s"${attribute} IN(VALUES ${values.mkString("('", "'),('", "')")})"
+  def in[A: Put](attribute: Fragment, values: Iterable[A]): Fragment = {
+    values.toList.toNel match {
+      case None                                     => Fragment.empty
+      // small list: attribute IN (?, ?, ...)
+      case Some(nel) if nel.size < inClauseMaxNbElt => Fragments.in(attribute, nel)
+      // large list: attribute IN (VALUES (?), (?), ...)
+      case Some(nel)                                => attribute ++ fr0" IN (VALUES " ++ valuesClause(nel.toList) ++ fr0")"
+    }
   }
 
-  def inNumber(attribute: String, values: Iterable[AnyVal]): String = {
-    // with values, we need more ()
-    if (values.isEmpty) ""
-    else if (values.size < inClauseMaxNbElt) s"${attribute} IN (${values.mkString("", ",", "")})"
-    // use IN ( VALUES (), (), ... )
-    else s"${attribute} IN(VALUES ${values.mkString("(", "),(", ")")})"
+  /*
+   * Build a parameterized single-column `(?), (?), ...` values list. Values are bound as
+   * parameters (never string-interpolated). Callers guarantee the collection is non-empty.
+   */
+  def valuesClause[A: Put](values: Iterable[A]): Fragment = {
+    values.toList.map(v => Fragments.parentheses(fr"$v")).intercalate(fr",")
   }
 }
 
@@ -122,15 +129,15 @@ class FindExpectedReportsJdbcRepository(
       ids.toList match { // "in" param can't be empty
         case Nil        => Full(Seq())
         case nodeAndIds =>
+          // (nodeid, nodeconfigid) pairs are bound as parameters to prevent SQL injection
+          val pairs = NonEmptyList.fromListUnsafe(nodeAndIds.map(x => (x.nodeId.value, x.version.value)))
           transactRunBox(xa => {
             (for {
-              configs <- query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
-                       select nodeid, nodeconfigid, begindate, enddate, configuration
-                       from nodeconfigurations
-                       where (nodeid, nodeconfigid) in (${nodeAndIds
-                             .map(x => s"('${x.nodeId.value}','${x.version.value}')")
-                             .mkString(",")} )
-                     """).to[Vector]
+              configs <- (fr"""select nodeid, nodeconfigid, begindate, enddate, configuration
+                       from nodeconfigurations where""" ++
+                         Fragments.in(fr"(nodeid, nodeconfigid)", pairs))
+                           .query[Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]]
+                           .to[Vector]
             } yield {
               val configsMap = (configs.flatMap {
                 case Left((id, c, _)) =>
@@ -162,7 +169,8 @@ class FindExpectedReportsJdbcRepository(
         transactRunBox(xa => {
           (for {
             configs <-
-              (Fragment.const(s"with tempnodeid (id) as (values ${batchedIds.map(x => s"('${x.value}')").mkString(",")})") ++
+              // node ids are bound as parameters (VALUES list) to prevent SQL injection
+              (fr0"with tempnodeid (id) as (values " ++ valuesClause(batchedIds.map(_.value)) ++ fr0")" ++
               fr"""
                        select nodeid, nodeconfigid, begindate, enddate, configuration
                        from nodeconfigurations
@@ -201,11 +209,11 @@ class FindExpectedReportsJdbcRepository(
   override def findCurrentNodeIdsForRule(ruleId: RuleId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
     if (nodeIds.isEmpty) Set.empty[NodeId].succeed
     else {
-      transactIOResult(s"Error when getting nodes for rule '${ruleId.serialize}' from expected reports")(xa => sql"""
-        select distinct nodeid from nodeconfigurations
-        where enddate is null and configuration like ${"%" + ruleId.serialize + "%"}
-        and nodeid in (${nodeIds.map(id => s"'${id}'").mkString(",")})
-      """.query[NodeId].to[Set].transact(xa))
+      transactIOResult(s"Error when getting nodes for rule '${ruleId.serialize}' from expected reports")(xa => {
+        (fr"""select distinct nodeid from nodeconfigurations
+              where enddate is null and configuration like ${"%" + ruleId.serialize + "%"} and""" ++
+        in(fr"nodeid", nodeIds)).query[NodeId].to[Set].transact(xa)
+      })
     }
   }
 
@@ -216,11 +224,11 @@ class FindExpectedReportsJdbcRepository(
   override def findCurrentNodeIdsForDirective(directiveId: DirectiveId, nodeIds: Set[NodeId]): IOResult[Set[NodeId]] = {
     if (nodeIds.isEmpty) Set.empty[NodeId].succeed
     else {
-      transactIOResult(s"Error when getting nodes for directive '${directiveId.serialize}' from expected reports")(xa => sql"""
-        select distinct nodeid from nodeconfigurations
-        where enddate is null and configuration like ${"%" + directiveId.serialize + "%"}
-        and nodeid in (${nodeIds.map(id => s"'${id}'").mkString(",")})
-      """.query[NodeId].to[Set].transact(xa))
+      transactIOResult(s"Error when getting nodes for directive '${directiveId.serialize}' from expected reports")(xa => {
+        (fr"""select distinct nodeid from nodeconfigurations
+              where enddate is null and configuration like ${"%" + directiveId.serialize + "%"} and""" ++
+        in(fr"nodeid", nodeIds)).query[NodeId].to[Set].transact(xa)
+      })
     }
   }
   override def findCurrentNodeIdsForDirective(directiveId: DirectiveId):                       IOResult[Set[NodeId]] = {
@@ -241,8 +249,8 @@ class FindExpectedReportsJdbcRepository(
         .foreach(batchedNodesId) { (ids: Set[NodeId]) =>
           transactIOResult(s"Error when querying NodeConfigIdInfo") { xa =>
             (for {
-              entries <- query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
-                                              where ${in("node_id", ids.map(_.value))}""").to[Vector]
+              entries <- (fr"select node_id, config_ids from nodes_info where" ++
+                         in(fr"node_id", ids)).query[(NodeId, String)].to[Vector]
             } yield {
               val res = entries.map { case (nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
               ids.map(n => (n, res.get(n)))
@@ -284,9 +292,9 @@ class UpdateExpectedReportsJdbcRepository(
         val batchedConfigs:               List[List[NodeExpectedReports]]                                                   = neConfigs.grouped(jdbcMaxBatchSize).toList
         val resultingNodeExpectedReports: Either[Throwable, List[Free[connection.ConnectionOp, List[NodeExpectedReports]]]] = {
           batchedConfigs.traverse { (conf: Seq[NodeExpectedReports]) =>
-            val confString = conf.map(x => s"('${x.nodeId.value}')")
-
-            val withFrag = Fragment.const(s"with tempnodeid (id) as (values ${confString.mkString(",")})")
+            // node ids are bound as parameters (VALUES list) to prevent SQL injection
+            val withFrag = fr0"with tempnodeid (id) as (values " ++
+              pgInClause.valuesClause(conf.map(_.nodeId.value)) ++ fr0")"
             type A = Either[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
             val getConfigs: Either[Throwable, List[A]] = transactRunEither(xa => {
               (

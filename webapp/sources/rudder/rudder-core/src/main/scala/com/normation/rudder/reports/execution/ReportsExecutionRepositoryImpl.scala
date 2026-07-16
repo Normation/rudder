@@ -175,13 +175,13 @@ final case class RoReportsExecutionRepositoryImpl(
 
     val batchedNodeConfigIds = nodeIds.grouped(jdbcMaxBatchSize).toSeq
     ZIO.foreach(batchedNodeConfigIds) { (ids: Set[NodeId]) =>
-      // map node id to // ('node-id') // to use in values
-      ids.map(id => s"('${id.value}')").toList match {
+      ids.toList match {
         case Nil   => Map[NodeId, Option[AgentRunWithNodeConfig]]().succeed
         case nodes =>
           // we can't use "Fragments.in", because of: https://github.com/tpolecat/doobie/issues/426
           // so we use:
           //  SELECT * FROM table where nodeid in (VALUES (a), (b), ...here some thousands more...)
+          // node ids are bound as parameters (VALUES list) to prevent SQL injection
 
           val innerFromFrag = (
             fr"""from (
@@ -190,7 +190,7 @@ final case class RoReportsExecutionRepositoryImpl(
                       select nodeid, max(insertionid) as insertionid
                         from reportsexecution
                         where nodeid in """ ++
-              Fragment.const(s"""(values ${nodes.mkString(",")} )""") ++
+              (fr0"(values " ++ pgInClause.valuesClause(nodes.map(_.value)) ++ fr0" )") ++
               fr"""
                         GROUP BY nodeid
                      )
