@@ -4,6 +4,7 @@
 use std::{path::Path, sync::Arc};
 
 use serde::Serialize;
+use tokio::task::spawn_blocking;
 use warp::{
     Filter, Reply,
     filters::{BoxedFilter, method},
@@ -34,16 +35,11 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
         .and_then(handlers::reload);
 
     let job_config_status = job_config;
-    let status = method::get().and(base).and(path!("status")).map(move || {
-        Ok::<_, warp::http::Error>(
-            ApiResponse::new::<Error>(
-                "getStatus",
-                Ok(Some(Status::poll(job_config_status.clone()))),
-                None,
-            )
-            .reply(),
-        )
-    });
+    let status = method::get()
+        .and(base)
+        .and(path!("status"))
+        .map(move || job_config_status.clone())
+        .and_then(handlers::status);
 
     info.or(reload).or(status).boxed()
 }
@@ -60,6 +56,13 @@ pub mod handlers {
             None,
         )
         .reply())
+    }
+
+    pub async fn status(job_config: Arc<JobConfig>) -> Result<impl Reply, Rejection> {
+        // `Status::poll` uses blocking IO (Diesel DB ping and config file reads),
+        // so run it on the blocking threadpool to avoid stalling the async runtime.
+        let status = spawn_blocking(move || Status::poll(job_config)).await;
+        Ok(ApiResponse::new("getStatus", status.map(Some), None).reply())
     }
 }
 
