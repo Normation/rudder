@@ -254,6 +254,16 @@ fn config_search_and_replace(
                             properties.insert(key, &default_value);
                             default_value
                         }
+                        None if [
+                            "SeTrustedCredManAccessPrivilege",
+                            "SeRelabelPrivilege",
+                            "SeUnsolicitedInputPrivilege",
+                        ]
+                        .contains(&key.as_str()) =>
+                        {
+                            properties.insert(key, "");
+                            "".to_string()
+                        }
                         None => {
                             report
                                 .errors
