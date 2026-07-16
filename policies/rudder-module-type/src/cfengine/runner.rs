@@ -7,7 +7,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{Error, bail};
+use anyhow::{Error, anyhow, bail};
 use serde::Serialize;
 
 use crate::cfengine::protocol::Request;
@@ -73,21 +73,26 @@ impl CfengineRunner {
         Ok(output)
     }
 
-    /// Read a line followed by two empty lines
+    /// Read a message: a line terminated by two newline characters
+    ///
+    /// The two trailing newlines mean the content line is followed by one empty
+    /// line when read through [`Lines`] (see [`Self::write_line`]).
     fn read_line<B: BufRead>(input: &mut Lines<B>) -> Result<String, Error> {
-        let line = input.next().unwrap()?;
+        let line = input
+            .next()
+            .ok_or_else(|| anyhow!("Unexpected end of input while reading protocol line"))??;
 
-        // Read exactly two empty lines
-        for _n in 0..1 {
-            let empty = input.next().unwrap()?;
-            if !empty.is_empty() {
-                bail!("Expecting two empty lines");
-            }
+        // Consume the empty line produced by the second newline character
+        let empty = input
+            .next()
+            .ok_or_else(|| anyhow!("Unexpected end of input, expecting an empty line"))??;
+        if !empty.is_empty() {
+            bail!("Expecting an empty line, got: {}", empty);
         }
         Ok(line)
     }
 
-    /// Write lines followed by two empty lines
+    /// Write a line terminated by two newline characters
     fn write_line<W: Write>(output: &mut W, line: &str) -> Result<(), Error> {
         output.write_all(line.as_bytes())?;
         output.write_all(b"\n\n")?;
@@ -95,7 +100,7 @@ impl CfengineRunner {
         Ok(())
     }
 
-    /// Write lines followed by two empty lines
+    /// Write a JSON line terminated by two newline characters
     fn write_json<W: Write, L: Write, D: Serialize>(
         output: &mut W,
         _error: &mut L,
