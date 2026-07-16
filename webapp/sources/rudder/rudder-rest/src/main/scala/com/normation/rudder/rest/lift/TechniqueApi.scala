@@ -84,15 +84,15 @@ object TechniqueApi {
 }
 
 class TechniqueApi(
-    service:             TechniqueAPIService14,
-    techniqueWriter:     TechniqueWriter,
-    techniqueReader:     EditorTechniqueReader,
-    techniqueRepository: TechniqueRepository,
-    techniqueSerializer: TechniqueSerializer,
-    uuidGen:             StringUuidGenerator,
-    userPropertyService: UserPropertyService,
-    resourceFileService: ResourceFileService,
-    configRepoPath:      String
+    service:              TechniqueAPIService14,
+    techniqueWriter:      TechniqueWriter,
+    techniqueReader:      EditorTechniqueReader,
+    techniqueRepository:  TechniqueRepository,
+    techniqueSerializer:  TechniqueSerializer,
+    implicit val uuidGen: StringUuidGenerator,
+    userPropertyService:  UserPropertyService,
+    resourceFileService:  ResourceFileService,
+    configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
 
   import zio.json.*
@@ -474,6 +474,7 @@ class TechniqueApi(
             input match {
               case QueryFormat.Yaml =>
                 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
+
                 content.fromYaml[EditorTechnique].toIO
               case QueryFormat.Json =>
                 import techniqueSerializer.*

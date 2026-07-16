@@ -72,6 +72,7 @@ class TestTechniqueCheckCache extends Specification with BeforeAfterAll {
     Seq.empty,
     Seq.empty,
     Map.empty,
+    None,
     None
   )
 

@@ -63,6 +63,7 @@ import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.user.TrivialPersonIdentService
+import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
@@ -143,8 +144,19 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
     override def groupOwner: String = currentUserName
   }
 
-  val techniqueArchive: TechniqueArchiverImpl =
-    new TechniqueArchiverImpl(repo, prettyPrinter, modRepo, personIdent, techniqueParser, techniqueCompiler, currentUserName)
+  val uuidGen = new StringUuidGeneratorImpl()
+  val techniqueArchive: TechniqueArchiverImpl = {
+    new TechniqueArchiverImpl(
+      repo,
+      prettyPrinter,
+      modRepo,
+      personIdent,
+      techniqueParser,
+      techniqueCompiler,
+      currentUserName,
+      uuidGen
+    )
+  }
 
   // listing files at a commit is complicated
 

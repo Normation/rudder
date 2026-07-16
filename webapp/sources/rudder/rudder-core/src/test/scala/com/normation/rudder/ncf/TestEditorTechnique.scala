@@ -190,6 +190,7 @@ class TestEditorTechnique extends Specification {
         List.empty,
         List.empty,
         Map.empty,
+        None,
         None
       )
       EditorTechnique.checkTechniqueIdConsistency(base, technique) must beRight(())
@@ -208,6 +209,7 @@ class TestEditorTechnique extends Specification {
         List.empty,
         List.empty,
         Map.empty,
+        None,
         None
       )
       EditorTechnique.checkTechniqueIdConsistency(base, technique) must beLeft

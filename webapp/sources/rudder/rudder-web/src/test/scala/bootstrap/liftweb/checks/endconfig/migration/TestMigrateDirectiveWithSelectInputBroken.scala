@@ -99,6 +99,7 @@ class TestMigrateDirectiveWithSelectInputBroken extends Specification with Conte
     ),
     Seq(),
     Map.empty,
+    None,
     None
   )
   val techniqueReader = new EditorTechniqueReader {
