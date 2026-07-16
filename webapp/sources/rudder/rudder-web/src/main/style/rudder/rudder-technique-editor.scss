@@ -69,11 +69,9 @@
 .rudder-template ul.dropdown-menu {
   padding: 0;
   min-width: 170px;
-  margin-left: -75px;
 }
 .rudder-template ul.dropdown-menu.show {
-  right: -4px !important;
-  left: auto !important;
+  left: 0px !important;
 }
 
 .btn.btn-outline-success{
