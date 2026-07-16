@@ -3751,7 +3751,7 @@ object RudderConfigInit {
     }
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
-    lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"
+    lazy val instanceUuidPath    = root / "var" / "rudder" / "lib" / "webapp" / "instance-id"
     lazy val instanceIdGenerator = new InstanceIdGeneratorImpl()
     lazy val instanceIdService   = InstanceIdService.make(instanceUuidPath, instanceIdGenerator).runNow
 

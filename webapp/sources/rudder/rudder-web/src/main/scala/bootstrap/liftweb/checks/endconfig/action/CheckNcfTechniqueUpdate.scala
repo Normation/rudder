@@ -74,7 +74,7 @@ object NcfTechniqueUpgradeError {
 
 /**
  * Check at webapp startup if ncf Technique needs to be rewritten by Rudder
- * Controlled by presence of flag file /opt/rudder/etc/force_ncf_technique_update
+ * Controlled by presence of flag file force_ncf_technique_update
  */
 class CheckNcfTechniqueUpdate(
     techniqueWrite:      TechniqueWriter,
@@ -89,7 +89,7 @@ class CheckNcfTechniqueUpdate(
 
   override def checks(): Unit = {
 
-    val ncfTechniqueUpdateFlag = File("/opt/rudder/etc/force_ncf_technique_update")
+    val ncfTechniqueUpdateFlag = File("/var/rudder/lib/webapp/force_ncf_technique_update")
 
     import com.normation.errors.*
 

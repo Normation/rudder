@@ -59,7 +59,7 @@ class CheckTechniqueLibraryReload(
 
   override def checks(): Unit = {
 
-    val forceReloadFlagPath = "/opt/rudder/etc/force_technique_reload"
+    val forceReloadFlagPath = "/var/rudder/lib/webapp/force_technique_reload"
 
     // Check if the force technique reload file is present, and reload technique library if needed
     val file = new File(forceReloadFlagPath)

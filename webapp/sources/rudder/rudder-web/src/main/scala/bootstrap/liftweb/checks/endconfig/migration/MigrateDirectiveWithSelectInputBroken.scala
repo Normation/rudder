@@ -54,7 +54,7 @@ import zio.syntax.ToZio
 
 /**
  * Check at webapp startup if ncf Technique needs to be rewritten by Rudder
- * Controlled by presence of flag file /opt/rudder/etc/force_ncf_technique_update
+ * Controlled by presence of flag file force_ncf_technique_update
  */
 class MigrateDirectiveWithSelectInputBroken(
     techniqueReader:       EditorTechniqueReader,
