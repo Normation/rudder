@@ -9,6 +9,7 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+rudder_module_type = { path = "../../rudder-module-type" }
 quick-xml = { version = "0.41.0", features = ["serialize"] }
 sysinfo = "0.39"
 serde = { version = "1", features = ["derive"] }

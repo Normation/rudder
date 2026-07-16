@@ -1,7 +1,6 @@
 #![allow(clippy::regex_creation_in_loops)]
 #![allow(dead_code)]
 
-mod os_release;
 pub mod packages;
 
 use std::{env, fs, fs::read_to_string, path::PathBuf, process::Command, str};
@@ -9,8 +8,8 @@ use std::{env, fs, fs::read_to_string, path::PathBuf, process::Command, str};
 use anyhow::{Result, anyhow, bail};
 use chrono::{DateTime, Local};
 use clap::Parser;
-use os_release::OsRelease;
 use quick_xml::se::Serializer;
+use rudder_module_type::os_release::OsRelease;
 use serde::Serialize;
 use sysinfo::{ProcessesToUpdate, System, Users};
 #[cfg(unix)]
@@ -221,7 +220,7 @@ impl Inventory {
                 #[cfg(unix)]
                 kernel_version: uts.release,
                 name: os_release.name,
-                version: os_release.version,
+                version: os_release.version.unwrap_or_default(),
             },
             users,
             rudder: Rudder::new()?,

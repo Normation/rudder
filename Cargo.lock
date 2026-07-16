@@ -3836,6 +3836,7 @@ dependencies = [
  "pretty_assertions",
  "quick-xml",
  "regex",
+ "rudder_module_type",
  "serde",
  "sysinfo",
  "uname-rs",

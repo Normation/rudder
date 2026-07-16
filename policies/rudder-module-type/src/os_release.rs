@@ -12,13 +12,19 @@
 
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Read},
     iter::FromIterator,
     path::Path,
 };
 
 // Adapted from https://github.com/pop-os/os-release/tree/master
 // By System76, under MIT license
+
+/// Maximum number of bytes to read from an os-release file.
+///
+/// These files are normally well under 1 KiB. We cap the amount we read to avoid unbounded
+/// memory consumption.
+const MAX_SIZE: u64 = 50 * 1024;
 
 fn is_enclosed_with(line: &str, pattern: char) -> bool {
     line.starts_with(pattern) && line.ends_with(pattern)
@@ -65,6 +71,32 @@ pub struct OsRelease {
     ///
     /// Examples: "VERSION=17", "VERSION="17 (Beefy Miracle)"".
     pub version: Option<String>,
+    /// A string identifying a specific variant or edition of the operating system suitable for presentation to the user. This field may be used to inform the user that the configuration of this system is subject to a specific divergent set of rules or default configuration settings. This field is optional and may not be implemented on all systems.
+    ///
+    /// Examples: "VARIANT="Server Edition"", "VARIANT="Smart Refrigerator Edition"".
+    ///
+    /// Note: this field is for display purposes only. The VARIANT_ID field should be used for making programmatic decisions.
+    pub variant: Option<String>,
+    /// A lower-case string (no spaces or other characters outside of 0–9, a–z, ".", "_" and "-"), identifying a specific variant or edition of the operating system. This may be interpreted by other packages in order to determine a divergent default configuration. This field is optional and may not be implemented on all systems.
+    ///
+    /// Examples: "VARIANT_ID=server", "VARIANT_ID=embedded".
+    pub variant_id: Option<String>,
+    /// A CPE name for the operating system, in URI binding syntax, following the Common Platform Enumeration Specification as proposed by the NIST. This field is optional.
+    ///
+    /// Example: "CPE_NAME="cpe:/o:fedoraproject:fedora:17""
+    pub cpe_name: Option<String>,
+    /// A string uniquely identifying the system image originally used as the installation base. In most cases, VERSION_ID or IMAGE_ID+IMAGE_VERSION are updated when the entire system image is replaced during an update. BUILD_ID may be used in distributions where the original installation image version is important: VERSION_ID would change during incremental system updates, but BUILD_ID would not. This field is optional.
+    ///
+    /// Examples: "BUILD_ID="2013-03-20.3"", "BUILD_ID=201303203".
+    pub build_id: Option<String>,
+    /// A lower-case string (no spaces or other characters outside of 0–9, a–z, ".", "_" and "-"), identifying a specific image of the operating system. This is supposed to be used for environments where OS images are prepared, built, shipped and updated as comprehensive, consistent OS images. This field is optional and may not be implemented on all systems, in particularly not on those that are not managed via images but put together and updated from individual packages and on the local system.
+    ///
+    /// Examples: "IMAGE_ID=vendorx-cashier-system", "IMAGE_ID=netbook-image".
+    pub image_id: Option<String>,
+    /// A lower-case string (mostly numeric, no spaces or other characters outside of 0–9, a–z, ".", "_" and "-") identifying the OS image version. This is supposed to be used together with IMAGE_ID described above, to discern different versions of the same image.
+    ///
+    /// Examples: "IMAGE_VERSION=33", "IMAGE_VERSION=47.1rc1".
+    pub image_version: Option<String>,
 }
 
 impl Default for OsRelease {
@@ -78,6 +110,12 @@ impl Default for OsRelease {
             version_codename: None,
             version_id: None,
             version: None,
+            variant: None,
+            variant_id: None,
+            cpe_name: None,
+            build_id: None,
+            image_id: None,
+            image_version: None,
         }
     }
 
@@ -109,7 +147,7 @@ impl OsRelease {
             _ => None,
         };
         if let Some(path) = file {
-            let file = BufReader::new(File::open(path)?);
+            let file = BufReader::new(File::open(path)?.take(MAX_SIZE));
             Ok(OsRelease::from_iter(file.lines().map_while(Result::ok)))
         } else {
             Ok(OsRelease::default())
@@ -156,6 +194,12 @@ impl FromIterator<String> for OsRelease {
                     "ID_LIKE" => {
                         os_release.id_like = v.split_whitespace().map(String::from).collect()
                     }
+                    "VARIANT" => os_release.variant = Some(v.to_string()),
+                    "VARIANT_ID" => os_release.variant_id = Some(v.to_string()),
+                    "CPE_NAME" => os_release.cpe_name = Some(v.to_string()),
+                    "BUILD_ID" => os_release.build_id = Some(v.to_string()),
+                    "IMAGE_ID" => os_release.image_id = Some(v.to_string()),
+                    "IMAGE_VERSION" => os_release.image_version = Some(v.to_string()),
                     _ => continue,
                 }
             }
@@ -218,6 +262,12 @@ ANOTHER_KEY="#;
                 pretty_name: "Linux".into(),
                 version_id: None,
                 version_codename: None,
+                variant: None,
+                variant_id: None,
+                cpe_name: None,
+                build_id: None,
+                image_id: None,
+                image_version: None,
             }
         );
     }
@@ -239,6 +289,12 @@ ANOTHER_KEY="#;
                 pretty_name: "Rocky Linux 9.1 (Blue Onyx)".into(),
                 version_id: Some("9.1".into()),
                 version_codename: None,
+                variant: None,
+                variant_id: None,
+                cpe_name: Some("cpe:/o:rocky:rocky:9::baseos".into()),
+                build_id: None,
+                image_id: None,
+                image_version: None,
             }
         );
     }
@@ -256,6 +312,12 @@ ANOTHER_KEY="#;
                 pretty_name: "Pop!_OS 18.04 LTS".into(),
                 version_id: Some("18.04".into()),
                 version_codename: Some("bionic".into()),
+                variant: None,
+                variant_id: None,
+                cpe_name: None,
+                build_id: None,
+                image_id: None,
+                image_version: None,
             }
         );
     }
