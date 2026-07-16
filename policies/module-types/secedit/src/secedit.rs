@@ -226,17 +226,17 @@ fn invoke_with_args(args: Vec<&str>) -> Result<()> {
     Ok(())
 }
 
-fn validate_property(key: &str, section: &str, value: &Value) -> Result<String> {
+fn validate_property(key: &str, section: &str, value: &Value) -> Result<Option<String>> {
     match value {
-        Value::String(s) if property_is_string(key, section) => Ok(s.clone()),
+        Value::String(s) if property_is_string(key, section) => Ok(Some(s.clone())),
         Value::String(s) => Err(anyhow!(
             "Invalid value '{s}' for property '{key}'. String values are not supported for this property."
         )),
         Value::Number(n) if property_is_string(key, section) => Err(anyhow!(
             "Invalid value '{n}' for property '{key}'. Integer values are not supported for this property."
         )),
-        Value::Number(n) => Ok(n.to_string()),
-        Value::Null => Ok(String::default()),
+        Value::Number(n) => Ok(Some(n.to_string())),
+        Value::Null => Ok(None),
         _ => Err(anyhow!(
             "Invalid value '{value}'. Only strings and numbers are supported."
         )),
@@ -280,33 +280,37 @@ fn config_search_and_replace(
 
         let mut section_diff: Vec<String> = vec![];
         for (key, new_value) in entries {
-            let new_value = validate_property(key, section, new_value)?.replace("\"", "");
-            let new_value = if new_value.is_empty() {
-                // set to default value if the provided property is empty
+            let new_value = validate_property(key, section, new_value)?;
+            let new_value = new_value.map(|s| s.replace("\"", ""));
+            let new_value = match new_value.as_deref() {
+                Some("") => {
+                    // set to default value if the provided property is empty
 
-                let default_properties = match default.section(Some(section)) {
-                    Some(m) => m,
-                    None => {
-                        report.errors.push(format!(
-                            "section '{section}' does not exist in the default configuration"
-                        ));
-                        continue;
-                    }
-                };
-                match default_properties.get(key) {
-                    Some(default_value) => default_value.replace("\"", ""),
-                    None => {
-                        report
-                            .errors
-                            .push(format!("Property '{key}' does not have a default value"));
-                        continue;
+                    let default_properties = match default.section(Some(section)) {
+                        Some(m) => m,
+                        None => {
+                            report.errors.push(format!(
+                                "section '{section}' does not exist in the default configuration"
+                            ));
+                            continue;
+                        }
+                    };
+                    match default_properties.get(key) {
+                        Some(default_value) => default_value.replace("\"", ""),
+                        None => {
+                            report
+                                .errors
+                                .push(format!("Property '{key}' does not have a default value"));
+                            continue;
+                        }
                     }
                 }
-            } else {
-                new_value
+                Some(s) => s.to_string(),
+                None => "".to_string(),
             };
             let old_value = match properties.get(key) {
                 Some(old_value) => old_value.replace("\"", ""),
+                None if new_value.is_empty() => continue,
                 None => {
                     let default_properties = match default.section(Some(section)) {
                         Some(m) => m,
