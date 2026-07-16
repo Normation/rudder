@@ -29,15 +29,15 @@ impl FromStr for Version {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.splitn(3, '.').collect();
 
+        if parts.len() < 3 {
+            bail!("Incomplete version number");
+        }
+
         // Only take numbers in patch version to remove pre-version prefixes
         let patch: String = parts[2]
             .chars()
             .take_while(|c| c.is_ascii_digit())
             .collect();
-
-        if parts.len() < 3 {
-            bail!("Incomplete version number");
-        }
 
         Ok(Self {
             major: parts[0].parse()?,
@@ -142,6 +142,14 @@ mod tests {
                 flags: vec![],
             }
         );
+    }
+
+    #[test]
+    fn it_rejects_incomplete_version_without_panicking() {
+        // Fewer than three dot-separated parts must error, not panic (#29268).
+        assert!("3.21".parse::<Version>().is_err());
+        assert!("3".parse::<Version>().is_err());
+        assert!("".parse::<Version>().is_err());
     }
 
     #[test]

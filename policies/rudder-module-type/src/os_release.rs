@@ -25,7 +25,9 @@ fn is_enclosed_with(line: &str, pattern: char) -> bool {
 }
 
 fn unquote(line: &str) -> &str {
-    if is_enclosed_with(line, '"') || is_enclosed_with(line, '\'') {
+    // A single quote char is start and end of an empty pair for `is_enclosed_with`,
+    // so require at least two chars before stripping to avoid slicing out of bounds.
+    if line.len() >= 2 && (is_enclosed_with(line, '"') || is_enclosed_with(line, '\'')) {
         &line[1..line.len() - 1]
     } else {
         line
@@ -256,6 +258,14 @@ ANOTHER_KEY="#;
                 version_codename: Some("bionic".into()),
             }
         );
+    }
+
+    #[test]
+    fn it_parses_lone_quote_value_without_panicking() {
+        // A single quote char as value used to slice out of bounds (#29268).
+        assert_eq!(OsRelease::from_string("ID=\"").id, "\"");
+        assert_eq!(OsRelease::from_string("ID='").id, "'");
+        assert_eq!(OsRelease::from_string("ID=").id, "");
     }
 
     #[test]
