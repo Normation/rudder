@@ -642,7 +642,7 @@ class ComplianceAPIService(
                     // if all directive on that rules are skipped, the rule is skipped too
                     val (overrideDetails, policyMode) = if (ruleDirectiveReports.forall(_._2.overridden.nonEmpty)) {
                       ruleDirectiveReports.collectFirst {
-                        case (_, DirectiveStatusReport(_, _, Some(rid), _)) =>
+                        case (_, DirectiveStatusReport(_, _, Some(rid), _, _)) =>
                           val rname = rules.collectFirst { case r if r.id == rid => r.name }.getOrElse("unknown")
                           (Some(SkippedDetails(rid, rname)), ComputePolicyMode.skippedBy(rid, rname))
                       }.getOrElse(defaultMode)
@@ -858,7 +858,7 @@ class ComplianceAPIService(
       // here, we COULD keep the list of all overriding rules/directives, but it's not don't
       // to avoid risking duplicating "skipped" instance.
       reports.collectFirst {
-        case (_, DirectiveStatusReport(id2, _, Some(ruleId), _)) if (id1 == id2) =>
+        case (_, DirectiveStatusReport(id2, _, Some(ruleId), _, _)) if (id1 == id2) =>
           SkippedDetails(ruleId, allRules.collectFirst { case r if r.id == ruleId => r.name }.getOrElse("unknown"))
       }
     } else None
@@ -936,7 +936,7 @@ class ComplianceAPIService(
                       )
                       val (overrideDetails, policyMode) = if (nodeDirectives.forall(_._2.overridden.nonEmpty)) {
                         nodeDirectives.collectFirst {
-                          case (_, DirectiveStatusReport(_, _, Some(rid), _)) =>
+                          case (_, DirectiveStatusReport(_, _, Some(rid), _, _)) =>
                             val rname = rules.get(rid).map(_._1.name)
                             (
                               Some(SkippedDetails(rid, rname.getOrElse("unknown"))),

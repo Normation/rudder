@@ -284,9 +284,16 @@ object NodeConfigurationHash {
      * Not that with that, we are taking into account
      * node config modes several time, since any mode has
      * a matching system variable.
+     *
+     * Directive schedules are mixed in here because they end up in a generated
+     * system variable (schedule events in MODULE_PARAM_SCHEDULE): a change in a
+     * schedule (typically its event generation horizon) must rewrite policies of
+     * nodes using it. Nodes without schedules keep their historical hash.
      */
     val nodeContextHash: Int = {
-      variablesToHash(nodeConfig.nodeContext.values)
+      val vars = variablesToHash(nodeConfig.nodeContext.values)
+      if (nodeConfig.schedules.isEmpty) vars
+      else List(vars, nodeConfig.schedules.hashCode).hashCode
     }
 
     new NodeConfigurationHash(

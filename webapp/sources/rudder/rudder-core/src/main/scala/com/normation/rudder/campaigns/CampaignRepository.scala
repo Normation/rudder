@@ -43,6 +43,9 @@ import com.normation.errors.IOResult
 import com.normation.errors.Unexpected
 import com.normation.rudder.tenants.ChangeContext
 import zio.*
+import zio.stm.STM
+import zio.stm.TMap
+import zio.stm.TReentrantLock
 import zio.syntax.*
 
 trait CampaignRepository {
@@ -71,7 +74,12 @@ object CampaignRepositoryImpl {
     // init archiver
     campaignArchiver.init(using ChangeContext.newForRudder()) *>
     // return campaign repo
-    new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository).succeed
+    TMap
+      .empty[CampaignId, TReentrantLock]
+      .commit
+      .map(locks => {
+        new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository, locks)
+      })
   }
 }
 
@@ -83,22 +91,41 @@ class CampaignRepositoryImpl(
     path:               File,
     campaignArchiver:   CampaignArchiver,
     campaignSerializer: CampaignSerializer,
-    hooksRepository:    CampaignHooksRepository
+    hooksRepository:    CampaignHooksRepository,
+    // per campaign (i.e. per file) read/write locks: campaign files are updated concurrently
+    // (API, generation-time horizon renewal, campaign handler, on-demand runs) and a file
+    // write plus its git archiving are not atomic
+    locks:              TMap[CampaignId, TReentrantLock]
 ) extends CampaignRepository {
+
+  private def lockFor(id: CampaignId): UIO[TReentrantLock] = {
+    locks
+      .get(id)
+      .flatMap {
+        case Some(l) => STM.succeed(l)
+        case None    => TReentrantLock.make.flatMap(l => locks.put(id, l).as(l))
+      }
+      .commit
+  }
+
+  private def withReadLock[A](id: CampaignId)(effect: IOResult[A]): IOResult[A] = {
+    lockFor(id).flatMap(l => ZIO.scoped(l.readLock *> effect))
+  }
+
+  private def withWriteLock[A](id: CampaignId)(effect: IOResult[A]): IOResult[A] = {
+    lockFor(id).flatMap(l => ZIO.scoped(l.writeLock *> effect))
+  }
 
   override def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]] = {
     if (path.exists) {
       for {
         jsonFiles          <- IOResult.attempt(path.collectChildren(_.extension.exists(_ == ".json")))
         campaigns          <- ZIO.foreach(jsonFiles.toList) { json =>
-                                (for {
-                                  c <-
-                                    campaignSerializer
-                                      .parse(json.contentAsString)
-                                      .chainError(s"Error when parsing campaign file at '${json.pathAsString}'")
-                                } yield {
-                                  c
-                                }).either
+                                withReadLock(CampaignId(json.nameWithoutExtension)) {
+                                  campaignSerializer
+                                    .parse(json.contentAsString)
+                                    .chainError(s"Error when parsing campaign file at '${json.pathAsString}'")
+                                }.either
                               }
         (errs, campaignRes) = campaigns.partitionMap(identity)
         _                  <- ZIO.foreach(errs)(err => CampaignLogger.error(err.msg))
@@ -112,19 +139,21 @@ class CampaignRepositoryImpl(
 
   override def get(id: CampaignId): IOResult[Option[Campaign]] = {
     val file = path / (s"${id.value}.json")
-    for {
-      campaign <- ZIO.when(file.exists) {
-                    campaignSerializer.parse(file.contentAsString)
-                  }
-    } yield {
-      campaign
+    withReadLock(id) {
+      for {
+        campaign <- ZIO.when(file.exists) {
+                      campaignSerializer.parse(file.contentAsString)
+                    }
+      } yield {
+        campaign
+      }
     }
   }
 
   /*
    * When we save a campaign, we also init hook directories for that campaign.
    */
-  override def save(c: Campaign): IOResult[Campaign] = {
+  override def save(c: Campaign): IOResult[Campaign] = withWriteLock(c.info.id) {
     for {
       _       <- ZIO.when(c.info.id.value.isBlank)(Inconsistency("A campaign id must be defined and non empty").fail)
       _       <- ZIO.when(c.info.name.isBlank)(Inconsistency("A campaign name must be defined and non empty").fail)
@@ -146,7 +175,7 @@ class CampaignRepositoryImpl(
     }
   }
 
-  override def delete(id: CampaignId): IOResult[Unit] = {
+  override def delete(id: CampaignId): IOResult[Unit] = withWriteLock(id) {
     for {
       campaign_deleted <- IOResult.attempt(s"error when delete campaign file for campaign with id '${id.value}'") {
                             val file = path / (s"${id.value}.json")

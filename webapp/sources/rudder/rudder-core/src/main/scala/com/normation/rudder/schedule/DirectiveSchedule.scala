@@ -44,6 +44,7 @@ import io.scalaland.chimney.*
 import java.time.Instant
 import zio.json.JsonCodec
 import zio.json.jsonDiscriminator
+import zio.json.jsonExplicitEmptyCollections
 import zio.json.jsonHint
 
 /*
@@ -55,17 +56,32 @@ import zio.json.jsonHint
 
 object DirectiveScheduleType extends CampaignType("directive-schedule")
 
-// no details for directive schedule
+/*
+ * A one time, on-demand occurrence window (see "run now" feature). Contrary to the
+ * recurrent occurrences derived from the campaign schedule, its event id is random
+ * and stored: it must remain stable across policy generations for the agent
+ * "run once by event" lock, and can't be derived from a recurrence rule.
+ */
+case class DirectiveScheduleOneShot(
+    eventId: String,
+    start:   Instant,
+    end:     Instant
+) derives JsonCodec
+
 // maxDate : date up to which events are generated (may be none before first policy generation for that schedule).
 //           Must be consistent for all nodes.
+// oneShots: on-demand occurrence windows, generated even when the campaign is disabled
+//           (a disabled directive schedule means "never runs, except on demand").
+//           Expired ones are pruned when the campaign is next saved.
 case class DirectiveScheduleDetails(
-    scheduleType: String, // for documantation: benchmarks, system-update, etc
-    maxDate:      Option[Instant]
+    scheduleType: String, // for documentation: benchmarks, system-update, etc
+    maxDate:      Option[Instant],
+    oneShots:     List[DirectiveScheduleOneShot]
 ) extends CampaignDetails
     derives JsonCodec
 
 object DirectiveScheduleDetails {
-  def empty = DirectiveScheduleDetails("generic", None)
+  def empty = DirectiveScheduleDetails("generic", None, Nil)
 }
 
 // The only goal of this trait is to be able to provide a discriminator in json,
@@ -94,22 +110,28 @@ object DirectiveSchedule {
       .withFieldComputed(_.e, _.info.status.value == CampaignStatusValue.Enabled)
       .withFieldComputed(_.s, _.info.schedule)
       .withFieldComputed(_.d, _.details.maxDate)
+      .withFieldComputed(_.os, _.details.oneShots)
       .buildTransformer
   }
 }
 
 /*
- * We need a short version of directive schedule to be kept in node configuration / expected reports
+ * We need a short version of directive schedule to be kept in node configuration / expected reports.
+ * The on-demand one shot windows are part of it: they must be in the node configuration hash (so
+ * that a "run now" rewrites node policies) and in expected reports (so that compliance knows an
+ * on-demand window exists, even when the schedule is disabled).
  */
+@jsonExplicitEmptyCollections(encoding = false, decoding = false)
 case class JsonDirectiveSchedule(
     id: CampaignId,
-    e:  Boolean,         // enabled == true <=> status == enabled, else false
-    d:  Option[Instant], // max date up to which events were generated for that schedule
-    s:  CampaignSchedule // that's a complicated data format, keep it like that
+    e:  Boolean,                       // enabled == true <=> status == enabled, else false
+    d:  Option[Instant],               // max date up to which events were generated for that schedule
+    s:  CampaignSchedule,              // that's a complicated data format, keep it like that
+    os: List[DirectiveScheduleOneShot] // on-demand one shot windows ("run now")
 ) derives JsonCodec
 
 /*
- * A schedule event that will be save in rudder.json for the module
+ * A schedule event that will be saved in rudder.json for the module
  */
 case class DirectiveScheduleEvent(
     id:        CampaignId,

@@ -644,6 +644,29 @@ object RudderParsedProperties {
     }
   }
 
+  /*
+   * Directive schedule event generation bounds: at each policy generation, schedule
+   * events are generated to cover the horizon, but always at least min events (so that
+   * infrequent schedules keep working long without regeneration) and at most max events
+   * (so that frequent schedules don't bloat policies).
+   */
+  private def positiveIntProp(name: String, default: Int): Int = {
+    val x = {
+      try {
+        config.getInt(name)
+      } catch {
+        case ex: ConfigException =>
+          ApplicationLogger.debug(s"Property '${name}' is absent or empty in rudder.configFile. Default to ${default}.")
+          default
+      }
+    }
+    if (x <= 0) default else x
+  }
+
+  val RUDDER_DIRECTIVE_SCHEDULE_HORIZON_DAYS: Int = positiveIntProp("rudder.directive.schedule.event.horizon.days", 30)
+  val RUDDER_DIRECTIVE_SCHEDULE_MIN_EVENTS:   Int = positiveIntProp("rudder.directive.schedule.event.min", 3)
+  val RUDDER_DIRECTIVE_SCHEDULE_MAX_EVENTS:   Int = positiveIntProp("rudder.directive.schedule.event.max", 100)
+
   // `connectionTimeout` is the time hikari wait when there is no connection available or base down before telling
   // upward that there is no connection. It makes Rudder slow, and we prefer to be notified quickly that it was
   // impossible to get a connection. Must be >=250ms. Rudder knows how to handle that gracefully.
@@ -1474,6 +1497,7 @@ object RudderConfig extends Loggable {
   val linkUtil:                            LinkUtil                                 = rci.linkUtil
   val logDisplayer:                        LogDisplayer                             = rci.logDisplayer
   val mainCampaignService:                 MainCampaignService                      = rci.mainCampaignService
+  val directiveScheduleManagement:         ScheduleManagement                       = rci.directiveScheduleManagement
   val ncfTechniqueReader:                  ncf.EditorTechniqueReader                = rci.ncfTechniqueReader
   val newNodeManager:                      NewNodeManager                           = rci.newNodeManager
   val nodeDit:                             NodeDit                                  = rci.nodeDit
@@ -1698,6 +1722,7 @@ case class RudderServiceApi(
     campaignEventRepo:                   CampaignEventRepositoryImpl,
     campaignRepo:                        CampaignRepository,
     mainCampaignService:                 MainCampaignService,
+    directiveScheduleManagement:         ScheduleManagement,
     campaignSerializer:                  CampaignSerializer,
     jsonReportsAnalyzer:                 JSONReportsAnalyser,
     aggregateReportScheduler:            FindNewReportsExecution,
@@ -3347,8 +3372,8 @@ object RudderConfigInit {
         buildNodeContext,
         writeCertificate,
         ruleValGeneratedHookService,
-        new NoopScheduleRepository(),
-        new NoopScheduleManagement(),
+        new com.normation.rudder.schedule.CampaignScheduleRepository(campaignRepo),
+        directiveScheduleManagement,
         () => configService.rudder_featureSwitch_directiveScriptEngine(),
         () => configService.rudder_global_policy_mode(),
         () => configService.rudder_generation_max_parallelism(),
@@ -3444,6 +3469,7 @@ object RudderConfigInit {
       reportsRepository,
       roAgentRunsRepository,
       nodeFactRepository,
+      nodeStatusReportRepository,
       () => globalComplianceModeService.getGlobalComplianceMode,
       RUDDER_JDBC_BATCH_MAX_SIZE
     )
@@ -3682,7 +3708,12 @@ object RudderConfigInit {
     )
 
     lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
-    lazy val campaignSerializer             = new CampaignSerializer()
+    lazy val campaignSerializer             = {
+      val s = new CampaignSerializer()
+      // directive schedules are the one core-managed campaign type, other types come from plugins
+      s.addJsonTranslater(com.normation.rudder.schedule.DirectiveScheduleSerializer)
+      s
+    }
     lazy val campaignEventRepo              = new CampaignEventRepositoryImpl(doobie, campaignSerializer)
     lazy val campaignHooksRepository        = new FsCampaignHooksRepository(HOOKS_D)
     lazy val campaignHooksService           = new FsCampaignHooksService(HOOKS_D, HOOKS_IGNORE_SUFFIXES, RUN_WITH_SUDO_HOOKS)
@@ -3692,8 +3723,32 @@ object RudderConfigInit {
       .make(campaignArchiver.campaignPath, campaignArchiver, campaignSerializer, campaignHooksRepository)
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
-    lazy val mainCampaignService =
-      MainCampaignService.make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1).runNow
+    lazy val directiveScheduleManagement = new com.normation.rudder.schedule.ScheduleManagementImpl(
+      campaignRepo,
+      com.normation.rudder.schedule.ScheduleEventBounds(
+        RUDDER_DIRECTIVE_SCHEDULE_HORIZON_DAYS,
+        RUDDER_DIRECTIVE_SCHEDULE_MIN_EVENTS,
+        RUDDER_DIRECTIVE_SCHEDULE_MAX_EVENTS
+      )
+    )
+
+    lazy val mainCampaignService = {
+      val m = MainCampaignService.make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1).runNow
+      m.registerService(
+        new com.normation.rudder.schedule.DirectiveScheduleCampaignHandler(
+          directiveScheduleManagement,
+          () => {
+            IOResult.attempt(
+              asyncDeploymentAgent ! AutomaticStartDeployment(
+                com.normation.eventlog.ModificationId(stringUuidGenerator.newUuid),
+                com.normation.rudder.domain.eventlog.RudderEventActor
+              )
+            )
+          }
+        )
+      ).runNow
+      m
+    }
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
     lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"
@@ -4147,6 +4202,7 @@ object RudderConfigInit {
       campaignEventRepo,
       campaignRepo,
       mainCampaignService,
+      directiveScheduleManagement,
       campaignSerializer,
       jsonReportsAnalyzer,
       aggregateReportScheduler,

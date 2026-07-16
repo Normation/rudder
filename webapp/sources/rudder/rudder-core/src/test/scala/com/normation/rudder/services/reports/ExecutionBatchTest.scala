@@ -60,6 +60,7 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTimer
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
+import com.normation.rudder.services.reports.ExecutionBatch.PreviousCompliance
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -223,7 +224,7 @@ class ExecutionBatchTest extends Specification {
       val runTime = reportsParam.headOption.map(_.executionTimestamp).getOrElse(DateTime.now)
       val runInfo = ComputeCompliance(runTime, expected, runTime.plusMinutes(5))
 
-      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, state, runInfo, reportsParam))
+      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, state, runInfo, None, reportsParam))
     })
 
     res.toMap
@@ -1343,7 +1344,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
     val withBad  = ExecutionBatch
@@ -1353,7 +1357,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -1524,7 +1531,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -1671,7 +1681,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -1890,7 +1903,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -1901,7 +1917,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -2108,7 +2127,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -2119,7 +2141,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -2286,7 +2311,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -2449,7 +2477,10 @@ class ExecutionBatchTest extends Specification {
         mode,
         ruleExpectedReports,
         new ComputeComplianceTimer(),
-        Nil
+        Nil,
+        Map(),
+        PreviousCompliance.empty,
+        None
       )
       .collect { case r => r.directives("policy") }
 
@@ -3077,7 +3108,10 @@ class ExecutionBatchTest extends Specification {
       mode,
       ruleExpectedReports,
       new ComputeComplianceTimer(),
-      Nil
+      Nil,
+      Map(),
+      PreviousCompliance.empty,
+      None
     )
 
     (result.size === 1) and
@@ -4534,20 +4568,34 @@ class ExecutionBatchTest extends Specification {
 
     val runData = nodeList.map(buildDataForMergeCompareByRule(_, 15, 12, 5))
 
+    def mergeTupled(
+        t: (
+            ExecutionBatch.MergeInfo,
+            IndexedSeq[ResultSuccessReport],
+            NodeExpectedReports,
+            NodeExpectedReports,
+            List[
+              OverriddenPolicy
+            ]
+        )
+    ): Set[RuleNodeStatusReport] = {
+      ExecutionBatch.mergeCompareByRule(t._1, t._2, t._3, t._4, t._5)
+    }
+
     "init correctly" in {
-      val result = (ExecutionBatch.mergeCompareByRule).tupled(initData)
+      val result = mergeTupled(initData)
       result.size === nbRuleInit and
       result.toSeq.map(x => x.compliance).map(x => x.success).sum === 576
     }
 
     "run fast enough" in {
-      runData.map(x => (ExecutionBatch.mergeCompareByRule).tupled(x))
+      runData.map(x => mergeTupled(x))
 
       val t0 = System.currentTimeMillis
 
       for (i <- 1 to 10) {
         val t0_0 = System.currentTimeMillis
-        runData.map(x => (ExecutionBatch.mergeCompareByRule).tupled(x))
+        runData.map(x => mergeTupled(x))
         val t1_1 = System.currentTimeMillis
         logger.trace(s"${i}th call to mergeCompareByRule for ${nodeList.size} nodes took ${t1_1 - t0_0}ms")
       }

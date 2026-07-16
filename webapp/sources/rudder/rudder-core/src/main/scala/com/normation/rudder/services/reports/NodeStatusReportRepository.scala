@@ -143,7 +143,10 @@ class NodeStatusReportRepositoryImpl(
   }
 
   override def getNodeStatusReports(nodeIds: Set[NodeId])(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
-    cache.get.map(_.filter(x => nodeIds.contains(x._1)))
+    // performance: this is called for each batch of the compliance computation, so do one map
+    // lookup by asked node, not a filter of the whole cache (which is proportional to the total
+    // number of nodes, not to the batch size)
+    cache.get.map(c => nodeIds.iterator.flatMap(id => c.get(id).map(id -> _)).toMap)
   }
 
   override def saveNodeStatusReports(

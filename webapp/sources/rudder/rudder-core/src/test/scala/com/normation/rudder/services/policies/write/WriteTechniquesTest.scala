@@ -49,6 +49,9 @@ import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.campaigns.CampaignId
+import com.normation.rudder.campaigns.Daily
+import com.normation.rudder.campaigns.ScheduleTimeZone
+import com.normation.rudder.campaigns.Time
 import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.policies.GlobalPolicyMode
@@ -63,6 +66,7 @@ import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.schedule.DirectiveScheduleEvent
 import com.normation.rudder.schedule.JsonDirectiveSchedule
+import com.normation.rudder.schedule.SystemDirectiveSchedule
 import com.normation.rudder.services.policies.BoundPolicyDraft
 import com.normation.rudder.services.policies.MergePolicyService
 import com.normation.rudder.services.policies.NodeConfigData
@@ -73,7 +77,6 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.TestNodeConfiguration
-import com.normation.rudder.services.policies.fetchinfo.SystemDirectiveSchedule
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
@@ -208,6 +211,16 @@ class TestSystemData {
     }
   }
 
+  // the schedule referenced by test node configurations: schedule events are only written
+  // in the policies of nodes whose configuration references their schedule
+  val testSchedule: JsonDirectiveSchedule = JsonDirectiveSchedule(
+    CampaignId("test-schedule"),
+    e = true,
+    d = Some(Instant.parse("2026-03-01T00:00:00Z")),
+    s = Daily(Time(14, 0), Time(16, 0), Some(ScheduleTimeZone("UTC"))),
+    os = Nil
+  )
+
   /// For root, we are using the same system variable and base root node config
   // the root node configuration
   val baseRootDrafts:                                 List[BoundPolicyDraft] = List(common(root.id, allNodesInfo_rootOnly)) ++ allRootPolicies
@@ -217,13 +230,15 @@ class TestSystemData {
       nodeInfo = fr,
       policies = policies(fr, baseRootDrafts),
       nodeContext = getSystemVars(fr, Map(fr.id -> fr), groupLib),
-      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###")),
+      schedules = List(testSchedule)
     )
   }
 
   val cfeNodeConfig: NodeConfiguration = NodeConfigData.node1NodeConfig.copy(
     nodeInfo = factCfe,
-    parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+    parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###")),
+    schedules = List(testSchedule)
   )
 
   // A global list of files to ignore because variable content (like timestamp)
@@ -621,7 +636,8 @@ class WriteSystemTechniques500Test extends TechniquesTest {
       policies =
         policies(rootNodeConfig.nodeInfo, List(common(root.id, allNodesInfo_cfeNode)) ++ allRootPolicies ++ List(test18205)),
       nodeContext = forceBooleanToFalse(getSystemVars(factRoot, allNodeFacts_cfeNode, groupLib)),
-      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
+      parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###")),
+      schedules = List(testSchedule)
     )
 
     "correctly get the expected policy files" in {
