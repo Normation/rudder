@@ -61,6 +61,8 @@ final case class RuleCategory(
     childs:      List[RuleCategory],
     isSystem:    Boolean = false
 ) {
+  def allChildren: Set[RuleCategoryId] = childs.map(_.id).toSet ++ childs.flatMap(_.allChildren)
+
   def findParent(category: RuleCategory): Box[RuleCategory] = {
     if (childs.contains(category)) {
       Full(this)
