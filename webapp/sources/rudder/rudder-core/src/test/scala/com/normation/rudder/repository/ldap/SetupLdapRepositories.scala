@@ -147,7 +147,7 @@ trait SetupLdapRepositories {
   lazy val inventoryMapper = new InventoryMapper(inventoryDitService, pendingDIT, acceptedDIT, removedDIT)
 
   lazy val ditQueryDataImpl: DitQueryData                                            = {
-    lazy val instanceUuidPath    = File.root / "opt" / "rudder" / "etc" / "instance-id"
+    lazy val instanceUuidPath    = File.root / "var" / "rudder" / "lib" / "webapp" / "instance-id"
     lazy val instanceIdGenerator = new InstanceIdGeneratorImpl()
     lazy val instanceIdService   = InstanceIdService.make(instanceUuidPath, instanceIdGenerator).runNow
     lazy val getSubGroupChoices  = {
