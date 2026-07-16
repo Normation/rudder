@@ -53,7 +53,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceModeName.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.schedule.JsonDirectiveSchedule
-import com.normation.rudder.services.policies.fetchinfo.SystemDirectiveSchedule
+import com.normation.rudder.schedule.SystemDirectiveSchedule
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full

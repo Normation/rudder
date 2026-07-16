@@ -38,6 +38,7 @@
 package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.campaigns.CampaignId
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.domain.logger.ComplianceDebugLogger.*
 import com.normation.rudder.domain.logger.TimingDebugLogger
@@ -53,9 +54,14 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.reports.ComplianceModeName.*
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.schedule.JsonDirectiveSchedule
+import com.normation.rudder.schedule.ScheduleWindow
+import com.normation.rudder.schedule.ScheduleWindows
+import com.normation.utils.DateFormaterService.toJavaInstant
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
+import java.time.Instant
 import java.util.regex.Pattern
 import net.liftweb.common.Loggable
 import org.apache.commons.lang3.StringUtils
@@ -511,6 +517,50 @@ object ExecutionBatch extends Loggable {
       expirationTime: DateTime
   )
 
+  /*
+   * Previous compliance information used for scheduled directives: for a (rule, directive),
+   * the last known directive status and the run time of its rule. The rule run time is a
+   * fallback for when the directive status has no own agentRunTime (compliance computed
+   * before the upgrade to directive scheduling).
+   */
+  final private[reports] case class PreviousDirectiveCompliance(
+      status:      DirectiveStatusReport,
+      ruleRunTime: Option[Instant]
+  ) {
+    def lastUpdate: Option[Instant] = status.agentRunTime.orElse {
+      // the rule run time fallback is only meaningful if the directive carries actual
+      // compliance data: a pure "pending" status was not obtained from an agent execution,
+      // and using the rule run time for it would wrongly mark it as fresh at each run.
+      if (status.compliance.pending == status.compliance.total) None
+      else ruleRunTime
+    }
+  }
+
+  final private[reports] case class PreviousCompliance(
+      directives: Map[(RuleId, DirectiveId), PreviousDirectiveCompliance]
+  )
+
+  private[reports] object PreviousCompliance {
+    val empty: PreviousCompliance = PreviousCompliance(Map.empty)
+
+    def from(last: Option[NodeStatusReport]): PreviousCompliance = {
+      last match {
+        case None    => empty
+        case Some(r) =>
+          PreviousCompliance(
+            r.reports
+              .getReports()
+              .flatMap(rnsr => {
+                rnsr.directives.values.map(d => {
+                  ((rnsr.ruleId, d.directiveId), PreviousDirectiveCompliance(d, rnsr.agentRunTime.map(_.toJavaInstant)))
+                })
+              })
+              .toMap
+          )
+      }
+    }
+  }
+
   /**
    * The time that we are going to give to the agent as a grace period to get
    * its reports.
@@ -908,12 +958,11 @@ object ExecutionBatch extends Loggable {
    *  It returns a properly merged NodeStatusReports
    */
   def getNodeStatusReports(
-      nodeId:    NodeId,           // run info: if we have a run, we have a datetime for it
-      // and perhaps a configId
-      nodeState: NodeState,
-      runInfo:   RunAndConfigInfo, // reports we get on the last know run
-
-      agentExecutionReports: Seq[Reports]
+      nodeId:                NodeId,                   // run info: if we have a run, we have a datetime for it
+      nodeState:             NodeState,
+      runInfo:               RunAndConfigInfo,         // expected reports for the node run analysis
+      lastCompliance:        Option[NodeStatusReport], // previous compliance, if available.
+      agentExecutionReports: Seq[Reports]              // unstructured reports for that run
   ): NodeStatusReport = {
     // early return, no need to continue
     if (!nodeState.isEnabled) {
@@ -935,6 +984,17 @@ object ExecutionBatch extends Loggable {
       val overrides = runInfo match {
         case x: ExpectedConfigAvailable => x.expectedConfig.overrides
         case _ => Nil
+      }
+
+      // previous compliance is used to keep last known status of scheduled directives.
+      // Performance: it indexes the whole previous node report, so only build it when the node
+      // actually uses schedules (most nodes don't). A directive can reference a schedule that is
+      // absent from `schedules` (deleted schedule): it still needs previous compliance, so we
+      // look at directive scheduleIds, not at the schedules map.
+      def previousFor(config: NodeExpectedReports): PreviousCompliance = {
+        val hasScheduledDirective = config.schedules.nonEmpty ||
+          config.ruleExpectedReports.exists(_.directives.exists(_.scheduleId.isDefined))
+        if (hasScheduledDirective) PreviousCompliance.from(lastCompliance) else PreviousCompliance.empty
       }
 
       val ruleNodeStatusReports = runInfo match {
@@ -963,7 +1023,8 @@ object ExecutionBatch extends Loggable {
             nodeStatusReports,
             expectedConfig,
             expectedConfig,
-            overrides
+            overrides,
+            previousFor(expectedConfig)
           )
 
         case Pending(expectedConfig, optLastRun, expirationTime) =>
@@ -998,7 +1059,8 @@ object ExecutionBatch extends Loggable {
                 nodeStatusReports,
                 runConfig,
                 expectedConfig,
-                overrides
+                overrides,
+                previousFor(runConfig)
               )
           }
 
@@ -1177,7 +1239,10 @@ object ExecutionBatch extends Loggable {
       modes:                  NodeModeConfig,
       ruleExpectedReports:    RuleExpectedReports,
       timer:                  ComputeComplianceTimer,
-      overrides:              List[OverriddenPolicy]
+      overrides:              List[OverriddenPolicy],
+      schedules:              Map[CampaignId, JsonDirectiveSchedule],
+      previous:               PreviousCompliance,
+      configBeginDate:        Option[Instant]
   ): List[RuleNodeStatusReport] = {
 
     // An effective expected component contains only the component path from the root component to a unique Value
@@ -1206,9 +1271,23 @@ object ExecutionBatch extends Loggable {
 
     val reports = reportsForThatNodeRule.groupBy(x => x.directiveId)
 
+    /*
+     * Performance: scheduled directives without reports in that run (the common case: they only
+     * report once by occurrence window) are decided from the previous compliance and the schedule
+     * windows, WITHOUT building the full expected component tree. That tree can be huge (a security
+     * benchmark directive has thousands of component values) and would be recomputed for nothing at
+     * every run of every node; it is only built for the rare "pending"/"missing" outcomes, inside
+     * `decideScheduledDirectiveWithoutReports`.
+     * Overridden directives are excluded: they are skipped in that rule and keep the historical
+     * handling (the agent runs them under another rule).
+     */
+    val (scheduledNoReport, toCompute) = directives.partition { d =>
+      d.scheduleId.isDefined && !reports.contains(d.directiveId) && getOverridden(ruleId, d.directiveId, overrides).isEmpty
+    }
+
     val expectedComponents: Map[(DirectiveId, PolicyTypes, List[EffectiveExpectedComponent]), (PolicyMode, ReportType)] = {
       (for {
-        directive          <- directives
+        directive          <- toCompute
         policyMode          = PolicyMode.directivePolicyMode(
                                 modes.globalPolicyMode,
                                 modes.nodePolicyMode,
@@ -1286,19 +1365,202 @@ object ExecutionBatch extends Loggable {
       }
     }
 
+    // for scheduled directives that did report in that run: standard compliance was computed,
+    // just remember when the data was collected
+    val directivesById        = toCompute.map(d => (d.directiveId, d)).toMap
+    val expectedWithSchedules = expected.map { d =>
+      directivesById.get(d.directiveId).flatMap(_.scheduleId) match {
+        case None    => d
+        case Some(_) => d.modify(_.agentRunTime).setTo(mergeInfo.run.map(_.toJavaInstant))
+      }
+    }
+
+    // scheduled directives without reports: keep last known compliance, pending, or missing
+    val scheduledDecided = scheduledNoReport.flatMap { d =>
+      d.scheduleId.map { sid =>
+        val policyMode = PolicyMode.directivePolicyMode(
+          modes.globalPolicyMode,
+          modes.nodePolicyMode,
+          d.policyMode,
+          d.policyTypes
+        )
+        decideScheduledDirectiveWithoutReports(
+          mergeInfo,
+          ruleId,
+          d,
+          buildScheduledDirectiveStatus(ruleId, d, overrides),
+          missingReportType(modes.globalComplianceMode, policyMode),
+          sid,
+          schedules.get(sid),
+          previous.directives.get((ruleId, d.directiveId)),
+          configBeginDate
+        )
+      }
+    }
+
     val t5 = System.nanoTime
     timer.u4 += t5 - t4
 
     // if there is no missing nor unexpected, then data is already correct, otherwise we need to merge it
     val directiveStatusReports = {
       if (unexpected.nonEmpty) {
-        DirectiveStatusReport.merge((expected ++ unexpected).toList)
+        DirectiveStatusReport.merge((expectedWithSchedules ++ scheduledDecided ++ unexpected).toList)
       } else {
-        expected.map(dir => (dir.directiveId, dir)).toMap
+        (expectedWithSchedules ++ scheduledDecided).map(dir => (dir.directiveId, dir)).toMap
       }
     }
 
     buildRuleNodeStatusReportFromDirective(mergeInfo, ruleId, directiveStatusReports.values)
+  }
+
+  /*
+   * Build the full status tree of a scheduled directive without reports, with the given status.
+   * It is behind a function on purpose: the tree can be huge (thousands of component values for
+   * a security benchmark) and must only be built for the rare "pending"/"missing" outcomes.
+   */
+  private def buildScheduledDirectiveStatus(
+      ruleId:    RuleId,
+      expected:  DirectiveExpectedReports,
+      overrides: List[OverriddenPolicy]
+  ): ReportType => DirectiveStatusReport = { status =>
+    DirectiveStatusReport(
+      expected.directiveId,
+      expected.policyTypes,
+      getOverridden(ruleId, expected.directiveId, overrides),
+      expected.components.map(componentExpectedReportToStatusReport(status, _))
+    )
+  }
+
+  /*
+   * Decide what to do for a scheduled directive when the run has no report for it.
+   * Semantic:
+   * - events are "once by occurrence window": within a window, only one run executes the
+   *   directive, so "no report" is only an error when a whole window went by without any
+   *   compliance update for that directive;
+   * - on-demand one shot windows ("run now") count as occurrence windows, whatever the
+   *   campaign status is (they are the only way a disabled schedule runs);
+   * - no schedule info, disabled schedule, or a window past the event generation horizon
+   *   mean the agent has no event and can not run the directive: keep last known compliance;
+   * - when there is nothing to keep, the directive is pending.
+   * Logs are meant to let sysops understand why a scheduled directive compliance is kept or
+   * in error (see logger `explain_compliance.${nodeId}`).
+   */
+  private def decideScheduledDirectiveWithoutReports(
+      mergeInfo:       MergeInfo,
+      ruleId:          RuleId,
+      expected:        DirectiveExpectedReports,
+      mkStatus:        ReportType => DirectiveStatusReport, // build the full status tree, only on need
+      missingStatus:   ReportType,                          // what "missing" means for the compliance mode (success in changes-only)
+      scheduleId:      CampaignId,
+      schedule:        Option[JsonDirectiveSchedule],
+      previous:        Option[PreviousDirectiveCompliance],
+      configBeginDate: Option[Instant]
+  ): DirectiveStatusReport = {
+    def log           = ComplianceDebugLogger.node(mergeInfo.nodeId)
+    def directiveDesc = {
+      s"scheduled directive '${expected.directiveId.debugString}' (schedule '${scheduleId.serialize}') " +
+      s"in rule '${ruleId.serialize}' on node '${mergeInfo.nodeId.value}'"
+    }
+
+    // keep last known compliance if any, else all values are pending
+    def keepOrPending(reason: String): DirectiveStatusReport = {
+      previous match {
+        case Some(p) =>
+          log.debug(s"Keep last known compliance for ${directiveDesc}: ${reason}")
+          p.status.modify(_.agentRunTime).setTo(p.lastUpdate)
+        case None    =>
+          log.debug(s"No last known compliance for ${directiveDesc}, reporting 'pending': ${reason}")
+          mkStatus(ReportType.Pending)
+      }
+    }
+
+    def missing(start: Instant, end: Instant): DirectiveStatusReport = {
+      log.info(
+        s"${directiveDesc} should have run during window [${start} -> ${end}] but no " +
+        s"report was received: reporting missing."
+      )
+      mkStatus(missingStatus)
+    }
+
+    (schedule, mergeInfo.run.map(_.toJavaInstant)) match {
+      case (None, _)          =>
+        log.warn(
+          s"${directiveDesc} references a schedule which is not in node expected reports: this is likely a bug, " +
+          s"please report it. Keeping last known compliance."
+        )
+        keepOrPending("unknown schedule")
+      case (_, None)          =>
+        keepOrPending("no run date available")
+      case (Some(s), Some(t)) =>
+        // on-demand one shot windows ("run now") count whatever the campaign status is
+        val oneShotOpen   = s.os.exists(o => !t.isBefore(o.start) && t.isBefore(o.end))
+        val oneShotClosed = s.os.filter(o => !o.end.isAfter(t)).sortBy(_.start).lastOption
+
+        // recurrent windows only exist when the schedule is enabled
+        val recurrent: Option[ScheduleWindows.Windows] = {
+          if (!s.e) None
+          else {
+            ScheduleWindows.findWindows(s.s, t) match {
+              case Right(w)  => Some(w)
+              case Left(err) =>
+                log.error(
+                  s"Error when computing schedule occurrence windows for ${directiveDesc}: ${err.fullMsg}. " +
+                  s"Keeping last known compliance."
+                )
+                None
+            }
+          }
+        }
+
+        // was that recurrent window's event actually generated and sent to the node?
+        def hasEvent(window: ScheduleWindow): Boolean = s.d.exists(maxDate => !window.start.isAfter(maxDate))
+
+        // the last window during which the directive should have run (recurrent windows only count
+        // if their event was generated; one shots are always generated with their window)
+        val lastClosed: Option[(Instant, Instant)] = {
+          val r = recurrent.flatMap(_.lastClosed).collect { case w if hasEvent(w) => (w.start, w.end) }
+          val o = oneShotClosed.map(x => (x.start, x.end))
+          (r.toList ++ o.toList).sortBy(_._1).lastOption
+        }
+
+        if (oneShotOpen || recurrent.exists(_.current.isDefined)) {
+          // window still open: the agent may not have run the directive yet
+          keepOrPending(if (oneShotOpen) "an on-demand run window is open" else "occurrence window is still open")
+        } else {
+          lastClosed match {
+            case Some((start, end)) =>
+              previous.flatMap(_.lastUpdate) match {
+                case Some(lastUpdate) if !lastUpdate.isBefore(start) =>
+                  keepOrPending("compliance was updated during last occurrence window")
+                case _                                               =>
+                  // grace period: if the node configuration is more recent than the window
+                  // start, the agent may not have had the directive during the window
+                  if (configBeginDate.exists(begin => start.isBefore(begin))) {
+                    keepOrPending("node configuration is more recent than the last occurrence window")
+                  } else {
+                    missing(start, end)
+                  }
+              }
+            case None               =>
+              if (!s.e) {
+                log.info(
+                  s"Schedule '${scheduleId.serialize}' is disabled: ${directiveDesc} never runs on the agent. " +
+                  s"Enable the corresponding campaign to resume executions."
+                )
+                keepOrPending("schedule is disabled")
+              } else if (recurrent.exists(_.lastClosed.isDefined)) {
+                log.warn(
+                  s"Last occurrence window of schedule '${scheduleId.serialize}' is past " +
+                  s"the event generation horizon (${s.d.map(_.toString).getOrElse("no event generated")}): the agent " +
+                  s"could not run ${directiveDesc}. A policy regeneration is needed."
+                )
+                keepOrPending("event was not generated for last occurrence window")
+              } else {
+                keepOrPending("no occurrence window happened yet")
+              }
+          }
+        }
+    }
   }
 
   // UnexpectedVersion are always called for only one node
@@ -1364,11 +1626,15 @@ object ExecutionBatch extends Loggable {
 
       executionReports:  Seq[ResultReports],
       lastRunNodeConfig: NodeExpectedReports,
-      overrides:         List[OverriddenPolicy]
+      overrides:         List[OverriddenPolicy],
+      previous:          PreviousCompliance = PreviousCompliance.empty
   ): Map[(RuleId, PolicyTypeName), RuleNodeStatusReport] = {
 
     val timer = new ComputeComplianceTimer()
     val t0    = System.currentTimeMillis
+
+    // schedules referenced by scheduled directives of that config
+    val schedules = lastRunNodeConfig.schedules.map(s => (s.id, s)).toMap
 
     val reportsPerRule = executionReports.groupBy(_.ruleId)
     val complianceForRun: Map[(RuleId, PolicyTypeName), RuleNodeStatusReport] = (for {
@@ -1382,7 +1648,10 @@ object ExecutionBatch extends Loggable {
         lastRunNodeConfig.modes,
         ruleExpectedReport,
         timer,
-        overrides
+        overrides,
+        schedules,
+        previous,
+        Some(lastRunNodeConfig.beginDate.toJavaInstant)
       )
 
       ruleCompliance.map { c =>
@@ -1450,12 +1719,13 @@ object ExecutionBatch extends Loggable {
       executionReports:  Seq[ResultReports],
       lastRunNodeConfig: NodeExpectedReports,
       currentConfig:     NodeExpectedReports,
-      overrides:         List[OverriddenPolicy]
+      overrides:         List[OverriddenPolicy],
+      previous:          PreviousCompliance = PreviousCompliance.empty
   ): Set[RuleNodeStatusReport] = {
 
     val t0 = System.currentTimeMillis()
 
-    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig, overrides)
+    val complianceForRun = getComplianceForRun(mergeInfo, executionReports, lastRunNodeConfig, overrides, previous)
 
     val t10 = System.currentTimeMillis()
 

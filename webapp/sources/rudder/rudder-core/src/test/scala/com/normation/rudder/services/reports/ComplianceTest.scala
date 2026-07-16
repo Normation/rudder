@@ -251,7 +251,7 @@ class ComplianceTest extends Specification {
       // here, we assume "compute compliance", i.e we are only testing the compliance engine, not
       // the meta-analysis on run consistency (correct run, at the correct time, etc)
       val runinfo = ComputeCompliance(runTime, config, runTime)
-      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, NodeState.Enabled, runinfo, reports)
+      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, NodeState.Enabled, runinfo, None, reports)
 
       // we really have 26 (ie 18+8) values
       status.compliance must beEqualTo(ComplianceLevel(success = 18, notApplicable = 8))
@@ -273,7 +273,7 @@ class ComplianceTest extends Specification {
       // here, we assume "compute compliance", i.e we are only testing the compliance engine, not
       // the meta-analysis on run consistancy (correct run, at the correct time, etc)
       val runinfo = ComputeCompliance(runTime, config, runTime)
-      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, NodeState.Enabled, runinfo, reports)
+      val status  = ExecutionBatch.getNodeStatusReports(config.nodeId, NodeState.Enabled, runinfo, None, reports)
 
       // we really have 39 values in total
       status.compliance must beEqualTo(ComplianceLevel(success = 34, notApplicable = 5))

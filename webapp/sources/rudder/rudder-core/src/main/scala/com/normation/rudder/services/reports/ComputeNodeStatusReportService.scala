@@ -490,6 +490,7 @@ class FindNewNodeStatusReportsImpl(
     reportsRepository:       ReportsRepository,
     agentRunRepository:      RoReportsExecutionRepository,
     nodeFactRepository:      NodeFactRepository,
+    nsrRepo:                 NodeStatusReportRepository,
     getGlobalComplianceMode: () => IOResult[GlobalComplianceMode],
     jdbcMaxBatchSize:        Int
 ) extends FindNewNodeStatusReports {
@@ -655,6 +656,8 @@ class FindNewNodeStatusReportsImpl(
         nodeStates       <- nodeFactRepository
                               .getAll()
                               .map(_.collect { case (id, n) if runBatch.keySet.contains(id) => (id, n.rudderSettings.state) }.toMap)
+        // last known compliance, used to keep status of scheduled directives that don't report on each run
+        lastCompliances  <- nsrRepo.getNodeStatusReports(runBatch.keySet)
         // we want to have nodeStatus for all asked node, not only the ones with reports
         nodeStatusReports = runBatch.map { (nodeId, runInfo) =>
                               val status = {
@@ -662,6 +665,7 @@ class FindNewNodeStatusReportsImpl(
                                   nodeId,
                                   nodeStates.getOrElse(nodeId, NodeState.Ignored),
                                   runInfo,
+                                  lastCompliances.get(nodeId),
                                   reports.getOrElse(nodeId, Seq())
                                 )
                               }

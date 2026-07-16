@@ -64,6 +64,7 @@ import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.schedule.DirectiveScheduleEvent
+import com.normation.rudder.schedule.DirectiveScheduleEvents
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
@@ -539,6 +540,15 @@ class PolicyWriterServiceImpl(
                                                                    preparedTemplates     <- parallelSequence(configAndPaths) {
                                                                                               case agentNodeConfig =>
                                                                                                 val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
+                                                                                                // only send to the node the events of schedules its policies use,
+                                                                                                // with a per-node splay of their start (see splayEvents)
+                                                                                                val nodeEvents   = {
+                                                                                                  val ids = agentNodeConfig.config.schedules.map(_.id).toSet
+                                                                                                  DirectiveScheduleEvents.splayEvents(
+                                                                                                    agentNodeConfig.config.nodeInfo.id,
+                                                                                                    scheduledEvents.filter(e => ids.contains(e.id))
+                                                                                                  )
+                                                                                                }
                                                                                                 prepareTemplate
                                                                                                   .prepareTemplateForAgentNodeConfiguration(
                                                                                                     agentNodeConfig,
@@ -550,7 +560,7 @@ class PolicyWriterServiceImpl(
                                                                                                     globalPolicyMode,
                                                                                                     generationTime,
                                                                                                     prepareTimer,
-                                                                                                    scheduledEvents
+                                                                                                    nodeEvents
                                                                                                   )
                                                                                                   .chainError(
                                                                                                     s"Error when calculating configuration for node '${agentNodeConfig.config.nodeInfo.fqdn}' (${agentNodeConfig.config.nodeInfo.id.value})"

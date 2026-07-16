@@ -44,6 +44,7 @@ import com.normation.rudder.domain.policies.*
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import java.time.Instant
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -564,12 +565,15 @@ object RuleNodeStatusReport {
  * It is colored with the same PolicyTypes than its technique
  */
 final case class DirectiveStatusReport(
-    directiveId: DirectiveId, // only one component status report by component name
-    policyTypes: PolicyTypes,
+    directiveId:  DirectiveId, // only one component status report by component name
+    policyTypes:  PolicyTypes,
     // if set, this means that that directive is skipped in current rule, and is overridden by
     // a directive in rule with given ID.
-    overridden:  Option[RuleId],
-    components:  List[ComponentStatusReport]
+    overridden:   Option[RuleId],
+    components:   List[ComponentStatusReport],
+    // if different from parent rule in case of scheduled directives.
+    // Default value for compat
+    agentRunTime: Option[Instant] = None
 ) extends StatusReport {
   override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(components.map(_.compliance))
 
@@ -595,7 +599,9 @@ object DirectiveStatusReport {
         // in a merge, we keep the overridden only if all directive have an override
         val overridden    = if (reports.forall(_.overridden.isDefined)) reports.headOption.flatMap(_.overridden) else None
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
-        (directiveId, DirectiveStatusReport(directiveId, tags, overridden, newComponents))
+        // for scheduled directives, the meaningful run time is the most recent one
+        val runTime       = reports.flatMap(_.agentRunTime).maxOption
+        (directiveId, DirectiveStatusReport(directiveId, tags, overridden, newComponents, runTime))
     }
   }
 }
@@ -984,13 +990,16 @@ object JsonPostgresqlSerialization {
   @jsonHint("dsr")
   final case class JDirectiveStatusReport(
       @jsonField("did")
-      directiveId: DirectiveId,
+      directiveId:  DirectiveId,
       @jsonField("pts")
-      policyTypes: PolicyTypes,
+      policyTypes:  PolicyTypes,
       @jsonField("o")
-      overridden:  Option[RuleId],
+      overridden:   Option[RuleId],
       @jsonField("csrs")
-      components:  List[JComponentStatusReport]
+      components:   List[JComponentStatusReport],
+      // agent run time for scheduled directives, absent for pre-9.2 serialized compliance
+      @jsonField("art")
+      agentRunTime: Option[Instant] = None
   ) {
     def to: DirectiveStatusReport = this.transformInto[DirectiveStatusReport]
   }
