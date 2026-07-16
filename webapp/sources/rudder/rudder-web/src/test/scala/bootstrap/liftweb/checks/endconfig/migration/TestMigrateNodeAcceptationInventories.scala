@@ -282,6 +282,9 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     (testFactLog.get(nodeId, d).either.runNow must beRight(beSome[FactLog]))
   }
 
+  // All dates below use explicit offsets and all comparisons are instant-based (see
+  // InventoryHistoryJdbcRepository delete queries and DateFormaterService.serialize which stores UTC),
+  // so this whole spec is deterministic whatever the machine/JVM time zone.
   "A full migration" should {
 
     // init; copy test data in src/test/resources/historical-inventories to testDir.
@@ -302,8 +305,8 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
 
     "ignore deleted nodes too old, even with old file format, without error" in {
       val ids = testFactLog.getIds.runNow
-      (ids must contain(be_!=(NodeId("0afa1d13-d125-4c91-9d71-24c47dc867e9")))) and
-      (ids must contain(be_!=(NodeId("fb0096f4-a928-454d-9776-e8079d48cdd8"))))
+      (ids must not(contain(be_==(NodeId("0afa1d13-d125-4c91-9d71-24c47dc867e9"))))) and
+      (ids must not(contain(be_==(NodeId("fb0096f4-a928-454d-9776-e8079d48cdd8")))))
     }
 
     "migrate deleted node when its event date is less than MAX_KEEP_DELETED" in {
@@ -313,7 +316,6 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     "historical directory is empty" in {
       File(fileLog.rootDir).list.toList === Nil
     }
-
   }
 
   "If a new log is provided latter on, for ex after a reboot, then node history is updated" >> {
