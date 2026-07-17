@@ -4004,6 +4004,268 @@ response:
   content: |
     "Rule","Directive","Block","Component","Node","Value","Status","Message"
     "R3","directive2","","directive2-component-r3-n1","node1.localhost","directive2-component-value-r3-n1","error",""
+---
+description: Get a node group's global compliance by node in JSON format
+method: GET
+url: /api/latest/groups/g3/compliance/global/byNode
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getGlobalNodeGroupComplianceByNodeId",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "n1",
+            "name" : "node1.localhost",
+            "mode" : "full-compliance",
+            "compliance" : 66.66,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "successRepaired" : 33.33,
+              "error" : 33.34
+            },
+            "rules" : [
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's global compliance by node for a nonexistent group
+method: GET
+url: /api/latest/groups/myGroup/compliance/global/byNode
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "getGlobalNodeGroupComplianceByNodeId",
+      "result" : "error",
+      "errorDetails" : "Node group with id 'myGroup' not found"
+    }
+---
+description: Get a node group's targeted compliance by node in JSON format
+method: GET
+url: /api/latest/groups/g3/compliance/targeted/byNode
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getTargetedNodeGroupComplianceByNodeId",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "n1",
+            "name" : "node1.localhost",
+            "mode" : "full-compliance",
+            "compliance" : 0.0,
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "error" : 100.0
+            },
+            "rules" : [
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-r3-n1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a node group's targeted compliance by node for a nonexistent group
+method: GET
+url: /api/latest/groups/myGroup/compliance/targeted/byNode
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "getTargetedNodeGroupComplianceByNodeId",
+      "result" : "error",
+      "errorDetails" : "Node group with id 'myGroup' not found"
+    }
+---
+description: Get a node group's global compliance by node in CSV format
+method: GET
+url: /api/latest/groups/g3/compliance/global/byNode
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Node","Rule","Directive","Block","Component","Value","Status","Message"
+    "node1.localhost","R1","25. Testing blocks","","directive-techniqueWithBlocks-component-r1-n1","directive-techniqueWithBlocks-component-value-r1-n1","successAlreadyOK",""
+    "node1.localhost","R2","directive 99f4ef91-537b-4e03-97bc-e65b447514cc","","99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1","99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1","successRepaired",""
+    "node1.localhost","R3","directive2","","directive2-component-r3-n1","directive2-component-value-r3-n1","error",""
+---
+description: Get a node group's targeted compliance by node in CSV format
+method: GET
+url: /api/latest/groups/g3/compliance/targeted/byNode
+params:
+  format: csv
+response:
+  code: 200
+  type: text
+  content: |
+    "Node","Rule","Directive","Block","Component","Value","Status","Message"
+    "node1.localhost","R3","directive2","","directive2-component-r3-n1","directive2-component-value-r3-n1","error",""
 
 #
 # API GROUPSINTERNAL

@@ -487,7 +487,7 @@ filtersView model =
                     ExportGroupComplianceByRule model.groupId complianceScope
 
                 NodesView ->
-                    \_ -> Ignore
+                    ExportGroupComplianceByNode model.groupId complianceScope
     in
     div [ class "table-header extra-filters" ]
         [ div [ class "d-inline-flex align-items-baseline pb-3 w-25" ]

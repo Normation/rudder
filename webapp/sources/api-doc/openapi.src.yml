@@ -323,6 +323,10 @@ paths:
     $ref: paths/groups/global-compliance-by-rule-id.yml
   "/groups/{targetOrNodeGroupId}/compliance/targeted/byRule":
     $ref: paths/groups/targeted-compliance-by-rule-id.yml
+  "/groups/{targetOrNodeGroupId}/compliance/global/byNode":
+    $ref: paths/groups/global-compliance-by-node-id.yml
+  "/groups/{targetOrNodeGroupId}/compliance/targeted/byNode":
+    $ref: paths/groups/targeted-compliance-by-node-id.yml
   "/directives":
     $ref: paths/directives/all.yml
   "/directives/{directiveId}":

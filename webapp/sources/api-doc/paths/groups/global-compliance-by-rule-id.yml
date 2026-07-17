@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2026 Normation SAS
 get:
   summary: Global compliance details of a group by rule
-  description: Get global compliance of a group with all rules that apply to a node within the group, sorted by rule
+  description: Get compliance results for all rules that apply to a node within the group, sorted by rule
   operationId: getGlobalNodeGroupComplianceByRuleId
   parameters:
     - in: query

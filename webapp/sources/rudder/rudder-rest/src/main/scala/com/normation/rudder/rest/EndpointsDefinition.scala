@@ -403,6 +403,22 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
     override def dataContainer: Option[String]          = Some("rules")
     val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
   }
+  case object GetGlobalNodeGroupComplianceByNodeId
+      extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get a node group's global compliance by rule"
+    val (action, path) = GET / "groups" / "{id}" / "compliance" / "global" / "byNode"
+    override def dataContainer: Option[String]          = Some("nodes")
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
+  case object GetTargetedNodeGroupComplianceByNodeId
+      extends GroupApi with GeneralApi with OneParam with StartsAtVersion24 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get a node group's targeted compliance by rule"
+    val (action, path) = GET / "groups" / "{id}" / "compliance" / "targeted" / "byNode"
+    override def dataContainer: Option[String]          = Some("nodes")
+    val authz:                  List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+  }
 
   def endpoints: List[GroupApi] = values.toList.sortBy(_.z)
 

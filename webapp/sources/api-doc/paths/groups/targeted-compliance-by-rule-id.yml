@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2013-2026 Normation SAS
 get:
   summary: Targeted compliance details of a group by rule
-  description: Get targeted compliance of a group with only rules that explicitly include the group, sorted by rule
+  description: Get compliance results for rules that explicitly target the group, sorted by rule
   operationId: getTargetedNodeGroupComplianceByRuleId
   parameters:
     - in: query

@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2026 Normation SAS
+get:
+  summary: Global compliance details of a group by node
+  description: Get compliance results for all rules that apply to a node within the group, sorted by node
+  operationId: getGlobalNodeGroupComplianceByNodeId
+  parameters:
+    - in: query
+      name: format
+      schema:
+        type: string
+        enum:
+          - csv
+          - json
+        default: json
+      description: format of export
+      style: form
+      explode: false
+    - $ref: ../../components/parameters/compliance-level.yml
+    - $ref: ../../components/parameters/compliance-percent-precision.yml
+    - $ref: ../../components/parameters/target-or-node-group-id.yml
+  responses:
+    "200":
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+                example: success
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getGlobalNodeGroupComplianceByNodeId
+              data:
+                type: object
+                required:
+                  - nodes
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/group-node-compliance.yml
+        text/plain:
+          schema:
+            type: string
+          example: |
+                "Node","Rule","Directive","Block","Component","Value","Status","Message"
+                "node1.localhost","R1","25. Testing blocks","","directive-techniqueWithBlocks-component-r1-n1","directive-techniqueWithBlocks-component-value-r1-n1","successAlreadyOK",""
+                "node1.localhost","R2","directive 99f4ef91-537b-4e03-97bc-e65b447514cc","","99f4ef91-537b-4e03-97bc-e65b447514cc-component-r2-n1","99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-r2-n1","successRepaired",""
+                "node1.localhost","R3","directive2","","directive2-component-r3-n1","directive2-component-value-r3-n1","error",""
+
+    "500":
+      description: Group id does not exist
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - action
+              - result
+              - errorDetails
+            properties:
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getGlobalNodeGroupComplianceByNodeId
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - error
+              errorDetails:
+                type: string
+                description: Details of the error
+                example: "Node group with id 'myGroupId' not found"
+  tags:
+    - Groups
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/groups/global-compliance-by-node-id.sh
+
+
