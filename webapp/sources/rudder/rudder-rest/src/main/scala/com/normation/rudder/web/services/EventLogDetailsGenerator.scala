@@ -122,23 +122,20 @@ class EventLogDetailsGenerator(
 
     def nodeDesc(x: EventLog, actionName: NodeSeq) = {
 
-
       val id       = (x.details \\ "node" \ "id").text
       val hostname = (x.details \\ "node" \ "hostname").text
       val name     = hostname.strip() match {
         case "" =>
           for {
             node <- nodeFactRepository.get(NodeId(id))(using QueryContext.systemQC)
-          } yield
-            node.map(_.fqdn).getOrElse("")
+          } yield node.map(_.fqdn).getOrElse("")
         case x  => x
       }
 
-      val text = Text("Node ") ++ {
+      Text("Node ") ++ {
         if ((id.size < 1) || (actionName == Text(" deleted"))) Text(s"${name} deleted")
         else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
       }
-      text
     }
 
     def techniqueDesc(x: EventLog, actionName: NodeSeq) = {

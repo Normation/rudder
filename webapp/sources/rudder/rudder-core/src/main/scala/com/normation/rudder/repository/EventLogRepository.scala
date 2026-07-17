@@ -430,22 +430,6 @@ trait EventLogRepository {
     )
   }
 
-  def savePromoteToRelay(
-      modId:        ModificationId,
-      principal:    EventActor,
-      promotedNode: NodeInfo,
-      reason:       Option[String]
-  ): IOResult[EventLog] = {
-    saveEventLog(
-      modId,
-      eventLogFactory.getPromoteToRelayFromDiff(
-        principal = principal,
-        promotedNode = promotedNode,
-        reason = reason
-      )
-    )
-  }
-
   /**
    * Node properties: heartbeat, agent run, properties
    */
@@ -470,6 +454,23 @@ trait EventLogRepository {
            )
     } yield e
   }
+
+  def savePromoteToRelay(
+      modId:        ModificationId,
+      principal:    EventActor,
+      promotedNode: NodeInfo,
+      reason:       Option[String]
+  ): IOResult[EventLog] = {
+    saveEventLog(
+      modId,
+      eventLogFactory.getPromoteToRelayFromDiff(
+        principal = principal,
+        promotedNode = promotedNode,
+        reason = reason
+      )
+    )
+  }
+
   def saveDemoteToNode(
       modId:        ModificationId,
       principal:    EventActor,
