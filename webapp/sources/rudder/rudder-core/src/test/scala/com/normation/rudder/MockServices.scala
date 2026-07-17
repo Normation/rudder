@@ -3247,8 +3247,6 @@ class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
 
 }
 
-class MockNodeFacts {}
-
 class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeGroups) {
 
   implicit val qc: QueryContext = QueryContext.testQC
