@@ -2810,6 +2810,7 @@ object RudderConfigInit {
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
       roLdapNodeGroupRepository,
+      nodeFactRepository,
       roLDAPRuleCategoryRepository,
       modificationService,
       linkUtil,

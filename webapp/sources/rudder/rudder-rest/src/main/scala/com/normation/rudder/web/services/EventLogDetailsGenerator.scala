@@ -51,6 +51,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
@@ -79,6 +80,7 @@ import zio.json.*
 class EventLogDetailsGenerator(
     logDetailsService:   EventLogDetailsService,
     nodeGroupRepository: RoNodeGroupRepository,
+    nodeFactRepository:  NodeFactRepository,
     ruleCatRepository:   RoRuleCategoryRepository,
     modificationService: ModificationService,
     linkUtil:            LinkUtil,
@@ -119,25 +121,20 @@ class EventLogDetailsGenerator(
     }
 
     def nodeDesc(x: EventLog, actionName: NodeSeq) = {
+
+
       val id       = (x.details \\ "node" \ "id").text
       val hostname = (x.details \\ "node" \ "hostname").text
-      val fqdn     = (x.details \\ "node" \ "fqdn").text
-      val node     = (x.details \\ "node").text
-      val name     = (x.details \\ "node" \ "hostname").text.strip() match {
+      val name     = hostname.strip() match {
         case "" =>
-          (x.details \\ "node" \ "fqdn").text.strip() match {
-            case "" => id // FIXME
-            case x  => x
-          }
+          for {
+            node <- nodeFactRepository.get(NodeId(id))(using QueryContext.systemQC)
+          } yield
+            node.map(_.fqdn).getOrElse("")
         case x  => x
       }
-      if (id != "root") {
-        println("bingo")
-        println(hostname)
-        println(fqdn)
-        println(node)
-      }
-      val text     = Text("Node ") ++ {
+
+      val text = Text("Node ") ++ {
         if ((id.size < 1) || (actionName == Text(" deleted"))) Text(s"${name} deleted")
         else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName
       }

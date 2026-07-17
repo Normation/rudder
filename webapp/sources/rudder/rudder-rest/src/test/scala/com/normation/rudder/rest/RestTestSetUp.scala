@@ -401,6 +401,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   val eventLogDetailGenerator: EventLogDetailsGenerator = new EventLogDetailsGenerator(
     eventLogDetailsService,
     mockNodeGroups.groupsRepo,
+    mockNodes.nodeFactRepo,
     mockRules.ruleCategoryRepo,
     modificationService,
     linkUtil,

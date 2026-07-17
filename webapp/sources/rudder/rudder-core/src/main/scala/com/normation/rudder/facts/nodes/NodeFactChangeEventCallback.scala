@@ -264,7 +264,7 @@ class EventLogsNodeFactChangeEventCallback(
         next: MinimalNodeFactInterface
     ): IOResult[Unit] = {
       val diff = ModifyNodeDiff.fromFacts(old, next)
-      eventLogRepository.saveModifyNode(cc.modId, next.fqdn, cc.actor, diff, cc.message, cc.eventDate).unit
+      eventLogRepository.saveModifyNode(cc.modId, Some(next.fqdn), cc.actor, diff, cc.message, cc.eventDate).unit
     }
 
     change.event match {
