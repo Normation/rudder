@@ -861,6 +861,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       },
       (0 until id).map(i => ResourceFile("resource" + i, ResourceFileState.Untouched)),
       Map(("tag" + id, zio.json.ast.Json.Str("tag" + id))),
+      None,
       Some("internalId" + id)
     )
 

@@ -40,6 +40,7 @@ package com.normation.rudder.rest.lift
 import better.files.Resource
 import com.normation.JsonSpecMatcher
 import com.normation.errors.IOResult
+import com.normation.rudder.MockServices
 import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.ParameterType.BasicParameterTypeService
 import com.normation.rudder.ncf.ResourceFile
@@ -79,7 +80,7 @@ class EditorTechniqueSerialisationTest extends Specification with JsonSpecMatche
     ): IOResult[Unit] = ???
   }
 
-  private val yaml       = new YamlTechniqueSerializer(resources)
+  private val yaml       = new YamlTechniqueSerializer(resources, MockServices.uuidGen)
   private val serializer = new TechniqueSerializer(new BasicParameterTypeService())
 
   "Serialising an editor technique with resource" >> {

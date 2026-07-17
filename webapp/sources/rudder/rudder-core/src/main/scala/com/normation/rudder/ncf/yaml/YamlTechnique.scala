@@ -44,6 +44,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.ncf.*
+import com.normation.utils.StringUuidGenerator
 import zio.json.*
 import zio.json.ast.Json
 import zio.json.yaml.*
@@ -64,13 +65,14 @@ case class Technique(
     tags:          Option[Map[String, Json]],
     category:      Option[String],
     params:        Option[List[TechniqueParameter]],
-    items:         List[MethodItem]
+    items:         List[MethodItem],
+    policy_types:  Option[List[String]]
 )
 
 case class MethodItem(
     // Common fields
-    id:                   String,
-    name:                 String,
+    id:                   Option[String],
+    name:                 Option[String],
     reporting:            Option[Reporting],
     condition:            Option[String],
     tags:                 Option[Map[String, Json]],
@@ -129,14 +131,17 @@ object YamlTechniqueSerializer {
   implicit lazy val decoderMethodElem:    JsonDecoder[MethodItem]         = DeriveJsonDecoder.gen
   implicit val decoderTechnique:          JsonDecoder[Technique]          = DeriveJsonDecoder.gen
 
-  // be careful, the decoder derives values from yaml which does not know about Technique Resource - see companion class
-  implicit val decoderEditorTechnique: JsonDecoder[EditorTechnique] = JsonDecoder[Technique].mapOrFail(toEditorTechnique(_))
+  implicit def decoderEditorTechnique(implicit stringUuidGenerator: StringUuidGenerator): JsonDecoder[EditorTechnique] =
+    JsonDecoder[Technique].mapOrFail(toEditorTechnique(_, stringUuidGenerator))
 
   // ell the following methods are utilities for `decoderEditorTechnique`
 
-  private def toEditorTechnique(technique: Technique): Either[String, EditorTechnique] = {
+  private def toEditorTechnique(
+      technique:           Technique,
+      stringUuidGenerator: StringUuidGenerator
+  ): Either[String, EditorTechnique] = {
     (for {
-      items <- technique.items.accumulatePure(toMethodElem)
+      items <- technique.items.accumulatePure(toMethodElem(_, stringUuidGenerator))
     } yield {
       EditorTechnique(
         technique.id,
@@ -149,12 +154,13 @@ object YamlTechniqueSerializer {
         technique.params.getOrElse(Nil).map(toTechniqueParameter),
         Seq(),
         technique.tags.getOrElse(Map()),
+        technique.policy_types,
         None
       )
     }).left.map(acc => acc.fullMsg)
   }
 
-  private def toMethodElem(item: MethodItem): PureResult[MethodElem] = {
+  private def toMethodElem(item: MethodItem, stringUuidGenerator: StringUuidGenerator): PureResult[MethodElem] = {
     def toReportingLogic(reporting: Reporting): PureResult[ReportingLogic] = {
       ReportingLogic.parse(reporting.mode ++ (reporting.id.map(":" ++ _).getOrElse("")))
     }
@@ -163,11 +169,11 @@ object YamlTechniqueSerializer {
       case Some(items) =>
         for {
           reporting <- item.reporting.map(toReportingLogic).getOrElse(Right(WeightedReport))
-          items     <- items.accumulatePure(toMethodElem)
+          items     <- items.accumulatePure(toMethodElem(_, stringUuidGenerator))
         } yield {
           MethodBlock(
-            item.id,
-            item.name,
+            item.id.getOrElse(stringUuidGenerator.newUuid),
+            item.name.getOrElse(""),
             reporting,
             item.condition.getOrElse(""),
             items,
@@ -182,10 +188,10 @@ object YamlTechniqueSerializer {
             Right(
               MethodCall(
                 BundleName(method),
-                item.id,
+                item.id.getOrElse(stringUuidGenerator.newUuid),
                 item.params.getOrElse(Map()),
                 item.condition.getOrElse(""),
-                item.name,
+                item.name.getOrElse(method),
                 // boolean for "disableReporting"
                 item.reporting.map(_.mode == "disabled").getOrElse(false),
                 item.policy_mode_override,
@@ -218,7 +224,8 @@ object YamlTechniqueSerializer {
       } else {
         Some(technique.parameters.map(fromJsonParam).toList)
       },
-      technique.calls.map(fromJsonMethodElem).toList
+      technique.calls.map(fromJsonMethodElem).toList,
+      technique.policyTypes
     )
   }
 
@@ -262,8 +269,8 @@ object YamlTechniqueSerializer {
     methodElem match {
       case MethodBlock(id, name, reportingLogic, condition, items, policyMode, foreach, foreachName)               =>
         MethodItem(
-          id,
-          name,
+          Some(id),
+          Some(name),
           Some(toReporting(reportingLogic)),
           if (condition.isEmpty) None else Some(condition),
           None,
@@ -276,8 +283,8 @@ object YamlTechniqueSerializer {
         )
       case MethodCall(method, id, parameters, condition, name, disableReporting, policyMode, foreach, foreachName) =>
         MethodItem(
-          id,
-          name,
+          Some(id),
+          Some(name),
           if (disableReporting) Some(Reporting("disabled", None)) else None,
           if (condition.isEmpty) None else Some(condition),
           None,
@@ -292,7 +299,8 @@ object YamlTechniqueSerializer {
   }
 }
 
-class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
+class YamlTechniqueSerializer(resourceFileService: ResourceFileService, implicit val stringUuidGenerator: StringUuidGenerator) { // be careful, the decoder derives values from yaml which does not know about Technique Resource - see companion class
+
   import YamlTechniqueSerializer.*
 
   // shortcut to avoid having to import yamlOps / toIO, but can be avoided
@@ -301,6 +309,8 @@ class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
   def toYml(technique: EditorTechnique): Either[String, String] = technique.toYaml()
 
   def fromYml(yaml: String): Either[String, Technique] = yaml.fromYaml[Technique]
+
+  def fromYml(technique: Technique): Either[String, EditorTechnique] = toEditorTechnique(technique, stringUuidGenerator)
 
   def yamlToEditorTechnique(yaml: String): IOResult[Either[String, EditorTechnique]] = {
     (for {

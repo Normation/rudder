@@ -114,6 +114,7 @@ final case class EditorTechnique(
     parameters:    Seq[TechniqueParameter],
     resources:     Seq[ResourceFile],
     tags:          Map[String, Json],
+    policyTypes:   Option[List[String]],
     internalId:    Option[String]
 ) {
 

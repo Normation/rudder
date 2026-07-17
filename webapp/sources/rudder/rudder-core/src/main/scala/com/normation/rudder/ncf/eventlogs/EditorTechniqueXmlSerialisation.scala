@@ -54,7 +54,10 @@ class EditorTechniqueXmlSerialisationImpl(xmlVersion: String) extends EditorTech
       :: <resources>{editorTechnique.resources.map(serialiseResource)}</resources>
       :: <calls>{editorTechnique.calls.map(serializeMethodElem)}</calls>
       :: <tags>{editorTechnique.tags.map(serialiseTag.tupled)}</tags>
-      :: Nil
+      :: (editorTechnique.policyTypes match {
+        case None      => Nil
+        case Some(pts) => <policy_types>{pts.map(pt => <policy_type>{pt}</policy_type>)}</policy_types> :: Nil
+      })
     )
   }
 

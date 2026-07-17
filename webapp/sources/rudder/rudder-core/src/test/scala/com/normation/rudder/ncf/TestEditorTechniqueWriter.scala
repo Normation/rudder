@@ -544,6 +544,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       ) :: Nil,
       Nil,
       Map(),
+      None,
       None
     )
   }
@@ -555,7 +556,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     override def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = methods.succeed
 
-    override def updateMethodsMetadataFile: IOResult[CmdResult] = ???
+    override def updateMethodsMetadataFile: IOResult[CmdResult] = CmdResult(0, "", "").succeed
 
     override def getTechnique(id: BundleName, version: String): IOResult[Option[EditorTechnique]] =
       (if (id == technique.id && version == technique.version.value) then Some (technique) else None).succeed
@@ -618,6 +619,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       ) :: Nil,
       Nil,
       Map(),
+      None,
       None
     )
   }
@@ -670,6 +672,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       ) :: Nil,
       Nil,
       Map(),
+      None,
       None
     )
   }

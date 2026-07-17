@@ -46,6 +46,7 @@ import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.rudder.hooks.RunNuCommand.SudoRun.WithoutSudo
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio.currentTimeNanos
 import enumeratum.*
 import java.nio.charset.StandardCharsets
@@ -76,8 +77,11 @@ trait TechniqueCompiler {
 
   // compile based on absolute path of techniqueId/1.0 directory. If the technique is not yaml, it's an error.
   // If you have a json technique, you need to migrate it first.
-  def compileAtPath(techniqueBaseDirectory: File): IOResult[TechniqueCompilationOutput] = {
+  def compileAtPath(
+      techniqueBaseDirectory: File
+  )(implicit stringUuidGenerator: StringUuidGenerator): IOResult[TechniqueCompilationOutput] = {
     import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
+
     val yamlFile = techniqueBaseDirectory / TechniqueFiles.yaml
     for {
       yaml <- IOResult.attempt(s"Error when reading technique metadata '${yamlFile}'") {

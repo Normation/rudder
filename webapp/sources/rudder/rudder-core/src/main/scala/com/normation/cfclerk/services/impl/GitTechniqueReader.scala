@@ -835,7 +835,7 @@ class GitTechniqueReader(
               true
             case None      =>
               TechniqueReaderLoggerPure.logEffect.error(
-                s"Can not find the parent (root) category '${descriptorFile.getParent}' for technique '${techniqueId.debugString}'"
+                s"Can not find the parent (${sid.toString}) category '${descriptorFile.getParent}' for technique '${techniqueId.debugString}'"
               )
               false
           }
