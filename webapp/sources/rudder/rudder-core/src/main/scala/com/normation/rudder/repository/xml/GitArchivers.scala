@@ -75,6 +75,7 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.QueryContext
+import com.normation.utils.StringUuidGenerator
 import com.normation.utils.XmlSafe
 import java.io.File
 import java.io.FileNotFoundException
@@ -352,7 +353,8 @@ class TechniqueArchiverImpl(
     personIdentservice:                     PersonIdentService,
     techniqueParser:                        TechniqueParser,
     techniqueCompiler:                      TechniqueCompiler,
-    override val groupOwner:                String
+    override val groupOwner:                String,
+    stringUuidGenerator:                    StringUuidGenerator
 ) extends GitConfigItemRepository with XmlArchiverUtils with TechniqueArchiver {
 
   override val encoding: String = "UTF-8"
@@ -470,7 +472,7 @@ class TechniqueArchiverImpl(
                       case _             => // other cases
                         // try to compile first to be up to date, if no yaml it's an error
                         for {
-                          res <- techniqueCompiler.compileAtPath(techniquePath)
+                          res <- techniqueCompiler.compileAtPath(techniquePath)(using stringUuidGenerator)
                           _   <- ZIO.when(res.isError) {
                                    Unexpected(
                                      s"Error when trying to compile technique '${techniquePath.pathAsString}'. Error details are " +

@@ -63,6 +63,7 @@ class TestEditorTechniqueReader extends ZIOSpecDefault {
     List.empty,
     List.empty,
     Map.empty,
+    None,
     None
   )
 

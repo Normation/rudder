@@ -26,6 +26,7 @@ import com.normation.rudder.services.marshalling.XmlUtils
 import net.liftweb.common.*
 import net.liftweb.common.Box.tryo
 import scala.xml.Node
+import scala.xml.NodeSeq
 import zio.json.*
 import zio.json.ast.Json
 
@@ -218,8 +219,15 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
                          )
                        }
       tags          <- (technique \ "tags" \ "tag").accumulatePure { t =>
-                         unserialiseTag(t).leftMap(err => Chained(s"Invalid attribute in 'resource' entry: ${entry}", err))
+                         unserialiseTag(t).leftMap(err => Chained(s"Invalid attribute in 'tag' entry: ${entry}", err))
                        }.map(_.toMap)
+
+      policyTypes = {
+        technique \ "policy_types" match {
+          case NodeSeq.Empty   => None
+          case policyTypesElem => Some((policyTypesElem \ "policy_type").map(_.text).toList)
+        }
+      }
 
       calls <- (technique \ "calls").flatMap(_.child).accumulatePure { t =>
                  unserialiseMethodElem(t).leftMap(err => Chained(s"Invalid attribute in 'calls' entry: ${entry}", err))
@@ -236,6 +244,7 @@ class EditorTechniqueXmlUnserialisationImpl extends EditorTechniqueXmlUnserialis
         parameters,
         resources,
         tags,
+        policyTypes,
         None
       )
     }).chainError(s"${entryType} unserialisation failed")

@@ -1565,6 +1565,8 @@ object RudderConfig extends Loggable {
   val workflowEventLogService:             WorkflowEventLogService                  = rci.workflowEventLogService
   val workflowLevelService:                DefaultWorkflowLevel                     = rci.workflowLevelService
   val systemInfoService:                   SystemInfoService                        = rci.systemInfoService
+  val techniqueWriter:                     TechniqueWriter                          = rci.techniqueWriter
+  val yamlTechniqueSerializer:             YamlTechniqueSerializer                  = rci.yamlTechniqueSerializer
 
   /**
    * A method to call to force initialisation of all object and services.
@@ -1744,7 +1746,9 @@ case class RudderServiceApi(
     techniqueCheckSyncService:           TechniqueCheckSyncService,
     ruleValGeneratedHookService:         RuleValGeneratedHookService,
     instanceIdService:                   InstanceIdService,
-    systemInfoService:                   SystemInfoService
+    systemInfoService:                   SystemInfoService,
+    techniqueWriter:                     TechniqueWriter,
+    yamlTechniqueSerializer:             YamlTechniqueSerializer
 )
 
 /*
@@ -1955,7 +1959,7 @@ object RudderConfigInit {
 
     lazy val techniqueSerializer = new TechniqueSerializer(typeParameterService)
 
-    lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService)
+    lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService, stringUuidGenerator)
 
     lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
 
@@ -1983,7 +1987,8 @@ object RudderConfigInit {
       personIdentService,
       techniqueParser,
       techniqueCompiler,
-      RUDDER_GROUP_OWNER_CONFIG_REPO
+      RUDDER_GROUP_OWNER_CONFIG_REPO,
+      stringUuidGenerator
     )
 
     lazy val techniqueCompiler: TechniqueCompiler = new RuddercTechniqueCompiler(
@@ -4224,7 +4229,9 @@ object RudderConfigInit {
       techniqueCheckSyncService,
       ruleValGeneratedHookService,
       instanceIdService,
-      systemInfoService
+      systemInfoService,
+      ncfTechniqueWriter,
+      yamlTechniqueSerializer
     )
 
     // start init effects

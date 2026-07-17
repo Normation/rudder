@@ -150,7 +150,7 @@ class TechniqueWriterImpl(
   ///// utility methods /////
 
   // Write and commit all techniques files
-  private def compileArchiveTechnique(
+  def compileArchiveTechnique(
       technique:  EditorTechnique,
       syncStatus: Boolean = true // should update the compilation status ?
   )(implicit cc: ChangeContext): IOResult[(EditorTechnique, EditorTechniqueCompilationResult)] = {

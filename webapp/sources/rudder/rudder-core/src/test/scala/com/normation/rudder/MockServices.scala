@@ -110,6 +110,8 @@ import com.normation.rudder.ncf.TechniqueActiveStatus
 import com.normation.rudder.ncf.TechniqueCheckStatusService
 import com.normation.rudder.ncf.TechniqueCompilationSyncService
 import com.normation.rudder.ncf.TechniqueWriterImpl
+import com.normation.rudder.ncf.eventlogs.AddEditorTechniqueDiff
+import com.normation.rudder.ncf.eventlogs.ModifyEditorTechniqueDiff
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.properties.InMemoryPropertiesRepository
 import com.normation.rudder.properties.NodePropertiesServiceImpl
@@ -270,6 +272,10 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
   }
 }
 
+object MockServices {
+  val uuidGen = new StringUuidGeneratorImpl()
+}
+
 object MockTechniques {
   def apply(mockGitConfigRepo: MockGitConfigRepo) =
     new MockTechniques(mockGitConfigRepo.configurationRepositoryRoot, mockGitConfigRepo)
@@ -409,9 +415,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     _.path.toString,
     mockGit.configurationRepositoryRoot.pathAsString
   )
-  val editorTechniqueYamlReader: EditorTechniqueYamlReader = new EditorTechniqueYamlReaderImpl(
-    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo))
-  )
+  val yamlSerializer    = new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo), MockServices.uuidGen)
+  val editorTechniqueYamlReader: EditorTechniqueYamlReader = new EditorTechniqueYamlReaderImpl(yamlSerializer)
 
   val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
     null,
@@ -450,7 +455,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     },
     techniqueParser,
     techniqueCompiler,
-    System.getProperty("user.name")
+    System.getProperty("user.name"),
+    MockServices.uuidGen
   )
 
   val deleteEditorTechnique: DeleteEditorTechnique = new DeleteEditorTechnique {
@@ -527,6 +533,20 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
         principal: EventActor,
         oldSec:    Secret,
         newSec:    Secret,
+        reason:    Option[String]
+    ): IOResult[EventLog] = ZIO.succeed(null)
+
+    override def saveModifyEditorTechnique(
+        modId:      ModificationId,
+        principal:  EventActor,
+        modifyDiff: ModifyEditorTechniqueDiff,
+        reason:     Option[String]
+    ): IOResult[EventLog] = ZIO.succeed(null)
+
+    override def saveAddEditorTechnique(
+        modId:     ModificationId,
+        principal: EventActor,
+        addDiff:   AddEditorTechniqueDiff,
         reason:    Option[String]
     ): IOResult[EventLog] = ZIO.succeed(null)
 
@@ -1090,7 +1110,7 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
         qc: QueryContext
     ): IOResult[ActiveTechniqueCategory] = ???
 
-    override def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = ???
+    override def containsDirective(id: ActiveTechniqueCategoryId): UIO[Boolean] = true.succeed
 
     def buildDirectiveDiff(
         old:     Option[(SectionSpec, TechniqueName, Directive)],
@@ -1200,21 +1220,21 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
     override def move(
         id:            ActiveTechniqueId,
         newCategoryId: ActiveTechniqueCategoryId
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = id.succeed
 
     override def changeStatus(
         id:     ActiveTechniqueId,
         status: Boolean
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = id.succeed
 
     override def setAcceptationDatetimes(
         id:        ActiveTechniqueId,
         datetimes: Map[TechniqueVersion, Instant]
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueId] = id.succeed
 
     override def deleteActiveTechnique(
         id: ActiveTechniqueId
-    )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = ???
+    )(using cc: ChangeContext): IOResult[ActiveTechniqueId] = id.succeed
 
     override def addActiveTechniqueCategory(
         that: ActiveTechniqueCategory,
@@ -1236,18 +1256,18 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
 
     override def saveActiveTechniqueCategory(
         category: ActiveTechniqueCategory
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategory] = category.succeed
 
     override def deleteCategory(
         id:         ActiveTechniqueCategoryId,
         checkEmpty: Boolean
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = id.succeed
 
     override def move(
         categoryId:    ActiveTechniqueCategoryId,
         intoParent:    ActiveTechniqueCategoryId,
         optionNewName: Option[ActiveTechniqueCategoryId]
-    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = ???
+    )(implicit cc: ChangeContext): IOResult[ActiveTechniqueCategoryId] = categoryId.succeed
 
   }
 
@@ -1265,7 +1285,7 @@ class MockDirectives(mockTechniques: MockTechniques, mockTenants: MockTenants) {
 
   // seeding is done directly on the underlying repo, as an admin, to avoid any tenant filtering
   val initDirectivesTree =
-    new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepoImpl, directiveRepoImpl, new StringUuidGeneratorImpl())
+    new InitDirectivesTree(mockTechniques.techniqueRepo, directiveRepoImpl, directiveRepoImpl, MockServices.uuidGen)
 
   initDirectivesTree.copyReferenceLib(includeSystem = true)
 
