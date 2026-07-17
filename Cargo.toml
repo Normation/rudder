@@ -26,6 +26,7 @@ edition = "2024"
 homepage = "https://www.rudder.io"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/Normation/rudder"
+rust-version = "1.97.1"
 
 [profile.dev]
 # Disabling debug information speeds up builds a bunch,
