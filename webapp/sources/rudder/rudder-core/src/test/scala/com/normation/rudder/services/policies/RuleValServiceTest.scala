@@ -39,6 +39,7 @@ package com.normation.rudder.services.policies
 import com.normation.GitVersion
 import com.normation.cfclerk.domain.*
 import com.normation.inventory.domain.AgentType
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -197,7 +198,9 @@ class RuleValServiceTest extends Specification {
   // Ok, now I can test
   "The RuleValService, with one directive, one Meta-technique " should {
 
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map()).runNow
+    val ruleVal = ruleValService
+      .buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, NodeAndServerIds(Set(), Set()))
+      .runNow
 
     val directivesVals = ruleVal.parsedPolicyDrafts
 
@@ -233,7 +236,9 @@ class RuleValServiceTest extends Specification {
   }
 
   "The cardinality computed " should {
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map()).runNow
+    val ruleVal = ruleValService
+      .buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, NodeAndServerIds(Set(), Set()))
+      .runNow
     val draft   = ruleVal.parsedPolicyDrafts.head
     // false PolicyVars for that draft
     val vars    = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)

@@ -7,6 +7,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.UndefinedKey
 import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -20,6 +21,7 @@ import net.liftweb.common.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import zio.Chunk
 import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
@@ -202,30 +204,56 @@ class RuleTargetTest extends Specification with Loggable with JsonSpecMatcher {
 
   val allTargets: Set[RuleTarget] = (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))
 
+  val allIds: NodeAndServerIds = NodeAndServerIds(nodeIds = allNodeIds, serverIds = Set())
+
   " Nodes from Rule targets" should {
     "Be found correctly on simple rule targets" in {
       groupTargets.forall {
         case (gt, g) =>
-          fngc.getNodeIds(Set(gt), nodeArePolicyServers) === g.serverList
+          fngc.getNodeIds(Set(gt), allIds) === g.serverList
       }
     }
     "Be found correctly on group targets union" in {
       unionTargets.forall {
         case (gt, g) =>
-          fngc.getNodeIds(Set(gt), nodeArePolicyServers) === g
+          fngc.getNodeIds(Set(gt), allIds) === g
       }
     }
     "Be found correctly on group targets intersection" in {
       interTargets.forall {
         case (gt, g) =>
-          fngc.getNodeIds(Set(gt), nodeArePolicyServers) === g
+          fngc.getNodeIds(Set(gt), allIds) === g
       }
     }
     "Be found correctly on group targets exclusion " in {
       allTargetExclusions.forall {
         case (target, resultNodes) =>
-          fngc.getNodeIds(Set(target), nodeArePolicyServers) === resultNodes
+          fngc.getNodeIds(Set(target), allIds) === resultNodes
       }
+    }
+    "Resolve policy-server related special targets from the serverIds set" in {
+      val root   = NodeId("root")
+      val withPs = NodeAndServerIds(nodeIds = allNodeIds, serverIds = Set(root))
+      (fngc.getNodeIds(Set(AllPolicyServers), withPs) === Set(root)) and
+      (fngc.getNodeIds(Set(AllTargetExceptPolicyServers), withPs) === (allNodeIds - root)) and
+      (fngc.getNodeIds(Set(PolicyServerTarget(root)), withPs) === Set(root))
+    }
+    "Never contain node ids absent from allNodes (deleted nodes)" in {
+      val ghost  = NodeId("deleted-node")
+      val groups = Map(g4.id -> Chunk.fromIterable(g4.serverList + ghost))
+      RuleTarget.getNodeIdsChunk(Set(GroupTarget(g4.id)), groups, allIds).toSet === g4.serverList
+    }
+    "Be restricted to allNodes when it is a tenant-filtered subset" in {
+      val visible   = NodeAndServerIds(nodeIds = Set(NodeId("1"), NodeId("3")), serverIds = Set())
+      val visiblePs = NodeAndServerIds(nodeIds = visible.nodeIds, serverIds = Set(NodeId("root")))
+      val groups    = groupTargets.map { case (_, g) => (g.id, Chunk.fromIterable(g.serverList)) }.toMap
+      (RuleTarget.getNodeIdsChunk(Set(GroupTarget(g4.id)), groups, visible).toSet === Set(
+        NodeId("1"),
+        NodeId("3")
+      )) and
+      (RuleTarget
+        .getNodeIdsChunk(Set(PolicyServerTarget(NodeId("root"))), groups, visiblePs) === Chunk
+        .empty[NodeId])
     }
   }
 

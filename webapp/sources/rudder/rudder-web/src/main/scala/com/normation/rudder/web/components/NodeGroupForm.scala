@@ -149,8 +149,7 @@ class NodeGroupForm(
       setIds = target match {
                  case Right(nodeGroup_) => nodeGroup_.serverList
                  case Left(target)      =>
-                   val allNodes = nodes.mapValues(_.rudderSettings.kind.isPolicyServer)
-                   RuleTarget.getNodeIds(Set(target), allNodes.toMap, Map())
+                   RuleTarget.getNodeIdsChunk(Set(target), Map(), NodeAndServerIds.fromFacts(nodes)).toSet
                }
     } yield {
       nodes.filterKeys(id => setIds.contains(id)).map(_._2).toSeq

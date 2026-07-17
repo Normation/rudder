@@ -41,6 +41,7 @@ import com.normation.cfclerk.domain.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
@@ -54,7 +55,7 @@ trait RuleValService {
       rule:             Rule,
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
+      nodeAndServerIds: NodeAndServerIds
   ): IOResult[RuleVal]
 
   def lookupNodeParameterization(
@@ -197,27 +198,23 @@ class RuleValServiceImpl(
     }
   }
 
-  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, arePolicyServers: Map[NodeId, Boolean]): Set[NodeId] = {
-    val wantedNodeIds = groupLib.getNodeIds(rule.targets, arePolicyServers)
-    val nodeIds       = wantedNodeIds.intersect(arePolicyServers.keySet)
-    if (nodeIds.size != wantedNodeIds.size) {
-      // ignored nodes are filtered-out early during generation, so we don't have access to their node info here,
-      // they are just missing from allNodeInfos map.
-      logger.debug(
-        s"Some nodes are in the target of rule '${rule.name}' (${rule.id.serialize}) but are not present " +
-        s"in the system. These nodes are likely in state `ignored`: ${(wantedNodeIds -- nodeIds).map(_.value).mkString(", ")}"
-      )
-    }
-    nodeIds
+  // Nodes in the target but not in nodeAndServerIds.nodeIds (deleted, `ignored` state,
+  // filtered-out early during generation) are silently excluded by the resolution.
+  def getTargetedNodes(
+      rule:             Rule,
+      groupLib:         FullNodeGroupCategory,
+      nodeAndServerIds: NodeAndServerIds
+  ): Set[NodeId] = {
+    groupLib.getNodeIds(rule.targets, nodeAndServerIds)
   }
 
   override def buildRuleVal(
       rule:             Rule,
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
-      arePolicyServers: Map[NodeId, Boolean]
+      nodeAndServerIds: NodeAndServerIds
   ): IOResult[RuleVal] = {
-    val nodeIds = getTargetedNodes(rule, groupLib, arePolicyServers)
+    val nodeIds = getTargetedNodes(rule, groupLib, nodeAndServerIds)
 
     for {
       drafts <- rule.directiveIds.toList.accumulate {

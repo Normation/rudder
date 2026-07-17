@@ -40,6 +40,7 @@ package com.normation.rudder.services.policies
 import ch.qos.logback.classic.Logger
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -212,7 +213,7 @@ class TestBuildNodeConfiguration extends Specification {
     val t1           = System.currentTimeMillis()
     val ruleVal      = {
       ruleValService
-        .buildRuleVal(rule, directiveLib, groupLib, allNodes.view.mapValues(_.rudderSettings.isPolicyServer).toMap)
+        .buildRuleVal(rule, directiveLib, groupLib, NodeAndServerIds.fromFacts(allNodes))
         .runNow
     }
     val ruleVals     = Seq(ruleVal)
