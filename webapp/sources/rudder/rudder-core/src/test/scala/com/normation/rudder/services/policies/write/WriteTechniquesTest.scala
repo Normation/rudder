@@ -78,7 +78,10 @@ import com.normation.rudder.services.policies.ParameterForConfiguration
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
+import com.normation.templates.FastparsePolicyTemplateService
 import com.normation.templates.FillTemplatesService
+import com.normation.templates.PolicyTemplateEngine
+import com.normation.templates.StringTemplatePolicyTemplateService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.syntax.*
@@ -113,7 +116,7 @@ import zio.syntax.*
  * To see values for gitRoot, ptLib, etc, see at the end
  * of that file.
  */
-class TestSystemData {
+class TestSystemData(engine: PolicyTemplateEngine = PolicyTemplateEngine.StringTemplate) {
   // make tests more similar than default rudder install
   val hookIgnore: List[String] = """.swp, ~, .bak,
  .cfnew   , .cfsaved  , .cfedited, .cfdisabled, .cfmoved,
@@ -156,12 +159,17 @@ class TestSystemData {
       rootGeneratedPromisesDir.getAbsolutePath
     )
 
+    val templateService = engine match {
+      case PolicyTemplateEngine.StringTemplate => new StringTemplatePolicyTemplateService(new FillTemplatesService())
+      case PolicyTemplateEngine.Fastparse      => new FastparsePolicyTemplateService()
+    }
+
     val promiseWriter = new PolicyWriterServiceImpl(
       techniqueRepository,
       pathComputer,
       logNodeConfig,
       prepareTemplateVariable,
-      new FillTemplatesService(),
+      templateService,
       writeAllAgentSpecificFiles,
       "/we-don-t-want-hooks-here",
       hookIgnore,
@@ -269,7 +277,10 @@ final private case class RegexFileContent(regex: List[String]) extends LinesCont
 
 trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher with ContentMatchers with AfterAll with BoxMatchers {
 
-  val testSystemData = new TestSystemData()
+  // the template engine under test; override in a subclass to run the same examples with another engine
+  def templateEngine: PolicyTemplateEngine = PolicyTemplateEngine.StringTemplate
+
+  val testSystemData = new TestSystemData(templateEngine)
   import testSystemData.*
   import testSystemData.data.*
 
@@ -604,6 +615,20 @@ class WriteSystemTechniquesTest extends TechniquesTest {
       compareWith(rootPath.getParentFile / cfeNode.id.value, "node-gen-var-def-override", Nil)
     }
   }
+}
+
+/*
+ * The same examples as WriteSystemTechniquesTest, but with the fastparse template
+ * engine: the generated policies must be identical to the expected ones.
+ */
+@RunWith(classOf[JUnitRunner])
+class WriteSystemTechniquesFastparseTest extends WriteSystemTechniquesTest {
+  override def templateEngine: PolicyTemplateEngine = PolicyTemplateEngine.Fastparse
+}
+
+@RunWith(classOf[JUnitRunner])
+class WriteSystemTechniques500FastparseTest extends WriteSystemTechniques500Test {
+  override def templateEngine: PolicyTemplateEngine = PolicyTemplateEngine.Fastparse
 }
 
 @RunWith(classOf[JUnitRunner])

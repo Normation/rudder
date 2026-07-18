@@ -69,5 +69,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>3.2.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>fastparse_${scala-binary-version}</artifactId>
+      <version>${fastparse-version}</version>
+    </dependency>
+
   </dependencies>
 </project>

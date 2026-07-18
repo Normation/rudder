@@ -347,6 +347,15 @@ rudder.policy.distribution.port.https=443
 #
 rudder.generated.policies.group.owner=rudder-policy-reader
 
+#
+# Engine used to fill the policy templates (".st" files) during policy generation.
+# Both engines accept the same template syntax:
+# - 'string-template':  the historical engine, based on the StringTemplate 3 library (default)
+# - 'rudder-fastparse': the new in-house engine (faster, thread safe), experimental for now
+# A change requires a webapp restart.
+#
+#rudder.policy.template.engine=string-template
+
 # - 'rudder.dir.backup' is the directory path where previous configuration of each node are stored
 # CAUTION: For performance and consistency, it is necessary that the rudder.dir.backup is on the same
 # filesystem as /var/rudder/share/ , otherwise the policies change for nodes is non-atomic (move becomes
