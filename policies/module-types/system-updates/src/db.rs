@@ -387,7 +387,7 @@ mod tests {
     use std::ops::Add;
     #[cfg(unix)]
     use std::os::unix::prelude::PermissionsExt;
-    use std::{ops::Add, sync::Barrier, thread};
+    use std::{sync::Barrier, thread};
 
     #[test]
     fn new_creates_new_database() {
