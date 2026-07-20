@@ -33,20 +33,23 @@ impl TemplateEngine for Jinja2Engine {
         data: &Value,
     ) -> Result<String> {
         let named: TempPath;
-        let template_path = match (&template_path, template_string) {
-            (Some(p), _) => p.to_str().unwrap(),
+        // `validate` guarantees exactly one of the two sources is provided.
+        let template_path: &Path = match (&template_path, template_string) {
+            (Some(p), _) => p,
             (_, Some(s)) => {
-                let mut tmp_file = NamedTempFile::new().expect("Failed to create tempfile");
+                let mut tmp_file =
+                    NamedTempFile::new().context("Failed to create a temporary template file")?;
                 tmp_file
                     .write_all(s.as_bytes())
-                    .expect("Failed to write template in tempfile");
+                    .context("Failed to write the template into a temporary file")?;
                 named = tmp_file.into_temp_path();
-                named.to_str().unwrap()
+                &named
             }
             _ => unreachable!(),
         };
 
-        let tmp_script = NamedTempFile::new().expect("Failed to create temp script");
+        let tmp_script =
+            NamedTempFile::new().context("Failed to create a temporary rendering script")?;
         let template_script_path = tmp_script.into_temp_path();
         let templating_script_content = include_str!("jinja2/render.py");
 
@@ -72,12 +75,19 @@ impl TemplateEngine for Jinja2Engine {
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .unwrap_or_else(|_| panic!("Failed to execute {}", template_script_path.display()));
+                .with_context(|| {
+                    format!(
+                        "Failed to run the Python interpreter '{}' on {}",
+                        self.python_interpreter,
+                        template_script_path.display()
+                    )
+                })?;
 
-            let stdin = child.stdin.as_mut().unwrap();
+            // Cannot fail, stdin is piped above.
+            let stdin = child.stdin.as_mut().expect("stdin was piped");
             stdin
                 .write_all(data.to_string().as_bytes())
-                .expect("Failed to write to stdin");
+                .context("Failed to pass the template data to the rendering script")?;
 
             let output_info = child.wait_with_output()?;
             if !output_info.status.success() {
@@ -93,6 +103,26 @@ impl TemplateEngine for Jinja2Engine {
             bail!("Jinja2 templating engine is not supported on Windows")
         };
         Ok(output)
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn it_fails_gracefully_when_the_interpreter_is_missing() {
+        let engine = Jinja2Engine::new(Some("definitely-not-a-python-interpreter".to_string()))
+            .expect("an explicit interpreter is never probed");
+        let err = engine
+            .render(None, Some("{{ vars.a }}"), &json!({"vars": {"a": 1}}))
+            .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("definitely-not-a-python-interpreter"),
+            "unexpected error: {err}"
+        );
     }
 }
 
