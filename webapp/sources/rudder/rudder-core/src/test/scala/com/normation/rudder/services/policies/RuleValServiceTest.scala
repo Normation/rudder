@@ -197,7 +197,9 @@ class RuleValServiceTest extends Specification {
   // Ok, now I can test
   "The RuleValService, with one directive, one Meta-technique " should {
 
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map()).runNow
+    val ruleVal = ruleValService
+      .buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map.empty)
+      .runNow
 
     val directivesVals = ruleVal.parsedPolicyDrafts
 
@@ -233,7 +235,9 @@ class RuleValServiceTest extends Specification {
   }
 
   "The cardinality computed " should {
-    val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map()).runNow
+    val ruleVal = ruleValService
+      .buildRuleVal(rule, fullActiveTechniqueCategory, NodeConfigData.groupLib, Map.empty)
+      .runNow
     val draft   = ruleVal.parsedPolicyDrafts.head
     // false PolicyVars for that draft
     val vars    = PolicyVars(draft.id, draft.policyMode, draft.originalVariables, draft.originalVariables, draft.trackerVariable)

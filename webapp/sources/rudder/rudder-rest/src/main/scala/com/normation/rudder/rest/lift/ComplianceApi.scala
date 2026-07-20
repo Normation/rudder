@@ -41,6 +41,7 @@ import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.AllPolicyServers
 import com.normation.rudder.domain.policies.AllTarget
@@ -555,29 +556,31 @@ class ComplianceAPIService(
     val computedLevel = level.getOrElse(10)
 
     for {
-      t1            <- currentTimeMillis
+      t1              <- currentTimeMillis
       // this can be optimized, as directive only happen for level=2
-      rules         <- if (computedLevel >= 2) {
-                         rulesRepo.getAll()
-                       } else {
-                         Seq().succeed
-                       }
-      ruleIds        = rules.map(_.id).toSet
-      t2            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getAllRules in ${t2 - t1} ms")
-      nodeFacts     <- nodeFactRepos.getAll()
-      t3            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - nodeFactRepo.getAll() in ${t3 - t2} ms")
-      compliance    <- getGlobalComplianceMode
-      t4            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getGlobalComplianceMode in ${t4 - t3} ms")
-      reportsByNode <- reportingService
-                         .findDirectiveNodeStatusReports(
-                           nodeFacts.keySet.toSet,
-                           directives.map(_.id).toSet
-                         )
-      t5            <- currentTimeMillis
-      _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - findRuleNodeStatusReports in ${t5 - t4} ms")
+      rules           <- if (computedLevel >= 2) {
+                           rulesRepo.getAll()
+                         } else {
+                           Seq().succeed
+                         }
+      ruleIds          = rules.map(_.id).toSet
+      t2              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getAllRules in ${t2 - t1} ms")
+      nodeFacts       <- nodeFactRepos.getAll()
+      // compute it once per request, before the loops on rules
+      nodeAndServerIds = NodeAndServerIds.fromFacts(nodeFacts)
+      t3              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - nodeFactRepo.getAll() in ${t3 - t2} ms")
+      compliance      <- getGlobalComplianceMode
+      t4              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getGlobalComplianceMode in ${t4 - t3} ms")
+      reportsByNode   <- reportingService
+                           .findDirectiveNodeStatusReports(
+                             nodeFacts.keySet.toSet,
+                             directives.map(_.id).toSet
+                           )
+      t5              <- currentTimeMillis
+      _               <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - findRuleNodeStatusReports in ${t5 - t4} ms")
 
       allGroups <- nodeGroupRepo.getAllNodeIdsChunk()
       t6        <- currentTimeMillis
@@ -626,7 +629,7 @@ class ComplianceAPIService(
                   // if rule cannot be found in "rules" it means the level prevent from returning rule details, so : no compliance
                   rules.find(_.id == ruleId).map { rule =>
                     val nodeIds = RoNodeGroupRepository
-                      .getNodeIdsChunk(allGroups, rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))
+                      .getNodeIdsChunk(rule.targets, allGroups, nodeAndServerIds)
                       .toSet
 
                     def defaultMode                   = (
@@ -724,11 +727,15 @@ class ComplianceAPIService(
       _                <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - get directive overrides and rules infos in ${t8 - t7} ms")
       globalPolicyMode <- getGlobalPolicyMode
 
+      // compute it once per request, before the loops on rules
+      nodeAndServerIds = NodeAndServerIds.fromFacts(nodeFacts)
+      nodeSettings     = nodeFacts.mapValues(_.rudderSettings).toMap
+
       nodeAndPolicyModeByRules = rules.map { rule =>
                                    val nodeIds = RoNodeGroupRepository.getNodeIdsChunk(
-                                     allGroups,
                                      rule.targets,
-                                     nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
+                                     allGroups,
+                                     nodeAndServerIds
                                    )
                                    (
                                      rule.id,
@@ -738,7 +745,7 @@ class ComplianceAPIService(
                                          rule,
                                          directives,
                                          nodeIds.toSet,
-                                         nodeFacts.mapValues(_.rudderSettings).toMap,
+                                         nodeSettings,
                                          globalPolicyMode
                                        )
                                      )
@@ -1148,13 +1155,18 @@ class ComplianceAPIService(
 
       globalPolicyMode <- getGlobalPolicyMode
 
+      nodeAndServerIds = NodeAndServerIds(
+                           nodeIds = nodeSettings.keySet,
+                           serverIds = nodeSettings.collect { case (id, s) if s.isPolicyServer => id }.toSet
+                         )
+
       // A map for constant time access for the set of targeted nodes and policy mode:  a Map[RuleId, (Chunk[NodeId], Option[PolicyMode])]
       // The set is reused to directly compute the policy mode of the rule
-      allRuleInfos = {
+      allRuleInfos     = {
         rules
           .map(r => {
             val targetedNodeIds =
-              RoNodeGroupRepository.getNodeIdsChunk(allGroups, r.targets, nodeSettings.view.mapValues(_.isPolicyServer))
+              RoNodeGroupRepository.getNodeIdsChunk(r.targets, allGroups, nodeAndServerIds)
             val policyMode      =
               getRulePolicyMode(r, directiveLib.allDirectives, targetedNodeIds.toSet, nodeSettings, globalPolicyMode)
             (r.id, (targetedNodeIds, policyMode))
@@ -1163,23 +1175,14 @@ class ComplianceAPIService(
       }
 
       filteredRules = rules.flatMap { rule =>
-                        // we must filter out rule not in allRuleInfo, else latter on, we will try to get info on them and get https://issues.rudder.io/issues/24945
+                        // we must filter out rule not in allRuleInfo, else later on, we will try to get info on them and get https://issues.rudder.io/issues/24945
                         allRuleInfos.get(rule.id) match {
                           case None                        => None
                           case Some((nodeIds, policyMode)) =>
-                            val targetedNodeIds = {
-                              // TODO: allGroups CAN be empty when parsed is "non-group target". We don't even need the call to getAllNodeIdsChunk()
-                              RoNodeGroupRepository.getNodeIdsChunk(
-                                allGroups,
-                                rule.targets,
-                                nodeSettings.view.mapValues(_.isPolicyServer)
-                              )
-                            }
-
                             val isRuleTargetingGroup =
                               RuleTarget.merge(rule.targets).includes(target)
 
-                            if ((isGlobalCompliance || isRuleTargetingGroup) && targetedNodeIds.exists(serverList.contains))
+                            if ((isGlobalCompliance || isRuleTargetingGroup) && nodeIds.exists(serverList.contains))
                               Some((rule.id, (rule, nodeIds, policyMode)))
                             else None
                         }
@@ -1270,17 +1273,16 @@ class ComplianceAPIService(
 
         globalPolicyMode <- getGlobalPolicyMode
 
+        // compute it once per request, before the loops on rules
+        nodeAndServerIds = NodeAndServerIds.fromFacts(nodeFacts)
+
         // A map for constant time access for the set of targeted nodes and policy mode:  a Map[RuleId, (Chunk[NodeId], Option[PolicyMode])]
         // The set is reused to directly compute the policy mode of the rule
         allRuleInfos      = {
           rules
             .map(r => {
               val targetedNodeIds = {
-                RoNodeGroupRepository.getNodeIdsChunk(
-                  allGroups,
-                  r.targets,
-                  nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
-                )
+                RoNodeGroupRepository.getNodeIdsChunk(r.targets, allGroups, nodeAndServerIds)
               }
               val policyMode      =
                 getRulePolicyMode(r, directiveLib.allDirectives, targetedNodeIds.toSet, nodeSettings, globalPolicyMode)
@@ -1406,10 +1408,15 @@ class ComplianceAPIService(
       val nodeInfos: Map[NodeId, (String, RudderSettings)] =
         nodeFacts.view.mapValues(info => (info.fqdn, info.rudderSettings)).toMap
 
+      val nodeAndServerIds = NodeAndServerIds(
+        nodeIds = nodeInfos.keySet,
+        serverIds = nodeInfos.collect { case (id, (_, s)) if s.isPolicyServer => id }.toSet
+      )
+
       val nodeAndPolicyModeByRules = rules
         .map(rule => {
           val nodeIds    =
-            RoNodeGroupRepository.getNodeIdsChunk(allGroups, rule.targets, nodeInfos.view.mapValues(_._2.isPolicyServer)).toSet
+            RoNodeGroupRepository.getNodeIdsChunk(rule.targets, allGroups, nodeAndServerIds).toSet
           val policyMode = {
             getRulePolicyMode(
               rule,

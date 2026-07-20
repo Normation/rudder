@@ -138,17 +138,17 @@ class RuleInternalApiService(
       t2        <- currentTimeMillis
       allGroups <- readGroup.getAllNodeIdsChunk()
       t3        <- currentTimeMillis
-      nodes     <- readNodes.getAll()
+      ids       <- readNodes.getNodeAndServerIds()
       t4        <- currentTimeMillis
       nodesIds  <- RoNodeGroupRepository
-                     .getNodeIdsChunk(allGroups, rule.targets, nodes.mapValues(_.rudderSettings.isPolicyServer))
+                     .getNodeIdsChunk(rule.targets, allGroups, ids)
                      .size
                      .succeed
       t5        <- currentTimeMillis
 
       _ <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - readRule in ${t2 - t1} ms")
       _ <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - getAllNodeIdsChunk in ${t3 - t2} ms")
-      _ <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - readNodes.getAll() in ${t4 - t3} ms")
+      _ <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - readNodes.getNodeAndServerIds() in ${t4 - t3} ms")
       _ <- TimingDebugLoggerPure.trace(s"GetRuleNodesAndDirectives - getNodeIdsChunk in ${t5 - t4} ms")
 
     } yield {

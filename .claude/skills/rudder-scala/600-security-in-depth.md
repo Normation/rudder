@@ -33,6 +33,34 @@ type class to read/update it (see `HasSecurityTag[ActiveTechnique]` in
 - filter by scope in the repository/persistence layer (the right place to enforce —
   e.g. tenant-filtering proxy repositories), not only in the UI.
 
+### Node-id sets: always resolve against QueryContext-filtered facts
+
+Group `serverList`s (and anything derived from them: rule targets, campaign targets…)
+are **not** tenant-filtered and can also contain deleted nodes. Any node-id set
+returned to a user must therefore be **intersected with the facts visible in the
+caller's `QueryContext`**:
+
+- To resolve `RuleTarget`s into node ids, use `RuleTarget.getNodeIdsChunk` /
+  `RoNodeGroupRepository.getNodeIdsChunk` / `FullNodeGroupCategory.getNodeIds`. They
+  take a `NodeAndServerIds` (opaque pair of visible node ids + policy server ids,
+  `domain.nodes`): get it from `nodeFactRepository.getNodeAndServerIds()(qc)` (cheap,
+  policy servers are cached in the repository) or build it with
+  `NodeAndServerIds.fromFacts(snapshot)` from a generation snapshot — the helper
+  restricts its result to `.nodeIds`, so the qc does the tenant filtering.
+  **Get it once per request, before any loop on rules**, and **don't hand-roll target
+  resolution** (a `Set`-based duplicate of this helper existed until 9.1 and leaked
+  group members across tenants because it skipped that intersection; a
+  `Map[NodeId, Boolean]`-shaped API existed too and made every caller rebuild a full
+  map per rule — that's why there is only one implementation now).
+- A cache or repository populated under `QueryContext.systemQC` (e.g. score caches)
+  serves data for **all** tenants: its *read* methods must take `(implicit qc:
+  QueryContext)` and filter to qc-visible nodes before returning — in the
+  repository, not in each API handler (see `AggregatedBenchmarkScoreRepository` in
+  the security-benchmarks plugin).
+- Symmetrically, **maintenance/write paths** (cleaning caches, computing the node set
+  a policy applies to) must use `QueryContext.systemQC`, not the actor's qc — or a
+  tenant-limited actor would silently drop data of nodes they can't see.
+
 ## Lift snippets: get `QueryContext` safely (ADR 28452)
 
 A Lift snippet that needs the authenticated user / their tenants must obtain its

@@ -47,7 +47,6 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.CriterionComposition.*
 import com.normation.rudder.facts.nodes.*
-import com.normation.rudder.services.queries.TestNodeFactAlgebra.*
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.tenants.*
@@ -1561,6 +1560,7 @@ class TestNodeFactQueryProcessor {
 
 @RunWith(classOf[ZTestJUnitRunner])
 class TestNodeFactAlgebra extends ZIOSpecDefault {
+  import com.normation.rudder.services.queries.TestNodeFactAlgebra.*
 
   override def spec: Spec[TestEnvironment & Scope, Any] = {
     // testing the values of the boolean algebra
