@@ -70,9 +70,8 @@ import com.normation.rudder.services.policies.NodeConfiguration
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.services.policies.Policy
 import com.normation.rudder.services.policies.PolicyId
-import com.normation.templates.FillTemplatesService
-import com.normation.templates.FillTemplateThreadUnsafe
 import com.normation.templates.FillTemplateTimer
+import com.normation.templates.PolicyTemplateService
 import com.normation.templates.STVariable
 import com.normation.zio.*
 import java.nio.charset.Charset
@@ -250,7 +249,7 @@ class PolicyWriterServiceImpl(
     pathComputer:               PathComputer,
     logNodeConfig:              NodeConfigurationLogger,
     prepareTemplate:            PrepareTemplateVariables,
-    fillTemplates:              FillTemplatesService,
+    templateService:            PolicyTemplateService,
     writeAllAgentSpecificFiles: WriteAllAgentSpecificFiles,
     HOOKS_D:                    String,
     HOOKS_IGNORE_SUFFIXES:      List[String],
@@ -528,7 +527,7 @@ class PolicyWriterServiceImpl(
                                                                    templates             <- readTemplateFromFileSystem(templateToRead.toSeq)
                                                                    resources             <- readResourcesFromFileSystem(fileToRead.toSeq)
                                                                    // Clearing cache
-                                                                   _                     <- IOResult.attempt(fillTemplates.clearCache())
+                                                                   _                     <- templateService.clearCache()
                                                                    readTemplateTime2     <- currentTimeMillis
                                                                    _                     <-
                                                                      timingLogger.debug(s"Paths computed and templates read in ${readTemplateTime2 - readTemplateTime1} ms")
@@ -641,7 +640,7 @@ class PolicyWriterServiceImpl(
       parametersWrittenTime <- currentTimeMillis
       _                     <- timingLogger.debug(s"Parameters written in ${parametersWrittenTime - propertiesWrittenTime} ms")
 
-      _              <- IOResult.attempt(fillTemplates.clearCache())
+      _              <- templateService.clearCache()
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
       preMvHooksName  = "policy-generation-node-ready"
@@ -790,19 +789,12 @@ class PolicyWriterServiceImpl(
       )
     }).groupMap(_._1)(_._2)
 
-    import org.antlr.stringtemplate.StringTemplate
-    import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
-
-    // now process by template, which are not thread safe but here, accessed sequentially
+    // now process by template, which may not be thread safe (StringTemplate engine) but here, accessed sequentially
     parallelSequence(byTemplate.toSeq) {
       case (content, seqInfos) =>
         for {
           t0     <- currentTimeNanos
-          parsed <-
-            IOResult
-              .attempt(s"Error when trying to parse template '${seqInfos.head.destination}'") { // head ok because of groupBy
-                new StringTemplate(content, classOf[NormationAmpersandTemplateLexer])
-              }
+          parsed <- templateService.parse(seqInfos.head.destination, content) // head ok because of groupBy
           t1     <- currentTimeNanos
           _      <- fillTimer.get.update(_ + t1 - t0)
           _      <- ZIO.foreachDiscard(seqInfos) { info =>
@@ -812,7 +804,7 @@ class PolicyWriterServiceImpl(
                           for {
                             _      <- PolicyGenerationLoggerPure.trace(s"Create policies file ${info.newFolder} ${info.destination}")
                             t0     <- currentTimeNanos
-                            filled <- FillTemplateThreadUnsafe.fill(
+                            filled <- templateService.fill(
                                         info.destination,
                                         parsed,
                                         info.envVars,

@@ -52,7 +52,6 @@ import com.normation.rudder.services.policies.IfVarClass
 import com.normation.rudder.services.policies.NodeRunHook
 import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.policies.write.BuildBundleSequence.*
-import com.normation.templates.FillTemplatesService
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -104,8 +103,6 @@ class PrepareTemplateVariableTest extends Specification {
         else None
       )
   }
-
-  val fillTemplate = new FillTemplatesService()
 
   // Ok, now I can test
   "Preparing the string for writing usebundle of directives" should {

@@ -137,7 +137,11 @@ import com.normation.rudder.web.components.administration.PolicyBackup
 import com.normation.rudder.web.components.administration.RudderCompanyAccount
 import com.normation.rudder.web.model.*
 import com.normation.rudder.web.services.*
+import com.normation.templates.FastparsePolicyTemplateService
 import com.normation.templates.FillTemplatesService
+import com.normation.templates.PolicyTemplateEngine
+import com.normation.templates.PolicyTemplateService
+import com.normation.templates.StringTemplatePolicyTemplateService
 import com.normation.utils.CronParser.*
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.StringUuidGeneratorImpl
@@ -708,6 +712,23 @@ object RudderParsedProperties {
       logger.error(s"Error when parsing cron for 'rudder.git.gc', it will be disabled: ${err.fullMsg}")
       None
     case Right(opt) => opt
+  }
+
+  val RUDDER_POLICY_TEMPLATE_ENGINE: PolicyTemplateEngine = {
+    try {
+      PolicyTemplateEngine.parse(config.getString("rudder.policy.template.engine")) match {
+        case Right(engine) => engine
+        case Left(err)     =>
+          logger.warn(
+            s"Ignoring invalid value for property 'rudder.policy.template.engine': ${err.fullMsg}. " +
+            s"Defaulting to '${PolicyTemplateEngine.default.entryName}'"
+          )
+          PolicyTemplateEngine.default
+      }
+    } catch {
+      // missing key: this is an optional property, use default without a log
+      case ex: Exception => PolicyTemplateEngine.default
+    }
   }
 
   val RUDDER_INVENTORIES_CLEAN_CRON: Option[CronExpr] = (
@@ -3292,6 +3313,13 @@ object RudderConfigInit {
       () => configService.cfengine_outputs_ttl().toBox,
       () => configService.rudder_report_protocol_default().toBox
     )
+    lazy val policyTemplateService: PolicyTemplateService = {
+      ApplicationLogger.info(s"Policy template engine: '${RUDDER_POLICY_TEMPLATE_ENGINE.entryName}'")
+      RUDDER_POLICY_TEMPLATE_ENGINE match {
+        case PolicyTemplateEngine.StringTemplate => new StringTemplatePolicyTemplateService(new FillTemplatesService())
+        case PolicyTemplateEngine.Fastparse      => new FastparsePolicyTemplateService()
+      }
+    }
     lazy val rudderCf3PromisesFileWriterService = {
       val nodeConfigurationLogger = NodeConfigurationLogger.make(RUDDER_DEBUG_NODE_CONFIGURATION_PATH).runNow
 
@@ -3305,7 +3333,7 @@ object RudderConfigInit {
           new BuildBundleSequence(systemVariableSpecService, writeAllAgentSpecificFiles),
           agentRegister
         ),
-        new FillTemplatesService(),
+        policyTemplateService,
         writeAllAgentSpecificFiles,
         HOOKS_D,
         HOOKS_IGNORE_SUFFIXES,
