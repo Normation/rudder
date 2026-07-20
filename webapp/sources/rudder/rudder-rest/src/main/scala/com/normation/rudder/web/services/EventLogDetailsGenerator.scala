@@ -128,7 +128,7 @@ class EventLogDetailsGenerator(
         case "" =>
           for {
             node <- nodeFactRepository.get(NodeId(id))(using QueryContext.systemQC)
-          } yield node.map(_.fqdn).getOrElse("")
+          } yield node.map(_.fqdn).getOrElse(id)
         case x  => x
       }
 
