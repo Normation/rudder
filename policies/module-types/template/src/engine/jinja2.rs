@@ -50,20 +50,17 @@ impl TemplateEngine for Jinja2Engine {
     ) -> Result<String> {
         let is_inline = template_path.is_none();
         let named: TempPath;
-        let template_path = match (&template_path, template_string) {
-            (Some(p), _) => p
-                .to_str()
-                .with_context(|| format!("Template path is not valid UTF-8: {}", p.display()))?,
+        // `validate` guarantees exactly one of the two sources is provided.
+        let template_path: &Path = match (&template_path, template_string) {
+            (Some(p), _) => p,
             (_, Some(s)) => {
                 let mut tmp_file =
-                    NamedTempFile::new().context("Failed to create temporary file for template")?;
+                    NamedTempFile::new().context("Failed to create a temporary template file")?;
                 tmp_file
                     .write_all(s.as_bytes())
-                    .context("Failed to write template to temporary file")?;
+                    .context("Failed to write the template into a temporary file")?;
                 named = tmp_file.into_temp_path();
-                named
-                    .to_str()
-                    .context("Temporary file path is not valid UTF-8")?
+                &named
             }
             _ => unreachable!(),
         };
@@ -101,7 +98,13 @@ impl TemplateEngine for Jinja2Engine {
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .with_context(|| format!("Failed to execute {}", template_script_path.display()))?;
+                .with_context(|| {
+                    format!(
+                        "Failed to run the Python interpreter '{}' on {}",
+                        self.python_interpreter,
+                        template_script_path.display()
+                    )
+                })?;
 
             // Feed the data on stdin and drain stdout/stderr from threads, so a
             // large template output cannot deadlock against a full pipe while we
@@ -198,6 +201,25 @@ mod tests {
             sandbox_timeout,
             unrestricted_timeout: JINJA2_UNRESTRICTED_TIMEOUT,
         }
+    }
+
+    #[test]
+    fn it_fails_gracefully_when_the_interpreter_is_missing() {
+        let engine = Jinja2Engine::new(Some("definitely-not-a-python-interpreter".to_string()))
+            .expect("an explicit interpreter is never probed");
+        let err = engine
+            .render(
+                None,
+                Some("{{ vars.a }}"),
+                &json!({"vars": {"a": 1}}),
+                Mode::Sandboxed,
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("definitely-not-a-python-interpreter"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
