@@ -39,6 +39,7 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.servers.Srv
@@ -52,6 +53,7 @@ import net.liftweb.util.ClearClearable
 import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 import scala.xml.Text
+import zio.Chunk
 
 object ExpectedPolicyPopup {
 
@@ -119,10 +121,13 @@ class ExpectedPolicyPopup(
       groupTargets  = dynGroups.getOrElse(nodeSrv.id, Seq())
       rules        <- ruleRepository.getAll(includeSystem = false).toBox
     } yield {
-      val pendingNode = Map((nodeSrv.id, nodeSrv.isPolicyServer))
-      val groups      = groupTargets.map(x => (x, Set(nodeSrv.id))).toMap
+      val pendingNode = NodeAndServerIds(
+        nodeIds = Set(nodeSrv.id),
+        serverIds = if (nodeSrv.isPolicyServer) Set(nodeSrv.id) else Set.empty
+      )
+      val groups      = groupTargets.map(x => (x, Chunk(nodeSrv.id))).toMap
 
-      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode, groups, allNodesAreThere = false).nonEmpty)
+      rules.filter(r => RuleTarget.getNodeIdsChunk(r.targets, groups, pendingNode).nonEmpty)
     }
   }
 

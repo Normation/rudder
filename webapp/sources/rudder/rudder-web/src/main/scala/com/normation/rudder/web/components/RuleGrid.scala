@@ -41,6 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.*
@@ -473,13 +474,13 @@ class RuleGrid(
       globalMode:    GlobalPolicyMode
   ): List[Line] = {
 
-    val arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer).toMap
+    val nodeAndServerIds = NodeAndServerIds.fromFacts(nodeFacts)
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
 
     rules.map { rule =>
-      val nodes                     = groupsLib.getNodeIds(rule.targets, arePolicyServers)
+      val nodes                     = groupsLib.getNodeIds(rule.targets, nodeAndServerIds)
       val (policyMode, explanation) = getRulePolicyMode(rule, nodes, nodeFacts, directivesLib, globalMode).tuple
 
       val trackerVariables: Box[Seq[DirectiveStatus]] = {
@@ -531,7 +532,7 @@ class RuleGrid(
               rule,
               groupsLib,
               directivesLib,
-              arePolicyServers,
+              nodeAndServerIds,
               None
             )
           }

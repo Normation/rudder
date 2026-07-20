@@ -42,6 +42,7 @@ import com.normation.inventory.domain.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.tenants.*
 import com.normation.zio.*
@@ -128,6 +129,24 @@ trait NodeFactRepository {
    * there to get the non-tenant-scoped, global count).
    */
   def getNumberOfManagedNodes()(using qc: QueryContext): IOResult[Int]
+
+  /*
+   * Get the ids of the policy servers (root and relays) among accepted nodes,
+   * restricted to what the query context allows to see.
+   */
+  def getPolicyServers()(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
+    getAll()(using qc, SelectNodeStatus.Accepted).map(_.collect {
+      case (id, n) if n.rudderSettings.isPolicyServer => id
+    }.toSet)
+  }
+
+  /*
+   * Get the accepted node ids and policy server visible in the query context.
+   * Used for target resolution.
+   */
+  def getNodeAndServerIds()(implicit qc: QueryContext): IOResult[NodeAndServerIds] = {
+    getAll()(using qc, SelectNodeStatus.Accepted).map(NodeAndServerIds.fromFacts(_))
+  }
 
   /*
    * Get node on given status
@@ -441,15 +460,26 @@ class CoreNodeFactRepository(
 
   // number of accepted, enabled nodes
   private def countEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
-  private val enabledNodes:         Ref[Int]  = (for {
+  // accepted policy servers (root and relays) - there are always very few of them
+  private def collectPolicyServers(nodes: Map[NodeId, CoreNodeFact]) = {
+    nodes.collect { case (id, n) if n.rudderSettings.isPolicyServer => id }.toSet
+  }
+  private val enabledNodes: Ref[Int] = (for {
     n <- acceptedNodes.get
     r <- Ref.make(countEnabled(n))
   } yield r).runNow
-  private def updateEnabledCount(): UIO[Unit] = {
+  private val policyServers: Ref[Set[NodeId]] = (for {
+    n <- acceptedNodes.get
+    r <- Ref.make(collectPolicyServers(n))
+  } yield r).runNow
+
+  // refresh the caches derived from accepted nodes; must be called after any mutation of acceptedNodes
+  private def updateDerivedCaches(): UIO[Unit] = {
     for {
       n <- acceptedNodes.get
-      r <- enabledNodes.set(countEnabled(n))
-    } yield r
+      _ <- enabledNodes.set(countEnabled(n))
+      _ <- policyServers.set(collectPolicyServers(n))
+    } yield ()
   }
 
   // debug log
@@ -538,6 +568,21 @@ class CoreNodeFactRepository(
     // fast path: admin (and everyone when the tenant feature is disabled) uses the precomputed global count
     if (qc.accessGrant == TenantAccessGrant.All) enabledNodes.get
     else acceptedNodes.get.map(ns => countEnabled(ns.filter { case (_, n) => qc.accessGrant.canSee(n) }))
+  }
+
+  override def getNodeAndServerIds()(implicit qc: QueryContext): IOResult[NodeAndServerIds] = {
+    for {
+      nodes   <- getAll()(using qc, SelectNodeStatus.Accepted).map(_.keys.toSet)
+      servers <- getPolicyServers()
+    } yield NodeAndServerIds(nodeIds = nodes, serverIds = servers)
+  }
+
+  override def getPolicyServers()(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
+    for {
+      ids     <- policyServers.get
+      // there are very few policy servers: filtering them by visibility is cheap
+      visible <- ZIO.filter(ids)(id => getOnRef(acceptedNodes, id).map(_.isDefined))
+    } yield visible
   }
 
   override def get(
@@ -752,8 +797,8 @@ class CoreNodeFactRepository(
                                    _ <- runCallbacks(es)
                                  } yield es
                                }
-        // update number of active nodes
-        _                   <- updateEnabledCount()
+        // update number of active nodes and policy servers
+        _                   <- updateDerivedCaches()
       } yield es
     )
   }
@@ -849,6 +894,7 @@ class CoreNodeFactRepository(
                               ).succeed
                           }
             } yield e
+          _ <- updateDerivedCaches()
           _ <- runCallbacks(e)
         } yield e
       )
@@ -870,6 +916,7 @@ class CoreNodeFactRepository(
                    }
                  case None    => NodeFactChangeEventCC(NodeFactChangeEvent.Noop(nodeId, SelectFacts.all), cc).succeed
                }
+        _   <- updateDerivedCaches()
         _   <- runCallbacks(e)
       } yield e
     )

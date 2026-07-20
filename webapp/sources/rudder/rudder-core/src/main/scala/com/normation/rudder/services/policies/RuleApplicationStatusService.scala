@@ -38,6 +38,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -47,7 +48,7 @@ trait RuleApplicationStatusService {
       rule:             Rule,
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: Map[NodeId, Boolean],      // we need both all nodes and if they are policy server
+      nodeAndServerIds: NodeAndServerIds,          // the nodes visible in the caller's context, see NodeFactRepository.getNodeAndServerIds
       appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus
@@ -64,14 +65,14 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
       rule:             Rule,
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: Map[NodeId, Boolean],
+      nodeAndServerIds: NodeAndServerIds,
       appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus = {
 
     if (rule.isEnabled) {
       val isAllTargetsEnabled = rule.targets.flatMap(groupLib.allTargets.get(_)).filter(!_.isEnabled).isEmpty
-      val nodesList           = appliedOnNodes.getOrElse(groupLib.getNodeIds(rule.targets, arePolicyServers))
+      val nodesList           = appliedOnNodes.getOrElse(groupLib.getNodeIds(rule.targets, nodeAndServerIds))
       if (nodesList.nonEmpty) {
         if (isAllTargetsEnabled) {
           val disabled = (rule.directiveIds

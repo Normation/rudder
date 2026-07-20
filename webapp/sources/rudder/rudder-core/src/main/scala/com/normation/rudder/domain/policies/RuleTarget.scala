@@ -41,6 +41,7 @@ import cats.syntax.bifunctor.*
 import cats.syntax.traverse.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.tenants.HasSecurityTag
@@ -49,7 +50,6 @@ import io.scalaland.chimney.Iso
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
-import scala.collection.MapView
 import scala.util.matching.Regex
 import zio.Chunk
 import zio.interop.catz.chunkStdInstances
@@ -306,88 +306,38 @@ object RuleTarget extends Loggable {
 
   /**
    * Return all node ids that match the set of target.
-   * allNodes pair is: (nodeid, isPolicyServer)
-   */
-  def getNodeIds(
-      targets:          Set[RuleTarget],
-      allNodes:         Map[NodeId, Boolean /* isPolicyServer */ ],
-      groups:           Map[NodeGroupId, Set[NodeId]],
-      allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
-  ): Set[NodeId] = {
-
-    targets.toList.traverse {
-      case AllTarget                    => Left(allNodes.keySet.toSet)
-      case AllTargetExceptPolicyServers => Right(allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k }.toSet)
-      case AllPolicyServers             => Right(allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k }.toSet)
-      case PolicyServerTarget(nodeId)   =>
-        if (allNodesAreThere) {
-          Right(Set(nodeId))
-        } else {
-          // nodeId may not be in allNodes
-          allNodes.keySet.contains(nodeId) match {
-            case true => Right(Set(nodeId))
-            case _    => Right(Set.empty)
-          }
-        }
-
-      // here, if we don't find the group, we consider it's an error in the
-      // target recording, but don't fail, just log it.
-      case GroupTarget(groupId)         =>
-        Right(groups.getOrElse(groupId, Set.empty))
-
-      case TargetIntersection(targets) =>
-        val nodeSets     = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
-        // Compute the intersection of the sets of Nodes
-        val intersection = nodeSets.foldLeft(allNodes.keySet.toSet) {
-          case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
-        }
-        Right(intersection)
-
-      case TargetUnion(targets) =>
-        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups, allNodesAreThere))
-        // Compute the union of the sets of Nodes
-        val union    = nodeSets.foldLeft(Set[NodeId]()) { case (currentUnion, nodes) => currentUnion.union(nodes) }
-        Right(union)
-
-      case TargetExclusion(included, excluded) =>
-        // Compute the included Nodes
-        val includedNodes = getNodeIds(Set(included), allNodes, groups, allNodesAreThere)
-        // Compute the excluded Nodes
-        val excludedNodes = getNodeIds(Set(excluded), allNodes, groups, allNodesAreThere)
-        // Remove excluded nodes from included nodes
-        val result        = includedNodes -- excludedNodes
-        Right(result)
-    }.map(_.toSet.flatten).merge
-  }
-
-  /**
-   * Return all node ids that match the set of target.
-   * allNodes pair is: (nodeid, isPolicyServer)
+   * nodeAndServerIds carries the node ids the caller is allowed to see (they MUST
+   * already be filtered with the caller's QueryContext for the result to be
+   * tenant-safe - see NodeFactRepository.getNodeAndServerIds).
+   *
+   * Items in the returned chunk are unique.
    */
   def getNodeIdsChunk(
-      targets:  Set[RuleTarget],
-      allNodes: MapView[NodeId, Boolean /* isPolicyServer */ ],
-      groups:   Map[NodeGroupId, Chunk[NodeId]]
+      targets:          Set[RuleTarget],
+      groups:           Map[NodeGroupId, Chunk[NodeId]],
+      nodeAndServerIds: NodeAndServerIds
   ): Chunk[NodeId] = {
-    val result = getNodeIdsChunkRec(Chunk.fromIterable(targets), allNodes.toMap, groups)
-
-    // we always must intersect with the keySet of nodes, because sometime node ids in groups is a super set
-    // of the given allNodes, for ex!
-    // - for static group where some of the nodes were deleted,
-    // - when we have tenants (Rudder 8.1+=
-    Chunk.fromIterable(result.toSet.intersect(allNodes.keySet))
+    val result = getNodeIdsChunkRec(Chunk.fromIterable(targets), groups, nodeAndServerIds)
+    /*
+     * The result is always restricted to nodeAndServerIds.nodeIds, because node ids in
+     * groups can be a super set of it, for ex:
+     * - for static group where some of the nodes were deleted,
+     * - when the visible nodes are restricted to what the caller is allowed to see
+     *   (tenants, Rudder 8.1+).
+     */
+    Chunk.fromIterable(result.toSet.intersect(nodeAndServerIds.nodeIds))
   }
 
-  def getNodeIdsChunkRec(
-      targets:  Chunk[RuleTarget],
-      allNodes: Map[NodeId, Boolean /* isPolicyServer */ ],
-      groups:   Map[NodeGroupId, Chunk[NodeId]]
+  private def getNodeIdsChunkRec(
+      targets:          Chunk[RuleTarget],
+      groups:           Map[NodeGroupId, Chunk[NodeId]],
+      nodeAndServerIds: NodeAndServerIds
   ): Chunk[NodeId] = {
 
     targets.traverse {
-      case AllTarget                    => Left(Chunk.fromIterable(allNodes.keys))
-      case AllTargetExceptPolicyServers => Right(allNodes.collect { case (k, isPolicyServer) if (!isPolicyServer) => k })
-      case AllPolicyServers             => Right(allNodes.collect { case (k, isPolicyServer) if (isPolicyServer) => k })
+      case AllTarget                    => Left(Chunk.fromIterable(nodeAndServerIds.nodeIds))
+      case AllTargetExceptPolicyServers => Right(nodeAndServerIds.nodeIds -- nodeAndServerIds.serverIds)
+      case AllPolicyServers             => Right(nodeAndServerIds.serverIds)
       case PolicyServerTarget(nodeId)   => Right(Set(nodeId))
 
       // here, if we don't find the group, we consider it's an error in the
@@ -395,24 +345,24 @@ object RuleTarget extends Loggable {
       case GroupTarget(groupId) => Right(groups.getOrElse(groupId, Chunk.empty))
 
       case TargetIntersection(targets) =>
-        val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
+        val nodeSets     = targets.map(t => getNodeIdsChunkRec(Chunk(t), groups, nodeAndServerIds))
         // Compute the intersection of the sets of Nodes
-        val intersection = nodeSets.foldLeft(Chunk.fromIterable(allNodes.keys)) {
+        val intersection = nodeSets.foldLeft(Chunk.fromIterable(nodeAndServerIds.nodeIds)) {
           case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
         }
         Right(intersection)
 
       case TargetUnion(targets) =>
-        val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
+        val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), groups, nodeAndServerIds))
         // Compute the union of the sets of Nodes
         val union    = nodeSets.foldLeft(Chunk[NodeId]()) { case (currentUnion, nodes) => currentUnion ++ nodes }
         Right(union)
 
       case TargetExclusion(included, excluded) =>
         // Compute the included Nodes
-        val includedNodes = getNodeIdsChunkRec(Chunk(included), allNodes, groups)
+        val includedNodes = getNodeIdsChunkRec(Chunk(included), groups, nodeAndServerIds)
         // Compute the excluded Nodes
-        val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), allNodes, groups)
+        val excludedNodes = getNodeIdsChunkRec(Chunk(excluded), groups, nodeAndServerIds)
         // Remove excluded nodes from included nodes
         val result        = includedNodes.filterNot(id => excludedNodes.contains(id))
         Right(result)

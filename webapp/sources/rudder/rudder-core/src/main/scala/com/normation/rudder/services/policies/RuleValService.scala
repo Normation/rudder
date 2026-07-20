@@ -41,6 +41,7 @@ import com.normation.cfclerk.domain.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
@@ -214,10 +215,10 @@ class RuleValServiceImpl(
     // contained by the node-level filter below.
     val scopedTargets = rule.targets.filter(t => groupLib.allTargets.get(t).forall(info => ruleScope.canSee(info.security)))
 
-    // target resolution only needs the is-policy-server flag; project it from the node info
-    val arePolicyServers = nodes.view.mapValues(_.isPolicyServer).toMap
-    val wantedNodeIds    = groupLib.getNodeIds(scopedTargets, arePolicyServers)
-    val presentNodeIds   = wantedNodeIds.intersect(nodes.keySet)
+    val nodeAndServerIds = NodeAndServerIds(nodes.keySet, nodes.filter(_._2.isPolicyServer).keySet)
+
+    val wantedNodeIds  = groupLib.getNodeIds(scopedTargets, nodeAndServerIds)
+    val presentNodeIds = wantedNodeIds.intersect(nodes.keySet)
     if (presentNodeIds.size != wantedNodeIds.size) {
       // ignored nodes are filtered-out early during generation, so we don't have access to their node info here,
       // they are just missing from allNodeInfos map.

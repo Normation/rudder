@@ -51,6 +51,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
+import com.normation.rudder.domain.nodes.NodeAndServerIds
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.facts.nodes.*
@@ -511,7 +512,8 @@ class RuleApiService14(
       globalMode   <- getGlobalPolicyMode()
 
     } yield {
-      val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
+      val ids    = NodeAndServerIds.fromFacts(nodesLib)
+      val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, ids, nodesLib, globalMode)
 
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
       JRRule.fromRule(change.newRule, optCrId, Some(status.policyMode.name), Some(status.applicationStatusDetails))
@@ -519,22 +521,22 @@ class RuleApiService14(
   }
 
   def getRuleApplicationStatus(
-      rule:         Rule,
-      groupLib:     FullNodeGroupCategory,
-      directiveLib: FullActiveTechniqueCategory,
-      nodesLib:     MapView[NodeId, CoreNodeFact],
-      globalMode:   GlobalPolicyMode
+      rule:             Rule,
+      groupLib:         FullNodeGroupCategory,
+      directiveLib:     FullActiveTechniqueCategory,
+      nodeAndServerIds: NodeAndServerIds, // compute it once per request (from nodesLib), before loops on rules
+      nodesLib:         MapView[NodeId, CoreNodeFact],
+      globalMode:       GlobalPolicyMode
   ): RuleApplicationStatus = {
     val directives               =
       rule.directiveIds.flatMap(directiveLib.allDirectives.get(_)).map { case (a, d) => (a.toActiveTechnique(), d) }
-    val arePolicyServers         = nodesLib.mapValues(_.rudderSettings.isPolicyServer).toMap
-    val nodesIds                 = groupLib.getNodeIds(rule.targets, arePolicyServers)
+    val nodesIds                 = groupLib.getNodeIds(rule.targets, nodeAndServerIds)
     // for performance reason, it's necessary to keep the .view.filterKeys, as it is 10 times
     // faster than traditional groupLib.getNodeIds(rule.targets, nodesLib).flatMap(nodesLib.get)
     val nodes                    = nodesLib.filterKeys(x => nodesIds.contains(x)).values
     val allTargets               = rule.targets.flatMap(groupLib.allTargets.get).map(_.toTargetInfo)
     val policyMode               = ComputePolicyMode.ruleMode(globalMode, directives.map(_._2), nodes.map(_.rudderSettings.policyMode))
-    val applicationStatus        = applicationService.isApplied(rule, groupLib, directiveLib, arePolicyServers, Some(nodesIds))
+    val applicationStatus        = applicationService.isApplied(rule, groupLib, directiveLib, nodeAndServerIds, Some(nodesIds))
     val applicationStatusDetails = ApplicationStatus.details(rule, applicationStatus, allTargets, directives, nodes.isEmpty)
     RuleApplicationStatus(policyMode, applicationStatusDetails)
   }
@@ -548,10 +550,11 @@ class RuleApiService14(
       globalMode   <- getGlobalPolicyMode()
 
     } yield {
+      val ids = NodeAndServerIds.fromFacts(nodesLib)
       for {
         rule <- rules.sortBy(_.id.serialize)
       } yield {
-        val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+        val status = getRuleApplicationStatus(rule, groupLib, directiveLib, ids, nodesLib, globalMode)
         JRRule.fromRule(rule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
       }
     }
@@ -624,7 +627,8 @@ class RuleApiService14(
       nodesLib     <- nodeFactRepos.getAll()(using cc.toQC)
       globalMode   <- getGlobalPolicyMode()
     } yield {
-      val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
+      val ids    = NodeAndServerIds.fromFacts(nodesLib)
+      val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, ids, nodesLib, globalMode)
       asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
       JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))(using cc.toQC)
     }).chainError(s"Error when creating new rule")
@@ -639,7 +643,8 @@ class RuleApiService14(
       nodesLib     <- nodeFactRepos.getAll()
       globalMode   <- getGlobalPolicyMode()
     } yield {
-      val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+      val ids    = NodeAndServerIds.fromFacts(nodesLib)
+      val status = getRuleApplicationStatus(rule, groupLib, directiveLib, ids, nodesLib, globalMode)
       JRRule.fromRule(rule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
     }
 
@@ -675,7 +680,8 @@ class RuleApiService14(
          nodesLib     <- nodeFactRepos.getAll()
          globalMode   <- getGlobalPolicyMode()
        } yield {
-         val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+         val ids    = NodeAndServerIds.fromFacts(nodesLib)
+         val status = getRuleApplicationStatus(rule, groupLib, directiveLib, ids, nodesLib, globalMode)
          asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
          JRRule.fromRule(rule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
        }
@@ -766,10 +772,11 @@ class RuleApiService14(
       groupLib         <- readGroup.getFullGroupLibrary()
       nodesLib         <- nodeFactRepos.getAll()
       globalMode       <- getGlobalPolicyMode()
+      ids               = NodeAndServerIds.fromFacts(nodesLib)
       rulesMap          = (for {
                             rule <- rules.sortBy(_.id.serialize)
                           } yield {
-                            val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
+                            val status = getRuleApplicationStatus(rule, groupLib, directiveLib, ids, nodesLib, globalMode)
                             (rule, Some(status.policyMode.name), Some(status.applicationStatusDetails))
                           }).groupBy(_._1.categoryId.value)
       missingCatContent = getMissingCategories(root, rules.toList)
