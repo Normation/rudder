@@ -9,7 +9,7 @@ use crate::MODULE_NAME;
 use crate::{output::Report, state::UpdateStatus};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
-use rusqlite::{self, Connection, Row};
+use rusqlite::{self, Connection, Row, TransactionBehavior};
 #[cfg(unix)]
 use std::fs::Permissions;
 #[cfg(unix)]
@@ -98,6 +98,9 @@ impl PackageDatabase {
             );
             Connection::open_in_memory()
         }?;
+        // No busy timeout on purpose: a run that finds the database locked must fail
+        // immediately rather than block. Contention means another process is already
+        // working on the event, so there is nothing to wait for.
         let mut s = Self { conn };
 
         // Initialize schema
@@ -153,8 +156,12 @@ impl PackageDatabase {
 
     /// Lock for the current process on a given campaign
     ///
+    /// Returns the pid of the process already holding the lock, or `None` if we acquired it.
     pub fn lock(&mut self, pid: u32, event_id: &str) -> Result<Option<u32>, rusqlite::Error> {
-        let tx = self.conn.transaction()?;
+        let tx = self
+            .conn
+            // Take write lock immediately to avoid later errors
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let r = tx.query_row(
             "select pid from update_events where event_id = ?1",
             [&event_id],
@@ -171,8 +178,10 @@ impl PackageDatabase {
         match current_pid {
             None => {
                 rudder_debug!("Setting lock for event {} to process {}", event_id, pid);
+                // The `pid is null` guard is redundant under an immediate transaction,
+                // but makes the write unable to steal a lock on its own.
                 tx.execute(
-                    "update update_events set pid = ?1 where event_id = ?2",
+                    "update update_events set pid = ?1 where event_id = ?2 and pid is null",
                     (pid, &event_id),
                 )?;
             }
@@ -378,6 +387,7 @@ mod tests {
     use std::ops::Add;
     #[cfg(unix)]
     use std::os::unix::prelude::PermissionsExt;
+    use std::{ops::Add, sync::Barrier, thread};
 
     #[test]
     fn new_creates_new_database() {
@@ -424,6 +434,70 @@ mod tests {
         db.schedule_event(event_id, campaign_id, now).unwrap();
         assert_eq!(db.lock(0, event_id).unwrap(), None);
         assert_eq!(db.lock(0, event_id).unwrap(), Some(0));
+    }
+
+    /// A run arriving after the holder committed must be refused *cleanly*: it reports
+    /// the holder's pid, not a `DatabaseBusy` error. Erroring here would make routine
+    /// contention (two agent runs overlapping on the same event) look like a failure.
+    #[test]
+    fn lock_refuses_cleanly_once_held() {
+        let dir = tempfile::tempdir().unwrap();
+        let event_id = "TEST";
+
+        let mut holder = PackageDatabase::new(Some(dir.path())).unwrap();
+        let mut other = PackageDatabase::new(Some(dir.path())).unwrap();
+
+        holder
+            .schedule_event(event_id, "CAMPAIGN", Utc::now())
+            .unwrap();
+        assert_eq!(holder.lock(42, event_id).unwrap(), None);
+
+        // Separate connection, holder's transaction already committed.
+        assert_eq!(other.lock(43, event_id).unwrap(), Some(42));
+        // And the holder keeps the lock.
+        assert_eq!(holder.lock(42, event_id).unwrap(), Some(42));
+    }
+
+    /// Concurrent runs race for the lock through separate connections, like separate
+    /// agent processes do. Exactly one of them must win.
+    #[test]
+    fn locks_are_exclusive_across_connections() {
+        let dir = tempfile::tempdir().unwrap();
+        let event_id = "TEST";
+
+        let mut db = PackageDatabase::new(Some(dir.path())).unwrap();
+        db.schedule_event(event_id, "CAMPAIGN", Utc::now()).unwrap();
+
+        const RUNS: u32 = 8;
+        // Opened up front: without a busy timeout, concurrent schema initialization
+        // would contend too, and this test is about `lock` alone.
+        let dbs: Vec<_> = (0..RUNS)
+            .map(|_| PackageDatabase::new(Some(dir.path())).unwrap())
+            .collect();
+
+        let barrier = Barrier::new(RUNS as usize);
+        let results = thread::scope(|s| {
+            let handles: Vec<_> = dbs
+                .into_iter()
+                .enumerate()
+                .map(|(pid, mut db)| {
+                    let barrier = &barrier;
+                    s.spawn(move || {
+                        barrier.wait();
+                        db.lock(pid as u32, event_id)
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|h| h.join().unwrap())
+                .collect::<Vec<_>>()
+        });
+
+        // A loser either reads the winner's pid or, having collided on the write lock,
+        // fails busy. Both are refusals; only `Ok(None)` is an acquisition.
+        let acquired = results.iter().filter(|r| matches!(r, Ok(None))).count();
+        assert_eq!(acquired, 1, "exactly one process must acquire the lock");
     }
 
     #[test]
