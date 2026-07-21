@@ -1,4 +1,4 @@
-def version = "9.2"
+def version = "10.0"
 def slackResponse = null
 
 def errors = []
