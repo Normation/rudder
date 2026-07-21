@@ -3387,7 +3387,7 @@ object RudderConfigInit {
     lazy val deploymentService              = {
       val writeCertificate        = new WriteCertificatesPemServiceImpl(
         new WriteNodeCertificatesPemImpl(Some(RUDDER_RELAY_RELOAD), RUN_WITH_SUDO_HOOKS),
-        better.files.File("/var/rudder/lib/ssl/allnodescerts.pem")
+        better.files.File("/var/rudder/lib/ssl/shared/allnodescerts.pem")
       )
       val buildNodeContext        = new NodeContextBuilderImpl(interpolationCompiler, systemVariableService)
       val fetchAllInfoServiceImpl = new FetchAllInfoServiceImpl(

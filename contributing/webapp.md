@@ -408,12 +408,12 @@ You should be able to get reports from agents through the webapp rudder.
 
 - certificate issues
 
-If you face certificate issues in `agent run` logs and/or if node reports do not reach the server, then the file that contains node certificates on the server (`/var/rudder/lib/ssl/allnodescerts.pem`) might not be up to date. You might want to try to copy the certificate local file on the dev_server:
+If you face certificate issues in `agent run` logs and/or if node reports do not reach the server, then the file that contains node certificates on the server (`/var/rudder/lib/ssl/shared/allnodescerts.pem`) might not be up to date. You might want to try to copy the certificate local file on the dev_server:
 ```
-vagrant upload /var/rudder/lib/ssl/allnodescerts.pem dev_server
+vagrant upload /var/rudder/lib/ssl/shared/allnodescerts.pem dev_server
 vagrant ssh dev_server
 sudo su
-mv allnodescerts.pem /var/rudder/lib/ssl/
+mv allnodescerts.pem /var/rudder/lib/ssl/shared/
 ```
 
 ## Part 2 : Setup workspace development with IntelliJ and Maven

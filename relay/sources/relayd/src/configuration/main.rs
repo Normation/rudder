@@ -218,7 +218,7 @@ impl Default for Configuration {
 pub struct GeneralConfig {
     #[serde_inline_default(PathBuf::from("/var/rudder/lib/relay/nodeslist.json"))]
     pub nodes_list_file: NodesListFile,
-    #[serde_inline_default(PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem"))]
+    #[serde_inline_default(PathBuf::from("/var/rudder/lib/ssl/shared/allnodescerts.pem"))]
     // needs to be /var/rudder/lib/ssl/nodescerts.pem on simple relays
     pub nodes_certs_file: NodesCertsFile,
     /// Has priority over node_id_file, use the
@@ -546,7 +546,7 @@ mod tests {
         let reference = Configuration {
             general: GeneralConfig {
                 nodes_list_file: PathBuf::from("/var/rudder/lib/relay/nodeslist.json"),
-                nodes_certs_file: PathBuf::from("/var/rudder/lib/ssl/allnodescerts.pem"),
+                nodes_certs_file: PathBuf::from("/var/rudder/lib/ssl/shared/allnodescerts.pem"),
                 node_id: None,
                 node_id_file: PathBuf::from("/opt/rudder/etc/uuid.hive"),
                 listen: "127.0.0.1:3030".parse().unwrap(),
