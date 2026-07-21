@@ -62,6 +62,12 @@ delete:
   parameters:
     - $ref: ../../components/parameters/technique-id.yml
     - $ref: ../../components/parameters/technique-version.yml
+    - name: force
+      description: Recursively delete directives if any present in place of aborting
+      in: query
+      schema:
+        type: boolean
+        default: false
   responses:
     "200":
       description: Deletion information
