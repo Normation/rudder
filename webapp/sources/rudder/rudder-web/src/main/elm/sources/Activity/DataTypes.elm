@@ -1,4 +1,4 @@
-module Activity.DataTypes exposing (..)
+module Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), EventLogFilterOrder, FilterTypes, Search, listString2FilterTypes, search2String, string2Search)
 
 import Html.Parser exposing (Node)
 import Http exposing (Error)
@@ -16,12 +16,33 @@ type ContextPath
     = ContextPath String
 
 
-type Search
-    = Search String
+type alias Search =
+    Maybe String
 
 
-type FilterType
-    = List String
+search2String : Search -> String
+search2String s =
+    Maybe.withDefault "" s
+
+
+string2Search : String -> Search
+string2Search s =
+    Just s
+
+
+type alias FilterTypes =
+    List String
+
+
+listString2FilterTypes : List String -> FilterTypes
+listString2FilterTypes lstring =
+    lstring
+
+
+type alias BodyParameters =
+    { search : Search
+    , filterTypes : FilterTypes
+    }
 
 
 type alias Activity =
@@ -29,13 +50,6 @@ type alias Activity =
     , actor : String
     , description : List Node
     , date : Posix
-    }
-
-
-type alias RestEventLogFilter =
-    { draw : Int
-    , start : Int
-    , length : Int
     }
 
 

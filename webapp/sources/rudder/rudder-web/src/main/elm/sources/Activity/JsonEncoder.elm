@@ -1,26 +1,36 @@
 module Activity.JsonEncoder exposing (..)
 
-import Activity.DataTypes exposing (EventLogFilterOrder, FilterType, Search(..))
+import Activity.DataTypes exposing (..)
 import Json.Encode exposing (Value, int, list, object, string)
 
 
-encodeRestEventLogFilter : Search -> List String -> Value
-encodeRestEventLogFilter (Search search) filterType =
+encodeRestEventLogFilter : BodyParameters -> Value
+encodeRestEventLogFilter bodyParameters =
     let
-        eventLogFilterOrder =
-            EventLogFilterOrder 0 "desc" ""
+        isSearchEmpty =
+            search2String bodyParameters.search == ""
 
-        data =
-            object
-                [ ( "draw", int 1 )
-                , ( "start", int 0 )
-                , ( "length", int 20 )
-                , ( "order", list encodeEventLogFilterOrder [ eventLogFilterOrder ] )
-                , ( "search", object [ ( "value", string search ) ] )
-                , ( "typeFilter", object [ ( "include", list string filterType ) ] )
-                ]
+        isFilterTypesEmpty =
+            List.isEmpty bodyParameters.filterTypes
     in
-    data
+    object
+        (List.filterMap identity
+            [ Just ( "draw", int 1 )
+            , Just ( "start", int 0 )
+            , Just ( "length", int 20 )
+            , Just ( "order", list encodeEventLogFilterOrder [ EventLogFilterOrder 0 "desc" "" ] )
+            , if isSearchEmpty then
+                Nothing
+
+              else
+                Just ( "search", object [ ( "value", string (search2String bodyParameters.search) ) ] )
+            , if isFilterTypesEmpty then
+                Nothing
+
+              else
+                Just ( "typeFilter", object [ ( "include", list string bodyParameters.filterTypes ) ] )
+            ]
+        )
 
 
 encodeEventLogFilterOrder : EventLogFilterOrder -> Value

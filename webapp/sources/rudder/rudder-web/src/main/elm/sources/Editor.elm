@@ -1,7 +1,7 @@
 port module Editor exposing (..)
 
 import Activity.ApiCalls exposing (getActivities, processApiError)
-import Activity.DataTypes exposing (Activity, ActivityMsg(..), ContextPath(..), Search(..))
+import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
 import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Browser
 import Dict exposing (Dict)
@@ -191,8 +191,10 @@ mainInit :
     -> ( Model, Cmd Msg )
 mainInit initValues =
     let
-        search =
-            Search ""
+        bodyParameters =
+            { search = Nothing
+            , filterTypes = filterTypes
+            }
 
         initTimeZone =
             Dict.get initValues.timeZone TimeZone.zones
@@ -231,7 +233,7 @@ mainInit initValues =
         , getTechniquesCategories model
         , getDirectives model
         , getPolicyMode model
-        , Cmd.map ActivityMessage (getActivities search filterTypes (ContextPath initValues.contextPath))
+        , Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath initValues.contextPath))
         ]
     )
 
@@ -466,6 +468,12 @@ update msg model =
 
                         _ ->
                             ( model, Cmd.none )
+
+                bodyParameters : BodyParameters
+                bodyParameters =
+                    { search = string2Search id.value
+                    , filterTypes = filterTypes
+                    }
             in
             case model.mode of
                 TechniqueDetails t _ _ editInfo ->
@@ -473,10 +481,10 @@ update msg model =
                         ( { model | mode = Introduction }, initInputs "" )
 
                     else
-                        ( newModel, Cmd.map ActivityMessage (getActivities (Search id.value) filterTypes (ContextPath model.contextPath)) )
+                        ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath)) )
 
                 _ ->
-                    ( newModel, Cmd.map ActivityMessage (getActivities (Search id.value) filterTypes (ContextPath model.contextPath)) )
+                    ( newModel, Cmd.map ActivityMessage (getActivities bodyParameters (ContextPath model.contextPath)) )
 
         SelectDraft id ->
             let
