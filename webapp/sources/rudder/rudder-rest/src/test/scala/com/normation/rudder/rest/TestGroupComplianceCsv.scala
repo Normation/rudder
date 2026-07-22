@@ -132,12 +132,7 @@ class TestGroupComplianceCsv extends Specification {
   }
 
   private def componentValueStatusReport(n: Int): ComponentValueStatusReport = {
-    ComponentValueStatusReport(
-      "",
-      "",
-      "",
-      MessageStatusReport(ReportType.AuditCompliant, "") :: Nil
-    )
+    ComponentValueStatusReport("", "", "", MessageStatusReport(ReportType.AuditCompliant, "") :: Nil)
   }
 
   // compliance by node
@@ -198,9 +193,7 @@ class TestGroupComplianceCsv extends Specification {
       ||   +- block2
       ||   |  +- block3
       ||   |  |  \- component4
-      ||   |  |
       ||   |  \- component3
-      ||   |
       ||   \- component2
       ||""".stripMargin
   }
@@ -227,13 +220,14 @@ class TestGroupComplianceCsv extends Specification {
   }
 
   val nestedRulesTree = {
-    """+- block1
+    """+- component1
+      ||\- block1
       ||   +- block2
-      ||   |  +- component1
-      ||   |  \- component2
-      ||   \- block3
+      ||   |  +- component2
       ||   |  \- component3
-      ||   |  \- component4
+      ||   \- block3
+      ||      +- component4
+      ||      \- component5
       ||""".stripMargin
   }
 
@@ -320,7 +314,7 @@ class TestGroupComplianceCsv extends Specification {
 
   "Group compliance " in {
     "by node " in {
-      "with empty node compliance should return a CSV that only contains the column names" in {
+      "with empty node compliance should produce a CSV that only contains the column names" in {
         val compliance = emptyGroupCompliance.nodes.transformInto[Seq[NodeGroupComplianceByNodeCsv]]
 
         compliance.toCsv.mustEqual(
@@ -352,7 +346,7 @@ class TestGroupComplianceCsv extends Specification {
       }
     }
     "by rule " in {
-      "with empty rule compliance should return a CSV that only contains the column names" in {
+      "with empty rule compliance should produce a CSV that only contains the column names" in {
         val compliance = emptyGroupCompliance.rules.transformInto[Seq[NodeGroupComplianceByRuleCsv]]
 
         compliance.toCsv.mustEqual(

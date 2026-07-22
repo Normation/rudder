@@ -83,14 +83,14 @@ class TestNodeComplianceCsv extends Specification {
       policyMode = policyMode,
       nodeCompliances = Seq(
         ByNodeRuleCompliance(
-          id = RuleId(RuleUid("ruleId")),
-          name = "ruleName",
+          id = RuleId(RuleUid("dummy")),
+          name = "dummy",
           compliance = ComplianceLevel(),
           policyMode = policyMode,
           directives = Seq(
             ByNodeDirectiveCompliance(
-              id = DirectiveId(DirectiveUid("directiveId")),
-              name = "directiveName",
+              id = DirectiveId(DirectiveUid("dummy")),
+              name = "dummy",
               compliance = ComplianceLevel(),
               skippedDetails = None,
               policyMode = policyMode,
@@ -103,12 +103,7 @@ class TestNodeComplianceCsv extends Specification {
   }
 
   private def componentValueStatusReport(n: Int): ComponentValueStatusReport = {
-    ComponentValueStatusReport(
-      s"component${n}-value",
-      s"component${n}-value",
-      s"component${n}-report",
-      MessageStatusReport(ReportType.AuditCompliant, s"component${n} compliant") :: Nil
-    )
+    ComponentValueStatusReport("", "", "", MessageStatusReport(ReportType.AuditCompliant, s"") :: Nil)
   }
 
   private def valueStatusReport(n: Int): ValueStatusReport = {
@@ -125,8 +120,8 @@ class TestNodeComplianceCsv extends Specification {
 
   val emptyNodeCompliance:  ByNodeNodeCompliance = {
     ByNodeNodeCompliance(
-      id = NodeId("nodeId"),
-      name = "nodeName",
+      id = NodeId("dummy"),
+      name = "dummy",
       compliance = ComplianceLevel(),
       mode = FullCompliance,
       policyMode = policyMode,
@@ -174,35 +169,69 @@ class TestNodeComplianceCsv extends Specification {
     )
   }
 
+  val nodesTree = {
+    """+- component1
+      |+- component2
+      |\- component3""".stripMargin
+  }
+
+  val nodesCsv = """"Rule","Directive","Block","Component","Value","Status","Message"
+                   |"dummy","dummy","","component1","","auditCompliant",""
+                   |"dummy","dummy","","component2","","auditCompliant",""
+                   |"dummy","dummy","","component3","","auditCompliant",""
+                   |""".stripMargin
+
+  val nestedNodesTree = {
+    """+- component1
+      ||\- block1
+      ||  +- component2
+      ||  \- block2
+      ||     +- component3
+      ||     +- block3
+      ||     |  \- component4
+      ||     \- block4
+      ||        +- component5
+      ||        \- component6
+      ||""".stripMargin
+  }
+
+  val nestedNodesCsv = {
+    """"Rule","Directive","Block","Component","Value","Status","Message"
+      |"dummy","dummy","","component1","","auditCompliant",""
+      |"dummy","dummy","block1","component2","","auditCompliant",""
+      |"dummy","dummy","block1,block2","component3","","auditCompliant",""
+      |"dummy","dummy","block1,block2,block3","component4","","auditCompliant",""
+      |"dummy","dummy","block1,block2,block4","component5","","auditCompliant",""
+      |"dummy","dummy","block1,block2,block4","component6","","auditCompliant",""
+      |""".stripMargin
+  }
+
   "Node compliance " in {
-    "with empty compliance information should result in a CSV file that only contains the column names when exported" in {
+    "with empty compliance information should produce a CSV file that only contains the column names when exported" in {
 
       val compliance = emptyNodeCompliance.nodeCompliances.transformInto[Seq[NodeComplianceByRuleCsv]]
       compliance.toCsv.mustEqual(""""Rule","Directive","Block","Component","Value","Status","Message"
                                    |""".stripMargin)
     }
-    "with non-empty compliance information should produce the expected CSV file when exported" in {
+    (s"""with compliance tree
+        |
+        |${nodesTree}
+        |
+        |should produce the following CSV :
+        |
+        |${nodesCsv}""".stripMargin) in {
       val compliance = nodeCompliance.nodeCompliances.transformInto[Seq[NodeComplianceByRuleCsv]]
-      compliance.toCsv.mustEqual(
-        """"Rule","Directive","Block","Component","Value","Status","Message"
-          |"ruleName","directiveName","","component1","component1-value","auditCompliant","component1 compliant"
-          |"ruleName","directiveName","","component2","component2-value","auditCompliant","component2 compliant"
-          |"ruleName","directiveName","","component3","component3-value","auditCompliant","component3 compliant"
-          |""".stripMargin
-      )
+      compliance.toCsv.mustEqual(nodesCsv)
     }
-    "with non-empty compliance information and nested blocks should produce the expected CSV file when exported" in {
+    (s"""with compliance tree with nested blocks
+        |
+        |${nestedNodesTree}
+        |
+        |should produce the following CSV :
+        |
+        |${nestedNodesCsv}""".stripMargin) in {
       val compliance = nestedNodeCompliance.nodeCompliances.transformInto[Seq[NodeComplianceByRuleCsv]]
-      compliance.toCsv.mustEqual(
-        """"Rule","Directive","Block","Component","Value","Status","Message"
-          |"ruleName","directiveName","","component1","component1-value","auditCompliant","component1 compliant"
-          |"ruleName","directiveName","block1","component2","component2-value","auditCompliant","component2 compliant"
-          |"ruleName","directiveName","block1,block2","component3","component3-value","auditCompliant","component3 compliant"
-          |"ruleName","directiveName","block1,block2,block3","component4","component4-value","auditCompliant","component4 compliant"
-          |"ruleName","directiveName","block1,block2,block4","component5","component5-value","auditCompliant","component5 compliant"
-          |"ruleName","directiveName","block1,block2,block4","component6","component6-value","auditCompliant","component6 compliant"
-          |""".stripMargin
-      )
+      compliance.toCsv.mustEqual(nestedNodesCsv)
     }
   }
 
