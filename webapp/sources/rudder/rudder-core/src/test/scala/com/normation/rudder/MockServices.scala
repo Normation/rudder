@@ -1359,8 +1359,8 @@ class MockRules(mockTenants: MockTenants) {
 
     val categories: Ref.Synchronized[RuleCategory] = Ref.Synchronized.make(rootRuleCategory).runNow
 
-    override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] = {
-      categories.get.flatMap(c => recGet(c, id).map(_._2).notOptional(s"category with id '${id.value}' not found"))
+    override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[Option[RuleCategory]] = {
+      categories.get.map(c => recGet(c, id).map(_._2))
     }
     override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] = categories.get
 
