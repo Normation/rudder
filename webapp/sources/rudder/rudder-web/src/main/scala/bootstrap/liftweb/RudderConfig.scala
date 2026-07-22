@@ -798,7 +798,14 @@ object RudderParsedProperties {
   val RUDDER_BCRYPT_COST: Int = {
     val defaultValue = PasswordEncoderType.BCRYPT.defaultCost
     try {
-      config.getInt("rudder.bcrypt.cost")
+      val cost = config.getInt("rudder.bcrypt.cost")
+      // avoid user insecure misconfiguration
+      if (cost <= 10) {
+        ApplicationLogger.warn(
+          s"Property 'rudder.bcrypt.cost' was configured to value ${cost} <= 10 which is insecure. Reverting to default cost: $defaultValue."
+        )
+        defaultValue
+      } else cost
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
