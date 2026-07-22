@@ -121,7 +121,7 @@ update msg model =
                             )
 
                         Err err ->
-                            ( model, processApiError "Getting activities list" err errorNotification )
+                            ( model, processActivityApiError "Getting activities list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

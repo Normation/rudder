@@ -29,6 +29,7 @@
         contextPath    : contextPath
       , hasWriteRights : hasWriteRights
       , canReadChanqeRequest : canReadChanqeRequest
+      , timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
       };
 
       var app = Elm.Rules.init({node: main, flags: initValues});

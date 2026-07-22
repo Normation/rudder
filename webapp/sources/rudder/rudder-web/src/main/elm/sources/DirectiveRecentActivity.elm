@@ -1,14 +1,12 @@
 port module DirectiveRecentActivity exposing (..)
 
-import Activity.ApiCalls exposing (getActivities, processApiError)
+import Activity.ApiCalls exposing (getActivities, processActivityApiError)
 import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
 import Activity.HtmlParserAdapter exposing (toHtml, toString)
-import Activity.JsonDecoder exposing (decodeErrorDetails)
 import Browser
 import Dict
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
-import Http.Detailed as Detailed
 import List.Nonempty as NonEmptyList
 import Ordering exposing (Ordering)
 import Rudder.Table exposing (..)
@@ -146,7 +144,7 @@ update msg model =
                             ( { model | activityTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processApiError "Getting activities list" err errorNotification )
+                            ( model, processActivityApiError "Getting activities list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )
