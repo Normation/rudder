@@ -253,7 +253,7 @@ final class AsyncDeploymentActor(
   }
 
   // deprecated flag file to trigger policy generation at start
-  val triggerPolicyUpdateFlagPath = "/opt/rudder/etc/trigger-policy-generation"
+  val triggerPolicyUpdateFlagPath = "/var/rudder/lib/webapp/trigger-policy-generation"
 
   private def logTriggerError(v: PureResult[PolicyGenerationTrigger]) = {
     v match {
