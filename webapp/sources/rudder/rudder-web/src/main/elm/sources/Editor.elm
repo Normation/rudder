@@ -1,6 +1,6 @@
 port module Editor exposing (..)
 
-import Activity.ApiCalls exposing (getActivities, processApiError)
+import Activity.ApiCalls exposing (getActivities, processActivityApiError)
 import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
 import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Browser
@@ -1667,7 +1667,7 @@ update msg model =
                             ( { model | activityTable = updatedTable }, Cmd.none )
 
                         Err err ->
-                            ( model, processApiError "Getting activities list" err errorNotification )
+                            ( model, processActivityApiError "Getting activities list" err errorNotification )
 
                 CopyToClipboard s ->
                     ( model, copy s )

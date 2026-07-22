@@ -25,8 +25,8 @@ getActivities bodyParameters (ContextPath contextPath) =
     req
 
 
-processApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
-processApiError apiName err errorNotification =
+processActivityApiError : String -> Detailed.Error String -> (String -> Cmd msg) -> Cmd msg
+processActivityApiError apiName err errorNotification =
     let
         message =
             case err of
