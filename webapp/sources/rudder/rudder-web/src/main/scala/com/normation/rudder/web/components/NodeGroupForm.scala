@@ -186,17 +186,20 @@ class NodeGroupForm(
 
     (nodeGroup match {
       case Left(target)                     =>
-        showFormTarget(target, allowCloning = false)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
+        showFormTarget(target, allowCloning = false)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(
+          target.target
+        )
       case Right(group) if (group.isSystem) =>
         showFormTarget(GroupTarget(group.id), Some(group))(html) ++ showRelatedRulesTree(
           GroupTarget(group.id)
         ) ++ showGroupCompliance(
           group.id.uid.value
-        )
+        ) ++ showGroupRecentActivity(group.id.uid.value)
       case Right(group)                     =>
-        showFormNodeGroup(group)(html) ++ showRelatedRulesTree(GroupTarget(group.id)) ++ showGroupCompliance(
-          group.id.uid.value
-        )
+        showFormNodeGroup(group)(html) ++
+        showRelatedRulesTree(GroupTarget(group.id)) ++
+        showGroupCompliance(group.id.uid.value) ++
+        showGroupRecentActivity(group.id.uid.value)
     })
   }
 
@@ -267,6 +270,36 @@ class NodeGroupForm(
                  |$$("#complianceLinkTab").on("click", function (){
                  |  app.ports.loadCompliance.send(null);
                  |});
+                 |""".stripMargin)
+      )
+    )
+  }
+
+  private def showGroupRecentActivity(targetOrGroupIdStr: String): NodeSeq = {
+    Script(
+      OnLoad(
+        JsRaw(s"""
+                 |var main = document.getElementById("groupRecentActivityApp")
+                 |var initValues = {
+                 |  groupId : "${targetOrGroupIdStr}",
+                 |  contextPath : contextPath,
+                 |  timeZone :  localStorage.getItem('timeZone') ?? 'UTC'
+                 |};
+                 |var app = Elm.GroupRecentActivity.init({node: main, flags: initValues});
+                 |app.ports.errorNotification.subscribe(function(str) {
+                 |  createErrorNotification(str)
+                 |});
+                 |// Initialize tooltips
+                 |app.ports.initTooltips.subscribe(function(msg) {
+                 |  setTimeout(function(){
+                 |    initBsTooltips();
+                 |  }, 400);
+                 |});
+                 |// Clear tooltips
+                 |app.ports.clearTooltips.subscribe(function(msg) {
+                 |  removeBsTooltips();
+                 |});
+                 |
                  |""".stripMargin)
       )
     )
@@ -431,6 +464,9 @@ class NodeGroupForm(
                            </li>
                            <li class="nav-item">
                              <button id="complianceLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupComplianceTab" type="button" role="tab" aria-controls="groupComplianceTab" aria-selected="false">Compliance</button>
+                           </li>
+                           <li class="nav-item">
+                             <button id="recentActivityLinkTab" class="nav-link" data-bs-toggle="tab" data-bs-target="#groupRecentActivityTab" type="button" role="tab" aria-controls="groupRecentActivityTab" aria-selected="false">Recent activity</button>
                            </li>
                          </ul>
     & "group-rudderid" #> <div>
