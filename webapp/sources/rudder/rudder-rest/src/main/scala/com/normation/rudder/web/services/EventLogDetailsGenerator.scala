@@ -75,6 +75,7 @@ import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
 import scala.xml.*
+import zio.ZIO
 import zio.json.*
 
 class EventLogDetailsGenerator(
@@ -126,9 +127,14 @@ class EventLogDetailsGenerator(
       val hostname = (x.details \\ "node" \ "hostname").text
       val name     = hostname.strip() match {
         case "" =>
-          for {
-            node <- nodeFactRepository.get(NodeId(id))(using QueryContext.systemQC)
-          } yield node.map(_.fqdn).getOrElse(id)
+          (for {
+            node <- nodeFactRepository
+                      .get(NodeId(id))(using QueryContext.systemQC)
+                      .catchAll(err => {
+                        logger.error(s"Got unexpected error trying to get the hostname of the node of id ${id} : ${err}")
+                        ZIO.fail(err)
+                      })
+          } yield node.map(_.fqdn).getOrElse(id)).runNow
         case x  => x
       }
 
