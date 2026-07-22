@@ -7,6 +7,7 @@ import Rules.ViewTabDirectives exposing (directivesTab)
 import Rules.ViewTabGroups exposing (groupsTab)
 import Rules.ViewTabInformation exposing (informationTab)
 import Rules.ViewTabNodes exposing (nodesTab)
+import Rules.ViewTabRecentActivity exposing (recentActivityTab)
 
 
 
@@ -35,3 +36,6 @@ tabContent model details =
 
         Rules ->
             div [] []
+
+        RecentActivity ->
+            recentActivityTab model.activityTable

@@ -377,6 +377,23 @@ editionTemplate model details =
                                 ]
                             ]
                         ]
+                , li [ class "nav-item" ]
+                    [ button
+                        [ attribute "role" "tab"
+                        , type_ "button"
+                        , class
+                            ("nav-link"
+                                ++ (if details.tab == RecentActivity then
+                                        " active"
+
+                                    else
+                                        ""
+                                   )
+                            )
+                        , onClick (UpdateRuleForm { details | tab = RecentActivity })
+                        ]
+                        [ text "Recent activity" ]
+                    ]
                 ]
             ]
         , div [ class "main-details" ]

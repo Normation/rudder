@@ -1,5 +1,7 @@
 port module Rules exposing (..)
 
+import Activity.ApiCalls exposing (getActivities, processActivityApiError)
+import Activity.DataTypes exposing (ActivityMsg(..), ContextPath(..))
 import Browser
 import Browser.Navigation as Nav
 import Date
@@ -13,11 +15,11 @@ import Maybe.Extra exposing (isNothing)
 import Random
 import Result
 import Rudder.Filters
-import Rudder.Table exposing (OutMsg(..))
+import Rudder.Table exposing (OutMsg(..), updateData)
 import Rules.ApiCalls exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings, initCrSettings)
 import Rules.DataTypes exposing (..)
-import Rules.Init exposing (init)
+import Rules.Init exposing (bodyParameters, init)
 import Rules.View exposing (view)
 import Rules.ViewUtils exposing (..)
 import Task
@@ -514,7 +516,19 @@ update msg model =
         UpdateRuleForm details ->
             case model.mode of
                 RuleForm _ ->
-                    ( { model | mode = RuleForm details }, initTooltips "" )
+                    let
+                        contextPath =
+                            ContextPath model.contextPath
+
+                        callGetActivities =
+                            getActivities (bodyParameters (Just details.rule.id.value)) contextPath
+                    in
+                    ( { model | mode = RuleForm details }
+                    , Cmd.batch
+                        [ initTooltips ""
+                        , Cmd.map ActivityMessage callGetActivities
+                        ]
+                    )
 
                 _ ->
                     ( model, Cmd.none )
@@ -1131,6 +1145,24 @@ update msg model =
 
                 Err err ->
                     processApiError "Export rule compliance" err model
+
+        ActivityMessage activityMsg ->
+            case activityMsg of
+                GetActivities res ->
+                    case res of
+                        -- Update table data
+                        Ok ( _, activities ) ->
+                            let
+                                updatedTable =
+                                    updateData activities model.activityTable
+                            in
+                            ( { model | activityTable = updatedTable }, Cmd.none )
+
+                        Err err ->
+                            ( model, processActivityApiError "Getting activities list" err errorNotification )
+
+                CopyToClipboard s ->
+                    ( model, copy s )
 
 
 toRuleWithCompliance : Model -> Rule -> RuleWithCompliance
