@@ -70,7 +70,7 @@ impl Cli {
 
 fn shorten(s: &str, max_len: usize) -> String {
     if s.len() > max_len {
-        format!("{}…", &s[..max_len - 1])
+        s[..max_len - 1].to_string()
     } else {
         s.to_string()
     }
