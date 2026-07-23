@@ -81,14 +81,19 @@ class RoLDAPRuleCategoryRepository(
   /**
    * Get category with given Id
    */
-  def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] = {
+  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[Option[RuleCategory]] = {
     categoryMutex.readLock(for {
       con      <- ldap
-      entry    <- getCategoryEntry(con, id).notOptional(s"Entry with ID '${id.value}' was not found")
-      category <- mapper
-                    .entry2RuleCategory(entry)
-                    .toIO
-                    .chainError(s"Error when transforming LDAP entry ${entry} into a server group category")
+      opt      <- getCategoryEntry(con, id)
+      category <- opt match {
+                    case None        => None.succeed
+                    case Some(entry) =>
+                      mapper
+                        .entry2RuleCategory(entry)
+                        .map(Some(_))
+                        .toIO
+                        .chainError(s"Error when transforming LDAP entry ${entry} into a server group category")
+                  }
     } yield {
       category
     })
@@ -269,7 +274,7 @@ class WoLDAPRuleCategoryRepository(
                                  archive
                                }
                              }
-      newCategory         <- get(that.id).chainError(s"The newly created category '${that.id.value}' was not found")
+      newCategory         <- get(that.id).notOptional(s"The newly created category '${that.id.value}' was not found")
     } yield {
       newCategory
     })
@@ -305,7 +310,7 @@ class WoLDAPRuleCategoryRepository(
                             con.move(oldCategoryEntry.dn, newParent.dn)
                           }
       result           <- con.save(categoryEntry, removeMissingAttributes = true)
-      updated          <- get(category.id)
+      updated          <- get(category.id).notOptional(s"Category with ID '${category.id.value}' was not found")
       autoArchive      <- (moved, result) match {
                             case (_: LDIFNoopChangeRecord, _: LDIFNoopChangeRecord) => ZIO.unit
                             case _ if (autoExportOnModify && !updated.isSystem)     =>

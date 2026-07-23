@@ -52,6 +52,7 @@ import com.unboundid.ldif.LDIFChangeRecord
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import zio.*
+import zio.syntax.*
 
 /*
  * This file contains the tenant filtering logic for technique, directive, rule, group, parameter repositories.
@@ -331,12 +332,17 @@ class WoTenantDirectiveRepo(
 
   override def deleteActiveTechnique(id: ActiveTechniqueId)(using cc: ChangeContext): IOResult[ActiveTechniqueId] = {
     given QueryContext = cc.toQC
-    for {
-      // fail-closed: refuse to delete an active technique the actor can't see (`roRepo` is tenant-filtered)
-      existing <- roRepo.getActiveTechniqueByActiveTechnique(id).notOptional(s"Active technique '${id.value}' was not found")
-      _        <- checkTenant.checkDelete(existing, cc).toIO
-      result   <- underlying.deleteActiveTechnique(id)
-    } yield result
+    // if the user can't see the active technique, then it is the same semantic than for a missing active technique,
+    // ie a noop.
+    roRepo.getActiveTechniqueByActiveTechnique(id).flatMap {
+      // ok, either because we can't see it or because already deleted
+      case None           => id.succeed
+      case Some(existing) =>
+        for {
+          _      <- checkTenant.checkDelete(existing, cc).toIO
+          result <- underlying.deleteActiveTechnique(id)
+        } yield result
+    }
   }
 
   override def addActiveTechniqueCategory(that: ActiveTechniqueCategory, into: ActiveTechniqueCategoryId)(implicit
@@ -366,12 +372,15 @@ class WoTenantDirectiveRepo(
       cc: ChangeContext
   ): IOResult[ActiveTechniqueCategoryId] = {
     given QueryContext = cc.toQC
-    for {
-      // fail-closed: refuse to delete a category the actor can't see (`roRepo` is tenant-filtered)
-      existing <- roRepo.getActiveTechniqueCategory(id).notOptional(s"Category '${id.value}' was not found")
-      _        <- checkTenant.checkDelete(existing, cc).toIO
-      result   <- underlying.deleteCategory(id, checkEmpty)
-    } yield result
+    // fail-closed: the semantic is a noop if the user can't see it or if already deleted
+    roRepo.getActiveTechniqueCategory(id).flatMap {
+      case None           => id.succeed
+      case Some(existing) =>
+        for {
+          _      <- checkTenant.checkDelete(existing, cc).toIO
+          result <- underlying.deleteCategory(id, checkEmpty)
+        } yield result
+    }
   }
 
   override def move(
@@ -590,6 +599,8 @@ class WoTenantNodeGroupRepo(
 
   override def delete(id: NodeGroupId)(implicit cc: ChangeContext): IOResult[DeleteNodeGroupDiff] = {
     given QueryContext = cc.toQC
+
+    // semantic for that one is different from all other delete: it's an error if the user can't see it
     for {
       existingOpt <- roRepo.getNodeGroupOpt(id)
       existing    <- existingOpt.map(_._1).notOptional(s"Group ${id.serialize} not found")
@@ -631,13 +642,16 @@ class WoTenantNodeGroupRepo(
       cc: ChangeContext
   ): IOResult[NodeGroupCategoryId] = {
     given QueryContext = cc.toQC
-    for {
-      // fail-closed: `getGroupCategory` (tenant-filtered) fails if the category is absent or invisible,
-      // so we never delete a category the actor can't see
-      cat    <- roRepo.getGroupCategory(id)
-      _      <- checkTenant.checkDelete(cat, cc).toIO
-      result <- underlying.delete(id, checkEmpty)
-    } yield result
+    // semantic is a noop if the user can't see the item or item is already deleted
+    roRepo.categoryExists(id).flatMap {
+      case false => id.succeed
+      case true  =>
+        for {
+          cat    <- roRepo.getGroupCategory(id)
+          _      <- checkTenant.checkDelete(cat, cc).toIO
+          result <- underlying.delete(id, checkEmpty)
+        } yield result
+    }
   }
 
   // a policy server target is a system topology object: only an administrator may create or delete it
@@ -687,7 +701,7 @@ class WoTenantRuleRepo(
     given QueryContext = cc.toQC
     for {
       // an object can only be created in a category the user can see and modify
-      parentCat <- roRuleCategory.get(rule.categoryId)
+      parentCat <- roRuleCategory.get(rule.categoryId).notOptional(s"Category with ID '${rule.categoryId.value}' was not found")
       _         <- checkTenant.checkWriteInto(parentCat, cc)
       status    <- tenantService.getStatus
       result    <- checkTenant.manageCreate(rule, cc, status)(r => underlying.create(r))
@@ -732,6 +746,7 @@ class WoTenantRuleRepo(
   override def delete(id: RuleId)(using cc: ChangeContext): IOResult[DeleteRuleDiff] = {
     for {
       // fail-closed: refuse to delete a rule the actor can't see (`roRepo` is tenant-filtered)
+      // Here, the semantic is that absent rule leads to error.
       existing <- roRepo.getOpt(id)(using cc.toQC).notOptional(s"Rule '${id.serialize}' was not found")
       _        <- checkTenant.checkDelete(existing, cc).toIO
       result   <- underlying.delete(id)
@@ -828,7 +843,7 @@ class RoTenantRuleCategoryRepo(
     cat.modify(_.childs).setTo(cat.childs.collect { case c if qc.accessGrant.canSee(c.security) => filterTree(c) })
   }
 
-  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory] =
+  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[Option[RuleCategory]] =
     underlying.get(id)
 
   override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] =
@@ -848,7 +863,7 @@ class WoTenantRuleCategoryRepo(
   override def create(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
     given QueryContext = cc.toQC
     for {
-      parent <- roRepo.get(into)
+      parent <- roRepo.get(into).notOptional(s"Category with ID '${into.value}' was not found")
       _      <- checkTenant.checkWriteInto(parent, cc)
       status <- tenantService.getStatus
       result <- checkTenant.manageCreate(that, cc, status)(cat => underlying.create(cat, into))
@@ -858,10 +873,10 @@ class WoTenantRuleCategoryRepo(
   override def updateAndMove(that: RuleCategory, into: RuleCategoryId)(implicit cc: ChangeContext): IOResult[RuleCategory] = {
     given QueryContext = cc.toQC
     for {
-      old    <- roRepo.get(that.id)
+      old    <- roRepo.get(that.id).notOptional(s"Category with ID '${that.id.value}' was not found")
       // guard on both the existing and the submitted category, so a system category can't be edited nor
       // turned into/out of a system one by a non-admin
-      parent <- roRepo.get(into)
+      parent <- roRepo.get(into).notOptional(s"Category with ID '${into.value}' was not found")
       _      <- checkTenant.checkWriteInto(parent, cc)
       status <- tenantService.getStatus
       result <- checkTenant.manageUpdate(Some(old), that, cc, status)(cat => underlying.updateAndMove(cat, into))
@@ -870,11 +885,14 @@ class WoTenantRuleCategoryRepo(
 
   override def delete(category: RuleCategoryId, checkEmpty: Boolean)(implicit cc: ChangeContext): IOResult[RuleCategoryId] = {
     given QueryContext = cc.toQC
-    for {
-      // fail-closed: `get` fails if the category does not exist, and `checkDelete` gates on tenant + system
-      old    <- roRepo.get(category)
-      _      <- checkTenant.checkDelete(old, cc).toIO
-      result <- underlying.delete(category, checkEmpty)
-    } yield result
+    // semantic is that if the user can't see or item already deleted, then it is a noop
+    roRepo.get(category).flatMap {
+      case None      => category.succeed
+      case Some(old) =>
+        for {
+          _      <- checkTenant.checkDelete(old, cc).toIO
+          result <- underlying.delete(category, checkEmpty)
+        } yield result
+    }
   }
 }
