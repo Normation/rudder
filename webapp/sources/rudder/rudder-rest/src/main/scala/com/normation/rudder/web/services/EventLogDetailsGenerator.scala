@@ -127,6 +127,7 @@ class EventLogDetailsGenerator(
       val hostname = (x.details \\ "node" \ "hostname").text
       val name     = hostname.strip() match {
         case "" =>
+
           (for {
             node <- nodeFactRepository
                       .get(NodeId(id))(using QueryContext.systemQC)
@@ -134,7 +135,7 @@ class EventLogDetailsGenerator(
                         logger.error(s"Got unexpected error trying to get the hostname of the node of id ${id} : ${err}")
                         ZIO.fail(err)
                       })
-          } yield node.map(_.fqdn).getOrElse(id)).runNow
+          } yield node.map(_.fqdn).getOrElse(id)).merge.runNow
         case x  => x
       }
 
