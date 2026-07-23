@@ -1,0 +1,17 @@
+# skip LOW
+severity:
+    - UNKNOWN
+    - MEDIUM
+    - HIGH
+    - CRITICAL
+# exit code on problems
+exit-code: 1
+scan:
+  scanners: ["vuln"]
+  # ignored for now, only runs on trusted input
+  skip-dirs: ["api-doc"]
+  disable-telemetry: true
+pkg:
+  # ignored for now
+  include-dev-deps: false
+
