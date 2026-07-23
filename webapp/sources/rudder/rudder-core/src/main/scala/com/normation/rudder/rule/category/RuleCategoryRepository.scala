@@ -43,7 +43,7 @@ import com.normation.rudder.tenants.QueryContext
 
 trait RoRuleCategoryRepository {
 
-  def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[RuleCategory]
+  def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[Option[RuleCategory]]
 
   def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory]
 
