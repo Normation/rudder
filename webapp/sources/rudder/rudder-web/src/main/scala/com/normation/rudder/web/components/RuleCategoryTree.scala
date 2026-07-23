@@ -158,7 +158,8 @@ class RuleCategoryTree(
       }) match {
         case Right(sourceCatId, destCatId) =>
           (for {
-            category <- roRuleCategoryRepository.get(sourceCatId)
+            category <-
+              roRuleCategoryRepository.get(sourceCatId).notOptional(s"Category with ID '${sourceCatId.value}' was not found")
             result   <-
               woRuleCategoryRepository
                 .updateAndMove(category, destCatId)(using qc.newCC())
