@@ -51,6 +51,15 @@ import * as htmlFormatter from '../libs/jsondiffpatch/lib/formatters/html.js'
  */
 function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone) {
 
+    // TODO recuperer les parametres
+    // TODO see http://localhost:8081/rudder-web/secure/nodeManager/nodes#{%22query%22:{%22select%22:%22node%22,%22composition%22:%22and%22,%22where%22:[]}}
+    // TODO see http://localhost:8081/rudder-web/secure/configurationManager/directiveManagement#{%22directiveId%22:%223e19e415-1ab1-4893-9cb4-1047bf836ec8%22}
+
+    /*
+    var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
+    var obj = JSON.parse(param); // TODO c'est l'objet json apres le # de l'url http://localhost:8081/rudder-web/secure/configurationManager/changeLogs#{...}
+    */
+
   var columns = [ {
     "width"       : "10%"
   , "data"        : "id"
@@ -92,6 +101,7 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
     , "url" : contextPath + "/secure/api/eventlog"
     , "data" :
        function (d) {
+       // TODO remplacer l'id du # dans d
          d.startDate = $(".pickStartInput").val()
          d.endDate = $(".pickEndInput").val()
          return JSON.stringify( d );
@@ -185,7 +195,8 @@ function createEventLogTable(gridId, data, contextPath, refresh, serverTimezone)
     , "buttons" : [ csvButtonConfig("change_logs") ],
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
+    createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
+    // TODO : récupérer la table et modifier le search avec la valeur de l'id recupéré dans le #
 }
 
 

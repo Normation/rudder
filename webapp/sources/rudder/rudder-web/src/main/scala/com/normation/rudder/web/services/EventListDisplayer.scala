@@ -142,7 +142,7 @@ class EventListDisplayer(service: EventLogService, staticResourceRewrite: Static
       (now.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"), now.getZone.getID)
     }
 
-    ScriptModule(
+    ScriptModule(// TODO see refresh params for change logs
       OnLoad(JsRaw(s"""
    const refreshEventLogs = ${refresh.toJsCmd};
    initDatePickers(

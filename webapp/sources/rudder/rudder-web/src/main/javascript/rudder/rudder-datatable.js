@@ -131,9 +131,10 @@ $.fn.dataTable.ext.search.push(
     function(settings, data, dataIndex ) {
         // param needs to be JSON only so we remove the hash tag # at index 0
 
+        // TODO example here
         var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
         if (param !== "" && window.location.pathname === contextPath + "/secure/nodeManager/nodes") {
-            var obj = JSON.parse(param);
+            var obj = JSON.parse(param); // TODO json object after #
             var score = obj.score
 
             var result = true
