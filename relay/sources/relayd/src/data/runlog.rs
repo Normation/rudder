@@ -192,7 +192,10 @@ impl TryFrom<(RunInfo, Vec<RawReport>)> for RunLog {
             .map(|r| r.key_value.clone());
 
         if config_id.is_none() {
-            warn!("Missing start/end control reports in runlog, no config id available");
+            warn!(
+                "Missing start/end control reports in runlog from {} on {}, no config id available",
+                info.node_id, timestamp
+            );
         }
 
         for report in &reports {
