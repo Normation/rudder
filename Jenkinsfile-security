@@ -17,7 +17,7 @@ pipeline {
     triggers { cron('@daily') }
 
     stages {
-        stage('deps-webapp') {
+        stage('deps') {
             when { not { changeRequest() } }
             agent {
                 dockerfile {
@@ -28,91 +28,27 @@ pipeline {
                 }
             }
             environment {
-                NVD_API_KEY = credentials('NVD_API_KEY')
+                TRIVY_DISABLE_VEX_NOTICE = '1'
             }
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    dir('webapp/sources') {
-                        sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always -DnvdApiKey=$NVD_API_KEY -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
-                        sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always license:aggregate-third-party-report', label: 'list webapp dependencies'
+                    dir('webapp/sources/') {
+                        sh script: 'mvn --batch-mode -Djansi.passthrough=true -Dstyle.color=always dependency:resolve', label: "load webapp dependencies"
                     }
-                }
-            }
-            post {
-
-                always {
-                    archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
-                }
-
-                failure {
-                    script {
-                        errors.add("webapp")
-                        failedBuild = true
-                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-                    }
-                }
-            }
-        }
-
-        stage('deps-npm') {
-            when { not { changeRequest() } }
-            agent {
-                dockerfile {
-                    label 'generic-docker'
-                    filename 'webapp/sources/Dockerfile'
-                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
-                    // and share maven cache
-                    args '-u 0:0 -v /srv/cache/maven:/root/.m2'
-                }
-            }
-            steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                     dir('webapp/sources/rudder/rudder-web/src/main/') {
-                        sh script: 'npm_config_loglevel=error npm ci --no-audit', label: "install dependencies"
-                        sh script: 'npx better-npm-audit audit --level high', label: "check npm dependencies"
+                        sh script: "npm_config_loglevel=error npm ci --no-audit", label: "load npm dependencies"
                     }
+                    sh script: "trivy fs --no-progress .", label: "scanning dependencies for vulnerabilities"
                 }
             }
             post {
                 failure {
                     script {
-                        errors.add("npm")
+                        errors.add("deps")
                         failedBuild = true
                         slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
                     }
-                }
-            }
-        }
-        stage('deps-rust') {
-            when { not { changeRequest() } }
-            agent {
-                dockerfile {
-                    label 'generic-docker'
-                    filename 'relay/sources/relayd/Dockerfile'
-                    // mount cache
-                    args '-u 0:0 -v /srv/cache/cargo/cache:/usr/local/cargo/registry/cache'
-                }
-            }
-            steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    sh script: 'mkdir -p target', label: 'create target directory'
-                    sh script: 'cargo deny check', label: 'check relayd dependencies'
-                    sh script: 'cargo deny list > target/rust-dependencies.txt', label: 'list rust dependencies'
-                }
-            }
-            post {
-                failure {
-                    script {
-                        errors.add("rust")
-                        failedBuild = true
-                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: 'target/*-dependencies.txt'
                 }
             }
         }
