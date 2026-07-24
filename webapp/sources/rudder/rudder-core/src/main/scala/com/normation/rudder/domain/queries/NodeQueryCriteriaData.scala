@@ -331,36 +331,36 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, insta
     ObjectCriterion(
       A_PROCESS,
       Chunk(
-        Criterion("pid", JsonFixedKeyComparator(A_PROCESS, "pid", quoteValue = false), UnsupportedByNodeMinimalApi),
+        Criterion("pid", JsonFixedKeyComparator(A_PROCESS, quoteValue = false), UnsupportedByNodeMinimalApi),
         Criterion(
-          "commandName",
-          JsonFixedKeyComparator(A_PROCESS, "commandName", quoteValue = true),
+          "name",
+          JsonFixedKeyComparator(A_PROCESS, quoteValue = true), // because of Process serialization
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "cpuUsage",
-          JsonFixedKeyComparator(A_PROCESS, "cpuUsage", quoteValue = false),
+          JsonFixedKeyComparator(A_PROCESS, quoteValue = false),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "memory",
-          JsonFixedKeyComparator(A_PROCESS, "memory", quoteValue = false),
+          JsonFixedKeyComparator(A_PROCESS, quoteValue = false),
           UnsupportedByNodeMinimalApi
         ),
-        Criterion("tty", JsonFixedKeyComparator(A_PROCESS, "tty", quoteValue = true), UnsupportedByNodeMinimalApi),
+        Criterion("tty", JsonFixedKeyComparator(A_PROCESS, quoteValue = true), UnsupportedByNodeMinimalApi),
         Criterion(
           "virtualMemory",
-          JsonFixedKeyComparator(A_PROCESS, "virtualMemory", quoteValue = false),
+          JsonFixedKeyComparator(A_PROCESS, quoteValue = false),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "started",
-          JsonFixedKeyComparator(A_PROCESS, "started", quoteValue = true),
+          JsonFixedKeyComparator(A_PROCESS, quoteValue = true),
           UnsupportedByNodeMinimalApi
         ),
         Criterion(
           "user",
-          JsonFixedKeyComparator(A_PROCESS, "user", quoteValue = true),
+          JsonFixedKeyComparator(A_PROCESS, quoteValue = true),
           UnsupportedByNodeMinimalApi
         )
       )

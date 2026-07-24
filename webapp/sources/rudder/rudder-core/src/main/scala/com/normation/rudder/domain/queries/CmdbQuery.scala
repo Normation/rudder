@@ -781,7 +781,7 @@ case class InstanceIdComparator(instanceId: InstanceId) extends NonLdapCriterion
  *
  * Used for "process" attribute
  */
-final case class JsonFixedKeyComparator(ldapAttr: String, jsonKey: String, quoteValue: Boolean) extends TStringComparator {
+final case class JsonFixedKeyComparator(ldapAttr: String, quoteValue: Boolean) extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
   def format(attribute: String, value: String):              String                  = {
