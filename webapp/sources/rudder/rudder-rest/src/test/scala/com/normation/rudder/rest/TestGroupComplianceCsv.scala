@@ -175,72 +175,6 @@ class TestGroupComplianceCsv extends Specification {
     )
   }
 
-  val nodesTree = {
-    """+- component1
-      |\- component2""".stripMargin
-  }
-
-  val nodesCsv = {
-    """"Node","Rule","Directive","Block","Component","Value","Status","Message"
-      |"dummy","dummy","dummy","","component1","","auditCompliant",""
-      |"dummy","dummy","dummy","","component2","","auditCompliant",""
-      |""".stripMargin
-  }
-
-  val nestedNodesTree = {
-    """+- component1
-      ||\- block1
-      ||   +- block2
-      ||   |  +- block3
-      ||   |  |  \- component4
-      ||   |  \- component3
-      ||   \- component2
-      ||""".stripMargin
-  }
-
-  val nestedNodesCsv = {
-    """"Node","Rule","Directive","Block","Component","Value","Status","Message"
-      |"dummy","dummy","dummy","","component1","","auditCompliant",""
-      |"dummy","dummy","dummy","block1,block2,block3","component4","","auditCompliant",""
-      |"dummy","dummy","dummy","block1,block2","component3","","auditCompliant",""
-      |"dummy","dummy","dummy","block1","component2","","auditCompliant",""
-      |""".stripMargin
-  }
-
-  val rulesTree = {
-    """+- component1
-      |\- component2""".stripMargin
-  }
-
-  val rulesCsv = {
-    """"Rule","Directive","Block","Component","Node","Value","Status","Message"
-      |"dummy","dummy","","component1","dummy","","auditCompliant",""
-      |"dummy","dummy","","component2","dummy","","auditCompliant",""
-      |""".stripMargin
-  }
-
-  val nestedRulesTree = {
-    """+- component1
-      ||\- block1
-      ||   +- block2
-      ||   |  +- component2
-      ||   |  \- component3
-      ||   \- block3
-      ||      +- component4
-      ||      \- component5
-      ||""".stripMargin
-  }
-
-  val nestedRulesCsv = {
-    """"Rule","Directive","Block","Component","Node","Value","Status","Message"
-      |"dummy","dummy","","component1","dummy","","auditCompliant",""
-      |"dummy","dummy","block1,block2","component2","dummy","","auditCompliant",""
-      |"dummy","dummy","block1,block2","component3","dummy","","auditCompliant",""
-      |"dummy","dummy","block1,block3","component4","dummy","","auditCompliant",""
-      |"dummy","dummy","block1,block3","component5","dummy","","auditCompliant",""
-      |""".stripMargin
-  }
-
   val groupCompliance: ByNodeGroupCompliance = {
     ByNodeGroupCompliance(
       id = "groupId",
@@ -314,6 +248,39 @@ class TestGroupComplianceCsv extends Specification {
 
   "Group compliance " in {
     "by node " in {
+
+      val nodesTree = {
+        """+- component1
+          |\- component2""".stripMargin
+      }
+
+      val nodesCsv = {
+        """"Node","Rule","Directive","Block","Component","Value","Status","Message"
+          |"dummy","dummy","dummy","","component1","","auditCompliant",""
+          |"dummy","dummy","dummy","","component2","","auditCompliant",""
+          |""".stripMargin
+      }
+
+      val nestedNodesTree = {
+        """+- component1
+          ||\- block1
+          ||   +- block2
+          ||   |  +- block3
+          ||   |  |  \- component4
+          ||   |  \- component3
+          ||   \- component2
+          ||""".stripMargin
+      }
+
+      val nestedNodesCsv = {
+        """"Node","Rule","Directive","Block","Component","Value","Status","Message"
+          |"dummy","dummy","dummy","","component1","","auditCompliant",""
+          |"dummy","dummy","dummy","block1,block2,block3","component4","","auditCompliant",""
+          |"dummy","dummy","dummy","block1,block2","component3","","auditCompliant",""
+          |"dummy","dummy","dummy","block1","component2","","auditCompliant",""
+          |""".stripMargin
+      }
+
       "with empty node compliance should produce a CSV that only contains the column names" in {
         val compliance = emptyGroupCompliance.nodes.transformInto[Seq[NodeGroupComplianceByNodeCsv]]
 
@@ -346,6 +313,41 @@ class TestGroupComplianceCsv extends Specification {
       }
     }
     "by rule " in {
+
+      val rulesTree = {
+        """+- component1
+          |\- component2""".stripMargin
+      }
+
+      val rulesCsv = {
+        """"Rule","Directive","Block","Component","Node","Value","Status","Message"
+          |"dummy","dummy","","component1","dummy","","auditCompliant",""
+          |"dummy","dummy","","component2","dummy","","auditCompliant",""
+          |""".stripMargin
+      }
+
+      val nestedRulesTree = {
+        """+- component1
+          ||\- block1
+          ||   +- block2
+          ||   |  +- component2
+          ||   |  \- component3
+          ||   \- block3
+          ||      +- component4
+          ||      \- component5
+          ||""".stripMargin
+      }
+
+      val nestedRulesCsv = {
+        """"Rule","Directive","Block","Component","Node","Value","Status","Message"
+          |"dummy","dummy","","component1","dummy","","auditCompliant",""
+          |"dummy","dummy","block1,block2","component2","dummy","","auditCompliant",""
+          |"dummy","dummy","block1,block2","component3","dummy","","auditCompliant",""
+          |"dummy","dummy","block1,block3","component4","dummy","","auditCompliant",""
+          |"dummy","dummy","block1,block3","component5","dummy","","auditCompliant",""
+          |""".stripMargin
+      }
+
       "with empty rule compliance should produce a CSV that only contains the column names" in {
         val compliance = emptyGroupCompliance.rules.transformInto[Seq[NodeGroupComplianceByRuleCsv]]
 
