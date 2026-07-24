@@ -402,7 +402,7 @@ mod tests {
         assert_eq!(shorten("àéîõùabcde", 9), "àéîõùabc".to_string());
         assert_eq!(
             shorten("😋😋😋😋😋😋😋😋😋😋", 9),
-            "😋😋😋😋😋😋😋😋…".to_string()
+            "😋😋😋😋😋😋😋😋".to_string()
         );
     }
 
