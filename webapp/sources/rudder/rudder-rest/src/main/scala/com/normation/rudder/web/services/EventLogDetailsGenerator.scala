@@ -36,6 +36,7 @@
  */
 package com.normation.rudder.web.services
 
+import cats.implicits.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventLog
 import com.normation.inventory.domain.NodeId
@@ -43,6 +44,7 @@ import com.normation.rudder.api.*
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.domain.eventlog.*
+import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -75,8 +77,8 @@ import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
 import scala.xml.*
-import zio.ZIO
 import zio.json.*
+import zio.syntax.*
 
 class EventLogDetailsGenerator(
     logDetailsService:   EventLogDetailsService,
@@ -127,15 +129,17 @@ class EventLogDetailsGenerator(
       val hostname = (x.details \\ "node" \ "hostname").text
       val name     = hostname.strip() match {
         case "" =>
-
           (for {
             node <- nodeFactRepository
                       .get(NodeId(id))(using QueryContext.systemQC)
                       .catchAll(err => {
-                        logger.error(s"Got unexpected error trying to get the hostname of the node of id ${id} : ${err}")
-                        ZIO.fail(err)
+                        EventLogsLoggerPure.error(
+                          s"Got unexpected error trying to get the hostname of the node of id ${id} : ${err}"
+                        ) *> None.succeed
                       })
-          } yield node.map(_.fqdn).getOrElse(id)).merge.runNow
+          } yield {
+            node.map(_.fqdn).getOrElse(id)
+          }).runNow
         case x  => x
       }
 
