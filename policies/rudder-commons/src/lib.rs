@@ -382,7 +382,7 @@ impl Display for PolicyMode {
 pub fn shorten(s: &str, max_len: usize) -> String {
     if s.chars().count() > max_len {
         let truncated: String = s.chars().take(max_len - 1).collect();
-        format!("{truncated}")
+        truncated.to_string()
     } else {
         s.to_string()
     }
