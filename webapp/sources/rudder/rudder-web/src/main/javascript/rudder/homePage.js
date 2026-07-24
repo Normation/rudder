@@ -151,7 +151,7 @@ const onClickDoughnuts = (e, active, currentChart, id, data) => {
           { objectType: "node"
           , attribute : "agentVersion"
           , comparator: "regex"
-          , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
+          , value     : "(\\d+:)?" + data.replace(/\./g, "(\\.|~)") + ".*"
           }
         ];
         break;
