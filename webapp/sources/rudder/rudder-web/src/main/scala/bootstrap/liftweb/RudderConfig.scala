@@ -3799,16 +3799,6 @@ object RudderConfigInit {
         RUDDER_BATCH_PURGE_DELETED_INVENTORIES
       )
 
-      lazy val ldapRemoveNodeBackend = new LdapRemoveNodeBackend(
-        nodeDitImpl,
-        pendingNodesDitImpl,
-        acceptedNodesDitImpl,
-        removedNodesDitImpl,
-        rwLdap,
-        ldapFullInventoryRepository,
-        nodeReadWriteMutex
-      )
-
       lazy val ldapSoftwareSave = new NameAndVersionIdFinder("check_name_and_version", roLdap, inventoryMapper, acceptedNodesDit)
 
       lazy val internalAcceptedQueryProcessor =

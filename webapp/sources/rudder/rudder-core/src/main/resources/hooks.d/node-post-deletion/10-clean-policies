@@ -22,7 +22,7 @@
 # and /var/rudder/backup/node-id
 
 # we delete the parent of current (i.e. parent of(/.../node-id/rules)
-NODE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_CURRENT})"
+# NODE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_CURRENT})" => already done by webapp in standard node deletion process
 ARCHIVE_DIR="$(dirname ${RUDDER_POLICIES_DIRECTORY_ARCHIVE})"
 
 EXIT=0

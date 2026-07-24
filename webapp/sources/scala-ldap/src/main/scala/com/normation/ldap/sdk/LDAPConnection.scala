@@ -578,12 +578,17 @@ class RwLDAPConnection(
   /**
    * Specialized version of applyMods for DeleteRequest modification type
    */
-  private val applyDeletes = applyMods[DeleteRequest](
-    "delete",
-    (req: DeleteRequest) => req.toLDIFChangeRecord,
-    (req: DeleteRequest) => backed.delete(req),
-    res => NO_SUCH_OBJECT == res || onlyReportOnDelete(res) // no such object only says it's already deleted
-  )
+  private val applyDeletes = (reqs: List[DeleteRequest]) => {
+    applyMods(
+      "delete",
+      (req: DeleteRequest) => req.toLDIFChangeRecord,
+      (req: DeleteRequest) => backed.delete(req),
+      res => onlyReportOnDelete(res)
+    )(reqs).catchSome {
+      // no such object only says it's already deleted, it's actually a success, not an ignorable error
+      case BackendException(msg, ex: LDAPException) if (ex.getResultCode == ResultCode.NO_SUCH_OBJECT) => Nil.succeed
+    }
+  }
 
   /**
    * Specialized version of applyMods for AddRequest modification type
