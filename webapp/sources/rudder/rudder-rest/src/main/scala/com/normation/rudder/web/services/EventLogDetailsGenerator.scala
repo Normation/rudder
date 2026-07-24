@@ -36,6 +36,7 @@
  */
 package com.normation.rudder.web.services
 
+import cats.implicits.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.EventLog
 import com.normation.inventory.domain.NodeId
@@ -43,6 +44,7 @@ import com.normation.rudder.api.*
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.domain.eventlog.*
+import com.normation.rudder.domain.logger.EventLogsLoggerPure
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -51,6 +53,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
@@ -75,10 +78,12 @@ import scala.util.Success
 import scala.util.Try
 import scala.xml.*
 import zio.json.*
+import zio.syntax.*
 
 class EventLogDetailsGenerator(
     logDetailsService:   EventLogDetailsService,
     nodeGroupRepository: RoNodeGroupRepository,
+    nodeFactRepository:  NodeFactRepository,
     ruleCatRepository:   RoRuleCategoryRepository,
     modificationService: ModificationService,
     linkUtil:            LinkUtil,
@@ -119,11 +124,25 @@ class EventLogDetailsGenerator(
     }
 
     def nodeDesc(x: EventLog, actionName: NodeSeq) = {
-      val id   = (x.details \\ "node" \ "id").text
-      val name = (x.details \\ "node" \ "hostname").text.strip() match {
-        case "" => id
+
+      val id       = (x.details \\ "node" \ "id").text
+      val hostname = (x.details \\ "node" \ "hostname").text
+      val name     = hostname.strip() match {
+        case "" =>
+          (for {
+            node <- nodeFactRepository
+                      .get(NodeId(id))(using QueryContext.systemQC)
+                      .catchAll(err => {
+                        EventLogsLoggerPure.error(
+                          s"Got unexpected error trying to get the hostname of the node of id ${id} : ${err}"
+                        ) *> None.succeed
+                      })
+          } yield {
+            node.map(_.fqdn).getOrElse(id)
+          }).runNow
         case x  => x
       }
+
       Text("Node ") ++ {
         if ((id.size < 1) || (actionName == Text(" deleted"))) Text(s"${name} deleted")
         else <a href={nodeLink(NodeId(id))}>{name}</a> ++ actionName

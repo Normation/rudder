@@ -264,7 +264,7 @@ class EventLogsNodeFactChangeEventCallback(
         next: MinimalNodeFactInterface
     ): IOResult[Unit] = {
       val diff = ModifyNodeDiff.fromFacts(old, next)
-      eventLogRepository.saveModifyNode(cc.modId, cc.actor, diff, cc.message, cc.eventDate).unit
+      eventLogRepository.saveModifyNode(cc.modId, Some(next.fqdn), cc.actor, diff, cc.message, cc.eventDate).unit
     }
 
     change.event match {
@@ -319,11 +319,11 @@ class EventLogsNodeFactChangeEventCallback(
           principal = change.cc.actor,
           creationDate = change.cc.eventDate,
           inventoryDetails = InventoryLogDetails(
-            node.id,
-            node.lastInventoryDate.getOrElse(node.factProcessedDate),
-            node.fqdn,
-            node.os.fullName,
-            change.cc.actorIp.getOrElse("actor ip unknown")
+            nodeId = node.id,
+            inventoryVersion = node.lastInventoryDate.getOrElse(node.factProcessedDate),
+            hostname = node.fqdn,
+            fullOsName = node.os.fullName,
+            actorIp = change.cc.actorIp.getOrElse("actor ip unknown")
           )
         )
         eventLogRepository

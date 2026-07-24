@@ -435,6 +435,7 @@ trait EventLogRepository {
    */
   def saveModifyNode(
       modId:      ModificationId,
+      hostname:   Option[String],
       principal:  EventActor,
       modifyDiff: ModifyNodeDiff,
       reason:     Option[String],
@@ -444,6 +445,7 @@ trait EventLogRepository {
       e <- saveEventLog(
              modId,
              eventLogFactory.getModifyNodeFromDiff(
+               hostname = hostname,
                principal = principal,
                modifyDiff = modifyDiff,
                reason = reason,
@@ -468,6 +470,7 @@ trait EventLogRepository {
       )
     )
   }
+
   def saveDemoteToNode(
       modId:        ModificationId,
       principal:    EventActor,
