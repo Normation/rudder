@@ -399,7 +399,7 @@ mod tests {
         assert_eq!(shorten("abcdefghij", 9), "abcdefgh".to_string());
         // Non-ASCII must not panic and must count characters, not bytes.
         assert_eq!(shorten("àéîõü", 9), "àéîõü".to_string());
-        assert_eq!(shorten("àéîõùabcde", 9), "àéîõùabci".to_string());
+        assert_eq!(shorten("àéîõùabcde", 9), "àéîõùabc".to_string());
         assert_eq!(
             shorten("😋😋😋😋😋😋😋😋😋😋", 9),
             "😋😋😋😋😋😋😋😋…".to_string()
