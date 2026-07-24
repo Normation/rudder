@@ -311,10 +311,10 @@ ipHostNumber: 127.0.0.1
 environmentVariable: {"name":"SHELL","value":"/bin/sh"}
 customProperty:{"name":"datacenter", "value":"Paris"}
 customProperty:{"name":"from_inv", "value":{ "key1":"custom prop value", "key2":"some more json"}}
-process: {"pid":1,"commandName":"init [2]","cpuUsage":0.0,"memory":0.2000000
+process: {"pid":1,"name":"init [2]","cpuUsage":0.0,"memory":0.2000000
  0298023224,"started":"2015-01-21 17:24","tty":"?","user":"root","virtualMem
  ory":10648}
-process: {"pid":10,"commandName":"[kdevtmpfs]","cpuUsage":0.0,"memory":0.0,"
+process: {"pid":10,"name":"[kdevtmpfs]","cpuUsage":0.0,"memory":0.0,"
  started":"2015-01-21 17:24","tty":"?","user":"root","virtualMemory":0}
 
 # Example of a node
