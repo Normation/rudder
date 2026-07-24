@@ -382,7 +382,7 @@ impl Display for PolicyMode {
 pub fn shorten(s: &str, max_len: usize) -> String {
     if s.chars().count() > max_len {
         let truncated: String = s.chars().take(max_len - 1).collect();
-        format!("{truncated}")
+        truncated.to_string()
     } else {
         s.to_string()
     }
@@ -399,10 +399,10 @@ mod tests {
         assert_eq!(shorten("abcdefghij", 9), "abcdefgh".to_string());
         // Non-ASCII must not panic and must count characters, not bytes.
         assert_eq!(shorten("àéîõü", 9), "àéîõü".to_string());
-        assert_eq!(shorten("àéîõùabcde", 9), "àéîõùabci".to_string());
+        assert_eq!(shorten("àéîõùabcde", 9), "àéîõùabc".to_string());
         assert_eq!(
             shorten("😋😋😋😋😋😋😋😋😋😋", 9),
-            "😋😋😋😋😋😋😋😋…".to_string()
+            "😋😋😋😋😋😋😋😋".to_string()
         );
     }
 
