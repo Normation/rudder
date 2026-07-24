@@ -21,99 +21,95 @@ view model =
     div [ class "otp-container" ]
         [ h1 [ class "fs-3" ] [ text "Two-factor authentication" ]
         , hr [] []
-        , enrollmentBanner model
-        , actions model
+        , viewModeHeader model.mode
+        , viewErrorMsg model.errorMsg
+        , div [ class "d-flex flex-column align-items-center" ]
+            (viewMode model.mode model.code model.isLoading)
         ]
 
 
-enrollmentBanner : Model -> Html Msg
-enrollmentBanner model =
-    case model.needEnrollment of
-        Just True ->
+viewModeHeader : Mode -> Html Msg
+viewModeHeader mode =
+    case mode of
+        CodeVerification ->
+            div [ class "alert alert-info d-flex justify-content-center" ]
+                [ text "TOTP code verification required for login" ]
+
+        _ ->
             div [ class "alert alert-warning mt-3" ]
                 [ i [ class "fa fa-warning me-2" ] []
                 , text "You need to enable a two-factor authentication. Generate a TOTP secret for your authenticator app below."
                 ]
 
-        _ ->
-            div [ class "alert alert-info d-flex justify-content-center" ]
-                [ text "TOTP code verification required for login" ]
+
+viewErrorMsg errorMsg =
+    case errorMsg of
+        Just msg ->
+            div [ class "alert alert-danger" ]
+                [ text msg ]
+
+        Nothing ->
+            text ""
 
 
-actions : Model -> Html Msg
-actions model =
-    let
-        showEnrollment =
-            Maybe.Extra.isNothing model.generatedSecret
-                && (model.needEnrollment
-                        |> Maybe.withDefault False
-                   )
-    in
-    div [ class "d-flex flex-column align-items-center" ]
-        [ case model.errorMsg of
-            Just msg ->
-                div [ class "alert alert-danger" ]
-                    [ text msg ]
-
-            Nothing ->
-                text ""
-        , if showEnrollment then
-            div [ class "d-flex justify-content-center" ]
+viewMode : Mode -> String -> Bool -> List (Html Msg)
+viewMode mode code loading =
+    case mode of
+        SecretGeneration ->
+            [ div [ class "d-flex justify-content-center" ]
                 [ button
                     [ class "btn btn-primary my-3"
-                    , disabled model.isLoading
+                    , disabled loading
                     , onClick GenerateOtp
                     ]
-                    [ if model.isLoading then
+                    [ if loading then
                         text "Generating..."
 
                       else
                         text "Generate TOTP"
                     ]
                 ]
+            ]
 
-          else
-            text ""
-        , case model.generatedSecret of
-            Just secret ->
-                div [ class "mt-3 d-flex flex-column align-items-center" ]
-                    [ h2 [ class "fs-5" ] [ text "Scan QR Code with your authenticator app" ]
-                    , qrCodeView secret.uri
-                    , div [ class "mt-2 d-flex flex-column align-items-center" ]
-                        [ label [] [ text "Or enter this key manually:" ]
-                        , pre [] [ text secret.value ]
-                        ]
-                    ]
-
-            Nothing ->
-                text ""
-        , if showEnrollment then
-            text ""
-
-          else
-            div [ class "mt-3 d-flex flex-column align-items-center" ]
-                [ input
-                    [ class "form-control mb-2"
-                    , type_ "text"
-                    , placeholder "Enter 6-digit code"
-                    , value model.code
-                    , size 12
-                    , onInput SetCode
-                    , onEnter (VerifyOtp model.code)
-                    ]
-                    []
-                , button
-                    [ class "my-3 px-4 btn btn-success"
-                    , disabled (model.code == "" || model.isLoading)
-                    , onClick (VerifyOtp model.code)
-                    ]
-                    [ if model.isLoading then
-                        text "Verifying..."
-
-                      else
-                        text "Verify"
+        SecretEnrollment secret ->
+            [ div [ class "mt-3 d-flex flex-column align-items-center" ]
+                [ h2 [ class "fs-5" ] [ text "Scan QR Code with your authenticator app" ]
+                , qrCodeView secret.uri
+                , div [ class "mt-2 d-flex flex-column align-items-center" ]
+                    [ label [] [ text "Or enter this key manually:" ]
+                    , pre [] [ text secret.value ]
                     ]
                 ]
+            , viewCode code loading
+            ]
+
+        CodeVerification ->
+            [ viewCode code loading ]
+
+
+viewCode code loading =
+    div [ class "mt-3 d-flex flex-column align-items-center" ]
+        [ input
+            [ class "form-control mb-2"
+            , type_ "text"
+            , placeholder "Enter 6-digit code"
+            , value code
+            , size 12
+            , onInput SetCode
+            , onEnter (VerifyOtp code)
+            ]
+            []
+        , button
+            [ class "my-3 px-4 btn btn-success"
+            , disabled (code == "" || loading)
+            , onClick (VerifyOtp code)
+            ]
+            [ if loading then
+                text "Verifying..."
+
+              else
+                text "Verify"
+            ]
         ]
 
 

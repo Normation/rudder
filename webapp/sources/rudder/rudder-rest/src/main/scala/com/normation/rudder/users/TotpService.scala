@@ -35,6 +35,7 @@
  */
 package com.normation.rudder.users
 
+import cats.syntax.functor.*
 import com.bastiaanjansen.otp.*
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
@@ -52,12 +53,6 @@ import zio.syntax.*
  */
 trait TotpService {
 
-  /**
-   * Check if the user needs to enroll (generate) a new OTP secret.
-   * Returns true if the user does not yet have an OTP configured.
-   */
-  def needGeneration(userId: UserId): IOResult[Boolean]
-
   def generateUserSecret(userId: UserId): IOResult[TotpSecretData]
 
   /**
@@ -74,24 +69,22 @@ trait TotpService {
   def reset(userId: UserId): IOResult[Unit]
 
   /**
-   * Check if OTP is globally enforced for all users.
+   * Check OTP is globally enforced for all users.
    */
   def getGlobalStatus(): IOResult[Boolean]
 
   /**
-   * Get the set of users that have an OTP configured.
+   * Get per-user enrollment status
    */
-  def getEnabledUsers(): IOResult[Set[UserId]]
+  def getAllUserStatus(): IOResult[Map[UserId, TotpUserStatus]]
+
+  /**
+   * Get user enrollment status, if user does not exist, they need to enroll
+   */
+  def getUserStatus(userId: UserId): IOResult[TotpUserStatus]
 
   def verify(userId: UserId, code: String): IOResult[Unit]
 }
-
-/**
- * Status of OTP enrollment for a user
- */
-case class TotpStatus(
-    needEnrollment: Boolean
-) derives JsonEncoder
 
 private given JsonEncoder[TotpSecret] = JsonEncoder[String].contramap(_.exposeSecret())
 private given JsonEncoder[URI]        = JsonEncoder[String].contramap(_.toString)
@@ -110,25 +103,6 @@ case class TotpSecretContainer(
 
 trait TotpSecretGenerator {
   def generate: IOResult[TotpSecret]
-}
-
-/**
- * Logic:
- *  - if user does not exist, reject
- *  - if user already has one, reject (we only support 1 OTP, to simplify management page, but WRT storage it could be extended to more)
- */
-class UserTotpValidator(userRepository: UserRepository, totpRepository: TotpRepository) {
-  def validateUserCanCreateTotp(userId: UserId): IOResult[Unit] = {
-    for {
-      _ <- userRepository.get(userId.value).notOptional(s"User '${userId.value}' is not known, cannot create TOTP")
-      _ <- totpRepository.getByUserId(userId).reject {
-             case Some(value) =>
-               Inconsistency(
-                 s"User '${userId.value}' already has a TOTP (created on ${DateFormaterService.getDisplayDate(value.created)}), reset it first to create a new one"
-               )
-           }
-    } yield ()
-  }
 }
 
 sealed private trait TotpVerificator {
@@ -151,9 +125,7 @@ class InMemoryVerificationTotpService(
     totpRepository: TotpRepository,
     verificator:    TotpVerificator
 ) extends TotpService {
-  override def needGeneration(userId: UserId): IOResult[Boolean] = {
-    totpRepository.getByUserId(userId).map(_.isEmpty)
-  }
+  private val globalLevel = if (enabledOtp) TotpEnforcementLevel.Enforced else TotpEnforcementLevel.Disabled
 
   override def generateUserSecret(userId: UserId): IOResult[TotpSecretData] = {
     for {
@@ -207,10 +179,17 @@ class InMemoryVerificationTotpService(
     enabledOtp.succeed
   }
 
-  override def getEnabledUsers(): IOResult[Set[UserId]] = {
-    totpRepository.getEnabledUsers()
+  override def getAllUserStatus(): IOResult[Map[UserId, TotpUserStatus]] = {
+    totpRepository
+      .getEnabledUsers()
+      .map(_.map(u => u -> TotpUserStatus.Enrolled).toMap)
   }
 
+  override def getUserStatus(userId: UserId): IOResult[TotpUserStatus] = {
+    totpRepository
+      .getByUserId(userId)
+      .map(_.as(TotpUserStatus.Enrolled).getOrElse(TotpUserStatus.default(globalLevel)))
+  }
 }
 
 private def totpUri(userId: String, secret: TotpSecret): IOResult[URI] = {

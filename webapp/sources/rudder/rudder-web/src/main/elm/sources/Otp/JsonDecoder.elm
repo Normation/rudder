@@ -1,18 +1,30 @@
 module Otp.JsonDecoder exposing (..)
 
-import Http.Detailed as Detailed
 import Json.Decode as D
 import Json.Decode.Pipeline exposing (required)
 import Otp.DataTypes exposing (..)
 
 
-
--- Decode status response: { action, result, data: { needEnrollment: Bool } }
-
-
-decodeStatus : D.Decoder Bool
+decodeStatus : D.Decoder Enrollment
 decodeStatus =
-    D.at [ "data", "needEnrollment" ] D.bool
+    D.at [ "data" ] decodeEnrollment
+
+
+decodeEnrollment : D.Decoder Enrollment
+decodeEnrollment =
+    D.string
+        |> D.andThen
+            (\s ->
+                case s of
+                    "enrolled" ->
+                        D.succeed Enrolled
+
+                    "enrollmentNeeded" ->
+                        D.succeed EnrollmentNeeded
+
+                    _ ->
+                        D.fail <| "Could not decode enrollment value '" ++ s ++ "', must be enrolled/enrollmentNeeded"
+            )
 
 
 
