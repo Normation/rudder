@@ -45,11 +45,11 @@ import scala.collection.immutable.ArraySeq
 final case class TestParameter(parameterName: String, escapedValue: String)
 
 @RunWith(classOf[JUnitRunner])
-class AmpersandTemplateTest extends Specification {
+class FastparseTemplateParserTest extends Specification {
 
   private def fill(template: String, vars: (String, Any)*): String = {
-    AmpersandTemplate.parse(template) match {
-      case Right(parsed) => AmpersandTemplate.render(parsed.parts, vars.toMap)
+    FastparseTemplateParser.parse(template) match {
+      case Right(parsed) => FastparseTemplateParser.render(parsed.parts, vars.toMap)
       case Left(err)     => throw new RuntimeException(err.fullMsg)
     }
   }
@@ -166,22 +166,22 @@ class AmpersandTemplateTest extends Specification {
   }
 
   "STVariable fill" should {
-    val parsed = AmpersandTemplate.parse("&if(SYS)&sys=&SYS&&endif&-&V&").toOption.get
+    val parsed = FastparseTemplateParser.parse("&if(SYS)&sys=&SYS&&endif&-&V&").toOption.get
 
     "treat an empty may-be-empty system variable as absent" in {
       val vars = List(
         STVariable("SYS", mayBeEmpty = true, values = ArraySeq(""), isSystem = true),
         STVariable("V", mayBeEmpty = false, values = ArraySeq("v"), isSystem = false)
       )
-      AmpersandTemplate.fill(parsed, "test", vars, None) must beRight(("-v", "test"))
+      FastparseTemplateParser.fill(parsed, "test", vars, None) must beRight(("-v", "test"))
     }
     "error on a mandatory empty variable" in {
       val vars = List(STVariable("V", mayBeEmpty = false, values = ArraySeq.empty[Any], isSystem = false))
-      AmpersandTemplate.fill(parsed, "test", vars, None) must beLeft
+      FastparseTemplateParser.fill(parsed, "test", vars, None) must beLeft
     }
     "substitute the multi-policy tag in content and file name with replaceId" in {
-      val t = AmpersandTemplate.parse("id=&RudderUniqueID&").toOption.get
-      AmpersandTemplate.fill(t, "technique_RudderUniqueID.cf", Nil, Some(("RudderUniqueID", "d1"))) must
+      val t = FastparseTemplateParser.parse("id=&RudderUniqueID&").toOption.get
+      FastparseTemplateParser.fill(t, "technique_RudderUniqueID.cf", Nil, Some(("RudderUniqueID", "d1"))) must
       beRight(("id=d1", "technique_d1.cf"))
     }
   }
