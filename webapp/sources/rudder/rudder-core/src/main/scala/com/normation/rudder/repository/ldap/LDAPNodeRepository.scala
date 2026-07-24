@@ -101,7 +101,7 @@ class WoLDAPNodeRepository(
                            case LDIFNoopChangeRecord(_) => ZIO.unit
                            case _                       =>
                              val diff = ModifyNodeDiff.compat(oldNode, node, None, None)
-                             actionLogger.saveModifyNode(modId, actor, diff, reason, Instant.now())
+                             actionLogger.saveModifyNode(modId, Some(node.name), actor, diff, reason, Instant.now())
                          }
       } yield {
         node
@@ -167,7 +167,14 @@ class WoLDAPNodeRepository(
                            case _                       =>
                              val diff =
                                ModifyNodeDiff.keyInfo(nodeId, agentsInfo._1.map(_.securityToken), agentsInfo._2, agentKey, agentKeyStatus)
-                             actionLogger.saveModifyNode(modId, actor, diff, reason, Instant.now())
+                             actionLogger.saveModifyNode(
+                               modId,
+                               hostname = None,
+                               actor,
+                               diff,
+                               reason,
+                               Instant.now()
+                             )
                          }
       } yield ())
     }
