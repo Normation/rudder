@@ -2821,7 +2821,7 @@ object RudderConfigInit {
     ///// end /////
 
     lazy val logRepository                = {
-      val eventLogRepo = new EventLogJdbcRepository(doobie, eventLogFactory)
+      val eventLogRepo = new EventLogJdbcRepository(doobie, eventLogFactory, tenantCheckLogic)
       techniqueRepositoryImpl.registerCallback(
         new LogEventOnTechniqueReloadCallback(
           "LogEventTechnique",
@@ -3583,6 +3583,7 @@ object RudderConfigInit {
         new CheckTableUsers(doobie),
         new CheckTableNodeLastCompliance(doobie),
         new MigrateEventLogEnforceSchema(doobie),
+        new MigrateEventLogAddSecurityTag(doobie),
         new MigrateChangeValidationEnforceSchema(doobie),
         new CheckTableReportsExecutionTz(doobie),
         new DeleteArchiveTables(doobie),

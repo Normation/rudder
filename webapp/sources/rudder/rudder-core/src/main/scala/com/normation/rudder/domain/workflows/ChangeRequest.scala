@@ -47,6 +47,7 @@ import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.tenants.SecurityTag
 import org.joda.time.DateTime
 
 /*
@@ -96,6 +97,41 @@ object ChangeRequest {
         x.copy(modId = Some(modId)).asInstanceOf[T]
       case x: RollbackChangeRequest      =>
         x.copy(modId = Some(modId)).asInstanceOf[T]
+    }
+  }
+
+  /*
+   * A change request is, tenant-wise, a compound MODIFY over every configuration object it touches: seeing
+   * (or acting on) the whole request implies seeing (or acting on) each of those objects.
+   *
+   * This function returns the tenant security tag of every object the request changes, and both
+   * the object initial state tenant and then new one, if different.
+   * For the caller, the CR is:
+   *   - visible iff the grant `canSee` *every* returned tag,
+   *   - writable iff the (write-restricted) grant `canSee` *every* returned tag.
+   *
+   * A `RollbackChangeRequest` carries no taggable object, and an empty configuration change request has none
+   * either: both yield a single `None` tag, i.e. admin-only..
+   */
+  def securityTags(cr: ChangeRequest): List[Option[SecurityTag]] = {
+    cr match {
+      case c: ConfigurationChangeRequest =>
+        val tags = {
+          c.directives.values.toList.flatMap { dc =>
+            dc.changes.initialState.map(_._2.security).toList :+ dc.changes.firstChange.diff.directive.security
+          } ++
+          c.nodeGroups.values.toList.flatMap { gc =>
+            gc.changes.initialState.map(_.security).toList :+ gc.changes.firstChange.diff.group.security
+          } ++
+          c.rules.values.toList.flatMap { rc =>
+            rc.changes.initialState.map(_.security).toList :+ rc.changes.firstChange.diff.rule.security
+          } ++
+          c.globalParams.values.toList.flatMap { pc =>
+            pc.changes.initialState.map(_.security).toList :+ pc.changes.firstChange.diff.parameter.security
+          }
+        }
+        if (tags.isEmpty) List(None) else tags
+      case _: RollbackChangeRequest      => List(None)
     }
   }
 }

@@ -50,6 +50,7 @@ import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils
 import com.softwaremill.quicklens.*
@@ -143,10 +144,11 @@ final case class FullActiveTechnique(
 object FullActiveTechnique {
   given HasSecurityTag[FullActiveTechnique] with {
     extension (a: FullActiveTechnique) {
-      override def security: Option[SecurityTag] = a.security
+      override def security:           Option[SecurityTag] = a.security
       // an active technique is "system" when it carries the system policy type
-      override def isSystem: Boolean             = a.policyTypes.isSystem
-      override def debugId:  String              = a.id.value
+      override def isSystem:           Boolean             = a.policyTypes.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechnique = a.copy(security = security)
     }
   }
@@ -336,9 +338,10 @@ final case class FullActiveTechniqueCategory(
 object FullActiveTechniqueCategory {
   given HasSecurityTag[FullActiveTechniqueCategory] with {
     extension (a: FullActiveTechniqueCategory) {
-      override def security: Option[SecurityTag] = a.security
-      override def isSystem: Boolean             = a.isSystem
-      override def debugId:  String              = a.id.value
+      override def security:           Option[SecurityTag] = a.security
+      override def isSystem:           Boolean             = a.isSystem
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.id.value
       override def updateSecurityContext(security: Option[SecurityTag]): FullActiveTechniqueCategory = a.copy(security = security)
     }
   }

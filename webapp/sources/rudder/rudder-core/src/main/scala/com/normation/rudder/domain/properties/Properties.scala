@@ -46,6 +46,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.services.policies.ParameterEntry
 import com.normation.rudder.tenants.HasSecurityTag
 import com.normation.rudder.tenants.SecurityTag
+import com.normation.rudder.tenants.TenantTagLifecycle
 import com.typesafe.config.*
 import enumeratum.*
 import zio.json
@@ -747,10 +748,11 @@ object NodeProperty {
 
   given HasSecurityTag[NodeProperty] with {
     extension (a: NodeProperty) {
-      override def security: Option[SecurityTag] = a.security
+      override def security:           Option[SecurityTag] = a.security
       // properties have no system notion
-      override def isSystem: Boolean             = false
-      override def debugId:  String              = a.debugId
+      override def isSystem:           Boolean             = false
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): NodeProperty = a.withSecurity(security)
     }
   }
@@ -795,10 +797,11 @@ final case class GroupProperty(config: Config) extends GenericProperty[GroupProp
 object GroupProperty {
   given HasSecurityTag[GroupProperty] with {
     extension (a: GroupProperty) {
-      override def security: Option[SecurityTag] = a.security
+      override def security:           Option[SecurityTag] = a.security
       // properties have no system notion
-      override def isSystem: Boolean             = false
-      override def debugId:  String              = a.debugId
+      override def isSystem:           Boolean             = false
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): GroupProperty = a.withSecurity(security)
     }
   }
@@ -930,10 +933,11 @@ object GlobalParameter {
 
   given HasSecurityTag[GlobalParameter] with {
     extension (a: GlobalParameter) {
-      override def security: Option[SecurityTag] = a.security
+      override def security:           Option[SecurityTag] = a.security
       // global parameters have no system flag
-      override def isSystem: Boolean             = false
-      override def debugId:  String              = a.debugId
+      override def isSystem:           Boolean             = false
+      override def tenantTagLifecycle: TenantTagLifecycle  = TenantTagLifecycle.Monotonic
+      override def debugId:            String              = a.debugId
       override def updateSecurityContext(security: Option[SecurityTag]): GlobalParameter = a.withSecurity(security)
     }
   }
