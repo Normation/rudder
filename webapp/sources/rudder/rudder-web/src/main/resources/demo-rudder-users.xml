@@ -35,20 +35,16 @@
   The username is case-sensitive by default, if you want to change this behavior, you can
   change the parameter 'case-sensitivity' to 'false'
 
-  The "authentication" tag should have a "hash" attribute, with these allowed values:
-    "bcrypt", "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
+  The "authentication" tag can have a "hash" attribute, with these allowed values:
+    "bcrypt", "argon2id". It sets the algorithm used to hash new passwords.
 
-  It is advised to use 'bcrypt' (default since 6.1). When upgrading from previous
-  releases, you need to reset all the passwords to bcrypt hashes and change the authentication tag.
+  It is advised to use 'argon2id' (default since 9.0).
 
-  Not specifying the "hash" attribute means using plain text passwords, which is not
-  advisable for security reasons.
+  To create an argon2id hash of your password you can run this command:
+    read -s -p "Password: " PASSWORD && echo && echo -n "$PASSWORD" | argon2 "$(openssl rand -hex 16)" -id -k 131072
 
-  To create a bcrypt hash of your password, please run this command:
+  To create a bcrypt hash of your password you can run run this command:
     htpasswd -nBC 12 "" | tr -d ':\n'
-
-  To create a sha512 hash of your password, please run this command:
-    read mypass; echo -n $mypass | sha512sum
 
   If you configured the use of LDAP or Active Directory in rudder-web.properties file,
   you still need to specify here one user entry by user, with both the "password"
