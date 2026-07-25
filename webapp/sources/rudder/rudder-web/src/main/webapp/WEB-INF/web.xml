@@ -1,10 +1,7 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE web-app
-PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
-"http://java.sun.com/dtd/web-app_2_3.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright 2011 Normation SAS
+Copyright 2011-2026 Normation SAS
 
 This file is part of Rudder.
 
@@ -36,12 +33,21 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
 
-<web-app>
+
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                      https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+  version="6.1">
+
   <session-config>
    <cookie-config>
     <http-only>true</http-only>
     <secure>true</secure>
-    <comment>__SAME_SITE_LAX__</comment>
+    <attribute>
+      <attribute-name>SameSite</attribute-name>
+      <attribute-value>Lax</attribute-value>
+    </attribute>
    </cookie-config>
   </session-config>
 
@@ -103,6 +109,5 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <filter-name>LiftFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
-
 
 </web-app>
