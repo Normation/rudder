@@ -62,28 +62,23 @@ object InventoryApi {
 
   val sigExtension = ".sign"
 
-  /*
-   * Compute the on-disk name to use for the uploaded signature file.
-   *
-   * SECURITY:`rawSigFileName` is the attacker-controlled multipart file name. We only ever work
-   * on its basename (`File(_).name`), so that a path such as `pwn/../../../etc/cron.d/pwn` can never
-   * escape the incoming inventory directory. For a legitimate upload (a bare file name, no directory)
-   * this is byte-identical to the previous behaviour.
-   *
-   * We keep the `.gz` compression marker and ensure a `.sign` extension when the uploaded signature
-   * does not already carry one.
-   */
-  def signatureFileName(rawSigFileName: String): String = {
-    val sigFilename = File(rawSigFileName).name
-    // remove gz extension for sig name comparison
-    val simpleOrig  =
-      if (sigFilename.endsWith(".gz")) sigFilename.substring(0, sigFilename.length - 3) else sigFilename
-    if (sigFilename.startsWith(simpleOrig)) { // assume extension is ok
-      sigFilename
+  def getInventoryAndSignatureFileName(rawInventoryFile: String, rawSigFile: String): (String, String) = {
+    val inventoryFile = File(rawInventoryFile)
+    val sigFile       = File(rawSigFile)
+
+    // remove gz extension for sig name comparison with inventory (optionally compressed) file
+    val simpleOrig = {
+      if (inventoryFile.name.endsWith(".gz")) inventoryFile.name.substring(0, inventoryFile.name.length - 3)
+      else inventoryFile.name
+    }
+
+    if (sigFile.name.startsWith(simpleOrig)) { // assume extension is ok
+      (inventoryFile.name, sigFile.name)
     } else {
       // we assume that anything that is not ending by .gz is a simple signature, whatever its extension
-      val ext = sigExtension + (if (sigFilename.endsWith(".gz")) ".gz" else "")
-      simpleOrig + ext
+      // and we derive signature name from inventory file name enterily
+      val ext = sigExtension + (if (sigFile.name.endsWith(".gz")) ".gz" else "")
+      (inventoryFile.name, simpleOrig + ext)
     }
   }
 }
@@ -146,15 +141,14 @@ class InventoryApi(
         // basename (see InventoryApi.signatureFileName / File(_).name) so that a crafted name like
         // `pwn/../../../etc/cron.d/pwn` cannot escape the incoming inventory directory, and we
         // additionally route both writes through FileUtils.sanitizePath as a defense-in-depth jail.
-        val originalFilename  = File(inventoryFile.fileName).name
-        val signatureFilename = InventoryApi.signatureFileName(signatureFile.fileName)
+        val (invName, sigName) = InventoryApi.getInventoryAndSignatureFileName(inventoryFile.fileName, signatureFile.fileName)
 
         for {
-          sigPath <- FileUtils.sanitizePath(incomingInventoryDir, signatureFilename)
-          invPath <- FileUtils.sanitizePath(incomingInventoryDir, originalFilename)
+          sigPath <- FileUtils.sanitizePath(incomingInventoryDir, sigName)
+          invPath <- FileUtils.sanitizePath(incomingInventoryDir, invName)
           _       <- writeFile(signatureFile, sigPath)
           _       <- writeFile(inventoryFile, invPath)
-        } yield s"Inventory '${originalFilename}' added to processing queue."
+        } yield s"Inventory '${invName}' added to processing queue."
       }
 
       val prog = (req.uploadedFiles.find(_.name == FILE), req.uploadedFiles.find(_.name == SIG)) match {

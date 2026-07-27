@@ -50,23 +50,25 @@ class InventoryApiTest extends Specification {
   "InventoryApi.signatureFileName" should {
 
     "reduce a path-traversal name to its basename" >> {
-      InventoryApi.signatureFileName("pwn/../../../../../../etc/cron.d/pwn") must beEqualTo("pwn")
+      InventoryApi.getInventoryAndSignatureFileName("inventory", "pwn/../../../../../../etc/cron.d/pwn") must beEqualTo(
+        ("inventory", "inventory.sign")
+      )
     }
 
     "reduce an absolute path to its basename" >> {
-      InventoryApi.signatureFileName("/etc/cron.d/evil.sign") must beEqualTo("evil.sign")
+      InventoryApi.getInventoryAndSignatureFileName("evil", "/etc/cron.d/evil.sign") must beEqualTo(("evil", "evil.sign"))
     }
 
     "never return a name containing a path separator" >> {
-      InventoryApi.signatureFileName("a/b/c/node.ocs.gz.sign") must not(contain("/"))
+      InventoryApi.getInventoryAndSignatureFileName("a/b/c/node.ocs.gz", "a/b/c/node.ocs.sign.gz") must beEqualTo(
+        ("node.ocs.gz", "node.ocs.sign.gz")
+      )
     }
 
     "keep a plain signature name unchanged" >> {
-      InventoryApi.signatureFileName("node-uuid.ocs.sign") must beEqualTo("node-uuid.ocs.sign")
-    }
-
-    "keep the .gz compression marker" >> {
-      InventoryApi.signatureFileName("node-uuid.ocs.gz") must beEqualTo("node-uuid.ocs.gz")
+      InventoryApi.getInventoryAndSignatureFileName("node-uuid.ocs.gz", "node-uuid.ocs.sign") must beEqualTo(
+        ("node-uuid.ocs.gz", "node-uuid.ocs.sign")
+      )
     }
   }
 }
