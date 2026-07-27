@@ -1,21 +1,17 @@
 module Otp exposing (..)
 
 import Browser
-import Html exposing (..)
-import Html.Attributes exposing (..)
 import Http.Detailed as Detailed
 import Json.Decode exposing (decodeString, string)
 import List
-import Maybe.Extra
 import Otp.ApiCalls exposing (..)
 import Otp.DataTypes exposing (..)
 import Otp.Init exposing (..)
-import Otp.JsonDecoder exposing (..)
 import Otp.View exposing (..)
 import Result
 import String
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), (<?>), Parser, parse, query, top)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
 
 
@@ -58,7 +54,7 @@ update msg model =
         OtpStatusResponse result ->
             case result of
                 Ok ( _, status ) ->
-                    ( { model | needEnrollment = Just status, isLoading = False }, Cmd.none )
+                    ( { model | mode = enrollmentMode status, isLoading = False }, Cmd.none )
 
                 Err err ->
                     processApiError "Failed to fetch OTP status" err model
@@ -66,7 +62,8 @@ update msg model =
         GenerateResponse result ->
             case result of
                 Ok ( _, resp ) ->
-                    ( { model | isLoading = False, needEnrollment = Just True, generatedSecret = Just resp.secret }, Cmd.none )
+                    -- even if we enter a generation, we should be able to skip, if NotEnrolled we shouldn't
+                    ( { model | isLoading = False, mode = SecretEnrollment resp.secret }, Cmd.none )
 
                 Err err ->
                     processApiError "Failed to generate OTP secret" err model

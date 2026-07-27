@@ -70,9 +70,8 @@ class OtpApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val userId         = UserId(authzToken.user.name)
-      val needGeneration = otpGeneratorService.needGeneration(userId)
-      val status         = needGeneration.map(n => TotpStatus(n))
+      val userId = UserId(authzToken.user.name)
+      val status = otpGeneratorService.getUserStatus(userId)
       status.toLiftResponseOne(params, schema, None)
     }
   }
