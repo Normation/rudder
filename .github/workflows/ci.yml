@@ -14,6 +14,8 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@1.97.1
 
+      - name: agentd tests
+        run: make cargo-test PACKAGE=agentd
       - name: rudder-module-template tests
         run: make cargo-test PACKAGE=rudder-module-template
       - name: rudder-module-scheduler tests
