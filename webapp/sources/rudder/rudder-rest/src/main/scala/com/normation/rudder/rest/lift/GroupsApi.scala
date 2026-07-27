@@ -38,6 +38,7 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.*
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
@@ -72,6 +73,7 @@ import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.utils.Csv.toCsv
 import com.normation.utils.StringUuidGenerator
 import io.scalaland.chimney.syntax.*
@@ -704,6 +706,14 @@ class GroupApiService14(
     queryProcessor:       QueryProcessor
 ) {
 
+  // The set of node ids the caller may see, used to filter the serialized group member ids (`nodeIds`) so a
+  // group visible to a tenant does not leak node ids from tenants it can not see. `None` = no filter
+  // (admin / all-tenants grant), which also avoids materialising the whole fleet's id set.
+  private def visibleNodeIds(implicit qc: QueryContext): IOResult[Option[Set[NodeId]]] = {
+    if (qc.accessGrant == TenantAccessGrant.All) None.succeed
+    else nodeFactRepo.getNodeAndServerIds().map(v => Some(v.nodeIds))
+  }
+
   private def createChangeRequest(
       diff:   ChangeRequestNodeGroupDiff,
       change: NodeGroupChangeRequest,
@@ -711,6 +721,7 @@ class GroupApiService14(
   )(implicit cc: ChangeContext) = {
     for {
       workflow <- workflowLevelService.getForNodeGroup(cc.actor, change)
+      visible  <- visibleNodeIds(using cc.toQC)
       cr        = ChangeRequestService.createChangeRequestFromNodeGroup(
                     params.changeRequestName.getOrElse(s"${change.action.name} group '${change.newGroup.name}' from API"),
                     params.changeRequestDescription.getOrElse(""),
@@ -723,19 +734,25 @@ class GroupApiService14(
       id       <- workflow.startWorkflow(cr)
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRGroup.fromGroup(change.newGroup, change.category.getOrElse(readGroup.getRootCategory()(using cc.toQC).id), optCrId)(using
+      JRGroup.fromGroup(
+        change.newGroup,
+        change.category.getOrElse(readGroup.getRootCategory()(using cc.toQC).id),
+        optCrId,
+        visible
+      )(using
         cc.toQC
       )
     }
   }
 
   def listGroups()(implicit qc: QueryContext): IOResult[Seq[JRGroup]] = {
-    readGroup
-      .getGroupsByCategory(true)
-      .chainError("Could not fetch Groups")
-      .map(groups =>
-        groups.values.flatMap { case CategoryAndNodeGroup(c, gs) => gs.map(JRGroup.fromGroup(_, c.id, None)) }.toSeq.sortBy(_.id)
-      )
+    for {
+      visible <- visibleNodeIds
+      groups  <- readGroup.getGroupsByCategory(true).chainError("Could not fetch Groups")
+    } yield {
+      groups.values.flatMap { case CategoryAndNodeGroup(c, gs) => gs.map(JRGroup.fromGroup(_, c.id, None, visible)) }.toSeq
+        .sortBy(_.id)
+    }
   }
 
   def createGroup(
@@ -750,12 +767,13 @@ class GroupApiService14(
         saveDiff <- writeGroup.create(change.newGroup, cat)
         // after group creation, its properties should be computed and resolved
         _        <- propertiesService.updateAll()
+        visible  <- visibleNodeIds(using cc.toQC)
       } yield {
         if (saveDiff.needDeployment) {
           // Trigger a deployment only if it is needed
           asyncDeploymentAgent ! AutomaticStartDeployment(cc.modId, cc.actor)
         }
-        JRGroup.fromGroup(saveDiff.group, cat, None)(using cc.toQC)
+        JRGroup.fromGroup(saveDiff.group, cat, None, visible)(using cc.toQC)
       }).chainError(s"Could not create group '${change.newGroup.name}' (id:${groupId.serialize}).")
     }
 
@@ -840,9 +858,11 @@ class GroupApiService14(
   }
 
   def groupDetails(id: NodeGroupId)(implicit qc: QueryContext): IOResult[JRGroup] = {
-    readGroup.getNodeGroup(id).map {
-      case (g, c) =>
-        JRGroup.fromGroup(g, c, None)
+    for {
+      visible <- visibleNodeIds
+      gc      <- readGroup.getNodeGroup(id)
+    } yield {
+      JRGroup.fromGroup(gc._1, gc._2, None, visible)
     }
   }
 
@@ -865,7 +885,7 @@ class GroupApiService14(
               .chainError(s"Could not reload Group ${sid} details")
 
           case None =>
-            JRGroup.fromGroup(group, cat, None)(using qc).succeed
+            visibleNodeIds(using qc).map(visible => JRGroup.fromGroup(group, cat, None, visible)(using qc))
         }
     }
   }
@@ -917,9 +937,12 @@ class GroupApiService14(
         )
       }
     }
-    readGroup
-      .getFullGroupLibrary()
-      .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None)(using qc))
+    for {
+      visible <- visibleNodeIds
+      c       <- readGroup.getFullGroupLibrary()
+    } yield {
+      JRFullGroupCategory.fromCategory(filterSystem(c), None, visible)(using qc)
+    }
   }
 
   def getCategoryDetails(id: NodeGroupCategoryId)(implicit qc: QueryContext): IOResult[JRMinimalGroupCategory] = {

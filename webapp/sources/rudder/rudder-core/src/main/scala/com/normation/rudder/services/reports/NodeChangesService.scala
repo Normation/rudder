@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.box.*
 import com.normation.errors.*
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.policies.Rule
@@ -45,6 +44,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.tenants.QueryContext
 import com.normation.zio.*
 import net.liftweb.common.*
 import org.joda.time.DateTime
@@ -59,7 +59,7 @@ opaque type ChangesByRule = Map[RuleId, Map[Interval, Int]]
 object ChangesByRule {
   private[reports] def apply(map: Map[RuleId, Map[Interval, Int]]): ChangesByRule = map
   def empty: ChangesByRule = Map.empty
-  def of(head: (RuleId, Map[Interval, Int])): ChangesByRule = Map(head)
+  def of(entries: (RuleId, Map[Interval, Int])*): ChangesByRule = Map(entries*)
 
   extension (self: ChangesByRule) {
     private[reports] def getWithFallback(k: RuleId, defaultMap: => Map[Interval, Int])(i: Interval, default: Int): Int         =
@@ -102,7 +102,7 @@ trait NodeChangesService {
    * Get all changes for the last "changesMaxAge" and
    * regroup them by rule, and by interval of 6 hours.
    */
-  def countChangesByRuleByInterval(): Box[(Long, ChangesByRule)]
+  def countChangesByRuleByInterval(): IOResult[(Long, ChangesByRule)]
 
   /**
    * Get the changes for the given interval, which must be one of the
@@ -110,7 +110,9 @@ trait NodeChangesService {
    * Optionally give a limit number of report to return (0 or negative number
    * will be considered as None)
    */
-  def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
+  def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int])(implicit
+      qc: QueryContext
+  ): IOResult[Seq[ResultRepairedReport]]
 
   /**
    * For the given service, what are the intervals currently valid?
@@ -175,7 +177,7 @@ class NodeChangesServiceImpl(
    * Get all changes for the last "reportsRepository.maxChangeTime" and
    * regroup them by rule, and by interval of 6 hours.
    */
-  override def countChangesByRuleByInterval(): Box[(Long, ChangesByRule)] = {
+  override def countChangesByRuleByInterval(): IOResult[(Long, ChangesByRule)] = {
     logger.debug(s"Get all changes on all rules")
     val beginTime = System.currentTimeMillis()
     val intervals = getCurrentValidIntervals(None)
@@ -189,12 +191,12 @@ class NodeChangesServiceImpl(
     }
   }
 
-  override def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
-    for {
-      changes <- reportsRepository.getChangeReportsByRuleOnInterval(ruleId, interval, limit)
-    } yield {
-      changes
-    }
+  override def getChangesForInterval(
+      ruleId:   RuleId,
+      interval: Interval,
+      limit:    Option[Int]
+  )(implicit qc: QueryContext): IOResult[Seq[ResultRepairedReport]] = {
+    reportsRepository.getChangeReportsByRuleOnInterval(ruleId, interval, limit)
   }
 }
 
@@ -331,10 +333,10 @@ class CachedNodeChangesServiceImpl(
    * background processes where throughout is more
    * important than responsiveness.
    */
-  def update(lowestId: Long, highestId: Long): Box[Unit] = {
+  def update(lowestId: Long, highestId: Long): IOResult[Unit] = {
     if (lowestId < highestId) {
-      addUpdate(ChangesUpdate.For(lowestId, highestId)).toBox
-    } else Full(())
+      addUpdate(ChangesUpdate.For(lowestId, highestId))
+    } else ZIO.unit
   }
 
   def addUpdate(update: ChangesUpdate): IOResult[Unit] = {
@@ -405,18 +407,17 @@ class CachedNodeChangesServiceImpl(
   protected def initCache(): IOResult[ChangesCache] = {
     for {
       _       <- ReportLoggerPure.Changes.debug("Rule Changes cache initialization...")
-      changes <- (try {
-                   changeService.countChangesByRuleByInterval()
-                 } catch {
-                   case ex: OutOfMemoryError =>
+      // the computation can run out of memory on very large change sets (see issue #7735); as an IOResult it
+      // is now a defect, so we catch it, log it and turn it into a typed error rather than crashing the fiber.
+      changes <- changeService.countChangesByRuleByInterval().catchSomeDefect {
+                   case _: OutOfMemoryError =>
                      val msg = {
                        "Rule Changes cache can not be updated du to OutOfMemory error. That mean that either your installation is missing " +
                        "RAM (see: https://docs.rudder.io/reference/current/administration/performance.html#_java_out_of_memory_error) or that the number of recent changes is " +
                        "overwhelming, and you hit: https://issues.rudder.io/issues/7735. Look here for workaround"
                      }
-                     ReportLoggerPure.Changes.logEffect.error(msg)
-                     Failure(msg)
-                 }).toIO
+                     ReportLoggerPure.Changes.error(msg) *> Inconsistency(msg).fail
+                 }
       _       <- ReportLoggerPure.Changes.debug("NodeChanges cache initialized")
       _       <- ReportLoggerPure.Changes.trace("NodeChanges cache content: " + changes._2.debugString)
     } yield {
@@ -468,8 +469,8 @@ class CachedNodeChangesServiceImpl(
    * It's actually just using the cache. It may not be up to date
    * if the cache wasn't initialized
    */
-  override def countChangesByRuleByInterval(): Box[(Long, ChangesByRule)] = {
-    val prog = for {
+  override def countChangesByRuleByInterval(): IOResult[(Long, ChangesByRule)] = {
+    for {
       opt <- cache.get
     } yield {
       opt match {
@@ -477,14 +478,16 @@ class CachedNodeChangesServiceImpl(
         case None    => (-1L, ChangesByRule.empty)
       }
     }
-
-    prog.toBox
   }
 
   /**
    * Get the changes for the given interval, without using the cache.
    */
-  override def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
+  override def getChangesForInterval(
+      ruleId:   RuleId,
+      interval: Interval,
+      limit:    Option[Int]
+  )(implicit qc: QueryContext): IOResult[Seq[ResultRepairedReport]] = {
     changeService.getChangesForInterval(ruleId, interval, limit)
   }
 

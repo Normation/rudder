@@ -103,7 +103,7 @@ class NodePropertiesServiceImpl(
                         .mkString}"
                   )
             }
-            gid -> resolved
+            gid -> TenantScopedGroupProps(group.nodeGroup.security, resolved)
         }
       }
       mergedNodes      = {

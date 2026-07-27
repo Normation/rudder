@@ -198,4 +198,35 @@ class TenantAccessGrantTest extends Specification {
       byTenants(access("zoneA", Read)).restrictToWrite.canSee(zoneATag) must beFalse
     }
   }
+
+  // delegation bound used when an actor creates/updates something carrying a tenant grant it chooses
+  // (e.g. an API account): the delegated grant may never be wider than the actor's writable reach.
+  "delegableTo" should {
+    val all  = TenantAccessGrant.All
+    val none = TenantAccessGrant.None
+    val rwAB = byTenants(access("zoneA", ReadWrite), access("zoneB", ReadWrite))
+
+    "let an admin (All) delegate any grant unchanged" in {
+      (all.delegableTo(all) must beRight(all: TenantAccessGrant)) and
+      (all.delegableTo(rwAB) must beRight(rwAB: TenantAccessGrant)) and
+      (all.delegableTo(none) must beRight(none: TenantAccessGrant))
+    }
+    "let a ByTenants(rw) actor delegate a subset of its writable tenants" in {
+      val requested = byTenants(access("zoneA", Read))
+      rwAB.delegableTo(requested) must beRight(requested: TenantAccessGrant)
+    }
+    "refuse widening to a tenant the actor can not write (SecurityError)" in {
+      rwAB.delegableTo(byTenants(access("zoneC", ReadWrite))) must beLeft.like { case e => e must haveClass[TenantSecurityError] }
+    }
+    "refuse a ByTenants actor delegating All" in {
+      rwAB.delegableTo(all) must beLeft
+    }
+    "let any actor delegate None" in {
+      (rwAB.delegableTo(none) must beRight(none: TenantAccessGrant)) and
+      (none.delegableTo(none) must beRight(none: TenantAccessGrant))
+    }
+    "refuse a read-only actor (no writable tenant) delegating a tenant grant" in {
+      byTenants(access("zoneA", Read)).delegableTo(byTenants(access("zoneA", Read))) must beLeft
+    }
+  }
 }

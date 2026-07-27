@@ -254,7 +254,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
 
   def reportingService(statusReports: Map[NodeId, NodeStatusReport]): ReportingService = {
     val ref = Ref.make(statusReports).runNow
-    new ReportingServiceImpl(new NodeStatusReportRepositoryImpl(new InMemoryNodeStatusReportStorage(ref), ref))
+    new ReportingServiceImpl(new NodeStatusReportRepositoryImpl(new InMemoryNodeStatusReportStorage(ref), ref, nodeFactRepo))
   }
 
   val complianceAPIService: ComplianceAPIService = {

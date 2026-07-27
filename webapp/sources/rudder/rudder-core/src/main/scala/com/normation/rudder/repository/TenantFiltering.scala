@@ -167,9 +167,17 @@ class RoTenantDirectiveRepo(
     underlying.getActiveTechniqueCategory(id).map(checkTenant.flatMap(_))
   }
 
-  // Navigation methods (delegate, tenant filtering would break semantic)
-  override def activeTechniqueBreadCrump(id: ActiveTechniqueId)(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] =
-    underlying.activeTechniqueBreadCrump(id)
+  // Navigation method: the ancestor path can not be meaningfully pruned (a partial breadcrumb is nonsense),
+  // so instead gate on the LEAF - if the caller can not see the active technique, do not reveal its ancestry
+  // (no existence oracle). When it is visible, the full path to root is contextually fine.
+  override def activeTechniqueBreadCrump(
+      id: ActiveTechniqueId
+  )(using qc: QueryContext): IOResult[List[ActiveTechniqueCategory]] = {
+    underlying.getActiveTechniqueByActiveTechnique(id).map(checkTenant.flatMap(_)).flatMap {
+      case None    => List.empty[ActiveTechniqueCategory].succeed
+      case Some(_) => underlying.activeTechniqueBreadCrump(id)
+    }
+  }
 
   // active category only has ID for children, we can't filter yet
   override def getActiveTechniqueLibrary(using qc: QueryContext): IOResult[ActiveTechniqueCategory] = {
@@ -479,8 +487,14 @@ class RoTenantNodeGroupRepo(
     }
   }
 
-  override def categoryExists(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean] =
-    underlying.categoryExists(id)
+  // a category the caller can not see must read as "does not exist" - otherwise this is an existence oracle
+  // (reachable e.g. through the archive API). So: exists AND visible.
+  override def categoryExists(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[Boolean] = {
+    underlying.categoryExists(id).flatMap {
+      case false => false.succeed
+      case true  => underlying.getGroupCategory(id).map(checkTenant.check(_).isDefined)
+    }
+  }
 
   override def getNodeGroupCategory(id: NodeGroupId)(using qc: QueryContext): IOResult[NodeGroupCategory] = {
     underlying
@@ -506,7 +520,11 @@ class RoTenantNodeGroupRepo(
   override def getParents_NodeGroupCategory(id: NodeGroupCategoryId)(using qc: QueryContext): IOResult[List[NodeGroupCategory]] =
     underlying.getParents_NodeGroupCategory(id).map(checkTenant.filter(_))
 
-  // deprecated method returning a plain value: the root category is always visible (`Open`), so delegate
+  // Deprecated method returning a PLAIN value (no effect), so it can not do the IO lookups a real tenant
+  // check needs. Safe by invariant: the root category is always `Open`, hence visible to everyone (its `Pure`
+  // sibling below encodes exactly that check). Its `items` (`RuleTargetInfo`) carry no `SecurityTag`, so
+  // per-item pruning is not possible here regardless; group visibility is enforced on the group getters.
+  // Prefer `getRootCategoryPure()` in new code.
   override def getRootCategory()(using qc: QueryContext): NodeGroupCategory =
     underlying.getRootCategory()
 
@@ -843,8 +861,12 @@ class RoTenantRuleCategoryRepo(
     cat.modify(_.childs).setTo(cat.childs.collect { case c if qc.accessGrant.canSee(c.security) => filterTree(c) })
   }
 
-  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[Option[RuleCategory]] =
-    underlying.get(id)
+  override def get(id: RuleCategoryId)(using qc: QueryContext): IOResult[Option[RuleCategory]] = {
+    // `RuleCategory` carries its child subtree, so prune the invisible children here too - otherwise
+    // `GET /rules/categories/{id}` would disclose categories the caller can not see (getRootCategory,
+    // one method below, already prunes; this was the inconsistency).
+    underlying.get(id).map(_.map(filterTree))
+  }
 
   override def getRootCategory()(using qc: QueryContext): IOResult[RuleCategory] =
     underlying.getRootCategory().map(filterTree)

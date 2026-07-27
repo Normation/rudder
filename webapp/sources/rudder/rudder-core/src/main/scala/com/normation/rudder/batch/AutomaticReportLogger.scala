@@ -37,7 +37,7 @@
 
 package com.normation.rudder.batch
 
-import com.normation.errors.*
+import com.normation.box.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.AllReportLogger
 import com.normation.rudder.domain.logger.ScheduledJobLogger
@@ -117,7 +117,7 @@ class AutomaticReportLogger(
           case Empty =>
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
             val isSuccess = (for {
-              hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind).toIO
+              hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind)
               nodes          <- nodeFactRepository.getAll()
               rules          <- ruleRepository.getAll(true)
               directives     <- directiveRepository.getFullDirectiveLibrary()
@@ -144,7 +144,7 @@ class AutomaticReportLogger(
 
           case Full(lastId) =>
             logger.trace("***** get current highest report id")
-            val highest = reportsRepository.getHighestId()
+            val highest = reportsRepository.getHighestId().toBox
             logger.trace(s"***** highest report id = ${highest} and last processed id = ${lastId}")
             highest match {
               case Full(currentId) if (currentId > lastId.getOrElse(0L)) =>
@@ -191,7 +191,7 @@ class AutomaticReportLogger(
           directives: FullActiveTechniqueCategory
       ): Box[Long] = {
         for {
-          reports <- reportsRepository.getReportsByKindBetween(fromId, Some(maxId), batchSize, reportsKind)
+          reports <- reportsRepository.getReportsByKindBetween(fromId, Some(maxId), batchSize, reportsKind).toBox
         } yield {
           // when we get an empty here, it means that we don't have more non-compliant report
           // in the interval, just return the max id

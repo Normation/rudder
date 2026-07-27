@@ -42,6 +42,7 @@ import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.normation.zio.*
 import zio.*
 import zio.syntax.ToZio
@@ -155,8 +156,17 @@ class ScoreServiceImpl(
     }
   }
 
+  // write-side tenant guard: a tenant-restricted actor must not mutate the score of a node it can
+  // not see. `All` (the system paths - node-deletion callbacks) skips the check, so cleanup still runs even
+  // when the node fact has already been removed.
+  private def checkNodeWritable(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
+    if (qc.accessGrant == TenantAccessGrant.All) ZIO.unit
+    else nodeFactRepo.get(nodeId).notOptional(s"Node '${nodeId.value}' is not accessible").unit
+  }
+
   def deleteNodeScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
     for {
+      _         <- checkNodeWritable(nodeId)
       _         <- cache.update(_.removed(nodeId))
       newScores <- scoreCache.updateAndGet(_.removed(nodeId))
       _         <- scoreRepository.deleteScore(Seq(nodeId), None)
@@ -221,6 +231,7 @@ class ScoreServiceImpl(
 
   override def removeScore(nodeId: NodeId, scoreId: String)(implicit qc: QueryContext): IOResult[Unit] = {
     for {
+      _         <- checkNodeWritable(nodeId)
       scores    <- cache.updateAndGet(
                      _.updatedWith(nodeId)(_.map(gscore => gscore.copy(details = gscore.details.filterNot(_.scoreId == scoreId))))
                    )

@@ -47,8 +47,10 @@ import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.tenants.ChangeContext
 import com.normation.rudder.tenants.QueryContext
+import com.normation.rudder.tenants.TenantAccessGrant
 import com.softwaremill.quicklens.*
 import doobie.*
 import doobie.implicits.*
@@ -109,11 +111,14 @@ object NodeStatusReportRepositoryImpl {
   /*
    * Create a repo from a datastore, initially loading data from it.
    */
-  def makeAndInit(storage: NodeStatusReportStorage): IOResult[NodeStatusReportRepositoryImpl] = {
+  def makeAndInit(
+      storage:            NodeStatusReportStorage,
+      nodeFactRepository: NodeFactRepository
+  ): IOResult[NodeStatusReportRepositoryImpl] = {
     for {
       reports <- storage.getAll()
       ref     <- Ref.make(reports)
-    } yield new NodeStatusReportRepositoryImpl(storage, ref)
+    } yield new NodeStatusReportRepositoryImpl(storage, ref, nodeFactRepository)
   }
 
 }
@@ -124,8 +129,9 @@ object NodeStatusReportRepositoryImpl {
  * The cache is update along with an underlying cold storage on update/delete operation.
  */
 class NodeStatusReportRepositoryImpl(
-    storage:        NodeStatusReportStorage,
-    initialReports: Ref[Map[NodeId, NodeStatusReport]]
+    storage:            NodeStatusReportStorage,
+    initialReports:     Ref[Map[NodeId, NodeStatusReport]],
+    nodeFactRepository: NodeFactRepository
 ) extends NodeStatusReportRepository {
 
   val cache: Ref[Map[NodeId, NodeStatusReport]] = initialReports
@@ -138,15 +144,40 @@ class NodeStatusReportRepositoryImpl(
     } yield ()
   }
 
+  /*
+   * A `NodeStatusReport` carries no security tag of its own; its tenant is the tenant of its node. The cache
+   * is populated for ALL nodes (under `systemQC`, correct - see convention 600), so reads must be restricted
+   * to the nodes visible in the caller's `QueryContext`, or a tenant-restricted actor would see (and count)
+   * every tenant's compliance. An `All` grant (the compute/maintenance paths use `systemQC`) short-circuits,
+   * so that hot path pays nothing.
+   */
+  private def visibleNodeIds(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
+    nodeFactRepository.getNodeAndServerIds().map(_.nodeIds)
+  }
+
   override def getAll()(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
-    cache.get
+    if (qc.accessGrant == TenantAccessGrant.All) cache.get
+    else {
+      for {
+        c       <- cache.get
+        visible <- visibleNodeIds
+      } yield c.view.filterKeys(visible.contains).toMap
+    }
   }
 
   override def getNodeStatusReports(nodeIds: Set[NodeId])(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
     // performance: this is called for each batch of the compliance computation, so do one map
     // lookup by asked node, not a filter of the whole cache (which is proportional to the total
-    // number of nodes, not to the batch size)
-    cache.get.map(c => nodeIds.iterator.flatMap(id => c.get(id).map(id -> _)).toMap)
+    // number of nodes, not to the batch size). The compute path uses `systemQC` (All), which skips
+    // the visibility restriction; a tenant-restricted caller only ever gets its visible nodes.
+    if (qc.accessGrant == TenantAccessGrant.All) {
+      cache.get.map(c => nodeIds.iterator.flatMap(id => c.get(id).map(id -> _)).toMap)
+    } else {
+      for {
+        c       <- cache.get
+        visible <- visibleNodeIds
+      } yield nodeIds.iterator.filter(visible.contains).flatMap(id => c.get(id).map(id -> _)).toMap
+    }
   }
 
   override def saveNodeStatusReports(

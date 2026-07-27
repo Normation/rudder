@@ -2159,7 +2159,8 @@ object RudderConfigInit {
       )
     )
 
-    lazy val propertiesRepository: PropertiesRepository = InMemoryPropertiesRepository.make(nodeFactRepository).runNow
+    lazy val propertiesRepository: PropertiesRepository =
+      InMemoryPropertiesRepository.make(nodeFactRepository, tenantCheckLogic).runNow
 
     lazy val propertiesService: NodePropertiesService =
       new NodePropertiesServiceImpl(roLDAPParameterRepository, roNodeGroupRepository, nodeFactRepository, propertiesRepository)
@@ -2560,7 +2561,7 @@ object RudderConfigInit {
           new InventoryApi(inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
           new PluginApi(pluginSettingsService, pluginSystemService, PluginsInfo.pluginJsonInfos.succeed),
           new PluginInternalApi(pluginSystemService),
-          new RecentChangesAPI(recentChangesService),
+          new RecentChangesAPI(recentChangesService, roRuleRepository),
           new RulesInternalApi(ruleInternalApiService, ruleApiService13),
           new GroupsInternalApi(groupInternalApiService),
           new CampaignApi(
@@ -3527,7 +3528,7 @@ object RudderConfigInit {
       (for {
         x <- Ref.make(Map[NodeId, NodeStatusReport]())
         s  = new JdbcNodeStatusReportStorage(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
-      } yield new NodeStatusReportRepositoryImpl(s, x)).runNow
+      } yield new NodeStatusReportRepositoryImpl(s, x, nodeFactRepository)).runNow
     }
 
     lazy val computeNodeStatusReportService: ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook = {
@@ -3554,7 +3555,7 @@ object RudderConfigInit {
     lazy val pgIn                  = new PostgresqlInClause(70)
     lazy val findExpectedRepo      = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
     lazy val updateExpectedRepo    = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-    lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
+    lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie, nodeFactRepository)
     lazy val reportsRepository     = reportsRepositoryImpl
     lazy val dataSourceProvider    = new RudderDatasourceProvider(
       RUDDER_JDBC_DRIVER,

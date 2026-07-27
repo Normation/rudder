@@ -43,6 +43,7 @@ import com.normation.eventlog.EventLogRequest.*
 import com.normation.eventlog.EventLogType
 import com.normation.rudder.domain.eventlog.EventTypeFactory
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.tenants.QueryContext
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.utils.DateFormaterService
 import enumeratum.Enum
@@ -79,7 +80,8 @@ object RestEventLog {
   implicit val encoder:            JsonEncoder[RestEventLog] = DeriveJsonEncoder.gen[RestEventLog]
 
   implicit def transformer(implicit
-      eventLogDetail: EventLogDetailsGenerator
+      eventLogDetail: EventLogDetailsGenerator,
+      qc:             QueryContext
   ): Transformer[EventLog, RestEventLog] = {
     Transformer
       .define[EventLog, RestEventLog]

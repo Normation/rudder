@@ -142,7 +142,7 @@ object JsCommands {
     // lowercase, `>`-terminated form and let `</SCRIPT>`, `</script >`, `</script/` through). We insert a
     // backslash right after `<` via a look-ahead, so the rest (case, terminator) is preserved untouched.
     private def fixEndScriptTag(in: String): String =
-      """(?i)<(?=/script[\s/>])""".r.replaceAllIn(in, """<\\""")
+      """\<\/script\>""".r.replaceAllIn(in, """<\\/script>""")
   }
 
   object ScriptModule {

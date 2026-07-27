@@ -1,0 +1,82 @@
+description: (N3) a tenant user only gets change counts for rules it can see - the untagged 'rule1' is admin-only, so a zoneA user does not see it, only the zoneA+zoneB 'tenant-rule-1'
+method: GET
+url: /secure/api/changes
+user: zoneA
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRulesChanges",
+      "result" : "success",
+      "data" : {
+        "tenant-rule-1" : [
+          {
+            "start" : "1970-01-01T00:00:00Z",
+            "end" : "1970-01-01T00:00:01Z",
+            "changes" : 3
+          }
+        ]
+      }
+    }
+---
+description: (N3) a user whose tenant matches none of the rules with changes gets an empty change set
+method: GET
+url: /secure/api/changes
+user: zoneC
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRulesChanges",
+      "result" : "success",
+      "data" : {}
+    }
+---
+description: (N3) a tenant user cannot read repaired reports of a rule it cannot see (the untagged 'rule1'); the gate returns an empty list, no existence oracle
+method: GET
+url: /secure/api/changes/rule1?start=1970-01-01T00:00:00Z&end=1970-01-01T00:00:01Z
+user: zoneA
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRuleChange",
+      "result" : "success",
+      "data" : []
+    }
+---
+description: (N3) a tenant user can read repaired reports of a rule it can see ('tenant-rule-1' tagged zoneA+zoneB)
+method: GET
+url: /secure/api/changes/tenant-rule-1?start=1970-01-01T00:00:00Z&end=1970-01-01T00:00:01Z
+user: zoneA
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRuleChange",
+      "result" : "success",
+      "data" : [
+        {
+          "executionDate" : "1970-01-01T00:00:00Z",
+          "nodeId" : "node1",
+          "directiveId" : "directive1",
+          "component" : "Tenant component",
+          "value" : "",
+          "message" : "tenant change",
+          "executionTimestamp" : "1970-01-01T00:00:00Z"
+        }
+      ]
+    }
+---
+description: (N3) a user whose tenant does not include the rule's tenants cannot read its repaired reports (zoneC vs zoneA+zoneB rule)
+method: GET
+url: /secure/api/changes/tenant-rule-1?start=1970-01-01T00:00:00Z&end=1970-01-01T00:00:01Z
+user: zoneC
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRuleChange",
+      "result" : "success",
+      "data" : []
+    }
