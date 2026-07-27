@@ -74,6 +74,7 @@ import com.normation.rudder.users.JsonUser
 import com.normation.rudder.users.JsonUserFormData
 import com.normation.rudder.users.Serialisation.*
 import com.normation.rudder.users.TotpService
+import com.normation.rudder.users.TotpUserStatus
 import com.normation.rudder.users.UpdateUserInfo
 import com.normation.rudder.users.UserId
 import com.normation.rudder.users.UserInfo
@@ -256,13 +257,13 @@ class UserManagementApiImpl(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 
       (for {
-        users       <- userRepo.getAll()
-        allRoles    <- RudderRoles.getAllRoles
-        file         = userService.authConfig
-        roles        = allRoles.values.toSet
-        otpUsers    <- totpService.getEnabledUsers()
-        otpEnforced <- totpService.getGlobalStatus()
-        jsonUsers   <-
+        users        <- userRepo.getAll()
+        allRoles     <- RudderRoles.getAllRoles
+        file          = userService.authConfig
+        roles         = allRoles.values.toSet
+        otpStatusMap <- totpService.getAllUserStatus()
+        otpEnforced  <- totpService.getGlobalStatus()
+        jsonUsers    <-
           ZIO.foreach(users)(u => {
             implicit val currentRoles: Set[Role] = roles
             // we take last session to get last known roles and authz of the user
@@ -289,7 +290,7 @@ class UserManagementApiImpl(
 
               // depending on provider property configuration, we should merge or override roles
               val mainProviderRoleExtension = getProviderRoleExtensions().get(u.managedBy)
-              val otpEnabled                = otpUsers.contains(UserId(u.id))
+              val otpEnabled                = otpStatusMap.get(UserId(u.id)).exists(_ == TotpUserStatus.Enrolled)
 
               val userWithoutPermissions = transformUser(
                 u.id,

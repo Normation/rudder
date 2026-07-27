@@ -383,7 +383,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
       userIds:         List[String],
       trace:           EventTrace,
       isCaseSensitive: Boolean
-  ): IOResult[Set[String]] = {
+  ): UIO[Set[String]] = {
     /*
      * We need to modify only user:
      * - with status deleted and in the list of given users
@@ -414,7 +414,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
     }
   }
 
-  override def addUser(origin: String, userId: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
+  override def addUser(origin: String, userId: String, trace: EventTrace, isCaseSensitive: Boolean): UIO[Boolean] = {
     userBase.get
       .flatMap(m => {
         val current = m.collect { case (k, u) if u.managedBy == origin && u.status != UserStatus.Deleted => k }.toList
