@@ -115,8 +115,11 @@ class TextField(
         (JsTrue, currentPrefix, currentValue)
     }
     val initScript                                   = {
+      // escape `<` in the stored values so they can not close the inline <script>: `Str(_).toJsCmd`
+      // escapes for a JS string but not for the HTML script context. `<` only appears inside the JS string.
       Script(OnLoad(JsRaw(s"""
-       newInputText("${formId}", ${Str(currentValue).toJsCmd}, ${Str(currentPrefix).toJsCmd}, ${scriptEnabled.toJsCmd});
+       newInputText("${formId}", ${Str(currentValue).toJsCmd.replace("<", "\\u003c")}, ${Str(currentPrefix).toJsCmd
+          .replace("<", "\\u003c")}, ${scriptEnabled.toJsCmd});
        """))) // JsRaw ok, const
     }
 
@@ -847,8 +850,8 @@ class PasswordField(
     val initScript = {
       Script(OnLoad(JsRaw(s"""
        var passwordForm = new PasswordForm(
-         ${currentValue.map(Str(_).toJsCmd).getOrElse("undefined")}
-         , ${currentAlgo.map(x => Str(x.prefix).toJsCmd).getOrElse("undefined")}
+         ${currentValue.map(Str(_).toJsCmd.replace("<", "\\u003c")).getOrElse("undefined")}
+         , ${currentAlgo.map(x => Str(x.prefix).toJsCmd.replace("<", "\\u003c")).getOrElse("undefined")}
          , ${isScript}
          , ${Str(currentAction).toJsCmd}
          , ${hashes.toJsCmd}
