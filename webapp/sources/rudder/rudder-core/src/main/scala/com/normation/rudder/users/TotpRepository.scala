@@ -41,6 +41,8 @@ import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.util.*
+import zio.Ref
+import zio.UIO
 import zio.interop.catz.*
 
 trait TotpRepository {
@@ -95,4 +97,23 @@ class JdbcTotpRepository(doobie: Doobie) extends TotpRepository {
       getAllByUserSQL().to[Set].map(_.map(UserId(_))).transact(_)
     )
   }
+}
+
+class InMemoryTotpRepository(ref: Ref[Map[UserId, Totp]]) extends TotpRepository {
+  def getByUserId(userId: UserId): UIO[Option[Totp]] =
+    ref.get.map(_.get(userId))
+
+  def create(userId: UserId, totp: Totp): UIO[Unit] =
+    ref.update(_.updated(userId, totp))
+
+  def delete(userId: UserId): UIO[Unit] =
+    ref.update(_ - userId)
+
+  def getEnabledUsers(): UIO[Set[UserId]] =
+    ref.get.map(_.keySet)
+}
+
+object InMemoryTotpRepository {
+  def make(): UIO[InMemoryTotpRepository] =
+    Ref.make(Map.empty).map(InMemoryTotpRepository(_))
 }

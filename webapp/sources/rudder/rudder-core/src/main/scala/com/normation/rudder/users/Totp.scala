@@ -35,7 +35,13 @@
  */
 package com.normation.rudder.users
 
+import com.normation.errors.*
+import com.normation.utils.DateFormaterService
+import enumeratum.*
+import enumeratum.EnumEntry.Lowercase
 import java.time.Instant
+import zio.*
+import zio.json.enumeratum.EnumCodec
 
 opaque type UserId = String
 object UserId {
@@ -67,3 +73,60 @@ case class Totp(
     secret:  TotpSecret,
     created: Instant
 )
+
+/**
+ * Enforcement level for globally enforced TOTP.
+ * Derived globally from the configuration
+ */
+sealed trait TotpEnforcementLevel
+object TotpEnforcementLevel {
+  case object Enforced extends TotpEnforcementLevel
+  case object Disabled extends TotpEnforcementLevel
+  // case object Optional extends TotpEnforcementLevel // not used for now that we only have enforced configuration
+}
+
+/**
+ * Per-user enrollment state.
+ * This is the one exposed where we need to know if user OTP is defined or not yet
+ */
+sealed trait TotpUserStatus extends EnumEntry with Lowercase
+object TotpUserStatus       extends Enum[TotpUserStatus] with EnumCodec[TotpUserStatus] {
+  case object EnrollmentNeeded    extends TotpUserStatus
+  // derived from global enforcement level
+  case object EnrollmentNotNeeded extends TotpUserStatus
+  case object Enrolled            extends TotpUserStatus
+
+  extension (self: TotpUserStatus) {
+    def isEnabled: Boolean = self match {
+      case Enrolled                               => true
+      case EnrollmentNeeded | EnrollmentNotNeeded => false
+    }
+  }
+
+  // In case of not known enrollment, we can have "not enrolled" if enrollment is optional
+  def default(enforcement: TotpEnforcementLevel): TotpUserStatus = enforcement match {
+    case TotpEnforcementLevel.Enforced => EnrollmentNeeded
+    case TotpEnforcementLevel.Disabled => EnrollmentNotNeeded
+  }
+
+  override def values: IndexedSeq[TotpUserStatus] = findValues
+}
+
+/**
+ * Logic:
+ *  - if user does not exist, reject
+ *  - if user already has one, reject (we only support 1 OTP, to simplify management page, but WRT storage it could be extended to more)
+ */
+class UserTotpValidator(userRepository: UserRepository, totpRepository: TotpRepository) {
+  def validateUserCanCreateTotp(userId: UserId): IOResult[Unit] = {
+    for {
+      _ <- userRepository.get(userId.value).notOptional(s"User '${userId.value}' is not known, cannot create TOTP")
+      _ <- totpRepository.getByUserId(userId).reject {
+             case Some(value) =>
+               Inconsistency(
+                 s"User '${userId.value}' already has a TOTP (created on ${DateFormaterService.getDisplayDate(value.created)}), reset it first to create a new one"
+               )
+           }
+    } yield ()
+  }
+}

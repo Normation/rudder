@@ -26,8 +26,7 @@ init flags =
     let
         initModel =
             { contextPath = flags.contextPath
-            , needEnrollment = Nothing
-            , generatedSecret = Nothing
+            , mode = CodeVerification
             , code = ""
             , errorMsg = Nothing
             , isLoading = False
