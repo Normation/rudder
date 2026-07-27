@@ -1,18 +1,15 @@
 port module DirectiveRecentActivity exposing (..)
 
+import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
 import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
-import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Browser
 import Dict
-import Html exposing (Html, div, text)
+import Html exposing (Html, div)
 import Html.Attributes exposing (class)
-import List.Nonempty as NonEmptyList
-import Ordering exposing (Ordering)
 import Rudder.Table exposing (..)
 import Time exposing (Posix, Zone)
 import TimeZone
-import Utils.DateUtils exposing (posixToString)
 
 
 port errorNotification : String -> Cmd msg
@@ -39,35 +36,6 @@ type Msg
     | ActivityMessage ActivityMsg
 
 
-initTable : Zone -> Rudder.Table.Model Activity Msg
-initTable timezone =
-    let
-        columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity Msg)
-        columns =
-            NonEmptyList.Nonempty
-                { name = ColumnName "Id", renderHtml = .id >> String.fromInt >> text, ordering = Ordering.byField .id }
-                [ { name = ColumnName "Actor", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
-                , { name = ColumnName "Description"
-                  , renderHtml = .description >> toHtml
-                  , ordering = Ordering.byField (.description >> toString)
-                  }
-                , { name = ColumnName "Date", renderHtml = .date >> posixToString timezone >> text, ordering = Ordering.byField (.date >> Time.posixToMillis) }
-                ]
-
-        config =
-            buildConfig.newConfig columns
-                |> buildConfig.withOptions
-                    (buildOptions.newOptions
-                        |> buildOptions.withCustomizations
-                            (buildCustomizations.newCustomizations
-                                |> buildCustomizations.withTableContainerAttrs [ class "table-container" ]
-                                |> buildCustomizations.withTableAttrs [ class "no-footer dataTable" ]
-                            )
-                    )
-    in
-    Rudder.Table.init config []
-
-
 init :
     { directiveId : String
     , contextPath : String
@@ -83,8 +51,13 @@ init flags =
         zone =
             initTimeZone ()
 
+        initModel : Model
         initModel =
-            Model (DirectiveId flags.directiveId) (initTable zone) (ContextPath flags.contextPath) zone
+            { directiveId = DirectiveId flags.directiveId
+            , activityTable = initTable zone
+            , contextPath = ContextPath flags.contextPath
+            , zone = zone
+            }
 
         -- full text search on directive id to keep activity related to this directive
         search =

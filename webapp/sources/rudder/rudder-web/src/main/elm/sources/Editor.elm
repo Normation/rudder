@@ -1,8 +1,8 @@
 port module Editor exposing (..)
 
+import Activity.ActivityTable exposing (initTable)
 import Activity.ApiCalls exposing (getActivities, processActivityApiError)
 import Activity.DataTypes exposing (Activity, ActivityMsg(..), BodyParameters, ContextPath(..), Search, string2Search)
-import Activity.HtmlParserAdapter exposing (toHtml, toString)
 import Browser
 import Dict exposing (Dict)
 import Dict.Extra
@@ -21,21 +21,16 @@ import Either exposing (Either(..))
 import File
 import File.Download
 import File.Select
-import Html exposing (Html, text)
-import Html.Attributes exposing (class)
 import Http.Detailed as Detailed
 import Json.Decode exposing (Value)
 import List.Extra
-import List.Nonempty as NonEmptyList
 import Maybe.Extra
-import Ordering exposing (Ordering)
 import Random
-import Rudder.Table exposing (ColumnName(..), buildConfig, buildCustomizations, buildOptions, updateData)
+import Rudder.Table exposing (ColumnName(..), updateData)
 import Task
 import Time exposing (Posix, Zone)
 import TimeZone
 import UUID
-import Utils.DateUtils exposing (posixToString)
 
 
 
@@ -147,35 +142,6 @@ parseDraftsResponse json =
 
         Err e ->
             Notification errorNotification "Invalid drafts in local storage, please clean your local storage"
-
-
-initTable : Zone -> Rudder.Table.Model Activity Msg
-initTable timezone =
-    let
-        columns : NonEmptyList.Nonempty (Rudder.Table.Column Activity Msg)
-        columns =
-            NonEmptyList.Nonempty
-                { name = ColumnName "Id", renderHtml = .id >> String.fromInt >> text, ordering = Ordering.byField .id }
-                [ { name = ColumnName "Actor", renderHtml = .actor >> text, ordering = Ordering.byField .actor }
-                , { name = ColumnName "Description"
-                  , renderHtml = .description >> toHtml
-                  , ordering = Ordering.byField (.description >> toString)
-                  }
-                , { name = ColumnName "Date", renderHtml = .date >> posixToString timezone >> text, ordering = Ordering.byField (.date >> Time.posixToMillis) }
-                ]
-
-        config =
-            buildConfig.newConfig columns
-                |> buildConfig.withOptions
-                    (buildOptions.newOptions
-                        |> buildOptions.withCustomizations
-                            (buildCustomizations.newCustomizations
-                                |> buildCustomizations.withTableContainerAttrs [ class "table-container" ]
-                                |> buildCustomizations.withTableAttrs [ class "no-footer dataTable" ]
-                            )
-                    )
-    in
-    Rudder.Table.init config []
 
 
 filterTypes : List String
