@@ -65,7 +65,7 @@ object FileUtils {
 
   import FileError.*
 
-   /**
+  /**
    * Resolve symlinks on the deepest *existing* ancestor of `file` with `toRealPath`, then re-append
    * (and lexically normalize) the still-non-existing trailing components.
    *
