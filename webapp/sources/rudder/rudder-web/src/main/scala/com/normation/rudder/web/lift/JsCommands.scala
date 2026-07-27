@@ -136,8 +136,13 @@ object JsCommands {
       )
     }</script>
 
+    // Neutralise any `</script` sequence in the script body so a stored value can not break out of the
+    // enclosing <script> element. The HTML tokenizer ends script data on `</script` followed by
+    // whitespace, `/` or `>`, case-insensitively - so match exactly that (the previous regex only caught the
+    // lowercase, `>`-terminated form and let `</SCRIPT>`, `</script >`, `</script/` through). We insert a
+    // backslash right after `<` via a look-ahead, so the rest (case, terminator) is preserved untouched.
     private def fixEndScriptTag(in: String): String =
-      """\<\/script\>""".r.replaceAllIn(in, """<\\/script>""")
+      """(?i)<(?=/script[\s/>])""".r.replaceAllIn(in, """<\\""")
   }
 
   object ScriptModule {
