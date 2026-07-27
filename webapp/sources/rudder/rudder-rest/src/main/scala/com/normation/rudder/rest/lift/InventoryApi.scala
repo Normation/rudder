@@ -50,12 +50,43 @@ import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.implicits.*
+import com.normation.utils.FileUtils
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL.*
 import zio.*
 import zio.syntax.*
+
+object InventoryApi {
+
+  val sigExtension = ".sign"
+
+  /*
+   * Compute the on-disk name to use for the uploaded signature file.
+   *
+   * SECURITY:`rawSigFileName` is the attacker-controlled multipart file name. We only ever work
+   * on its basename (`File(_).name`), so that a path such as `pwn/../../../etc/cron.d/pwn` can never
+   * escape the incoming inventory directory. For a legitimate upload (a bare file name, no directory)
+   * this is byte-identical to the previous behaviour.
+   *
+   * We keep the `.gz` compression marker and ensure a `.sign` extension when the uploaded signature
+   * does not already carry one.
+   */
+  def signatureFileName(rawSigFileName: String): String = {
+    val sigFilename = File(rawSigFileName).name
+    // remove gz extension for sig name comparison
+    val simpleOrig  =
+      if (sigFilename.endsWith(".gz")) sigFilename.substring(0, sigFilename.length - 3) else sigFilename
+    if (sigFilename.startsWith(simpleOrig)) { // assume extension is ok
+      sigFilename
+    } else {
+      // we assume that anything that is not ending by .gz is a simple signature, whatever its extension
+      val ext = sigExtension + (if (sigFilename.endsWith(".gz")) ".gz" else "")
+      simpleOrig + ext
+    }
+  }
+}
 
 class InventoryApi(
     inventoryFileWatcher: InventoryFileWatcher,
@@ -100,9 +131,8 @@ class InventoryApi(
    */
   object UploadInventory extends LiftApiModule0 {
     val schema: API.UploadInventory.type = API.UploadInventory
-    val FILE         = "file"
-    val SIG          = "signature"
-    val sigExtension = ".sign"
+    val FILE = "file"
+    val SIG  = "signature"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       def writeFile(item: FileParamHolder, file: File) = {
@@ -112,30 +142,18 @@ class InventoryApi(
       }
       def parseInventory(pretty: Boolean, inventoryFile: FileParamHolder, signatureFile: FileParamHolder): IOResult[String] = {
         // here, we are at the end of our world. Evaluate ZIO and see what happen.
-        // do not take the whole path as it can lead to path traversal, just the filename
-        val originalFilename = File(inventoryFile.fileName).name
-        val sigFilename      = File(signatureFile.fileName).name
-
-        // for the signature, we want:
-        // - to assume the signature is for the given inventory, so make the name matches
-        // - still keep the extension so that we do what is needed for compressed file. No extension == assume non compressed
-        val signatureFilename = {
-          // remove gz extension for sig name comparison
-          val simpleOrig =
-            if (sigFilename.endsWith(".gz")) sigFilename.substring(0, sigFilename.size - 3) else sigFilename
-          if (signatureFile.fileName.startsWith(simpleOrig)) { // assume extension is ok
-            signatureFile.fileName
-          } else {
-            // we assume that anything that is not ending by .gz is a simple signature, whatever its extension
-            val ext = sigExtension + (if (signatureFile.fileName.endsWith(".gz")) ".gz" else "")
-
-            simpleOrig + ext
-          }
-        }
+        // SECURITY: the multipart file names are attacker-controlled. We only ever keep their
+        // basename (see InventoryApi.signatureFileName / File(_).name) so that a crafted name like
+        // `pwn/../../../etc/cron.d/pwn` cannot escape the incoming inventory directory, and we
+        // additionally route both writes through FileUtils.sanitizePath as a defense-in-depth jail.
+        val originalFilename  = File(inventoryFile.fileName).name
+        val signatureFilename = InventoryApi.signatureFileName(signatureFile.fileName)
 
         for {
-          _ <- writeFile(signatureFile, incomingInventoryDir / signatureFilename)
-          _ <- writeFile(inventoryFile, incomingInventoryDir / originalFilename)
+          sigPath <- FileUtils.sanitizePath(incomingInventoryDir, signatureFilename)
+          invPath <- FileUtils.sanitizePath(incomingInventoryDir, originalFilename)
+          _       <- writeFile(signatureFile, sigPath)
+          _       <- writeFile(inventoryFile, invPath)
         } yield s"Inventory '${originalFilename}' added to processing queue."
       }
 

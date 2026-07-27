@@ -65,19 +65,47 @@ object FileUtils {
 
   import FileError.*
 
+   /**
+   * Resolve symlinks on the deepest *existing* ancestor of `file` with `toRealPath`, then re-append
+   * (and lexically normalize) the still-non-existing trailing components.
+   *
+   * `toRealPath` only resolves paths that exist on disk. On a create/write path the target itself does
+   * not exist yet, so a naive `file.exists()`-guarded resolution leaves a symlinked *ancestor* (e.g.
+   * `<base>/link -> /etc`, then `<base>/link/newfile`) unresolved and the containment check becomes a
+   * purely lexical `startsWith` that a symlink defeats. Resolving the deepest existing ancestor closes
+   * that hole while still returning the real, symlink-free path for the containment test below.
+   */
+  private def resolveDeepestExisting(file: File): File = {
+    @tailrec
+    def rec(current: File, tail: List[String]): File = {
+      if (current.exists) {
+        // symlinks in the existing prefix are resolved by `toRealPath`; the non-existing tail is
+        // re-appended and `/` normalizes away any remaining `.`/`..` lexically.
+        File(tail.foldLeft(File(current.path.toRealPath()).path)((p, c) => p.resolve(c)).normalize())
+      } else {
+        current.parentOption match {
+          case Some(parent) => rec(parent, current.name :: tail)
+          case None         => File(tail.foldLeft(current.path)((p, c) => p.resolve(c)).normalize())
+        }
+      }
+    }
+    rec(file, Nil)
+  }
+
   /**
    * Check that `file` is contained into `baseFolder` after normalization. Return the normalized File.
    */
   def checkSanitizedIsIn(baseFolder: File, file: File): IOResult[File] = {
     // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
     for {
-      baseExists  <- IOResult.attempt(baseFolder.exists())
-      realBasePath = if (baseExists) File(baseFolder.path.toRealPath()) else baseFolder
-      fileExists  <- IOResult.attempt(file.exists())
-      realFilePath = if (fileExists) File(file.path.toRealPath()) else file
+      baseExists   <- IOResult.attempt(baseFolder.exists())
+      realBasePath  = if (baseExists) File(baseFolder.path.toRealPath()) else baseFolder
+      // resolve symlinks even when the target does not exist yet, so a symlinked ancestor cannot
+      // escape the jail on the create/write path (see `resolveDeepestExisting`).
+      realFilePath <- IOResult.attempt(resolveDeepestExisting(file))
       // `false` means we allow access to the base directory itself
-      withinBase  <- IOResult.attempt(realBasePath.contains(realFilePath, strict = false))
-      _           <- ZIO.when(!withinBase)(OutsideBaseDir(file.nameOption, realFilePath).fail)
+      withinBase   <- IOResult.attempt(realBasePath.contains(realFilePath, strict = false))
+      _            <- ZIO.when(!withinBase)(OutsideBaseDir(file.nameOption, realFilePath).fail)
     } yield {
       realFilePath
     }
