@@ -1540,7 +1540,6 @@ object RudderConfig extends Loggable {
   val propertyEngineService:               PropertyEngineService                    = rci.propertyEngineService
   val propertiesRepository:                PropertiesRepository                     = rci.propertiesRepository
   val propertiesService:                   NodePropertiesService                    = rci.propertiesService
-  val purgeDeletedInventories:             PurgeDeletedInventories                  = rci.purgeDeletedInventories
   val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares               = rci.purgeUnreferencedSoftwares
   val staticResourceRewrite:               StaticResourceRewrite                    = rci.staticResourceRewrite
   val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                      = rci.readOnlySoftwareDAO
@@ -1672,7 +1671,6 @@ case class RudderServiceApi(
     policyServerManagementService:       PolicyServerManagementService,
     updateDynamicGroupsService:          DynGroupUpdaterService,
     updateDynamicGroups:                 UpdateDynamicGroups,
-    purgeDeletedInventories:             PurgeDeletedInventories,
     purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares,
     databaseManager:                     DatabaseManager,
     automaticReportsCleaning:            AutomaticReportsCleaning,
@@ -2494,7 +2492,6 @@ object RudderConfigInit {
             userPropertyService,
             new NodeApiInheritedProperties(propertiesRepository),
             stringUuidGenerator,
-            DeleteMode.Erase, // only supported mode for Rudder 8.0
             complianceAPIService
           ),
           new ParameterApi(zioJsonExtractor, parameterApiService14),
@@ -2678,15 +2675,13 @@ object RudderConfigInit {
       LDAP_INVENTORIES_SOFTWARE_BASEDN,
       "Pending inventories"
     )
-    lazy val pendingNodesDit     = pendingNodesDitImpl
-    lazy val removedNodesDitImpl =
-      new InventoryDit(DN("ou=Removed Inventories", LDAP_INVENTORIES_BASEDN), LDAP_INVENTORIES_SOFTWARE_BASEDN, "Removed Servers")
+    lazy val pendingNodesDit = pendingNodesDitImpl
     lazy val rudderDitImpl: RudderDit = new RudderDit(DN("ou=Rudder", LDAP_BASEDN))
     lazy val rudderDit = rudderDitImpl
     lazy val nodeDitImpl: NodeDit = new NodeDit(LDAP_BASEDN)
     lazy val nodeDit = nodeDitImpl
     lazy val inventoryDitService: InventoryDitService =
-      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+      new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl)
     lazy val stringUuidGenerator: StringUuidGenerator = new StringUuidGeneratorImpl
     lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
     lazy val ldapEntityMapper: LDAPEntityMapper =
@@ -2758,7 +2753,7 @@ object RudderConfigInit {
     lazy val queryParser        = CmdbQueryParser.jsonStrictParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
     lazy val queryRawParser     = CmdbQueryParser.jsonRawParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
     lazy val inventoryMapper: InventoryMapper =
-      new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+      new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl)
 
     lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryRawParser)
 
@@ -2940,7 +2935,8 @@ object RudderConfigInit {
         BootstrapLogger.Early.LDAP,
         new CheckLdapConnection(rwLdap),
         new CheckAddSpecialNodeGroupsDescription(rwLdap),
-        new CheckRemoveRuddercSetting(rwLdap)
+        new CheckRemoveRuddercSetting(rwLdap),
+        new RemoveDeletedInventoryBranch(rwLdap)
       )
 
       earlyLdapChecks.checks()
@@ -3719,7 +3715,6 @@ object RudderConfigInit {
         new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository)
         :: new CloseNodeConfiguration(updateExpectedRepo)
         :: new DeletePolicyServerPolicies(policyServerManagementService)
-        :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)
         :: new CleanUpCFKeys()
         :: new CleanUpNodePolicyFiles("/var/rudder/share")
         :: Nil
@@ -3804,7 +3799,7 @@ object RudderConfigInit {
 
     // These checks are done very early, before even looking for LDAP connection.
     // They should not use any dependencies that should not be part of the root of dependency tree
-    // for initialisation of services.
+    // for initialization of services.
     lazy val earlyChecks = new OnceBootstrapChecks(
       "pre-LDAP/DB-connection checks",
       BootstrapLogger.Early,
@@ -3826,7 +3821,7 @@ object RudderConfigInit {
         stringUuidGenerator
       ),
       new CheckEditorTechniqueStatus(techniqueCheckSyncService),
-      new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
+      new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, rudderDitImpl, rwLdap),
       new CheckUsersFile(rudderUserListProvider),
       new CheckInitUserTemplateLibrary(
         rudderDitImpl,
@@ -4072,12 +4067,6 @@ object RudderConfigInit {
         )
       }
 
-      lazy val purgeDeletedInventories = new PurgeDeletedInventories(
-        new PurgeDeletedNodesImpl(rwLdap, removedNodesDitImpl, ldapFullInventoryRepository),
-        FiniteDuration(RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL.toLong, "hours"),
-        RUDDER_BATCH_PURGE_DELETED_INVENTORIES
-      )
-
       lazy val ldapSoftwareSave = new NameAndVersionIdFinder("check_name_and_version", roLdap, inventoryMapper, acceptedNodesDit)
 
       lazy val internalAcceptedQueryProcessor =
@@ -4153,7 +4142,6 @@ object RudderConfigInit {
       policyServerManagementService,
       dynGroupUpdaterService,
       dyngroupUpdaterBatch,
-      deprecated.purgeDeletedInventories,
       deprecated.purgeUnreferencedSoftwares,
       databaseManagerImpl,
       dbCleaner,

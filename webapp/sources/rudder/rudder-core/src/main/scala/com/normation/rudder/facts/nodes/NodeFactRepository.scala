@@ -92,10 +92,9 @@ trait NodeFactRepository {
   def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit]
 
   /*
-   * Get the status of the node, or RemovedStatus if it is
-   * not found.
+   * Get the status of the node, or None if it is not found.
    */
-  def getStatus(id: NodeId)(implicit qc: QueryContext): IOResult[InventoryStatus]
+  def getStatus(id: NodeId)(implicit qc: QueryContext): IOResult[Option[InventoryStatus]]
 
   /*
    * Translation between old inventory status and new SelectNodeStatus for IOResult methods
@@ -106,7 +105,6 @@ trait NodeFactRepository {
     status match {
       case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
       case PendingInventory  => f(qc, SelectNodeStatus.Pending)
-      case RemovedInventory  => Inconsistency("Node is missing").fail
     }
   }
 
@@ -119,7 +117,6 @@ trait NodeFactRepository {
     status match {
       case AcceptedInventory => f(qc, SelectNodeStatus.Accepted)
       case PendingInventory  => f(qc, SelectNodeStatus.Pending)
-      case RemovedInventory  => ZStream.fromZIO(Inconsistency("Node is missing").fail)
     }
   }
 
@@ -518,14 +515,14 @@ class CoreNodeFactRepository(
     } yield ()
   }
 
-  override def getStatus(id: NodeId)(implicit qc: QueryContext): IOResult[InventoryStatus] = {
+  override def getStatus(id: NodeId)(implicit qc: QueryContext): IOResult[Option[InventoryStatus]] = {
     getOnRef(acceptedNodes, id).flatMap {
       case None =>
         getOnRef(pendingNodes, id).flatMap {
-          case None => RemovedInventory.succeed
-          case _    => PendingInventory.succeed
+          case None => None.succeed
+          case _    => Some(PendingInventory).succeed
         }
-      case _    => AcceptedInventory.succeed
+      case _    => Some(AcceptedInventory).succeed
     }
   }
 
@@ -784,12 +781,8 @@ class CoreNodeFactRepository(
                                         }
                                    // then, we save that as the core node fact reference
                                    e <- nodeFact.rudderSettings.status match {
-                                          case RemovedInventory  => // this case is ignored, we don't delete node based on status value
-                                            StorageChangeEventSave.Noop(up.id, attrs).succeed
-                                          case PendingInventory  =>
-                                            saveOn(pendingNodes, up.toCore)
-                                          case AcceptedInventory =>
-                                            saveOn(acceptedNodes, up.toCore)
+                                          case PendingInventory  => saveOn(pendingNodes, up.toCore)
+                                          case AcceptedInventory => saveOn(acceptedNodes, up.toCore)
                                         }
                                    // finally, merge both events and return the final change event and run call backs on it
                                    es = s.updateWith(e).toChangeEvent(up.id, up.rudderSettings.status, cc)
@@ -848,22 +841,6 @@ class CoreNodeFactRepository(
               pending  <- getOnRef(pendingNodes, nodeId)
               accepted <- getOnRef(acceptedNodes, nodeId)
               e        <- (into, pending, accepted) match {
-                            case (RemovedInventory, Some(x), None)     =>
-                              deleteOn(pendingNodes, nodeId) *> NodeFactChangeEventCC(
-                                Refused(NodeFact.fromMinimal(x), SelectFacts.none),
-                                cc
-                              ).succeed
-                            case (RemovedInventory, None, Some(x))     =>
-                              deleteOn(acceptedNodes, nodeId) *> NodeFactChangeEventCC(
-                                Deleted(NodeFact.fromMinimal(x), SelectFacts.none),
-                                cc
-                              ).succeed
-                            case (RemovedInventory, Some(_), Some(x))  =>
-                              deleteOn(pendingNodes, nodeId) *>
-                              deleteOn(acceptedNodes, nodeId) *>
-                              NodeFactChangeEventCC(Deleted(NodeFact.fromMinimal(x), SelectFacts.none), cc).succeed
-                            case (RemovedInventory, None, None)        =>
-                              NodeFactChangeEventCC(Noop(nodeId, SelectFacts.none), cc).succeed
                             case (_, None, None)                       =>
                               Inconsistency(
                                 s"Error: node '${nodeId.value}' was not found in rudder (neither pending nor accepted nodes"
@@ -906,7 +883,7 @@ class CoreNodeFactRepository(
       for {
         _   <- lock.withLock
         cnf <- get(nodeId)(using cc.toQC, SelectNodeStatus.Any)
-        s   <- storage.delete(nodeId)(using SelectFacts.all)
+        s   <- storage.delete(nodeId)
         e   <- cnf match {
                  case Some(n) =>
                    if (n.rudderSettings.status == PendingInventory) {

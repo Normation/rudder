@@ -91,7 +91,7 @@ class FullInventoryRepositoryImpl(
    *
    */
   private def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Seq[(Boolean, DN)]] = {
-    val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
+    val status = Seq(AcceptedInventory, PendingInventory)
     ZIO.foreach(status) { x =>
       val d = dnMachine(id, x)
       con.exists(d).map(exists => (exists, d))
@@ -106,18 +106,17 @@ class FullInventoryRepositoryImpl(
       id:  ID,
       fdn: (ID, InventoryStatus) => DN
   ): LDAPIOResult[Option[(DN, InventoryStatus)]] = {
-    ZIO.foldLeft(Seq(AcceptedInventory, PendingInventory, RemovedInventory))(Option.empty[(DN, InventoryStatus)]) {
-      (current, inventory) =>
-        current match {
-          case None       =>
-            val testdn = fdn(id, inventory)
-            for {
-              res <- con.exists(testdn)
-            } yield {
-              if (res) Some((testdn, inventory)) else None
-            }
-          case Some(pair) => Some(pair).succeed
-        }
+    ZIO.foldLeft(Seq(AcceptedInventory, PendingInventory))(Option.empty[(DN, InventoryStatus)]) { (current, inventory) =>
+      current match {
+        case None       =>
+          val testdn = fdn(id, inventory)
+          for {
+            res <- con.exists(testdn)
+          } yield {
+            if (res) Some((testdn, inventory)) else None
+          }
+        case Some(pair) => Some(pair).succeed
+      }
 
     }
   }
@@ -162,7 +161,7 @@ class FullInventoryRepositoryImpl(
    */
   def getNodesForMachine(con: RwLDAPConnection, id: MachineUuid): LDAPIOResult[Map[InventoryStatus, Set[LDAPEntry]]] = {
 
-    val status   = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
+    val status   = Seq(PendingInventory, AcceptedInventory)
     val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN, dnMachine(id, x).toString))*)
 
     def machineForNodeStatus(con: RwLDAPConnection, inventoryStatus: InventoryStatus) = {
@@ -171,7 +170,7 @@ class FullInventoryRepositoryImpl(
 
     // only add keys for non empty node list
     for {
-      res <- ZIO.foreach(List(PendingInventory, AcceptedInventory, RemovedInventory)) { status =>
+      res <- ZIO.foreach(List(PendingInventory, AcceptedInventory)) { status =>
                machineForNodeStatus(con, status).map(r => (status, r))
              }
     } yield {
@@ -221,7 +220,7 @@ class FullInventoryRepositoryImpl(
    * and if no node, to the asked place.
    */
   override def move(id: MachineUuid, into: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = {
-    val priorityStatus = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
+    val priorityStatus = Seq(AcceptedInventory, PendingInventory)
     for {
       con              <- ldap
       nodes            <- getNodesForMachine(con, id)
@@ -252,7 +251,6 @@ class FullInventoryRepositoryImpl(
             intoStatus match {
               case AcceptedInventory => testAndMove(0)
               case PendingInventory  => testAndMove(1)
-              case RemovedInventory  => testAndMove(2)
             }
         }
       }

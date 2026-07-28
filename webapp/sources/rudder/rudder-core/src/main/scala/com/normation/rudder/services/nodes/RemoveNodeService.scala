@@ -34,13 +34,10 @@
  *
  *************************************************************************************
  */
-package com.normation.rudder.services.servers
+package com.normation.rudder.services.nodes
 
 import com.normation.errors.*
 import com.normation.inventory.domain.*
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.LDAPConstants.*
-import com.normation.ldap.sdk.*
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -52,14 +49,12 @@ import com.normation.rudder.hooks.RunNuCommand.SudoRun
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.services.nodes.DeletionResult.*
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
-import com.normation.rudder.services.servers.DeletionResult.*
+import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.tenants.*
 import com.normation.zio.*
-import com.unboundid.ldap.sdk.Modification
-import com.unboundid.ldap.sdk.ModificationType
-import enumeratum.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -88,18 +83,6 @@ object DeletionResult {
 
 }
 
-sealed trait DeleteMode extends EnumEntry {
-  def name: String
-}
-
-object DeleteMode extends Enum[DeleteMode] {
-
-  case object MoveToRemoved extends DeleteMode { val name = "move"  }
-  case object Erase         extends DeleteMode { val name = "erase" }
-
-  val values: IndexedSeq[DeleteMode] = findValues
-}
-
 /*
  * Unitary post-deletion action. They happen once the node is actually deleted and eventlog saved.
  * Typically, done for cleaning things or notifying other parts of rudder.
@@ -112,7 +95,7 @@ trait PostNodeDeleteAction {
   // a node can have several status (if inventories already deleted, and now in pending again for ex)
   // or zero (if only some things remain)
   // and it can optionally have a nodeInfo
-  def run(nodeId: NodeId, mode: DeleteMode, info: Option[CoreNodeFact], status: Set[InventoryStatus])(implicit
+  def run(nodeId: NodeId, info: Option[CoreNodeFact], status: Set[InventoryStatus])(implicit
       cc: ChangeContext
   ): UIO[Unit]
 }
@@ -127,7 +110,7 @@ object PostNodeDeleteAction {
     }
   }
 }
-import com.normation.rudder.services.servers.PostNodeDeleteAction.*
+import com.normation.rudder.services.nodes.PostNodeDeleteAction.*
 
 trait RemoveNodeService {
 
@@ -143,10 +126,10 @@ trait RemoveNodeService {
    */
 
   def removeNode(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
-    removeNodePure(nodeId, DeleteMode.MoveToRemoved).map(_ => Success)
+    removeNodePure(nodeId).map(_ => Success)
   }
 
-  def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]]
+  def removeNodePure(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]]
 }
 
 trait RemoveNodeBackend {
@@ -167,7 +150,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
     // here, we need to return "RemovedInventory" in case of missing node, so CoreNodeFactRepo #getStatus
     // is not what we want;
     backend.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Any).map {
-      case None    => Set(RemovedInventory)
+      case None    => Set()
       case Some(x) => Set(x.rudderSettings.status)
     }
   }
@@ -209,13 +192,12 @@ class RemoveNodeServiceImpl(
    * The main goal is to separate the clear cache as it could fail while the node is correctly deleted.
    * A failing clear cache should not be considered an error when deleting a Node.
    */
-  override def removeNodePure(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]] = {
+  override def removeNodePure(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[Option[CoreNodeFact]] = {
     // main logic, see help function below
     nodeId match {
       case Constants.ROOT_POLICY_SERVER_ID => Inconsistency("The root node cannot be deleted.").fail
       case _                               => {
         for {
-          _       <- NodeLoggerPure.Delete.debug(s"Deleting node with ID '${nodeId.value}' [mode:${mode.name}]")
           status  <- backend.findNodeStatuses(nodeId)
           -       <- NodeLoggerPure.Delete.debug(s"  - node '${nodeId.value}' has status: [${status.map(_.name).mkString(",")}]")
           info    <- Ref.make(Option.empty[CoreNodeFact]) // a place to store the maybe node info
@@ -223,7 +205,7 @@ class RemoveNodeServiceImpl(
           res1    <- if (status.contains(PendingInventory)) {
                        (for {
                          i <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Pending)
-                         r <- deletePendingNode(nodeId, mode)
+                         r <- deletePendingNode(nodeId)
                          _ <- info.set(i)
                        } yield r).catchAll(err => Error(err).succeed)
                      } else Success.succeed
@@ -232,7 +214,7 @@ class RemoveNodeServiceImpl(
                          i <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Accepted)
                          r <- i match {
                                 case None    => Success.succeed // perhaps deleted or something
-                                case Some(x) => info.set(Some(x)) *> deleteAcceptedNode(x, mode)
+                                case Some(x) => info.set(Some(x)) *> deleteAcceptedNode(x)
                               }
                        } yield r).catchAll(err => Error(err).succeed)
                      } else Success.succeed
@@ -242,7 +224,7 @@ class RemoveNodeServiceImpl(
           _       <- NodeLoggerPure.Delete.debug(s"-> execute clean-up actions for node '${nodeId.value}'")
           actions <- postNodeDeleteActions.get
           optInfo <- info.get
-          _       <- ZIO.foreachDiscard(actions)(_.run(nodeId, mode, optInfo, status))
+          _       <- ZIO.foreachDiscard(actions)(_.run(nodeId, optInfo, status))
           _       <- NodeLoggerPure.Delete.info(
                        s"Node '${nodeId.value}' ${optInfo.map(_.fqdn).getOrElse("")} was successfully deleted"
                      )
@@ -258,14 +240,14 @@ class RemoveNodeServiceImpl(
   ////////////////////////////////
 
   // delete pending node is just refusing it
-  def deletePendingNode(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
+  def deletePendingNode(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
     NodeLoggerPure.Delete.debug(s"-> deleting node with ID '${nodeId.value}' from pending nodes (refuse)") *>
     newNodeManager.refuse(nodeId).map(_ => DeletionResult.Success)
   }
 
-  // this is the core delete that is run on accepted node: pre hook, post hook, move to delete or erase
+  // this is the core delete that is run on accepted node: pre hook, post hook, erase
   // in that case, we do have a nodeInfo
-  def deleteAcceptedNode(nodeInfo: CoreNodeFact, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
+  def deleteAcceptedNode(nodeInfo: CoreNodeFact)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
 
     for {
       _       <- NodeLoggerPure.Delete.debug(s"-> deleting node with ID '${nodeInfo.id.value}' from accepted nodes")
@@ -277,7 +259,7 @@ class RemoveNodeServiceImpl(
                      PreHookFailed(a).succeed
                    case _ =>
                      for {
-                       _       <- NodeLoggerPure.Delete.debug(s"  - delete '${nodeInfo.id.value}' in repository (mode='${mode.name}')")
+                       _       <- NodeLoggerPure.Delete.debug(s"  - delete '${nodeInfo.id.value}' in LDAP")
                        _       <- backend.commitDeleteAccepted(nodeInfo)
                        _       <- NodeLoggerPure.Delete.debug(s"  - run node post hooks for '${nodeInfo.id.value}'")
                        postRun <- runPostHooks(hookEnv)
@@ -289,17 +271,6 @@ class RemoveNodeServiceImpl(
                      }
                  }
     } yield res
-  }
-
-  // delete a node for which we only have the inventory, so it's either deleted, or in accepted but somehow broken.
-  def deleteDeletedNode(nodeId: NodeId, mode: DeleteMode)(implicit cc: ChangeContext): IOResult[DeletionResult] = {
-    // if mode is move, done
-    if (mode == DeleteMode.MoveToRemoved) {
-      Success.succeed
-    } else { // erase
-      NodeLoggerPure.Delete.debug(s"-> erase '${nodeId.value}' from removed nodes") *>
-      backend.commitPurgeRemoved(nodeId).map(_ => Success)
-    }
   }
 
   // HOOKS //
@@ -396,7 +367,6 @@ class RemoveNodeFromGroups(
 
   override def run(
       nodeId: NodeId,
-      mode:   DeleteMode,
       info:   Option[CoreNodeFact],
       status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
@@ -428,7 +398,6 @@ class RemoveNodeFromGroups(
 class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRepository) extends PostNodeDeleteAction {
   override def run(
       nodeId: NodeId,
-      mode:   DeleteMode,
       info:   Option[CoreNodeFact],
       status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
@@ -447,7 +416,6 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
 class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementService) extends PostNodeDeleteAction {
   override def run(
       nodeId: NodeId,
-      mode:   DeleteMode,
       info:   Option[CoreNodeFact],
       status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
@@ -468,36 +436,10 @@ class DeletePolicyServerPolicies(policyServerManagement: PolicyServerManagementS
   }
 }
 
-// clean up certification key status (only in move mode, not erase)
-class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit: InventoryDit) extends PostNodeDeleteAction {
-  override def run(
-      nodeId: NodeId,
-      mode:   DeleteMode,
-      info:   Option[CoreNodeFact],
-      status: Set[InventoryStatus]
-  )(implicit cc: ChangeContext): UIO[Unit] = {
-    if (mode == DeleteMode.MoveToRemoved) {
-      NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
-      (for {
-        con <- ldap
-        _   <- con.modify(
-                 deletedDit.NODES.NODE.dn(nodeId.value),
-                 new Modification(ModificationType.REPLACE, A_KEY_STATUS, UndefinedKey.value)
-               )
-      } yield ()).catchAll(err => {
-        NodeLoggerPure.Delete.error(
-          s"Error when removing the certification status of node key ${(nodeId, info).name}: ${err.fullMsg}"
-        )
-      })
-    } else ZIO.unit
-  }
-}
-
 // clean-up cfengine key - only possible if we still have an inventory
 class CleanUpCFKeys extends PostNodeDeleteAction {
   override def run(
       nodeId: NodeId,
-      mode:   DeleteMode,
       info:   Option[CoreNodeFact],
       status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {
@@ -561,7 +503,6 @@ class CleanUpNodePolicyFiles(varRudderShare: String) extends PostNodeDeleteActio
 
   override def run(
       nodeId: NodeId,
-      mode:   DeleteMode,
       info:   Option[CoreNodeFact],
       status: Set[InventoryStatus]
   )(implicit cc: ChangeContext): UIO[Unit] = {

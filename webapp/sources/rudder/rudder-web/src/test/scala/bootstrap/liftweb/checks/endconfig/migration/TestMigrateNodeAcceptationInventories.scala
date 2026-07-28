@@ -137,26 +137,19 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
 
   val softwareDN = new DN("ou=Inventories, cn=rudder-configuration")
 
-  val acceptedNodesDitImpl: InventoryDit = new InventoryDit(
+  val acceptedNodesDitImpl: InventoryDit        = new InventoryDit(
     new DN("ou=Accepted Inventories, ou=Inventories, cn=rudder-configuration"),
     softwareDN,
     "Accepted inventories"
   )
-  val pendingNodesDitImpl:  InventoryDit = new InventoryDit(
+  val pendingNodesDitImpl:  InventoryDit        = new InventoryDit(
     new DN("ou=Pending Inventories, ou=Inventories, cn=rudder-configuration"),
     softwareDN,
     "Pending inventories"
   )
-  val removedNodesDitImpl = new InventoryDit(
-    new DN("ou=Removed Inventories, ou=Inventories, cn=rudder-configuration"),
-    softwareDN,
-    "Removed Servers"
-  )
-  val inventoryDitService: InventoryDitService =
-    new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  val inventoryDitService:  InventoryDitService = new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl)
 
-  val inventoryMapper: InventoryMapper =
-    new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
+  val inventoryMapper: InventoryMapper = new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl)
 
   val historical = "historical-inventories"
   val srcDir: File = File("src/test/resources") / historical

@@ -130,11 +130,6 @@ trait SetupLdapRepositories {
     "test"
   )
 
-  lazy val removedDIT = new InventoryDit(
-    new DN("ou=Removed Inventories,ou=Inventories,cn=rudder-configuration"),
-    new DN("ou=Inventories,cn=rudder-configuration"),
-    "test"
-  )
   lazy val pendingDIT = new InventoryDit(
     new DN("ou=Pending Inventories,ou=Inventories,cn=rudder-configuration"),
     new DN("ou=Inventories,cn=rudder-configuration"),
@@ -143,8 +138,8 @@ trait SetupLdapRepositories {
   lazy val nodeDit    = new NodeDit(new DN("cn=rudder-configuration"))
   lazy val rudderDit  = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingDIT, acceptedDIT, removedDIT)
-  lazy val inventoryMapper = new InventoryMapper(inventoryDitService, pendingDIT, acceptedDIT, removedDIT)
+  lazy val inventoryDitService: InventoryDitService = new InventoryDitServiceImpl(pendingDIT, acceptedDIT)
+  lazy val inventoryMapper = new InventoryMapper(inventoryDitService, pendingDIT, acceptedDIT)
 
   lazy val ditQueryDataImpl: DitQueryData                                            = {
     lazy val instanceUuidPath    = File.root / "var" / "rudder" / "lib" / "webapp" / "instance-id"

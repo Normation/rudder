@@ -43,7 +43,6 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PendingInventory
-import com.normation.inventory.domain.RemovedInventory
 import com.normation.rudder.domain.logger.FactQueryProcessorLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
@@ -254,7 +253,6 @@ class NodeFactQueryProcessor(
     status match {
       case AcceptedInventory => process(SelectNodeStatus.Accepted)
       case PendingInventory  => process(SelectNodeStatus.Pending)
-      case RemovedInventory  => Chunk.empty.succeed
     }
   }
 

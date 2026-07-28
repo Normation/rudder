@@ -144,7 +144,6 @@ import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports.ChangesByRule
 import com.normation.rudder.services.reports.NodeChangesService
-import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.user.PersonIdentService
@@ -1093,7 +1092,6 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       userPropertyService,
       new NodeApiInheritedProperties(mockNodes.propRepo),
       uuidGen,
-      DeleteMode.Erase,
       mockCompliance.complianceAPIService
     ),
     new GroupsApi(

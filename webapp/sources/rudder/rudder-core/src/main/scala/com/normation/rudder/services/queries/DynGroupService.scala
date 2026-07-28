@@ -159,7 +159,6 @@ class DynGroupServiceImpl(
        * We want to see if an entry in:
        * - ou=inventories
        *   - DN: ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-       *   - DN: ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
        *   - DN: ou=Software,ou=Inventories,cn=rudder-configuration
        * - ou=nodes: DN: ou=Nodes,cn=rudder-configuration (it will also trigger if compliance mode etc change, but no way to filter out that)
        * - ou=groups: DN: groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration (we can filter out categories here)
@@ -173,11 +172,6 @@ class DynGroupServiceImpl(
         false,
         AND(
           OR(
-            // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
-            Filter.create(
-              s"entryDN:dnSubtreeMatch:=ou=Removed Inventories,ou=Inventories,cn=rudder-configuration"
-            ), // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-
             Filter.create(s"entryDN:dnSubtreeMatch:=ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"),
             AND(
               IS(OC_SOFTWARE),
