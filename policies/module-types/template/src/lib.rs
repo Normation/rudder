@@ -25,7 +25,7 @@ use std::{
 };
 
 pub const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
-pub const MODULE_FEATURES: [&str; 0] = [];
+pub const MODULE_FEATURES: [&str; 1] = ["sandboxing"];
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
